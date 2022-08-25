@@ -24,8 +24,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 
-import com.google.common.collect.ImmutableSet;
-
 public class AnnotationsV2Utils {
 
 	static final int MAX_ANNOTATION_KEYS = 100;
@@ -35,9 +33,10 @@ public class AnnotationsV2Utils {
 	private static final Pattern ALLOWABLE_CHARS = Pattern
 			.compile("^[a-zA-Z0-9,_.]+");
 	
-	public static final Set<String> RESERVED_ANNOTATION_NAMES = Arrays.asList(
-		"_accessRequirementIds"
-	).stream().map(String::toLowerCase).collect(Collectors.toSet());
+	public static final String ACCESS_REQUIREMENT_IDS = "_accessRequirementIds";
+	
+	public static final Set<String> RESERVED_ANNOTATION_NAMES = Arrays.asList(ACCESS_REQUIREMENT_IDS).stream()
+			.map(String::toLowerCase).collect(Collectors.toSet());
 
 	/**
 	 *

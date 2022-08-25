@@ -611,7 +611,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		try {
 			jdbcTemplate.batchUpdate(
 					"INSERT INTO NODE_ACCESS_REQUIREMENT"
-					+ " (SUBJECT_ID, SUBJECT_TYPE, REQUIREMENT_ID, BINDING_TYPE) VALUES (?,?,?,?)",
+							+ " (SUBJECT_ID, SUBJECT_TYPE, REQUIREMENT_ID, BINDING_TYPE) VALUES (?,?,?,?)",
 					new BatchPreparedStatementSetter() {
 
 						@Override
@@ -633,6 +633,14 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		} catch (DuplicateKeyException e) {
 			throw new IllegalArgumentException(
 					"One or more access requirement is already dynamically bound to this subject.", e);
+		} catch (DataIntegrityViolationException e) {
+			if (e.getMessage().contains("`SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID_FK` ")) {
+				throw new NotFoundException(String.format(
+						"Cannot bind access requirements to: '%s' because one or more of the provide access requirement ids does not exist: '%s'",
+						subject.getId(), arIds));
+			} else {
+				throw e;
+			}
 		}
 	}
 

@@ -9,14 +9,20 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.velocity.Template;
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.app.VelocityEngine;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
@@ -27,16 +33,27 @@ import org.mockito.Mockito;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaValidationManager;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
+import org.sagebionetworks.repo.model.helper.TermsOfUseAccessRequirementObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -62,7 +79,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -95,7 +111,17 @@ public class JsonSchemaWorkerIntegrationTest {
 	private EntityManager entityManager;
 	
 	@Autowired
-	private TableIndexDAO tableIndexDao;
+	private VelocityEngine velocityEngine;
+	
+	@Autowired
+	private FileHandleObjectHelper fileHandleObjectHelper;
+	
+	@Autowired
+	private TermsOfUseAccessRequirementObjectHelper termsOfUseAccessRequirementObjectHelper;
+	
+	@Autowired
+	private AccessRequirementManager accessRequirementManager;
+	
 
 	UserInfo adminUserInfo;
 	String organizationName;
@@ -124,10 +150,13 @@ public class JsonSchemaWorkerIntegrationTest {
 
 	@AfterEach
 	public void after() {
+		fileHandleObjectHelper.truncateAll();
 		jsonSchemaManager.truncateAll();
 		if (projectId != null) {
 			entityManager.deleteEntity(adminUserInfo, projectId);
 		}
+		termsOfUseAccessRequirementObjectHelper.truncateAll();
+
 	}
 
 	@Test
@@ -203,6 +232,24 @@ public class JsonSchemaWorkerIntegrationTest {
 	public JsonSchema getSchemaFromClasspath(String name) throws Exception {
 		String json = loadStringFromClasspath(name);
 		return EntityFactory.createEntityFromJSONString(json, JsonSchema.class);
+	}
+	
+	/**
+	 * Load a JSON schema from the classpath and apply the provided velocity context before parsing.
+	 * @param name
+	 * @param context
+	 * @return
+	 * @throws Exception
+	 */
+	public JsonSchema getSchemaTemplateFromClasspath(String name, String schemaId, VelocityContext context) throws Exception {
+		Template tempalte = velocityEngine.getTemplate(name);
+		StringWriter writer = new StringWriter();
+		tempalte.merge(context, writer);
+		String json = writer.toString();
+		JsonSchema schema =  EntityFactory.createEntityFromJSONString(json, JsonSchema.class);
+		schema.set$schema("http://json-schema.org/draft-07/schema#");
+		schema.set$id(schemaId);
+		return schema;
 	}
 
 	/**
@@ -877,6 +924,105 @@ public class JsonSchemaWorkerIntegrationTest {
 			);
 			assertEquals(expected, response.getResults());
 		}, MAX_WAIT_MS);
+	}
+	
+	@Test
+	public void testDerivedAnnotationWithAccessRequirmentIdBinding() throws Exception {
+		bootstrapAndCreateOrganization();
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+		
+		AccessRequirement ar1 =  termsOfUseAccessRequirementObjectHelper.create((a)->{a.setName("one");});
+		AccessRequirement ar2 =  termsOfUseAccessRequirementObjectHelper.create((a)->{a.setName("two");});
+		AccessRequirement ar3 =  termsOfUseAccessRequirementObjectHelper.create((a)->{a.setName("three");});
+
+		// create the schema
+		String fileName = "schema/DerivedWithAccessRequirementIds.json";
+		JsonSchema schema = getSchemaTemplateFromClasspath(fileName, "my.organization-DerivedWithAccessRequirementIds",
+				new VelocityContext(Map.of("arOne", ar1.getId(), "arTwo", ar2.getId(), "arThree", ar3.getId())));
+		CreateSchemaResponse createResponse = registerSchema(schema);
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		// Now bind the schema to the project, this will enable derived annotations from
+		// the schema that will eventually be replicated
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(projectId);
+		bindRequest.setSchema$id(schema$id);
+		bindRequest.setEnableDerivedAnnotations(true);
+
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+		
+		// one
+		FileEntity fileOne = createFileWithAnnotations(projectId, "one", (c)->{
+			c.put("someBoolean", true);
+		});
+		
+
+		waitForValidationResults(adminUserInfo, fileOne.getId(), (ValidationResults t) -> {
+			assertNotNull(t);
+			assertTrue(t.getIsValid());
+		});
+
+		boolean includeDerivedAnnotations = true;
+		Annotations annotations = entityManager.getAnnotations(adminUserInfo, fileOne.getId(),
+				includeDerivedAnnotations);
+		Annotations expected = new Annotations();
+		expected.setId(annotations.getId());
+		expected.setEtag(annotations.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expected, "someBoolean", "true", AnnotationsValueType.BOOLEAN);
+		AnnotationsV2TestUtils.putAnnotations(expected, "_accessRequirementIds",
+				List.of(ar1.getId().toString(), ar2.getId().toString()), AnnotationsValueType.LONG);
+		assertEquals(expected, annotations);
+		
+		Long limit = 50L;
+		Long offset = 0L;
+		// validate that the ARs are bound to the entity.
+		Set<Long> boundArIds = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo,
+				new RestrictableObjectDescriptor().setId(fileOne.getId()).setType(RestrictableObjectType.ENTITY), limit,
+				offset).stream().map(AccessRequirement::getId).collect(Collectors.toSet());
+		assertEquals(Set.of(ar1.getId(), ar2.getId()), boundArIds);
+		
+		// two
+		FileEntity fileTwo = createFileWithAnnotations(projectId, "two", (c)->{
+			c.put("someBoolean", false);
+		});
+
+		waitForValidationResults(adminUserInfo, fileTwo.getId(), (ValidationResults t) -> {
+			assertNotNull(t);
+			assertTrue(t.getIsValid());
+		});
+
+		annotations = entityManager.getAnnotations(adminUserInfo, fileTwo.getId(), includeDerivedAnnotations);
+		expected = new Annotations();
+		expected.setId(annotations.getId());
+		expected.setEtag(annotations.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expected, "someBoolean", "false", AnnotationsValueType.BOOLEAN);
+		AnnotationsV2TestUtils.putAnnotations(expected, "_accessRequirementIds",
+				List.of(ar2.getId().toString(), ar3.getId().toString()), AnnotationsValueType.LONG);
+		assertEquals(expected, annotations);
+		
+		// validate that the ARs are bound to the entity.
+		boundArIds = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo,
+				new RestrictableObjectDescriptor().setId(fileTwo.getId()).setType(RestrictableObjectType.ENTITY), limit,
+				offset).stream().map(AccessRequirement::getId).collect(Collectors.toSet());
+		assertEquals(Set.of(ar2.getId(), ar3.getId()), boundArIds);
+		
+	}
+	
+	/**
+	 * Helper to create a FileEntity with the annotations defined by the provider consumer.
+	 * @param parentId
+	 * @param name
+	 * @param consumer
+	 * @return
+	 */
+	public FileEntity createFileWithAnnotations(String parentId, String name, Consumer<JSONObject> consumer) {
+		S3FileHandle fileHandle =  fileHandleObjectHelper.createS3(h->{h.setFileName("theFile.txt");});
+		FileEntity file = new FileEntity().setName(name).setDataFileHandleId(fileHandle.getId()).setParentId(parentId);
+		String id = entityManager.createEntity(adminUserInfo, file, null);
+		JSONObject fileJson = entityManager.getEntityJson(id, false);
+		consumer.accept(fileJson);
+		fileJson = entityManager.updateEntityJson(adminUserInfo, id, fileJson);
+		return entityManager.getEntity(adminUserInfo, id, FileEntity.class);
 	}
 		
 	/**
