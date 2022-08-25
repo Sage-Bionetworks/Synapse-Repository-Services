@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -1936,7 +1937,7 @@ public class AccessRequirementManagerImplUnitTest {
 	@Test
 	public void testSetDynamicallyBoundAccessRequirementsForSubjectWithAddOnly() {
 		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor();
-		Set<Long> newArIds = Set.of(111L,222L);
+		Set<Long> newArIds = new LinkedHashSet<>(List.of(111L, 222L));
 		when(accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(any())).thenReturn(Collections.emptyList());
 		
 		// call under test
@@ -1964,7 +1965,7 @@ public class AccessRequirementManagerImplUnitTest {
 	@Test
 	public void testSetDynamicallyBoundAccessRequirementsForSubjectWithNoChange() {
 		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor();
-		Set<Long> newArIds = Set.of(111L,222L);
+		Set<Long> newArIds = new LinkedHashSet<>(List.of(111L, 222L));
 		when(accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(any())).thenReturn(List.of(111L,222L));
 		
 		// call under test
@@ -1977,7 +1978,7 @@ public class AccessRequirementManagerImplUnitTest {
 	@Test
 	public void testSetDynamicallyBoundAccessRequirementsForSubjectWithAddAndRemove() {
 		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor();
-		Set<Long> newArIds = Set.of(111L,222L,333L);
+		Set<Long> newArIds = new LinkedHashSet<>(List.of(111L, 222L,333L));
 		when(accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(any())).thenReturn(List.of(111L,444L,555L));
 		
 		// call under test
