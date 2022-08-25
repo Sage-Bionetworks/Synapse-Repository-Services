@@ -613,25 +613,17 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			Set<Long> newArIds) {
 		ValidateArgument.required(subject, "subject");
 		ValidateArgument.required(newArIds, "newArIds");
-		
-		Set<Long> currentIds = new LinkedHashSet<>(accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(subject));
-		
-		List<Long> toRemove = new ArrayList<>();
-		for(Long currentId: currentIds) {
-			if(!newArIds.contains(currentId)) {
-				toRemove.add(currentId);
-			}
-		}
-		List<Long> toAdd = new ArrayList<>();
-		for(Long newId: newArIds) {
-			if(!currentIds.contains(newId)) {
-				toAdd.add(newId);
-			}
-		}
-		if(!toRemove.isEmpty()) {
+
+		Set<Long> currentIds = new LinkedHashSet<>(
+				accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(subject));
+
+		List<Long> toRemove = currentIds.stream().filter(i -> !newArIds.contains(i)).collect(Collectors.toList());
+		List<Long> toAdd = newArIds.stream().filter(i -> !currentIds.contains(i)).collect(Collectors.toList());
+
+		if (!toRemove.isEmpty()) {
 			accessRequirementDAO.removeDynamicallyBoundAccessRequirementsFromSubject(subject, toRemove);
 		}
-		if(!toAdd.isEmpty()) {
+		if (!toAdd.isEmpty()) {
 			accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subject, toAdd);
 		}
 	}

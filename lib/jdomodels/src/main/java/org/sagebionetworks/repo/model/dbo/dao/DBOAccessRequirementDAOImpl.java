@@ -636,7 +636,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		} catch (DataIntegrityViolationException e) {
 			if (e.getMessage().contains("`SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID_FK` ")) {
 				throw new NotFoundException(String.format(
-						"Cannot bind access requirements to: '%s' because one or more of the provide access requirement ids does not exist: '%s'",
+						"Cannot bind access requirements to: '%s' because one or more of the provided access requirement IDs does not exist: '%s'",
 						subject.getId(), arIds));
 			} else {
 				throw e;

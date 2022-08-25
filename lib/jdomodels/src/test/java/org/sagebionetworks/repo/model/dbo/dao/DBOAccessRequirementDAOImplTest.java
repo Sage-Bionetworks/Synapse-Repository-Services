@@ -1033,8 +1033,8 @@ public class DBOAccessRequirementDAOImplTest {
 			accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subject, List.of(-222L));
 		}).getMessage();
 		assertEquals(
-				"Cannot bind access requirements to: 'syn123' because one or more of the provide"
-				+ " access requirement ids does not exist: '[-222]'",
+				"Cannot bind access requirements to: 'syn123' because one or more of the provided"
+				+ " access requirement IDs does not exist: '[-222]'",
 				message);
 	}
 	
