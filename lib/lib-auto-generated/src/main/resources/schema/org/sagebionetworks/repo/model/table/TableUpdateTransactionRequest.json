@@ -1,5 +1,5 @@
 {
-	"description": "An AsynchronousRequestBody to used make multiple changes to a table as a single 'transaction'. All changes will either succeed or fail as a unit.",
+	"description": "An AsynchronousRequestBody to used make multiple changes to a table or view as a single 'transaction'. All changes will either succeed or fail as a unit.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
@@ -10,14 +10,14 @@
 	],
 	"properties": {
 		"changes": {
-			"description": "List of changes that describes schema and/or row changes to a table.",
+			"description": "List of changes that describes schema and/or row changes to a table. For a view the changes are eventually consistent.",
 			"type": "array",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.table.TableUpdateRequest"
 			}
 		},
 		"createSnapshot": {
-			"description": "When set to 'true', a snapshot of the table will be created after the change from this transaction request are applied to the table.",
+			"description": "When set to 'true', a snapshot of the table or view will be created and a new version of the entity will be persisted. For a table the snapshot is created after any change from this transaction request are applied to the table. Views do not support changes in the request when a snapshot is created.",
 			"type": "boolean"
 		},
 		"snapshotOptions": {

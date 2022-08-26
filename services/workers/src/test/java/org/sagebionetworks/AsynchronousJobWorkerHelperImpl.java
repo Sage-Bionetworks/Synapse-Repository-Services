@@ -293,15 +293,14 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 
 	/**
 	 * Wait for EntityReplication to show the given etag for the given entityId.
-	 * 
-	 * @param tableId
 	 * @param entityId
 	 * @param etag
+	 * 
 	 * @return
 	 * @throws InterruptedException
 	 */
 	@Override
-	public ObjectDataDTO waitForEntityReplication(UserInfo user, String tableId, String entityId, long maxWaitMS)
+	public ObjectDataDTO waitForEntityReplication(UserInfo user, String entityId, long maxWaitMS)
 			throws InterruptedException {
 		Entity entity = entityManager.getEntity(user, entityId);
 		return waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(entity.getId()), entity.getEtag(),

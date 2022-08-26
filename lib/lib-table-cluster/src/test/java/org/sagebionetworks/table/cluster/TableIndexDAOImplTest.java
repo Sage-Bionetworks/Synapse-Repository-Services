@@ -2256,94 +2256,6 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testCreateViewSnapshotFromEntityReplicationWithDoubleAnnotation(){
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
-		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-		
-		// setup some hierarchy.
-		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
-		file1.setParentId(333L);
-		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO(file1);
-		double1.setKey("foo");
-		double1.setValue("NaN");
-		double1.setType(AnnotationType.DOUBLE);
-		file1.setAnnotations(Arrays.asList(double1));
-		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
-		file2.setParentId(222L);
-		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO(file2);
-		double2.setKey("foo");
-		double2.setValue("Infinity");
-		double2.setType(AnnotationType.DOUBLE);
-		file2.setAnnotations(Arrays.asList(double2));
-		
-		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-		
-		// both parents
-		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
-		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
-				.createColumn(1L, "foo", ColumnType.DOUBLE));
-		
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
-		// capture the results of the stream
-		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
-		// call under test
-		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), filter, schema, fieldTypeMapper, stream);
-		List<String[]> rows = stream.getRows();
-		assertNotNull(rows);
-		assertEquals(3, rows.size());
-		assertArrayEquals(new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "_DBL_C1_", "_C1_"}, rows.get(0));
-		assertArrayEquals(new String[] {"2", "2", "etag2", "2", "NaN", null}, rows.get(1));
-		assertArrayEquals(new String[] {"3", "2", "etag3", "2", "Infinity", "1.7976931348623157E308"}, rows.get(2));
-	}
-
-	@Test
-	public void testCreateViewSnapshotFromEntityReplication_ListColumns(){
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
-		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-
-		// setup some hierarchy.
-		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
-		file1.setParentId(333L);
-		ObjectAnnotationDTO int1 = new ObjectAnnotationDTO(file1);
-		int1.setKey("foo");
-		int1.setValue(Arrays.asList("123", "456", "789"));
-		int1.setType(AnnotationType.LONG);
-		file1.setAnnotations(Arrays.asList(int1));
-		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
-		file2.setParentId(222L);
-		ObjectAnnotationDTO int2 = new ObjectAnnotationDTO(file2);
-		int2.setKey("foo");
-		int2.setValue(Arrays.asList("321", "654"));
-		int2.setType(AnnotationType.LONG);
-		file2.setAnnotations(Arrays.asList(int2));
-
-		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-
-		// both parents
-		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
-		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
-				.createColumn(1L, "foo", ColumnType.INTEGER_LIST));
-		
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
-		// capture the results of the stream
-		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
-		// call under test
-		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), filter, schema, fieldTypeMapper, stream);
-		List<String[]> rows = stream.getRows();
-		assertNotNull(rows);
-		assertEquals(3, rows.size());
-
-		assertArrayEquals(new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR" , "_C1_"}, rows.get(0));
-		assertArrayEquals(new String[] {"2", "2", "etag2", "2", "[123, 456, 789]"}, rows.get(1));
-		assertArrayEquals(new String[] {"3", "2", "etag3", "2", "[321, 654]"}, rows.get(2));
-	}
-
-	
-	@Test
 	public void testPopulateViewFromSnapshot(){
 		tableId = IdAndVersion.parse("syn123.45");
 		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
@@ -2351,39 +2263,19 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		tableIndexDAO.deleteTable(tableId);
 		
-		// setup some hierarchy.
-		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
-		file1.setParentId(333L);
-		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO(file1);
-		double1.setKey("foo");
-		double1.setValue("NaN");
-		double1.setType(AnnotationType.DOUBLE);
-		file1.setAnnotations(Arrays.asList(double1));
-		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
-		file2.setParentId(222L);
-		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO(file2);
-		double2.setKey("foo");
-		double2.setValue("Infinity");
-		double2.setType(AnnotationType.DOUBLE);
-		file2.setAnnotations(Arrays.asList(double2));
-		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-		
-		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
-
-		// both parents
-		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
-		
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
-		// capture the results of the stream
-		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
-		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), filter, schema, fieldTypeMapper, stream);
-		List<String[]> rows = stream.getRows();
-		assertNotNull(rows);
-		assertEquals(3, rows.size());
+		List<ColumnModel> schema = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER_LIST), 
+			TableModelTestUtils.createColumn(2L, "bar", ColumnType.DOUBLE)
+		);
 		
 		createOrUpdateTable(schema, indexDescription);
+		
+		List<String[]> rows = Arrays.asList(
+			new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR" , "_C1_", "_C2_", "_DBL_C2_"},
+			new String[] {"2", "2", "etag2", "2", "[123, 456, 789]", null, "NaN"}, 
+			new String[] {"3", "2", "etag3", "2", "[321, 654]", "1.7976931348623157E308", "Infinity"}
+		);
+		
 		// small batch size to force multiple batches.
 		long maxBytesPerBatch = 10;
 		// call under test
@@ -2391,23 +2283,6 @@ public class TableIndexDAOImplTest {
 		
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(rows.size()-1, count);
-	}
-	
-	@Test
-	public void testCreateViewSnapshotFromEntityReplicationEmptyScope() {
-		// empty scope
-		Set<Long> scope = new HashSet<>();
-		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils.createColumn(1L, "foo", ColumnType.DOUBLE));
-		// capture the results of the stream
-		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
-				
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
-		assertThrows(UndefinedViewScopeException.class, () -> {
-			// call under test
-			tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), filter, schema,
-					fieldTypeMapper, stream);
-		});
 	}
 
 	@Test
@@ -4414,7 +4289,7 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testRefreshViewBenefactors() throws ParseException{
-		tableId = IdAndVersion.parse("syn123.45");
+		tableId = IdAndVersion.parse("syn123");
 		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
@@ -4444,17 +4319,10 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
-		// capture the results of the stream
-		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
-		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), filter, schema, fieldTypeMapper, stream);
-		List<String[]> rows = stream.getRows();
-		assertNotNull(rows);
-		assertEquals(3, rows.size());
-		
+
 		createOrUpdateTable(schema, indexDescription);
-		long maxBytesPerBatch = 10;
-		tableIndexDAO.populateViewFromSnapshot(tableId, rows.iterator(), maxBytesPerBatch);
+		
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
 		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_BENEFACTOR from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
@@ -4817,6 +4685,72 @@ public class TableIndexDAOImplTest {
 		}).getMessage();
 		assertEquals("offset is required.", message);
 	}
+	
+	@Test
+	public void testStreamTableToCSV() {
+		tableId = IdAndVersion.parse("syn123");
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteTable(tableId);
+		
+		// setup some hierarchy.
+		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+		
+		ObjectAnnotationDTO int1 = new ObjectAnnotationDTO(file1);
+		int1.setKey("foo");
+		int1.setValue(Arrays.asList("123", "456", "789"));
+		int1.setType(AnnotationType.LONG);
+		
+		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO(file1);
+		double1.setKey("bar");
+		double1.setValue("NaN");
+		double1.setType(AnnotationType.DOUBLE);
+		
+		file1.setAnnotations(Arrays.asList(int1, double1));
+		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+		
+		ObjectAnnotationDTO int2 = new ObjectAnnotationDTO(file2);
+		int2.setKey("foo");
+		int2.setValue(Arrays.asList("321", "654"));
+		int2.setType(AnnotationType.LONG);
+		
+		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO(file2);
+		double2.setKey("bar");
+		double2.setValue("Infinity");
+		double2.setType(AnnotationType.DOUBLE);
+		
+		file2.setAnnotations(Arrays.asList(int2, double2));
+		
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
+		
+		// Create the schema for this table
+		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER_LIST), TableModelTestUtils.createColumn(2L, "bar", ColumnType.DOUBLE));
+
+		// both parents
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, Sets.newHashSet(file1.getParentId(), file2.getParentId()));
+
+		createOrUpdateTable(schema, indexDescription);
+		
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
+		
+		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
+		
+		// Call under test
+		List<String> result = tableIndexDAO.streamTableToCSV(tableId, stream);
+		
+		assertEquals(schema.stream().map(ColumnModel::getId).collect(Collectors.toList()), result);
+		
+		List<String[]> rows = stream.getRows();
+		
+		assertArrayEquals(new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR" , "_C1_", "_C2_", "_DBL_C2_"}, rows.get(0));
+		assertArrayEquals(new String[] {"2", "2", "etag2", "2", "[123, 456, 789]", null, "NaN"}, rows.get(1));
+		assertArrayEquals(new String[] {"3", "2", "etag3", "2", "[321, 654]", "1.7976931348623157E308", "Infinity"}, rows.get(2));
+	}
+	
+
 	
 	/**
 	 * Helper to create a schema provider for the given schema.

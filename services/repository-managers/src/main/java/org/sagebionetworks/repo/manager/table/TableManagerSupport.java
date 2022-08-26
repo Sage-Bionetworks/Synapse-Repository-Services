@@ -247,7 +247,7 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @return
 	 * @throws Exception
 	 */
-	<R> R tryRunWithTableNonexclusiveLock(ProgressCallback callback, ProgressingCallable<R> runner,
+	<R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, ProgressingCallable<R> runner,
 			IdAndVersion...tableIds) throws Exception;
 
 	/**
@@ -260,6 +260,17 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @throws Exception
 	 */
 	<R> R tryRunWithTableExclusiveLock(ProgressCallback callback, String key, ProgressingCallable<R> runner)
+			throws Exception;
+	
+	/**
+	 * @see TableManagerSupport#tryRunWithTableNonExclusiveLock(ProgressCallback, ProgressingCallable, IdAndVersion...)
+	 * @param callback
+	 * @param key
+	 * @param runner
+	 * @return
+	 * @throws Exception
+	 */
+	<R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, ProgressingCallable<R> runner, String ...keys)
 			throws Exception;
 
 	/**

@@ -136,7 +136,7 @@ public class AddFilesToDownloadListWorkerIntegrationTest {
 		EntityView view = asynchronousJobWorkerHelper.createEntityView(adminUserInfo, "aView" + UUID.randomUUID().toString(), project.getParentId(), scope, viewTypeMask);
 		
 		// Wait for the file to appear in the table's database.
-		asynchronousJobWorkerHelper.waitForEntityReplication(adminUserInfo, view.getId(), file.getId(), MAX_WAIT_MS);
+		asynchronousJobWorkerHelper.waitForEntityReplication(adminUserInfo, file.getId(), MAX_WAIT_MS);
 		
 		String sql = "select * from "+view.getId();
 		

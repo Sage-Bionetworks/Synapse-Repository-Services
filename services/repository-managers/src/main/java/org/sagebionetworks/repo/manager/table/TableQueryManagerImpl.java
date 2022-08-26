@@ -230,7 +230,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws TableUnavailableException, TableFailedException, EmptyResultException {
 
 		try {
-			return tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, runner,
+			return tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, runner,
 					idAndversion);
 		} catch (RuntimeException | TableUnavailableException | EmptyResultException | TableFailedException e) {
 			// runtime exceptions are unchanged.

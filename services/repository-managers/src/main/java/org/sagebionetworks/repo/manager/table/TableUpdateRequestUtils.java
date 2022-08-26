@@ -32,10 +32,11 @@ public class TableUpdateRequestUtils {
 		}
 		boolean hasAtLeastOneChange = request.getChanges() != null && !request.getChanges().isEmpty();
 		boolean hasCreateSnapshot = request.getCreateSnapshot() != null && request.getCreateSnapshot();
+		
 		if (!hasAtLeastOneChange && !hasCreateSnapshot) {
 			throw new IllegalArgumentException("Must include be at least one change or create a snapshot.");
 		}
-
+		
 		if (hasAtLeastOneChange) {
 			String tableId = request.getEntityId();
 			for (TableUpdateRequest change : request.getChanges()) {

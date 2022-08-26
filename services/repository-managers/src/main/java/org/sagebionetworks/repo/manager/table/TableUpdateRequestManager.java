@@ -26,6 +26,6 @@ public interface TableUpdateRequestManager {
 	TableUpdateTransactionResponse updateTableWithTransaction(
 			ProgressCallback progressCallback,
 			UserInfo userInfo,
-			TableUpdateTransactionRequest request) throws RecoverableMessageException, TableUnavailableException;
+			TableUpdateTransactionRequest request) throws Exception;
 
 }

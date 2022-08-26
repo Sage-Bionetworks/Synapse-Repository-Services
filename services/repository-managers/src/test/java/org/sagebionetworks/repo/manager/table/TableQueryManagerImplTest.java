@@ -237,7 +237,7 @@ public class TableQueryManagerImplTest {
 
 	void setupNonExclusiveLock() throws Exception {
 		// Just call the caller.
-		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
+		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(any(ProgressCallback.class),
 				any(ProgressingCallable.class), any(IdAndVersion.class))).thenAnswer(new Answer<Object>() {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
@@ -322,14 +322,14 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result.getQueryResult().getQueryResults());
 		assertEquals(status.getLastTableChangeEtag(), result.getQueryResult().getQueryResults().getEtag());
 		// an exclusive lock must be held for a consistent query.
-		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class), any(ProgressingCallable.class), any(IdAndVersion.class));
+		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class), any(ProgressingCallable.class), any(IdAndVersion.class));
 		// The table status should be checked only for a consistent query.
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
 	}
 	
 	@Test
 	public void testQueryAsStreamNotFoundException() throws Exception{
-		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
+		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
 				new NotFoundException("not found"));
@@ -344,7 +344,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamTableUnavailableException() throws Exception{
-		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
+		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
 				new TableUnavailableException(new TableStatus()));
@@ -359,7 +359,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamTableFailedException() throws Exception{
-		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
+		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
 				new TableFailedException(new TableStatus()));
@@ -374,7 +374,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamLockUnavilableException() throws Exception{
-		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
+		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class),any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
 				new LockUnavilableException());
@@ -390,7 +390,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamEmptyResultException() throws Exception{
-		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
+		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class),any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
 				new EmptyResultException());

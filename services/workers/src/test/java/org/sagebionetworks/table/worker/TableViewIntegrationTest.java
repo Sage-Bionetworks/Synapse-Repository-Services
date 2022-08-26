@@ -340,7 +340,7 @@ public class TableViewIntegrationTest {
 	public void testFileView() throws Exception{
 		createFileView();
 		// wait for replication
-		waitForEntityReplication(fileViewId, fileViewId);
+		waitForEntityReplication(fileViewId);
 		// query the view as a user that does not permission
 		String sql = "select * from "+fileViewId;
 
@@ -356,7 +356,7 @@ public class TableViewIntegrationTest {
 		AccessControlList acl = AccessControlListUtil.createACL(fileViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
 		entityAclManager.overrideInheritance(acl, adminUserInfo);
 		// wait for replication
-		waitForEntityReplication(fileViewId, fileViewId);
+		waitForEntityReplication(fileViewId);
 		
 		// run the query again
 		waitForConsistentQuery(userInfo, sql, (results) -> {
@@ -369,7 +369,7 @@ public class TableViewIntegrationTest {
 		
 		grantUserReadAccessOnProject();
 		// wait for replication
-		waitForEntityReplication(fileViewId, fileViewId);
+		waitForEntityReplication(fileViewId);
 		
 		// run the query again
 		waitForConsistentQuery(userInfo, sql, (results) -> {			
@@ -386,7 +386,7 @@ public class TableViewIntegrationTest {
 	public void testFileViewWithEtag() throws Exception{
 		createFileView();
 		// wait for replication
-		waitForEntityReplication(fileViewId, fileViewId);
+		waitForEntityReplication(fileViewId);
 		Query query = new Query();
 		query.setSql("select * from "+fileViewId);
 		query.setIncludeEntityEtag(true);
@@ -408,7 +408,7 @@ public class TableViewIntegrationTest {
 	public void testSumFileSizes() throws Exception{
 		createFileView();
 		// wait for replication
-		waitForEntityReplication(fileViewId, fileViewId);
+		waitForEntityReplication(fileViewId);
 		Query query = new Query();
 		query.setSql("select * from "+fileViewId);
 		QueryOptions options = new QueryOptions().withRunSumFileSizes(true).withRunQuery(true);
@@ -442,7 +442,7 @@ public class TableViewIntegrationTest {
 		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 		// lookup the file
 		final FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
-		waitForEntityReplication(fileViewId, file.getId());
+		waitForEntityReplication(file.getId());
 		// query the etag of the first file
 		String sql = "select etag from "+fileViewId+" where id = "+fileId;
 		
@@ -463,7 +463,7 @@ public class TableViewIntegrationTest {
 		
 		entityManager.updateEntity(adminUserInfo, file, false, null);
 		// wait for the change to be replicated.
-		waitForEntityReplication(fileViewId, file.getId());
+		waitForEntityReplication(file.getId());
 		// run the query again
 		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
 			assertNotNull(results);
@@ -482,7 +482,7 @@ public class TableViewIntegrationTest {
 		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 		// lookup the file
 		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
-		waitForEntityReplication(fileViewId, file.getId());
+		waitForEntityReplication(file.getId());
 		// change the schema as a transaction
 		ColumnChange remove = new ColumnChange();
 		remove.setOldColumnId(benefactorColumn.getId());
@@ -524,7 +524,7 @@ public class TableViewIntegrationTest {
 		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 		// lookup the file
 		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
-		waitForEntityReplication(fileViewId, file.getId());
+		waitForEntityReplication(file.getId());
 		
 		Map<String, String> rowValues = new HashMap<String, String>();
 		rowValues.put(anno1Column.getId(), "123456789");
@@ -576,7 +576,7 @@ public class TableViewIntegrationTest {
 		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 		// lookup the file
 		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
-		waitForEntityReplication(fileViewId, file.getId());
+		waitForEntityReplication(file.getId());
 		
 		Map<String, String> rowValues = new HashMap<String, String>();
 		rowValues.put(anno1Column.getId(), "123456789");
@@ -633,7 +633,7 @@ public class TableViewIntegrationTest {
 		assertTrue(fileId.startsWith("syn"));
 		// lookup the file
 		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
-		waitForEntityReplication(fileViewId, file.getId());
+		waitForEntityReplication(file.getId());
 		
 		String sql = "select id, parentId, projectId, benefactorId from "+fileViewId+" where id = '"+fileId+"'";
 		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
@@ -676,7 +676,7 @@ public class TableViewIntegrationTest {
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
 		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "too big", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
-		waitForEntityReplication(fileViewId, fileId);
+		waitForEntityReplication(fileId);
 
 		
 		String sql = "select * from " + fileViewId;
@@ -716,7 +716,7 @@ public class TableViewIntegrationTest {
 		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "this is a duplicate value", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// For PLFM-4371 the replication was failing due to the duplicate name
-		waitForEntityReplication(fileViewId, fileId);
+		waitForEntityReplication(fileId);
 	}
 
 	/**
@@ -734,7 +734,7 @@ public class TableViewIntegrationTest {
 	public void testPLFM_4366() throws Exception{
 		createFileView();
 		// wait for the view to be available for query
-		waitForEntityReplication(fileViewId, fileViewId);
+		waitForEntityReplication(fileViewId);
 		// query the view as a user that does not permission
 		String sql = "select * from "+fileViewId;
 		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
@@ -774,7 +774,7 @@ public class TableViewIntegrationTest {
 		}
 		// Create a project view
 		String viewId = createView(ViewType.project, scope);
-		waitForEntityReplication(viewId, lastProjectId);
+		waitForEntityReplication(lastProjectId);
 		// query the view as a user that does not permission
 		String sql = "select * from "+viewId;
 		
@@ -809,7 +809,7 @@ public class TableViewIntegrationTest {
 		// create the view for this scope
 		createFileView();
 		// wait for the view to be available for query
-		waitForEntityReplication(fileViewId, fileViewId);
+		waitForEntityReplication(fileViewId);
 		// query for the file that inherits from the folder.
 		String sql = "select * from "+fileViewId+" where benefactorId='"+folderId+"' and id = '"+fileId+"'";
 		
@@ -851,7 +851,7 @@ public class TableViewIntegrationTest {
 		String firstFileId = fileIds.get(0);
 		Long firtFileIdLong = KeyFactory.stringToKey(firstFileId);
 		// wait for the view to be available for query
-		waitForEntityReplication(fileViewId, firstFileId);
+		waitForEntityReplication(firstFileId);
 		// query the view as a user that does not permission
 		String sql = "select * from "+fileViewId+" where id ='"+firstFileId+"'";
 		int rowCount = 1;
@@ -884,7 +884,7 @@ public class TableViewIntegrationTest {
 		List<String> scope = Lists.newArrayList(projectId);
 		String viewId = createView(ViewType.project, scope);
 		// wait for the view.
-		waitForEntityReplication(viewId, projectId);
+		waitForEntityReplication(projectId);
 		// query the view as a user that does not permission
 		String sql = "select * from "+viewId+" where id ='"+projectId+"'";
 		int rowCount = 1;
@@ -1097,7 +1097,7 @@ public class TableViewIntegrationTest {
 		createFileView();
 		
 		// wait for the view.
-		waitForEntityReplication(fileViewId, fileId);
+		waitForEntityReplication(fileId);
 		
 		// Query for the values as strings.
 		String sql = "select "+stringColumn.getName()+" from "+fileViewId+" where ROW_ID="+KeyFactory.stringToKey(fileId);
@@ -1128,7 +1128,7 @@ public class TableViewIntegrationTest {
 		}
 		
 		// wait for the view.
-		waitForEntityReplication(fileViewId, fileId);
+		waitForEntityReplication(fileId);
 		
 		// Wait for the change to appear in the vie
 		waitForConsistentQuery(adminUserInfo, query, (results) -> {			
@@ -1162,7 +1162,7 @@ public class TableViewIntegrationTest {
 		fileViewId = createView(type, scope);
 	
 		// wait for the view.
-		waitForEntityReplication(fileViewId, childTableId);
+		waitForEntityReplication(childTableId);
 		
 		// Query for the values as strings.
 		Query query = new Query();
@@ -1202,7 +1202,7 @@ public class TableViewIntegrationTest {
 		fileViewId = createView(viewTypeMask, scope, false);
 	
 		// wait for the view.
-		waitForEntityReplication(fileViewId, childDatasetId);
+		waitForEntityReplication(childDatasetId);
 		
 		// Query for the values as strings.
 		Query query = new Query();
@@ -1278,43 +1278,17 @@ public class TableViewIntegrationTest {
 	@Test
 	public void testViewSnapshot() throws Exception {
 		createFileView();
-		// add a column to the view.
-		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
-		ColumnChange addColumn = new ColumnChange();
-		addColumn.setNewColumnId(stringColumn.getId());
-		schemaChangeRequest.setChanges(Lists.newArrayList(addColumn));
-		// Add a string annotation to each file in the view
-		List<PartialRow> rowsToAdd = new LinkedList<>();
-		int counter = 0;
-		for (String fileId : fileIds) {
-			PartialRow row = new PartialRow();
-			row.setRowId(KeyFactory.stringToKey(fileId));
-			Map<String, String> values = new HashMap<>(1);
-			values.put(stringColumn.getId(), "string value:" + counter++);
-			FileEntity file = entityManager.getEntity(adminUserInfo, fileId, FileEntity.class);
-			row.setEtag(file.getEtag());
-			row.setValues(values);
-			rowsToAdd.add(row);
-		}
-		PartialRowSet rowChange = new PartialRowSet();
-		rowChange.setTableId(fileViewId);
-		rowChange.setRows(rowsToAdd);
-		AppendableRowSetRequest rowSetRequest = new AppendableRowSetRequest();
-		rowSetRequest.setToAppend(rowChange);
-
-		// create a snapshot after the change
+		
+		waitForRowCount(adminUserInfo, "select * from " + fileViewId, fileIds.size());
+		
 		SnapshotRequest snapshotOptions = new SnapshotRequest();
 		snapshotOptions.setSnapshotComment("the first view snapshot ever!");
 
-		// Add all of the parts
 		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
 		transactionRequest.setEntityId(fileViewId);
-		transactionRequest.setChanges(Lists.newArrayList(schemaChangeRequest, rowSetRequest));
 		transactionRequest.setCreateSnapshot(true);
 		transactionRequest.setSnapshotOptions(snapshotOptions);
 
-		// Start the job that will change the schema and annotations to each file and
-		// then snapshot the view.
 		// call under test
 		Long snaphsotVersionNumber = startAndWaitForJob(adminUserInfo, transactionRequest, (TableUpdateTransactionResponse response) -> {				
 			assertNotNull(response);
@@ -1322,15 +1296,7 @@ public class TableViewIntegrationTest {
 		}).getSnapshotVersionNumber();
 
 		// Query the snapshot
-		Query query = new Query();
-		query.setSql("select * from " + fileViewId + "." + snaphsotVersionNumber);
-		query.setIncludeEntityEtag(true);
-		
-		waitForConsistentQuery(adminUserInfo, query, (queryResults) -> {			
-			assertNotNull(queryResults);
-			List<Row> rows = extractRows(queryResults);
-			assertEquals(3, rows.size());
-		});
+		waitForRowCount(adminUserInfo, "select * from " + fileViewId + "." + snaphsotVersionNumber, 3);
 	}
 	
 	/**
@@ -1366,7 +1332,7 @@ public class TableViewIntegrationTest {
 		acl = AccessControlListUtil.createACL(fileViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
 		entityAclManager.overrideInheritance(acl, adminUserInfo);
 		// wait for the view to be available for query
-		waitForEntityReplication(fileViewId, fileOneId);
+		waitForRowCount(adminUserInfo, "select * from "+fileViewId, fileIds.size() + 1);
 		
 		// Create a snapshot for this view
 		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
@@ -1445,7 +1411,7 @@ public class TableViewIntegrationTest {
 		createFileView();
 		
 		// wait for the view.
-		waitForEntityReplication(fileViewId, fileId);
+		waitForEntityReplication(fileId);
 		
 		String message = assertThrows(AsynchJobFailedException.class, () -> {
 			waitForRowCount(adminUserInfo, "select * from "+fileViewId+".1", 1);
@@ -1470,17 +1436,17 @@ public class TableViewIntegrationTest {
 		defaultColumnIds = Lists.newArrayList(stringColumn.getId());
 		createFileView();
 		
-		// wait for the view.
-		waitForEntityReplication(fileViewId, fileId);
-		
-		// Query for the values as strings.
 		int rowCount = fileIds.size();
+
+		// wait for the view.
+		waitForRowCount(adminUserInfo, "select * from " + fileViewId, rowCount);
+		
 		String sql = "select * from "+fileViewId+".1";
 		
 		assertThrows(AsynchJobFailedException.class, () -> {
 			waitForRowCount(adminUserInfo, sql, rowCount);
 		});
-		
+				
 		// Create a snapshot for this view
 		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
 		transactionRequest.setEntityId(fileViewId);
@@ -1541,7 +1507,7 @@ public class TableViewIntegrationTest {
 	public void testViewRemainsAvailableWhileChanging() throws Exception {
 		createFileView();
 		// wait for replication
-		waitForEntityReplication(fileViewId, fileViewId);
+		waitForEntityReplication(fileViewId);
 		IdAndVersion viewId = IdAndVersion.parse(fileViewId);
 		// Wait for the 
 		Query query = new Query();
@@ -1568,7 +1534,7 @@ public class TableViewIntegrationTest {
 		toUpdate = entityManager.getEntity(adminUserInfo, fileIdToUpdate, FileEntity.class);
 		
 		// wait for replication
-		waitForEntityReplication(fileViewId, fileIdToUpdate);
+		waitForEntityReplication(fileIdToUpdate);
 		
 		/*
 		 * In the past this call would change the view's state to be processing when the
@@ -1594,7 +1560,7 @@ public class TableViewIntegrationTest {
 	public void testPLFM_6060() throws Exception {
 		createFileView();
 		// wait for replication
-		waitForEntityReplication(fileViewId, fileViewId);
+		waitForEntityReplication(fileViewId);
 		IdAndVersion viewId = IdAndVersion.parse(fileViewId);
 		// wait for the view to become available to ensure the worker is done with the view.
 		waitForViewToBeAvailable(viewId);
@@ -1627,7 +1593,7 @@ public class TableViewIntegrationTest {
 		entityManager.updateAnnotations(adminUserInfo, fileIds.get(1), fileAnnotation2);
 
 
-		waitForEntityReplication(fileViewId, fileIds.get(0));
+		waitForEntityReplication(fileIds.get(0));
 
 
 		waitForRowCount(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount);
@@ -1699,7 +1665,7 @@ public class TableViewIntegrationTest {
 		entityManager.updateAnnotations(adminUserInfo, fileIds.get(1), fileAnnotation2);
 
 
-		waitForEntityReplication(fileViewId, fileIds.get(0));
+		waitForEntityReplication(fileIds.get(0));
 
 		String query = "select id, etag, "+ userIdList.getName() + ", " + entityIdList.getName() +" from " + fileViewId;
 		
@@ -1745,7 +1711,7 @@ public class TableViewIntegrationTest {
 		Annotations fileAnnotation1 = entityManager.getAnnotations(adminUserInfo, fileIds.get(0));
 		AnnotationsV2TestUtils.putAnnotations(fileAnnotation1, stringListColumn.getName(), Arrays.asList("val1", "val2"), AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileIds.get(0), fileAnnotation1);
-		waitForEntityReplication(fileViewId, fileIds.get(0));
+		waitForEntityReplication(fileIds.get(0));
 
 		waitForRowCount(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount);
 		
@@ -1754,7 +1720,7 @@ public class TableViewIntegrationTest {
 		AnnotationsV2TestUtils.putAnnotations(fileAnnotation2, stringListColumn.getName(), Arrays.asList("val2", "val3", "val1", "val4"), AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileIds.get(1), fileAnnotation2);
 
-		waitForEntityReplication(fileViewId, fileIds.get(1));
+		waitForEntityReplication(fileIds.get(1));
 		
 		String error = assertThrows(AsynchJobFailedException.class, () ->
 			waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, (results) -> {
@@ -1782,7 +1748,7 @@ public class TableViewIntegrationTest {
 		AnnotationsV2TestUtils.putAnnotations(fileAnnotation2, stringListColumn.getName(), Arrays.asList("val2", "val3"), AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileIds.get(1), fileAnnotation2);
 
-		waitForEntityReplication(fileViewId, fileIds.get(0));
+		waitForEntityReplication(fileIds.get(0));
 
 		waitForRowCount(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount);
 
@@ -1841,7 +1807,7 @@ public class TableViewIntegrationTest {
 		entityManager.updateAnnotations(adminUserInfo, fileIds.get(1), fileAnnotation2);
 
 
-		waitForEntityReplication(fileViewId, fileIds.get(0));
+		waitForEntityReplication(fileIds.get(0));
 
 
 		QueryResultBundle result = waitForRowCount(adminUserInfo, "select " + stringListColumn.getName() + " from " + fileViewId, fileCount);
@@ -1866,7 +1832,7 @@ public class TableViewIntegrationTest {
 	public void testFileSizeAndMD5() throws Exception {
 		createFileView();
 		String fileZero = fileIds.get(0);
-		waitForEntityReplication(fileViewId, fileZero);
+		waitForEntityReplication(fileZero);
 		String sql = "select " + ObjectField.dataFileMD5Hex + "," + ObjectField.dataFileSizeBytes + " from "
 				+ fileViewId + " where " + ObjectField.id + " = '" + fileZero+"'";
 		
@@ -1892,7 +1858,7 @@ public class TableViewIntegrationTest {
 	public void testAddViewSnapshotToDownloadList() throws Exception {
 		createFileView();
 		String firstFileId = fileIds.get(0);
-		asyncHelper.waitForEntityReplication(adminUserInfo, fileViewId, firstFileId, MAX_WAIT_MS);
+		waitForRowCount(adminUserInfo, "select * from "+fileViewId, fileIds.size());
 
 		// create a snapshot of the view
 		SnapshotRequest snapshotOptions = new SnapshotRequest();
@@ -2005,7 +1971,7 @@ public class TableViewIntegrationTest {
 		when(mockProgressCallbackVoid.getLockTimeoutSeconds()).thenReturn(2L);
 		createFileView();
 		String firstFileId = fileIds.get(0);
-		asyncHelper.waitForEntityReplication(adminUserInfo, fileViewId, firstFileId, MAX_WAIT_MS);
+		asyncHelper.waitForEntityReplication(adminUserInfo, firstFileId, MAX_WAIT_MS);
 
 		// Query the snapshot
 		Query query = new Query();
@@ -2046,7 +2012,8 @@ public class TableViewIntegrationTest {
 		when(mockProgressCallbackVoid.getLockTimeoutSeconds()).thenReturn(2L);
 		createFileView();
 		String firstFileId = fileIds.get(0);
-		asyncHelper.waitForEntityReplication(adminUserInfo, fileViewId, firstFileId, MAX_WAIT_MS);
+		
+		waitForRowCount(adminUserInfo, "select * from "+fileViewId, fileIds.size());
 
 		// create a snapshot of the view
 		SnapshotRequest snapshotOptions = new SnapshotRequest();
@@ -2405,15 +2372,14 @@ public class TableViewIntegrationTest {
 	
 	/**
 	 * Wait for EntityReplication to show the given etag for the given entityId.
-	 * 
-	 * @param tableId
 	 * @param entityId
 	 * @param etag
+	 * 
 	 * @return
 	 * @throws InterruptedException
 	 */
-	private ObjectDataDTO waitForEntityReplication(String tableId, String entityId) throws InterruptedException{
-		return asyncHelper.waitForEntityReplication(adminUserInfo, tableId, entityId, MAX_WAIT_MS);
+	private ObjectDataDTO waitForEntityReplication(String entityId) throws InterruptedException{
+		return asyncHelper.waitForEntityReplication(adminUserInfo, entityId, MAX_WAIT_MS);
 	}
 
 }

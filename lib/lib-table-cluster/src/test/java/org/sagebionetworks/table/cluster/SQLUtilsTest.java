@@ -1681,7 +1681,7 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testBuildSelectEachColumnType(){
+	public void testBuildObjectReplicationSelectEachColumnType(){
 		// Build a select for each type.
 		List<ColumnMetadata> metaList = new LinkedList<>();
 		int i = 0;
@@ -1693,7 +1693,7 @@ public class SQLUtilsTest {
 
 		StringBuilder builder = new StringBuilder();
 		// call under test
-		List<String> headers = SQLUtils.buildSelect(builder, metaList);
+		SQLUtils.buildObjectReplicationSelect(builder, metaList);
 		assertEquals(
 				"R.OBJECT_ID,"
 				+ " R.OBJECT_VERSION,"
@@ -1719,12 +1719,10 @@ public class SQLUtilsTest {
 				+ " MAX(IF(A.ANNO_KEY ='entityid_list', A.LONG_LIST_VALUE, NULL)) AS _C16_,"
 				+ " MAX(IF(A.ANNO_KEY ='userid_list', A.LONG_LIST_VALUE, NULL)) AS _C17_"
 				, builder.toString());
-		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "_C0_", "_DBL_C1_",
-				"_C1_", "_C2_", "_C3_", "_C4_", "_C5_", "_C6_", "_C7_", "_C8_", "_C9_", "_C10_", "_C11_", "_C12_", "_C13_", "_C14_", "_C15_", "_C16_", "_C17_"), headers);
 	}
 
 	@Test
-	public void testBuildSelectEachEntityType(){
+	public void testBuildObjectReplicationSelectEachEntityType(){
 		// Build a select for each type.
 		List<ColumnMetadata> metaList = new LinkedList<>();
 		int i = 0;
@@ -1735,7 +1733,7 @@ public class SQLUtilsTest {
 		}
 		StringBuilder builder = new StringBuilder();
 		// call under test
-		SQLUtils.buildSelect(builder, metaList);
+		SQLUtils.buildObjectReplicationSelect(builder, metaList);
 		assertEquals(
 				"R.OBJECT_ID,"
 				+ " R.OBJECT_VERSION,"
@@ -1797,9 +1795,8 @@ public class SQLUtilsTest {
 		ColumnMetadata meta = createMetadataForAnnotation(ColumnType.DOUBLE, 123);
 		boolean isDoubleAbstract = true;
 		// call under test
-		String header = SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
+		SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
 		assertEquals(", MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C123_", builder.toString());
-		assertEquals("_DBL_C123_", header);
 	}
 
 	@Test
@@ -1808,54 +1805,49 @@ public class SQLUtilsTest {
 		ColumnMetadata meta = createMetadataForAnnotation(ColumnType.DOUBLE, 123);
 		boolean isDoubleAbstract = false;
 		// call under test
-		String header = SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
+		SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
 		assertEquals(", MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_VALUE, NULL)) AS _C123_", builder.toString());
-		assertEquals("_C123_", header);
 	}
 
 	@Test
-	public void testBuildSelectMetadataEntityField() {
+	public void testBuildObjectReplicationSelectMetadataEntityField() {
 		StringBuilder builder = new StringBuilder();
 		ColumnMetadata meta = createMetadataForEntityField(ObjectField.createdOn, 1);
 		// call under test
-		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
+		SQLUtils.buildObjectReplicationSelectMetadata(builder, meta);
 		assertEquals(", MAX(R.CREATED_ON) AS CREATED_ON", builder.toString());
-		assertEquals(Lists.newArrayList("_C1_"), headers);
 	}
 
 	@Test
-	public void testBuildSelectMetadataStringAnnotation() {
+	public void testBuildObjectReplicationSelectMetadataStringAnnotation() {
 		StringBuilder builder = new StringBuilder();
 		ColumnMetadata meta = createMetadataForAnnotation(ColumnType.STRING, 123);
 		// call under test
-		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
+		SQLUtils.buildObjectReplicationSelectMetadata(builder, meta);
 		assertEquals(", MAX(IF(A.ANNO_KEY ='string', A.STRING_VALUE, NULL)) AS _C123_", builder.toString());
-		assertEquals(Lists.newArrayList("_C123_"), headers);
 	}
 
 	@Test
-	public void testBuildSelectMetadataDoubleAnnotation() {
+	public void testBuildObjectReplicationSelectMetadataDoubleAnnotation() {
 		StringBuilder builder = new StringBuilder();
 		ColumnMetadata meta = createMetadataForAnnotation(ColumnType.DOUBLE, 456);
 		// call under test
-		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
+		SQLUtils.buildObjectReplicationSelectMetadata(builder, meta);
 		// Should include two selects, one for the abstract double and the other for the double value.
 		assertEquals(
 				", MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C456_"
 				+ ", MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_VALUE, NULL)) AS _C456_", builder.toString());
-		assertEquals(Lists.newArrayList("_DBL_C456_","_C456_"), headers);
 	}
 
 	@Test
-	public void testBuildSelectMetadataListAnnotation() {
+	public void testBuildObjectReplicationSelectMetadataListAnnotation() {
 		//list columns do not have an abstract column
 		StringBuilder builder = new StringBuilder();
 		ColumnMetadata meta = createMetadataForAnnotation(ColumnType.STRING_LIST, 456);
 		// call under test
-		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
+		SQLUtils.buildObjectReplicationSelectMetadata(builder, meta);
 		// Should include two selects, one for the abstract double and the other for the double value.
 		assertEquals(", MAX(IF(A.ANNO_KEY ='string_list', A.STRING_LIST_VALUE, NULL)) AS _C456_", builder.toString());
-		assertEquals(Lists.newArrayList("_C456_"), headers);
 	}
 
 	@Test
@@ -1871,12 +1863,11 @@ public class SQLUtilsTest {
 	public void testBuildObjectReplicationSelectStandardColumns() {
 		StringBuilder builder = new StringBuilder();
 		// call under test
-		List<String> headers = SQLUtils.buildObjectReplicationSelectStandardColumns(builder);
+		SQLUtils.buildObjectReplicationSelectStandardColumns(builder);
 		assertEquals("R.OBJECT_ID"
 				+ ", R.OBJECT_VERSION"
 				+ ", MAX(R.ETAG) AS ETAG"
 				+ ", MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID", builder.toString());
-		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR"), headers);
 	}
 
 	@Test
@@ -1887,7 +1878,7 @@ public class SQLUtilsTest {
 		String filter = " the-filter";	
 		StringBuilder builder = new StringBuilder();
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
-		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, filter);
+		SQLUtils.createSelectFromObjectReplication(builder, metadata, filter);
 		String sql = builder.toString();
 		assertEquals("SELECT"
 				+ " R.OBJECT_ID,"
@@ -1903,7 +1894,6 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " the-filter"
 				+ " GROUP BY R.OBJECT_ID, R.OBJECT_VERSION ORDER BY R.OBJECT_ID, R.OBJECT_VERSION", sql);
-		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
 	}
 
 	@Test
@@ -1951,7 +1941,7 @@ public class SQLUtilsTest {
 		StringBuilder builder = new StringBuilder();
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
 		// call under test
-		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, filter);
+		SQLUtils.createSelectFromObjectReplication(builder, metadata, filter);
 		String sql = builder.toString();
 		assertEquals("SELECT"
 				+ " R.OBJECT_ID,"
@@ -1967,7 +1957,6 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " the-filter"
 				+ " GROUP BY R.OBJECT_ID, R.OBJECT_VERSION ORDER BY R.OBJECT_ID, R.OBJECT_VERSION", sql);
-		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
 	}
 
 
@@ -2972,7 +2961,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testBuildSelectTableDataByRowIdSQL() {
-		String expected = "SELECT ROW_ID, _C456_,_C789_,_C123_ FROM T999 WHERE ROW_ID IN(:ROW_ID)";
+		String expected = "SELECT ROW_ID,_C456_,_C789_,_C123_ FROM T999 WHERE ROW_ID IN(:ROW_ID)";
 		
 		// Call under test
 		String sql = SQLUtils.buildSelectTableDataByRowIdSQL(tableId, simpleSchema);
@@ -3018,10 +3007,32 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testBuildSelectTableDataPageSQL() {
-		String expected = "SELECT ROW_ID, _C456_,_C789_,_C123_ FROM T999 ORDER BY ROW_ID LIMIT :pLimit OFFSET :pOffset";
+		String expected = "SELECT ROW_ID,_C456_,_C789_,_C123_ FROM T999 ORDER BY ROW_ID LIMIT :pLimit OFFSET :pOffset";
 		
 		// Call under test
 		String sql = SQLUtils.buildSelectTableDataPage(tableId, simpleSchema);
+		
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testBuildSelectTableDataSQL() {
+		String expected = "SELECT _C456_,_C789_,_C123_ FROM T999";
+		
+		// Call under test
+		String sql = SQLUtils.buildSelectTableData(tableId, simpleSchema).toString();
+		
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testBuildSelectTableDataSQLWithAdditionalColumns() {
+		String[] additionalColumns = new String[] {TableConstants.ROW_ID, TableConstants.ROW_VERSION, TableConstants.ROW_BENEFACTOR, TableConstants.ROW_ETAG};
+
+		String expected = "SELECT ROW_ID,ROW_VERSION,ROW_BENEFACTOR,ROW_ETAG,_C456_,_C789_,_C123_ FROM T999";
+		
+		// Call under test
+		String sql = SQLUtils.buildSelectTableData(tableId, simpleSchema, additionalColumns).toString();
 		
 		assertEquals(expected, sql);
 	}

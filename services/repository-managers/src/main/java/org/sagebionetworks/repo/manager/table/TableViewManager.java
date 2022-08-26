@@ -73,8 +73,9 @@ public interface TableViewManager {
 	 * @param tableId
 	 * @param snapshotOptions
 	 * @return
+	 * @throws Exception 
 	 */
-	long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions);
+	long createSnapshot(UserInfo userInfo, Long tableId, SnapshotRequest snapshotOptions, ProgressCallback callback) throws Exception;
 
 	/**
 	 * Delete the index associated with this view.
@@ -89,5 +90,6 @@ public interface TableViewManager {
 	 * @throws Exception
 	 */
 	void createOrUpdateViewIndex(IdAndVersion idAndVersion, ProgressCallback progressCallback) throws Exception;
+
 
 }
