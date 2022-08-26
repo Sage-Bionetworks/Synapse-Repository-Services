@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -1931,6 +1932,62 @@ public class AccessRequirementManagerImplUnitTest {
 		verifyZeroInteractions(accessRequirementDAO);
 		verifyZeroInteractions(mockDaAuthManager);
 		
+	}
+	
+	@Test
+	public void testSetDynamicallyBoundAccessRequirementsForSubjectWithAddOnly() {
+		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor();
+		Set<Long> newArIds = new LinkedHashSet<>(List.of(111L, 222L));
+		when(accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(any())).thenReturn(Collections.emptyList());
+		
+		// call under test
+		arm.setDynamicallyBoundAccessRequirementsForSubject(subject, newArIds);
+		List<Long> expectedAdd = List.of(111L,222L);
+		verify(accessRequirementDAO).getDynamicallyBoundAccessRequirementIdsForSubject(subject);
+		verify(accessRequirementDAO, never()).removeDynamicallyBoundAccessRequirementsFromSubject(any(), any());
+		verify(accessRequirementDAO).addDynamicallyBoundAccessRequirmentsToSubject(subject, expectedAdd);
+	}
+	
+	@Test
+	public void testSetDynamicallyBoundAccessRequirementsForSubjectWithDeleteOnly() {
+		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor();
+		Set<Long> newArIds = Collections.emptySet();
+		when(accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(any())).thenReturn(List.of(111L,222L));
+		
+		// call under test
+		arm.setDynamicallyBoundAccessRequirementsForSubject(subject, newArIds);
+		List<Long> expectedToRemove = List.of(111L,222L);
+		verify(accessRequirementDAO).getDynamicallyBoundAccessRequirementIdsForSubject(subject);
+		verify(accessRequirementDAO).removeDynamicallyBoundAccessRequirementsFromSubject(subject, expectedToRemove);
+		verify(accessRequirementDAO, never()).addDynamicallyBoundAccessRequirmentsToSubject(any(), any());
+	}
+	
+	@Test
+	public void testSetDynamicallyBoundAccessRequirementsForSubjectWithNoChange() {
+		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor();
+		Set<Long> newArIds = new LinkedHashSet<>(List.of(111L, 222L));
+		when(accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(any())).thenReturn(List.of(111L,222L));
+		
+		// call under test
+		arm.setDynamicallyBoundAccessRequirementsForSubject(subject, newArIds);
+		verify(accessRequirementDAO).getDynamicallyBoundAccessRequirementIdsForSubject(subject);
+		verify(accessRequirementDAO, never()).removeDynamicallyBoundAccessRequirementsFromSubject(any(), any());
+		verify(accessRequirementDAO, never()).addDynamicallyBoundAccessRequirmentsToSubject(any(), any());
+	}
+	
+	@Test
+	public void testSetDynamicallyBoundAccessRequirementsForSubjectWithAddAndRemove() {
+		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor();
+		Set<Long> newArIds = new LinkedHashSet<>(List.of(111L, 222L,333L));
+		when(accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(any())).thenReturn(List.of(111L,444L,555L));
+		
+		// call under test
+		arm.setDynamicallyBoundAccessRequirementsForSubject(subject, newArIds);
+		List<Long> expectedAdd = List.of(222L,333L);
+		verify(accessRequirementDAO).getDynamicallyBoundAccessRequirementIdsForSubject(subject);
+		List<Long> expectedToRemove = List.of(444L,555L);
+		verify(accessRequirementDAO).removeDynamicallyBoundAccessRequirementsFromSubject(subject, expectedToRemove);
+		verify(accessRequirementDAO).addDynamicallyBoundAccessRequirmentsToSubject(subject, expectedAdd);
 	}
 
 }

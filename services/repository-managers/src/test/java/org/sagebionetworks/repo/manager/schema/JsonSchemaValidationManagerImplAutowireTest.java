@@ -1143,6 +1143,35 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 	}
 	
 	@Test
+	public void testCalculateDerivedAnnotationsWithContainsConditionalNoMatch() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsConditional.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		assertEquals(Optional.empty(), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithContainsConditionalMatch() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsConditional.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "_accessRequirementIds", List.of("111", "222"),
+				AnnotationsValueType.LONG);
+		assertEquals(Optional.of(expected), annos);
+	}
+
+	
+	@Test
 	public void testContainsSingleConst() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsSingle.json");
 		assertNotNull(schema.getProperties());
@@ -1202,7 +1231,6 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		assertEquals(List.of("#/integers: expected at least one array item to match 'contains' schema"), result.getAllValidationMessages());
 
 	}
-
 
 	/**
 	 * Helper to build a stack trace for the given exception.
