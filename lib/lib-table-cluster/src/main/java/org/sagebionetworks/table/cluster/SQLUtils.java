@@ -1446,15 +1446,14 @@ public class SQLUtils {
 	 * @param currentSchema
 	 * @return
 	 */
-	public static List<String> createSelectFromObjectReplication(StringBuilder builder, List<ColumnMetadata> metadata, String filterSql) {
+	public static void createSelectFromObjectReplication(StringBuilder builder, List<ColumnMetadata> metadata, String filterSql) {
 		builder.append("SELECT ");
-		List<String> headers = buildSelect(builder, metadata);
+		buildObjectReplicationSelect(builder, metadata);
 		objectReplicationJoinAnnotationReplicationFilter(builder, filterSql);
 		builder.append(" GROUP BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
 		builder.append(", ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_VERSION);
 		builder.append(" ORDER BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
 		builder.append(", ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_VERSION);
-		return headers;
 	}
 
 	private static void objectReplicationJoinAnnotationReplicationFilter(StringBuilder builder, String filterSql) {
@@ -1512,13 +1511,12 @@ public class SQLUtils {
 	 * @param builder
 	 * @param metadata
 	 */
-	public static List<String> buildSelect(StringBuilder builder, List<ColumnMetadata> metadata) {
+	public static void buildObjectReplicationSelect(StringBuilder builder, List<ColumnMetadata> metadata) {
 		// select the standard object replication columns.
-		List<String> headers = buildObjectReplicationSelectStandardColumns(builder);
+		buildObjectReplicationSelectStandardColumns(builder);
 		for(ColumnMetadata meta: metadata) {
-			headers.addAll(buildSelectMetadata(builder, meta));
+			buildObjectReplicationSelectMetadata(builder, meta);
 		}
-		return headers;
 	}
 	
 	/**
@@ -1527,24 +1525,21 @@ public class SQLUtils {
 	 * @param builder
 	 * @param meta
 	 */
-	public static List<String> buildSelectMetadata(StringBuilder builder, ColumnMetadata meta) {
-		List<String> headers = new ArrayList<>();
+	public static void buildObjectReplicationSelectMetadata(StringBuilder builder, ColumnMetadata meta) {
 		if (meta.isObjectReplicationField()) {
 			// object field select
 			buildObjectReplicationSelect(builder, meta.getSelectColumnName());
-			headers.add(meta.getColumnNameForId());
 		} else {
 			// annotation select
 			if (ColumnType.DOUBLE.equals(meta.getColumnModel().getColumnType())) {
 				// For doubles, the double-meta columns is also selected.
 				boolean isDoubleAbstract = true;
-				headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));
+				buildAnnotationSelect(builder, meta, isDoubleAbstract);
 			}
 			// select the annotation
 			boolean isDoubleAbstract = false;
-			headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));
+			buildAnnotationSelect(builder, meta, isDoubleAbstract);
 		}
-		return headers;
 
 	}
 	
@@ -1552,7 +1547,7 @@ public class SQLUtils {
 	 * Build the select including the standard object columns of, id, version, etag, and benefactor..
 	 * @param builder
 	 */
-	public static List<String> buildObjectReplicationSelectStandardColumns(StringBuilder builder) {
+	public static void buildObjectReplicationSelectStandardColumns(StringBuilder builder) {
 
 		builder.append(OBJECT_REPLICATION_ALIAS);
 		builder.append(".");
@@ -1564,12 +1559,6 @@ public class SQLUtils {
 		buildObjectReplicationSelect(builder,
 				OBEJCT_REPLICATION_COL_ETAG,
 				OBJECT_REPLICATION_COL_BENEFACTOR_ID);
-		List<String> headers = new LinkedList<>();
-		headers.add(ROW_ID);
-		headers.add(ROW_VERSION);
-		headers.add(ROW_ETAG);
-		headers.add(ROW_BENEFACTOR);
-		return headers;
 	}
 	/**
 	 * For each provided name: ', MAX(R.name) AS name'
@@ -1589,7 +1578,7 @@ public class SQLUtils {
 	 * @param valueName
 	 * @param alias
 	 */
-	public static String buildAnnotationSelect(StringBuilder builder, ColumnMetadata meta, boolean isDoubleAbstract) {
+	public static void buildAnnotationSelect(StringBuilder builder, ColumnMetadata meta, boolean isDoubleAbstract) {
 		String aliasPrefix =  isDoubleAbstract ? ABSTRACT_DOUBLE_ALIAS_PREFIX: EMPTY_STRING;
 		String valueColumnName = isDoubleAbstract ? ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT : meta.getSelectColumnName();
 		builder.append(String.format(TEMPLATE_MAX_ANNOTATION_SELECT,
@@ -1600,7 +1589,6 @@ public class SQLUtils {
 				aliasPrefix,
 				meta.getColumnNameForId()
 		));
-		return aliasPrefix+meta.getColumnNameForId();
 	}
 
 	/**
