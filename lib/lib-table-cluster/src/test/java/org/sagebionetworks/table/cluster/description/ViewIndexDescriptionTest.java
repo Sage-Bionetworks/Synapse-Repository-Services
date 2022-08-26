@@ -2,6 +2,7 @@ package org.sagebionetworks.table.cluster.description;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -21,9 +22,16 @@ public class ViewIndexDescriptionTest {
 		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
 		// call under test
 		String sql = vid.getCreateOrUpdateIndexSql();
-		assertEquals("CREATE TABLE IF NOT EXISTS T999( " + "ROW_ID BIGINT NOT NULL, " + "ROW_VERSION BIGINT NOT NULL, "
-				+ "ROW_ETAG varchar(36) NOT NULL, " + "ROW_BENEFACTOR BIGINT NOT NULL, " + "PRIMARY KEY (ROW_ID), "
-				+ "KEY `IDX_ETAG` (ROW_ETAG), " + "KEY `IDX_BENEFACTOR` (ROW_BENEFACTOR))", sql);
+		assertEquals("CREATE TABLE IF NOT EXISTS T999( "
+				+ "ROW_ID BIGINT NOT NULL, "
+				+ "ROW_VERSION BIGINT NOT NULL, "
+				+ "ROW_ETAG varchar(36) NOT NULL, "
+				+ "ROW_BENEFACTOR BIGINT NOT NULL, "
+				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
+				+ "PRIMARY KEY (ROW_ID), "
+				+ "KEY `IDX_ETAG` (ROW_ETAG), "
+				+ "KEY `IDX_BENEFACTOR` (ROW_BENEFACTOR), "
+				+ "FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (ROW_SEARCH_CONTENT))", sql);
 	}
 
 	@Test
@@ -37,7 +45,7 @@ public class ViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetBenefactorColumnNamesWithDataset() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.dataset);
 		// call under test
 		assertEquals(
 				Collections.singletonList(new BenefactorDescription(TableConstants.ROW_BENEFACTOR, ObjectType.ENTITY)),
@@ -120,6 +128,14 @@ public class ViewIndexDescriptionTest {
 	@Test
 	public void testGetDependencies() {
 		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		// Call under test
 		assertEquals(Collections.emptyList(), vid.getDependencies());
+	}
+	
+	@Test
+	public void testAddRowIdToSearchIndex() {
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		// Call under test
+		assertTrue(vid.addRowIdToSearchIndex());
 	}
 }

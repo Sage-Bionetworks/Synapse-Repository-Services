@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
-import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
+import org.sagebionetworks.table.cluster.search.TableRowSearchProcessor;
 
 @ExtendWith(MockitoExtension.class)
 public class TableIndexConnectionFactoryImplTest {
@@ -31,7 +31,7 @@ public class TableIndexConnectionFactoryImplTest {
 	@Mock
 	private ObjectFieldModelResolverFactory mockObjectFieldModelResolverFactory;
 	@Mock
-	private RowSearchProcessor mockSearchProcessor;
+	private TableRowSearchProcessor mockSearchProcessor;
 	
 	@InjectMocks
 	private TableIndexConnectionFactoryImpl indexFactory;

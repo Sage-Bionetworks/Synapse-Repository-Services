@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.BucketAndKey;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
@@ -54,7 +55,8 @@ import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SQLUtils;
-import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
+import org.sagebionetworks.table.cluster.UndefinedViewScopeException;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -353,7 +355,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			 * operation.
 			 */
 			applyChangesToAvailableView(idAndVersion, outerProgressCallback);
-		}else {
+		}else {			
 			/*
 			 * The view is not currently available. This route will
 			 * create or rebuild the table from scratch with the view status set to
@@ -395,7 +397,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			},
 					idAndVersion);
 		} catch (LockUnavilableException e1) {
-			log.warn("Unable to aquire lock: " + idAndVersion + " so the message will be ignored.");
+			log.warn("Unable to acquire lock: " + idAndVersion + " so the message will be ignored.");
 		}
 	}
 	
@@ -437,10 +439,10 @@ public class TableViewManagerImpl implements TableViewManager {
 			ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
 			MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
 			ViewFilter originalFilter = provider.getViewFilter(viewId.getId());
-			
 			List<ColumnModel> currentSchema = tableManagerSupport.getTableSchema(viewId);
 			Set<Long> rowsIdsWithChanges = null;
 			Set<Long> previousPageRowIdsWithChanges = Collections.emptySet();
+			IndexDescription indexDescription = tableManagerSupport.getIndexDescription(viewId);
 			// Continue applying change to the view until none remain.
 			do {
 				Optional<TableState> optionalState = tableManagerSupport.getTableStatusState(viewId);
@@ -462,7 +464,7 @@ public class TableViewManagerImpl implements TableViewManager {
 				
 				if (!rowsIdsWithChanges.isEmpty()) {
 					// update these rows in a new transaction.
-					indexManager.updateViewRowsInTransaction(viewId, scopeType, currentSchema, deltaFilter);
+					indexManager.updateViewRowsInTransaction(indexDescription, scopeType, currentSchema, deltaFilter);
 					previousPageRowIdsWithChanges = rowsIdsWithChanges;
 					tableManagerSupport.updateChangedOnIfAvailable(viewId);
 				}
@@ -505,17 +507,26 @@ public class TableViewManagerImpl implements TableViewManager {
 				// nothing to do
 				return;
 			}
+			log.info(String.format("Attempting to create view: '%s'...", idAndVersion.toString()));
 			// Start the worker
 			final String token = tableManagerSupport.startTableProcessing(idAndVersion);
 			TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
+			log.info(String.format("Deleting view index if it exists: '%s'...", idAndVersion.toString()));
 			// Since this worker re-builds the index, start by deleting it.
 			indexManager.deleteTableIndex(idAndVersion);
 			// Need the MD5 for the original schema.
 			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
 			List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
+			// Record the search flag before processing to avoid race conditions
+			boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(idAndVersion);
+			
+			IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
+			log.info(String.format("Setting view index schema: '%s'...", idAndVersion.toString()));
+			// create the table in the index
+			indexManager.setIndexSchema(indexDescription, viewSchema);
+			// Sync the search flag
+			indexManager.setSearchEnabled(idAndVersion, isSearchEnabled);
 
-			// create the table in the index.
-			indexManager.setIndexSchema(tableManagerSupport.getIndexDescription(idAndVersion), viewSchema);
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 			
 			Long viewCRC = null;
@@ -530,11 +541,12 @@ public class TableViewManagerImpl implements TableViewManager {
 
 			//for any list columns, build separate tables that serve as an index
 			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
-
+			
 			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
 			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
+			log.info(String.format("Set view: '%s' to AVIALABLE.", idAndVersion.toString()));
 		} catch (InvalidStatusTokenException e) {
 			// PLFM-6069, invalid tokens should not cause the view state to be set to failed, but
 			// instead should be retried later.
@@ -543,6 +555,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		} catch (Exception e) {
 			// failed.
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
+			log.info(String.format("Set view: '%s' to PROCESSING_FAILED.", idAndVersion.toString()));
 			throw e;
 		}
 	}
@@ -553,8 +566,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @param indexManager
 	 * @param viewSchema
 	 */
-	long populateViewIndexFromReplication(IdAndVersion idAndVersion, TableIndexManager indexManager,
-			List<ColumnModel> viewSchema) {
+	long populateViewIndexFromReplication(IdAndVersion idAndVersion, TableIndexManager indexManager, List<ColumnModel> viewSchema) {
 		// Look-up the type for this table.
 		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
 
@@ -629,7 +641,16 @@ public class TableViewManagerImpl implements TableViewManager {
 			String bucket = config.getViewSnapshotBucketName();
 			s3Client.putObject(new PutObjectRequest(bucket, key, tempFile));
 			return new BucketAndKey().withBucket(bucket).withtKey(key);
-		} catch (IOException e) {
+		} catch (UndefinedViewScopeException e) {
+			// PLFM-7417 - Contextually update the error message based on the entity type.
+			EntityType entityType = nodeManager.getNodeType(KeyFactory.keyToString(idAndVersion.getId()));
+			if (EntityType.dataset.equals(entityType)) {
+				throw new UndefinedViewScopeException("You cannot create a version of an empty Dataset. Add files to this Dataset before creating a version.");
+			} else if (EntityType.datasetcollection.equals(entityType)) {
+				throw new UndefinedViewScopeException("You cannot create a version of an empty Dataset Collection. Add Datasets to this Dataset Collection before creating a version.");
+			}
+			throw e;
+ 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
 			// unconditionally delete the temporary file.

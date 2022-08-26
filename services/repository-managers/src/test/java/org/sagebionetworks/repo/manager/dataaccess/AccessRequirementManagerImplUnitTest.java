@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -25,13 +26,13 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -133,7 +134,7 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testCreatePostMessageContentAccessRequirement() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.createAccessRequirement(userInfo, new PostMessageContentAccessRequirement());
 		}) ;
 	}
@@ -142,7 +143,7 @@ public class AccessRequirementManagerImplUnitTest {
 	public void testCreateNullAccessType() {
 		AccessRequirement toCreate = createExpectedAR();
 		toCreate.setAccessType(null);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.createAccessRequirement(userInfo, toCreate);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -152,10 +153,85 @@ public class AccessRequirementManagerImplUnitTest {
 	public void testCreateNullSubjectIds() {
 		AccessRequirement toCreate = createExpectedAR();
 		toCreate.setSubjectIds(null);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.createAccessRequirement(userInfo, toCreate);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
+	}
+	
+	@Test
+	public void testCreateAccessRequirementWithSubjectsDefinedByAnnotations() {
+		AccessRequirement ar = createExpectedAR();
+		ar.setSubjectIds(null);
+		ar.setSubjectsDefinedByAnnotations(true);
+		
+		when(authorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
+		// call under test
+		arm.createAccessRequirement(userInfo, ar);
+		
+		verifyZeroInteractions(mockTransactionalMessenger);
+		verify(accessRequirementDAO).create(ar);
+		verify(authorizationManager).isACTTeamMemberOrAdmin(userInfo);
+	}
+	
+	@Test
+	public void testCreateAccessRequirementWithSubjectsDefinedByAnnotationsIncludeSubjects() {
+		AccessRequirement ar = createExpectedAR();
+		ar.setSubjectsDefinedByAnnotations(true);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			arm.createAccessRequirement(userInfo, ar);
+		}).getMessage();
+		assertEquals("When 'subjectsDefinedByAnnotations' = true, then subjectIds must be empty or excluded.", message);
+		
+		verifyZeroInteractions(authorizationManager);
+		verifyZeroInteractions(mockTransactionalMessenger);
+		verifyZeroInteractions(accessRequirementDAO);
+	}
+	
+	@Test
+	public void testUpdateAccessRequirementWithSubjectsDefinedByAnnotations() {
+		AccessRequirement ar = createExpectedAR();
+		ar.setId(222L);
+		ar.setSubjectIds(null);
+		ar.setEtag("etag");
+		ar.setVersionNumber(1L);
+		ar.setSubjectsDefinedByAnnotations(true);
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+
+		when(authorizationManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
+		info.setEtag("etag");
+		info.setCurrentVersion(1L);
+		info.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		info.setConcreteType(ManagedACTAccessRequirement.class.getName());
+		when(accessRequirementDAO.getForUpdate(any())).thenReturn(info );
+		when(accessRequirementDAO.get(any())).thenReturn(ar);
+
+		// call under test
+		arm.updateAccessRequirement(userInfo, ar.getId().toString(), ar);
+
+		verifyZeroInteractions(mockTransactionalMessenger);
+		verify(accessRequirementDAO).update(ar);
+		verify(authorizationManager).canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT,
+				ACCESS_TYPE.UPDATE);
+	}
+	
+	@Test
+	public void testUpdateAccessRequirementWithSubjectsDefinedByAnnotationsIncludeSubjects() {
+		AccessRequirement ar = createExpectedAR();
+		ar.setId(222L);
+		ar.setSubjectsDefinedByAnnotations(true);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			arm.updateAccessRequirement(userInfo, ar.getId().toString(), ar);
+		}).getMessage();
+		assertEquals("When 'subjectsDefinedByAnnotations' = true, then subjectIds must be empty or excluded.", message);
+		
+		verifyZeroInteractions(authorizationManager);
+		verifyZeroInteractions(mockTransactionalMessenger);
+		verifyZeroInteractions(accessRequirementDAO);
 	}
 
 	private ManagedACTAccessRequirement createExpectedAR() {
@@ -168,10 +244,12 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirementManagerImpl.populateCreationFields(userInfo, expectedAR);
 		return expectedAR;
 	}
+	
+	
 
 	@Test
 	public void testCreateLockAccessRequirementWithNullUserInfo() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.createLockAccessRequirement(null, TEST_ENTITY_ID);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -179,7 +257,7 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testCreateLockAccessRequirementWithNullEntityId() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.createLockAccessRequirement(userInfo, null);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -240,7 +318,7 @@ public class AccessRequirementManagerImplUnitTest {
 	public void testCreateLockAccessRequirementWithoutREADPermission() throws Exception {
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// this should throw the unauthorized exception
-		Assertions.assertThrows(UnauthorizedException.class, () -> {
+		assertThrows(UnauthorizedException.class, () -> {
 			arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -251,7 +329,7 @@ public class AccessRequirementManagerImplUnitTest {
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// this should throw the unauthorized exception
-		Assertions.assertThrows(UnauthorizedException.class, () -> {
+		assertThrows(UnauthorizedException.class, () -> {
 			arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -268,7 +346,7 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setRequirementIdSet(ars);
 		when(accessRequirementDAO.getAccessRequirementStats(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(stats);
 		// this should throw the illegal argument exception
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -298,7 +376,7 @@ public class AccessRequirementManagerImplUnitTest {
 	public void testCreateUploadAccessRequirement() throws Exception {
 		AccessRequirement ar = createExpectedAR();
 		ar.setAccessType(ACCESS_TYPE.UPLOAD);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.createAccessRequirement(userInfo, ar);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -383,7 +461,7 @@ public class AccessRequirementManagerImplUnitTest {
 		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(TEST_ENTITY_ID)).thenReturn(true);
 		
 		// method under test
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.createAccessRequirement(userInfo, toCreate);
 		});
 		
@@ -396,7 +474,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirement toUpdate = createExpectedAR();
 		String accessRequirementId = "1";
 		toUpdate.setId(1L);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(null, accessRequirementId, toUpdate);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -406,7 +484,7 @@ public class AccessRequirementManagerImplUnitTest {
 	public void testUpdateWithNullAccessRequirementId() {
 		AccessRequirement toUpdate = createExpectedAR();
 		toUpdate.setId(1L);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(userInfo, null, toUpdate);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -414,7 +492,7 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testUpdateWithNullAccessRequirement() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(userInfo, "1", null);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -424,7 +502,7 @@ public class AccessRequirementManagerImplUnitTest {
 	public void testUpdateWithIdDoesNotMatch() {
 		AccessRequirement toUpdate = createExpectedAR();
 		toUpdate.setId(1L);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(userInfo, "-1", toUpdate);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -436,7 +514,7 @@ public class AccessRequirementManagerImplUnitTest {
 		String accessRequirementId = "1";
 		toUpdate.setId(1L);
 		toUpdate.setAccessType(ACCESS_TYPE.CHANGE_PERMISSIONS);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -448,7 +526,7 @@ public class AccessRequirementManagerImplUnitTest {
 		String accessRequirementId = "1";
 		toUpdate.setId(1L);
 		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
-		Assertions.assertThrows(UnauthorizedException.class, () -> {
+		assertThrows(UnauthorizedException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -465,7 +543,7 @@ public class AccessRequirementManagerImplUnitTest {
 		// can't modify an AR if one of its entities in within an STS Folder
 		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(TEST_ENTITY_ID)).thenReturn(true);
 
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
@@ -479,7 +557,7 @@ public class AccessRequirementManagerImplUnitTest {
 		toUpdate.setId(1L);
 		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenThrow(new NotFoundException(""));
-		Assertions.assertThrows(NotFoundException.class, () -> {
+		assertThrows(NotFoundException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -497,7 +575,7 @@ public class AccessRequirementManagerImplUnitTest {
 		info.setEtag("new Etag");
 		info.setCurrentVersion(1L);
 		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
-		Assertions.assertThrows(ConflictingUpdateException.class, () -> {
+		assertThrows(ConflictingUpdateException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -515,7 +593,7 @@ public class AccessRequirementManagerImplUnitTest {
 		info.setEtag("etag");
 		info.setCurrentVersion(2L);
 		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
-		Assertions.assertThrows(ConflictingUpdateException.class, () -> {
+		assertThrows(ConflictingUpdateException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -535,7 +613,7 @@ public class AccessRequirementManagerImplUnitTest {
 		info.setCurrentVersion(1L);
 		info.setAccessType(ACCESS_TYPE.PARTICIPATE);
 		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -556,7 +634,7 @@ public class AccessRequirementManagerImplUnitTest {
 		info.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		info.setConcreteType(TermsOfUseAccessRequirement.class.getName());
 		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -663,7 +741,7 @@ public class AccessRequirementManagerImplUnitTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId("1");
 		rod.setType(RestrictableObjectType.ENTITY);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.getAccessRequirementsForSubject(userInfo, rod, 51L, 0L);
 		});
 	}
@@ -673,7 +751,7 @@ public class AccessRequirementManagerImplUnitTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId("1");
 		rod.setType(RestrictableObjectType.ENTITY);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.getAccessRequirementsForSubject(userInfo, rod, 0L, 0L);
 		});
 	}
@@ -683,21 +761,21 @@ public class AccessRequirementManagerImplUnitTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId("1");
 		rod.setType(RestrictableObjectType.ENTITY);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.getAccessRequirementsForSubject(userInfo, rod, 10L, -1L);
 		});
 	}
 
 	@Test
 	public void testNewLockAccessRequirementWithNullUserInfo(){
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			AccessRequirementManagerImpl.newLockAccessRequirement(null, TEST_ENTITY_ID, "jiraKey");
 		});
 	}
 
 	@Test
 	public void testNewLockAccessRequirementWithNullEntityId(){
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			AccessRequirementManagerImpl.newLockAccessRequirement(userInfo, null, "jiraKey");
 		});
 	}
@@ -705,7 +783,7 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testNewLockAccessRequirementWithNullJiraKey(){
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			AccessRequirementManagerImpl.newLockAccessRequirement(userInfo, TEST_ENTITY_ID, null);
 		});
 	}
@@ -728,14 +806,14 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testDeleteAccessRequirementWithNullUserInfo() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.deleteAccessRequirement(null, "1");
 		});
 	}
 
 	@Test
 	public void testDeleteAccessRequirementWithNullUserRequirementId() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.deleteAccessRequirement(userInfo, null);
 		});
 	}
@@ -743,7 +821,7 @@ public class AccessRequirementManagerImplUnitTest {
 	@Test
 	public void testDeleteAccessRequirementUnauthorized() {
 		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
-		Assertions.assertThrows(UnauthorizedException.class, () -> {
+		assertThrows(UnauthorizedException.class, () -> {
 			arm.deleteAccessRequirement(userInfo, "1");
 		});
 	}
@@ -768,7 +846,7 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testConvertWillNullACTAccessRequirement() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			AccessRequirementManagerImpl.convert(null, "1");
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -777,7 +855,7 @@ public class AccessRequirementManagerImplUnitTest {
 	@Test
 	public void testConvertWillNullModifiedBy() {
 		ACTAccessRequirement ar = createACTAccessRequirement();
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			AccessRequirementManagerImpl.convert(ar, null);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -822,7 +900,7 @@ public class AccessRequirementManagerImplUnitTest {
 		request.setAccessRequirementId("1");
 		request.setEtag("etag");
 		request.setCurrentVersion(2L);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.convertAccessRequirement(null, request);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -830,7 +908,7 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testConvertAccessRequirementWithNullRequest() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.convertAccessRequirement(userInfo, null);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -841,7 +919,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
 		request.setEtag("etag");
 		request.setCurrentVersion(2L);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -852,7 +930,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
 		request.setAccessRequirementId("1");
 		request.setCurrentVersion(2L);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -863,7 +941,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
 		request.setAccessRequirementId("1");
 		request.setEtag("etag");
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -875,7 +953,7 @@ public class AccessRequirementManagerImplUnitTest {
 		request.setAccessRequirementId("1");
 		request.setEtag("etag");
 		request.setCurrentVersion(2L);
-		Assertions.assertThrows(UnauthorizedException.class, () -> {
+		assertThrows(UnauthorizedException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -889,7 +967,7 @@ public class AccessRequirementManagerImplUnitTest {
 		request.setAccessRequirementId("1");
 		request.setEtag("etag");
 		request.setCurrentVersion(2L);
-		Assertions.assertThrows(NotFoundException.class, () -> {
+		assertThrows(NotFoundException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -904,7 +982,7 @@ public class AccessRequirementManagerImplUnitTest {
 		request.setAccessRequirementId("1");
 		request.setEtag("etag does not match");
 		request.setCurrentVersion(current.getVersionNumber());
-		Assertions.assertThrows(ConflictingUpdateException.class, () -> {
+		assertThrows(ConflictingUpdateException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -919,7 +997,7 @@ public class AccessRequirementManagerImplUnitTest {
 		request.setAccessRequirementId("1");
 		request.setEtag(current.getEtag());
 		request.setCurrentVersion(current.getVersionNumber()-1);
-		Assertions.assertThrows(ConflictingUpdateException.class, () -> {
+		assertThrows(ConflictingUpdateException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -933,7 +1011,7 @@ public class AccessRequirementManagerImplUnitTest {
 		request.setAccessRequirementId("1");
 		request.setEtag("etag");
 		request.setCurrentVersion(2L);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
 		verifyZeroInteractions(mockTransactionalMessenger);
@@ -966,7 +1044,7 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testGetSubjectsWithNullAccessRequirementID() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			arm.getSubjects(null, null);
 		});
 	}
@@ -996,7 +1074,7 @@ public class AccessRequirementManagerImplUnitTest {
 	public void testValidateAccessRequirementWillNullAccessType() {
 		AccessRequirement ar = createExpectedAR();
 		ar.setAccessType(null);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			AccessRequirementManagerImpl.validateAccessRequirement(ar);
 		});
 	}
@@ -1005,7 +1083,7 @@ public class AccessRequirementManagerImplUnitTest {
 	public void testValidateAccessRequirementWillNullSubjectIds() {
 		AccessRequirement ar = createExpectedAR();
 		ar.setSubjectIds(null);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			AccessRequirementManagerImpl.validateAccessRequirement(ar);
 		});
 	}
@@ -1015,7 +1093,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirement ar = new PostMessageContentAccessRequirement();
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setSubjectIds(new LinkedList<RestrictableObjectDescriptor>());
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			AccessRequirementManagerImpl.validateAccessRequirement(ar);
 		});
 	}
@@ -1027,7 +1105,7 @@ public class AccessRequirementManagerImplUnitTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setType(RestrictableObjectType.TEAM);
 		ar.setSubjectIds(Arrays.asList(rod));
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			AccessRequirementManagerImpl.validateAccessRequirement(ar);
 		});
 	}
@@ -1039,7 +1117,7 @@ public class AccessRequirementManagerImplUnitTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(rod));
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			AccessRequirementManagerImpl.validateAccessRequirement(ar);
 		});
 	}
@@ -1101,6 +1179,67 @@ public class AccessRequirementManagerImplUnitTest {
 	@Test
 	public void testValidateAccessRequirement() {
 		AccessRequirement ar = createExpectedAR();
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithSubjectsDefinedByAnnotationsTrueIncludingSubjects() {
+		AccessRequirement ar = createExpectedAR();
+		ar.setSubjectsDefinedByAnnotations(true);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			AccessRequirementManagerImpl.validateAccessRequirement(ar);
+		}).getMessage();
+		assertEquals("When 'subjectsDefinedByAnnotations' = true, then subjectIds must be empty or excluded.", message);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithSubjectsDefinedByAnnotationsFalseIncludingSubjects() {
+		AccessRequirement ar = createExpectedAR();
+		ar.setSubjectsDefinedByAnnotations(false);
+		// call under test
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithSubjectsDefinedByAnnotationsFalseSubjectsNull() {
+		AccessRequirement ar = createExpectedAR();
+		ar.setSubjectsDefinedByAnnotations(false);
+		ar.setSubjectIds(null);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			AccessRequirementManagerImpl.validateAccessRequirement(ar);
+		}).getMessage();
+		assertEquals("When 'subjectsDefinedByAnnotations' = false (or excluded), then subjectIds must be included.", message);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithSubjectsDefinedByAnnotationsNullSubjectsNull() {
+		AccessRequirement ar = createExpectedAR();
+		ar.setSubjectsDefinedByAnnotations(null);
+		ar.setSubjectIds(null);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			AccessRequirementManagerImpl.validateAccessRequirement(ar);
+		}).getMessage();
+		assertEquals("When 'subjectsDefinedByAnnotations' = false (or excluded), then subjectIds must be included.", message);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithSubjectsDefinedByAnnotationsTrueIncludingEmptySubjects() {
+		AccessRequirement ar = createExpectedAR();
+		ar.setSubjectsDefinedByAnnotations(true);
+		ar.setSubjectIds(Collections.emptyList());
+		// call under test
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementWithSubjectsDefinedByAnnotationsTrueNullSubjects() {
+		AccessRequirement ar = createExpectedAR();
+		ar.setSubjectsDefinedByAnnotations(true);
+		ar.setSubjectIds(Collections.emptyList());
+		// call under test
 		AccessRequirementManagerImpl.validateAccessRequirement(ar);
 	}
 
@@ -1169,9 +1308,9 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testFindSubjectIdsToSignalCurrentEmpty() {
-		Set<RestrictableObjectDescriptor> currentSubjectIds = new HashSet<>();
-		Set<RestrictableObjectDescriptor> updatedSubjectIds = generateSubjectIds(2, 2); // 2,3
-		Set<RestrictableObjectDescriptor> subjectIdsToSignal = arm.findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds);
+		List<RestrictableObjectDescriptor> currentSubjectIds = Collections.emptyList();
+		List<RestrictableObjectDescriptor> updatedSubjectIds = generateSubjectIds(2, 2); // 2,3
+		List<RestrictableObjectDescriptor> subjectIdsToSignal = arm.findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds);
 		assertNotNull(subjectIdsToSignal);
 		assertEquals(2, subjectIdsToSignal.size());
 		assertEquals(updatedSubjectIds, subjectIdsToSignal);
@@ -1179,11 +1318,11 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testFindSubjectIdsToSignalUpdatedEmpty() {
-		Set<RestrictableObjectDescriptor> updatedSubjectIds = new HashSet<>();
-		Set<RestrictableObjectDescriptor> currentSubjectIds = generateSubjectIds(2, 2); // 2,3
+		List<RestrictableObjectDescriptor> updatedSubjectIds = Collections.emptyList();
+		List<RestrictableObjectDescriptor> currentSubjectIds = generateSubjectIds(2, 2); // 2,3
 
 		// call under test
-		Set<RestrictableObjectDescriptor> subjectIdsToSignal = arm.findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds);
+		List<RestrictableObjectDescriptor> subjectIdsToSignal = arm.findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds);
 
 		assertNotNull(subjectIdsToSignal);
 		assertEquals(2, subjectIdsToSignal.size());
@@ -1192,12 +1331,12 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testFindSubjectIdsToSignalAll() {
-		Set<RestrictableObjectDescriptor> currentSubjectIds = generateSubjectIds(2, 0); // 0,1
-		Set<RestrictableObjectDescriptor> updatedSubjectIds = generateSubjectIds(2, 2); // 2,3
-		Set<RestrictableObjectDescriptor> expectedSubjectIdsToSignal = generateSubjectIds(4, 0);
+		List<RestrictableObjectDescriptor> currentSubjectIds = generateSubjectIds(2, 0); // 0,1
+		List<RestrictableObjectDescriptor> updatedSubjectIds = generateSubjectIds(2, 2); // 2,3
+		List<RestrictableObjectDescriptor> expectedSubjectIdsToSignal = generateSubjectIds(4, 0);
 
 		// call under test
-		Set<RestrictableObjectDescriptor> subjectIdsToSignal = arm.findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds);
+		List<RestrictableObjectDescriptor> subjectIdsToSignal = arm.findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds);
 
 		assertNotNull(subjectIdsToSignal);
 		assertEquals(4, subjectIdsToSignal.size());
@@ -1206,18 +1345,38 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testFindSubjectIdsToSignalOverlap() {
-		Set<RestrictableObjectDescriptor> currentSubjectIds = generateSubjectIds(2, 0); // 0,1
-		Set<RestrictableObjectDescriptor> updatedSubjectIds = generateSubjectIds(2, 1); // 1,2
-		Set<RestrictableObjectDescriptor> expectedSubjectIdsToSignal = generateSubjectIds(1, 0);
-		Set<RestrictableObjectDescriptor> expectedSubjectIdsToSignal2 = generateSubjectIds(1, 2);
+		List<RestrictableObjectDescriptor> currentSubjectIds = generateSubjectIds(2, 0); // 0,1
+		List<RestrictableObjectDescriptor> updatedSubjectIds = generateSubjectIds(2, 1); // 1,2
+		List<RestrictableObjectDescriptor> expectedSubjectIdsToSignal = generateSubjectIds(1, 0);
+		List<RestrictableObjectDescriptor> expectedSubjectIdsToSignal2 = generateSubjectIds(1, 2);
 		expectedSubjectIdsToSignal.addAll(expectedSubjectIdsToSignal2);
 
 		// call under test
-		Set<RestrictableObjectDescriptor> subjectIdsToSignal = arm.findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds);
+		List<RestrictableObjectDescriptor> subjectIdsToSignal = arm.findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds);
 
-		assertNotNull(subjectIdsToSignal);
-		assertEquals(2, subjectIdsToSignal.size());
 		assertEquals(expectedSubjectIdsToSignal, subjectIdsToSignal);
+	}
+	
+	@Test
+	public void testFindSubjectIdsToSignalWithNullCurrent() {
+		List<RestrictableObjectDescriptor> currentSubjectIds = null;
+		List<RestrictableObjectDescriptor> updatedSubjectIds = generateSubjectIds(2, 1); // 1,2
+
+		// call under test
+		List<RestrictableObjectDescriptor> subjectIdsToSignal = arm.findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds);
+
+		assertEquals(updatedSubjectIds, subjectIdsToSignal);
+	}
+	
+	@Test
+	public void testFindSubjectIdsToSignalWithNullUpdated() {
+		List<RestrictableObjectDescriptor> currentSubjectIds = generateSubjectIds(2, 0);
+		List<RestrictableObjectDescriptor> updatedSubjectIds = null;
+
+		// call under test
+		List<RestrictableObjectDescriptor> subjectIdsToSignal = arm.findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds);
+
+		assertEquals(currentSubjectIds, subjectIdsToSignal);
 	}
 
 	@Test
@@ -1549,8 +1708,8 @@ public class AccessRequirementManagerImplUnitTest {
 		));
 	}
 
-	private Set<RestrictableObjectDescriptor> generateSubjectIds(int numIds, int startId) {
-		Set<RestrictableObjectDescriptor> subjectIds = new HashSet<>();
+	private List<RestrictableObjectDescriptor> generateSubjectIds(int numIds, int startId) {
+		List<RestrictableObjectDescriptor> subjectIds = new ArrayList<>();
 		for (int i = startId; i < startId+numIds; i++) {
 			RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 			subjectId.setId(String.valueOf(i));
@@ -1773,6 +1932,62 @@ public class AccessRequirementManagerImplUnitTest {
 		verifyZeroInteractions(accessRequirementDAO);
 		verifyZeroInteractions(mockDaAuthManager);
 		
+	}
+	
+	@Test
+	public void testSetDynamicallyBoundAccessRequirementsForSubjectWithAddOnly() {
+		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor();
+		Set<Long> newArIds = new LinkedHashSet<>(List.of(111L, 222L));
+		when(accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(any())).thenReturn(Collections.emptyList());
+		
+		// call under test
+		arm.setDynamicallyBoundAccessRequirementsForSubject(subject, newArIds);
+		List<Long> expectedAdd = List.of(111L,222L);
+		verify(accessRequirementDAO).getDynamicallyBoundAccessRequirementIdsForSubject(subject);
+		verify(accessRequirementDAO, never()).removeDynamicallyBoundAccessRequirementsFromSubject(any(), any());
+		verify(accessRequirementDAO).addDynamicallyBoundAccessRequirmentsToSubject(subject, expectedAdd);
+	}
+	
+	@Test
+	public void testSetDynamicallyBoundAccessRequirementsForSubjectWithDeleteOnly() {
+		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor();
+		Set<Long> newArIds = Collections.emptySet();
+		when(accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(any())).thenReturn(List.of(111L,222L));
+		
+		// call under test
+		arm.setDynamicallyBoundAccessRequirementsForSubject(subject, newArIds);
+		List<Long> expectedToRemove = List.of(111L,222L);
+		verify(accessRequirementDAO).getDynamicallyBoundAccessRequirementIdsForSubject(subject);
+		verify(accessRequirementDAO).removeDynamicallyBoundAccessRequirementsFromSubject(subject, expectedToRemove);
+		verify(accessRequirementDAO, never()).addDynamicallyBoundAccessRequirmentsToSubject(any(), any());
+	}
+	
+	@Test
+	public void testSetDynamicallyBoundAccessRequirementsForSubjectWithNoChange() {
+		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor();
+		Set<Long> newArIds = new LinkedHashSet<>(List.of(111L, 222L));
+		when(accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(any())).thenReturn(List.of(111L,222L));
+		
+		// call under test
+		arm.setDynamicallyBoundAccessRequirementsForSubject(subject, newArIds);
+		verify(accessRequirementDAO).getDynamicallyBoundAccessRequirementIdsForSubject(subject);
+		verify(accessRequirementDAO, never()).removeDynamicallyBoundAccessRequirementsFromSubject(any(), any());
+		verify(accessRequirementDAO, never()).addDynamicallyBoundAccessRequirmentsToSubject(any(), any());
+	}
+	
+	@Test
+	public void testSetDynamicallyBoundAccessRequirementsForSubjectWithAddAndRemove() {
+		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor();
+		Set<Long> newArIds = new LinkedHashSet<>(List.of(111L, 222L,333L));
+		when(accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(any())).thenReturn(List.of(111L,444L,555L));
+		
+		// call under test
+		arm.setDynamicallyBoundAccessRequirementsForSubject(subject, newArIds);
+		List<Long> expectedAdd = List.of(222L,333L);
+		verify(accessRequirementDAO).getDynamicallyBoundAccessRequirementIdsForSubject(subject);
+		List<Long> expectedToRemove = List.of(444L,555L);
+		verify(accessRequirementDAO).removeDynamicallyBoundAccessRequirementsFromSubject(subject, expectedToRemove);
+		verify(accessRequirementDAO).addDynamicallyBoundAccessRequirmentsToSubject(subject, expectedAdd);
 	}
 
 }

@@ -223,9 +223,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		String truthSchemaMD5Hex = getSchemaMD5Hex(idAndVersion);
 		// get the truth version
 		long truthLastVersion = getTableVersion(idAndVersion);
+		// get the search flag for the node
+		boolean truthSearchEnabled = isTableSearchEnabled(idAndVersion);
 		// compare the truth with the index.
-		return this.tableConnectionFactory.getConnection(idAndVersion).doesIndexStateMatch(idAndVersion,
-				truthLastVersion, truthSchemaMD5Hex);
+		return tableConnectionFactory.getConnection(idAndVersion).doesIndexStateMatch(idAndVersion, truthLastVersion, truthSchemaMD5Hex, truthSearchEnabled);
 	}
 
 	/*
@@ -549,6 +550,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		default:
 			throw new IllegalArgumentException("Unexpected type for entity with id " + idAndVersion.toString() + ": " + type +  " (expected a table or view type)");
 		}
+	}
+
+	@Override
+	public boolean isTableSearchEnabled(IdAndVersion idAndVersion) {
+		return nodeDao.isSearchEnabled(idAndVersion.getId(), idAndVersion.getVersion().orElse(null));
 	}
 
 }

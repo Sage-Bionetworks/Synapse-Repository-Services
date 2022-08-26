@@ -1,12 +1,14 @@
 package org.sagebionetworks.repo.model.annotation.v2;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -26,10 +28,15 @@ public class AnnotationsV2Utils {
 
 	static final int MAX_ANNOTATION_KEYS = 100;
 	static final int MAX_VALUES_PER_KEY = 100;
+	
 	// match one or more whitespace characters
 	private static final Pattern ALLOWABLE_CHARS = Pattern
 			.compile("^[a-zA-Z0-9,_.]+");
-
+	
+	public static final String ACCESS_REQUIREMENT_IDS = "_accessRequirementIds";
+	
+	public static final Set<String> RESERVED_ANNOTATION_NAMES = Arrays.asList(ACCESS_REQUIREMENT_IDS).stream()
+			.map(String::toLowerCase).collect(Collectors.toSet());
 
 	/**
 	 *
@@ -156,15 +163,18 @@ public class AnnotationsV2Utils {
 		if (key == null)
 			throw new InvalidModelException("Annotation names cannot be null");
 		key = key.trim();
-		if ("".equals(key))
-			throw new InvalidModelException(
-					"Annotation names cannot be empty strings");
+		
+		if ("".equals(key)) {
+			throw new InvalidModelException("Annotation names cannot be empty strings");
+		}
 		Matcher matcher = ALLOWABLE_CHARS.matcher(key);
+		
 		if (!matcher.matches()) {
-			throw new InvalidModelException(
-					"Invalid annotation name: '"
-							+ key
-							+ "'. Annotation names may only contain; letters, numbers, '_' and '.'");
+			throw new InvalidModelException("Invalid annotation name: '" + key + "'. Annotation names may only contain; letters, numbers, '_' and '.'");
+		}
+		
+		if (RESERVED_ANNOTATION_NAMES.contains(key.toLowerCase())) {
+			throw new InvalidModelException("Invalid annotation name: '" + key + "'. The annotation name is a system reserved annotation.");
 		}
 	}
 

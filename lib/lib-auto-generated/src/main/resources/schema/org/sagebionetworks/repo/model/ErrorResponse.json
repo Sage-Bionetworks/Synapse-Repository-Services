@@ -1,5 +1,10 @@
 {
     "description":"JSON schema for an error",
+    "implements":[
+    {
+        "$ref":"org.sagebionetworks.repo.model.BaseError"
+    }
+],
     "properties":{
         "reason": {
             "type":"string",

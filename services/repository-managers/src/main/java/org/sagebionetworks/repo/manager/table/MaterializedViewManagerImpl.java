@@ -202,9 +202,14 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			// Need the MD5 for the original schema.
 			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
 			List<ColumnModel> viewSchema = columModelManager.getTableSchema(idAndVersion);
+			// Record the search flag before processing to avoid race conditions
+			boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(idAndVersion);
 
 			// create the table in the index.
 			indexManager.setIndexSchema(definingSql.getIndexDescription(), viewSchema);
+			// Sync the search flag
+			indexManager.setSearchEnabled(idAndVersion, isSearchEnabled);
+		
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Building MaterializedView...", 0L, 1L);
 			
 			Long viewCRC = null;
@@ -219,7 +224,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 
 			//for any list columns, build separate tables that serve as an index
 			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
-
+			
 			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
 			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
 			// Attempt to set the table to complete.

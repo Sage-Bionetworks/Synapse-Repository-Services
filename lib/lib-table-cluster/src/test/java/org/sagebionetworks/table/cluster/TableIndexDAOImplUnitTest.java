@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
-import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
+import org.sagebionetworks.table.cluster.search.TableRowSearchProcessor;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -59,7 +59,7 @@ public class TableIndexDAOImplUnitTest {
 	@Mock
 	private ObjectFieldModelResolver mockObjectFieldResolver;
 	@Mock
-	private RowSearchProcessor mockSearchProcessor;
+	private TableRowSearchProcessor mockSearchProcessor;
 	
 	@Spy
 	@InjectMocks

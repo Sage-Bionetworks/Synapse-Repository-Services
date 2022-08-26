@@ -94,7 +94,16 @@ public class TableConstants {
 	/**
 	 * The set of column types eligible to be added to the search index
 	 */
-	public static final Set<ColumnType> SEARCH_TYPES = ImmutableSet.of(ColumnType.STRING, ColumnType.STRING_LIST, ColumnType.LARGETEXT, ColumnType.LINK);
+	public static final Set<ColumnType> SEARCH_TYPES = ImmutableSet.of(
+		ColumnType.STRING, 
+		ColumnType.STRING_LIST, 
+		ColumnType.LARGETEXT, 
+		ColumnType.LINK,
+		ColumnType.ENTITYID,
+		ColumnType.ENTITYID_LIST,
+		ColumnType.EVALUATIONID,
+		ColumnType.SUBMISSIONID
+	);
 		
 	/**
 	 * Is the passed column name a reserved column name like ROW_ID or

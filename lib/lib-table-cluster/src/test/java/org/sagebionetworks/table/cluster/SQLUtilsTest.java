@@ -34,10 +34,10 @@ import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -2971,24 +2971,6 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
-	public void testGenerateAddSearchColumnSql() {
-		
-		String expected = "ALTER TABLE T999 ADD COLUMN `ROW_SEARCH_CONTENT` MEDIUMTEXT NULL, ADD FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (`ROW_SEARCH_CONTENT`)";
-		String sql = SQLUtils.generateAddSearchColumnSql(tableId);
-		
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testGenerateRemoveSearchColumnSql() {
-		
-		String expected = "ALTER TABLE T999 DROP COLUMN `ROW_SEARCH_CONTENT`";
-		String sql = SQLUtils.generateRemoveSearchColumnSql(tableId);
-		
-		assertEquals(expected, sql);
-	}
-	
-	@Test
 	public void testBuildSelectTableDataByRowIdSQL() {
 		String expected = "SELECT ROW_ID, _C456_,_C789_,_C123_ FROM T999 WHERE ROW_ID IN(:ROW_ID)";
 		
@@ -3122,5 +3104,48 @@ public class SQLUtilsTest {
 		});
 		
 		assertEquals("The id is required.", ex.getMessage());
+	}
+	
+	@Test
+	public void testBuildCreateOrUpdateStatusSQL() {
+		
+		String result = SQLUtils.buildCreateOrUpdateStatusSQL(tableId);
+		
+		assertEquals("INSERT INTO T" + tableId.getId() + "S"
+				+ " ( SINGLE_KEY,ROW_VERSION,SCHEMA_HASH,SEARCH_ENABLED )"
+				+ " VALUES ('1', ?, '" + TableModelUtils.EMPTY_SCHEMA_MD5 + "', FALSE)"
+				+ " ON DUPLICATE KEY UPDATE ROW_VERSION = ?", result);
+	}
+	
+	@Test
+	public void testBuildCreateOrUpdateSearchStatusSQL() {
+		
+		String result = SQLUtils.buildCreateOrUpdateSearchStatusSQL(tableId);
+		
+		assertEquals("INSERT INTO T" + tableId.getId() + "S"
+				+ " ( SINGLE_KEY,ROW_VERSION,SCHEMA_HASH,SEARCH_ENABLED )"
+				+ " VALUES ('1', -1, '" + TableModelUtils.EMPTY_SCHEMA_MD5 + "', ?)"
+				+ " ON DUPLICATE KEY UPDATE SEARCH_ENABLED = ?", result);
+	}
+	
+	@Test
+	public void testBuildCreateOrUpdateStatusHashSQL() {
+		
+		String result = SQLUtils.buildCreateOrUpdateStatusHashSQL(tableId);
+		
+		assertEquals("INSERT INTO T" + tableId.getId() + "S"
+				+ " ( SINGLE_KEY,ROW_VERSION,SCHEMA_HASH,SEARCH_ENABLED )"
+				+ " VALUES ('1', -1, ?, FALSE)"
+				+ " ON DUPLICATE KEY UPDATE SCHEMA_HASH = ?", result);
+	}
+	
+	@Test
+	public void testBuildCreateOrUpdateStatusVersionAndHashSQL() {
+		String result = SQLUtils.buildCreateOrUpdateStatusVersionAndHashSQL(tableId);
+		
+		assertEquals("INSERT INTO T" + tableId.getId() + "S"
+				+ " ( SINGLE_KEY,ROW_VERSION,SCHEMA_HASH,SEARCH_ENABLED )"
+				+ " VALUES ('1', ?, ?, FALSE)"
+				+ " ON DUPLICATE KEY UPDATE ROW_VERSION = ?, SCHEMA_HASH = ?", result);
 	}
 }

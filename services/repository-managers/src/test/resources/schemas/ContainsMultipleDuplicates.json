@@ -1,0 +1,33 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "containsMultipleDuplicates",
+	"properties": {
+		"integers": {
+			"type": "array",
+			"allOf": [
+				{
+					"contains": {
+						"const": 123
+					}
+				},
+				{
+					"contains": {
+						"type": "integer",
+						"const": 456
+					}
+				},
+				{
+					"contains": {
+						"const": 123
+					}
+				},
+				{
+					"contains": {
+						"type": "integer",
+						"const": 456
+					}
+				}
+			]
+		}
+	}
+}

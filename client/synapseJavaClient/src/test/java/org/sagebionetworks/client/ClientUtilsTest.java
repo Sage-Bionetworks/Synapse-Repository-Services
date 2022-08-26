@@ -1,24 +1,5 @@
 package org.sagebionetworks.client;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.sagebionetworks.client.ClientUtils.ERROR_REASON_TAG;
-import static org.sagebionetworks.client.Method.DELETE;
-import static org.sagebionetworks.client.Method.GET;
-import static org.sagebionetworks.client.Method.POST;
-import static org.sagebionetworks.client.Method.PUT;
-
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import org.apache.http.HttpHeaders;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -30,6 +11,7 @@ import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseDeprecatedServiceException;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseLockedException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -41,6 +23,26 @@ import org.sagebionetworks.simpleHttpClient.Header;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
+
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.client.ClientUtils.CONCRETE_TYPE;
+import static org.sagebionetworks.client.ClientUtils.ERROR_REASON_TAG;
+import static org.sagebionetworks.client.Method.DELETE;
+import static org.sagebionetworks.client.Method.GET;
+import static org.sagebionetworks.client.Method.POST;
+import static org.sagebionetworks.client.Method.PUT;
 
 public class ClientUtilsTest {
 	@Mock
@@ -74,6 +76,7 @@ public class ClientUtilsTest {
 	public void testconvertResponseBodyToJSONAndThrowException_WithJSONResponse() throws Exception{
 		JSONObject response = new JSONObject();
 		response.put(ERROR_REASON_TAG, "test");
+		response.put(CONCRETE_TYPE, "org.sagebionetworks.repo.model.ErrorResponse");
 
 		when(mockResponse.getStatusCode()).thenReturn(401);
 		when(mockResponse.getContent()).thenReturn(response.toString());
@@ -91,6 +94,7 @@ public class ClientUtilsTest {
 	public void testconvertResponseBodyToJSONAndThrowException_WithJSONResponseAndErrorCode() throws Exception{
 		JSONObject response = new JSONObject();
 		response.put(ERROR_REASON_TAG, "test");
+		response.put(CONCRETE_TYPE, "org.sagebionetworks.repo.model.ErrorResponse");
 		response.put("errorCode", "PASSWORD_RESET_VIA_EMAIL_REQUIRED");
 
 		when(mockResponse.getStatusCode()).thenReturn(401);
@@ -186,13 +190,25 @@ public class ClientUtilsTest {
 
 	@Test
 	public void testCheckStatusCodeAndThrowException_JSONResponseContent() throws Exception{
+		final String content = "{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"some reason\",\"errorCode\":\"PASSWORD_RESET_VIA_EMAIL_REQUIRED\"}";
 		when(mockResponse.getStatusCode()).thenReturn(400);
-		when(mockResponse.getContent()).thenReturn("{\"reason\":\"some reason\",\"errorCode\":\"PASSWORD_RESET_VIA_EMAIL_REQUIRED\"}");
+		when(mockResponse.getContent()).thenReturn(content);
 		try {
 			ClientUtils.checkStatusCodeAndThrowException(mockResponse);
 		} catch (SynapseBadRequestException e) {
 			assertEquals("some reason", e.getMessage());
 			assertEquals(ErrorResponseCode.PASSWORD_RESET_VIA_EMAIL_REQUIRED, e.getErrorResponseCode());
+		}
+	}
+
+	@Test
+	public void testCheckDrsErrorResponseAndThrowException_JSONResponseContent() {
+		final int httpStatus = 400;
+		final String reasonStr = "{\"concreteType\":\"org.sagebionetworks.repo.model.drs.DrsErrorResponse\",\"msg\":\"some msg\",\"status_code\":404}";
+		try {
+			ClientUtils.throwException(httpStatus, reasonStr);
+		} catch (SynapseException e) {
+			assertEquals("some msg", e.getMessage());
 		}
 	}
 
@@ -208,7 +224,8 @@ public class ClientUtilsTest {
 
 	@Test
 	public void testConvertResponseBodyToJSONAndThrowExceptionFor400() throws Exception{
-		when(mockResponse.getContent()).thenReturn("{\"reason\":\"some reason\"}");
+		final String content = "{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"some reason\"}";
+		when(mockResponse.getContent()).thenReturn(content);
 		when(mockResponse.getStatusCode()).thenReturn(400);
 		try {
 			ClientUtils.convertResponseBodyToJSONAndThrowException(mockResponse);

@@ -748,6 +748,7 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		AnnotationsV2TestUtils.putAnnotations(expected, "defaultDouble", "0.0123456", AnnotationsValueType.DOUBLE);
 		AnnotationsV2TestUtils.putAnnotations(expected, "defaultTimestamp", "222", AnnotationsValueType.TIMESTAMP_MS);
 		AnnotationsV2TestUtils.putAnnotations(expected, "defaultBoolean", "true", AnnotationsValueType.BOOLEAN);
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConst", "123", AnnotationsValueType.LONG);
 		assertEquals(Optional.of(expected), annos);
 	}
 	
@@ -767,6 +768,7 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		AnnotationsV2TestUtils.putAnnotations(expected, "defaultLong", "123456", AnnotationsValueType.LONG);
 		AnnotationsV2TestUtils.putAnnotations(expected, "defaultTimestamp", "222", AnnotationsValueType.TIMESTAMP_MS);
 		AnnotationsV2TestUtils.putAnnotations(expected, "defaultBoolean", "true", AnnotationsValueType.BOOLEAN);
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConst", "123", AnnotationsValueType.LONG);
 		assertEquals(Optional.of(expected), annos);
 	}
 	
@@ -1014,6 +1016,162 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 	}
 	
 	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalSingleContains() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsSingle.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+		
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "fruit", List.of("apple"), AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalMultipleContains() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsMultiple.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+		
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "integers", List.of("123","456","789"), AnnotationsValueType.LONG);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalMultipleContainsMixedType() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsMultipleMixedTypes.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		// other types are ignored.
+		AnnotationsV2TestUtils.putAnnotations(expected, "integers", List.of("123", "not a number", "true", "456"),
+				AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalMultipleContainsDuplicates() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsMultipleDuplicates.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+		
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		// other types are ignored.
+		AnnotationsV2TestUtils.putAnnotations(expected, "integers", List.of("123","456"), AnnotationsValueType.LONG);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithContainsMultipleConditionalMatchThen() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsMultipleConditional.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "_accessRequirementIds", List.of("456", "111", "222"),
+				AnnotationsValueType.LONG);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithContainsMultipleConditionalMatchElse() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsMultipleConditional.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", false);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "_accessRequirementIds", List.of("456", "333", "444"),
+				AnnotationsValueType.LONG);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithContainsMultipleConditionalReferencesMatchThen() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsMultipleConditionalReferences.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "_accessRequirementIds", List.of("456", "111", "222"),
+				AnnotationsValueType.LONG);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithContainsMultipleConditionalReferencesMatchElse() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsMultipleConditionalReferences.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", false);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "_accessRequirementIds", List.of("456", "333", "444"),
+				AnnotationsValueType.LONG);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithContainsConditionalNoMatch() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsConditional.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		assertEquals(Optional.empty(), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithContainsConditionalMatch() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsConditional.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "_accessRequirementIds", List.of("111", "222"),
+				AnnotationsValueType.LONG);
+		assertEquals(Optional.of(expected), annos);
+	}
+
+	
+	@Test
 	public void testContainsSingleConst() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsSingle.json");
 		assertNotNull(schema.getProperties());
@@ -1073,7 +1231,6 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		assertEquals(List.of("#/integers: expected at least one array item to match 'contains' schema"), result.getAllValidationMessages());
 
 	}
-
 
 	/**
 	 * Helper to build a stack trace for the given exception.

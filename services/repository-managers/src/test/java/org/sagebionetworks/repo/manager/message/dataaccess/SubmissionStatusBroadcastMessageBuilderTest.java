@@ -60,7 +60,7 @@ public class SubmissionStatusBroadcastMessageBuilderTest {
 		String body = builder.buildRawBody(subscriber);
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
-		assertTrue(body.contains("A member of the Synapse Access and Compliance Team has reviewed and approved your request."));
+		assertTrue(body.contains("Your request for access was reviewed and approved."));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:2"));
 		assertTrue(body.contains("https://www.synapse.org/#!AccessRequirements:ID=2&TYPE=ENTITY"));
 	}
@@ -73,7 +73,7 @@ public class SubmissionStatusBroadcastMessageBuilderTest {
 		String body = builder.buildRawBody(subscriber);
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
-		assertTrue(body.contains("A member of the Synapse Access and Compliance Team has reviewed and approved your request."));
+		assertTrue(body.contains("Your request for access was reviewed and approved."));
 		assertTrue(body.contains("https://www.synapse.org/#!Team:2"));
 		assertTrue(body.contains("https://www.synapse.org/#!AccessRequirements:ID=2&TYPE=TEAM"));
 	}
@@ -97,7 +97,7 @@ public class SubmissionStatusBroadcastMessageBuilderTest {
 		String body = builder.buildRawBody(subscriber);
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
-		assertTrue(body.contains("A member of the Synapse Access and Compliance Team has reviewed your request and left a comment:"));
+		assertTrue(body.contains("A reviewer left a comment in your request. Your request cannot be approved until you respond:"));
 		assertTrue(body.contains("\n>" + rejectedReason + "\n"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:2"));
 		assertTrue(body.contains("https://www.synapse.org/#!AccessRequirements:ID=2&TYPE=ENTITY"));
@@ -112,7 +112,7 @@ public class SubmissionStatusBroadcastMessageBuilderTest {
 		String body = builder.buildRawBody(subscriber);
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
-		assertTrue(body.contains("A member of the Synapse Access and Compliance Team has reviewed your request and left a comment:"));
+		assertTrue(body.contains("A reviewer left a comment in your request. Your request cannot be approved until you respond:"));
 		assertTrue(body.contains("\n>some reason\n>some other reason\n"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:2"));
 		assertTrue(body.contains("https://www.synapse.org/#!AccessRequirements:ID=2&TYPE=ENTITY"));

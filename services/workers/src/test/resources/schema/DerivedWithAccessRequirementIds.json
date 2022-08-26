@@ -1,0 +1,67 @@
+{
+	"type": "object",
+	"allOf": [
+		{
+			"if": {
+				"properties": {
+					"someBoolean": {
+						"const": true
+					}
+				},
+				"required": [
+					"someBoolean"
+				]
+			},
+			"then": {
+				"properties": {
+					"_accessRequirementIds": {
+						"type": "array",
+						"allOf": [
+							{
+								"contains": {
+									"const": "$arOne"
+								}
+							},
+							{
+								"contains": {
+									"const": "$arTwo"
+								}
+							}
+						]
+					}
+				}
+			}
+		},
+		{
+			"if": {
+				"properties": {
+					"someBoolean": {
+						"const": false
+					}
+				},
+				"required": [
+					"someBoolean"
+				]
+			},
+			"then": {
+				"properties": {
+					"_accessRequirementIds": {
+						"type": "array",
+						"allOf": [
+							{
+								"contains": {
+									"const": "$arTwo"
+								}
+							},
+							{
+								"contains": {
+									"const": "$arThree"
+								}
+							}
+						]
+					}
+				}
+			}
+		}
+	]
+}

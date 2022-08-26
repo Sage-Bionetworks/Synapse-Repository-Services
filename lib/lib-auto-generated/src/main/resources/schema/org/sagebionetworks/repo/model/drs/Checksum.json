@@ -1,0 +1,20 @@
+{
+	"description": "The hex-string encoded checksum for the drs object. At least one checksum must be provided. For blobs, the checksum is computed over the bytes in the blob that is md5. For bundles, the checksum is computed over a sorted concatenation of the checksums of its top-level contained objects.",
+	"properties": {
+		"checksum": {
+			"type": "string",
+			"description": "The hex-encoded md5 string."
+		},
+		"type": {
+			"type": "string",
+			"description": "The digest method used to create the checksum eg md5.",
+			"name": "ChecksumType",
+			"enum": [
+				{
+					"name": "md5",
+					"description": "TODO: Auto-generated description"
+				}
+			]
+		}
+	}
+}

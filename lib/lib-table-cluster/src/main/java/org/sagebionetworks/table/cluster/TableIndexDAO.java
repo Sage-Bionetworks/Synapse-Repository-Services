@@ -3,7 +3,6 @@ package org.sagebionetworks.table.cluster;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -132,15 +131,6 @@ public interface TableIndexDAO {
 	 * @param highestVersion
 	 */
 	void setMaxCurrentCompleteVersionForTable(IdAndVersion tableId, Long highestVersion);
-
-	/**
-	 * Set the max complete version for this table along with the search status
-	 * 
-	 * @param tableId
-	 * @param version
-	 * @param searchEnabled
-	 */
-	void setMaxCurrentCompleteVersionAndSearchStatusForTable(IdAndVersion tableId, Long version, boolean searchEnabled);
 	
 	/**
 	 * Set the MD5 hex of the table's current schema.
@@ -157,6 +147,8 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	String getCurrentSchemaMD5Hex(IdAndVersion tableId);
+	
+	void setSearchEnabled(IdAndVersion tableId, boolean searchStatus);
 
 	/**
 	 * Create all of the secondary tables used for an index if they do not exist.
@@ -214,7 +206,7 @@ public interface TableIndexDAO {
 	 * @param schemaMD5Hex
 	 * @return
 	 */
-	boolean doesIndexStateMatch(IdAndVersion tableId, long versionNumber, String schemaMD5Hex);
+	boolean doesIndexStateMatch(IdAndVersion tableId, long versionNumber, String schemaMD5Hex, boolean searchEnabled);
 
 	/**
 	 * Get the distinct Long values for a given column ID.
@@ -279,13 +271,6 @@ public interface TableIndexDAO {
 	 */
 	List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId);
 	
-	/**
-	 * @param tableId
-	 * @param columnName The physical name of the column
-	 * @return An optional containing the database level information about the column with the given name 
-	 */
-	Optional<DatabaseColumnInfo> getDatabaseColumnInfo(IdAndVersion tableId, String columnName);
-
 	/**
 	 * Provide the cardinality for the given columns and table.
 	 * 
@@ -461,7 +446,7 @@ public interface TableIndexDAO {
 	long calculateCRC32ofTableView(Long viewId);
 
 	/**
-	 * Save both the current version and schema MD5 for current index.
+	 * Save both the current version and the schema MD5 for current index.
 	 * 
 	 * @param tableId
 	 * @param viewCRC
@@ -616,19 +601,7 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	List<IdAndChecksum> getIdAndChecksumsForFilter(Long salt, ViewFilter filter, Long limit, Long offset);
-	
-	/**
-	 * Adds a special SEARCH_CONTENT FT column to the table index 
-	 * @param idAndVersion
-	 */
-	void addSearchColumn(IdAndVersion idAndVersion);
-	
-	/**
-	 * Removes the special SEARCH_CONTENT FT column from the table index 
-	 * @param idAndVersion
-	 */
-	void removeSearchColumn(IdAndVersion idAndVersion);
-	
+		
 	/**
 	 * @param idAndVersion The id of the table
 	 * @param selectColumns The columns to fetch

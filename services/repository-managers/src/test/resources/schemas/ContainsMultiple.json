@@ -12,6 +12,7 @@
 				},
 				{
 					"contains": {
+						"type": "integer",
 						"const": 456
 					}
 				},

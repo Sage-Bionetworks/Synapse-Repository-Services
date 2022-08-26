@@ -212,7 +212,7 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public boolean isNodeAvailable(Long nodeId);
-	
+		
 	/**
 	 * From the given set of Node IDs, get the sub-set of
 	 * nodes that are available.  A node is available if it exists
@@ -685,6 +685,11 @@ public interface NodeDAO {
 	 */
 	public List<IdAndChecksum> getIdsAndChecksumsForObjects(Long salt, Set<Long> objectIds);
 	
-
+	/**
+	 * @param nodeId
+	 * @param versionNumber
+	 * @return True if the search is enabled for the node with the given id and version, if the version is null checks on the current version
+	 */
+	boolean isSearchEnabled(Long nodeId, Long versionNumber);
 
 }

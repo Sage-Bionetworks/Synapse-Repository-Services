@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster.description;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_SEARCH_CONTENT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.ArrayList;
@@ -73,12 +74,14 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 		builder.append("( ");
 		builder.append(ROW_ID).append(" BIGINT NOT NULL AUTO_INCREMENT, ");
 		builder.append(ROW_VERSION).append(" BIGINT NOT NULL DEFAULT 0, ");
+		builder.append(ROW_SEARCH_CONTENT).append(" MEDIUMTEXT NULL, ");
 		StringBuilder benefactorIndicies = new StringBuilder();
 		for (BenefactorDescription desc : benefactorDescriptions) {
 			builder.append(desc.getBenefactorColumnName()).append(" BIGINT NOT NULL, ");
 			benefactorIndicies.append(", KEY (").append(desc.getBenefactorColumnName()).append(")");
 		}
-		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
+		builder.append("PRIMARY KEY (").append("ROW_ID").append("), ");
+		builder.append("FULLTEXT INDEX `" + ROW_SEARCH_CONTENT + "_INDEX` (" + ROW_SEARCH_CONTENT + ")");
 		builder.append(benefactorIndicies.toString());
 		builder.append(")");
 		return builder.toString();
