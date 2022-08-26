@@ -13,12 +13,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.dao.TeamUtils;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * Database Object for a Wiki Page.
@@ -74,8 +77,24 @@ public class DBOTeam implements MigratableDatabaseObject<DBOTeam, DBOTeam> {
 		}
 
 	};
-	
-	private static final MigratableTableTranslation<DBOTeam, DBOTeam> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
+
+	@TemporaryCode(author = "peter.harvey@sagebase.org", comment = "One time migration of property canRequestMembership.  Can be removed after all teams have a canRequestMembership value.")
+	private static final MigratableTableTranslation<DBOTeam, DBOTeam> MIGRATION_MAPPER = new  MigratableTableTranslation<DBOTeam, DBOTeam>() {
+		@Override
+		public DBOTeam createDatabaseObjectFromBackup(DBOTeam backup) {
+			Team dto = TeamUtils.copyDboToDto(backup);
+			if (dto.getCanRequestMembership() == null) {
+				dto.setCanRequestMembership(true);
+			}
+			TeamUtils.copyDtoToDbo(dto, backup);
+			return backup;
+		}
+
+		@Override
+		public DBOTeam createBackupFromDatabaseObject(DBOTeam dbo) {
+			return dbo;
+		}
+	};
 
 	private Long id;
 	private String etag;

@@ -188,6 +188,7 @@ public class MembershipRequestManagerImplTest {
 		MembershipRequest mrs = new MembershipRequest();
 		mrs.setTeamId(TEAM_ID);
 		when(mockMembershipRequestDAO.create((MembershipRequest)any())).thenReturn(mrs);
+		when(mockTeam.getCanRequestMembership()).thenReturn(true);
 		assertEquals(mrs, membershipRequestManagerImpl.create(userInfo, mrs));
 	}
 	
@@ -471,6 +472,25 @@ public class MembershipRequestManagerImplTest {
 			membershipRequestManagerImpl.create(userInfo, mrs);
 		});
 		assertEquals("This team is already open for the public to join, membership requests are not needed.", e.getMessage());
+
+	}
+
+	@Test
+	public void testCreateRequestTeamClosedToMembershipRequests() {
+		MembershipRequest mrs = new MembershipRequest();
+		mrs.setTeamId(TEAM_ID);
+		mrs.setUserId(MEMBER_PRINCIPAL_ID);
+		Team team = new Team();
+		team.setCanRequestMembership(false);
+		when(mockTeamDAO.get(mrs.getTeamId())).thenReturn(team);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(userInfo, restrictionInfoRqst)).
+				thenReturn(noUnmetAccessRqmtResponse);
+
+		IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			membershipRequestManagerImpl.create(userInfo, mrs);
+		});
+		assertEquals("This team has been closed to new membership requests.", e.getMessage());
 
 	}
 }

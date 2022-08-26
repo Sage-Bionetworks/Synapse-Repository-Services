@@ -113,6 +113,10 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			throw new IllegalArgumentException("This team is already open for the public to join, membership requests are not needed.");
 		}
 
+		if (team.getCanRequestMembership() != null && !team.getCanRequestMembership()) {
+			throw new IllegalArgumentException("This team has been closed to new membership requests.");
+		}
+
 		Date now = new Date();
 		populateCreationFields(userInfo, mr, now);
 		return membershipRequestDAO.create(mr);

@@ -9,6 +9,8 @@ public class BootstrapTeam {
 	private String description;
 	private String icon;
 	private Boolean canPublicJoin;
+
+	private Boolean canRequestMembership;
 	private List<String> initialMembers;
 	
 	public String getId() {
@@ -41,6 +43,15 @@ public class BootstrapTeam {
 	public void setCanPublicJoin(Boolean canPublicJoin) {
 		this.canPublicJoin = canPublicJoin;
 	}
+
+	public Boolean getCanRequestMembership() {
+		return canRequestMembership;
+	}
+
+	public void setCanRequestMembership(Boolean canRequestMembership) {
+		this.canRequestMembership = canRequestMembership;
+	}
+
 	public List<String> getInitialMembers() {
 		return initialMembers;
 	}
