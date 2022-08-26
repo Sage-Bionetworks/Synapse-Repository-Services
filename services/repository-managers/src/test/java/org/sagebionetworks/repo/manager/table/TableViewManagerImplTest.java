@@ -83,7 +83,6 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableState;
-import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -1160,7 +1159,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testValidateViewForSnapshot() throws TableUnavailableException {
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(scopeType);
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
@@ -1168,22 +1167,48 @@ public class TableViewManagerImplTest {
 		// Call under test
 		manager.validateViewForSnapshot(idAndVersion);
 		
-		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
+		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verify(mockTableManagerSupport).getViewScopeType(idAndVersion);
 		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
 		verify(mockMetadataIndexProvider).getViewFilter(idAndVersion.getId());
 	}
 	
 	@Test
-	public void testValidateViewForSnapshotWithProcessingStatus() throws TableUnavailableException {
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.PROCESSING));
+	public void testValidateViewForSnapshotWithNotAvailable() {
+		for (TableState state : TableState.values()) {
+			Mockito.reset(mockTableManagerSupport);
+			
+			if (TableState.AVAILABLE == state) {
+				continue;
+			}
+			
+			when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(state));	
+			
+			String result = assertThrows(IllegalArgumentException.class, () -> {			
+				// Call under test
+				manager.validateViewForSnapshot(idAndVersion);
+			}).getMessage();
+			
+			assertEquals("You cannot create a version of a view that is not available (Status: " + state + ").", result);
+			
+			verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
+		}
+	}
+	
+	@Test
+	public void testValidateViewForSnapshotWithEmptyStatus() throws TableUnavailableException {
 		
-		assertThrows(TableUnavailableException.class, () -> {			
+		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.empty());	
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
 			manager.validateViewForSnapshot(idAndVersion);
-		});
+		}).getMessage();
 		
-		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
+		assertEquals("You cannot create a version of a view that is not available.", result);
+		
+		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);	
+		
 	}
 	
 	@Test
@@ -1195,24 +1220,10 @@ public class TableViewManagerImplTest {
 		
 		assertEquals("The view id is required.", result);
 	}
-		
-	@Test
-	public void testValidateViewForSnapshotWithFailedStatus() throws TableUnavailableException {
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.PROCESSING_FAILED).setErrorMessage("failed"));
-		
-		String result = assertThrows(IllegalStateException.class, () -> {			
-			// Call under test
-			manager.validateViewForSnapshot(idAndVersion);
-		}).getMessage();
-		
-		assertEquals("You cannot create a version of a view that cannot be built (Status: PROCESSING_FAILED, Error: failed).", result);
-		
-		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
-	}
 	
 	@Test
 	public void testValidateViewForSnapshotWithEmptyFilter() throws TableUnavailableException {
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(scopeType);
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
@@ -1225,7 +1236,7 @@ public class TableViewManagerImplTest {
 		
 		assertEquals("You cannot create a version of a view that has no scope.", result);
 		
-		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
+		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verify(mockTableManagerSupport).getViewScopeType(idAndVersion);
 		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
 		verify(mockMetadataIndexProvider).getViewFilter(idAndVersion.getId());
@@ -1233,7 +1244,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testValidateViewForSnapshotWithEmptyFilterAndDataset() throws TableUnavailableException {
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(new ViewScopeType(ViewObjectType.DATASET, ViewTypeMask.File.getMask()));
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
@@ -1246,7 +1257,7 @@ public class TableViewManagerImplTest {
 		
 		assertEquals("You cannot create a version of an empty Dataset. Add files to this Dataset before creating a version.", result);
 		
-		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
+		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verify(mockTableManagerSupport).getViewScopeType(idAndVersion);
 		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(ViewObjectType.DATASET);
 		verify(mockMetadataIndexProvider).getViewFilter(idAndVersion.getId());
@@ -1254,7 +1265,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testValidateViewForSnapshotWithEmptyFilterAndDatasetCollection() throws TableUnavailableException {
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(new ViewScopeType(ViewObjectType.DATASET_COLLECTION, ViewTypeMask.Dataset.getMask()));
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
@@ -1267,7 +1278,7 @@ public class TableViewManagerImplTest {
 		
 		assertEquals("You cannot create a version of an empty Dataset Collection. Add Datasets to this Dataset Collection before creating a version.", result);
 		
-		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
+		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verify(mockTableManagerSupport).getViewScopeType(idAndVersion);
 		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(ViewObjectType.DATASET_COLLECTION);
 		verify(mockMetadataIndexProvider).getViewFilter(idAndVersion.getId());

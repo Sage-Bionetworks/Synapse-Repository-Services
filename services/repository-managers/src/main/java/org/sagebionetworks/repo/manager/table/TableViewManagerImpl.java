@@ -634,18 +634,12 @@ public class TableViewManagerImpl implements TableViewManager {
 	void validateViewForSnapshot(IdAndVersion idAndVersion) throws TableUnavailableException {
 		ValidateArgument.required(idAndVersion, "The view id");
 		
-		// This will make sure to trigger building the view if not available
-		TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion);
+		// Default to PROCESSING state if missing
+		TableState state = tableManagerSupport.getTableStatusState(idAndVersion)
+			.orElseThrow(() -> new IllegalArgumentException("You cannot create a version of a view that is not available."));
 		
-		switch (status.getState()) {
-		case AVAILABLE:
-			break;
-		case PROCESSING:
-			// The worker will attempt to retry when the table is unavailable
-			throw new TableUnavailableException(status);
-		default:
-			// We do not want to retry when the table failed to build
-			throw new IllegalStateException("You cannot create a version of a view that cannot be built (Status: " + status.getState() + ", Error: " + status.getErrorMessage() + ").");
+		if (!TableState.AVAILABLE.equals(state)) {
+			throw new IllegalArgumentException("You cannot create a version of a view that is not available (Status: " + state + ").");
 		}
 
 		ViewObjectType viewType = tableManagerSupport.getViewScopeType(idAndVersion).getObjectType();

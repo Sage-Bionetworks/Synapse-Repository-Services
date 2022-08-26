@@ -90,13 +90,12 @@ public interface AsynchronousJobWorkerHelper {
 	 * Wait for the given entity to appear in the given view.
 	 * 
 	 * @param user
-	 * @param tableId
 	 * @param entityId
 	 * @param maxWaitMS
 	 * @return
 	 * @throws InterruptedException
 	 */
-	ObjectDataDTO waitForEntityReplication(UserInfo user, String tableId, String entityId, long maxWaitMS)
+	ObjectDataDTO waitForEntityReplication(UserInfo user, String entityId, long maxWaitMS)
 			throws InterruptedException;
 
 	/**
