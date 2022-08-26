@@ -1,8 +1,6 @@
 package org.sagebionetworks.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -62,32 +60,6 @@ public class AsyncJobProgressCallbackAdapterTest {
 		adapter.removeProgressListener(mockListener);
 		
 		verify(mockCallback).removeProgressListener(mockListener);
-		verifyNoMoreInteractions(mockCallback);
-		verifyNoMoreInteractions(mockManager);
-	}
-	
-	@Test
-	public void testRunnerShouldTerminateTrue() {
-		
-		when(mockCallback.runnerShouldTerminate()).thenReturn(true);
-		
-		// Call under test
-		assertTrue(adapter.runnerShouldTerminate());
-		
-		verify(mockCallback).runnerShouldTerminate();
-		verifyNoMoreInteractions(mockCallback);
-		verifyNoMoreInteractions(mockManager);
-	}
-	
-	@Test
-	public void testRunnerShouldTerminateFalse() {
-		
-		when(mockCallback.runnerShouldTerminate()).thenReturn(false);
-		
-		// Call under test
-		assertFalse(adapter.runnerShouldTerminate());
-		
-		verify(mockCallback).runnerShouldTerminate();
 		verifyNoMoreInteractions(mockCallback);
 		verifyNoMoreInteractions(mockManager);
 	}

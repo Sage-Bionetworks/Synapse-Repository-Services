@@ -30,11 +30,6 @@ public class AsyncJobProgressCallbackAdapter implements AsyncJobProgressCallback
 	}
 
 	@Override
-	public boolean runnerShouldTerminate() {
-		return progressCallback.runnerShouldTerminate();
-	}
-
-	@Override
 	public long getLockTimeoutSeconds() {
 		return progressCallback.getLockTimeoutSeconds();
 	}
