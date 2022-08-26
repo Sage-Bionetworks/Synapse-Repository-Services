@@ -111,7 +111,7 @@ public class DrsManagerImplUnitTest {
             verify(entityManager).getEntityForVersion(userInfo, "1", ENTITY_VERSION, null);
             verify(userManager).getUserInfo(USER_ID);
         });
-        assertEquals("Nesting of bundle is not supported", exception.getMessage());
+        assertEquals("Nesting of bundle is not supported.", exception.getMessage());
     }
 
     @Test

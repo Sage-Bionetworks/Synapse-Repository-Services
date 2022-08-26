@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.drs.AccessId;
+import org.sagebionetworks.repo.model.drs.AccessIdBuilder;
 import org.sagebionetworks.repo.model.drs.AccessMethod;
 import org.sagebionetworks.repo.model.drs.AccessMethodType;
 import org.sagebionetworks.repo.model.drs.Checksum;
@@ -128,16 +130,16 @@ public class DrsManagerImpl implements DrsManager {
             checksums.add(checksum);
             result.setChecksums(checksums);
             final List<AccessMethod> accessMethods = new ArrayList<>();
-            final String accessId = String.join(DELIMETER, FileHandleAssociateType.FileEntity.name(), id,
-                    file.getDataFileHandleId());
+            final AccessId accessId = new AccessIdBuilder().setAssociateType(FileHandleAssociateType.FileEntity)
+                    .setSynapseIdWithVersion(id).setFileHandleId(file.getDataFileHandleId()).build();
             final AccessMethod accessMethod = new AccessMethod();
             accessMethod.setType(AccessMethodType.https);
-            accessMethod.setAccess_id(accessId);
+            accessMethod.setAccess_id(accessId.toString());
             accessMethods.add(accessMethod);
             result.setAccess_methods(accessMethods);
         } else if (entity instanceof Dataset) {
             if (expand) {
-                throw new IllegalArgumentException("Nesting of bundle is not supported");
+                throw new IllegalArgumentException("Nesting of bundle is not supported.");
             }
 
             final Dataset dataset = (Dataset) entity;
@@ -153,6 +155,7 @@ public class DrsManagerImpl implements DrsManager {
                 contentList.add(content);
             });
             result.setContents(contentList);
+            //TODO checksum and size of dataset should be filed once added in meta data of dataset
         } else {
             throw new IllegalArgumentException(ILLEGAL_ARGUMENT_ERROR_MESSAGE);
         }
