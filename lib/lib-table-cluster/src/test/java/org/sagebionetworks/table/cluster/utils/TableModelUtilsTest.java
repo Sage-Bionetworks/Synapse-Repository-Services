@@ -1032,6 +1032,12 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testGetViewDeltaSemaphoreKey() {
+		IdAndVersion id = IdAndVersion.parse("syn123");
+		assertEquals("Increment-syn123", TableModelUtils.getViewDeltaSemaphoreKey(id));
+	}
+	
+	@Test
 	public void createColumnIdToIndexMapFromFirstRow() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		List<String> names = new LinkedList<String>();

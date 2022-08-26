@@ -97,6 +97,7 @@ import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.FileProvider;
@@ -1355,7 +1356,7 @@ public class TableViewManagerImplTest {
 		managerSpy.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), any(),
 				eq(idAndVersion));
-		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
+		String expectedKey = TableModelUtils.getViewDeltaSemaphoreKey(idAndVersion);
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
 				any());
 		verify(managerSpy).applyChangesToAvailableViewOrSnapshot(idAndVersion);
@@ -1403,7 +1404,7 @@ public class TableViewManagerImplTest {
 		setupNonExclusiveLockToForwardToCallack();
 		LockUnavilableException exception = new LockUnavilableException("not now");
 		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(String.class), any());
-		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
+		String expectedKey = TableModelUtils.getViewDeltaSemaphoreKey(idAndVersion);
 		// call under test
 		managerSpy.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),

@@ -43,7 +43,6 @@ import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableState;
-import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -77,8 +76,6 @@ import au.com.bytecode.opencsv.CSVWriter;
 
 public class TableViewManagerImpl implements TableViewManager {
 	
-	public static final String VIEW_DELTA_KEY_PREFIX = "Increment-";
-
 	static Log log = LogFactory.getLog(TableViewManagerImpl.class);	
 
 	public static final String DEFAULT_ETAG = "DEFAULT";
@@ -385,7 +382,7 @@ public class TableViewManagerImpl implements TableViewManager {
 				 * A special exclusive lock is used to prevent more then one instance
 				 * from applying deltas to a view at a time.
 				 */
-				String key = VIEW_DELTA_KEY_PREFIX + idAndVersion.toString();
+				String key = TableModelUtils.getViewDeltaSemaphoreKey(idAndVersion);
 				tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key,
 						(ProgressCallback innerCallback) -> {
 							// while holding both locks do the work.
@@ -669,7 +666,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		// We acquire a read lock on the view so that no other process can re-build the view, the view can still be queried
 		String buildLockKey = TableModelUtils.getTableSemaphoreKey(idAndVersion);
 		// We also acquire a read lock on the delta key, to prevent changes to available views, the view can still be queried
-		String deltaLockKey = VIEW_DELTA_KEY_PREFIX + idAndVersion.toString();
+		String deltaLockKey = TableModelUtils.getViewDeltaSemaphoreKey(idAndVersion);
 		
 		return tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, (ProgressCallback innerCallback) -> {
 		
