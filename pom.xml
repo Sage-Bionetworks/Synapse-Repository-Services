@@ -630,7 +630,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>common-utilities</artifactId>
-				<version>1.0.11</version>
+				<version>1.0.12</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -640,7 +640,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>worker-utilities</artifactId>
-				<version>1.1.11</version>
+				<version>1.1.12</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
