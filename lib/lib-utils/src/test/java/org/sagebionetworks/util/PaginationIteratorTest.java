@@ -1,62 +1,68 @@
 package org.sagebionetworks.util;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class PaginationIteratorTest {
-	
-	Integer[] data;
-	PaginationProvider<Integer> provider;
-	
-	@Before
-	public void before() {
-		
-		data = new Integer[] {123,456,789,222,444,555,999};
-		
-		provider = new PaginationProvider<Integer>() {
-			
-			@Override
-			public List<Integer> getNextPage(long limit, long offset) {
-				List<Integer> list = new LinkedList<>();
-				for(long i=offset; i<(limit+offset); i++) {
-					if(i < data.length) {
-						list.add(data[(int) i]);
-					}
-				}
-				return list;
-			}
-		};
-	}
-	
+
+	@Mock
+	private PaginationProvider<Integer> mockProvider;
+
 	@Test
 	public void testIterator() {
+
+		when(mockProvider.getNextPage(anyLong(), anyLong())).thenReturn(Arrays.asList(1, 2, 3), Arrays.asList(4, 5, 6),
+				Arrays.asList(7), Collections.emptyList());
+
 		long limit = 3;
-		PaginationIterator<Integer> iterator = new PaginationIterator<>(provider, limit);
-		List<Integer> results =  new LinkedList<>();
-		while(iterator.hasNext()) {
+		PaginationIterator<Integer> iterator = new PaginationIterator<>(mockProvider, limit);
+		List<Integer> results = new LinkedList<>();
+		while (iterator.hasNext()) {
 			results.add(iterator.next());
 		}
-		List<Integer> expected = Arrays.asList(data);
-		assertEquals(expected, results);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testNullProvider() {
-		long limit = 3;
-		provider = null;
-		new PaginationIterator<>(provider, limit);
+		// calling hasNext again should not trigger another page.
+		assertFalse(iterator.hasNext());
+		assertFalse(iterator.hasNext());
+		
+		assertEquals(Arrays.asList(1, 2, 3, 4, 5, 6, 7), results);
+		verify(mockProvider, times(4)).getNextPage(anyLong(), anyLong());
+		verify(mockProvider).getNextPage(3, 0);
+		verify(mockProvider).getNextPage(3, 3);
+		verify(mockProvider).getNextPage(3, 6);
+		verify(mockProvider).getNextPage(3, 9);
 	}
 
-	@Test (expected=IllegalStateException.class)
+	@Test
+	public void testNullProvider() {
+		long limit = 3;
+		mockProvider = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			new PaginationIterator<>(mockProvider, limit);
+		});
+	}
+
+	@Test
 	public void testNextWithoutHasNext() {
 		long limit = 3;
-		PaginationIterator<Integer> iterator = new PaginationIterator<>(provider, limit);
-		iterator.next();
+		PaginationIterator<Integer> iterator = new PaginationIterator<>(mockProvider, limit);
+		assertThrows(IllegalStateException.class, () -> {
+			iterator.next();
+		});
 	}
 }
