@@ -78,7 +78,7 @@ public class DrsManagerImplAutowiredTest {
         fileEntities = testData.fileEntities;
 
         final String drsObjectId = fileEntities.get(0).getId() + ".1";
-        final DrsObject drsObject = drsManager.getDrsObject(userInfo.getId(), drsObjectId);
+        final DrsObject drsObject = drsManager.getDrsObject(userInfo.getId(), drsObjectId, false);
         assertNotNull(drsObject);
         assertEquals(drsObject.getId(), drsObjectId);
     }

@@ -1,18 +1,23 @@
 package org.sagebionetworks.repo.manager.drs;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.drs.AccessId;
 import org.sagebionetworks.repo.model.drs.AccessMethod;
 import org.sagebionetworks.repo.model.drs.AccessMethodType;
 import org.sagebionetworks.repo.model.drs.Checksum;
 import org.sagebionetworks.repo.model.drs.ChecksumType;
+import org.sagebionetworks.repo.model.drs.Content;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.OrganizationInformation;
 import org.sagebionetworks.repo.model.drs.PackageInformation;
@@ -44,6 +49,7 @@ public class DrsManagerImpl implements DrsManager {
     public static final String DRS_ARTIFACT = "drs";
     public static final String DRS_VERSION = "1.2.0";
     public static final String ORGANIZATION_NAME = "Sage Bionetworks";
+    public static final String DRS_URI = DRS + "://" + REGISTERED_HOSTNAME + "/";
     public static final String ORGANIZATION_URL = "https://www.sagebionetworks.org";
     public static final String DESCRIPTION = "This service provides implementation of DRS specification for " +
             "accessing FileEntities and Datasets within Synapse.";
@@ -88,26 +94,26 @@ public class DrsManagerImpl implements DrsManager {
         result.setDocumentationUrl(DOCUMENTATION_URL);
         result.setCreatedAt(CREATED_AT);
         result.setUpdatedAt(UPDATED_AT);
-        result.setEnvironment(stackConfiguration.getStack());
-        result.setVersion(stackConfiguration.getStackInstance());
+        result.setEnvironment(this.stackConfiguration.getStack());
+        result.setVersion(this.stackConfiguration.getStackInstance());
         result.setUrl(baseURL);
         return result;
     }
 
     @Override
-    public DrsObject getDrsObject(final Long userId, final String id)
+    public DrsObject getDrsObject(final Long userId, final String id, final boolean expand)
             throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException, UnsupportedOperationException {
-        final UserInfo userInfo = userManager.getUserInfo(userId);
+        final UserInfo userInfo = this.userManager.getUserInfo(userId);
         final DrsObject result = new DrsObject();
+        validateIdStartWithSyn(id);
         final IdAndVersion idAndVersion = IdAndVersion.parse(id);
-
-        final Entity entity = entityManager.getEntityForVersion(userInfo, idAndVersion.getId().toString(),
-                getVersion(idAndVersion), null);
+        validateIdHasVersion(idAndVersion);
+        final Entity entity = this.entityManager.getEntityForVersion(userInfo, idAndVersion.getId().toString(),
+                idAndVersion.getVersion().get(), null);
 
         result.setId(id);
         result.setName(entity.getName());
-        final String selfURI = String.format("%s://%s/%s", DRS, REGISTERED_HOSTNAME, id);
-        result.setSelf_uri(selfURI);
+        result.setSelf_uri(DRS_URI + id);
         result.setCreated_time(entity.getCreatedOn());
         result.setUpdated_time(entity.getModifiedOn());
         result.setDescription(entity.getDescription());
@@ -116,7 +122,7 @@ public class DrsManagerImpl implements DrsManager {
             final FileEntity file = (FileEntity) entity;
             // Drs user are allowed to see metadata so access check is not required and
             // moreover the metadata provided is not sensitive like s3 url etc.
-            final FileHandle fileHandle = fileHandleManager.getRawFileHandleUnchecked(file.getDataFileHandleId());
+            final FileHandle fileHandle = this.fileHandleManager.getRawFileHandleUnchecked(file.getDataFileHandleId());
             result.setSize(fileHandle.getContentSize());
             result.setVersion(file.getVersionNumber() == null ? null : file.getVersionNumber().toString());
             result.setMime_type(fileHandle.getContentType());
@@ -127,22 +133,62 @@ public class DrsManagerImpl implements DrsManager {
             checksums.add(checksum);
             result.setChecksums(checksums);
             final List<AccessMethod> accessMethods = new ArrayList<>();
-            final String accessId = String.join(DELIMETER, FileHandleAssociateType.FileEntity.name(), id,
-                    file.getDataFileHandleId());
+            final AccessId accessId = new AccessId.AccessIdBuilder().setAssociateType(FileHandleAssociateType.FileEntity)
+                    .setSynapseIdWithVersion(idAndVersion).setFileHandleId(file.getDataFileHandleId()).build();
             final AccessMethod accessMethod = new AccessMethod();
             accessMethod.setType(AccessMethodType.https);
-            accessMethod.setAccess_id(accessId);
+            accessMethod.setAccess_id(AccessId.encode(accessId));
             accessMethods.add(accessMethod);
             result.setAccess_methods(accessMethods);
         } else if (entity instanceof Dataset) {
-            throw new UnsupportedOperationException("Currently Dataset object are not supported.");
+            if (expand) {
+                throw new IllegalArgumentException("Nesting of bundle is not supported.");
+            }
+
+            final Dataset dataset = (Dataset) entity;
+            result.setVersion(dataset.getVersionNumber() != null ? dataset.getVersionNumber().toString() : "1");
+            final List<Content> contentList = new ArrayList<>();
+            if (CollectionUtils.isNotEmpty(dataset.getItems())) {
+                dataset.getItems().forEach(entityRef -> {
+                    if (StringUtils.isNotEmpty(entityRef.getEntityId())) {
+                        final Content content = createContent(entityRef);
+                        contentList.add(content);
+                    }
+                });
+            }
+            result.setContents(contentList);
+            //TODO checksum and size of dataset should be filed once added in meta data of dataset
         } else {
             throw new IllegalArgumentException(ILLEGAL_ARGUMENT_ERROR_MESSAGE);
         }
         return result;
     }
 
-    private Long getVersion(final IdAndVersion idAndVersion) throws IllegalArgumentException {
-        return idAndVersion.getVersion().orElseThrow(() -> new IllegalArgumentException("Object id should include version. e.g syn123.1"));
+    private void validateIdStartWithSyn(final String id) {
+        if (!id.startsWith("syn")) {
+            throw new IllegalArgumentException("Object id should start with syn. e.g syn123.1");
+        }
+    }
+
+    private void validateIdHasVersion(final IdAndVersion idAndVersion) {
+        if (!idAndVersion.getVersion().isPresent()) {
+            throw new IllegalArgumentException("Object id should include version. e.g syn123.1");
+        }
+    }
+
+    private Content createContent(final EntityRef entityRef) {
+        final Content content = new Content();
+        String id = entityRef.getEntityId();
+        if (!id.startsWith("syn")) {
+            id = "syn" + id;
+        }
+        final String fileIdWithVersion = id + "." +
+                (entityRef.getVersionNumber() != null ? entityRef.getVersionNumber().toString() : "1");
+        content.setId(fileIdWithVersion);
+        // Name of file should be unique in the bundle, So file id with version is used as name.
+        content.setName(fileIdWithVersion);
+        content.setDrs_uri(DRS_URI + fileIdWithVersion);
+        return content;
+
     }
 }

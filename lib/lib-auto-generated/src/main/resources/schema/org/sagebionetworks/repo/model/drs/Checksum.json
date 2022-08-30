@@ -12,7 +12,7 @@
 			"enum": [
 				{
 					"name": "md5",
-					"description": "TODO: Auto-generated description"
+					"description": "Synapse uses md5 for checksum generation."
 				}
 			]
 		}

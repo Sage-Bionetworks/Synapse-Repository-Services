@@ -20,13 +20,15 @@ public interface DrsService {
      *
      * @param userId
      * @param id
+     * @param expand expand value true means bundle contains bundle, Synapse does not support nesting bundle.
+     *               For file expand parameter is ignored
      * @return
      * @throws NotFoundException
      * @throws DatastoreException
      * @throws UnauthorizedException
      * @throws IllegalArgumentException
      */
-    DrsObject getDrsObject(Long userId, String id)
+    DrsObject getDrsObject(Long userId, String id, boolean expand)
             throws NotFoundException, DatastoreException, UnauthorizedException,
             IllegalArgumentException, UnsupportedOperationException;
 }

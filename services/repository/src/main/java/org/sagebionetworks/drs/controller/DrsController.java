@@ -82,8 +82,9 @@ public class DrsController {
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = {UrlHelpers.DRS_OBJECT}, method = RequestMethod.GET)
     public @ResponseBody DrsObject getDrsObject(@PathVariable String id,
-                                                @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+                                                @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+                                                @RequestParam(value = "expand", defaultValue = "false") Boolean expand)
             throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException, UnsupportedOperationException {
-        return serviceProvider.getDrsService().getDrsObject(userId, id);
+        return serviceProvider.getDrsService().getDrsObject(userId, id, expand);
     }
 }
