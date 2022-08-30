@@ -13,6 +13,11 @@ import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.drs.AccessMethod;
+import org.sagebionetworks.repo.model.drs.AccessMethodType;
+import org.sagebionetworks.repo.model.drs.Checksum;
+import org.sagebionetworks.repo.model.drs.ChecksumType;
+import org.sagebionetworks.repo.model.drs.Content;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.OrganizationInformation;
 import org.sagebionetworks.repo.model.drs.PackageInformation;
@@ -84,7 +89,7 @@ public class DrsManagerImplUnitTest {
         verify(fileHandleManager).getRawFileHandleUnchecked(file.getDataFileHandleId());
         verify(userManager).getUserInfo(USER_ID);
         assertNotNull(drsObject);
-        assertEquals(drsObject.getId(), file.getId() + "." + ENTITY_VERSION);
+        assertEquals(getExpectedDrsBlobObject(file, fileHandle), drsObject);
     }
 
     @Test
@@ -97,7 +102,7 @@ public class DrsManagerImplUnitTest {
         verify(entityManager).getEntityForVersion(userInfo, "1", ENTITY_VERSION, null);
         verify(userManager).getUserInfo(USER_ID);
         assertNotNull(drsObject);
-        assertEquals(drsObject.getId(), dataset.getId() + "." + ENTITY_VERSION);
+        assertEquals(getExpectedDrsBundleObject(dataset), drsObject);
     }
 
     @Test
@@ -108,16 +113,26 @@ public class DrsManagerImplUnitTest {
 
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             drsManager.getDrsObject(USER_ID, dataset.getId() + "." + ENTITY_VERSION, true);
-            verify(entityManager).getEntityForVersion(userInfo, "1", ENTITY_VERSION, null);
-            verify(userManager).getUserInfo(USER_ID);
         });
+        verify(entityManager).getEntityForVersion(userInfo, "1", ENTITY_VERSION, null);
+        verify(userManager).getUserInfo(USER_ID);
         assertEquals("Nesting of bundle is not supported.", exception.getMessage());
     }
 
     @Test
-    public void testGetBlobDrsObjectWithInvalidID() {
+    public void testGetBlobDrsObjectWithObjectIdWithoutVersion() {
         final String id = "syn1";
         final String expectedErrorMessage = "Object id should include version. e.g syn123.1";
+        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            drsManager.getDrsObject(USER_ID, id, false);
+        });
+        assertEquals(expectedErrorMessage, exception.getMessage());
+    }
+
+    @Test
+    public void testGetBlobDrsObjectWithObjectIdWithoutSyn() {
+        final String id = "1.1";
+        final String expectedErrorMessage = "Object id should start with syn. e.g syn123.1";
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             drsManager.getDrsObject(USER_ID, id, false);
         });
@@ -130,8 +145,8 @@ public class DrsManagerImplUnitTest {
         when(entityManager.getEntityForVersion(any(), any(), any(), any())).thenReturn(project);
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             drsManager.getDrsObject(USER_ID, project.getId(), false);
-            verify(entityManager).getEntityForVersion(userInfo, "1", ENTITY_VERSION, null);
         });
+        verify(entityManager).getEntityForVersion(null, "1", ENTITY_VERSION, null);
         assertEquals("DRS API only supports FileEntity and Datasets.", exception.getMessage());
     }
 
@@ -139,6 +154,7 @@ public class DrsManagerImplUnitTest {
         final FileEntity file = new FileEntity();
         file.setId(ENTITY_ID);
         file.setName(ENTITY_NAME);
+        file.setVersionNumber(1L);
         file.setCreatedOn(Date.from(LocalDate.of(2022, 8, 10).atStartOfDay(ZoneOffset.UTC).toInstant()));
         file.setModifiedOn(Date.from(LocalDate.of(2022, 8, 10).atStartOfDay(ZoneOffset.UTC).toInstant()));
         file.setDescription(ENTITY_DESCRIPTION);
@@ -171,6 +187,7 @@ public class DrsManagerImplUnitTest {
         dataset.setCreatedOn(Date.from(LocalDate.of(2022, 8, 10).atStartOfDay(ZoneOffset.UTC).toInstant()));
         dataset.setModifiedOn(Date.from(LocalDate.of(2022, 8, 10).atStartOfDay(ZoneOffset.UTC).toInstant()));
         dataset.setDescription(ENTITY_DESCRIPTION);
+        dataset.setVersionNumber(1L);
         final List<EntityRef> entityRefList = new ArrayList<>();
         final EntityRef entityRef = new EntityRef();
         entityRef.setEntityId(ENTITY_ID);
@@ -203,6 +220,57 @@ public class DrsManagerImplUnitTest {
         serviceInformation.setVersion("417.0.1");
         serviceInformation.setUrl(baseURL);
         return serviceInformation;
+    }
+
+    private DrsObject getExpectedDrsBlobObject(final FileEntity expectedFile, final FileHandle fileHandle) {
+        final DrsObject drsObject = new DrsObject();
+        final String idAndVersion = expectedFile.getId() + ".1";
+        drsObject.setId(expectedFile.getId() + "." + "1");
+        drsObject.setName(expectedFile.getName());
+        drsObject.setVersion(expectedFile.getVersionNumber().toString());
+        drsObject.setSize(fileHandle.getContentSize());
+        drsObject.setMime_type(fileHandle.getContentType());
+        drsObject.setCreated_time(expectedFile.getCreatedOn());
+        drsObject.setUpdated_time(expectedFile.getModifiedOn());
+        final List<Checksum> checksums = new ArrayList<>();
+        final Checksum checksum = new Checksum();
+        checksum.setChecksum(fileHandle.getContentMd5());
+        checksum.setType(ChecksumType.md5);
+        checksums.add(checksum);
+        drsObject.setChecksums(checksums);
+        final List<AccessMethod> accessMethods = new ArrayList<>();
+        final AccessMethod accessMethod = new AccessMethod();
+        accessMethod.setType(AccessMethodType.https);
+        accessMethod.setAccess_id(FileHandleAssociateType.FileEntity.name() + "_" +
+                idAndVersion + "_" + expectedFile.getDataFileHandleId());
+        accessMethods.add(accessMethod);
+        drsObject.setAccess_methods(accessMethods);
+        drsObject.setSelf_uri("drs://repo-prod.prod.sagebase.org/" + idAndVersion);
+        drsObject.setDescription(expectedFile.getDescription());
+        return drsObject;
+    }
+
+    private DrsObject getExpectedDrsBundleObject(final Dataset expectedDataset) {
+        final DrsObject drsObject = new DrsObject();
+        final String idAndVersion = expectedDataset.getId() + "." + 1;
+        drsObject.setId(idAndVersion);
+        drsObject.setName(expectedDataset.getName());
+        drsObject.setVersion(expectedDataset.getVersionNumber().toString());
+        drsObject.setCreated_time(expectedDataset.getCreatedOn());
+        drsObject.setUpdated_time(expectedDataset.getModifiedOn());
+        drsObject.setSelf_uri("drs://repo-prod.prod.sagebase.org/" + idAndVersion);
+        final List<Content> contentList = new ArrayList<>();
+        expectedDataset.getItems().forEach(entityRef -> {
+            final Content content = new Content();
+            final String fileIdAndVersion = entityRef.getEntityId() + "." + entityRef.getVersionNumber();
+            content.setId(fileIdAndVersion);
+            content.setName(fileIdAndVersion);
+            content.setDrs_uri("drs://repo-prod.prod.sagebase.org/" + fileIdAndVersion);
+            contentList.add(content);
+        });
+        drsObject.setContents(contentList);
+        drsObject.setDescription(expectedDataset.getDescription());
+        return drsObject;
     }
 
 }

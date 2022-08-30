@@ -28,7 +28,7 @@ public interface DrsService {
      * @throws UnauthorizedException
      * @throws IllegalArgumentException
      */
-    DrsObject getDrsObject(Long userId, String id, Boolean expand)
+    DrsObject getDrsObject(Long userId, String id, boolean expand)
             throws NotFoundException, DatastoreException, UnauthorizedException,
             IllegalArgumentException, UnsupportedOperationException;
 }

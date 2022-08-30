@@ -1,11 +1,9 @@
 package org.sagebionetworks;
 
 
-import com.google.common.collect.Lists;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityRef;
@@ -18,13 +16,15 @@ import org.sagebionetworks.repo.model.drs.ChecksumType;
 import org.sagebionetworks.repo.model.drs.Content;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.table.Dataset;
-import org.sagebionetworks.util.FileDataCreationUtil;
-import org.sagebionetworks.util.FileDataHierarchy;
 import org.springframework.test.context.ContextConfiguration;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,32 +37,29 @@ public class ITDrsControllerTest {
 
     final private SynapseClient synapse;
     private Project project;
-    private SynapseAdminClient adminSynapse;
-    private FileDataCreationUtil fileEntityUtil;
-    private List<String> fileHandlesToDelete = Lists.newArrayList();
+    private final List<FileEntity> fileEntities = new ArrayList<>();
+    private final List<FileHandle> fileHandles = new ArrayList<>();
 
-    public ITDrsControllerTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
-        this.adminSynapse = adminSynapse;
+    public ITDrsControllerTest(final SynapseClient synapse) {
         this.synapse = synapse;
-        this.fileEntityUtil = new FileDataCreationUtil(adminSynapse, synapse);
     }
 
     @AfterEach
     public void after() throws Exception {
-        if (project != null) {
-            synapse.deleteEntity(project, true);
+        if (this.project != null) {
+            this.synapse.deleteEntity(this.project, true);
         }
-        for (String handle : fileHandlesToDelete) {
+        for (final FileHandle handle : this.fileHandles) {
             try {
-                synapse.deleteFileHandle(handle);
-            } catch (Exception e) {
+                this.synapse.deleteFileHandle(handle.getId());
+            } catch (final Exception e) {
             }
         }
     }
 
     @Test
     public void testGetDrsServiceInfo() throws SynapseException {
-        final ServiceInformation serviceInformation = synapse.getDrsServiceInfo();
+        final ServiceInformation serviceInformation = this.synapse.getDrsServiceInfo();
         assertNotNull(serviceInformation);
         assertEquals(serviceInformation.getId(), "org.sagebase.prod.repo-prod");
         assertEquals(serviceInformation.getName(), "Sage Bionetworks Synapse DRS API");
@@ -78,13 +75,11 @@ public class ITDrsControllerTest {
 
     @Test
     public void testGetDrsObjectBlob() throws SynapseException {
-        final List<FileDataHierarchy> fileDataHierarchies = fileEntityUtil.createFileEntity(1);
-        project = fileDataHierarchies.get(0).getProject();
-        final FileEntity file = fileDataHierarchies.get(0).getFile();
-        final FileHandle fileHandle = fileDataHierarchies.get(0).getFileHandle();
-        fileHandlesToDelete.add(fileHandle.getId());
+        createFileEntity(1);
+        final FileEntity file = this.fileEntities.get(0);
+        final FileHandle fileHandle = this.fileHandles.get(0);
         final String idAndVersion = file.getId() + ".1";
-        final DrsObject drsObject = synapse.getDrsObject(idAndVersion);
+        final DrsObject drsObject = this.synapse.getDrsObject(idAndVersion);
         assertNotNull(drsObject);
         assertEquals(getExpectedDrsBlobObject(file, fileHandle), drsObject);
     }
@@ -94,36 +89,34 @@ public class ITDrsControllerTest {
         final String idAndVersion = "syn123";
         final String errorMessage = "Object id should include version. e.g syn123.1";
         try {
-            synapse.getDrsObject(idAndVersion);
-        } catch (SynapseException synapseException) {
+            this.synapse.getDrsObject(idAndVersion);
+        } catch (final SynapseException synapseException) {
             assertEquals(errorMessage, synapseException.getMessage());
         }
     }
 
     @Test
     public void testGetDrsObjectBundle() throws SynapseException {
-        final List<FileDataHierarchy> fileDataHierarchyList = fileEntityUtil.createFileEntity(2);
-        project = fileDataHierarchyList.get(0).getProject();
+        createFileEntity(2);
         final Dataset dataset = new Dataset();
-        dataset.setParentId(project.getId());
+        dataset.setParentId(this.project.getId());
         dataset.setVersionComment("1");
         dataset.setName("DrsBundle");
         dataset.setDescription("Human readable text");
         final List<EntityRef> entityRefList = new ArrayList<>();
-        fileDataHierarchyList.forEach(dataHierarchy -> {
+        this.fileEntities.forEach(fileEntity -> {
             final EntityRef entityRef = new EntityRef();
-            entityRef.setEntityId(dataHierarchy.getFile().getId());
-            entityRef.setVersionNumber(dataHierarchy.getFile().getVersionNumber());
+            entityRef.setEntityId(fileEntity.getId());
+            entityRef.setVersionNumber(fileEntity.getVersionNumber());
             entityRefList.add(entityRef);
-            fileHandlesToDelete.add(dataHierarchy.getFileHandle().getId());
         });
 
         dataset.setItems(entityRefList);
-        final Dataset createdDataset = synapse.createEntity(dataset);
+        final Dataset createdDataset = this.synapse.createEntity(dataset);
         final String idAndVersion = createdDataset.getId() + ".1";
-        final DrsObject drsObject = synapse.getDrsObject(idAndVersion);
+        final DrsObject drsObject = this.synapse.getDrsObject(idAndVersion);
         assertNotNull(drsObject);
-        assertEquals(getExpectedDrsBundleObject(createdDataset, entityRefList), drsObject);
+        assertEquals(getExpectedDrsBundleObject(createdDataset), drsObject);
     }
 
 
@@ -155,7 +148,7 @@ public class ITDrsControllerTest {
         return drsObject;
     }
 
-    private DrsObject getExpectedDrsBundleObject(final Dataset expectedDataset, final List<EntityRef> entityRefList) {
+    private DrsObject getExpectedDrsBundleObject(final Dataset expectedDataset) {
         final DrsObject drsObject = new DrsObject();
         final String idAndVersion = expectedDataset.getId() + "." + 1;
         drsObject.setId(idAndVersion);
@@ -165,7 +158,7 @@ public class ITDrsControllerTest {
         drsObject.setUpdated_time(expectedDataset.getModifiedOn());
         drsObject.setSelf_uri("drs://repo-prod.prod.sagebase.org/" + idAndVersion);
         final List<Content> contentList = new ArrayList<>();
-        entityRefList.forEach(entityRef -> {
+        expectedDataset.getItems().forEach(entityRef -> {
             final Content content = new Content();
             final String fileIdAndVersion = entityRef.getEntityId() + "." + entityRef.getVersionNumber();
             content.setId(fileIdAndVersion);
@@ -176,5 +169,51 @@ public class ITDrsControllerTest {
         drsObject.setContents(contentList);
         drsObject.setDescription(expectedDataset.getDescription());
         return drsObject;
+    }
+
+    /**
+     * create given number of file and fileHandle under same project.
+     *
+     * @param numberOfFiles
+     * @throws SynapseException
+     */
+    public void createFileEntity(final int numberOfFiles) throws SynapseException {
+        this.project = createProject();
+        for (int i = 0; i < numberOfFiles; i++) {
+            FileEntity file = new FileEntity();
+            final FileHandle fileHandle = uploadFile("file " + i + " contents");
+            final String fileHandleId = fileHandle.getId();
+            this.fileHandles.add(fileHandle);
+            file.setDataFileHandleId(fileHandleId);
+            file.setParentId(this.project.getId());
+            file = this.synapse.createEntity(file);
+            this.fileEntities.add(file);
+
+        }
+    }
+
+    public Project createProject() throws SynapseException {
+        final Project project = new Project();
+        project.setName("DTest.Project");
+        return this.synapse.createEntity(project);
+    }
+
+    /**
+     * Method to upload a file with the given file contents.
+     *
+     * @param contents
+     * @return
+     * @throws SynapseException
+     */
+    CloudProviderFileHandleInterface uploadFile(final String contents) throws SynapseException {
+        final byte[] bytes = contents.getBytes(StandardCharsets.UTF_8);
+        final InputStream input = new ByteArrayInputStream(bytes);
+        final long fileSize = bytes.length;
+        final String fileName = "SomeFileName";
+        final String contentType = "text/plain; charset=us-ascii";
+        final Boolean generatePreview = false;
+        final Boolean forceRestart = false;
+        return this.synapse.multipartUpload(input, fileSize, fileName, contentType, null, generatePreview,
+                forceRestart);
     }
 }
