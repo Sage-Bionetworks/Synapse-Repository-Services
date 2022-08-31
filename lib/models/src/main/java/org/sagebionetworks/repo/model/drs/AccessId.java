@@ -7,26 +7,28 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.util.ValidateArgument;
 
 import java.util.Objects;
+import java.util.StringJoiner;
 
 /**
  * Immutable representation of id to fetch file.
- * Use {@linkplain AccessIdBuilder} to create new instances of this
+ * Use {@linkplain Builder} to create new instances of this
  * class.
  */
 public class AccessId {
     private final static String DELIMITER = "_";
-    private final static String SYN = "syn";
     private final FileHandleAssociateType associateType;
     private final IdAndVersion synapseIdWithVersion;
     private final String fileHandleId;
 
     /**
-     * @param accessIdBuilder
+     * @param associateType
+     * @param synapseIdWithVersion
+     * @param fileHandleId
      */
-    private AccessId(final AccessIdBuilder accessIdBuilder) {
-        this.associateType = accessIdBuilder.associateType;
-        this.synapseIdWithVersion = accessIdBuilder.synapseIdWithVersion;
-        this.fileHandleId = accessIdBuilder.fileHandleId;
+    private AccessId(final FileHandleAssociateType associateType, final IdAndVersion synapseIdWithVersion, final String fileHandleId) {
+        this.associateType = associateType;
+        this.synapseIdWithVersion = synapseIdWithVersion;
+        this.fileHandleId = fileHandleId;
     }
 
     /**
@@ -74,9 +76,9 @@ public class AccessId {
                 throw new IllegalArgumentException("Invalid accessId");
             }
 
-            final AccessIdBuilder builder = new AccessIdBuilder();
+            final Builder builder = new Builder();
             builder.setAssociateType(getFileHandleAssociateType(array[0]));
-            builder.setSynapseIdWithVersion(getIdAndVersion(array[1]));
+            builder.setSynapseIdWithVersion(IdAndVersion.parse(array[1]));
             builder.setFileHandleId(getFileHandleID(array[2]));
             return builder.build();
         } catch (final Exception exception) {
@@ -92,13 +94,6 @@ public class AccessId {
         }
     }
 
-    private static IdAndVersion getIdAndVersion(final String synIdWithVersion) {
-        if (!synIdWithVersion.startsWith("syn")) {
-            throw new IllegalArgumentException("AccessId must contain syn prefix with id and version.eg FileEntity_syn123.1_12345");
-        }
-        return IdAndVersion.parse(synIdWithVersion);
-    }
-
     private static String getFileHandleID(final String fileHandleId) {
         try {
             return String.valueOf(Long.parseLong(fileHandleId));
@@ -107,10 +102,12 @@ public class AccessId {
         }
     }
 
-    public static String encode(final AccessId accessId) {
-        return accessId.associateType.name() + DELIMITER +
-                SYN + accessId.synapseIdWithVersion.getId() + "." + accessId.getSynapseIdWithVersion().getVersion().get() +
-                DELIMITER + accessId.fileHandleId;
+    public String encode() {
+        final StringJoiner joiner = new StringJoiner(DELIMITER);
+        joiner.add(associateType.name());
+        joiner.add(synapseIdWithVersion.toString());
+        joiner.add(fileHandleId);
+        return joiner.toString();
     }
 
     @Override
@@ -131,32 +128,32 @@ public class AccessId {
         return Objects.hash(this.associateType, this.synapseIdWithVersion, this.fileHandleId);
     }
 
-    public static class AccessIdBuilder {
+    public static class Builder {
         FileHandleAssociateType associateType;
         IdAndVersion synapseIdWithVersion;
         String fileHandleId;
 
-        public AccessIdBuilder setSynapseIdWithVersion(final IdAndVersion synapseIdWithVersion) {
+        public Builder setSynapseIdWithVersion(final IdAndVersion synapseIdWithVersion) {
             this.synapseIdWithVersion = synapseIdWithVersion;
             return this;
         }
 
-        public AccessIdBuilder setAssociateType(final FileHandleAssociateType associateType) {
+        public Builder setAssociateType(final FileHandleAssociateType associateType) {
             this.associateType = associateType;
             return this;
         }
 
-        public AccessIdBuilder setFileHandleId(final String fileHandleId) {
+        public Builder setFileHandleId(final String fileHandleId) {
             this.fileHandleId = fileHandleId;
             return this;
         }
 
         public AccessId build() {
-            ValidateArgument.required(this.associateType, "fileHandleAssociationType");
-            ValidateArgument.required(this.synapseIdWithVersion, "synapseIdWithVersion");
-            ValidateArgument.required(this.fileHandleId, "fileHandleId");
-            validateSynapseIdWithVersion(this.synapseIdWithVersion);
-            return new AccessId(this);
+            ValidateArgument.required(associateType, "fileHandleAssociationType");
+            ValidateArgument.required(synapseIdWithVersion, "synapseIdWithVersion");
+            ValidateArgument.required(fileHandleId, "fileHandleId");
+            validateSynapseIdWithVersion(synapseIdWithVersion);
+            return new AccessId(associateType, synapseIdWithVersion, fileHandleId);
         }
 
         private void validateSynapseIdWithVersion(final IdAndVersion synapseIdWithVersion) {
