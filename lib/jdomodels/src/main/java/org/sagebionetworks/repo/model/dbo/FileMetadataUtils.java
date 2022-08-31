@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo;
 
-import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;

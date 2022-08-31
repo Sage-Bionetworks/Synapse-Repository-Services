@@ -1821,7 +1821,7 @@ public class TableViewIntegrationTest {
 				updateView(rowset,fileViewId)
 		).getMessage();
 		
-		assertEquals("Value at [0,16] was not a valid STRING_LIST. Exceeds the maximum number of list elements defined in the ColumnModel (3): \"[\"val1\",\"val2\",\"val3\",\"val4\"]\"", error);
+		assertEquals("Value at [0,19] was not a valid STRING_LIST. Exceeds the maximum number of list elements defined in the ColumnModel (3): \"[\"val1\",\"val2\",\"val3\",\"val4\"]\"", error);
 	}
 	
 	/**

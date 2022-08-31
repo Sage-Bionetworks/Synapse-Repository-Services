@@ -22,8 +22,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 /**
  * Enumeration that maps the columns of a OBJECT_REPLICATION to both the database and column model. 
  */
-public enum ObjectField {
-	
+public enum ObjectField {	
 	id						(OBJECT_REPLICATION_COL_OBJECT_ID, 			null, 						null,	null),
 	name					(OBJECT_REPLICATION_COL_NAME,				ColumnType.STRING,			256L,	null),
 	createdOn				(OBJECT_REPLICATION_COL_CREATED_ON, 		ColumnType.DATE,			null,	FacetType.range),
@@ -41,7 +40,7 @@ public enum ObjectField {
 	dataFileMD5Hex			(OBJECT_REPLICATION_COL_FILE_MD5,			ColumnType.STRING,			100L,	null),
 	dataFileConcreteType	(OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE,	ColumnType.STRING,			65L,	null),
 	dataFileBucket			(OBJECT_REPLICATION_COL_FILE_BUCKET,		ColumnType.STRING,			100L,	null),
-	dataFileKey		    	(OBJECT_REPLICATION_COL_FILE_KEY,			ColumnType.STRING,			700L,	null);
+	dataFileKey				(OBJECT_REPLICATION_COL_FILE_KEY,			ColumnType.STRING,			700L,	null);
 	
 	private String databaseColumnName;
 	// Note that this column type for id, parentId and benefactorId is not known a priori and is dynamically computed
