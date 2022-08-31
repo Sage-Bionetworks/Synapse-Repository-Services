@@ -61,8 +61,6 @@ public class EntityObjectProviderTest {
 
 		assertEquals(expected, result);
 		verify(mockNodeDao).getEntityDTOs(objectIds, maxAnnotationChars, EntityObjectProvider.PAGE_SIZE, 0L);
-		verify(mockNodeDao).getEntityDTOs(objectIds, maxAnnotationChars, EntityObjectProvider.PAGE_SIZE,
-				EntityObjectProvider.PAGE_SIZE);
 	}
 
 	@Test
