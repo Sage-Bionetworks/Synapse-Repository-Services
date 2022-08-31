@@ -25,8 +25,7 @@ public class PaginationIteratorTest {
 	private PaginationProvider<Integer> mockProvider;
 
 	@Test
-	public void testIterator() {
-
+	public void testIteratorWithLastPageLessThanLimit() {
 		when(mockProvider.getNextPage(anyLong(), anyLong())).thenReturn(Arrays.asList(1, 2, 3), Arrays.asList(4, 5, 6),
 				Arrays.asList(7), Collections.emptyList());
 
@@ -36,11 +35,33 @@ public class PaginationIteratorTest {
 		while (iterator.hasNext()) {
 			results.add(iterator.next());
 		}
-		// calling hasNext again should not trigger another page.
+		// calling hasNext again should not trigger another page (PLFM-7445).
 		assertFalse(iterator.hasNext());
 		assertFalse(iterator.hasNext());
 		
 		assertEquals(Arrays.asList(1, 2, 3, 4, 5, 6, 7), results);
+		verify(mockProvider, times(3)).getNextPage(anyLong(), anyLong());
+		verify(mockProvider).getNextPage(3, 0);
+		verify(mockProvider).getNextPage(3, 3);
+		verify(mockProvider).getNextPage(3, 6);
+	}
+	
+	@Test
+	public void testIteratorWithLastPageEqualsToLimit() {
+		when(mockProvider.getNextPage(anyLong(), anyLong())).thenReturn(Arrays.asList(1, 2, 3), Arrays.asList(4, 5, 6),
+				Arrays.asList(7, 8, 9), Collections.emptyList());
+
+		long limit = 3;
+		PaginationIterator<Integer> iterator = new PaginationIterator<>(mockProvider, limit);
+		List<Integer> results = new LinkedList<>();
+		while (iterator.hasNext()) {
+			results.add(iterator.next());
+		}
+		// calling hasNext again should not trigger another page (PLFM-7445).
+		assertFalse(iterator.hasNext());
+		assertFalse(iterator.hasNext());
+
+		assertEquals(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9), results);
 		verify(mockProvider, times(4)).getNextPage(anyLong(), anyLong());
 		verify(mockProvider).getNextPage(3, 0);
 		verify(mockProvider).getNextPage(3, 3);

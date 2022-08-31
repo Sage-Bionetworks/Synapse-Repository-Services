@@ -1857,15 +1857,12 @@ public class DownloadListManagerImplTest {
 		assertTrue(iterator.hasNext());
 		assertEquals(downloadListItemResult, iterator.next());
 		assertFalse(iterator.hasNext());
-		verify(managerSpy, times(2)).createAccessCallback(userOne);
+		verify(managerSpy, times(1)).createAccessCallback(userOne);
 		AvailableFilter filter = null;
 		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.fileName).setDirection(SortDirection.ASC));
 		// pane one
 		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()), eq(filter),
 				eq(sort), eq(DownloadListManagerImpl.MAX_QUERY_PAGE_SIZE), eq(0L));
-		// page two
-		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()), eq(filter),
-				eq(sort), eq(DownloadListManagerImpl.MAX_QUERY_PAGE_SIZE), eq(DownloadListManagerImpl.MAX_QUERY_PAGE_SIZE));
 	}
 	
 	@Test

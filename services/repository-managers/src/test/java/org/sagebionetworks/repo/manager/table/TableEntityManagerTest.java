@@ -2103,9 +2103,7 @@ public class TableEntityManagerTest {
 		
 		assertEquals(page, result);
 		
-		verify(mockTruthDao).getTableRowChangeWithFileRefsPage(idRange, 1000, 0);
-		verify(mockTruthDao).getTableRowChangeWithFileRefsPage(idRange, 1000, 1000);
-		
+		verify(mockTruthDao).getTableRowChangeWithFileRefsPage(idRange, 1000, 0);		
 	}
 	
 	@Test
