@@ -9,6 +9,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.drs.AccessId;
 import org.sagebionetworks.repo.model.drs.AccessMethod;
 import org.sagebionetworks.repo.model.drs.AccessMethodType;
 import org.sagebionetworks.repo.model.drs.Checksum;
@@ -16,6 +17,7 @@ import org.sagebionetworks.repo.model.drs.ChecksumType;
 import org.sagebionetworks.repo.model.drs.Content;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -40,18 +42,20 @@ public class ITDrsControllerTest {
     private final List<FileEntity> fileEntities = new ArrayList<>();
     private final List<FileHandle> fileHandles = new ArrayList<>();
 
+    private final static String DRS_URI = "drs://repo-prod.prod.sagebase.org/";
+
     public ITDrsControllerTest(final SynapseClient synapse) {
         this.synapse = synapse;
     }
 
     @AfterEach
     public void after() throws Exception {
-        if (this.project != null) {
-            this.synapse.deleteEntity(this.project, true);
+        if (project != null) {
+            synapse.deleteEntity(project, true);
         }
-        for (final FileHandle handle : this.fileHandles) {
+        for (final FileHandle handle : fileHandles) {
             try {
-                this.synapse.deleteFileHandle(handle.getId());
+                synapse.deleteFileHandle(handle.getId());
             } catch (final Exception e) {
             }
         }
@@ -59,7 +63,7 @@ public class ITDrsControllerTest {
 
     @Test
     public void testGetDrsServiceInfo() throws SynapseException {
-        final ServiceInformation serviceInformation = this.synapse.getDrsServiceInfo();
+        final ServiceInformation serviceInformation = synapse.getDrsServiceInfo();
         assertNotNull(serviceInformation);
         assertEquals(serviceInformation.getId(), "org.sagebase.prod.repo-prod");
         assertEquals(serviceInformation.getName(), "Sage Bionetworks Synapse DRS API");
@@ -76,10 +80,10 @@ public class ITDrsControllerTest {
     @Test
     public void testGetDrsObjectBlob() throws SynapseException {
         createFileEntity(1);
-        final FileEntity file = this.fileEntities.get(0);
-        final FileHandle fileHandle = this.fileHandles.get(0);
-        final String idAndVersion = file.getId() + ".1";
-        final DrsObject drsObject = this.synapse.getDrsObject(idAndVersion);
+        final FileEntity file = fileEntities.get(0);
+        final FileHandle fileHandle = fileHandles.get(0);
+        final String idAndVersion = file.getId() + "." + file.getVersionNumber();
+        final DrsObject drsObject = synapse.getDrsObject(idAndVersion);
         assertNotNull(drsObject);
         assertEquals(getExpectedDrsBlobObject(file, fileHandle), drsObject);
     }
@@ -89,7 +93,7 @@ public class ITDrsControllerTest {
         final String idAndVersion = "syn123";
         final String errorMessage = "Object id should include version. e.g syn123.1";
         try {
-            this.synapse.getDrsObject(idAndVersion);
+            synapse.getDrsObject(idAndVersion);
         } catch (final SynapseException synapseException) {
             assertEquals(errorMessage, synapseException.getMessage());
         }
@@ -99,12 +103,12 @@ public class ITDrsControllerTest {
     public void testGetDrsObjectBundle() throws SynapseException {
         createFileEntity(2);
         final Dataset dataset = new Dataset();
-        dataset.setParentId(this.project.getId());
+        dataset.setParentId(project.getId());
         dataset.setVersionComment("1");
         dataset.setName("DrsBundle");
         dataset.setDescription("Human readable text");
         final List<EntityRef> entityRefList = new ArrayList<>();
-        this.fileEntities.forEach(fileEntity -> {
+        fileEntities.forEach(fileEntity -> {
             final EntityRef entityRef = new EntityRef();
             entityRef.setEntityId(fileEntity.getId());
             entityRef.setVersionNumber(fileEntity.getVersionNumber());
@@ -112,9 +116,9 @@ public class ITDrsControllerTest {
         });
 
         dataset.setItems(entityRefList);
-        final Dataset createdDataset = this.synapse.createEntity(dataset);
+        final Dataset createdDataset = synapse.createEntity(dataset);
         final String idAndVersion = createdDataset.getId() + ".1";
-        final DrsObject drsObject = this.synapse.getDrsObject(idAndVersion);
+        final DrsObject drsObject = synapse.getDrsObject(idAndVersion);
         assertNotNull(drsObject);
         assertEquals(getExpectedDrsBundleObject(createdDataset), drsObject);
     }
@@ -122,10 +126,10 @@ public class ITDrsControllerTest {
 
     private DrsObject getExpectedDrsBlobObject(final FileEntity expectedFile, final FileHandle fileHandle) {
         final DrsObject drsObject = new DrsObject();
-        final String idAndVersion = expectedFile.getId() + ".1";
-        drsObject.setId(expectedFile.getId() + "." + "1");
+        final String idAndVersion = expectedFile.getId() + "." + expectedFile.getVersionNumber();
+        drsObject.setId(idAndVersion);
         drsObject.setName(expectedFile.getName());
-        drsObject.setVersion("1");
+        drsObject.setVersion(expectedFile.getVersionNumber().toString());
         drsObject.setSize(fileHandle.getContentSize());
         drsObject.setMime_type(fileHandle.getContentType());
         drsObject.setCreated_time(expectedFile.getCreatedOn());
@@ -139,31 +143,32 @@ public class ITDrsControllerTest {
         final List<AccessMethod> accessMethods = new ArrayList<>();
         final AccessMethod accessMethod = new AccessMethod();
         accessMethod.setType(AccessMethodType.https);
-        accessMethod.setAccess_id(FileHandleAssociateType.FileEntity.name() + "_" +
-                idAndVersion + "_" + expectedFile.getDataFileHandleId());
+        final AccessId accessId = new AccessId.Builder().setAssociateType(FileHandleAssociateType.FileEntity)
+                .setSynapseIdWithVersion(IdAndVersion.parse(idAndVersion)).setFileHandleId(expectedFile.getDataFileHandleId()).build();
+        accessMethod.setAccess_id(accessId.encode());
         accessMethods.add(accessMethod);
         drsObject.setAccess_methods(accessMethods);
-        drsObject.setSelf_uri("drs://repo-prod.prod.sagebase.org/" + idAndVersion);
+        drsObject.setSelf_uri(DRS_URI + idAndVersion);
         drsObject.setDescription(expectedFile.getDescription());
         return drsObject;
     }
 
     private DrsObject getExpectedDrsBundleObject(final Dataset expectedDataset) {
         final DrsObject drsObject = new DrsObject();
-        final String idAndVersion = expectedDataset.getId() + "." + 1;
+        final String idAndVersion = expectedDataset.getId() + "." + expectedDataset.getVersionNumber();
         drsObject.setId(idAndVersion);
         drsObject.setName(expectedDataset.getName());
-        drsObject.setVersion(expectedDataset.getVersionComment());
+        drsObject.setVersion(expectedDataset.getVersionNumber().toString());
         drsObject.setCreated_time(expectedDataset.getCreatedOn());
         drsObject.setUpdated_time(expectedDataset.getModifiedOn());
-        drsObject.setSelf_uri("drs://repo-prod.prod.sagebase.org/" + idAndVersion);
+        drsObject.setSelf_uri(DRS_URI + idAndVersion);
         final List<Content> contentList = new ArrayList<>();
         expectedDataset.getItems().forEach(entityRef -> {
             final Content content = new Content();
             final String fileIdAndVersion = entityRef.getEntityId() + "." + entityRef.getVersionNumber();
             content.setId(fileIdAndVersion);
             content.setName(fileIdAndVersion);
-            content.setDrs_uri("drs://repo-prod.prod.sagebase.org/" + fileIdAndVersion);
+            content.setDrs_uri(DRS_URI + fileIdAndVersion);
             contentList.add(content);
         });
         drsObject.setContents(contentList);
@@ -178,16 +183,16 @@ public class ITDrsControllerTest {
      * @throws SynapseException
      */
     public void createFileEntity(final int numberOfFiles) throws SynapseException {
-        this.project = createProject();
+        project = createProject();
         for (int i = 0; i < numberOfFiles; i++) {
             FileEntity file = new FileEntity();
             final FileHandle fileHandle = uploadFile("file " + i + " contents");
             final String fileHandleId = fileHandle.getId();
-            this.fileHandles.add(fileHandle);
+            fileHandles.add(fileHandle);
             file.setDataFileHandleId(fileHandleId);
-            file.setParentId(this.project.getId());
-            file = this.synapse.createEntity(file);
-            this.fileEntities.add(file);
+            file.setParentId(project.getId());
+            file = synapse.createEntity(file);
+            fileEntities.add(file);
 
         }
     }
@@ -195,7 +200,7 @@ public class ITDrsControllerTest {
     public Project createProject() throws SynapseException {
         final Project project = new Project();
         project.setName("DTest.Project");
-        return this.synapse.createEntity(project);
+        return synapse.createEntity(project);
     }
 
     /**
@@ -213,7 +218,7 @@ public class ITDrsControllerTest {
         final String contentType = "text/plain; charset=us-ascii";
         final Boolean generatePreview = false;
         final Boolean forceRestart = false;
-        return this.synapse.multipartUpload(input, fileSize, fileName, contentType, null, generatePreview,
+        return synapse.multipartUpload(input, fileSize, fileName, contentType, null, generatePreview,
                 forceRestart);
     }
 }
