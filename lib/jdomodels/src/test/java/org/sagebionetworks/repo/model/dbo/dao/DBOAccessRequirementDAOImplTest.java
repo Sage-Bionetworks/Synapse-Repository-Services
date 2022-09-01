@@ -805,7 +805,8 @@ public class DBOAccessRequirementDAOImplTest {
 		List<AccessRequirement> expected = List.of(arOne, arTwo);
 		
 		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
-		
+		result = result.stream().filter(a -> !AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.equals(a.getId()))
+				.collect(Collectors.toList());
 		assertEquals(expected, result);
 	}
 	
@@ -830,7 +831,8 @@ public class DBOAccessRequirementDAOImplTest {
 		List<AccessRequirement> expected = List.of(arTwo, arOne);
 		
 		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
-		
+		result = result.stream().filter(a -> !AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.equals(a.getId()))
+				.collect(Collectors.toList());
 		assertEquals(expected, result);
 	}
 	
@@ -861,7 +863,8 @@ public class DBOAccessRequirementDAOImplTest {
 		expected = List.of(arTwo);
 		
 		result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
-		
+		result = result.stream().filter(a -> !AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.equals(a.getId()))
+				.collect(Collectors.toList());
 		assertEquals(expected, result);
 	}
 	
@@ -905,7 +908,8 @@ public class DBOAccessRequirementDAOImplTest {
 		List<AccessRequirement> expected = List.of(arTwo);
 		
 		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
-		
+		result = result.stream().filter(a -> !AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.equals(a.getId()))
+				.collect(Collectors.toList());
 		assertEquals(expected, result);
 	}
 	
