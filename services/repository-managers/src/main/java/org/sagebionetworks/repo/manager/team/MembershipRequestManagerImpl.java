@@ -110,7 +110,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 				throw new UnauthorizedException("Requested member has unmet access requirements which must be met before asking to join the Team.");
 		}
 
-		if (teamDAO.getState(mr.getTeamId()).equals(TeamState.OPEN)) {
+		if (teamDAO.getState(mr.getTeamId()).equals(TeamState.PUBLIC)) {
 			throw new IllegalArgumentException("This team is already open for the public to join, membership requests are not needed.");
 		}
 

@@ -181,15 +181,13 @@ public class MembershipRequestManagerImplTest {
 	
 	@Test
 	public void testCreate() throws Exception {
-		Team mockTeam = Mockito.mock(Team.class);
-		when(mockTeamDAO.get(TEAM_ID)).thenReturn(mockTeam);
 		when(mockRestrictionInformationManager.
 				getRestrictionInformation(userInfo, restrictionInfoRqst)).
 					thenReturn(noUnmetAccessRqmtResponse);
 		MembershipRequest mrs = new MembershipRequest();
 		mrs.setTeamId(TEAM_ID);
 		when(mockMembershipRequestDAO.create((MembershipRequest)any())).thenReturn(mrs);
-		when(mockTeam.getCanRequestMembership()).thenReturn(true);
+		when(mockTeamDAO.getState(TEAM_ID)).thenReturn(TeamState.OPEN);
 		assertEquals(mrs, membershipRequestManagerImpl.create(userInfo, mrs));
 	}
 	
@@ -462,7 +460,7 @@ public class MembershipRequestManagerImplTest {
 		MembershipRequest mrs = new MembershipRequest();
 		mrs.setTeamId(TEAM_ID);
 		mrs.setUserId(MEMBER_PRINCIPAL_ID);
-		when(mockTeamDAO.getState(mrs.getTeamId())).thenReturn(TeamState.OPEN);
+		when(mockTeamDAO.getState(mrs.getTeamId())).thenReturn(TeamState.PUBLIC);
 		when(mockRestrictionInformationManager.
 				getRestrictionInformation(userInfo, restrictionInfoRqst)).
 					thenReturn(noUnmetAccessRqmtResponse);
