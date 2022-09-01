@@ -184,4 +184,14 @@ public interface TeamDAO {
 	public List<String> getAllTeamsUserIsAdmin(String userId);
 
 	public void truncateAll();
+
+	/**
+	 * Retrieves the state of a team given its id
+	 *
+	 * @param id
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public TeamState getState(String id) throws DatastoreException, NotFoundException;
 }

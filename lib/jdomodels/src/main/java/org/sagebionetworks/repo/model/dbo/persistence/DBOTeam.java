@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ETA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ICON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_PROPERTIES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_TEAM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
 
@@ -13,12 +14,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamState;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.dao.TeamUtils;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.util.TemporaryCode;
@@ -35,6 +35,7 @@ public class DBOTeam implements MigratableDatabaseObject<DBOTeam, DBOTeam> {
 			new FieldColumn("id", COL_TEAM_ID, true).withIsBackupId(true),
 			new FieldColumn("etag", COL_TEAM_ETAG).withIsEtag(true),
 			new FieldColumn("icon", COL_TEAM_ICON).withHasFileHandleRef(true),
+			new FieldColumn("state", COL_TEAM_STATE),
 			new FieldColumn("properties", COL_TEAM_PROPERTIES) };
 
 	private static final TableMapping<DBOTeam> TABLE_MAPPING = new TableMapping<DBOTeam>() {
@@ -44,6 +45,7 @@ public class DBOTeam implements MigratableDatabaseObject<DBOTeam, DBOTeam> {
 			team.setId(rs.getLong(COL_TEAM_ID));
 			team.setEtag(rs.getString(COL_TEAM_ETAG));
 			team.setIcon(rs.getLong(COL_TEAM_ICON));
+			team.setState(rs.getString(COL_TEAM_STATE));
 			
 			if (rs.wasNull()) {
 				team.setIcon(null);
@@ -78,15 +80,16 @@ public class DBOTeam implements MigratableDatabaseObject<DBOTeam, DBOTeam> {
 
 	};
 
-	@TemporaryCode(author = "peter.harvey@sagebase.org", comment = "One time migration of property canRequestMembership.  Can be removed after all teams have a canRequestMembership value.")
+	@TemporaryCode(author = "peter.harvey@sagebase.org", comment = "One time migration of team state.  Can be removed after all teams have a state.")
 	private static final MigratableTableTranslation<DBOTeam, DBOTeam> MIGRATION_MAPPER = new  MigratableTableTranslation<DBOTeam, DBOTeam>() {
 		@Override
 		public DBOTeam createDatabaseObjectFromBackup(DBOTeam backup) {
-			Team dto = TeamUtils.copyDboToDto(backup);
-			if (dto.getCanRequestMembership() == null) {
-				dto.setCanRequestMembership(true);
+
+			if (backup.getState() == null) {
+				TeamState state = TeamState.from(TeamUtils.copyDboToDto(backup));
+				backup.setState(state.name());
 			}
-			TeamUtils.copyDtoToDbo(dto, backup);
+
 			return backup;
 		}
 
@@ -99,6 +102,7 @@ public class DBOTeam implements MigratableDatabaseObject<DBOTeam, DBOTeam> {
 	private Long id;
 	private String etag;
 	private Long icon;
+	private String state;
 	private byte[] properties;
 
 	@Override
@@ -138,6 +142,14 @@ public class DBOTeam implements MigratableDatabaseObject<DBOTeam, DBOTeam> {
 		this.properties = properties;
 	}
 
+	public String getState() {
+		return state;
+	}
+
+	public void setState(String state) {
+		this.state = state;
+	}
+
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.TEAM;
@@ -168,7 +180,7 @@ public class DBOTeam implements MigratableDatabaseObject<DBOTeam, DBOTeam> {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + Arrays.hashCode(properties);
-		result = prime * result + Objects.hash(etag, icon, id);
+		result = prime * result + Objects.hash(etag, icon, id, state);
 		return result;
 	}
 
@@ -185,12 +197,12 @@ public class DBOTeam implements MigratableDatabaseObject<DBOTeam, DBOTeam> {
 		}
 		DBOTeam other = (DBOTeam) obj;
 		return Objects.equals(etag, other.etag) && Objects.equals(icon, other.icon) && Objects.equals(id, other.id)
-				&& Arrays.equals(properties, other.properties);
+				&& Arrays.equals(properties, other.properties) && Objects.equals(state, other.getState());
 	}
 
 	@Override
 	public String toString() {
-		return "DBOTeam [id=" + id + ", etag=" + etag + ", icon=" + icon + ", properties=" + Arrays.toString(properties) + "]";
+		return "DBOTeam [id=" + id + ", etag=" + etag + ", icon=" + icon +", state=" + state + ", properties=" + Arrays.toString(properties) + "]";
 	}
 
 }

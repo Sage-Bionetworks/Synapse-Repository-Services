@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamSortOrder;
+import org.sagebionetworks.repo.model.TeamState;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -642,5 +643,21 @@ public class DBOTeamDAOImplTest {
 		alias.setType(AliasType.TEAM_NAME);
 		// bind this alias
 		principalAliasDAO.bindAliasToPrincipal(alias);
+	}
+
+	@Test
+	public void testGetState() {
+		UserGroup group = new UserGroup();
+		group.setId(userGroupDAO.create(group).toString());
+		teamsToDelete.add(group.getId());
+
+		Team team = new Team();
+		Long id = Long.parseLong(group.getId());
+		team.setId("" +id);
+		team.setCanPublicJoin(true);
+		team.setCanRequestMembership(false);
+		teamDAO.create(team);
+		// Call under test
+		assertEquals(TeamState.PUBLIC, teamDAO.getState(team.getId()));
 	}
 }

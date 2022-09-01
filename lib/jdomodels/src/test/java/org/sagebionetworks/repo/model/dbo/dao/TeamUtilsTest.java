@@ -39,49 +39,4 @@ public class TeamUtilsTest {
 		assertEquals(dto, TeamUtils.copyDboToDto(dbo));
 		
 	}
-
-	@TemporaryCode(author = "peter.harvey@sagebase.org", comment = "One time migration of property canRequestMembership.  Can be removed after all teams have a canRequestMembership value.")
-	@Test
-	public void testCreateDatabaseObjectFromBackupWithNullCanRequestMembership() {
-		Team dto = new Team();
-		dto.setId("123");
-		dto.setEtag(UUID.randomUUID().toString());
-		dto.setCanRequestMembership(null);
-
-		DBOTeam dbo = new DBOTeam();
-		TeamUtils.copyDtoToDbo(dto, dbo);
-
-		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
-		assertEquals(true, TeamUtils.copyDboToDto(dbo).getCanRequestMembership());
-	}
-
-	@TemporaryCode(author = "peter.harvey@sagebase.org", comment = "One time migration of property canRequestMembership.  Can be removed after all teams have a canRequestMembership value.")
-	@Test
-	public void testCreateDatabaseObjectFromBackupWithFalseCanRequestMembership() {
-		Team dto = new Team();
-		dto.setId("123");
-		dto.setEtag(UUID.randomUUID().toString());
-		dto.setCanRequestMembership(false);
-
-		DBOTeam dbo = new DBOTeam();
-		TeamUtils.copyDtoToDbo(dto, dbo);
-
-		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
-		assertEquals(false, TeamUtils.copyDboToDto(dbo).getCanRequestMembership());
-	}
-
-	@TemporaryCode(author = "peter.harvey@sagebase.org", comment = "One time migration of property canRequestMembership.  Can be removed after all teams have a canRequestMembership value.")
-	@Test
-	public void testCreateDatabaseObjectFromBackupWithTrueCanRequestMembership() {
-		Team dto = new Team();
-		dto.setId("123");
-		dto.setEtag(UUID.randomUUID().toString());
-		dto.setCanRequestMembership(true);
-
-		DBOTeam dbo = new DBOTeam();
-		TeamUtils.copyDtoToDbo(dto, dbo);
-
-		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
-		assertEquals(true, TeamUtils.copyDboToDto(dbo).getCanRequestMembership());
-	}
 }

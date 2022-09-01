@@ -22,11 +22,11 @@
 		},
 		"canPublicJoin": {
 			"type": "boolean",
-			"description": "true for teams which members can join without an invitation or approval"
+			"description": "true for teams which members can join without an invitation or approval. When this is true, canRequestMembership must be false or empty."
 		},
 		"canRequestMembership": {
 			"type": "boolean",
-			"description": "true for teams where users can create a membership request to join"
+			"description": "true for teams where users can create a membership request to join. When this is true, canPublicJoin must be false or empty."
 		},
 		"etag": {
 			"type": "string",

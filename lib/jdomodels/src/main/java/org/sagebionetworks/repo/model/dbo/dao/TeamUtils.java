@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamState;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -42,6 +43,7 @@ public class TeamUtils {
 		} else {
 			dbo.setIcon(Long.valueOf(dto.getIcon()));
 		}
+		dbo.setState(TeamState.from(dto).name());
 		copyToSerializedField(dto, dbo);
 	}
 
@@ -80,7 +82,7 @@ public class TeamUtils {
 	public static Team copyFromSerializedField(DBOTeam dbo) throws DatastoreException {
 		return deserialize(dbo.getProperties());
 	}
-	
+
 	// SQL building block to select admin Team members and the Teams on which they are admin's
 	// Note: In this SQL fragment gm is a member of the Team 't' having UPDATE access to the Team
 	public static final String ALL_TEAMS_AND_ADMIN_MEMBERS_CORE =
