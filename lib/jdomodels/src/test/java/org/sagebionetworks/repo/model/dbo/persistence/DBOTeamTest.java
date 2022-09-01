@@ -64,6 +64,7 @@ public class DBOTeamTest {
 	public void testRoundTrip() throws DatastoreException, NotFoundException, UnsupportedEncodingException{
 		// Make sure we can create it
 		DBOTeam team = newTeam();
+		team.setState(TeamState.OPEN.name());
 		toDelete.add(team.getId());
 		DBOTeam clone = dboBasicDao.createNew(team);		
 		assertNotNull(clone);

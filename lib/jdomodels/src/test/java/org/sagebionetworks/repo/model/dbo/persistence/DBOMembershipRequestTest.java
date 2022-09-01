@@ -16,6 +16,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.TeamState;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +70,7 @@ public class DBOMembershipRequestTest {
 		request.setExpiresOn(System.currentTimeMillis());
 		DBOTeam team = DBOTeamTest.newTeam();
 		team = dboBasicDao.createNew(team);
+		team.setState(TeamState.OPEN.name());
 		request.setTeamId(team.getId());
 		Long userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		request.setUserId(userId);
