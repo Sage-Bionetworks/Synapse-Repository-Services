@@ -110,6 +110,13 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public String getRepositoryDatabaseConnectionUrl();
+	
+	/**
+	 * The repository database connection string used for migration.
+	 * 
+	 * @return
+	 */
+	public String getRepositoryMigrationDatabaseConnectionUrl();
 
 	/**
 	 * The repository database schema name.

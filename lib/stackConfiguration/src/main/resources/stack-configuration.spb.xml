@@ -36,6 +36,7 @@
 	
 	<bean id="stackConfiguration.repositoryDatabaseDriver" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.repositoryDatabaseConnectionUrl" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.repositoryMigrationDatabaseConnectionUrl" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.repositoryDatabaseUsername" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.repositoryDatabasePassword" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.repositoryDbReadonlyUsername" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
