@@ -25,6 +25,16 @@ public interface DBOBasicDao {
 	 */
 	public <T extends DatabaseObject<T>> T createNew(T toCreate) throws DatastoreException;
 	
+	
+	/**
+	 * Insert the provide object into the database.  If the object already exists in the database the insert will be ignored.
+	 * @param <T>
+	 * @param toInsert
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public <T extends DatabaseObject<T>> T insertIgnore(T toInsert) throws DatastoreException;
+	
 	/**
 	 * Create an object if it does not exist, otherwise update the object.
 	 * This uses 'INSERT...ON DUPLICATE KEY UPDATE' with only one database call.

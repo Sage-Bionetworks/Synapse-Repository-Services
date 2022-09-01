@@ -33,8 +33,11 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJEC
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -52,6 +55,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -222,6 +226,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		populateSubjectAccessRequirement(dbo.getId(), dto.getSubjectIds());
 		return (T) get(dbo.getId().toString());
 	}
+
 
 	/**
 	 * Attempt to translate the given exception.
@@ -470,7 +475,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 	@Override
 	public void truncateAll() {
-		jdbcTemplate.update("DELETE FROM " + TABLE_ACCESS_REQUIREMENT);
+		jdbcTemplate.update("DELETE FROM " + TABLE_ACCESS_REQUIREMENT+ " WHERE ID > ?", AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID);
 	}
 
 	@WriteTransaction
@@ -686,6 +691,34 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		namedJdbcTemplate.update("UPDATE ACCESS_REQUIREMENT SET ETAG = UUID() WHERE ID IN (:ids) ORDER BY ID", param);
 	}
 
-
+	@WriteTransaction
+	@Override
+	public void bootstrap() {
+		String creator = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
+		Date date = Date.from(OffsetDateTime.of(2022, 8, 31, 0, 0, 0, 0, ZoneOffset.UTC).toInstant());
+		LockAccessRequirement lock = new LockAccessRequirement()
+				.setId(AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID)
+				.setVersionNumber(1L)
+				.setAccessType(ACCESS_TYPE.DOWNLOAD)
+				.setCreatedBy(creator)
+				.setCreatedOn(date)
+				.setModifiedBy(creator)
+				.setModifiedOn(date)
+				.setEtag("start")
+				.setName("Invalid Annotations Lock");
+		bootstrap(lock);
+	}
+	
+	/**
+	 * Bootstrapping inserts the AR with "insert ignore" accepting the provided ID.
+	 * @param dto
+	 */
+	void bootstrap(AccessRequirement dto) {
+		DBOAccessRequirement dbo = new DBOAccessRequirement();
+		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
+		AccessRequirementUtils.copyDtoToDbo(dto, dbo, dboRevision);
+		basicDao.insertIgnore(dbo);
+		basicDao.insertIgnore(dboRevision);
+	}
 
 }

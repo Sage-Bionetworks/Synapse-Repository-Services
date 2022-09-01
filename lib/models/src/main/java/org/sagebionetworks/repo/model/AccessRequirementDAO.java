@@ -8,6 +8,8 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessRequirementDAO {
+	
+	public static final Long INVALID_ANNOTATIONS_LOCK_ID = 1l;
 
 	/**
 	 * @param dto
@@ -191,6 +193,11 @@ public interface AccessRequirementDAO {
 	 * @param arIds
 	 */
 	void removeDynamicallyBoundAccessRequirementsFromSubject(RestrictableObjectDescriptor subject, List<Long> arIds);
+
+	/**
+	 * Bootstrap any access requirements.
+	 */
+	void bootstrap();
 		
 	
 }

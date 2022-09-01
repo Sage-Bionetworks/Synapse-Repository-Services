@@ -26,18 +26,28 @@ public class DMLUtils {
 	public static final String BIND_VAR_OFFSET = "BVOFFSET";
 	public static final String BIND_VAR_LIMIT = "BCLIMIT";
 
+	
+	public static String createInsertStatement(TableMapping<?> mapping) {
+		 boolean ignore = false;
+		 return createInsertStatement(mapping, ignore);
+	}
+	
+	public static String createInsertIgnoreStatement(TableMapping<?> mapping) {
+		 boolean ignore = true;
+		 return createInsertStatement(mapping, ignore);
+	}
 	/**
 	 * Create an INSERT statement for a given mapping.
 	 * @param mapping
 	 * @return
 	 */
-	public static String createInsertStatement(TableMapping<?> mapping){
+	static String createInsertStatement(TableMapping<?> mapping, boolean ignore){
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		if(mapping.getFieldColumns() == null) throw new IllegalArgumentException("DBOMapping.getFieldColumns() cannot be null");
 		StringBuilder main = new StringBuilder();
 		main.append("INSERT ");
 		// If a table consists only of primary keys, inserting a duplicate should not result in failure 
-		if (!hasNonPrimaryKeyColumns(mapping)) {
+		if (!hasNonPrimaryKeyColumns(mapping) || ignore) {
 			main.append("IGNORE ");
 		}
 		main.append("INTO ");
@@ -72,7 +82,8 @@ public class DMLUtils {
 	 */
 	public static String getBatchInsertOrUdpate(TableMapping<?> mapping){
 		StringBuilder builder = new StringBuilder();
-		builder.append(createInsertStatement(mapping));
+		boolean ignore = false;
+		builder.append(createInsertStatement(mapping, ignore));
 		if (hasNonPrimaryKeyColumns(mapping)) {
 			builder.append(" ON DUPLICATE KEY UPDATE ");
 			buildUpdateBody(mapping, builder);

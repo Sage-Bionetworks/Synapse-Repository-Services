@@ -25,6 +25,19 @@ public class DMLUtilsTest {
 					new FieldColumn("bigName", "BIG_NAME"), };
 		}
 	};
+	
+	private TableMapping<Object> mappingAllColumnsPartOfPrimaryKey = new AbstractTestTableMapping<Object>() {
+		@Override
+		public String getTableName() {
+			return "SOME_TABLE";
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return new FieldColumn[] { new FieldColumn("id", "ID", true).withIsBackupId(true),
+					new FieldColumn("bigName", "BIG_NAME", true), };
+		}
+	};
 
 	private TableMapping<Object> secondaryOne = new AbstractTestTableMapping<Object>() {
 		@Override
@@ -126,6 +139,22 @@ public class DMLUtilsTest {
 		assertNotNull(dml);
 		System.out.println(dml);
 		assertEquals("INSERT INTO SOME_TABLE(`ID`, `BIG_NAME`) VALUES (:id, :bigName)", dml);
+	}
+	
+	@Test
+	public void testCreateInsertIgnoreStatement() {
+		String dml = DMLUtils.createInsertIgnoreStatement(mapping);
+		assertNotNull(dml);
+		System.out.println(dml);
+		assertEquals("INSERT IGNORE INTO SOME_TABLE(`ID`, `BIG_NAME`) VALUES (:id, :bigName)", dml);
+	}
+	
+	@Test
+	public void testCreateInsertStatementWithNoPrimaryKey() {
+		String dml = DMLUtils.createInsertStatement(mappingAllColumnsPartOfPrimaryKey);
+		assertNotNull(dml);
+		System.out.println(dml);
+		assertEquals("INSERT IGNORE INTO SOME_TABLE(`ID`, `BIG_NAME`) VALUES (:id, :bigName)", dml);
 	}
 
 	@Test
