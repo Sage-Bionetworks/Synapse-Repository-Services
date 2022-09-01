@@ -11,7 +11,9 @@
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
 	<context:annotation-config />
-
+	<context:component-scan base-package="org.sagebionetworks.repo.model.config" annotation-config="false"/>
+	<context:component-scan base-package="org.sagebionetworks.lib.dbuserhelper" annotation-config="false"/>
+	
 	<import resource="classpath:stack-configuration.spb.xml" />
 	<import resource="classpath:private/transaction-spb.xml" />
 	<import resource="classpath:private/dbo-beans.spb.xml" />
