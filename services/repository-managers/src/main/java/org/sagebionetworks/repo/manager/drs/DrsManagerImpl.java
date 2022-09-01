@@ -9,10 +9,12 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.drs.AccessId;
 import org.sagebionetworks.repo.model.drs.AccessMethod;
 import org.sagebionetworks.repo.model.drs.AccessMethodType;
 import org.sagebionetworks.repo.model.drs.Checksum;
 import org.sagebionetworks.repo.model.drs.ChecksumType;
+import org.sagebionetworks.repo.model.drs.Content;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.OrganizationInformation;
 import org.sagebionetworks.repo.model.drs.PackageInformation;
@@ -20,6 +22,7 @@ import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,13 +47,12 @@ public class DrsManagerImpl implements DrsManager {
     public static final String DRS_ARTIFACT = "drs";
     public static final String DRS_VERSION = "1.2.0";
     public static final String ORGANIZATION_NAME = "Sage Bionetworks";
+    public static final String DRS_URI = DRS + "://" + REGISTERED_HOSTNAME + "/";
     public static final String ORGANIZATION_URL = "https://www.sagebionetworks.org";
     public static final String DESCRIPTION = "This service provides implementation of DRS specification for " +
             "accessing FileEntities and Datasets within Synapse.";
-    public static final String CHECKSUM_TYPE = "md5";
-    public static final String DELIMETER = "_";
     public static final String ILLEGAL_ARGUMENT_ERROR_MESSAGE = "DRS API only supports FileEntity and Datasets.";
-    private static final LocalDate localDate = LocalDate.of(2022, 8, 01);
+    private static final LocalDate localDate = LocalDate.of(2022, 8, 1);
     public static final Date CREATED_AT = Date.from(localDate.atStartOfDay(ZoneOffset.UTC).toInstant());
     public static final Date UPDATED_AT = Date.from(localDate.atStartOfDay(ZoneOffset.UTC).toInstant());
     private final StackConfiguration stackConfiguration;
@@ -95,54 +97,82 @@ public class DrsManagerImpl implements DrsManager {
     }
 
     @Override
-    public DrsObject getDrsObject(final Long userId, final String id)
+    public DrsObject getDrsObject(final Long userId, final String id, final boolean expand)
             throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException, UnsupportedOperationException {
         final UserInfo userInfo = userManager.getUserInfo(userId);
         final DrsObject result = new DrsObject();
         final IdAndVersion idAndVersion = IdAndVersion.parse(id);
-
+        validateIdHasVersion(idAndVersion);
         final Entity entity = entityManager.getEntityForVersion(userInfo, idAndVersion.getId().toString(),
-                getVersion(idAndVersion), null);
+                idAndVersion.getVersion().get(), null);
 
         result.setId(id);
         result.setName(entity.getName());
-        final String selfURI = String.format("%s://%s/%s", DRS, REGISTERED_HOSTNAME, id);
-        result.setSelf_uri(selfURI);
+        result.setSelf_uri(DRS_URI + id);
+        result.setVersion(idAndVersion.getVersion().get().toString());
         result.setCreated_time(entity.getCreatedOn());
         result.setUpdated_time(entity.getModifiedOn());
         result.setDescription(entity.getDescription());
 
         if (entity instanceof FileEntity) {
             final FileEntity file = (FileEntity) entity;
-            // Drs user are allowed to see metadata so access check is not required and
-            // moreover the metadata provided is not sensitive like s3 url etc.
-            final FileHandle fileHandle = fileHandleManager.getRawFileHandleUnchecked(file.getDataFileHandleId());
-            result.setSize(fileHandle.getContentSize());
-            result.setVersion(file.getVersionNumber() == null ? null : file.getVersionNumber().toString());
-            result.setMime_type(fileHandle.getContentType());
-            final List<Checksum> checksums = new ArrayList();
-            final Checksum checksum = new Checksum();
-            checksum.setChecksum(fileHandle.getContentMd5());
-            checksum.setType(ChecksumType.md5);
-            checksums.add(checksum);
-            result.setChecksums(checksums);
-            final List<AccessMethod> accessMethods = new ArrayList<>();
-            final String accessId = String.join(DELIMETER, FileHandleAssociateType.FileEntity.name(), id,
-                    file.getDataFileHandleId());
-            final AccessMethod accessMethod = new AccessMethod();
-            accessMethod.setType(AccessMethodType.https);
-            accessMethod.setAccess_id(accessId);
-            accessMethods.add(accessMethod);
-            result.setAccess_methods(accessMethods);
+            prepareFileRelatedData(result, file, idAndVersion);
         } else if (entity instanceof Dataset) {
-            throw new UnsupportedOperationException("Currently Dataset object are not supported.");
+            if (expand) {
+                throw new IllegalArgumentException("Nesting of bundle is not supported.");
+            }
+
+            final Dataset dataset = (Dataset) entity;
+            prepareDatasetRelatedData(result, dataset);
         } else {
             throw new IllegalArgumentException(ILLEGAL_ARGUMENT_ERROR_MESSAGE);
         }
         return result;
     }
 
-    private Long getVersion(final IdAndVersion idAndVersion) throws IllegalArgumentException {
-        return idAndVersion.getVersion().orElseThrow(() -> new IllegalArgumentException("Object id should include version. e.g syn123.1"));
+    void prepareFileRelatedData(final DrsObject result, final FileEntity file, final IdAndVersion idAndVersion) {
+        // Drs user are allowed to see metadata so access check is not required and
+        // moreover the metadata provided is not sensitive like s3 url etc.
+        final FileHandle fileHandle = fileHandleManager.getRawFileHandleUnchecked(file.getDataFileHandleId());
+        result.setSize(fileHandle.getContentSize());
+        result.setMime_type(fileHandle.getContentType());
+        final List<Checksum> checksums = new ArrayList<>();
+        final Checksum checksum = new Checksum();
+        checksum.setChecksum(fileHandle.getContentMd5());
+        checksum.setType(ChecksumType.md5);
+        checksums.add(checksum);
+        result.setChecksums(checksums);
+        final List<AccessMethod> accessMethods = new ArrayList<>();
+        final AccessId accessId = new AccessId.Builder().setAssociateType(FileHandleAssociateType.FileEntity)
+                .setSynapseIdWithVersion(idAndVersion).setFileHandleId(file.getDataFileHandleId()).build();
+        final AccessMethod accessMethod = new AccessMethod();
+        accessMethod.setType(AccessMethodType.https);
+        accessMethod.setAccess_id(accessId.encode());
+        accessMethods.add(accessMethod);
+        result.setAccess_methods(accessMethods);
+    }
+
+    void prepareDatasetRelatedData(final DrsObject result, final Dataset dataset) {
+        final List<Content> contentList = new ArrayList<>();
+        if (dataset.getItems() != null) {
+            dataset.getItems().forEach(entityRef -> {
+                final String fileIdWithVersion = KeyFactory.idAndVersion(entityRef.getEntityId(), entityRef.getVersionNumber()).toString();
+                final Content content = new Content();
+                content.setId(fileIdWithVersion);
+                // Name of file should be unique in the bundle, So file id with version is used as name.
+                content.setName(fileIdWithVersion);
+                content.setDrs_uri(DRS_URI + fileIdWithVersion);
+                contentList.add(content);
+
+            });
+        }
+        result.setContents(contentList);
+        //TODO checksum and size of dataset should be filed once added in meta data of dataset
+    }
+
+    private void validateIdHasVersion(final IdAndVersion idAndVersion) {
+        if (idAndVersion.getVersion().isEmpty()) {
+            throw new IllegalArgumentException("Object id should include version. e.g syn123.1");
+        }
     }
 }

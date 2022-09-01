@@ -483,6 +483,10 @@ public class DatasetIntegrationTest {
 				.setColumnIds(Arrays.asList(stringColumn.getId()))
 				.setItems(items)
 		);
+		
+		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + dataset.getId(), (QueryResultBundle result) -> {
+			assertEquals(0, result.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT);
 				
 		SnapshotRequest snapshotOptions = new SnapshotRequest();
 		snapshotOptions.setSnapshotComment("Dataset snapshot");

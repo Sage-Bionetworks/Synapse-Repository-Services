@@ -390,8 +390,15 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, runner);
 	}
 
+
 	@Override
-	public <R> R tryRunWithTableNonexclusiveLock(ProgressCallback callback, ProgressingCallable<R> callable,
+	public <R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, ProgressingCallable<R> runner, String... keys)
+			throws Exception {
+		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, runner, keys);
+	}
+
+	@Override
+	public <R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, ProgressingCallable<R> callable,
 			IdAndVersion... tableIds) throws Exception {
 		ValidateArgument.required(tableIds, "TableIds");
 		List<String> keys = Arrays.stream(tableIds).map(i -> TableModelUtils.getTableSemaphoreKey(i))

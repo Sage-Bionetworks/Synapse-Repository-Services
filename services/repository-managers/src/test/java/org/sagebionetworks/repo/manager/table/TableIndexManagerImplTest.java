@@ -99,6 +99,7 @@ import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -2625,7 +2626,6 @@ public class TableIndexManagerImplTest {
 		manager.updateSearchIndex(indexDescription);
 		
 		verify(mockIndexDao).getTableDataPage(tableId, expectedSearchSchema, TableIndexManagerImpl.BATCH_SIZE, 0);
-		verify(mockIndexDao).getTableDataPage(tableId, expectedSearchSchema, TableIndexManagerImpl.BATCH_SIZE, TableIndexManagerImpl.BATCH_SIZE);
 		verify(mockIndexDao).updateSearchIndex(tableId, Arrays.asList(new RowSearchContent(1L, "processed value"), new RowSearchContent(2L, "processed value")));
 	}
 	
@@ -2944,6 +2944,22 @@ public class TableIndexManagerImplTest {
 		
 		assertFalse(result);
 		
+	}
+	
+	@Test
+	public void testStreamTableToCSV() {
+		CSVWriterStream stream = new CSVWriterStream() {
+			
+			@Override
+			public void writeNext(String[] nextLine) {
+				// nothing
+			}
+		};
+		
+		// Call under test
+		manager.streamTableToCSV(tableId, stream);
+		
+		verify(mockIndexDao).streamTableToCSV(tableId, stream);
 	}
 	
 	@SuppressWarnings("unchecked")

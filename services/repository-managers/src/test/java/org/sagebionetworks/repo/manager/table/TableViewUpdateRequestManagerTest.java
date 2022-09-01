@@ -8,13 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -222,7 +222,7 @@ public class TableViewUpdateRequestManagerTest {
 	}
 	
 	@Test
-	public void testUpdateTableWithTransaction() throws RecoverableMessageException, TableUnavailableException{
+	public void testUpdateTableWithTransaction() throws Exception {
 		when(mockTableViewManger.applySchemaChange(user, viewId, columnChanges, orderedColumnIds)).thenReturn(schema);
 	
 		// call under test
@@ -236,33 +236,46 @@ public class TableViewUpdateRequestManagerTest {
 		assertEquals(schema, schemaResponse.getSchema());
 		// user must have write on the view.
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
-		verify(mockTableViewManger, never()).createSnapshot(any(UserInfo.class), anyString(), any(SnapshotRequest.class));
+		verify(mockTableViewManger, never()).createSnapshot(any(), any(), any(), any());
 	}
 	
 	@Test
-	public void testUpdateTableWithTransactionWithSnapshot() throws RecoverableMessageException, TableUnavailableException{
-		when(mockTableViewManger.applySchemaChange(user, viewId, columnChanges, orderedColumnIds)).thenReturn(schema);
-
+	public void testUpdateTableWithTransactionWithSnapshot() throws Exception {
+		long snapshotVersion = 123;
+		when(mockTableViewManger.createSnapshot(any(), any(), any(), any())).thenReturn(snapshotVersion);
+		request.setChanges(null);
 		request.setCreateSnapshot(true);
 		SnapshotRequest snapshotOptions = new SnapshotRequest();
 		snapshotOptions.setSnapshotLabel("some label");
 		request.setSnapshotOptions(snapshotOptions);
 		// call under test
 		TableUpdateTransactionResponse response = manager.updateTableWithTransaction(mockProgressCallback, user, request);
-		assertNotNull(response);
-		assertNotNull(response.getResults());
-		assertEquals(1, response.getResults().size());
-		TableUpdateResponse single =  response.getResults().get(0);
-		assertTrue(single instanceof TableSchemaChangeResponse);
-		TableSchemaChangeResponse schemaResponse = (TableSchemaChangeResponse) single;
-		assertEquals(schema, schemaResponse.getSchema());
+		assertEquals(snapshotVersion, response.getSnapshotVersionNumber());
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 		// calls create snapshot.
-		verify(mockTableViewManger).createSnapshot(user, request.getEntityId(), snapshotOptions);
+		verify(mockTableViewManger).createSnapshot(user, idAndVersion.getId(), snapshotOptions, mockProgressCallback);
 	}
 	
 	@Test
-	public void testUpdateTableWithTransactionWithSnapshotNulChanges() throws RecoverableMessageException, TableUnavailableException{
+	public void testUpdateTableWithTransactionWithSnapshotAndChanges() throws Exception {
+		request.setCreateSnapshot(true);
+		SnapshotRequest snapshotOptions = new SnapshotRequest();
+		snapshotOptions.setSnapshotLabel("some label");
+		request.setSnapshotOptions(snapshotOptions);
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			manager.updateTableWithTransaction(mockProgressCallback, user, request);
+		}).getMessage();
+		
+		assertEquals("When creating a view snapshot no changes can be included in the request.", result);
+		
+		verifyZeroInteractions(mockTableManagerSupport);
+		verifyZeroInteractions(mockTableViewManger);
+	}
+	
+	@Test
+	public void testUpdateTableWithTransactionWithSnapshotNulChanges() throws Exception {
 		request.setChanges(null);
 		request.setCreateSnapshot(true);
 		SnapshotRequest snapshotOptions = new SnapshotRequest();
@@ -274,29 +287,29 @@ public class TableViewUpdateRequestManagerTest {
 		assertNotNull(response.getResults());
 		assertTrue(response.getResults().isEmpty());
 		// calls create snapshot.
-		verify(mockTableViewManger).createSnapshot(user, request.getEntityId(), snapshotOptions);
+		verify(mockTableViewManger).createSnapshot(user, idAndVersion.getId(), snapshotOptions, mockProgressCallback);
 	}
 	
 	@Test
-	public void testUpdateTableWithTransactionWithSnapshotNull() throws RecoverableMessageException, TableUnavailableException{
+	public void testUpdateTableWithTransactionWithSnapshotNull() throws Exception {
 		request.setCreateSnapshot(null);
 		// call under test
 		TableUpdateTransactionResponse response = manager.updateTableWithTransaction(mockProgressCallback, user, request);
 		assertNotNull(response);
-		verify(mockTableViewManger, never()).createSnapshot(any(UserInfo.class), anyString(), any(SnapshotRequest.class));
+		verify(mockTableViewManger, never()).createSnapshot(any(), any(), any(), any());
 	}
 	
 	@Test
-	public void testUpdateTableWithTransactionWithSnapshotFalse() throws RecoverableMessageException, TableUnavailableException{
+	public void testUpdateTableWithTransactionWithSnapshotFalse() throws Exception {
 		request.setCreateSnapshot(false);
 		// call under test
 		TableUpdateTransactionResponse response = manager.updateTableWithTransaction(mockProgressCallback, user, request);
 		assertNotNull(response);
-		verify(mockTableViewManger, never()).createSnapshot(any(UserInfo.class), anyString(), any(SnapshotRequest.class));
+		verify(mockTableViewManger, never()).createSnapshot(any(), any(), any(), any());
 	}
 	
 	@Test
-	public void testUpdateTableWithTransactionNullCreateSnapshotButIncludesSnapshotOptions() throws RecoverableMessageException, TableUnavailableException{
+	public void testUpdateTableWithTransactionNullCreateSnapshotButIncludesSnapshotOptions() throws Exception {
 		request.setCreateSnapshot(null);
 		SnapshotRequest snapshotOptions = new SnapshotRequest();
 		snapshotOptions.setSnapshotLabel("some label");
@@ -305,7 +318,7 @@ public class TableViewUpdateRequestManagerTest {
 			// call under test
 			manager.updateTableWithTransaction(mockProgressCallback, user, request);
 		});
-		verify(mockTableViewManger, never()).createSnapshot(any(UserInfo.class), anyString(), any(SnapshotRequest.class));
+		verify(mockTableViewManger, never()).createSnapshot(any(), any(), any(), any());
 	}
 	
 	@Test

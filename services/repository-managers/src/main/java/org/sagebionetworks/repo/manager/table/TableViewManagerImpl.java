@@ -1,9 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,8 +25,6 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
-import org.sagebionetworks.repo.model.BucketAndKey;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
@@ -47,6 +43,7 @@ import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
@@ -59,6 +56,7 @@ import org.sagebionetworks.table.cluster.UndefinedViewScopeException;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.FileProvider;
@@ -78,8 +76,6 @@ import au.com.bytecode.opencsv.CSVWriter;
 
 public class TableViewManagerImpl implements TableViewManager {
 	
-	public static final String VIEW_DELTA_KEY_PREFIX = "Increment-";
-
 	static Log log = LogFactory.getLog(TableViewManagerImpl.class);	
 
 	public static final String DEFAULT_ETAG = "DEFAULT";
@@ -381,12 +377,12 @@ public class TableViewManagerImpl implements TableViewManager {
 		 * to query the view while this process runs.
 		 */
 		try {
-			tableManagerSupport.tryRunWithTableNonexclusiveLock(outerProgressCallback, (ProgressCallback callback) -> {
+			tableManagerSupport.tryRunWithTableNonExclusiveLock(outerProgressCallback, (ProgressCallback callback) -> {
 				/*
 				 * A special exclusive lock is used to prevent more then one instance
 				 * from applying deltas to a view at a time.
 				 */
-				String key = VIEW_DELTA_KEY_PREFIX + idAndVersion.toString();
+				String key = TableModelUtils.getViewDeltaSemaphoreKey(idAndVersion);
 				tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key,
 						(ProgressCallback innerCallback) -> {
 							// while holding both locks do the work.
@@ -546,7 +542,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
-			log.info(String.format("Set view: '%s' to AVIALABLE.", idAndVersion.toString()));
+			log.info(String.format("Set view: '%s' to AVAILABLE.", idAndVersion.toString()));
 		} catch (InvalidStatusTokenException e) {
 			// PLFM-6069, invalid tokens should not cause the view state to be set to failed, but
 			// instead should be retried later.
@@ -601,28 +597,12 @@ public class TableViewManagerImpl implements TableViewManager {
 			}
 		}
 	}
-
-	/**
-	 * Create a view snapshot file and upload it to S3.
-	 * 
-	 * @param idAndVersion
-	 * @param viewTypeMask
-	 * @param viewSchema
-	 * @param allContainersInScope
-	 * @return
-	 * @throws IOException
-	 * @throws FileNotFoundException
-	 * @throws UnsupportedEncodingException
-	 */
-	BucketAndKey createViewSnapshotAndUploadToS3(IdAndVersion idAndVersion, ViewScopeType scopeType,
-			List<ColumnModel> viewSchema) {
-		ValidateArgument.required(idAndVersion, "idAndVersion");
-		ValidateArgument.required(scopeType, "scopeType");
-		ValidateArgument.required(viewSchema, "viewSchema");
-
+	
+	List<String> saveSnapshotToS3(IdAndVersion idAndVersion, String bucket, String key) {
 		TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
-
+		
 		File tempFile = null;
+		List<String> schema;
 		try {
 			tempFile = fileProvider.createTempFile("ViewSnapshot", ".csv");
 			// Stream view data from the replication database to a local CSV file.
@@ -633,24 +613,11 @@ public class TableViewManagerImpl implements TableViewManager {
 					writer.writeNext(nextLine);
 				};
 				// write the snapshot to the temp file.
-				indexManager.createViewSnapshot(idAndVersion.getId(), scopeType, viewSchema,
-						writerAdapter);
+				schema = indexManager.streamTableToCSV(idAndVersion, writerAdapter);
 			}
 			// upload the resulting CSV to S3.
-			String key = idAndVersion.getId() + "/" + UUID.randomUUID().toString() + ".csv.gzip";
-			String bucket = config.getViewSnapshotBucketName();
 			s3Client.putObject(new PutObjectRequest(bucket, key, tempFile));
-			return new BucketAndKey().withBucket(bucket).withtKey(key);
-		} catch (UndefinedViewScopeException e) {
-			// PLFM-7417 - Contextually update the error message based on the entity type.
-			EntityType entityType = nodeManager.getNodeType(KeyFactory.keyToString(idAndVersion.getId()));
-			if (EntityType.dataset.equals(entityType)) {
-				throw new UndefinedViewScopeException("You cannot create a version of an empty Dataset. Add files to this Dataset before creating a version.");
-			} else if (EntityType.datasetcollection.equals(entityType)) {
-				throw new UndefinedViewScopeException("You cannot create a version of an empty Dataset Collection. Add Datasets to this Dataset Collection before creating a version.");
-			}
-			throw e;
- 		} catch (IOException e) {
+		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
 			// unconditionally delete the temporary file.
@@ -658,28 +625,86 @@ public class TableViewManagerImpl implements TableViewManager {
 				tempFile.delete();
 			}
 		}
+		return schema;
+	}
+	
+	void validateViewForSnapshot(IdAndVersion idAndVersion) throws TableUnavailableException {
+		ValidateArgument.required(idAndVersion, "The view id");
+		
+		// Default to PROCESSING state if missing
+		TableState state = tableManagerSupport.getTableStatusState(idAndVersion)
+			.orElseThrow(() -> new IllegalArgumentException("You cannot create a version of a view that is not available."));
+		
+		if (!TableState.AVAILABLE.equals(state)) {
+			throw new IllegalArgumentException("You cannot create a version of a view that is not available (Status: " + state + ").");
+		}
+
+		ViewObjectType viewType = tableManagerSupport.getViewScopeType(idAndVersion).getObjectType();
+		ViewFilter filter = metadataIndexProviderFactory.getMetadataIndexProvider(viewType).getViewFilter(idAndVersion.getId());
+		
+		// Makes sure the view has a non-empty scope
+		if (filter.isEmpty()) {
+			// PLFM-7417 - Contextually update the error message based on the entity type.
+			switch (viewType) {
+			case DATASET:
+				throw new UndefinedViewScopeException("You cannot create a version of an empty Dataset. Add files to this Dataset before creating a version.");
+			case DATASET_COLLECTION:
+				throw new UndefinedViewScopeException("You cannot create a version of an empty Dataset Collection. Add Datasets to this Dataset Collection before creating a version.");
+			default:
+				throw new UndefinedViewScopeException("You cannot create a version of a view that has no scope.");
+			}			
+		}
+
 	}
 
 	@WriteTransaction
 	@Override
-	public long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions) {
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
-		List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
-		BucketAndKey bucketAndKey = createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema);
-		// create a new version
-		long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, tableId, snapshotOptions);
-		IdAndVersion resultingIdAndVersion = IdAndVersion.newBuilder().setId(idAndVersion.getId())
-				.setVersion(snapshotVersion).build();
-		// bind the current schema to the version
-		columModelManager.bindCurrentColumnsToVersion(resultingIdAndVersion);
-		// save the snapshot data.
-		viewSnapshotDao.createSnapshot(new ViewSnapshot().withBucket(bucketAndKey.getBucket())
-				.withKey(bucketAndKey.getKey()).withCreatedBy(userInfo.getId()).withCreatedOn(new Date())
-				.withVersion(snapshotVersion).withViewId(idAndVersion.getId()));
-		// trigger an update (see: PLFM-5957)
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(resultingIdAndVersion);
-		return snapshotVersion;
+	public long createSnapshot(UserInfo userInfo, Long tableId, SnapshotRequest snapshotOptions, ProgressCallback callback) throws Exception {
+		
+		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(tableId).build();
+		
+		// We acquire a read lock on the view so that no other process can re-build the view, the view can still be queried
+		String buildLockKey = TableModelUtils.getTableSemaphoreKey(idAndVersion);
+		// We also acquire a read lock on the delta key, to prevent changes to available views, the view can still be queried
+		String deltaLockKey = TableModelUtils.getViewDeltaSemaphoreKey(idAndVersion);
+		
+		return tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, (ProgressCallback innerCallback) -> {
+		
+			validateViewForSnapshot(idAndVersion);
+
+			String key = idAndVersion.getId() + "/" + UUID.randomUUID().toString() + ".csv.gzip";
+			String bucket = config.getViewSnapshotBucketName();
+			
+			// Save the table to S3
+			List<String> schemaColumnIds = saveSnapshotToS3(idAndVersion, bucket, key);
+			
+			// Create a new version of the node
+			long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, idAndVersion.getId().toString(), snapshotOptions);
+			
+			IdAndVersion resultingIdAndVersion = IdAndVersion.newBuilder()
+				.setId(idAndVersion.getId())
+				.setVersion(snapshotVersion)
+				.build();
+			
+			// bind the schema to the version
+			columModelManager.bindColumnsToVersionOfObject(schemaColumnIds, resultingIdAndVersion);
+			
+			// save the snapshot metadata
+			viewSnapshotDao.createSnapshot(new ViewSnapshot()
+				.withBucket(bucket)
+				.withKey(key)
+				.withCreatedBy(userInfo.getId())
+				.withCreatedOn(new Date())
+				.withViewId(idAndVersion.getId())
+				.withVersion(snapshotVersion)
+			);
+			
+			// trigger an update (see: PLFM-5957)
+			tableManagerSupport.setTableToProcessingAndTriggerUpdate(resultingIdAndVersion);
+			
+			return snapshotVersion;
+		}, buildLockKey, deltaLockKey);
+		
 	}
 
 }

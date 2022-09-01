@@ -142,6 +142,10 @@ public class DatasetCollectionIntegrationTest {
 		
 		entityManager.updateAnnotations(userInfo, dataset.getId(), annotations);
 		
+		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + dataset.getId(), (QueryResultBundle result) -> {
+			assertEquals(dataset.getItems().size(), result.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT);
+				
 		SnapshotRequest snapshotOptions = new SnapshotRequest();
 		snapshotOptions.setSnapshotComment("Dataset snapshot");
 

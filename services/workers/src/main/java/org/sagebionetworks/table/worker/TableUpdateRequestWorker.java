@@ -55,13 +55,12 @@ public class TableUpdateRequestWorker implements AsyncJobRunner<TableUpdateTrans
 	
 	@Override
 	public TableUpdateTransactionResponse run(String jobId, UserInfo user, TableUpdateTransactionRequest request,
-			AsyncJobProgressCallback jobProgressCallback)
-			throws RecoverableMessageException, Exception {
+			AsyncJobProgressCallback jobProgressCallback) throws Exception {
 		try {
 			ValidateArgument.required(request, "TableUpdateTransactionRequest");
 			ValidateArgument.required(request.getEntityId(), "TableUpdateTransactionRequest.entityId");
 			// Lookup the type of the table
-			IdAndVersion idAndVersion = IdAndVersion.parse(request.getEntityId());	
+			IdAndVersion idAndVersion = IdAndVersion.parse(request.getEntityId());
 			EntityType tableType = tableManagerSupport.getTableEntityType(idAndVersion);
 			// Lookup the manger for this type
 			TableUpdateRequestManager requestManager = tableUpdateRequestManagerProvider.getUpdateRequestManagerForType(tableType);

@@ -1046,12 +1046,20 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testTryRunWithTableNonexclusiveLock() throws Exception {
+	public void testTryRunWithTableNonExclusiveLock() throws Exception {
 		IdAndVersion one = IdAndVersion.parse("syn123.4");
 		IdAndVersion two = IdAndVersion.parse("syn456");
 		// call under test
-		manager.tryRunWithTableNonexclusiveLock(mockCallback, mockCallable, one, two);
+		manager.tryRunWithTableNonExclusiveLock(mockCallback, mockCallable, one, two);
 		verify(mockWriteReadSemaphoreRunner).tryRunWithReadLock(mockCallback, mockCallable, "TABLE-LOCK-123-4",
 				"TABLE-LOCK-456");
+	}
+	
+	@Test
+	public void testTryRunWithTableNonExclusiveLockCustomKey() throws Exception {
+		String[] keys = new String[] {"key1", "key2"};
+		// call under test
+		manager.tryRunWithTableNonExclusiveLock(mockCallback, mockCallable, keys);
+		verify(mockWriteReadSemaphoreRunner).tryRunWithReadLock(mockCallback, mockCallable, "key1", "key2");
 	}
 }

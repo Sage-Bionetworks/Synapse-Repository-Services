@@ -343,7 +343,7 @@ public class TableEntityManagerTest {
 
 	void setupNonexclusiveLock() throws Exception {
 		// Just call the caller.
-		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),any(ProgressingCallable.class)
+		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(any(ProgressCallback.class),any(ProgressingCallable.class)
 				,any(IdAndVersion.class))).thenAnswer(new Answer<Object>() {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
@@ -2103,9 +2103,7 @@ public class TableEntityManagerTest {
 		
 		assertEquals(page, result);
 		
-		verify(mockTruthDao).getTableRowChangeWithFileRefsPage(idRange, 1000, 0);
-		verify(mockTruthDao).getTableRowChangeWithFileRefsPage(idRange, 1000, 1000);
-		
+		verify(mockTruthDao).getTableRowChangeWithFileRefsPage(idRange, 1000, 0);		
 	}
 	
 	@Test

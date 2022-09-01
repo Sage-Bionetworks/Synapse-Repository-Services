@@ -934,8 +934,10 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws InterruptedException
+	 * @throws AsynchJobFailedException 
+	 * @throws AssertionError 
 	 */
-	public IdAndVersion createFileViewWithPatientIds(List<Entity> entites, List<PatientData> patientData) throws DatastoreException, InterruptedException {
+	public IdAndVersion createFileViewWithPatientIds(List<Entity> entites, List<PatientData> patientData) throws DatastoreException, InterruptedException, AssertionError, AsynchJobFailedException {
 
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 
@@ -946,6 +948,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		schema = columnModelManager.createColumnModels(adminUserInfo, schema);
 
 		int index = 0;
+		
 		for (Entity entity: entites) {
 			if (entity instanceof FileEntity) {
 				FileEntity file = (FileEntity) entity;
@@ -962,6 +965,13 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		}
 
 		EntityView view = createView(entites.get(0).getId(), viewTypeMask, schema);
+		
+		long numberOfFiles = entites.stream().filter(e -> e instanceof FileEntity).count();
+		
+		asyncHelper.assertQueryResult(adminUserInfo, "SELECT * FROM " + view.getId(), (results) -> {
+			assertEquals(numberOfFiles, results.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT_MS);
+		
 		return KeyFactory.idAndVersion(view.getId(), null);
 	}
 	
