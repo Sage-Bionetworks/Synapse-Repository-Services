@@ -29,7 +29,10 @@ public class Constants {
 					ObjectField.modifiedBy,
 					ObjectField.dataFileHandleId, 
 					ObjectField.dataFileSizeBytes, 
-					ObjectField.dataFileMD5Hex
+					ObjectField.dataFileMD5Hex,
+					ObjectField.dataFileConcreteType,
+					ObjectField.dataFileBucket,
+					ObjectField.dataFileKey
 	};
 	// @formatter:on
 }

@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DERIVED_ANNOTATIONS_ANNOS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
@@ -93,6 +95,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
@@ -1818,11 +1821,20 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(rs.wasNull()) {
 					dto.setFileSizeBytes(null);
 				}
-				dto.setIsInSynapseStorage(NodeUtils.isBucketSynapseStorage(rs.getString(COL_FILES_BUCKET_NAME)));
+				dto.setFileBucket(rs.getString(COL_FILES_BUCKET_NAME));
+				dto.setIsInSynapseStorage(NodeUtils.isBucketSynapseStorage(dto.getFileBucket()));
 				if (rs.wasNull()) {
 					dto.setIsInSynapseStorage(null);
 				}
+				
+				dto.setFileKey(rs.getString(COL_FILES_KEY));
 				dto.setFileMD5(rs.getString(COL_FILES_CONTENT_MD5));
+				
+				String fileType = rs.getString(COL_FILES_METADATA_TYPE);
+
+				if (fileType != null) {
+					dto.setFileConcreteType(FileHandleMetadataType.valueOf(fileType).getFileClass().getName());
+				}
 				
 				Annotations annotations = AnnotationsV2Utils.fromJSONString(rs.getString(COL_REVISION_USER_ANNOS_JSON));
 				

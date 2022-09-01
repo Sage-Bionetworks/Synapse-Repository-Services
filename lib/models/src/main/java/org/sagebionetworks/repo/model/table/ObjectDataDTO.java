@@ -28,6 +28,9 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 	private Long modifiedBy;
 	private Date modifiedOn;
 	private Long fileHandleId;
+	private String fileConcreteType;
+	private String fileBucket;
+	private String fileKey;
 	private Long fileSizeBytes;
 	private Boolean isInSynapseStorage;
 	private String fileMD5;
@@ -201,10 +204,34 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 		return this;
 	}
 
+	public String getFileConcreteType() {
+		return fileConcreteType;
+	}
+
+	public void setFileConcreteType(String fileConcreteType) {
+		this.fileConcreteType = fileConcreteType;
+	}
+
+	public String getFileBucket() {
+		return fileBucket;
+	}
+
+	public void setFileBucket(String fileBucket) {
+		this.fileBucket = fileBucket;
+	}
+
+	public String getFileKey() {
+		return fileKey;
+	}
+
+	public void setFileKey(String fileKey) {
+		this.fileKey = fileKey;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(annotations, benefactorId, createdBy, createdOn, currentVersion, etag, fileHandleId,
-				fileMD5, fileSizeBytes, id, isInSynapseStorage, modifiedBy, modifiedOn, name, parentId, projectId,
+		return Objects.hash(annotations, benefactorId, createdBy, createdOn, currentVersion, etag, fileBucket, fileConcreteType,
+				fileHandleId, fileKey, fileMD5, fileSizeBytes, id, isInSynapseStorage, modifiedBy, modifiedOn, name, parentId, projectId,
 				subType, version);
 	}
 
@@ -220,23 +247,23 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 		return Objects.equals(annotations, other.annotations) && Objects.equals(benefactorId, other.benefactorId)
 				&& Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
 				&& Objects.equals(currentVersion, other.currentVersion) && Objects.equals(etag, other.etag)
-				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(fileMD5, other.fileMD5)
-				&& Objects.equals(fileSizeBytes, other.fileSizeBytes) && Objects.equals(id, other.id)
-				&& Objects.equals(isInSynapseStorage, other.isInSynapseStorage)
+				&& Objects.equals(fileBucket, other.fileBucket) && Objects.equals(fileConcreteType, other.fileConcreteType)
+				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(fileKey, other.fileKey)
+				&& Objects.equals(fileMD5, other.fileMD5) && Objects.equals(fileSizeBytes, other.fileSizeBytes)
+				&& Objects.equals(id, other.id) && Objects.equals(isInSynapseStorage, other.isInSynapseStorage)
 				&& Objects.equals(modifiedBy, other.modifiedBy) && Objects.equals(modifiedOn, other.modifiedOn)
 				&& Objects.equals(name, other.name) && Objects.equals(parentId, other.parentId)
-				&& Objects.equals(projectId, other.projectId) && subType == other.subType
-				&& Objects.equals(version, other.version);
+				&& Objects.equals(projectId, other.projectId) && subType == other.subType && Objects.equals(version, other.version);
 	}
 
 	@Override
 	public String toString() {
-		return "ObjectDataDTO [id=" + id + ", currentVersion=" + currentVersion + ", version=" + version
-				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", etag=" + etag + ", name=" + name
-				+ ", subType=" + subType + ", parentId=" + parentId + ", benefactorId=" + benefactorId + ", projectId="
-				+ projectId + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", fileHandleId="
-				+ fileHandleId + ", fileSizeBytes=" + fileSizeBytes + ", isInSynapseStorage=" + isInSynapseStorage
-				+ ", fileMD5=" + fileMD5 + ", annotations=" + annotations + "]";
+		return "ObjectDataDTO [id=" + id + ", currentVersion=" + currentVersion + ", version=" + version + ", createdBy=" + createdBy
+				+ ", createdOn=" + createdOn + ", etag=" + etag + ", name=" + name + ", subType=" + subType + ", parentId=" + parentId
+				+ ", benefactorId=" + benefactorId + ", projectId=" + projectId + ", modifiedBy=" + modifiedBy + ", modifiedOn="
+				+ modifiedOn + ", fileHandleId=" + fileHandleId + ", fileConcreteType=" + fileConcreteType + ", fileBucket=" + fileBucket
+				+ ", fileKey=" + fileKey + ", fileSizeBytes=" + fileSizeBytes + ", isInSynapseStorage=" + isInSynapseStorage + ", fileMD5="
+				+ fileMD5 + ", annotations=" + annotations + "]";
 	}
 
 	@Override
