@@ -28,6 +28,8 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
+import org.sagebionetworks.repo.model.datasource.DataSourceContext;
+import org.sagebionetworks.repo.model.datasource.DataSourceType;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
@@ -75,6 +77,8 @@ import com.google.common.collect.Iterables;
  *
  */
 @Service
+// Enable rewriteBatchStatements for any transaction in this manager, this allows higher throughput when restoring data
+@DataSourceContext(DataSourceType.REPO_BATCHING)
 public class MigrationManagerImpl implements MigrationManager {
 	
 	public static final String BACKUP_KEY_TEMPLATE = "%1$s-%2$s-%3$s-%4$s.zip";
