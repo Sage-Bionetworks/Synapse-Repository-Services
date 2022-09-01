@@ -71,8 +71,8 @@ public class DBOMembershipInvitationTest {
 		invitation.setCreatedOn(System.currentTimeMillis());
 		invitation.setExpiresOn(System.currentTimeMillis());
 		DBOTeam team = DBOTeamTest.newTeam();
-		team = dboBasicDao.createNew(team);
 		team.setState(TeamState.OPEN.name());
+		team = dboBasicDao.createNew(team);
 		invitation.setTeamId(team.getId());
 		invitation.setProperties((new String("abcdefg")).getBytes());
 		Long invitee = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();

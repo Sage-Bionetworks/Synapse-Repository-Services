@@ -69,8 +69,8 @@ public class DBOMembershipRequestTest {
 		request.setCreatedOn(System.currentTimeMillis());
 		request.setExpiresOn(System.currentTimeMillis());
 		DBOTeam team = DBOTeamTest.newTeam();
-		team = dboBasicDao.createNew(team);
 		team.setState(TeamState.OPEN.name());
+		team = dboBasicDao.createNew(team);
 		request.setTeamId(team.getId());
 		Long userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		request.setUserId(userId);
