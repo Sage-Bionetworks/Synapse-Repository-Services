@@ -45,11 +45,12 @@ public class DBOTeam implements MigratableDatabaseObject<DBOTeam, DBOTeam> {
 			team.setId(rs.getLong(COL_TEAM_ID));
 			team.setEtag(rs.getString(COL_TEAM_ETAG));
 			team.setIcon(rs.getLong(COL_TEAM_ICON));
-			team.setState(rs.getString(COL_TEAM_STATE));
 			
 			if (rs.wasNull()) {
 				team.setIcon(null);
 			}
+
+			team.setState(rs.getString(COL_TEAM_STATE));
 
 			java.sql.Blob blob = rs.getBlob(COL_TEAM_PROPERTIES);
 			if (blob != null) {
