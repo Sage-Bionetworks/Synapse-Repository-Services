@@ -14,18 +14,18 @@ import org.springframework.core.annotation.Order;
 @Order(1)
 public class DataSourceContextAspect {
 	
+	@Pointcut("execution(public * *(..))")
+	private void anyPublicMethod() {}
+	
 	@Pointcut("@within(dataSourceContext)")
 	public void annotatedClassPointCut(DataSourceContext dataSourceContext) {}
 	
-	@Before("annotatedClassPointCut(dataSourceContext)")
+	@Before("annotatedClassPointCut(dataSourceContext) && anyPublicMethod()")
 	public void setDataSourceContextBeforeExecution(DataSourceContext dataSourceContext) {
-		// If the datasource context was already set by an outer context we do not want to override it 
-		if (DataSourceContextHolder.get() == null) {
-			DataSourceContextHolder.set(dataSourceContext.value());
-		}
+		DataSourceContextHolder.set(dataSourceContext.value());
 	}
 	
-	@After("annotatedClassPointCut(dataSourceContext)")
+	@After("annotatedClassPointCut(dataSourceContext) && anyPublicMethod()")
 	public void clearDataSourceContextAfterExecution(DataSourceContext dataSourceContext) {
 		DataSourceContextHolder.clear();
 	}

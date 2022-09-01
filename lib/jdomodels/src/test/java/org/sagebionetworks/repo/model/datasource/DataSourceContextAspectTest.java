@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.datasource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -25,8 +26,26 @@ public class DataSourceContextAspectTest {
 	@Test
 	public void testDataSourceContextAspect() {
 		assertNull(DataSourceContextHolder.get());
+		// Call under test
 		annotatedClass.doSomething();
 		assertNull(DataSourceContextHolder.get());
+	}
+	
+	@Test
+	public void testDataSourceContextAspectWithProtectedMethod() {
+		assertNull(DataSourceContextHolder.get());
+		// Call under test
+		annotatedClass.doSomethingElse();
+		assertNull(DataSourceContextHolder.get());
+	}
+	
+	@Test
+	public void testDataSourceContextAspectWithMixedDataSources() {
+		assertNull(DataSourceContextHolder.get());
+		assertThrows(IllegalStateException.class, () -> {
+			// Call under test
+			annotatedClass.doSomethingWithInnerComponent();
+		});
 	}
 		
 	@Component
@@ -34,9 +53,11 @@ public class DataSourceContextAspectTest {
 	public static class ComponentWithDataSourceContext {
 		
 		private JdbcTemplate jdbcTemplate;
+		private InnerComponentWithDataSourceContext innerComponent;
 		
-		public ComponentWithDataSourceContext(JdbcTemplate jdbcTemplate) {
+		public ComponentWithDataSourceContext(JdbcTemplate jdbcTemplate, InnerComponentWithDataSourceContext innerComponent) {
 			this.jdbcTemplate = jdbcTemplate;
+			this.innerComponent = innerComponent;
 		}
 
 		@WriteTransaction
@@ -55,6 +76,26 @@ public class DataSourceContextAspectTest {
 				}
 			});
 			jdbcTemplate.queryForObject("SELECT 1", Long.class);
+		}
+		
+		protected void doSomethingElse() {
+			assertNull(DataSourceContextHolder.get());
+		}
+		
+		@WriteTransaction
+		public void doSomethingWithInnerComponent() {
+			assertEquals(DataSourceType.REPO_BATCHING, DataSourceContextHolder.get());
+			innerComponent.doSomething();
+		}
+
+	}
+	
+	@Component
+	@DataSourceContext(DataSourceType.REPO)
+	public static class InnerComponentWithDataSourceContext {
+		
+		public void doSomething() {
+			
 		}
 
 	}

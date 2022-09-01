@@ -44,6 +44,8 @@ public class ModelConfig {
 	
 	@Bean(destroyMethod = "close")
 	public DataSource repoBatchingDataSourcePool(StackConfiguration stackConfiguration) {
+		// Special repo data source that enabled rewriting batched statements increasing the throughput of inserts, this is used my migration
+		// when restoring data
 		RewritableBatchedStatementsDataSource dataSource = configureRepoDataSource(new RewritableBatchedStatementsDataSource(), stackConfiguration);
 		dataSource.setRewriteBatchedStatements(true);
 		return dataSource;
@@ -51,6 +53,8 @@ public class ModelConfig {
 	
 	@Bean
 	public DataSource dataSourcePool(DataSource repoDataSourcePool, DataSource repoBatchingDataSourcePool) {
+		// Special data source that allows to switch the underlying data source at runtime, this allows to share this
+		// data source with different components (e.g. txManager, jdbcTemplate)
 		ContextBasedDataSource dataSource = new ContextBasedDataSource();
 		
 		dataSource.setTargetDataSources(Map.of(

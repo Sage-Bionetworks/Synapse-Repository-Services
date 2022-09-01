@@ -5,7 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -33,6 +36,7 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.UserGroupDoaObjectHelper;
@@ -41,6 +45,7 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumReque
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.migration.BackupManifest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
@@ -50,10 +55,10 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
+import org.sagebionetworks.repo.model.migration.TypeData;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.securitytools.HMACUtils;
-import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -105,6 +110,7 @@ public class MigrationManagerImplAutowireTest {
 
 	@BeforeEach
 	public void before() throws Exception {
+		userManager.truncateAll();
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		mockProgressCallbackVoid = Mockito.mock(ProgressCallback.class);
 		toDelete = new LinkedList<String>();
@@ -172,6 +178,7 @@ public class MigrationManagerImplAutowireTest {
 			} catch (Exception e) {
 			}
 		}
+		userManager.truncateAll();
 	}
 	
 	@Test
@@ -396,6 +403,28 @@ public class MigrationManagerImplAutowireTest {
 		assertEquals(new Long(projects.size()*2), restoreReponse.getRestoredRowCount());
 		// validate all of the data was restored.
 		validateProjectsRestored();
+	}
+	
+	@Test
+	public void testRestoreBigStream() throws IOException {
+		
+		InputStream stream = getClass().getClassLoader().getResourceAsStream("MigrationBackupBig.zip");
+		
+		Long batchSize = 10_000L;
+		Long minId = 3412534L;
+		Long maxId = minId + batchSize;
+		
+		BackupManifest manifest = new BackupManifest()
+			.setAliasType(BackupAliasType.TABLE_NAME)
+			.setPrimaryType(new TypeData().setMigrationType(MigrationType.PRINCIPAL).setBackupIdColumnName("ID"))
+			.setBatchSize(batchSize)
+			.setMaximumId(minId)
+			.setMaximumId(maxId);
+		
+		long start = System.currentTimeMillis();
+		migrationManager.restoreStream(stream, manifest);		
+		// Should run under 5 seconds
+		assertTrue((System.currentTimeMillis() - start) / 1000 < 5);		
 	}
 	
 	@Test
