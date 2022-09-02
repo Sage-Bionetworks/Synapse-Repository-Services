@@ -207,7 +207,7 @@ public class LoginLockoutStatusDaoImplTest {
 	 * would deadlock. To address the issue we removed the foreign key on the
 	 * loginlock table.
 	 */
-	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Throwable.class)
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Throwable.class, transactionManager = "txManager")
 	@Test
 	public void testResetWithUserGroupLock() {
 		userGroupDao.touch(userOneId);

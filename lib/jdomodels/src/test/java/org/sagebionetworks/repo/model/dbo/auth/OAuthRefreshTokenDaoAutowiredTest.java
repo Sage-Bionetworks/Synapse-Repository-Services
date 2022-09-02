@@ -342,7 +342,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		assertFalse(actual.isPresent());
 	}
 
-	@Transactional
+	@Transactional("txManager")
 	@Test
 	void getMatchingTokenByHashForUpdate() {
 		String hashValue = "matching hash";
@@ -353,7 +353,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		assertEquals(expected, actual.get());
 	}
 
-	@Transactional
+	@Transactional("txManager")
 	@Test
 	void getMatchingTokenByHashForUpdate_EmptyResult() {
 		String hashValue = "hash";
@@ -371,7 +371,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		);
 	}
 
-	@Transactional
+	@Transactional("txManager")
 	@Test
 	void updateTokenHash() {
 		String oldHash = "old hash";

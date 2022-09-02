@@ -144,7 +144,7 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 	}
 
 
-	@Transactional
+	@Transactional("txManager")
 	@Test
 	public void testRefreshTokenRoundTrip() throws Exception {
 		// Create a refresh token

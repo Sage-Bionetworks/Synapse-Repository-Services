@@ -156,9 +156,13 @@ public class NodeDAOImplTest {
 	private TeamDAO teamDAO;
 	
 	@Autowired
-	private MigratableTableDAO migratableTableDao;;
+	private MigratableTableDAO migratableTableDao;
+	
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	
+	@Autowired
+	private JdbcTemplate migrationJdbcTemplate;
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -2932,7 +2936,7 @@ public class NodeDAOImplTest {
 
 			@Override
 			public Void call() throws Exception {
-				jdbcTemplate.update("UPDATE "+TABLE_NODE+" SET "+COL_NODE_PARENT_ID+" = ? WHERE "+COL_NODE_ID+" = ?", projectId, projectId);
+				migrationJdbcTemplate.update("UPDATE "+TABLE_NODE+" SET "+COL_NODE_PARENT_ID+" = ? WHERE "+COL_NODE_ID+" = ?", projectId, projectId);
 				return null;
 			}
 		});
@@ -2962,7 +2966,7 @@ public class NodeDAOImplTest {
 
 		// to delete the parent without deleting the child:
 		migratableTableDao.runWithKeyChecksIgnored(() -> {
-			basicDao.deleteObjectByPrimaryKey(DBONode.class, new MapSqlParameterSource("id", KeyFactory.stringToKey(projectid)));
+			migrationJdbcTemplate.update("DELETE FROM " + TABLE_NODE + " WHERE " + COL_NODE_ID + "=?", KeyFactory.stringToKey(projectid));
 			return null;
 		});
 		// the parent should not exist.
