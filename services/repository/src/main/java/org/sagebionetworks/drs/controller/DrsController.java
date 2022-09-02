@@ -3,6 +3,7 @@ package org.sagebionetworks.drs.controller;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.drs.AccessUrl;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
@@ -86,5 +87,30 @@ public class DrsController {
                                                 @RequestParam(value = "expand", defaultValue = "false") Boolean expand)
             throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException, UnsupportedOperationException {
         return serviceProvider.getDrsService().getDrsObject(userId, id, expand);
+    }
+
+    /**
+     * GET an url for fetching byte API will provide the actual url of
+     * <a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a>
+     * for example s3 bucket, google cloud etc., from where file can be downloaded.
+     * <p>
+     * The method only need to be called when using
+     * <a href="https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.2.0/docs/#tag/AccessMethodModel"> AccessMethod </a>
+     * that contains an access_id.(To get access_id call <a href="${GET.objects.id}"> GET /objects/{id} </a> Api for file)
+     * <p>
+     * The preassigned url will be sent to the user and file can be downloaded directly from the url without any authentication.
+     * As preassigned url has tokens included, which expires with time.
+     *
+     * @return the preassigned url to download a file
+     */
+
+    @RequiredScope({OAuthScope.download})
+    @ResponseStatus(HttpStatus.OK)
+    @RequestMapping(value = {UrlHelpers.DRS_FETCH_BYTES}, method = RequestMethod.GET)
+    public @ResponseBody AccessUrl getAccessURL(@PathVariable final String id,
+                                                @PathVariable final String accessId,
+                                                @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) final Long userId)
+            throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException {
+        return serviceProvider.getDrsService().getAccessUrl(userId, id, accessId);
     }
 }

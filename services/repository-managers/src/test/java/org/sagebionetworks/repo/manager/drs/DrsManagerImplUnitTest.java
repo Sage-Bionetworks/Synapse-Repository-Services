@@ -9,6 +9,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -17,6 +18,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.drs.AccessId;
 import org.sagebionetworks.repo.model.drs.AccessMethod;
 import org.sagebionetworks.repo.model.drs.AccessMethodType;
+import org.sagebionetworks.repo.model.drs.AccessUrl;
 import org.sagebionetworks.repo.model.drs.Checksum;
 import org.sagebionetworks.repo.model.drs.ChecksumType;
 import org.sagebionetworks.repo.model.drs.Content;
@@ -123,18 +125,6 @@ public class DrsManagerImplUnitTest {
         assertEquals(getExpectedDrsBundleObject(dataset), drsObject);
     }
 
-    private DrsObject prepareDrsObjectWithCommonFields(final Entity entity, final String version, final String id) {
-        final DrsObject result = new DrsObject();
-        result.setId(id);
-        result.setName(entity.getName());
-        result.setSelf_uri(DRS_URI + id);
-        result.setVersion(version);
-        result.setCreated_time(entity.getCreatedOn());
-        result.setUpdated_time(entity.getModifiedOn());
-        result.setDescription(entity.getDescription());
-        return result;
-    }
-
     @Test
     public void testGetBundleDrsObject() {
         final Dataset dataset = getDataset();
@@ -181,6 +171,47 @@ public class DrsManagerImplUnitTest {
         });
         verify(entityManager).getEntityForVersion(null, "1", ENTITY_VERSION, null);
         assertEquals("DRS API only supports FileEntity and Datasets.", exception.getMessage());
+    }
+
+    @Test
+    public void testGetAccessUrl() {
+        final FileEntity file = getFileEntity();
+        final String url = "https://s3.amazonaws.com/proddata.sagebase.org/3449751/645bd567-5f63-46d0-92ee-0d58dbfb08e9";
+        final String idAndVersion = KeyFactory.idAndVersion(file.getId(), file.getVersionNumber()).toString();
+        final String accessId = "FileEntity_" + idAndVersion + "_12345";
+        when(userManager.getUserInfo(any())).thenReturn(userInfo);
+        when(fileHandleManager.getRedirectURLForFileHandle(any())).thenReturn(url);
+        final AccessUrl accessUrl = drsManager.getAccessUrl(USER_ID, idAndVersion, accessId);
+        verify(userManager).getUserInfo(USER_ID);
+        verify(fileHandleManager).getRedirectURLForFileHandle(new FileHandleUrlRequest(userInfo, "12345"));
+        assertNotNull(accessUrl);
+        assertEquals(url, accessUrl.getUrl());
+    }
+
+    @Test
+    public void testGetAccessUrlWithConsistentObjectId() {
+        final FileEntity file = getFileEntity();
+        final String idAndVersion = KeyFactory.idAndVersion(file.getId(), file.getVersionNumber()).toString();
+        final String accessId = "FileEntity_syn333.3_12345";
+        when(userManager.getUserInfo(any())).thenReturn(userInfo);
+
+        assertEquals("AccessId contains different drsObject Id.", assertThrows(IllegalArgumentException.class, () -> {
+            drsManager.getAccessUrl(USER_ID, idAndVersion, accessId);
+        }).getMessage());
+
+        verify(userManager).getUserInfo(USER_ID);
+    }
+
+    private DrsObject prepareDrsObjectWithCommonFields(final Entity entity, final String version, final String id) {
+        final DrsObject result = new DrsObject();
+        result.setId(id);
+        result.setName(entity.getName());
+        result.setSelf_uri(DRS_URI + id);
+        result.setVersion(version);
+        result.setCreated_time(entity.getCreatedOn());
+        result.setUpdated_time(entity.getModifiedOn());
+        result.setDescription(entity.getDescription());
+        return result;
     }
 
     private FileEntity getFileEntity() {

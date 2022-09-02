@@ -1245,6 +1245,7 @@ public class UrlHelpers {
 	 */
 	public static final String DRS_SERVICE_INFO = "/service-info";
 	public static final String DRS_OBJECT = "/objects/{id}";
+	public static final String DRS_FETCH_BYTES = DRS_OBJECT + "/access/{accessId}";
 
 	static {
 		@SuppressWarnings("rawtypes")

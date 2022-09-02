@@ -2,6 +2,7 @@ package org.sagebionetworks.drs.services;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.drs.AccessUrl;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -31,4 +32,7 @@ public interface DrsService {
     DrsObject getDrsObject(Long userId, String id, boolean expand)
             throws NotFoundException, DatastoreException, UnauthorizedException,
             IllegalArgumentException, UnsupportedOperationException;
+
+    AccessUrl getAccessUrl(Long userId, String drsObjectId, String accessId) throws NotFoundException, DatastoreException,
+            UnauthorizedException, IllegalArgumentException;
 }

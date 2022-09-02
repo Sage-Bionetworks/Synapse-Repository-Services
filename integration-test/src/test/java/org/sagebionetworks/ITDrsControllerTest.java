@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.drs.AccessId;
 import org.sagebionetworks.repo.model.drs.AccessMethod;
 import org.sagebionetworks.repo.model.drs.AccessMethodType;
+import org.sagebionetworks.repo.model.drs.AccessUrl;
 import org.sagebionetworks.repo.model.drs.Checksum;
 import org.sagebionetworks.repo.model.drs.ChecksumType;
 import org.sagebionetworks.repo.model.drs.Content;
@@ -121,6 +122,19 @@ public class ITDrsControllerTest {
         final DrsObject drsObject = synapse.getDrsObject(idAndVersion);
         assertNotNull(drsObject);
         assertEquals(getExpectedDrsBundleObject(createdDataset), drsObject);
+    }
+
+    @Test
+    public void testGetPreassignedAccessURL() throws SynapseException {
+        createFileEntity(1);
+        final FileEntity file = fileEntities.get(0);
+        final String idAndVersion = file.getId() + "." + file.getVersionNumber();
+        final DrsObject drsObject = synapse.getDrsObject(idAndVersion);
+        assertNotNull(drsObject);
+
+        final AccessUrl accessUrl = synapse.getAccessUrl(idAndVersion, drsObject.getAccess_methods().get(0).getAccess_id());
+        assertNotNull(accessUrl);
+        assertNotNull(accessUrl.getUrl());
     }
 
 

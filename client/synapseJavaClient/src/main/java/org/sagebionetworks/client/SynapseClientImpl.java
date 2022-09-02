@@ -162,6 +162,7 @@ import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
+import org.sagebionetworks.repo.model.drs.AccessUrl;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
@@ -6141,5 +6142,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public DrsObject getDrsObject(final String objectId) throws SynapseException {
 		final String relativeURL = "/objects/" + objectId;
 		return getJSONEntity(getDrsEndpoint(), relativeURL, DrsObject.class);
+	}
+
+	@Override
+	public AccessUrl getAccessUrl(final String objectId, final String accessId) throws SynapseException {
+		final String relativeURL = "/objects/" + objectId + "/access/" + accessId;
+		return getJSONEntity(getDrsEndpoint(), relativeURL, AccessUrl.class);
 	}
 }
