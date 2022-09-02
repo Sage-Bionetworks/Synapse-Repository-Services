@@ -1,16 +1,11 @@
 package org.sagebionetworks.repo.model.config;
 
 import java.sql.Connection;
-import java.util.Map;
 
 import javax.sql.DataSource;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.datasource.ContextBasedDataSource;
-import org.sagebionetworks.repo.model.datasource.DataSourceContextAspect;
-import org.sagebionetworks.repo.model.datasource.DataSourceType;
-import org.sagebionetworks.repo.model.datasource.RewritableBatchedStatementsDataSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -36,67 +31,66 @@ public class ModelConfig {
 		dataSource.setDefaultTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 		return dataSource;
 	}
-	
+
+	/**
+	 * Default repo data source pool
+	 * 
+	 * @param stackConfiguration
+	 * @return
+	 */
 	@Bean(destroyMethod = "close")
-	public DataSource repoDataSourcePool(StackConfiguration stackConfiguration) {
+	public DataSource dataSourcePool(StackConfiguration stackConfiguration) {
 		return configureRepoDataSource(new BasicDataSource(), stackConfiguration);
 	}
-	
+
+	/**
+	 * Special repo data source that enabled rewriting batched statements increasing the throughput of
+	 * inserts, this is used my migration when restoring data
+	 * 
+	 * @param stackConfiguration
+	 * @return
+	 */
 	@Bean(destroyMethod = "close")
-	public DataSource repoBatchingDataSourcePool(StackConfiguration stackConfiguration) {
-		// Special repo data source that enabled rewriting batched statements increasing the throughput of inserts, this is used my migration
-		// when restoring data
-		RewritableBatchedStatementsDataSource dataSource = configureRepoDataSource(new RewritableBatchedStatementsDataSource(), stackConfiguration);
-		dataSource.setRewriteBatchedStatements(true);
+	public DataSource migrationDataSourcePool(StackConfiguration stackConfiguration) {
+		BasicDataSource dataSource = configureRepoDataSource(new BasicDataSource(), stackConfiguration);
+		dataSource.addConnectionProperty("rewriteBatchedStatements", String.valueOf(true));
 		return dataSource;
 	}
-	
-	@Bean
-	public DataSource dataSourcePool(DataSource repoDataSourcePool, DataSource repoBatchingDataSourcePool) {
-		// Special data source that allows to switch the underlying data source at runtime, this allows to share this
-		// data source with different components (e.g. txManager, jdbcTemplate)
-		ContextBasedDataSource dataSource = new ContextBasedDataSource();
-		
-		dataSource.setTargetDataSources(Map.of(
-			DataSourceType.REPO, repoDataSourcePool,
-			DataSourceType.REPO_BATCHING, repoBatchingDataSourcePool
-		));
-		
-		dataSource.setDefaultTargetDataSource(repoDataSourcePool);
-		dataSource.setLenientFallback(false);
-		
-		return dataSource;
-	}
-	
+
 	@Bean
 	public PlatformTransactionManager txManager(DataSource dataSourcePool) {
 		return new DataSourceTransactionManager(dataSourcePool);
 	}
-	
+
+	@Bean
+	public PlatformTransactionManager migrationTxManager(DataSource migrationDataSourcePool) {
+		return new DataSourceTransactionManager(migrationDataSourcePool);
+	}
+
 	@Bean
 	public JdbcTemplate jdbcTemplate(DataSource dataSourcePool) {
 		return new JdbcTemplate(dataSourcePool);
 	}
 	
 	@Bean
+	public JdbcTemplate migrationJdbcTemplate(DataSource migrationDataSourcePool) {
+		return new JdbcTemplate(migrationDataSourcePool);
+	}
+
+	@Bean
 	public NamedParameterJdbcTemplate namedParameterJdbcTemplate(JdbcTemplate jdbcTemplate) {
 		return new NamedParameterJdbcTemplate(jdbcTemplate);
 	}
-		
+
 	@Bean
 	public TransactionTemplate readCommitedTransactionTemplate(PlatformTransactionManager txManager) {
 		DefaultTransactionDefinition txDefinition = new DefaultTransactionDefinition();
-		
+
 		txDefinition.setIsolationLevel(Connection.TRANSACTION_READ_COMMITTED);
 		txDefinition.setReadOnly(false);
 		txDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
 		txDefinition.setName("readCommitedTransactionTemplate");
-		
+
 		return new TransactionTemplate(txManager, txDefinition);
 	}
-	
-	@Bean
-	public DataSourceContextAspect dataSourceContextAspect() {
-		return new DataSourceContextAspect();
-	}	
 }

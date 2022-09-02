@@ -28,8 +28,6 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
-import org.sagebionetworks.repo.model.datasource.DataSourceContext;
-import org.sagebionetworks.repo.model.datasource.DataSourceType;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
@@ -56,7 +54,7 @@ import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.migration.TypeData;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.model.transactions.MigrationWriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.FileProvider;
@@ -77,8 +75,6 @@ import com.google.common.collect.Iterables;
  *
  */
 @Service
-// Enable rewriteBatchStatements for any transaction in this manager, this allows higher throughput when restoring data
-@DataSourceContext(DataSourceType.REPO_BATCHING)
 public class MigrationManagerImpl implements MigrationManager {
 	
 	public static final String BACKUP_KEY_TEMPLATE = "%1$s-%2$s-%3$s-%4$s.zip";
@@ -525,7 +521,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.migration.MigrationManager#restoreRequest(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.migration.RestoreTypeRequest)
 	 */
-	@WriteTransaction // required see PLFM-4832
+	@MigrationWriteTransaction // required see PLFM-4832
 	@Override
 	public RestoreTypeResponse restoreRequest(UserInfo user, RestoreTypeRequest request) throws IOException {
 		ValidateArgument.required(user, "User");

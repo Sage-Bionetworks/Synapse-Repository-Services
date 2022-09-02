@@ -31,6 +31,11 @@
 			<tx:method name="*" propagation="MANDATORY" rollback-for="Throwable" isolation="READ_COMMITTED" />
 		</tx:attributes>
 	</tx:advice>
+	<tx:advice id="migrationWriteTxRollbackAdvice" transaction-manager="migrationTxManager">
+		<tx:attributes>
+			<tx:method name="*" propagation="REQUIRED" rollback-for="Throwable" isolation="READ_COMMITTED" />
+		</tx:attributes>
+	</tx:advice>
 
 	<!-- These advisor will be applied to any method with the @WriteTransaction, @NewWriteTransaction and 
 		@MandatoryWriteTransaction annotations. This allows us to change the default rollback exception types 
@@ -50,5 +55,10 @@
 					  expression="@annotation(org.sagebionetworks.repo.transactions.MandatoryWriteTransaction)" />
 		<aop:advisor pointcut-ref="defaultMandatoryWrites" advice-ref="defaultMandatoryWriteTxRollbackAdvice" />
 	</aop:config>
+	<aop:config>
+		<aop:pointcut id="migrationWrites"
+			expression="@annotation(org.sagebionetworks.repo.model.transactions.MigrationWriteTransaction)" />
+		<aop:advisor pointcut-ref="migrationWrites" advice-ref="migrationWriteTxRollbackAdvice" />
+	</aop:config>		
 	
 </beans>

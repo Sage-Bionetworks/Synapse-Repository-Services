@@ -8,8 +8,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -38,6 +40,9 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
+import org.sagebionetworks.repo.model.dbo.schema.DBOOrganization;
+import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
+import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
@@ -82,59 +87,71 @@ public class MigratableTableDAOImplAutowireTest {
 	
 	@Autowired
 	private MigratableTableDAOImpl migratableTableDAO;
+		
+	@Autowired
+	private OrganizationDao orgDao;
 	
-	private List<String> filesToDelete;
+	@Autowired
+	private JsonSchemaDao schemaDao;
 	
 	private String creatorUserGroupId;
 	
 	@BeforeEach
 	public void before() {
-		filesToDelete = new LinkedList<String>();
+		schemaDao.truncateAll();
+		orgDao.truncateAll();
+		fileHandleDao.truncateTable();
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
 	}
 	
 	@AfterEach
 	public void after(){
-		if(fileHandleDao != null && filesToDelete != null){
-			for(String id: filesToDelete){
-				fileHandleDao.delete(id);
-			}
-		}
+		fileHandleDao.truncateTable();
+		schemaDao.truncateAll();
+		orgDao.truncateAll();
 	}
 	
 	@Test
 	public void testRunWithForeignKeyIgnored() throws Exception{
-		final S3FileHandle fh = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		fh.setFileName("withPreview.txt");
+		// Note: Principal does not need to exists since foreign keys will be off.
+		DBOOrganization one = new DBOOrganization();
+		one.setId(111L);
+		one.setCreatedOn(new Timestamp(System.currentTimeMillis()));
+		one.setName("one");
 		// This does not exists but we should be able to set while foreign keys are ignored.
-		fh.setPreviewId("-123");
+		one.setCreatedBy(111L);
+		
 		// This should fail
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-			fileHandleDao.createFile(fh);
+		DataIntegrityViolationException ex = assertThrows(DataIntegrityViolationException.class, () -> {
+			migratableTableDAO.createOrUpdateInternal(MigrationType.ORGANIZATION, List.of(one));			
 		});
-		assertEquals(DataIntegrityViolationException.class, ex.getCause().getClass());
+		
+		assertEquals(BatchUpdateException.class, ex.getCause().getClass());
+		
 		// While the check is off we can violate foreign keys.
 		Boolean result = migratableTableDAO.runWithKeyChecksIgnored(new Callable<Boolean>(){
 			@Override
 			public Boolean call() throws Exception {
 				// We should be able to do this now that foreign keys are disabled.
-				S3FileHandle updated = (S3FileHandle) fileHandleDao.createFile(fh);
-				filesToDelete.add(updated.getId());
+				migratableTableDAO.createOrUpdateInternal(MigrationType.ORGANIZATION, List.of(one));
 				return true;
 			}});
 		assertTrue(result);
 		
 		// This should fail if constraints are back on.
-		final S3FileHandle fh2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		fh2.setFileName("withPreview2.txt");
+		DBOOrganization two = new DBOOrganization();
+		two.setId(222L);
+		two.setCreatedOn(new Timestamp(System.currentTimeMillis()));
+		two.setName("two");
 		// This does not exists but we should be able to set while foreign keys are ignored.
-		fh2.setPreviewId("-123");
+		two.setCreatedBy(222L);
+		
 		// This should fail
-		ex = assertThrows(IllegalArgumentException.class, () -> {
-			fileHandleDao.createFile(fh2);
+		ex = assertThrows(DataIntegrityViolationException.class, () -> {
+			migratableTableDAO.createOrUpdateInternal(MigrationType.ORGANIZATION, List.of(two));
 		});
-		assertEquals(DataIntegrityViolationException.class, ex.getCause().getClass());
+		assertEquals(BatchUpdateException.class, ex.getCause().getClass());
 	}
 	
 	/**
@@ -180,7 +197,6 @@ public class MigratableTableDAOImplAutowireTest {
 		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handle.setFileName("handle");
 		handle = (S3FileHandle) fileHandleDao.createFile(handle);
-		filesToDelete.add(handle.getId());
 		assertEquals(startCount+1, migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
 		fileHandleDao.delete(handle.getId());
 		assertEquals(startCount, migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
@@ -193,7 +209,6 @@ public class MigratableTableDAOImplAutowireTest {
 		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handle.setFileName("handle");
 		handle = (S3FileHandle) fileHandleDao.createFile(handle);
-		filesToDelete.add(handle.getId());
 		assertEquals(startCount+1, migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getCount().longValue());
 		fileHandleDao.delete(handle.getId());
 		assertEquals(startCount, migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getCount().longValue());
@@ -219,7 +234,6 @@ public class MigratableTableDAOImplAutowireTest {
 		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handle1.setFileName("handle1");
 		handle1 = (S3FileHandle) fileHandleDao.createFile(handle1);
-		filesToDelete.add(handle1.getId());
 		// Checksum again
 		String checksum2 = migratableTableDAO.getChecksumForType(MigrationType.FILE_HANDLE);
 		// Test
@@ -239,12 +253,10 @@ public class MigratableTableDAOImplAutowireTest {
 		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handle1.setFileName("handle1");
 		handle1 = (S3FileHandle) fileHandleDao.createFile(handle1);
-		filesToDelete.add(handle1.getId());
 		// Add a preview
 		CloudProviderFileHandleInterface previewHandle1 = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		previewHandle1.setFileName("preview1");
 		previewHandle1 = (CloudProviderFileHandleInterface) fileHandleDao.createFile(previewHandle1);
-		filesToDelete.add(previewHandle1.getId());
 		
 		// Checksum file only
 		String checksum1 = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, "X", startId, Long.parseLong(handle1.getId()));
@@ -524,7 +536,6 @@ public class MigratableTableDAOImplAutowireTest {
 					""+i);
 			file = (S3FileHandle) fileHandleDao.createFile(file);
 			files.add(Long.parseLong(file.getId()));
-			filesToDelete.add(file.getId());
 		}
 		BatchChecksumRequest request = new BatchChecksumRequest();
 		request.setBatchSize(3L);

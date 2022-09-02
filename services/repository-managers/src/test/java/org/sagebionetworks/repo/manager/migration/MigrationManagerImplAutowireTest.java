@@ -422,7 +422,8 @@ public class MigrationManagerImplAutowireTest {
 			.setMaximumId(maxId);
 		
 		long start = System.currentTimeMillis();
-		migrationManager.restoreStream(stream, manifest);		
+		// Call under test
+		migrationManager.restoreStream(stream, manifest);
 		// Should run under 5 seconds
 		assertTrue((System.currentTimeMillis() - start) / 1000 < 5);		
 	}
