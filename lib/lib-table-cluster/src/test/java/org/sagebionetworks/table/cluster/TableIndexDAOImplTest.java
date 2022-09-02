@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
@@ -3175,6 +3176,9 @@ public class TableIndexDAOImplTest {
 			objectDataDTO.setFileHandleId(888L);
 			objectDataDTO.setFileSizeBytes(999L);
 			objectDataDTO.setFileMD5(Long.toHexString(id*1000));
+			objectDataDTO.setFileBucket("bucket");
+			objectDataDTO.setFileKey("key");
+			objectDataDTO.setFileConcreteType(S3FileHandle.class.getName());
 		}
 		List<ObjectAnnotationDTO> annos = new LinkedList<ObjectAnnotationDTO>();
 		for(int i=0; i<annotationCount; i++){

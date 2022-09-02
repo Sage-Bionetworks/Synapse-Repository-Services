@@ -1753,7 +1753,10 @@ public class SQLUtilsTest {
 				+ " MAX(R.MODIFIED_BY) AS MODIFIED_BY,"
 				+ " MAX(R.FILE_ID) AS FILE_ID,"
 				+ " MAX(R.FILE_SIZE_BYTES) AS FILE_SIZE_BYTES,"
-				+ " MAX(R.FILE_MD5) AS FILE_MD5"
+				+ " MAX(R.FILE_MD5) AS FILE_MD5,"
+				+ " MAX(R.FILE_CONCRETE_TYPE) AS FILE_CONCRETE_TYPE,"
+				+ " MAX(R.FILE_BUCKET) AS FILE_BUCKET,"
+				+ " MAX(R.FILE_KEY) AS FILE_KEY"
 				, builder.toString());
 	}
 	

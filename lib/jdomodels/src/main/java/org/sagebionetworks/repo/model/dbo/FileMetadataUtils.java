@@ -140,28 +140,11 @@ public class FileMetadataUtils {
 	 */
 	public static FileHandle createDTOFromDBO(DBOFileHandle dbo) {
 		FileHandle fileHandle;
-		// First determine the type and create the correct type
-		switch (dbo.getMetadataTypeEnum()) {
-		case EXTERNAL:
-			// External
-			fileHandle = new ExternalFileHandle();
-			break;
-		case S3:
-			fileHandle = new S3FileHandle();
-			break;
-		case GOOGLE_CLOUD:
-			fileHandle = new GoogleCloudFileHandle();
-			break;
-		case PROXY:
-			// proxy
-			fileHandle = new ProxyFileHandle();
-			break;
-		case EXTERNAL_OBJ_STORE:
-			fileHandle = new ExternalObjectStoreFileHandle();
-			break;
-		default:
-			throw new IllegalArgumentException(
-					"Must be EXTERNAL, S3, GOOGLE_CLOUD, PROXY, EXTERNAL_OBJ_STORE but was: " + dbo.getMetadataTypeEnum());
+		try {
+			// First determine the type and create the correct type
+			fileHandle = dbo.getMetadataTypeEnum().getFileClass().getDeclaredConstructor().newInstance();
+		} catch (Exception e) {
+			throw new IllegalStateException(e);
 		}
 
 		// now fill in the information

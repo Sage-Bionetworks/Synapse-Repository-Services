@@ -1821,31 +1821,40 @@ public class TableViewIntegrationTest {
 				updateView(rowset,fileViewId)
 		).getMessage();
 		
-		assertEquals("Value at [0,16] was not a valid STRING_LIST. Exceeds the maximum number of list elements defined in the ColumnModel (3): \"[\"val1\",\"val2\",\"val3\",\"val4\"]\"", error);
+		assertEquals("Value at [0,19] was not a valid STRING_LIST. Exceeds the maximum number of list elements defined in the ColumnModel (3): \"[\"val1\",\"val2\",\"val3\",\"val4\"]\"", error);
 	}
 	
 	/**
-	 * Test for PLFM-5651 and the addition of both file size and file MD5s in views.
+	 * Test for PLFM-5651 and PLFM-7295 and the addition of both file size, file MD5s, file type, bucket and key in views.
 	 * @throws Exception 
 	 */
 	@Test
-	public void testFileSizeAndMD5() throws Exception {
+	public void testFileMetadata() throws Exception {
 		createFileView();
 		String fileZero = fileIds.get(0);
 		waitForEntityReplication(fileZero);
-		String sql = "select " + ObjectField.dataFileMD5Hex + "," + ObjectField.dataFileSizeBytes + " from "
-				+ fileViewId + " where " + ObjectField.id + " = '" + fileZero+"'";
+		String sql = "select " 
+			+ ObjectField.dataFileMD5Hex + "," 
+			+ ObjectField.dataFileSizeBytes + "," 
+			+ ObjectField.dataFileConcreteType + "," 
+			+ ObjectField.dataFileBucket + "," 
+			+ ObjectField.dataFileKey 
+		+ " from " + fileViewId + " where " + ObjectField.id + " = '" + fileZero+"'";
+		
+		List<Row> expectedRows = List.of(new Row()
+			.setRowId(KeyFactory.stringToKey(fileZero))
+			.setVersionNumber(1L)
+			.setValues(List.of(
+				sharedHandle.getContentMd5().toString(),
+				sharedHandle.getContentSize().toString(),
+				sharedHandle.getClass().getName(),
+				sharedHandle.getBucketName(),
+				sharedHandle.getKey()
+			))
+		);
 		
 		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
-			List<Row> rows = extractRows(results);
-			assertNotNull(rows);
-			assertEquals(1, rows.size());
-			Row row = rows.get(0);
-			assertNotNull(row);
-			assertNotNull(row.getValues());
-			assertEquals(2, row.getValues().size());
-			assertEquals(sharedHandle.getContentMd5(), row.getValues().get(0));
-			assertEquals(sharedHandle.getContentSize().toString(), row.getValues().get(1));
+			assertEquals(expectedRows, extractRows(results));
 		});
 	}
 	

@@ -31,6 +31,9 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PROJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_SUBTYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_BUCKET;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
@@ -165,6 +168,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			dto.setIsInSynapseStorage(null);
 		}
 		dto.setFileMD5(rs.getString(OBJECT_REPLICATION_COL_FILE_MD5));
+		dto.setFileConcreteType(rs.getString(OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE));
+		dto.setFileBucket(rs.getString(OBJECT_REPLICATION_COL_FILE_BUCKET));
+		dto.setFileKey(rs.getString(OBJECT_REPLICATION_COL_FILE_KEY));
 		return dto;
 	};
 	
@@ -821,7 +827,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					throws SQLException {
 				ObjectDataDTO dto = sorted.get(i);
 				int parameterIndex = 1;
-				int updateOffset = 14;
+				int updateOffset = 17;
 				
 				ps.setString(parameterIndex++, mainType.name());
 				ps.setLong(parameterIndex++, dto.getId());
@@ -897,6 +903,27 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				if(dto.getFileMD5() != null) {
 					ps.setString(parameterIndex++, dto.getFileMD5());
 					ps.setString(parameterIndex + updateOffset, dto.getFileMD5());
+				}else {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.VARCHAR);
+				}
+				if (dto.getFileConcreteType() != null) {
+					ps.setString(parameterIndex++, dto.getFileConcreteType());
+					ps.setString(parameterIndex + updateOffset, dto.getFileConcreteType());
+				}else {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.VARCHAR);
+				}
+				if (dto.getFileBucket() != null) {
+					ps.setString(parameterIndex++, dto.getFileBucket());
+					ps.setString(parameterIndex + updateOffset, dto.getFileBucket());
+				}else {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.VARCHAR);
+				}
+				if (dto.getFileKey() != null) {
+					ps.setString(parameterIndex++, dto.getFileKey());
+					ps.setString(parameterIndex + updateOffset, dto.getFileKey());
 				}else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					ps.setNull(parameterIndex + updateOffset, java.sql.Types.VARCHAR);
