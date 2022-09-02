@@ -10,7 +10,12 @@ public enum TeamState {
 
     public static TeamState from(Team team) {
         boolean canPublicJoin = Boolean.TRUE.equals(team.getCanPublicJoin());
-        boolean canRequestMembership = !Boolean.FALSE.equals(team.getCanRequestMembership());
+        boolean canRequestMembership;
+        if (canPublicJoin) {
+            canRequestMembership = Boolean.TRUE.equals(team.getCanRequestMembership());
+        } else {
+            canRequestMembership = !Boolean.FALSE.equals(team.getCanRequestMembership());
+        }
 
         if (canPublicJoin && canRequestMembership) {
             throw new IllegalArgumentException("It is a conflict to set both canPublicJoin and canRequestMembership to true.");

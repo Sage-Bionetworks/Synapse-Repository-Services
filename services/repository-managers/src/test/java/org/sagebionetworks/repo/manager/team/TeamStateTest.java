@@ -40,12 +40,8 @@ public class TeamStateTest {
         team.setCanPublicJoin(true);
         team.setCanRequestMembership(null);
 
-        String errorMessage = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            // Call under test
-            TeamState.from(team);
-        }).getMessage();
-
-        Assertions.assertEquals("It is a conflict to set both canPublicJoin and canRequestMembership to true.", errorMessage);
+        // Call under test
+        Assertions.assertEquals(TeamState.PUBLIC, TeamState.from(team));
     }
 
     @Test
