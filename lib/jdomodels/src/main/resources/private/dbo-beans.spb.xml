@@ -9,9 +9,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<context:annotation-config/>
-	<context:component-scan base-package="org.sagebionetworks.lib.dbuserhelper"/>
-
 	<bean id="ddlUtils" class="org.sagebionetworks.repo.model.dbo.DDLUtilsImpl" />
 
 	<!--Register of all database objects (DBOs) that use BasicDao.  -->
