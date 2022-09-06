@@ -13,7 +13,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 
-import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
@@ -120,7 +119,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private Map<MigrationType, String> maxSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> minSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> backupSqlRangeMap = new HashMap<MigrationType, String>();
-	private Map<MigrationType, String> insertOrUpdateSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> insertSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumRangeSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumTableSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> batchChecksumSqlMap = new HashMap<>();
@@ -290,8 +289,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		}
 		this.typeTpObject.put(type, dbo);
 		// The batch insert or update sql
-		String sql = DMLUtils.getBatchInsertOrUdpate(mapping);
-		this.insertOrUpdateSqlMap.put(type, sql);
+		String sql = DMLUtils.createInsertStatement(mapping);
+		this.insertSqlMap.put(type, sql);
 		// If this object has a sub table then register the sub table as well
 		if(dbo.getSecondaryTypes() != null){
 			Iterator<MigratableDatabaseObject> it = dbo.getSecondaryTypes().iterator();
@@ -433,8 +432,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return sql;
 	}
 	
-	private String getInsertOrUpdateSql(MigrationType type){
-		String sql = this.insertOrUpdateSqlMap.get(type);
+	private String getInsertSql(MigrationType type){
+		String sql = this.insertSqlMap.get(type);
 		if(sql == null) throw new IllegalArgumentException("Cannot find the insert/update backup SQL for type: "+type);
 		return sql;
 	}
@@ -574,21 +573,21 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 	@Override
 	@MigrationWriteTransaction
-	public List<Long> createOrUpdate(final MigrationType type, final List<DatabaseObject<?>> batch) {
+	public List<Long> create(final MigrationType type, final List<DatabaseObject<?>> batch) {
 		ValidateArgument.required(batch, "batch");
 		if(batch.isEmpty()) {
 			return new LinkedList<>();
 		}
 		// Foreign Keys must be ignored for this operation.
 		return this.runWithKeyChecksIgnored(() -> {
-			return createOrUpdateInternal(type, batch);
+			return createInternal(type, batch);
 		});
 	}
 
 	// Exposed for testing only
-	List<Long> createOrUpdateInternal(final MigrationType type, final List<DatabaseObject<?>> batch) {
+	List<Long> createInternal(final MigrationType type, final List<DatabaseObject<?>> batch) {
 		List<Long> createOrUpdateIds = new LinkedList<>();
-		String sql = getInsertOrUpdateSql(type);
+		String sql = getInsertSql(type);
 		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
 		int index = 0;
 		for(DatabaseObject<?> databaseObject: batch) {
