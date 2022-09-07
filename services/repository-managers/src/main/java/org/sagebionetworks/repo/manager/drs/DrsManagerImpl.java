@@ -100,18 +100,20 @@ public class DrsManagerImpl implements DrsManager {
     }
 
     @Override
-    public DrsObject getDrsObject(final Long userId, final String id, final boolean expand)
+    public DrsObject getDrsObject(final Long userId, final String objectId, final boolean expand)
             throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException, UnsupportedOperationException {
+        ValidateArgument.required(userId, "userId");
+        ValidateArgument.required(objectId, "objectId");
         final UserInfo userInfo = userManager.getUserInfo(userId);
         final DrsObject result = new DrsObject();
-        final IdAndVersion idAndVersion = IdAndVersion.parse(id);
+        final IdAndVersion idAndVersion = IdAndVersion.parse(objectId);
         validateIdHasVersion(idAndVersion);
         final Entity entity = entityManager.getEntityForVersion(userInfo, idAndVersion.getId().toString(),
                 idAndVersion.getVersion().get(), null);
 
-        result.setId(id);
+        result.setId(objectId);
         result.setName(entity.getName());
-        result.setSelf_uri(DRS_URI + id);
+        result.setSelf_uri(DRS_URI + objectId);
         result.setVersion(idAndVersion.getVersion().get().toString());
         result.setCreated_time(entity.getCreatedOn());
         result.setUpdated_time(entity.getModifiedOn());
@@ -185,13 +187,13 @@ public class DrsManagerImpl implements DrsManager {
         ValidateArgument.required(userId, "userId");
         ValidateArgument.required(objectId, "objectId");
         ValidateArgument.required(accessId, "accessId");
-        final UserInfo userInfo = this.userManager.getUserInfo(userId);
+        final UserInfo userInfo = userManager.getUserInfo(userId);
         final AccessId accessIdObject = AccessId.decode(accessId);
         final IdAndVersion drsObjectId = IdAndVersion.parse(objectId);
         validateAccessIdHasObjectId(drsObjectId, accessIdObject.getSynapseIdWithVersion());
         final FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, accessIdObject.getFileHandleId())
                 .withAssociation(accessIdObject.getAssociateType(), drsObjectId.getId().toString());
-        final String url = this.fileHandleManager.getRedirectURLForFileHandle(urlRequest);
+        final String url = fileHandleManager.getRedirectURLForFileHandle(urlRequest);
         final AccessUrl accessURL = new AccessUrl();
         accessURL.setUrl(url);
         return accessURL;

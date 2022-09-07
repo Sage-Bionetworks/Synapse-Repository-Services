@@ -175,6 +175,20 @@ public class DrsManagerImplUnitTest {
     }
 
     @Test
+    public void testGetDrsObjectWithNullUserID() {
+        assertEquals("userId is required.", assertThrows(IllegalArgumentException.class, () -> {
+            drsManager.getDrsObject(null, "syn123.1", false);
+        }).getMessage());
+    }
+
+    @Test
+    public void testGetDrsObjectWithNullObjectID() {
+        assertEquals("objectId is required.", assertThrows(IllegalArgumentException.class, () -> {
+            drsManager.getDrsObject(USER_ID, null, false);
+        }).getMessage());
+    }
+
+    @Test
     public void testGetAccessUrl() {
         final FileEntity file = getFileEntity();
         final String url = "https://s3.amazonaws.com/proddata.sagebase.org/3449751/645bd567-5f63-46d0-92ee-0d58dbfb08e9";

@@ -1,11 +1,6 @@
 package org.sagebionetworks.repo.manager.file;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
+import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -27,7 +22,11 @@ import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Manages uploading files.
@@ -173,6 +172,18 @@ public interface FileHandleManager {
 	 * @return
 	 */
 	S3FileHandle uploadLocalFile(LocalFileUploadRequest request);
+
+	/**
+	 * Upload a local file to the standard Synapse S3 bucket and creates a file handle for the file.
+	 * And then delete the local file to clean up and returns the fileHandle.
+	 *
+	 * Note that NO permission check is performed on the user of the request.
+	 *
+	 * @param userInfo
+	 * @param fileContent
+	 * @return
+	 */
+	S3FileHandle uploadLocalFile(UserInfo userInfo, String fileContent) throws IOException;
 
 	/**
 	 * Get the list of upload destinations for this parent
