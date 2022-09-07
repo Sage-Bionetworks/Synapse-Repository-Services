@@ -125,7 +125,7 @@ public class ITDrsControllerTest {
     }
 
     @Test
-    public void testGetPreassignedAccessURL() throws SynapseException {
+    public void testGetPresignedAccessURL() throws SynapseException {
         createFileEntity(1);
         final FileEntity file = fileEntities.get(0);
         final String idAndVersion = file.getId() + "." + file.getVersionNumber();

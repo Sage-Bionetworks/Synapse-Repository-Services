@@ -9,7 +9,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -108,6 +107,7 @@ public class DrsManagerImplUnitTest {
         final IdAndVersion idAndVersion = KeyFactory.idAndVersion(file.getId(), file.getVersionNumber());
         final DrsObject drsObject = prepareDrsObjectWithCommonFields(file, file.getVersionNumber().toString(), idAndVersion.toString());
 
+        // call under test
         drsManager.prepareFileRelatedData(drsObject, file, idAndVersion);
         verify(fileHandleManager).getRawFileHandleUnchecked(file.getDataFileHandleId());
         assertNotNull(drsObject);
@@ -120,6 +120,7 @@ public class DrsManagerImplUnitTest {
         final IdAndVersion idAndVersion = KeyFactory.idAndVersion(dataset.getId(), dataset.getVersionNumber());
         final DrsObject drsObject = prepareDrsObjectWithCommonFields(dataset, dataset.getVersionNumber().toString(), idAndVersion.toString());
 
+        //call under test
         drsManager.prepareDatasetRelatedData(drsObject, dataset);
         assertNotNull(drsObject);
         assertEquals(getExpectedDrsBundleObject(dataset), drsObject);
@@ -181,15 +182,17 @@ public class DrsManagerImplUnitTest {
         final String accessId = "FileEntity_" + idAndVersion + "_12345";
         when(userManager.getUserInfo(any())).thenReturn(userInfo);
         when(fileHandleManager.getRedirectURLForFileHandle(any())).thenReturn(url);
+
+        // call under test
         final AccessUrl accessUrl = drsManager.getAccessUrl(USER_ID, idAndVersion, accessId);
         verify(userManager).getUserInfo(USER_ID);
-        verify(fileHandleManager).getRedirectURLForFileHandle(new FileHandleUrlRequest(userInfo, "12345"));
+        verify(fileHandleManager).getRedirectURLForFileHandle(any());
         assertNotNull(accessUrl);
         assertEquals(url, accessUrl.getUrl());
     }
 
     @Test
-    public void testGetAccessUrlWithConsistentObjectId() {
+    public void testGetAccessUrlWithInConsistentObjectId() {
         final FileEntity file = getFileEntity();
         final String idAndVersion = KeyFactory.idAndVersion(file.getId(), file.getVersionNumber()).toString();
         final String accessId = "FileEntity_syn333.3_12345";
@@ -200,6 +203,35 @@ public class DrsManagerImplUnitTest {
         }).getMessage());
 
         verify(userManager).getUserInfo(USER_ID);
+    }
+
+    @Test
+    public void testGetAccessUrlWithNullUserID() {
+        final FileEntity file = getFileEntity();
+        final String idAndVersion = KeyFactory.idAndVersion(file.getId(), file.getVersionNumber()).toString();
+        final String accessId = "FileEntity_syn333.3_12345";
+
+        assertEquals("userId is required.", assertThrows(IllegalArgumentException.class, () -> {
+            drsManager.getAccessUrl(null, idAndVersion, accessId);
+        }).getMessage());
+    }
+
+    @Test
+    public void testGetAccessUrlWithNullDrsObjectID() {
+        final String accessId = "FileEntity_syn333.3_12345";
+        assertEquals("objectId is required.", assertThrows(IllegalArgumentException.class, () -> {
+            drsManager.getAccessUrl(USER_ID, null, accessId);
+        }).getMessage());
+    }
+
+    @Test
+    public void testGetAccessUrlWithNulAccessID() {
+        final FileEntity file = getFileEntity();
+        final String idAndVersion = KeyFactory.idAndVersion(file.getId(), file.getVersionNumber()).toString();
+
+        assertEquals("accessId is required.", assertThrows(IllegalArgumentException.class, () -> {
+            drsManager.getAccessUrl(USER_ID, idAndVersion, null);
+        }).getMessage());
     }
 
     private DrsObject prepareDrsObjectWithCommonFields(final Entity entity, final String version, final String id) {

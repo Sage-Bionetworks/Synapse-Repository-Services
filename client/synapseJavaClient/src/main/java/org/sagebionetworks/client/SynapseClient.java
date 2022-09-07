@@ -4150,7 +4150,7 @@ public interface SynapseClient extends BaseClient {
 	DrsObject getDrsObject(String objectId) throws SynapseException;
 
 	/**
-	 * Get the preassigned access url with access ID.
+	 * Get the presigned access url with access ID.
 	 * @return AccessUrl
 	 * @throws SynapseException
 	 */

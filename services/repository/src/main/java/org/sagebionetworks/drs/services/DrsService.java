@@ -33,6 +33,19 @@ public interface DrsService {
             throws NotFoundException, DatastoreException, UnauthorizedException,
             IllegalArgumentException, UnsupportedOperationException;
 
+    /**
+     * Get the presigned url to download the file.
+     *
+     * @param userId
+     * @param drsObjectId
+     * @param accessId
+     *
+     * @return
+     * @throws NotFoundException
+     * @throws DatastoreException
+     * @throws UnauthorizedException
+     * @throws IllegalArgumentException
+     */
     AccessUrl getAccessUrl(Long userId, String drsObjectId, String accessId) throws NotFoundException, DatastoreException,
             UnauthorizedException, IllegalArgumentException;
 }

@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -179,13 +180,17 @@ public class DrsManagerImpl implements DrsManager {
     }
 
     @Override
-    public AccessUrl getAccessUrl(final Long userId, final String drsObjectId, final String accessId)
+    public AccessUrl getAccessUrl(final Long userId, final String objectId, final String accessId)
             throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException {
+        ValidateArgument.required(userId, "userId");
+        ValidateArgument.required(objectId, "objectId");
+        ValidateArgument.required(accessId, "accessId");
         final UserInfo userInfo = this.userManager.getUserInfo(userId);
         final AccessId accessIdObject = AccessId.decode(accessId);
-        final IdAndVersion objectId = IdAndVersion.parse(drsObjectId);
-        validateAccessIdHasObjectId(objectId, accessIdObject.getSynapseIdWithVersion());
-        final FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, accessIdObject.getFileHandleId());
+        final IdAndVersion drsObjectId = IdAndVersion.parse(objectId);
+        validateAccessIdHasObjectId(drsObjectId, accessIdObject.getSynapseIdWithVersion());
+        final FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, accessIdObject.getFileHandleId())
+                .withAssociation(accessIdObject.getAssociateType(), drsObjectId.getId().toString());
         final String url = this.fileHandleManager.getRedirectURLForFileHandle(urlRequest);
         final AccessUrl accessURL = new AccessUrl();
         accessURL.setUrl(url);

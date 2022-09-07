@@ -28,9 +28,9 @@ public interface DrsManager {
             UnauthorizedException, IllegalArgumentException, UnsupportedOperationException;
 
     /**
-     * Returns the preassigned url, which can be used to download the file
+     * Returns the presigned url, which can be used to download the file
      *
-     * @return The {@link AccessUrl} containing the preassigned url
+     * @return The {@link AccessUrl} containing the presigned url
      */
     AccessUrl getAccessUrl(Long userId, String drsObjectId, String accessId) throws NotFoundException, DatastoreException,
             UnauthorizedException, IllegalArgumentException;
