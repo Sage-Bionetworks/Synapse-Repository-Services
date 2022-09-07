@@ -851,7 +851,6 @@ public class TeamManagerImpl implements TeamManager {
 				newTeam.setCanPublicJoin(team.getCanPublicJoin());
 				newTeam.setDescription(team.getDescription());
 				newTeam.setIcon(team.getIcon());
-				newTeam.setCanRequestMembership(team.getCanRequestMembership());
 				newTeam = bootstrapCreate(newTeam);
 
 				if (null!=team.getInitialMembers()) {

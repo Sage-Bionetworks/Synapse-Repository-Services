@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -646,18 +647,54 @@ public class DBOTeamDAOImplTest {
 	}
 
 	@Test
-	public void testGetState() {
+	public void testGetStateTeamDoesNotExist() {
+		String errorMessage = Assertions.assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			teamDAO.getState("1");
+		}).getMessage();
+
+		Assertions.assertEquals("Team 1 does not exist.", errorMessage);
+	}
+
+	@Test
+	public void testGetStateTeamPublic() {
 		UserGroup group = new UserGroup();
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
-
 		Team team = new Team();
-		Long id = Long.parseLong(group.getId());
-		team.setId("" +id);
+		team.setId(group.getId());
 		team.setCanPublicJoin(true);
 		team.setCanRequestMembership(false);
 		teamDAO.create(team);
 		// Call under test
 		assertEquals(TeamState.PUBLIC, teamDAO.getState(team.getId()));
+	}
+
+	@Test
+	public void testGetStateTeamOpen() {
+		UserGroup group = new UserGroup();
+		group.setId(userGroupDAO.create(group).toString());
+		teamsToDelete.add(group.getId());
+		Team team = new Team();
+		team.setId(group.getId());
+		team.setCanPublicJoin(false);
+		team.setCanRequestMembership(true);
+		teamDAO.create(team);
+		// Call under test
+		assertEquals(TeamState.OPEN, teamDAO.getState(team.getId()));
+	}
+
+	@Test
+	public void testGetStateTeamClosed() {
+		UserGroup group = new UserGroup();
+		group.setId(userGroupDAO.create(group).toString());
+		teamsToDelete.add(group.getId());
+		Team team = new Team();
+		team.setId(group.getId());
+		team.setCanPublicJoin(false);
+		team.setCanRequestMembership(false);
+		teamDAO.create(team);
+		// Call under test
+		assertEquals(TeamState.CLOSED, teamDAO.getState(team.getId()));
 	}
 }

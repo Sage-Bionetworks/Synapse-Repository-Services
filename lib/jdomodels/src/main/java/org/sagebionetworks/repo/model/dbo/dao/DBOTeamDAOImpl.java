@@ -198,7 +198,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 	private static final String SELECT_CHECK_TEAM_EXISTS = "SELECT COUNT(*) FROM " + TABLE_TEAM + " WHERE " + COL_TEAM_ID + " = ?";
 
-	private static final String SELECT_TEAM_STATE = "SELECT " + COL_TEAM_STATE + " FROM " + TABLE_TEAM + " WHERE " + COL_TEAM_ID + "=:"+COL_TEAM_ID;
+	private static final String SELECT_TEAM_STATE = "SELECT " + COL_TEAM_STATE + " FROM " + TABLE_TEAM + " WHERE " + COL_TEAM_ID + " = ?";
 
 	private static final String ORDER_BY_TEAM_NAME = " ORDER BY LOWER(pa." + COL_PRINCIPAL_ALIAS_DISPLAY + ")";
 	private static final String ASC = " ASC ";
@@ -659,8 +659,11 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 	@Override
 	public TeamState getState(String teamId) throws DatastoreException, NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_TEAM_ID, teamId);
-		return namedJdbcTemplate.queryForObject(SELECT_TEAM_STATE, param, TeamState.class);
+		try {
+			return jdbcTemplate.queryForObject(SELECT_TEAM_STATE, TeamState.class, teamId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Team " + teamId + " does not exist.");
+		}
+
 	}
 }

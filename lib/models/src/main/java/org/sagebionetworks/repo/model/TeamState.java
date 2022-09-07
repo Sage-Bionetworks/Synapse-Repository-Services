@@ -11,10 +11,13 @@ public enum TeamState {
     public static TeamState from(Team team) {
         boolean canPublicJoin = Boolean.TRUE.equals(team.getCanPublicJoin());
         boolean canRequestMembership;
-        if (canPublicJoin) {
+
+        // The purpose of checking canPublicJoin is to maintain backward compatibility with existing clients that do not
+        // provide a value for canRequestMembership so that a default value for canRequestMembership can be set without causing conflict.
+        if (canPublicJoin || team.getCanRequestMembership() != null ) {
             canRequestMembership = Boolean.TRUE.equals(team.getCanRequestMembership());
         } else {
-            canRequestMembership = !Boolean.FALSE.equals(team.getCanRequestMembership());
+            canRequestMembership = true;
         }
 
         if (canPublicJoin && canRequestMembership) {

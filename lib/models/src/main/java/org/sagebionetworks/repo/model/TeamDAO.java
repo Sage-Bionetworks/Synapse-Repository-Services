@@ -193,5 +193,5 @@ public interface TeamDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public TeamState getState(String id) throws DatastoreException, NotFoundException;
+	TeamState getState(String id) throws DatastoreException, NotFoundException;
 }
