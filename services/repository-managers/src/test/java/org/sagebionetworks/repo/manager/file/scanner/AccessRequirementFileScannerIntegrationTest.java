@@ -90,9 +90,10 @@ public class AccessRequirementFileScannerIntegrationTest {
 		IdRange range = manager.getIdRange(associationType);
 		
 		// Call under test
-		List<ScannedFileHandleAssociation> result = StreamSupport.stream(
-				manager.scanRange(associationType, range).spliterator(), false
-		).collect(Collectors.toList());
+		List<ScannedFileHandleAssociation> result = StreamSupport
+				.stream(manager.scanRange(associationType, range).spliterator(), false)
+				.filter(s -> !AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.equals(s.getObjectId()))
+				.collect(Collectors.toList());
 		
 		assertEquals(expected, result);
 		
