@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -837,7 +838,7 @@ public class NodeManagerImpl implements NodeManager {
 	}
 
 	@Override
-	public Long findFirstBoundJsonSchema(Long nodeId) {
+	public Optional<Long> findFirstBoundJsonSchema(Long nodeId) {
 		return nodeDao.getEntityIdOfFirstBoundSchema(nodeId);
 	}
 

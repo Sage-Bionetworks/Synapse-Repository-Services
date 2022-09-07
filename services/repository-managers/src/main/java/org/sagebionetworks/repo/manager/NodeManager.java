@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -414,7 +415,7 @@ public interface NodeManager {
 	 * @param id
 	 * @return
 	 */
-	public Long findFirstBoundJsonSchema(Long nodeId);
+	public Optional<Long> findFirstBoundJsonSchema(Long nodeId);
 	
 	public void truncateAll();
 

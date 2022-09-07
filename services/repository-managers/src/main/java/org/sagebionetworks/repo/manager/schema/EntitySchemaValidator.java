@@ -4,9 +4,13 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -22,15 +26,17 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.ObjectType;
+import org.sagebionetworks.repo.model.schema.SubSchemaIterable;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class EntitySchemaValidator implements ObjectSchemaValidator {
+	
+	static Log log = LogFactory.getLog(EntitySchemaValidator.class);	
 
 	private final EntityManager entityManger;
 	private final JsonSchemaManager jsonSchemaManager;
@@ -63,48 +69,104 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 		boolean sendEntityUpdate = false;
 		final RestrictableObjectDescriptor objectDescriptor = new RestrictableObjectDescriptor().setId(entityId)
 				.setType(RestrictableObjectType.ENTITY);
-		try {
-			JsonSchemaObjectBinding binding = entityManger.getBoundSchema(entityId);
-			JsonSubject entitySubject = entityManger.getEntityJsonSubject(entityId, false);
-			JsonSchema validationSchema = jsonSchemaManager
-					.getValidationSchema(binding.getJsonSchemaVersionInfo().get$id());
-			ValidationResults results = jsonSchemaValidationManager.validate(validationSchema, entitySubject);
-			schemaValidationResultDao.createOrUpdateResults(results);
-
-			Optional<Annotations> annoOption = Optional.empty();
-			if (binding.getEnableDerivedAnnotations()) {
-				annoOption = jsonSchemaValidationManager.calculateDerivedAnnotations(validationSchema,
-						entitySubject.toJson());
-				if (annoOption.isPresent()) {
-					derivedAnnotationDao.saveDerivedAnnotations(entityId, annoOption.get());
-					sendEntityUpdate = true;
-				} else {
-					sendEntityUpdate = derivedAnnotationDao.clearDerivedAnnotations(entityId);
-				}
-			} else {
-				sendEntityUpdate = derivedAnnotationDao.clearDerivedAnnotations(entityId);
-			}
-
-			Set<Long> accessRequirmentIdsToBind = extractAccessRequirmentIds(annoOption.orElse(new Annotations()));
-			accessRequirementManager.setDynamicallyBoundAccessRequirementsForSubject(objectDescriptor,
-					accessRequirmentIdsToBind);
-		} catch (NotFoundException e) {
-			schemaValidationResultDao.clearResults(entityId, ObjectType.entity);
-			sendEntityUpdate = derivedAnnotationDao.clearDerivedAnnotations(entityId);
-			accessRequirementManager.setDynamicallyBoundAccessRequirementsForSubject(objectDescriptor,
-					Collections.emptySet());
+		Optional<JsonSchemaObjectBinding> binding = entityManger.getBoundSchema(entityId);
+		if(binding.isPresent()) {
+			sendEntityUpdate = validateAgainstBoundSchema(objectDescriptor, binding.get());
+		}else {
+			sendEntityUpdate = clearAllBoundSchemaRelatedData(objectDescriptor);
 		}
-
+		
 		if (sendEntityUpdate) {
-			// When the derived annotations are computed we want to trigger the replication
-			// so that the index is updated, since this is not an actual update of the
-			// entity
-			// we simply publish a non-migratable change that is processed as a normal
-			// change message
+			/*
+			 * When the derived annotations are computed we want to trigger the replication
+			 * so that the index is updated, since this is not an actual update of the
+			 * entity we simply publish a non-migratable change that is processed as a
+			 * normal change message
+			 */
 			messenger.publishMessageAfterCommit(new LocalStackChangeMesssage().setObjectId(entityId)
 					.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY).setChangeType(ChangeType.UPDATE)
 					.setUserId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()));
 		}
+	}
+
+	/**
+	 * Clear all data related to a bound schema for this object.
+	 * @param entityId
+	 * @param objectDescriptor
+	 * @return
+	 */
+	boolean clearAllBoundSchemaRelatedData(RestrictableObjectDescriptor objectDescriptor) {
+		schemaValidationResultDao.clearResults(objectDescriptor.getId(), ObjectType.entity);
+		accessRequirementManager.setDynamicallyBoundAccessRequirementsForSubject(objectDescriptor,
+				Collections.emptySet());
+		return derivedAnnotationDao.clearDerivedAnnotations(objectDescriptor.getId());
+	}
+
+	/**
+	 * Validate the object against the provide bound schema.
+	 * @param entityId
+	 * @param objectDescriptor
+	 * @param binding
+	 * @return
+	 */
+	boolean validateAgainstBoundSchema(RestrictableObjectDescriptor objectDescriptor,
+			JsonSchemaObjectBinding binding) {
+		JsonSubject entitySubject = entityManger.getEntityJsonSubject(objectDescriptor.getId(), false);
+		JsonSchema validationSchema = jsonSchemaManager
+				.getValidationSchema(binding.getJsonSchemaVersionInfo().get$id());
+		ValidationResults results = jsonSchemaValidationManager.validate(validationSchema, entitySubject);
+		schemaValidationResultDao.createOrUpdateResults(results);
+		Set<Long> accessRequirmentIdsToBind = Collections.emptySet();
+		if(!results.getIsValid()) {
+			if(containsAccessRequirementIds(validationSchema) && binding.getEnableDerivedAnnotations()) {
+				accessRequirmentIdsToBind = Collections.singleton(AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID);
+			}
+			return setDerivedAnnotationsAndBindAccessRequirements(objectDescriptor, null, accessRequirmentIdsToBind);
+		}
+		
+		if(!binding.getEnableDerivedAnnotations()) {
+			return setDerivedAnnotationsAndBindAccessRequirements(objectDescriptor, null, Collections.emptySet());
+		}
+
+		Optional<Annotations> annoOption = jsonSchemaValidationManager.calculateDerivedAnnotations(validationSchema,
+				entitySubject.toJson());
+		accessRequirmentIdsToBind = extractAccessRequirmentIds(annoOption.orElse(new Annotations()));
+		return setDerivedAnnotationsAndBindAccessRequirements(objectDescriptor, annoOption.orElseGet(null), accessRequirmentIdsToBind);
+	}
+	
+	/**
+	 * 
+	 * @param objectDescriptor
+	 * @param annotations
+	 * @param accessRequirmentIdsToBind
+	 * @return
+	 */
+	boolean setDerivedAnnotationsAndBindAccessRequirements(RestrictableObjectDescriptor objectDescriptor,
+			Annotations annotations,
+			Set<Long> accessRequirmentIdsToBind) {
+		accessRequirementManager.setDynamicallyBoundAccessRequirementsForSubject(objectDescriptor, accessRequirmentIdsToBind);
+		if(annotations != null) {
+			derivedAnnotationDao.saveDerivedAnnotations(objectDescriptor.getId(), annotations);
+			/*
+			 * Unconditionally returning true will cause an infinite loop. When true, a message is
+			 * sent to the Entity topic which will rerun this code. See: PLFM-7452.
+			 */
+			return true;
+		}else {
+			return derivedAnnotationDao.clearDerivedAnnotations(objectDescriptor.getId()); 
+		}
+	}
+	
+	
+	/**
+	 * Does the given schema (or sub-schemas) contain the '_accessRequirementsIds' property key?
+	 * @param schema
+	 * @return
+	 */
+	static boolean containsAccessRequirementIds(JsonSchema schema) {
+		return StreamSupport.stream(SubSchemaIterable.depthFirstIterable(schema).spliterator(), false)
+				.filter((s) -> s.getProperties() != null).map((s) -> s.getProperties().keySet())
+				.filter((s) -> s.contains(AnnotationsV2Utils.ACCESS_REQUIREMENT_IDS)).findFirst().isPresent();
 	}
 
 	/**

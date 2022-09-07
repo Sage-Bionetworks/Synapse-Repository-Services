@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.json.JSONObject;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
@@ -485,7 +486,7 @@ public interface EntityManager {
 	 * @param entityId
 	 * @return
 	 */
-	public JsonSchemaObjectBinding getBoundSchema(String entityId);
+	public Optional<JsonSchemaObjectBinding> getBoundSchema(String entityId);
 
 	/**
 	 * Clear the bound JSON schema from an Entity.
