@@ -486,7 +486,7 @@ public interface EntityManager {
 	 * @param entityId
 	 * @return
 	 */
-	public Optional<JsonSchemaObjectBinding> getBoundSchema(String entityId);
+	public Optional<JsonSchemaObjectBinding> findBoundSchema(String entityId);
 
 	/**
 	 * Clear the bound JSON schema from an Entity.

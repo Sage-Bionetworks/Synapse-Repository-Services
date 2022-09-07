@@ -622,17 +622,14 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(id, "id");
 		entityAuthorizationManager.hasAccess(userInfo, id, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return getBoundSchema(id)
+		return findBoundSchema(id)
 				.orElseThrow(() -> new NotFoundException(String.format("No JSON schema found for '%s'", id)));
 	}
 	
 	@Override
-	public Optional<JsonSchemaObjectBinding> getBoundSchema(String entityId) {
+	public Optional<JsonSchemaObjectBinding> findBoundSchema(String entityId) {
 		Optional<Long> boundEntityId = nodeManager.findFirstBoundJsonSchema(KeyFactory.stringToKey(entityId));
-		if(boundEntityId.isEmpty()) {
-			return Optional.empty();
-		}
-		return Optional.of(jsonSchemaManager.getJsonSchemaObjectBinding(boundEntityId.get(), BoundObjectType.entity));
+		return boundEntityId.map(b->jsonSchemaManager.getJsonSchemaObjectBinding(b, BoundObjectType.entity));
 	}
 	
 
@@ -708,7 +705,7 @@ public class EntityManagerImpl implements EntityManager {
 		Annotations annotations = getAnnotations(entityId, includeDerivedAnnotations);
 
 		JSONObject json = null;
-		Optional<JsonSchemaObjectBinding> boundSchema = getBoundSchema(entityId);
+		Optional<JsonSchemaObjectBinding> boundSchema = findBoundSchema(entityId);
 		if (boundSchema.isPresent()) {
 			JsonSchema schema = jsonSchemaManager
 					.getValidationSchema(boundSchema.get().getJsonSchemaVersionInfo().get$id());

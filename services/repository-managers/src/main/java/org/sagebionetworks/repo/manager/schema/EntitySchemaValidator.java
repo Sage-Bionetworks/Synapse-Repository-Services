@@ -69,7 +69,7 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 		boolean sendEntityUpdate = false;
 		final RestrictableObjectDescriptor objectDescriptor = new RestrictableObjectDescriptor().setId(entityId)
 				.setType(RestrictableObjectType.ENTITY);
-		Optional<JsonSchemaObjectBinding> binding = entityManger.getBoundSchema(entityId);
+		Optional<JsonSchemaObjectBinding> binding = entityManger.findBoundSchema(entityId);
 		if(binding.isPresent()) {
 			sendEntityUpdate = validateAgainstBoundSchema(objectDescriptor, binding.get());
 		}else {
@@ -107,7 +107,7 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 	 * @param entityId
 	 * @param objectDescriptor
 	 * @param binding
-	 * @return
+	 * @return true if the derived annotations changed.
 	 */
 	boolean validateAgainstBoundSchema(RestrictableObjectDescriptor objectDescriptor,
 			JsonSchemaObjectBinding binding) {
@@ -119,6 +119,14 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 		Set<Long> accessRequirmentIdsToBind = Collections.emptySet();
 		if(!results.getIsValid()) {
 			if(containsAccessRequirementIds(validationSchema) && binding.getEnableDerivedAnnotations()) {
+				/*
+				 * This entity is not valid against according to its bound schema. Also, this
+				 * schema controls which access requirements would be bound to the schema. Since
+				 * it is invalid, it is not possible to correctly identify which ARs should be
+				 * bound. Therefore, we bind this entity to a lock AR that will prevent all user
+				 * download. The lock will automatically be removed when the entity is valid
+				 * against the schema.
+				 */
 				accessRequirmentIdsToBind = Collections.singleton(AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID);
 			}
 			return setDerivedAnnotationsAndBindAccessRequirements(objectDescriptor, null, accessRequirmentIdsToBind);
@@ -165,7 +173,7 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 	 */
 	static boolean containsAccessRequirementIds(JsonSchema schema) {
 		return StreamSupport.stream(SubSchemaIterable.depthFirstIterable(schema).spliterator(), false)
-				.filter((s) -> s.getProperties() != null).map((s) -> s.getProperties().keySet())
+				.filter((s) -> s.getProperties() != null).map((p) -> p.getProperties().keySet())
 				.filter((s) -> s.contains(AnnotationsV2Utils.ACCESS_REQUIREMENT_IDS)).findFirst().isPresent();
 	}
 

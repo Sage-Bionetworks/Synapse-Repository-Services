@@ -102,14 +102,14 @@ public class EntitySchemaValidatorImplTest {
 	
 	@Test
 	public void testValidateObjectWithBindingAndUpdate() {
-		when(mockEntityManger.getBoundSchema(any())).thenReturn(Optional.of(binding));
+		when(mockEntityManger.findBoundSchema(any())).thenReturn(Optional.of(binding));
 		
 		doReturn(true).when(manager).validateAgainstBoundSchema(any(), any());
 		
 		// call under test
 		manager.validateObject(entityId);
 		
-		verify(mockEntityManger).getBoundSchema(entityId);
+		verify(mockEntityManger).findBoundSchema(entityId);
 		verify(manager).validateAgainstBoundSchema(objectDescriptor, binding);
 		verify(manager, never()).clearAllBoundSchemaRelatedData(any());
 		LocalStackChangeMesssage expectedMessage = new LocalStackChangeMesssage().setObjectId(entityId)
@@ -120,14 +120,14 @@ public class EntitySchemaValidatorImplTest {
 	
 	@Test
 	public void testValidateObjectWithBindingNoUpdate() {
-		when(mockEntityManger.getBoundSchema(any())).thenReturn(Optional.of(binding));
+		when(mockEntityManger.findBoundSchema(any())).thenReturn(Optional.of(binding));
 		
 		doReturn(false).when(manager).validateAgainstBoundSchema(any(), any());
 		
 		// call under test
 		manager.validateObject(entityId);
 		
-		verify(mockEntityManger).getBoundSchema(entityId);
+		verify(mockEntityManger).findBoundSchema(entityId);
 		verify(manager).validateAgainstBoundSchema(objectDescriptor, binding);
 		verify(manager, never()).clearAllBoundSchemaRelatedData(any());
 		verify(mockMessenger, never()).publishMessageAfterCommit(any());
@@ -135,14 +135,14 @@ public class EntitySchemaValidatorImplTest {
 	
 	@Test
 	public void testValidateObjectWithoutBindingAndUpdate() {
-		when(mockEntityManger.getBoundSchema(any())).thenReturn(Optional.empty());
+		when(mockEntityManger.findBoundSchema(any())).thenReturn(Optional.empty());
 		
 		doReturn(true).when(manager).clearAllBoundSchemaRelatedData(any());
 		
 		// call under test
 		manager.validateObject(entityId);
 		
-		verify(mockEntityManger).getBoundSchema(entityId);
+		verify(mockEntityManger).findBoundSchema(entityId);
 		verify(manager, never()).validateAgainstBoundSchema(any(), any());
 		verify(manager).clearAllBoundSchemaRelatedData(objectDescriptor);
 		
@@ -154,14 +154,14 @@ public class EntitySchemaValidatorImplTest {
 	
 	@Test
 	public void testValidateObjectWithoutBindingNoUpdate() {
-		when(mockEntityManger.getBoundSchema(any())).thenReturn(Optional.empty());
+		when(mockEntityManger.findBoundSchema(any())).thenReturn(Optional.empty());
 		
 		doReturn(false).when(manager).clearAllBoundSchemaRelatedData(any());
 		
 		// call under test
 		manager.validateObject(entityId);
 		
-		verify(mockEntityManger).getBoundSchema(entityId);
+		verify(mockEntityManger).findBoundSchema(entityId);
 		verify(manager, never()).validateAgainstBoundSchema(any(), any());
 		verify(manager).clearAllBoundSchemaRelatedData(objectDescriptor);
 		verify(mockMessenger, never()).publishMessageAfterCommit(any());
@@ -345,6 +345,32 @@ public class EntitySchemaValidatorImplTest {
 	}
 	
 	@Test
+	public void testValidateAgainstBoundSchemaWithNoChnage() {
+
+		binding.setEnableDerivedAnnotations(true);
+		JSONObject subject = new JSONObject();
+		when(mockEntitySubject.toJson()).thenReturn(subject);
+		when(mockEntityManger.getEntityJsonSubject(any(), anyBoolean())).thenReturn(mockEntitySubject);
+		when(mockJsonSchemaManager.getValidationSchema(any())).thenReturn(mockJsonSchema);
+		when(mockValidationResults.getIsValid()).thenReturn(true);
+		when(mockJsonSchemaValidationManager.validate(any(), any())).thenReturn(mockValidationResults);
+		when(mockJsonSchemaValidationManager.calculateDerivedAnnotations(any(), any())).thenReturn(Optional.of(annotations));
+		
+		doReturn(false).when(manager).setDerivedAnnotationsAndBindAccessRequirements(any(), any(), any());
+		
+		// call under test
+		boolean changed = manager.validateAgainstBoundSchema(objectDescriptor, binding);
+		
+		assertFalse(changed);
+		verify(mockSchemaValidationResultDao).createOrUpdateResults(mockValidationResults);
+		verify(mockEntityManger).getEntityJsonSubject(entityId, false);
+		verify(mockJsonSchemaManager).getValidationSchema(binding.getJsonSchemaVersionInfo().get$id());
+		verify(mockJsonSchemaValidationManager).validate(mockJsonSchema, mockEntitySubject);
+		verify(manager).setDerivedAnnotationsAndBindAccessRequirements(objectDescriptor, annotations, Collections.emptySet());
+		verify(mockJsonSchemaValidationManager).calculateDerivedAnnotations(mockJsonSchema, subject);
+	}
+	
+	@Test
 	public void testValidateAgainstBoundSchemaWithEmptyAnnotations() {
 
 		binding.setEnableDerivedAnnotations(true);
@@ -510,11 +536,6 @@ public class EntitySchemaValidatorImplTest {
 		verify(mockAccessRequirementManager).setDynamicallyBoundAccessRequirementsForSubject(objectDescriptor,
 				Collections.emptySet());
 		verify(mockDerivedAnnotationDao).clearDerivedAnnotations(entityId);
-	}
-	
-	@Test
-	public void test() {
-		
 	}
 
 }
