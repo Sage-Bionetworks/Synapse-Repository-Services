@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -17,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class SchemaValidationWorker implements BatchChangeMessageDrivenRunner {
 
+	private static final Logger LOG = LogManager.getLogger(SchemaValidationWorker.class);
 	Map<ObjectType, ObjectSchemaValidator> validators;
 	WorkerLogger workerLogger;
 
@@ -36,6 +39,7 @@ public class SchemaValidationWorker implements BatchChangeMessageDrivenRunner {
 			try {
 				validators.get(c.getObjectType()).validateObject(c.getObjectId());
 			} catch (Throwable e) {
+				LOG.error("Failed:",e);
 				boolean willRetry = false;
 				workerLogger.logWorkerFailure(SchemaValidationWorker.class, c, e, willRetry);
 			}

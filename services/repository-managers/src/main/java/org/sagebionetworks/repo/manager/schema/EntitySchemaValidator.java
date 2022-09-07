@@ -131,7 +131,7 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 		Optional<Annotations> annoOption = jsonSchemaValidationManager.calculateDerivedAnnotations(validationSchema,
 				entitySubject.toJson());
 		accessRequirmentIdsToBind = extractAccessRequirmentIds(annoOption.orElse(new Annotations()));
-		return setDerivedAnnotationsAndBindAccessRequirements(objectDescriptor, annoOption.orElseGet(null), accessRequirmentIdsToBind);
+		return setDerivedAnnotationsAndBindAccessRequirements(objectDescriptor, annoOption.orElseGet(()->null), accessRequirmentIdsToBind);
 	}
 	
 	/**
