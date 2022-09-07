@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
@@ -32,9 +33,10 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RangeChecksum;
 import org.sagebionetworks.repo.model.migration.TypeData;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.model.transactions.MigrationWriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -77,7 +79,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private StackConfiguration stackConfiguration;
 
 	@Autowired
-	public MigratableTableDAOImpl(JdbcTemplate jdbcTemplate, StackConfiguration stackConfiguration) {
+	public MigratableTableDAOImpl(@Qualifier("migrationJdbcTemplate") JdbcTemplate jdbcTemplate, StackConfiguration stackConfiguration) {
 		this.jdbcTemplate = jdbcTemplate;
 		this.stackConfiguration = stackConfiguration;
 	}
@@ -570,8 +572,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return new QueryStreamIterable<MigratableDatabaseObject<?, ?>>(namedTemplate, object.getTableMapping(), sql, parameters, batchSize);
 	}
 
-	@WriteTransaction
 	@Override
+	@MigrationWriteTransaction
 	public List<Long> createOrUpdate(final MigrationType type, final List<DatabaseObject<?>> batch) {
 		ValidateArgument.required(batch, "batch");
 		if(batch.isEmpty()) {
@@ -579,26 +581,31 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		}
 		// Foreign Keys must be ignored for this operation.
 		return this.runWithKeyChecksIgnored(() -> {
-			List<Long> createOrUpdateIds = new LinkedList<>();
-			String sql = getInsertOrUpdateSql(type);
-			SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
-			int index = 0;
-			for(DatabaseObject<?> databaseObject: batch) {
-				SqlParameterSource parameterSource = getSqlParameterSource(databaseObject, databaseObject.getTableMapping());
-				
-				namedParameters[index] = parameterSource;
-				
-				Long id = extractBackupId(type, parameterSource);
-				
-				createOrUpdateIds.add(id);
-				
-				index++;
-			}
-			// execute the batch
-			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-			namedTemplate.batchUpdate(sql, namedParameters);
-			return createOrUpdateIds;
+			return createOrUpdateInternal(type, batch);
 		});
+	}
+
+	// Exposed for testing only
+	List<Long> createOrUpdateInternal(final MigrationType type, final List<DatabaseObject<?>> batch) {
+		List<Long> createOrUpdateIds = new LinkedList<>();
+		String sql = getInsertOrUpdateSql(type);
+		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
+		int index = 0;
+		for(DatabaseObject<?> databaseObject: batch) {
+			SqlParameterSource parameterSource = getSqlParameterSource(databaseObject, databaseObject.getTableMapping());
+			
+			namedParameters[index] = parameterSource;
+			
+			Long id = extractBackupId(type, parameterSource);
+			
+			createOrUpdateIds.add(id);
+			
+			index++;
+		}
+		// execute the batch
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		namedTemplate.batchUpdate(sql, namedParameters);
+		return createOrUpdateIds;
 	}
 	
 	Long extractBackupId(MigrationType type, SqlParameterSource parameterSource) {
@@ -610,8 +617,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return (Long) obj;
 	}
 
-	@WriteTransaction
 	@Override
+	@MigrationWriteTransaction
 	public int deleteByRange(final TypeData type, final long minimumId, final long maximumId) {
 		ValidateArgument.required(type,"MigrationType");
 		// Foreign Keys must be ignored for this operation.

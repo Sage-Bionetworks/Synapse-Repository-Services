@@ -11,39 +11,7 @@
 
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-
-	<!-- This is serving as the JDBC connection pool -->
-	<bean id="dataSourcePool" class="org.apache.commons.dbcp2.BasicDataSource"
-		destroy-method="close" depends-on="stackConfiguration">
-		<property name="driverClassName" ref="stackConfiguration.repositoryDatabaseDriver" />
-		<property name="url"
-			ref="stackConfiguration.repositoryDatabaseConnectionUrl" />
-		<property name="username"
-			ref="stackConfiguration.repositoryDatabaseUsername" />
-		<property name="password"
-			ref="stackConfiguration.repositoryDatabasePassword" />
-		<!-- The minimum number of connections in the pool at all times -->
-		<property name="minIdle"
-			ref="stackConfiguration.databaseConnectionPoolMinNumberConnections" />
-		<!-- The maximum number of connections in the pool -->
-		<property name="maxTotal"
-			ref="stackConfiguration.databaseConnectionPoolMaxNumberConnections" />
-		<!-- This will test a connection to see if it is alive when a connection 
-			is fetched from the pool -->
-		<property name="testOnBorrow"
-			ref="stackConfiguration.databaseConnectionPoolShouldValidate" />
-		<!-- This is the SQL uses to test if a connection is alive -->
-		<property name="validationQuery"
-			ref="stackConfiguration.databaseConnectionPoolValidateSql" />
-		<!-- Default all transaction to TRANSACTION_READ_COMMITTED -->
-		<property name="defaultTransactionIsolation">
-			<util:constant static-field="java.sql.Connection.TRANSACTION_READ_COMMITTED"/>
-		</property>
-	</bean>
-
-	<!-- A profiler that logs performance data for all bean method calls. -->
-	<bean id="poolLogger" class="org.sagebionetworks.repo.model.jdo.ConnectionPoolLogger" />
-
+		
 	<!-- The default behavior of Spring is to only roll-back on RuntimeExceptions 
 		not Exceptions. In the past that is has caused us to commit on IOException 
 		and InterruptedException See PLFM-2108. This advice 
@@ -61,6 +29,11 @@
 	<tx:advice id="defaultMandatoryWriteTxRollbackAdvice" transaction-manager="txManager">
 		<tx:attributes>
 			<tx:method name="*" propagation="MANDATORY" rollback-for="Throwable" isolation="READ_COMMITTED" />
+		</tx:attributes>
+	</tx:advice>
+	<tx:advice id="migrationWriteTxRollbackAdvice" transaction-manager="migrationTxManager">
+		<tx:attributes>
+			<tx:method name="*" propagation="REQUIRED" rollback-for="Throwable" isolation="READ_COMMITTED" />
 		</tx:attributes>
 	</tx:advice>
 
@@ -82,52 +55,10 @@
 					  expression="@annotation(org.sagebionetworks.repo.transactions.MandatoryWriteTransaction)" />
 		<aop:advisor pointcut-ref="defaultMandatoryWrites" advice-ref="defaultMandatoryWriteTxRollbackAdvice" />
 	</aop:config>
-
-	<!-- Transaction Manager for PMF -->
-	<bean id="txManager"
-		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
-		<property name="dataSource" ref="dataSourcePool" />
-	</bean>
-
-	<bean id="jdbcTemplate"
-		class="org.springframework.jdbc.core.JdbcTemplate">
-		<constructor-arg ref="dataSourcePool"></constructor-arg>
-	</bean>
-
-	<!-- By default, the MySQL driver will load the entire result set of a query 
-		into memory. In order to stream over the results without loading them into 
-		memory, the MySQL driver requires the the fetchSize to be set to Integer.MIN_VALUE. 
-		This template is initialized for streaming. 
-		See: https://dev.mysql.com/doc/connector-j/5.1/en/connector-j-reference-implementation-notes.html -->
-	<bean id="streamingJdbcTemplate"
-		class="org.springframework.jdbc.core.JdbcTemplate">
-		<constructor-arg ref="dataSourcePool"></constructor-arg>
-		<property name="fetchSize">
-			<util:constant
-				static-field="java.lang.Integer.MIN_VALUE" />
-		</property>
-	</bean>
-	
-	<bean id="namedParameterJdbcTemplate" class="org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate">
-		<constructor-arg ref="jdbcTemplate"></constructor-arg>
-	</bean>
-	
-	<bean id="readCommitedTransactionTemplate"
-		class="org.springframework.transaction.support.TransactionTemplate">
-		<constructor-arg index="0" ref="txManager" />
-		<constructor-arg index="1">
-			<bean
-				class="org.springframework.transaction.support.DefaultTransactionDefinition">
-				<property name="isolationLevel">
-					<util:constant static-field="java.sql.Connection.TRANSACTION_READ_COMMITTED" />
-				</property>
-				<property name="readOnly" value="false" />
-				<property name="propagationBehavior">
-					<util:constant static-field="org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRED"/>
-				</property>
-				<property name="name" value="readCommitedTransactionTemplate"/>
-			</bean>
-		</constructor-arg>
-	</bean>
+	<aop:config>
+		<aop:pointcut id="migrationWrites"
+			expression="@annotation(org.sagebionetworks.repo.model.transactions.MigrationWriteTransaction)" />
+		<aop:advisor pointcut-ref="migrationWrites" advice-ref="migrationWriteTxRollbackAdvice" />
+	</aop:config>		
 	
 </beans>

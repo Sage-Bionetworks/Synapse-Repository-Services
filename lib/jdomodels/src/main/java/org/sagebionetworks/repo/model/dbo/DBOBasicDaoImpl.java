@@ -36,7 +36,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	@Autowired
-	DBUserHelper dbUserHelper;
+	private DBUserHelper dbUserHelper;
 	
 	/**
 	 * Injected via Spring

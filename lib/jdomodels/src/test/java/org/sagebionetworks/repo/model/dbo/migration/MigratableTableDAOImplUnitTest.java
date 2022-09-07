@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.StringWriter;
@@ -16,13 +16,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
@@ -38,7 +39,7 @@ import com.google.common.collect.Sets;
 /**
  * Unit test for MigatableTableDAOImpl
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class MigratableTableDAOImplUnitTest {
 
 	@InjectMocks
@@ -72,11 +73,39 @@ public class MigratableTableDAOImplUnitTest {
 	static final String STUB_TABLE_NAME = "STUB";
 	
 	@SuppressWarnings("rawtypes")
-	@Before
+	@BeforeEach
 	public void before(){
 		databaseObjectRegister = new ArrayList<MigratableDatabaseObject>();
+		databaseObjectRegister.add(primary);
+		databaseObjectRegister.add(primaryTwo);
 		dao.setDatabaseObjectRegister(databaseObjectRegister);
+	}
+	
+	@Test
+	public void testNoAutoIncrement() {
+		// Add an auto-increment class to the register
+		StubAutoIncrement autoIncrement = new StubAutoIncrement();
+		databaseObjectRegister.clear();
+		databaseObjectRegister.add(autoIncrement);
 		
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			dao.initialize();
+		}).getMessage();
+
+		assertTrue(result.startsWith("AUTO_INCREMENT tables cannot be migrated."));
+
+	}
+	
+	@Test
+	public void testGetChecksumForIdRangeInvalidRange() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			dao.getChecksumForIdRange(MigrationType.FILE_HANDLE, "SALT", 10, 9);
+		});
+	}
+
+	
+	@Test
+	public void testMapSecondaryTablesToPrimaryGroups() {
 		when(primaryMapping.getTableName()).thenReturn("primary_table_name");
 		when(primary.getTableMapping()).thenReturn(primaryMapping);
 		
@@ -87,42 +116,8 @@ public class MigratableTableDAOImplUnitTest {
 		when(secondaryTwo.getTableMapping()).thenReturn(secondaryTwoMapping);
 		// add both secondaries to the primary.
 		when(primary.getSecondaryTypes()).thenReturn(Lists.newArrayList(secondaryOne, secondaryTwo));
-		
-
-		when(primaryMappingTwo.getTableName()).thenReturn("primary_two_table_name");
-		when(primaryTwo.getTableMapping()).thenReturn(primaryMappingTwo);
 		// This has no secondaries.
 		when(primaryTwo.getSecondaryTypes()).thenReturn(null);
-		
-		
-		databaseObjectRegister.add(primary);
-		databaseObjectRegister.add(primaryTwo);
-	}
-	
-	@Test
-	public void testNoAutoIncrement() {
-		// Add an auto-increment class to the register
-		StubAutoIncrement autoIncrement = new StubAutoIncrement();
-		databaseObjectRegister.clear();
-		databaseObjectRegister.add(autoIncrement);
-		try {
-			dao.initialize();
-			fail("Should have failed since an AUTO_INCREMENT table was registered");
-		} catch (IllegalArgumentException e){
-			// expected
-			assertTrue(e.getMessage().startsWith("AUTO_INCREMENT tables cannot be migrated."));
-		}
-
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testGetChecksumForIdRangeInvalidRange() {
-		dao.getChecksumForIdRange(MigrationType.FILE_HANDLE, "SALT", 10, 9);
-	}
-
-	
-	@Test
-	public void testMapSecondaryTablesToPrimaryGroups() {
 		// call under test
 		Map<String, Set<String>> results = dao.mapSecondaryTablesToPrimaryGroups();
 		assertNotNull(results);
