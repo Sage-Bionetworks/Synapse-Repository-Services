@@ -110,12 +110,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -689,22 +687,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		} 
-	}
-
-	@Override
-	public S3FileHandle uploadLocalFile(final UserInfo userInfo, final String fileContent) throws IOException {
-		File temp = File.createTempFile("uploadLocalFile", ".txt");
-		try {
-			org.apache.commons.io.FileUtils.writeStringToFile(temp, fileContent, StandardCharsets.UTF_8);
-			String contentType = "text/plain";
-			String fileName = "aRealFileName";
-			// Now upload the file to S3
-			return (uploadLocalFile(
-					new LocalFileUploadRequest().withFileName(fileName).withUserId(userInfo.getId().toString())
-							.withFileToUpload(temp).withContentType(contentType).withListener(null)));
-		} finally {
-			temp.delete();
-		}
 	}
 
 	@Override

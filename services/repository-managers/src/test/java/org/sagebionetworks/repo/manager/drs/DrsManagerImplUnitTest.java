@@ -9,6 +9,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -192,15 +193,16 @@ public class DrsManagerImplUnitTest {
     public void testGetAccessUrl() {
         final FileEntity file = getFileEntity();
         final String url = "https://s3.amazonaws.com/proddata.sagebase.org/3449751/645bd567-5f63-46d0-92ee-0d58dbfb08e9";
-        final String idAndVersion = KeyFactory.idAndVersion(file.getId(), file.getVersionNumber()).toString();
+        final IdAndVersion idAndVersion = KeyFactory.idAndVersion(file.getId(), file.getVersionNumber());
         final String accessId = "FileEntity_" + idAndVersion + "_12345";
         when(userManager.getUserInfo(any())).thenReturn(userInfo);
         when(fileHandleManager.getRedirectURLForFileHandle(any())).thenReturn(url);
 
         // call under test
-        final AccessUrl accessUrl = drsManager.getAccessUrl(USER_ID, idAndVersion, accessId);
+        final AccessUrl accessUrl = drsManager.getAccessUrl(USER_ID, idAndVersion.toString(), accessId);
         verify(userManager).getUserInfo(USER_ID);
-        verify(fileHandleManager).getRedirectURLForFileHandle(any());
+        verify(fileHandleManager).getRedirectURLForFileHandle(new FileHandleUrlRequest(userInfo, "12345")
+                .withAssociation(FileHandleAssociateType.FileEntity, idAndVersion.getId().toString()));
         assertNotNull(accessUrl);
         assertEquals(url, accessUrl.getUrl());
     }

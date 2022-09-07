@@ -174,18 +174,6 @@ public interface FileHandleManager {
 	S3FileHandle uploadLocalFile(LocalFileUploadRequest request);
 
 	/**
-	 * Upload a local file to the standard Synapse S3 bucket and creates a file handle for the file.
-	 * And then delete the local file to clean up and returns the fileHandle.
-	 *
-	 * Note that NO permission check is performed on the user of the request.
-	 *
-	 * @param userInfo
-	 * @param fileContent
-	 * @return
-	 */
-	S3FileHandle uploadLocalFile(UserInfo userInfo, String fileContent) throws IOException;
-
-	/**
 	 * Get the list of upload destinations for this parent
 	 * 
 	 * @param userInfo

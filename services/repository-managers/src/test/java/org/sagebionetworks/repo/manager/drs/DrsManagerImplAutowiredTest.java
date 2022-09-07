@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
@@ -22,16 +23,20 @@ import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 
@@ -116,6 +121,19 @@ public class DrsManagerImplAutowiredTest {
         assertNotNull(accessUrl.getUrl());
     }
 
+    @Test
+    public void testGetAccessUrlByUserHavingNoAccess() {
+        createTestData(adminUserInfo, userInfo);
+        final String drsObjectId = KeyFactory.idAndVersion(file.getId(), file.getVersionNumber()).toString();
+        final String accessId = drsManager.getDrsObject(adminUserInfo.getId(), drsObjectId, false)
+                .getAccess_methods().get(0).getAccess_id();
+
+        //call under test
+        assertEquals("You lack DOWNLOAD access to the requested entity.", assertThrows(UnauthorizedException.class, () -> {
+            drsManager.getAccessUrl(userInfo.getId(), drsObjectId, accessId);
+        }).getMessage());
+    }
+
     public void createTestData(final UserInfo createdByUserInfo, final UserInfo permissionGrantedTo) {
         try {
             project = entityManager.getEntity(createdByUserInfo, createProject(createdByUserInfo), Project.class);
@@ -125,7 +143,9 @@ public class DrsManagerImplAutowiredTest {
                 a.getResourceAccess().add(createResourceAccess(permissionGrantedTo.getId(), ACCESS_TYPE.READ));
             });
 
-            final S3FileHandle fileHandle = fileHandleManager.uploadLocalFile(createdByUserInfo, "This is a test file");
+            final S3FileHandle fileHandle = fileHandleManager.createFileFromByteArray(createdByUserInfo
+                            .getId().toString(),new Date(), "Test file content".getBytes(StandardCharsets.UTF_8),
+                    "TestFile.txt", ContentTypeUtil.TEXT_PLAIN_UTF8, null);
             file = entityManager
                     .getEntity(createdByUserInfo,
                             entityManager.createEntity(createdByUserInfo, new FileEntity().setName("TestFile")
