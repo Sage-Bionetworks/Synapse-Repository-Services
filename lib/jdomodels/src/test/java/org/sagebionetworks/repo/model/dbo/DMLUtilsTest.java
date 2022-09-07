@@ -25,6 +25,19 @@ public class DMLUtilsTest {
 					new FieldColumn("bigName", "BIG_NAME"), };
 		}
 	};
+	
+	private TableMapping<Object> mappingAllColumnsPartOfPrimaryKey = new AbstractTestTableMapping<Object>() {
+		@Override
+		public String getTableName() {
+			return "SOME_TABLE";
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return new FieldColumn[] { new FieldColumn("id", "ID", true).withIsBackupId(true),
+					new FieldColumn("bigName", "BIG_NAME", true), };
+		}
+	};
 
 	private TableMapping<Object> secondaryOne = new AbstractTestTableMapping<Object>() {
 		@Override
@@ -121,11 +134,23 @@ public class DMLUtilsTest {
 
 	@Test
 	public void testCreateInsertStatement() {
-
 		String dml = DMLUtils.createInsertStatement(mapping);
 		assertNotNull(dml);
-		System.out.println(dml);
 		assertEquals("INSERT INTO SOME_TABLE(`ID`, `BIG_NAME`) VALUES (:id, :bigName)", dml);
+	}
+	
+	@Test
+	public void testCreateInsertIgnoreStatement() {
+		String dml = DMLUtils.createInsertIgnoreStatement(mapping);
+		assertNotNull(dml);
+		assertEquals("INSERT IGNORE INTO SOME_TABLE(`ID`, `BIG_NAME`) VALUES (:id, :bigName)", dml);
+	}
+	
+	@Test
+	public void testCreateInsertStatementWithNoPrimaryKey() {
+		String dml = DMLUtils.createInsertStatement(mappingAllColumnsPartOfPrimaryKey);
+		assertNotNull(dml);
+		assertEquals("INSERT IGNORE INTO SOME_TABLE(`ID`, `BIG_NAME`) VALUES (:id, :bigName)", dml);
 	}
 
 	@Test
@@ -133,7 +158,6 @@ public class DMLUtilsTest {
 		StringBuilder builder = new StringBuilder();
 		DMLUtils.appendPrimaryKey(mapping, builder);
 		String result = builder.toString();
-		System.out.println(result);
 		assertEquals("`ID` = :id", result);
 	}
 
@@ -142,7 +166,6 @@ public class DMLUtilsTest {
 		StringBuilder builder = new StringBuilder();
 		DMLUtils.appendPrimaryKey(mappingTwoKeys, builder);
 		String result = builder.toString();
-		System.out.println(result);
 		assertEquals("`OWNER_ID` = :owner AND `REV_NUMBER` = :revNumber", result);
 	}
 
@@ -151,7 +174,6 @@ public class DMLUtilsTest {
 		// Here is our simple mapping.
 		String dml = DMLUtils.createGetByIDStatement(mapping);
 		assertNotNull(dml);
-		System.out.println(dml);
 		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` = :id", dml);
 	}
 
@@ -160,7 +182,6 @@ public class DMLUtilsTest {
 		// Here is our simple mapping.
 		String dml = DMLUtils.createDeleteStatement(mapping);
 		assertNotNull(dml);
-		System.out.println(dml);
 		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` = :id", dml);
 	}
 
@@ -169,7 +190,6 @@ public class DMLUtilsTest {
 		// Here is our simple mapping.
 		String dml = DMLUtils.createUpdateStatment(mapping);
 		assertNotNull(dml);
-		System.out.println(dml);
 		assertEquals("UPDATE SOME_TABLE SET `BIG_NAME` = :bigName WHERE `ID` = :id", dml);
 	}
 
@@ -178,7 +198,6 @@ public class DMLUtilsTest {
 		// Here is our simple mapping.
 		String dml = DMLUtils.createGetCountByPrimaryKeyStatement(mapping);
 		assertNotNull(dml);
-		System.out.println(dml);
 		assertEquals("SELECT COUNT(ID) FROM SOME_TABLE", dml);
 	}
 
@@ -186,7 +205,6 @@ public class DMLUtilsTest {
 	public void testCreateGetMaxStatement() {
 		String dml = DMLUtils.createGetMaxByBackupKeyStatement(mapping);
 		assertNotNull(dml);
-		System.out.println(dml);
 		assertEquals("SELECT MAX(ID) FROM SOME_TABLE", dml);
 	}
 
@@ -194,7 +212,6 @@ public class DMLUtilsTest {
 	public void testCreateGetMinStatement() {
 		String dml = DMLUtils.createGetMinByBackupKeyStatement(mapping);
 		assertNotNull(dml);
-		System.out.println(dml);
 		assertEquals("SELECT MIN(ID) FROM SOME_TABLE", dml);
 	}
 
@@ -203,7 +220,6 @@ public class DMLUtilsTest {
 		// Here is our simple mapping.
 		String dml = DMLUtils.createUpdateStatment(mappingTwoKeys);
 		assertNotNull(dml);
-		System.out.println(dml);
 		assertEquals(
 				"UPDATE TWO_KEY_TABLE SET `BIG_NAME` = :bigName, `SMALL_NAME` = :smallName WHERE `OWNER_ID` = :owner AND `REV_NUMBER` = :revNumber",
 				dml);
@@ -213,7 +229,6 @@ public class DMLUtilsTest {
 	public void testCreateDeleteByBackupIdRange() {
 		String sql = DMLUtils.createDeleteByBackupIdRange(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(sql);
-		System.out.println(sql);
 		assertEquals("DELETE FROM SOME_TABLE WHERE `%s` BETWEEN :BMINID AND :BMAXID", sql);
 	}
 
@@ -221,7 +236,6 @@ public class DMLUtilsTest {
 	public void testGetBatchInsertOrUdpate() {
 		String sql = DMLUtils.getBatchInsertOrUdpate(migrateableMappingSelfForeignKey);
 		assertNotNull(sql);
-		System.out.println(sql);
 		assertEquals(
 				"INSERT INTO SOME_TABLE(`ID`, `ETAG`, `PARENT_ID`) VALUES (:id, :etag, :parentId) ON DUPLICATE KEY UPDATE `ETAG` = :etag, `PARENT_ID` = :parentId",
 				sql);
@@ -231,7 +245,7 @@ public class DMLUtilsTest {
 	public void testGetBatchInsertOrUdpatePrimaryKeyOnly() {
 		String sql = DMLUtils.getBatchInsertOrUdpate(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(sql);
-		System.out.println(sql);
+		
 		assertEquals("INSERT IGNORE INTO SOME_TABLE(`ID`) VALUES (:id)", sql);
 	}
 	
@@ -274,7 +288,6 @@ public class DMLUtilsTest {
 				+ " FROM SOME_TABLE WHERE `ID` BETWEEN ? AND ?";
 		String sql = DMLUtils.createSelectChecksumStatement(migrateableMappingEtagAndId);
 		assertNotNull(sql);
-		System.out.println(sql);
 		assertEquals(expectedSql, sql);
 	}
 
@@ -284,7 +297,6 @@ public class DMLUtilsTest {
 				+ " FROM SOME_TABLE WHERE `ID` BETWEEN ? AND ?";
 		String sql = DMLUtils.createSelectChecksumStatement(migrateableMappingNoEtag);
 		assertNotNull(sql);
-		System.out.println(sql);
 		assertEquals(expectedSql, sql);
 	}
 	
@@ -306,7 +318,6 @@ public class DMLUtilsTest {
 		String expectedSql = "CHECKSUM TABLE SOME_TABLE";
 		String sql = DMLUtils.createChecksumTableStatement(migrateableMappingEtagAndId);
 		assertNotNull(sql);
-		System.out.println(sql);
 		assertEquals(expectedSql, sql);
 	}
 
@@ -315,7 +326,7 @@ public class DMLUtilsTest {
 		String expectedSql = "SELECT MIN(`ID`), MAX(`ID`), COUNT(`ID`) FROM SOME_TABLE";
 		String sql = DMLUtils.createGetMinMaxCountByKeyStatement(migrateableMappingEtagAndId);
 		assertNotNull(sql);
-		System.out.println(sql);
+		
 		assertEquals(expectedSql, sql);
 	}
 
@@ -384,7 +395,6 @@ public class DMLUtilsTest {
 		String expectedSql = "SELECT MIN(`ID`), MAX(`ID`) FROM SOME_TABLE";
 		String sql = DMLUtils.createGetMinMaxByBackupKeyStatement(migrateableMappingEtagAndId);
 		assertNotNull(sql);
-		System.out.println(sql);
 		assertEquals(expectedSql, sql);
 	}
 }

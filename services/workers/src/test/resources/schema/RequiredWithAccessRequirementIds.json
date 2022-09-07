@@ -1,0 +1,17 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"description": "...",
+	"$id": "my.organization-ConditionalDerived",
+	"type": "object",
+	"properties": {
+		"somethingRequired": {
+			"type": "boolean"
+		},
+		"_accessRequirementIds": {
+			"contains": {
+				"const": "99"
+			}
+		}
+	},
+	"required" : ["somethingRequired"]
+}

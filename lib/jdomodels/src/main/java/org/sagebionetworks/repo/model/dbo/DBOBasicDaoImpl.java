@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.sagebionetworks.lib.dbuserhelper.DBUserHelper;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -80,6 +81,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	private Map<Class<? extends DatabaseObject>, String> countMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> deleteMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> updateMap = new HashMap<Class<? extends DatabaseObject>, String>();
+	private Map<Class<? extends DatabaseObject>, String> insertIgnoreMap = new HashMap<Class<? extends DatabaseObject>, String>();
 
 	
 	/**
@@ -114,6 +116,9 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 			String update = DMLUtils.createUpdateStatment(mapping);
 			updateMap.put(mapping.getDBOClass(), update);
 			this.classToMapping.put(mapping.getDBOClass(), dbo.getTableMapping());
+			
+			String insertIgnore = DMLUtils.createInsertIgnoreStatement(mapping);
+			insertIgnoreMap.put(mapping.getDBOClass(), insertIgnore);
 		}
 		
 		/**
@@ -400,5 +405,12 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		return sql;
 	}
 
+	@WriteTransaction
+	@Override
+	public <T extends DatabaseObject<T>> T insertIgnore(T toInsert) throws DatastoreException {
+		ValidateArgument.required(toInsert, "toInsert");
+		String insertIgnore = this.insertIgnoreMap.get(toInsert.getClass());
+		return insert(toInsert, insertIgnore);
+	}
 
 }

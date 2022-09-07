@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.manager.schema.JsonSchemaValidationManager;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -1006,6 +1007,51 @@ public class JsonSchemaWorkerIntegrationTest {
 				offset).stream().map(AccessRequirement::getId).collect(Collectors.toSet());
 		assertEquals(Set.of(ar2.getId(), ar3.getId()), boundArIds);
 		
+	}
+	
+	/**
+	 * If a file is invalid against a schema that includes access requirement, it should get bound
+	 * to the bootstrapped invalid annotation access requirement. (PLFM-7412).
+	 * @throws Exception
+	 */
+	@Test
+	public void testDerivedAnnotationWithAccessRequirmentIdBindingAndInvalidObject() throws Exception {
+		bootstrapAndCreateOrganization();
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+
+		// create the schema
+		String fileName = "schema/RequiredWithAccessRequirementIds.json";
+		JsonSchema schema = getSchemaFromClasspath(fileName);
+		CreateSchemaResponse createResponse = registerSchema(schema);
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		// Now bind the schema to the project, this will enable derived annotations from
+		// the schema that will eventually be replicated
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(projectId);
+		bindRequest.setSchema$id(schema$id);
+		bindRequest.setEnableDerivedAnnotations(true);
+
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+		
+		// one
+		FileEntity fileOne = createFileWithAnnotations(projectId, "one", (c)->{
+			c.put("someBoolean", "not a boolean");
+		});
+		
+
+		waitForValidationResults(adminUserInfo, fileOne.getId(), (ValidationResults t) -> {
+			assertNotNull(t);
+			assertFalse(t.getIsValid());
+		});
+		
+		Long limit = 50L;
+		Long offset = 0L;
+		// the invalid annotations lock should be bound to the entity.
+		Set<Long> boundArIds = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo,
+				new RestrictableObjectDescriptor().setId(fileOne.getId()).setType(RestrictableObjectType.ENTITY), limit,
+				offset).stream().map(AccessRequirement::getId).collect(Collectors.toSet());
+		assertEquals(Set.of(AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID), boundArIds);
 	}
 	
 	/**
