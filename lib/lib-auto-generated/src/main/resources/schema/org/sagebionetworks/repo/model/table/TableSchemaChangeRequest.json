@@ -14,7 +14,7 @@
 			}
 		},
 		"orderedColumnIds": {
-			"description":"The order list of ColumnModel IDs that define the schema for this table.",
+			"description":"Optional: Used to set the order of columns for this table. If this list is provided it must include the IDs of each column that will be in the schema after the ‘changes’ of this request are applied.",
 			"type": "array",
 			"items": {
 				"type": "string"
