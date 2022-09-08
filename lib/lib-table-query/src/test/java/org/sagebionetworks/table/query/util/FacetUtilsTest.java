@@ -1,30 +1,41 @@
 package org.sagebionetworks.table.query.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnMultiValueFunction;
+import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
+import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.WhereClause;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class FacetUtilsTest {
 
 	@Mock
@@ -34,6 +45,7 @@ public class FacetUtilsTest {
 
 	String tableId;
 	String facetColumnName;
+	Optional<String> ignoredFacetColumn;
 
 	
 	WhereClause whereClause;
@@ -60,9 +72,10 @@ public class FacetUtilsTest {
 	
 
 	
-	@Before
-	public void setUp() throws ParseException{
+	@BeforeEach
+	public void setUp() throws ParseException {
 		facetColumnName = "asdf";
+		ignoredFacetColumn = Optional.of(facetColumnName);
 
 		simpleModel = TableQueryParser.parserQuery("select * from syn123 where i like 'trains'");
 		columnName = "burrito";
@@ -85,7 +98,6 @@ public class FacetUtilsTest {
 		facetRange1.setMin(min1);
 		
 		tableId = "syn123";
-		Mockito.when(mockFacetColumn.getColumnName()).thenReturn(facetColumnName);
 		searchCondition1 = "(searchCondition=asdf)";
 				
 		supportedFacetColumns = new HashSet<>();
@@ -94,56 +106,65 @@ public class FacetUtilsTest {
 		whereClause = new WhereClause(SqlElementUtils.createSearchCondition("water=wet AND sky=blue"));
 		facetSearchConditionString = "(tabs > spaces)";
 		stringBuilder = new StringBuilder();
-		
-		Mockito.when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
 	}
 
 	/////////////////////////////////////////////
 	// concatFacetSearchConditionStrings() Tests
 	/////////////////////////////////////////////
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testConcatFacetSearchConditionStringsNullFacetColumnsList(){
-		FacetUtils.concatFacetSearchConditionStrings(null, facetColumnName);
+		assertThrows(IllegalArgumentException.class,
+				() -> FacetUtils.concatFacetSearchConditionStrings(null, ignoredFacetColumn),
+				"validatedFacets is required");
 	}
 	
 	@Test
 	public void testConcatFacetSearchConditionStringsNullColumnNameToIgnore(){
+		ignoredFacetColumn = Optional.empty();
+		when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
+
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		assertEquals(1, validatedQueryFacetColumns.size());
 		
-		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, null);
+		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, ignoredFacetColumn);
 		assertEquals("(" + searchCondition1 + ")", result);
 	}
 	
 	@Test 
 	public void testConcatFacetSearchConditionStringsOnlyFacetInListIsIgnored(){
+		when(mockFacetColumn.getColumnName()).thenReturn(facetColumnName);
+
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		assertEquals(1, validatedQueryFacetColumns.size());
 		
-		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, facetColumnName);
+		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, ignoredFacetColumn);
 		assertNull(result);
 	}
 	
 	@Test
 	public void testConcatFacetSearchConditionStringSearchConditionStringIsNull(){
-		Mockito.when(mockFacetColumn.getSearchConditionString()).thenReturn(null);
+		ignoredFacetColumn = Optional.empty();
+		when(mockFacetColumn.getSearchConditionString()).thenReturn(null);
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		assertEquals(1, validatedQueryFacetColumns.size());
 		
-		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, null);
+		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, ignoredFacetColumn);
 		assertNull(result);
 	}
 	
 	@Test
 	public void testConcatFacetSearchConditionStringMultipleFacetColumns(){
+		ignoredFacetColumn = Optional.empty();
+		when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
+
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		String searchCondition2 = "(searchCondition2)";
 		FacetRequestColumnModel mockFacetColumn2 = Mockito.mock(FacetRequestColumnModel.class);
-		Mockito.when(mockFacetColumn2.getSearchConditionString()).thenReturn("(searchCondition2)");
+		when(mockFacetColumn2.getSearchConditionString()).thenReturn("(searchCondition2)");
 		validatedQueryFacetColumns.add(mockFacetColumn2);
 
-		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, null);
+		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, ignoredFacetColumn);
 		assertEquals("(" + searchCondition1 + " AND " + searchCondition2 + ")", result);
 	}
 	
@@ -153,8 +174,97 @@ public class FacetUtilsTest {
 	
 	@Test
 	public void testAppendFacetSearchConditionToQuerySpecification() throws ParseException{
+		when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
+
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		QuerySpecification modifiedSql = FacetUtils.appendFacetSearchConditionToQuerySpecification(simpleModel, validatedQueryFacetColumns);
 		assertEquals("SELECT * FROM syn123 WHERE ( i LIKE 'trains' ) AND ( ( ( searchCondition = asdf ) ) )", modifiedSql.toSql());
+	}
+
+	/////////////////////////////////////////////////////////
+	// getSearchConditionString(QueryFilter) tests
+	/////////////////////////////////////////////////////////
+	@Test
+	public void getSearchConditionStringForColumnSingleValueQueryFilterOneValue() {
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName(facetColumnName);
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("value1"));
+		String result = FacetUtils.getSearchConditionString(filter);
+		assertEquals("((\"asdf\" LIKE 'value1'))", result);
+	}
+
+	@Test
+	public void getSearchConditionStringForColumnSingleValueQueryFilterMultiValue() {
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName(facetColumnName);
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("value1", "%value2%"));
+		String result = FacetUtils.getSearchConditionString(filter);
+		assertEquals("((\"asdf\" LIKE 'value1') OR (\"asdf\" LIKE '%value2%'))", result);
+	}
+
+	@Test
+	public void getSearchConditionStringForColumnMultiValueFunctionQueryFilterOneValue() {
+		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter();
+		filter.setColumnName(facetColumnName);
+		filter.setFunction(ColumnMultiValueFunction.HAS);
+		filter.setValues(Arrays.asList("value1"));
+		String result = FacetUtils.getSearchConditionString(filter);
+		assertEquals("\"asdf\" HAS('value1')", result);
+	}
+
+	@Test
+	public void getSearchConditionStringForColumnMultiValueFunctionQueryFilterMultiValue() {
+		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter();
+		filter.setColumnName(facetColumnName);
+		filter.setFunction(ColumnMultiValueFunction.HAS_LIKE);
+		filter.setValues(Arrays.asList("value1", "%value2%"));
+		String result = FacetUtils.getSearchConditionString(filter);
+		assertEquals("\"asdf\" HAS_LIKE('value1', '%value2%')", result);
+	}
+
+	@Test
+	public void getSearchConditionStringFoTextMatchesQueryFilter() {
+		TextMatchesQueryFilter filter = new TextMatchesQueryFilter();
+		filter.setSearchExpression("value1");
+		String result = FacetUtils.getSearchConditionString(filter);
+		assertEquals("TEXT_MATCHES('value1')", result);
+	}
+
+	/////////////////////////////////////////////
+	// concatQueryFilterConditionStrings() Tests
+	/////////////////////////////////////////////
+
+	@Test
+	public void testConcatQueryFilterConditionStringsNull(){
+		String result = FacetUtils.concatQueryFilterConditionStrings(null);
+		assertNull(result);
+	}
+
+	@Test
+	public void testConcatQueryFilterConditionStringsEmpty(){
+		String result = FacetUtils.concatQueryFilterConditionStrings(Collections.emptyList());
+		assertNull(result);
+	}
+
+	@Test
+	public void testConcatQueryFilterConditionStringsMultipleFilters(){
+		ColumnSingleValueQueryFilter singleValueQueryFilter = new ColumnSingleValueQueryFilter();
+		singleValueQueryFilter.setColumnName(facetColumnName);
+		singleValueQueryFilter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		singleValueQueryFilter.setValues(Arrays.asList("a", "%b%", "c%"));
+
+		ColumnMultiValueFunctionQueryFilter multiValueFunctionQueryFilter = new ColumnMultiValueFunctionQueryFilter();
+		multiValueFunctionQueryFilter.setColumnName("qwerty");
+		multiValueFunctionQueryFilter.setFunction(ColumnMultiValueFunction.HAS_LIKE);
+		multiValueFunctionQueryFilter.setValues(Arrays.asList("%uiop"));
+
+		TextMatchesQueryFilter textMatchesQueryFilter = new TextMatchesQueryFilter();
+		textMatchesQueryFilter.setSearchExpression("search terms");
+
+
+		String result = FacetUtils.concatQueryFilterConditionStrings(Arrays.asList(singleValueQueryFilter, multiValueFunctionQueryFilter, textMatchesQueryFilter));
+		assertEquals("(((\"asdf\" LIKE 'a') OR (\"asdf\" LIKE '%b%') OR (\"asdf\" LIKE 'c%')) AND \"qwerty\" HAS_LIKE('%uiop') AND TEXT_MATCHES('search terms'))", result);
 	}
 }

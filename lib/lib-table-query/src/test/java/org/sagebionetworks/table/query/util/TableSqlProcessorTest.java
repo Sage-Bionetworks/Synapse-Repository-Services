@@ -1,19 +1,23 @@
 package org.sagebionetworks.table.query.util;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.ParseException;
@@ -26,27 +30,32 @@ public class TableSqlProcessorTest {
 	
 	String stringColumnName;
 	String intColumnName;
+	String singleValueColumnName;
 	String tableId;
 	FacetColumnValuesRequest stringFacet;
 	FacetColumnRangeRequest intFacet;
+	ColumnSingleValueQueryFilter singleValueFilter;
 	String basicSql;
 	List<FacetColumnRequest> selectedFacets;
 	List<ColumnModel> schema;
+	List<String> singleValueColumnSelectedValues;
+	List<QueryFilter> additionalFilters;
 	
 	StringBuilder stringBuilder;
 	
 	WhereClause whereClause;
 	String facetSearchConditionString;
-	@Before
+	@BeforeEach
 	public void setUp() throws ParseException{
 		stringColumnName = "stringColumn";
 		intColumnName = "integerColumn";
+		singleValueColumnName = "singleValueFilterColumn";
 		tableId = "syn123";
 		stringFacet = new FacetColumnValuesRequest();
 		stringFacet.setColumnName(stringColumnName);
 		intFacet = new FacetColumnRangeRequest();
 		intFacet.setColumnName(intColumnName);
-		
+		singleValueColumnSelectedValues = Arrays.asList("value1", "%value2%");
 		
 		ColumnModel stringColumnModel = new ColumnModel();
 		stringColumnModel.setName(stringColumnName);
@@ -57,12 +66,17 @@ public class TableSqlProcessorTest {
 		intColumnModel.setName(intColumnName);
 		intColumnModel.setColumnType(ColumnType.INTEGER);
 		intColumnModel.setFacetType(FacetType.range);
-		
+
+		singleValueFilter = new ColumnSingleValueQueryFilter();
+		singleValueFilter.setColumnName(singleValueColumnName);
+		singleValueFilter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		singleValueFilter.setValues(singleValueColumnSelectedValues);
 		
 		basicSql = "SELECT * FROM " + tableId + " ORDER BY "+ intColumnName +" DESC";
 		selectedFacets = new ArrayList<>();
 		stringBuilder = new StringBuilder();
 		schema = Lists.newArrayList(stringColumnModel, intColumnModel);
+		additionalFilters = new ArrayList<>();
 	}
 	
 	@Test
@@ -185,31 +199,50 @@ public class TableSqlProcessorTest {
 	/////////////////////////////////
 	// generateSqlWithFacets() tests
 	/////////////////////////////////
-	@Test (expected= IllegalArgumentException.class)
-	public void testGenerateSqlWithFacetsNullSql() throws ParseException{
-		TableSqlProcessor.generateSqlWithFacets(null, selectedFacets, schema);
-	}
-	
-	@Test (expected= IllegalArgumentException.class)
-	public void testGenerateSqlWithFacetsNullFacets() throws ParseException{
-		TableSqlProcessor.generateSqlWithFacets(basicSql, null, schema);
-	}
-	
-	@Test (expected = IllegalArgumentException.class)
-	public void testGenerateSqlWithFacetsNullSchema() throws ParseException{
-		TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, null);
-	}
-	
-	@Test (expected = IllegalArgumentException.class)
-	public void testGenerateSqlWithFacetsMoreFacetColumnsThanSchema() throws ParseException{
-		schema.clear();
-		selectedFacets.add(stringFacet);
-		TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, schema);
+	@Test
+	public void testGenerateSqlWithFacetsNullSql() {
+		assertThrows(IllegalArgumentException.class, ()->
+			TableSqlProcessor.generateSqlWithFacets(null, selectedFacets, schema, additionalFilters),
+				"basicSql is required"
+		);
 	}
 	
 	@Test
+	public void testGenerateSqlWithFacetsNullFacets() {
+		assertThrows(IllegalArgumentException.class, ()->
+			TableSqlProcessor.generateSqlWithFacets(basicSql, null, schema, additionalFilters),
+				"selectedFacets is required"
+		);
+	}
+	
+	@Test
+	public void testGenerateSqlWithFacetsNullSchema() {
+		assertThrows(IllegalArgumentException.class, ()->
+			TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, null, additionalFilters),
+				"schema is required"
+		);
+	}
+	
+	@Test
+	public void testGenerateSqlWithFacetsMoreFacetColumnsThanSchema() {
+		schema.clear();
+		selectedFacets.add(stringFacet);
+		assertThrows(IllegalArgumentException.class, ()->
+			TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, schema, additionalFilters),
+				"Schema does not contain the facet column: stringColumn"
+		);
+	}
+
+	@Test
+	public void testAdditionalFiltersNotRequired() throws ParseException {
+		// additionalFilters was added to the API in PLFM-6275. Requiring it would be a breaking change.
+		String result = TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, schema, null);
+		assertEquals(basicSql, result);
+	}
+
+	@Test
 	public void testGenerateSqlWithFacetsHappyCaseNoFacets() throws ParseException{
-		String result = TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, schema);
+		String result = TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, schema, additionalFilters);
 		assertEquals(basicSql, result);
 	}
 	
@@ -222,11 +255,41 @@ public class TableSqlProcessorTest {
 		stringFacet.setFacetValues(Sets.newHashSet(val));
 		selectedFacets.add(stringFacet);
 		
-		String result = TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, schema);
+		String result = TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, schema, additionalFilters);
 		assertEquals("SELECT * FROM syn123"
 				+ " WHERE ( ( \"integerColumn\" <= '12345' )"
 				+ " AND ( \"stringColumn\" = 'testeroni' ) )"
 				+ " ORDER BY integerColumn DESC",
+				result);
+	}
+
+	@Test
+	public void testGenerateSqlWithAdditionalFiltersHappyCase() throws ParseException{
+		additionalFilters.add(singleValueFilter);
+
+		String result = TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, schema, additionalFilters);
+		assertEquals("SELECT * FROM syn123"
+						+ " WHERE ( ( ( \"singleValueFilterColumn\" LIKE 'value1' ) OR ( \"singleValueFilterColumn\" LIKE '%value2%' ) ) )"
+						+ " ORDER BY integerColumn DESC",
+				result);
+	}
+
+	@Test
+	public void testGenerateSqlWithFacetsAndAdditionalFiltersHappyCase() throws ParseException{
+		String max = "12345";
+		String val = "testeroni";
+		intFacet.setMax(max);
+		selectedFacets.add(intFacet);
+		stringFacet.setFacetValues(Sets.newHashSet(val));
+		selectedFacets.add(stringFacet);
+		additionalFilters.add(singleValueFilter);
+
+		String result = TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, schema, additionalFilters);
+		assertEquals("SELECT * FROM syn123"
+						+ " WHERE ( ( ( \"integerColumn\" <= '12345' )"
+						+ " AND ( \"stringColumn\" = 'testeroni' ) ) )"
+						+ " AND ( ( ( ( \"singleValueFilterColumn\" LIKE 'value1' ) OR ( \"singleValueFilterColumn\" LIKE '%value2%' ) ) ) )"
+						+ " ORDER BY integerColumn DESC",
 				result);
 	}
 	

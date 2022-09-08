@@ -19,6 +19,7 @@ import org.sagebionetworks.util.ValidateArgument;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
@@ -58,7 +59,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	}
 	
 	private SqlQuery generateFacetSqlQuery(SqlQuery originalQuery, boolean columnTypeIsList) {
-		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
+		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, Optional.of(columnName));
 		
 		TableExpression tableExpressionFromModel = originalQuery.getModel().getTableExpression();
 		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);

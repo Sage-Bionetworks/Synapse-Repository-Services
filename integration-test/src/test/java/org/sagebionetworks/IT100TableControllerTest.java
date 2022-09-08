@@ -30,7 +30,6 @@ import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
-import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
@@ -50,6 +49,8 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
@@ -978,9 +979,14 @@ public class IT100TableControllerTest {
 		column.setFacetType(FacetType.range);
 		column.setColumnType(ColumnType.INTEGER);
 		request.setSchema(Lists.newArrayList(column));
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("bar");
+		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		filter.setValues(Arrays.asList("baz%"));
+		request.setAdditionalFilters(Lists.newArrayList(filter));
 		// Call under test
 		String resultSql = synapse.transformSqlRequest(request);
-		assertEquals("SELECT * FROM syn123 WHERE ( ( \"foo\" BETWEEN '0' AND '100' ) )", resultSql);
+		assertEquals("SELECT * FROM syn123 WHERE ( ( \"foo\" BETWEEN '0' AND '100' ) ) AND ( ( \"bar\" LIKE 'baz%' ) )", resultSql);
 	}
 	
 	private TableEntity createTable(List<String> columns) throws SynapseException {

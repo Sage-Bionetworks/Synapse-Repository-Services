@@ -240,7 +240,7 @@ public class TableServicesImpl implements TableServices {
 		if (request instanceof TransformSqlWithFacetsRequest) {
 			TransformSqlWithFacetsRequest facetRequest = (TransformSqlWithFacetsRequest) request;
 			transformedSql = TableSqlProcessor.generateSqlWithFacets(facetRequest.getSqlToTransform(),
-					facetRequest.getSelectedFacets(), facetRequest.getSchema());
+					facetRequest.getSelectedFacets(), facetRequest.getSchema(), facetRequest.getAdditionalFilters());
 		} else {
 			throw new IllegalArgumentException("Unknown request type: " + request.getClass().getName());
 		}

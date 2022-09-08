@@ -16,6 +16,7 @@ import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import java.util.List;
+import java.util.Optional;
 
 public class FacetTransformerRange implements FacetTransformer {
 	public static final String MIN_ALIAS = "minimum";
@@ -70,7 +71,7 @@ public class FacetTransformerRange implements FacetTransformer {
 		builder.append(MAX_ALIAS);
 		builder.append(" ");
 		builder.append(tableExpressionFromModel.getFromClause().toSql());
-		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
+		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, Optional.of(columnName));
 		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
 		
 		try {
