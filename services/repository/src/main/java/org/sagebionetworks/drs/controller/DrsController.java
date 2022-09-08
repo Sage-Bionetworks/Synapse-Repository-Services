@@ -3,6 +3,7 @@ package org.sagebionetworks.drs.controller;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.drs.AccessUrl;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
@@ -34,14 +35,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * The supported end point for drs are:
  *     <ul>
  *         <li><a href="${GET.service-info}"> GET /service-info</a></li>
- *         <li><a href="${GET.objects.id}"> GET /objects/{id}</a></li>
+ *         <li><a href="${GET.objects.object_id}"> GET /objects/{object_id}</a></li>
  *     </ul>
  * </p>
  * <p>
  *     Use <a href="${GET.service-info}"> GET /service-info </a> API to get information about GA4GH-compliant web services,
  *     including drs services, to be aggregated into registries and made available via a standard API.
  *     </p>
- *     Use <a href="${GET.objects.id}"> GET /objects/{id} </a> API to get information about drs object.
+ *     Use <a href="${GET.objects.object_id}"> GET /objects/{object_id} </a> API to get information about drs object.
  *     </p>
  */
 @ControllerInfo(displayName = "Drs Services", path = "ga4gh/drs/v1")
@@ -81,10 +82,35 @@ public class DrsController {
     @RequiredScope({OAuthScope.view})
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = {UrlHelpers.DRS_OBJECT}, method = RequestMethod.GET)
-    public @ResponseBody DrsObject getDrsObject(@PathVariable String id,
+    public @ResponseBody DrsObject getDrsObject(@PathVariable String object_id,
                                                 @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
                                                 @RequestParam(value = "expand", defaultValue = "false") Boolean expand)
             throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException, UnsupportedOperationException {
-        return serviceProvider.getDrsService().getDrsObject(userId, id, expand);
+        return serviceProvider.getDrsService().getDrsObject(userId, object_id, expand);
+    }
+
+    /**
+     * GET an url for fetching byte API will provide the actual url of
+     * <a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a>
+     * for example s3 bucket, google cloud etc., from where file can be downloaded.
+     * <p>
+     * See the ga4gh documentation for
+     * <a href="https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.2.0/docs/#operation/GetAccessURL"> GetAccessURL </a>
+     * To get accessId see the link to API <a href="${GET.objects.object_id}"> GET /objects/{object_id} </a>
+     * <p>
+     * The presigned url will be sent to the user and file can be downloaded directly from the url without any authentication.
+     * As presigned url has tokens included, which expires with time.
+     *
+     * @return the presigned url to download a file
+     */
+
+    @RequiredScope({OAuthScope.view, OAuthScope.download})
+    @ResponseStatus(HttpStatus.OK)
+    @RequestMapping(value = {UrlHelpers.DRS_FETCH_BYTES}, method = RequestMethod.GET)
+    public @ResponseBody AccessUrl getAccessURL(@PathVariable final String object_id,
+                                                @PathVariable final String access_id,
+                                                @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) final Long userId)
+            throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException {
+        return serviceProvider.getDrsService().getAccessUrl(userId, object_id, access_id);
     }
 }

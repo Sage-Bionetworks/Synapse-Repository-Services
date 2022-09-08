@@ -2,6 +2,7 @@ package org.sagebionetworks.drs.services;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.drs.AccessUrl;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -31,4 +32,20 @@ public interface DrsService {
     DrsObject getDrsObject(Long userId, String id, boolean expand)
             throws NotFoundException, DatastoreException, UnauthorizedException,
             IllegalArgumentException, UnsupportedOperationException;
+
+    /**
+     * Get the presigned url to download the file.
+     *
+     * @param userId
+     * @param drsObjectId
+     * @param accessId
+     *
+     * @return
+     * @throws NotFoundException
+     * @throws DatastoreException
+     * @throws UnauthorizedException
+     * @throws IllegalArgumentException
+     */
+    AccessUrl getAccessUrl(Long userId, String drsObjectId, String accessId) throws NotFoundException, DatastoreException,
+            UnauthorizedException, IllegalArgumentException;
 }

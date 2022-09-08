@@ -1,11 +1,6 @@
 package org.sagebionetworks.repo.manager.file;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
+import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -27,7 +22,11 @@ import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Manages uploading files.
