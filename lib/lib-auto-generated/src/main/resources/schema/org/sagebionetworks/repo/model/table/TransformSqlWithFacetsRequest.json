@@ -20,12 +20,12 @@
 				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
 			}
 		},
-	  "additionalFilters": {
-		"description": "Additional filters to be applied to the query",
-		"type": "array",
-		"items": {
-		  "$ref": "org.sagebionetworks.repo.model.table.QueryFilter"
+		"additionalFilters": {
+			"description": "Additional filters to be applied to the query",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.QueryFilter"
+			}
 		}
-	  }
 	}
 }
