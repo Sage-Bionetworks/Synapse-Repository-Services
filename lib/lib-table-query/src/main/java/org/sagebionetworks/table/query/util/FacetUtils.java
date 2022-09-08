@@ -202,10 +202,10 @@ public class FacetUtils {
 		if(filters != null && !filters.isEmpty()){
 			WhereClause originalWhereClause = sqlModel.getTableExpression().getWhereClause();
 
-			String facetSearchConditionString = FacetUtils.concatQueryFilterConditionStrings(filters);
+			String concatenatedConditionString = FacetUtils.concatQueryFilterConditionStrings(filters);
 
 			StringBuilder builder = new StringBuilder();
-			SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, originalWhereClause);
+			SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, concatenatedConditionString, originalWhereClause);
 
 			// create the new where if necessary
 			if(builder.length() > 0){

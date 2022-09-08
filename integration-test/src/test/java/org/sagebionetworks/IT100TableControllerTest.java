@@ -986,7 +986,7 @@ public class IT100TableControllerTest {
 		request.setAdditionalFilters(Lists.newArrayList(filter));
 		// Call under test
 		String resultSql = synapse.transformSqlRequest(request);
-		assertEquals("SELECT * FROM syn123 WHERE ( ( \"foo\" BETWEEN '0' AND '100' ) ) AND ( ( \"bar\" LIKE 'baz%' ) )", resultSql);
+		assertEquals("SELECT * FROM syn123 WHERE ( ( ( \"foo\" BETWEEN '0' AND '100' ) ) ) AND ( ( ( ( \"bar\" LIKE 'baz%' ) ) ) )", resultSql);
 	}
 	
 	private TableEntity createTable(List<String> columns) throws SynapseException {
