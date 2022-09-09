@@ -66,10 +66,15 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionStatus;
 
 import com.google.common.collect.Iterators;
 
+/**
+ * Note: This manager is created as a beans to support profiling calls to the manger. See: PLFM-5984.
+ */
+@Service
 public class TableIndexManagerImpl implements TableIndexManager {
 	public static final int BATCH_SIZE = 10_000;
 
@@ -194,6 +199,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 */
 	@Override
 	public List<ColumnChangeDetails> setIndexSchema(final IndexDescription indexDescription, List<ColumnModel> newSchema){
+		/*
+		 * It can be expensive to gather table and schema metadata from MySQL, so we
+		 * only do so if this represents an an actual schema change. See: PLFM-7458.
+		 */
+		if (tableIndexDao.doesIndexHashMatchSchemaHash(indexDescription.getIdAndVersion(), newSchema)) {
+			return Collections.emptyList();
+		}
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(indexDescription.getIdAndVersion());
 		// create a change that replaces the old schema as needed.
@@ -351,8 +363,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				tableIndexDao.truncateTable(tableId);
 			}
 			// Set the new schema MD5
-			List<String> columnIds = TableModelUtils.getIds(currentSchema);
-			String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(columnIds);
+			String schemaMD5Hex = TableModelUtils
+					.createSchemaMD5Hex(currentSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()));
 			tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 			
 			if (tableIndexDao.isSearchEnabled(tableId) && isRequireSearchIndexUpdate(tableId, changes)) {

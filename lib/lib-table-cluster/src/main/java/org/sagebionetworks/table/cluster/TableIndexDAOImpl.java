@@ -114,6 +114,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.stereotype.Repository;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
@@ -124,6 +125,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+/**
+ * Note: This dao is created as a beans to support profiling calls to the dao. See: PLFM-5984.
+ */
+@Repository
 public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	private static String OBJECT_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/ObjectReplication.sql");
@@ -387,6 +392,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusVersionAndHashSQL(tableId);
 		template.update(createOrUpdateStatusSql, viewCRC, schemaMD5Hex, viewCRC, schemaMD5Hex);
+	}
+	
+	@Override
+	public boolean doesIndexHashMatchSchemaHash(IdAndVersion tableId, List<ColumnModel> newSchema) {
+		ValidateArgument.required(tableId, "tableId");
+		ValidateArgument.required(newSchema, "newSchema");
+		String newSchemaHash = TableModelUtils
+				.createSchemaMD5Hex(newSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()));
+		String indexSchemaHash = getCurrentSchemaMD5Hex(tableId);
+		return indexSchemaHash.equals(newSchemaHash);
 	}
 	
 	@Override

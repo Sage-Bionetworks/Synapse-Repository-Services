@@ -4754,6 +4754,55 @@ public class TableIndexDAOImplTest {
 		assertArrayEquals(new String[] {"3", "2", "etag3", "2", "[321, 654]", "1.7976931348623157E308", "Infinity"}, rows.get(2));
 	}
 	
+	@Test
+	public void testDoesIndexHashMatchSchemaHash() {
+		tableId = IdAndVersion.parse("syn123");
+		
+		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
+		tableIndexDAO.createSecondaryTables(tableId);
+
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
+		String schemaHash = TableModelUtils
+				.createSchemaMD5Hex(allTypes.stream().map(ColumnModel::getId).collect(Collectors.toList()));
+		tableIndexDAO.setCurrentSchemaMD5Hex(tableId, schemaHash);
+		// call under test
+		assertTrue(tableIndexDAO.doesIndexHashMatchSchemaHash(tableId, allTypes));
+		
+		allTypes.add(new ColumnModel().setId("999"));
+		// call under test
+		assertFalse(tableIndexDAO.doesIndexHashMatchSchemaHash(tableId, allTypes));
+	}
+	
+	@Test
+	public void testDoesIndexHashMatchSchemaHashWithTableDoesNotExist() {
+		tableId = IdAndVersion.parse("syn123");
+
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
+		// call under test
+		assertFalse(tableIndexDAO.doesIndexHashMatchSchemaHash(tableId, allTypes));
+	}
+	
+	@Test
+	public void testDoesIndexHashMatchSchemaHashWithTableIdNull() {
+		tableId = null;
+		List<ColumnModel> schema = TableModelTestUtils.createOneOfEachType();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			assertFalse(tableIndexDAO.doesIndexHashMatchSchemaHash(tableId, schema));
+		}).getMessage();
+		assertEquals("tableId is required.",message);
+	}
+	
+	@Test
+	public void testDoesIndexHashMatchSchemaHashWithSchemaNull() {
+		tableId = IdAndVersion.parse("syn123");
+		List<ColumnModel> schema = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			assertFalse(tableIndexDAO.doesIndexHashMatchSchemaHash(tableId, schema));
+		}).getMessage();
+		assertEquals("newSchema is required.",message);
+	}
 
 	
 	/**
