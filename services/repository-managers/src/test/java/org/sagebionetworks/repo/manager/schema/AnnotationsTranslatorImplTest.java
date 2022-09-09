@@ -1,21 +1,6 @@
 package org.sagebionetworks.repo.manager.schema;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.io.StringWriter;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.google.common.collect.Lists;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +20,21 @@ import org.sagebionetworks.schema.FORMAT;
 import org.sagebionetworks.schema.adapter.org.json.JsonDateUtils;
 import org.sagebionetworks.util.doubles.DoubleJSONStringWrapper;
 
-import com.google.common.collect.Lists;
+import java.io.StringWriter;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 public class AnnotationsTranslatorImplTest {
@@ -665,7 +664,7 @@ public class AnnotationsTranslatorImplTest {
 	}
 	
 	@Test
-	public void testWriteAnnotationsToJSONObjectWithNullWithEmptyListValue() {
+	public void testWriteAnnotationsToJSONObjectWithNullWithEmptyListValue() throws InstantiationException, IllegalAccessException {
 		schema = null;
 		Annotations toWrite = new Annotations();
 		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
@@ -675,9 +674,10 @@ public class AnnotationsTranslatorImplTest {
 		map.put("emptyList", annoValue);
 		toWrite.setAnnotations(map);
 		JSONObject json = new JSONObject();
+		JSONArray emptyJsonArray = new JSONArray();
 		// call under test
 		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
-		assertEquals("", json.get("emptyList"));
+		assertTrue(emptyJsonArray.similar(json.get("emptyList")));
 	}
 	
 	@Test

@@ -1,18 +1,6 @@
 package org.sagebionetworks.repo.manager.schema;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.stream.Stream;
-
+import com.google.common.collect.Lists;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -31,7 +19,18 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.doubles.DoubleUtils;
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.Lists;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 @Service
 public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
@@ -404,7 +403,7 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			return;
 		}
 		if (value.getValue().isEmpty()) {
-			jsonObject.put(key, "");
+			jsonObject.put(key, new ArrayList<>());
 		} else if (value.getValue().size() == 1 && Boolean.TRUE.equals(isSingleMap.get(key))) {
 			/*
 			 * The only case where we write a single is when the annotations is a single
