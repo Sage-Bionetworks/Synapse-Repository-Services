@@ -149,6 +149,17 @@ public interface TableIndexDAO {
 	String getCurrentSchemaMD5Hex(IdAndVersion tableId);
 	
 	void setSearchEnabled(IdAndVersion tableId, boolean searchStatus);
+	
+	/**
+	 * Does the current index schema MD5 hash match the MD5 has of the provided
+	 * schema? This is a fast and efficient check to determine if additional work is
+	 * needed in order to make the index match the provided schema.
+	 * 
+	 * @param tableId
+	 * @param schema
+	 * @return True if the index hash matches the hash of the provided schema.
+	 */
+	boolean doesIndexHashMatchSchemaHash(IdAndVersion tableId, List<ColumnModel> schema);
 
 	/**
 	 * Create all of the secondary tables used for an index if they do not exist.
@@ -218,7 +229,12 @@ public interface TableIndexDAO {
 
 	/**
 	 * Get list of Column ids for existing index tables a multi-value column in the
-	 * provided tableId
+	 * provided tableId 
+	 * <p>Note: This call is expensive and should only be executed if
+	 * it has already been determined that an index change is needed, by calling
+	 * {@link #doesIndexHashMatchSchemaHash(IdAndVersion, List)}.
+	 * See: PLFM-7458
+	 * </p>
 	 * 
 	 * @param tableId
 	 * @return
