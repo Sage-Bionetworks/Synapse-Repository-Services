@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.dbo.schema.DBOOrganization;
@@ -123,7 +124,7 @@ public class MigratableTableDAOImplAutowireTest {
 		
 		// This should fail
 		DataIntegrityViolationException ex = assertThrows(DataIntegrityViolationException.class, () -> {
-			migratableTableDAO.createInternal(MigrationType.ORGANIZATION, List.of(one));			
+			migratableTableDAO.createOrUpdateInternal(MigrationType.ORGANIZATION, List.of(one));			
 		});
 		
 		assertEquals(BatchUpdateException.class, ex.getCause().getClass());
@@ -133,7 +134,7 @@ public class MigratableTableDAOImplAutowireTest {
 			@Override
 			public Boolean call() throws Exception {
 				// We should be able to do this now that foreign keys are disabled.
-				migratableTableDAO.createInternal(MigrationType.ORGANIZATION, List.of(one));
+				migratableTableDAO.createOrUpdateInternal(MigrationType.ORGANIZATION, List.of(one));
 				return true;
 			}});
 		assertTrue(result);
@@ -148,7 +149,7 @@ public class MigratableTableDAOImplAutowireTest {
 		
 		// This should fail
 		ex = assertThrows(DataIntegrityViolationException.class, () -> {
-			migratableTableDAO.createInternal(MigrationType.ORGANIZATION, List.of(two));
+			migratableTableDAO.createOrUpdateInternal(MigrationType.ORGANIZATION, List.of(two));
 		});
 		assertEquals(BatchUpdateException.class, ex.getCause().getClass());
 	}
@@ -418,25 +419,31 @@ public class MigratableTableDAOImplAutowireTest {
 	}
 	
 	@Test
-	public void testCreate() {
+	public void testCreateOrUpdate() {
 		// Note: Principal does not need to exists since foreign keys will be off.
-		DBOOrganization one = new DBOOrganization();
-		one.setId(111L);
-		one.setCreatedOn(new Timestamp(System.currentTimeMillis()));
-		one.setName("one");
-		one.setCreatedBy(111L);
+		DBOCredential one = new DBOCredential();
+		one.setPassHash("hash1");
+		one.setPrincipalId(111L);
+		one.setSecretKey("secrete1");
 		
-		DBOOrganization two = new DBOOrganization();
-		two.setId(222L);
-		two.setCreatedOn(new Timestamp(System.currentTimeMillis()));
-		two.setName("two");
-		two.setCreatedBy(222L);
+		DBOCredential two = new DBOCredential();
+		two.setPassHash("hash2");
+		two.setPrincipalId(222L);
+		two.setSecretKey("secrete2");
 		
-		List<DatabaseObject<?>> batch = List.of(two, one);
-		MigrationType type = MigrationType.ORGANIZATION;
-		List<Long> expected = List.of(222L, 111L);
-		List<Long> ids = migratableTableDAO.create(type, batch);
-		assertEquals(expected, ids);
+		List<DatabaseObject<?>> batch = Lists.newArrayList(two, one);
+		MigrationType type = MigrationType.CREDENTIAL;
+		List<Long> ids = migratableTableDAO.createOrUpdate(type, batch);
+		assertNotNull(ids);
+		assertEquals(batch.size(), ids.size());
+		assertEquals(two.getPrincipalId(), ids.get(0));
+		assertEquals(one.getPrincipalId(), ids.get(1));
+		
+		// Update the values and call it again.
+		one.setPassHash("updatedHash1");
+		two.setPassHash("updatedHash2");
+		ids = migratableTableDAO.createOrUpdate(type, batch);
+		assertNotNull(ids);
 	}
 	
 	@Test
