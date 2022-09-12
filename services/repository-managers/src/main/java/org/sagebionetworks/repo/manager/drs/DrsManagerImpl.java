@@ -4,6 +4,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -12,6 +13,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.drs.AccessId;
 import org.sagebionetworks.repo.model.drs.AccessMethod;
 import org.sagebionetworks.repo.model.drs.AccessMethodType;
+import org.sagebionetworks.repo.model.drs.AccessUrl;
 import org.sagebionetworks.repo.model.drs.Checksum;
 import org.sagebionetworks.repo.model.drs.ChecksumType;
 import org.sagebionetworks.repo.model.drs.Content;
@@ -25,6 +27,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -97,18 +100,20 @@ public class DrsManagerImpl implements DrsManager {
     }
 
     @Override
-    public DrsObject getDrsObject(final Long userId, final String id, final boolean expand)
+    public DrsObject getDrsObject(final Long userId, final String objectId, final boolean expand)
             throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException, UnsupportedOperationException {
+        ValidateArgument.required(userId, "userId");
+        ValidateArgument.required(objectId, "objectId");
         final UserInfo userInfo = userManager.getUserInfo(userId);
         final DrsObject result = new DrsObject();
-        final IdAndVersion idAndVersion = IdAndVersion.parse(id);
+        final IdAndVersion idAndVersion = IdAndVersion.parse(objectId);
         validateIdHasVersion(idAndVersion);
         final Entity entity = entityManager.getEntityForVersion(userInfo, idAndVersion.getId().toString(),
                 idAndVersion.getVersion().get(), null);
 
-        result.setId(id);
+        result.setId(objectId);
         result.setName(entity.getName());
-        result.setSelf_uri(DRS_URI + id);
+        result.setSelf_uri(DRS_URI + objectId);
         result.setVersion(idAndVersion.getVersion().get().toString());
         result.setCreated_time(entity.getCreatedOn());
         result.setUpdated_time(entity.getModifiedOn());
@@ -173,6 +178,30 @@ public class DrsManagerImpl implements DrsManager {
     private void validateIdHasVersion(final IdAndVersion idAndVersion) {
         if (idAndVersion.getVersion().isEmpty()) {
             throw new IllegalArgumentException("Object id should include version. e.g syn123.1");
+        }
+    }
+
+    @Override
+    public AccessUrl getAccessUrl(final Long userId, final String objectId, final String accessId)
+            throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException {
+        ValidateArgument.required(userId, "userId");
+        ValidateArgument.required(objectId, "objectId");
+        ValidateArgument.required(accessId, "accessId");
+        final UserInfo userInfo = userManager.getUserInfo(userId);
+        final AccessId accessIdObject = AccessId.decode(accessId);
+        final IdAndVersion drsObjectId = IdAndVersion.parse(objectId);
+        validateAccessIdHasObjectId(drsObjectId, accessIdObject.getSynapseIdWithVersion());
+        final FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, accessIdObject.getFileHandleId())
+                .withAssociation(accessIdObject.getAssociateType(), drsObjectId.getId().toString());
+        final String url = fileHandleManager.getRedirectURLForFileHandle(urlRequest);
+        final AccessUrl accessURL = new AccessUrl();
+        accessURL.setUrl(url);
+        return accessURL;
+    }
+
+    private void validateAccessIdHasObjectId(final IdAndVersion objectIdInRequest, final IdAndVersion objectIdASPartOfAccessId) {
+        if (!objectIdASPartOfAccessId.equals(objectIdInRequest)) {
+            throw new IllegalArgumentException("AccessId contains different drsObject Id.");
         }
     }
 }

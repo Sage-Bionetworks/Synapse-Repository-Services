@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.TeamState;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -108,9 +109,13 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			if (hasUnmetAccessRequirements(userInfo, mr.getTeamId()))
 				throw new UnauthorizedException("Requested member has unmet access requirements which must be met before asking to join the Team.");
 		}
-		Team team = teamDAO.get(mr.getTeamId());
-		if (team.getCanPublicJoin() != null && team.getCanPublicJoin()) {
+
+		if (TeamState.PUBLIC.equals(teamDAO.getState(mr.getTeamId()))) {
 			throw new IllegalArgumentException("This team is already open for the public to join, membership requests are not needed.");
+		}
+
+		if (TeamState.CLOSED.equals(teamDAO.getState(mr.getTeamId()))) {
+			throw new IllegalArgumentException("This team has been closed to new membership requests.");
 		}
 
 		Date now = new Date();

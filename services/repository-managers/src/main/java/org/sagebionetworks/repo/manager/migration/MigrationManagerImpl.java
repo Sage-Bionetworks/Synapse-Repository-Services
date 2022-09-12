@@ -642,7 +642,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		if(!currentBatch.isEmpty()) {
 			fireBeforeCreateOrUpdateEvent(currentType, currentBatch);
 			// push the data to the database
-			this.migratableTableDao.createOrUpdate(currentType, currentBatch);
+			this.migratableTableDao.create(currentType, currentBatch);
 			// Let listeners know about the change
 			fireAfterCreateOrUpdateEvent(currentType, currentBatch);
 		}

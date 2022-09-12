@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_PROPERTIES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
@@ -40,6 +41,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamSortOrder;
+import org.sagebionetworks.repo.model.TeamState;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
@@ -195,6 +197,8 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=:"+COL_GROUP_MEMBERS_MEMBER_ID;
 
 	private static final String SELECT_CHECK_TEAM_EXISTS = "SELECT COUNT(*) FROM " + TABLE_TEAM + " WHERE " + COL_TEAM_ID + " = ?";
+
+	private static final String SELECT_TEAM_STATE = "SELECT " + COL_TEAM_STATE + " FROM " + TABLE_TEAM + " WHERE " + COL_TEAM_ID + " = ?";
 
 	private static final String ORDER_BY_TEAM_NAME = " ORDER BY LOWER(pa." + COL_PRINCIPAL_ALIAS_DISPLAY + ")";
 	private static final String ASC = " ASC ";
@@ -651,5 +655,15 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_TEAM);
+	}
+
+	@Override
+	public TeamState getState(String teamId) throws DatastoreException, NotFoundException {
+		try {
+			return jdbcTemplate.queryForObject(SELECT_TEAM_STATE, TeamState.class, teamId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Team " + teamId + " does not exist.");
+		}
+
 	}
 }

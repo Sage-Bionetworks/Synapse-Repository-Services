@@ -790,7 +790,7 @@ public class EntityManagerImplUnitTest {
 	public void testGetBoundSchema() {
 		Long boundId = 456L;
 		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenReturn(boundId);
+		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenReturn(Optional.of(boundId));
 		when(mockJsonSchemaManager.getJsonSchemaObjectBinding(any(), any())).thenReturn(schemaBinding);
 		// call under test
 		JsonSchemaObjectBinding result = entityManager.getBoundSchema(mockUser, entityId);
@@ -910,7 +910,7 @@ public class EntityManagerImplUnitTest {
 		when(mockNodeManager.getUserAnnotations(any())).thenReturn(annos);
 		JSONObject jsonResult = new JSONObject();
 		when(mockAnnotationTranslator.writeToJsonObject(any(), any(), any())).thenReturn(jsonResult);
-		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenThrow(NotFoundException.class);
+		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenReturn(Optional.empty());
 		// call under test
 		JSONObject object = entityManagerSpy.getEntityJson(mockUser, entityId, false);
 		assertNotNull(object);
@@ -934,7 +934,7 @@ public class EntityManagerImplUnitTest {
 		when(mockNodeManager.getUserAnnotations(any())).thenReturn(annos);
 		JSONObject jsonResult = new JSONObject();
 		when(mockAnnotationTranslator.writeToJsonObject(any(), any(), any())).thenReturn(jsonResult);
-		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenThrow(NotFoundException.class);
+		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenReturn(Optional.empty());
 		// call under test
 		JSONObject object = entityManagerSpy.getEntityJson(mockUser, entityId, true);
 		assertNotNull(object);
@@ -958,7 +958,7 @@ public class EntityManagerImplUnitTest {
 		when(mockAnnotationTranslator.writeToJsonObject(any(), any(), any())).thenReturn(jsonResult);
 		Long schemaId = 123L;
 		when(mockJsonSchemaManager.getJsonSchemaObjectBinding(any(), any())).thenReturn(schemaBinding);
-		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenReturn(schemaId);
+		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenReturn(Optional.of(schemaId));
 		JsonSchema schema = new JsonSchema();
 		when(mockJsonSchemaManager.getValidationSchema(any())).thenReturn(schema);
 		// call under test
@@ -1013,7 +1013,7 @@ public class EntityManagerImplUnitTest {
 		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = AnnotationsV2Utils.emptyAnnotations();
 		when(mockNodeManager.getUserAnnotations(any())).thenReturn(annos);
 		JSONObject jsonResult = new JSONObject();
-		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenThrow(NotFoundException.class);
+		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenReturn(Optional.empty());
 		when(mockAnnotationTranslator.writeToJsonObject(any(), any(), any())).thenReturn(jsonResult);
 		// call under test
 		JsonSubject subject = entityManagerSpy.getEntityJsonSubject(entityId, false);
@@ -1038,7 +1038,7 @@ public class EntityManagerImplUnitTest {
 		when(mockNodeManager.getUserAnnotations(any())).thenReturn(annos);
 		when(mockDerivedAnnotationDao.getDerivedAnnotations(any())).thenReturn(Optional.empty());
 		JSONObject jsonResult = new JSONObject();
-		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenThrow(NotFoundException.class);
+		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenReturn(Optional.empty());
 		when(mockAnnotationTranslator.writeToJsonObject(any(), any(), any())).thenReturn(jsonResult);
 		// call under test
 		JsonSubject subject = entityManagerSpy.getEntityJsonSubject(entityId, true);
@@ -1063,7 +1063,7 @@ public class EntityManagerImplUnitTest {
 		JSONObject jsonResult = new JSONObject();
 		Long schemaId = 123L;
 		JsonSchema schema = new JsonSchema();
-		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenReturn(schemaId);
+		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenReturn(Optional.of(schemaId));
 		when(mockJsonSchemaManager.getJsonSchemaObjectBinding(any(), any())).thenReturn(schemaBinding);
 		when(mockJsonSchemaManager.getValidationSchema(any())).thenReturn(schema);
 		when(mockAnnotationTranslator.writeToJsonObject(any(), any(), any())).thenReturn(jsonResult);

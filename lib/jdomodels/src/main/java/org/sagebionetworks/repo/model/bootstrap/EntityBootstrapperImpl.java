@@ -13,6 +13,7 @@ import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -60,6 +61,9 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	
 	@Autowired
 	private CountingSemaphore semaphoreDao;
+	
+	@Autowired
+	private AccessRequirementDAO accessRequirementDao;
 
 	private List<EntityBootstrapData> bootstrapEntities;
 	/**
@@ -104,6 +108,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 		userProfileDAO.bootstrapProfiles();
 		groupMembersDAO.bootstrapGroups();
 		authDAO.bootstrapCredentials();
+		accessRequirementDao.bootstrap();
 		
 		pathMap = Collections.synchronizedMap(new HashMap<String, EntityBootstrapData>());
 		// Map the default users to their ids
@@ -111,7 +116,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 		for(EntityBootstrapData entityBoot: bootstrapEntities){
 			// Only add this node if it does not already exists
 			if(entityBoot.getEntityPath() == null) throw new IllegalArgumentException("Bootstrap 'enityPath' cannot be null");
-			if(entityBoot.getDefaultChildAclScheme() == null) throw new IllegalArgumentException("Boostrap 'defaultChildAclScheme' cannot be null");
+			if(entityBoot.getDefaultChildAclScheme() == null) throw new IllegalArgumentException("Bootstrap 'defaultChildAclScheme' cannot be null");
 			// Add this to the map
 			pathMap.put(entityBoot.getEntityPath(), entityBoot);
 			// The very first time we try to run a query it might 

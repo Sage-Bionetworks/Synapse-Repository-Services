@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Node;
@@ -243,7 +244,7 @@ public class DBOAccessRequirementDAOImplTest {
 	@Test
 	public void testGetConcreteTypeNotFound() {
 		assertThrows(NotFoundException.class, () -> {
-			accessRequirementDAO.getConcreteType("1");
+			accessRequirementDAO.getConcreteType("-11");
 		});
 	}
 
@@ -804,7 +805,8 @@ public class DBOAccessRequirementDAOImplTest {
 		List<AccessRequirement> expected = List.of(arOne, arTwo);
 		
 		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
-		
+		result = result.stream().filter(a -> !AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.equals(a.getId()))
+				.collect(Collectors.toList());
 		assertEquals(expected, result);
 	}
 	
@@ -829,7 +831,8 @@ public class DBOAccessRequirementDAOImplTest {
 		List<AccessRequirement> expected = List.of(arTwo, arOne);
 		
 		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
-		
+		result = result.stream().filter(a -> !AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.equals(a.getId()))
+				.collect(Collectors.toList());
 		assertEquals(expected, result);
 	}
 	
@@ -860,7 +863,8 @@ public class DBOAccessRequirementDAOImplTest {
 		expected = List.of(arTwo);
 		
 		result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
-		
+		result = result.stream().filter(a -> !AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.equals(a.getId()))
+				.collect(Collectors.toList());
 		assertEquals(expected, result);
 	}
 	
@@ -904,7 +908,8 @@ public class DBOAccessRequirementDAOImplTest {
 		List<AccessRequirement> expected = List.of(arTwo);
 		
 		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
-		
+		result = result.stream().filter(a -> !AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.equals(a.getId()))
+				.collect(Collectors.toList());
 		assertEquals(expected, result);
 	}
 	
@@ -1280,6 +1285,14 @@ public class DBOAccessRequirementDAOImplTest {
 		assertTrue(doesAccessRequirmentEtagMatch(ars.get(1).getId(), startingEtags));
 		assertFalse(doesAccessRequirmentEtagMatch(ars.get(2).getId(), startingEtags));
 		assertTrue(doesAccessRequirmentEtagMatch(ars.get(3).getId(), startingEtags));
+	}
+	
+	@Test
+	public void testBootstrapLockAccessRequirement() {
+		// call under test
+		AccessRequirement ar = accessRequirementDAO.get(AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.toString());
+		assertTrue(ar instanceof LockAccessRequirement);
+		assertEquals(AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID, ar.getId());
 	}
 		
 	/**

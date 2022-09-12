@@ -6,6 +6,7 @@ import java.util.Date;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamState;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 
 public class TeamUtilsTest {
@@ -35,5 +36,22 @@ public class TeamUtilsTest {
 		TeamUtils.copyDtoToDbo(dto, dbo);
 		assertEquals(dto, TeamUtils.copyDboToDto(dbo));
 		
+	}
+
+	@Test
+	public void testCopyDtoToDbo() {
+		Team dto = new Team();
+		dto.setId("123");
+		dto.setEtag("etag");
+		dto.setCreatedOn(new Date());
+		dto.setCanPublicJoin(false);
+		dto.setCanRequestMembership(true);
+
+		DBOTeam dbo = new DBOTeam();
+
+		// call under test
+		TeamUtils.copyDtoToDbo(dto, dbo);
+
+		assertEquals(dbo.getState(), TeamState.OPEN.name());
 	}
 }

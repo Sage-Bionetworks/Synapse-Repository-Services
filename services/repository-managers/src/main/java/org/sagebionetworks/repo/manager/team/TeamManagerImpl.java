@@ -304,7 +304,7 @@ public class TeamManagerImpl implements TeamManager {
 		}
 		
 	}
-	
+
 	/**
 	 * This turns out to be very different from the normal create, bypassing checks for both 
 	 * principal and team creation. Also, it's not transactional.
@@ -851,7 +851,8 @@ public class TeamManagerImpl implements TeamManager {
 				newTeam.setCanPublicJoin(team.getCanPublicJoin());
 				newTeam.setDescription(team.getDescription());
 				newTeam.setIcon(team.getIcon());
-				newTeam = bootstrapCreate(newTeam);	
+				newTeam = bootstrapCreate(newTeam);
+
 				if (null!=team.getInitialMembers()) {
 					groupMembersDAO.addMembers(newTeam.getId(), team.getInitialMembers());
 				}

@@ -21,7 +21,4 @@
 	<!-- Import the stack configuration -->
 	<import resource="stack-configuration.spb.xml" />
 	
-	<!-- Note: This dao is created as a beans to support profiling calls to the dao. See: PLFM-5984.  -->
-	<bean id="tableIndexDao" class="org.sagebionetworks.table.cluster.TableIndexDAOImpl" />
-	
 </beans>

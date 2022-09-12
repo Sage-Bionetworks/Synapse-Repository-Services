@@ -472,12 +472,37 @@ public class TableIndexManagerImplTest {
 		info.setColumnName("_C44_");
 		info.setColumnType(ColumnType.BOOLEAN);
 
-		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
+		when(mockIndexDao.doesIndexHashMatchSchemaHash(any(), any())).thenReturn(false);
+		when(mockIndexDao.getDatabaseInfo(any())).thenReturn(Lists.newArrayList(info));
 		when(mockIndexDao.alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean())).thenReturn(true);
+		when(mockIndexDao.getMultivalueColumnIndexTableColumnIds(any())).thenReturn(Collections.emptySet());
 		// call under test
 		manager.setIndexSchema(new TableIndexDescription(tableId), schema);
+		
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(column.getId()));
+		verify(mockIndexDao).doesIndexHashMatchSchemaHash(tableId, schema);
+		verify(mockIndexDao, times(3)).getDatabaseInfo(tableId);
+		verify(mockIndexDao).getMultivalueColumnIndexTableColumnIds(tableId);
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+	}
+	
+	@Test
+	public void testSetIndexSchemaWithHashMatch() {
+		ColumnModel column = new ColumnModel();
+		column.setId("44");
+		column.setColumnType(ColumnType.BOOLEAN);
+		schema = Lists.newArrayList(column);
+		
+		when(mockIndexDao.doesIndexHashMatchSchemaHash(any(), any())).thenReturn(true);
+		// call under test
+		List<ColumnChangeDetails> changes = manager.setIndexSchema(new TableIndexDescription(tableId), schema);
+		assertEquals(Collections.emptyList(), changes);
+		
+		verify(mockIndexDao).doesIndexHashMatchSchemaHash(tableId, schema);
+		verify(mockIndexDao, never()).getDatabaseInfo(any());
+		// it is critical that we do not call this unless needed. See: PLFM-7458.
+		verify(mockIndexDao, never()).getMultivalueColumnIndexTableColumnIds(any());
+		verify(mockIndexDao, never()).setCurrentSchemaMD5Hex(any(), any());
 	}
 
 	@Test

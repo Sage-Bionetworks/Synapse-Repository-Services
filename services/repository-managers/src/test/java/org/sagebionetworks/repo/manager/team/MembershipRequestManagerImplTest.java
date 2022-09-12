@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.TeamState;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -180,14 +181,13 @@ public class MembershipRequestManagerImplTest {
 	
 	@Test
 	public void testCreate() throws Exception {
-		Team mockTeam = Mockito.mock(Team.class);
-		when(mockTeamDAO.get(TEAM_ID)).thenReturn(mockTeam);
 		when(mockRestrictionInformationManager.
 				getRestrictionInformation(userInfo, restrictionInfoRqst)).
 					thenReturn(noUnmetAccessRqmtResponse);
 		MembershipRequest mrs = new MembershipRequest();
 		mrs.setTeamId(TEAM_ID);
 		when(mockMembershipRequestDAO.create((MembershipRequest)any())).thenReturn(mrs);
+		when(mockTeamDAO.getState(TEAM_ID)).thenReturn(TeamState.OPEN);
 		assertEquals(mrs, membershipRequestManagerImpl.create(userInfo, mrs));
 	}
 	
@@ -460,17 +460,34 @@ public class MembershipRequestManagerImplTest {
 		MembershipRequest mrs = new MembershipRequest();
 		mrs.setTeamId(TEAM_ID);
 		mrs.setUserId(MEMBER_PRINCIPAL_ID);
-		Team team = new Team();
-		team.setCanPublicJoin(true);
-		when(mockTeamDAO.get(mrs.getTeamId())).thenReturn(team);
+		when(mockTeamDAO.getState(mrs.getTeamId())).thenReturn(TeamState.PUBLIC);
 		when(mockRestrictionInformationManager.
 				getRestrictionInformation(userInfo, restrictionInfoRqst)).
 					thenReturn(noUnmetAccessRqmtResponse);
 		
-		IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+		String errorMessage = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
 			membershipRequestManagerImpl.create(userInfo, mrs);
-		});
-		assertEquals("This team is already open for the public to join, membership requests are not needed.", e.getMessage());
+		}).getMessage();
+		assertEquals("This team is already open for the public to join, membership requests are not needed.", errorMessage);
+
+	}
+
+	@Test
+	public void testCreateRequestTeamClosedToMembershipRequests() {
+		MembershipRequest mrs = new MembershipRequest();
+		mrs.setTeamId(TEAM_ID);
+		mrs.setUserId(MEMBER_PRINCIPAL_ID);
+		when(mockTeamDAO.getState(mrs.getTeamId())).thenReturn(TeamState.CLOSED);
+		when(mockRestrictionInformationManager.
+				getRestrictionInformation(userInfo, restrictionInfoRqst)).
+				thenReturn(noUnmetAccessRqmtResponse);
+
+		String errorMessage = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			membershipRequestManagerImpl.create(userInfo, mrs);
+		}).getMessage();
+		assertEquals("This team has been closed to new membership requests.", errorMessage);
 
 	}
 }

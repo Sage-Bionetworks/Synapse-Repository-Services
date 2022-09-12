@@ -137,6 +137,7 @@ import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
+import org.sagebionetworks.repo.model.drs.AccessUrl;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
@@ -4147,4 +4148,11 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	DrsObject getDrsObject(String objectId) throws SynapseException;
+
+	/**
+	 * Get the presigned access url with access ID.
+	 * @return AccessUrl
+	 * @throws SynapseException
+	 */
+	AccessUrl getAccessUrl(String objectId, String accessId) throws SynapseException;
 }

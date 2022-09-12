@@ -503,7 +503,7 @@ public class MigrationManagerImplTest {
 		MigrationType currentType = MigrationType.NODE;
 		List<DatabaseObject<?>> currentBatch = Lists.newArrayList(nodeOne);
 		List<Long> idList = Lists.newArrayList(nodeOne.getId());
-		when(mockDao.createOrUpdate(currentType, currentBatch)).thenReturn(idList);
+		when(mockDao.create(currentType, currentBatch)).thenReturn(idList);
 		when(mockMigrationListener.supports(any())).thenReturn(true);
 		// call under test
 		manager.restoreBatch(currentType, currentBatch);
@@ -518,7 +518,7 @@ public class MigrationManagerImplTest {
 		// batch of revisions.
 		List<DatabaseObject<?>> currentBatch = Lists.newArrayList(revOne);
 		List<Long> idList = Lists.newArrayList(revOne.getOwner());
-		when(mockDao.createOrUpdate(currentType, currentBatch)).thenReturn(idList);
+		when(mockDao.create(currentType, currentBatch)).thenReturn(idList);
 		when(mockMigrationListener.supports(any())).thenReturn(true);
 		// call under test
 		manager.restoreBatch(currentType, currentBatch);
@@ -531,7 +531,7 @@ public class MigrationManagerImplTest {
 		MigrationType currentType = MigrationType.NODE;
 		List<DatabaseObject<?>> currentBatch = Lists.newArrayList(nodeOne);
 		List<Long> idList = Lists.newArrayList(nodeOne.getId());
-		when(mockDao.createOrUpdate(currentType, currentBatch)).thenReturn(idList);
+		when(mockDao.create(currentType, currentBatch)).thenReturn(idList);
 		when(mockMigrationListener.supports(any())).thenReturn(false);
 		// call under test
 		manager.restoreBatch(currentType, currentBatch);
@@ -572,11 +572,11 @@ public class MigrationManagerImplTest {
 		
 		// count should match 
 		assertEquals(new Long(allObjects.size()), response.getRestoredRowCount());
-		verify(mockDao, times(2)).createOrUpdate(any(MigrationType.class), anyList());
+		verify(mockDao, times(2)).create(any(MigrationType.class), anyList());
 		// first batch is nodes
-		verify(mockDao).createOrUpdate(MigrationType.NODE, Lists.newArrayList(nodeOne, nodeTwo));
+		verify(mockDao).create(MigrationType.NODE, Lists.newArrayList(nodeOne, nodeTwo));
 		// second batch is revisions.
-		verify(mockDao).createOrUpdate(MigrationType.NODE_REVISION, Lists.newArrayList(Lists.newArrayList(revOne, revTwo)));
+		verify(mockDao).create(MigrationType.NODE_REVISION, Lists.newArrayList(Lists.newArrayList(revOne, revTwo)));
 	}
 	
 	/**
@@ -601,12 +601,12 @@ public class MigrationManagerImplTest {
 		verify(mockDao).deleteByRange(nodeTypeData, manifest.getMinimumId(),
 				manifest.getMaximumId());
 		
-		verify(mockDao, times(4)).createOrUpdate(any(MigrationType.class), anyList());
+		verify(mockDao, times(4)).create(any(MigrationType.class), anyList());
 		// each row should be its own batch
-		verify(mockDao).createOrUpdate(MigrationType.NODE, Lists.newArrayList(nodeOne));
-		verify(mockDao).createOrUpdate(MigrationType.NODE, Lists.newArrayList(nodeTwo));
-		verify(mockDao).createOrUpdate(MigrationType.NODE_REVISION, Lists.newArrayList(Lists.newArrayList(revOne)));
-		verify(mockDao).createOrUpdate(MigrationType.NODE_REVISION, Lists.newArrayList(Lists.newArrayList(revTwo)));
+		verify(mockDao).create(MigrationType.NODE, Lists.newArrayList(nodeOne));
+		verify(mockDao).create(MigrationType.NODE, Lists.newArrayList(nodeTwo));
+		verify(mockDao).create(MigrationType.NODE_REVISION, Lists.newArrayList(Lists.newArrayList(revOne)));
+		verify(mockDao).create(MigrationType.NODE_REVISION, Lists.newArrayList(Lists.newArrayList(revTwo)));
 	}
 	
 	@Test
@@ -625,11 +625,11 @@ public class MigrationManagerImplTest {
 		
 		verify(mockDao, never()).deleteByRange(any(), anyLong(), anyLong());
 		
-		verify(mockDao, times(2)).createOrUpdate(any(MigrationType.class), anyList());
+		verify(mockDao, times(2)).create(any(MigrationType.class), anyList());
 		// first batch is nodes
-		verify(mockDao).createOrUpdate(MigrationType.NODE, Lists.newArrayList(nodeOne, nodeTwo));
+		verify(mockDao).create(MigrationType.NODE, Lists.newArrayList(nodeOne, nodeTwo));
 		// second batch is revisions.
-		verify(mockDao).createOrUpdate(MigrationType.NODE_REVISION, Lists.newArrayList(Lists.newArrayList(revOne, revTwo)));
+		verify(mockDao).create(MigrationType.NODE_REVISION, Lists.newArrayList(Lists.newArrayList(revOne, revTwo)));
 	}
 	
 	@Test
@@ -648,11 +648,11 @@ public class MigrationManagerImplTest {
 		
 		verify(mockDao, never()).deleteByRange(any(), anyLong(), anyLong());
 		
-		verify(mockDao, times(2)).createOrUpdate(any(MigrationType.class), anyList());
+		verify(mockDao, times(2)).create(any(MigrationType.class), anyList());
 		// first batch is nodes
-		verify(mockDao).createOrUpdate(MigrationType.NODE, Lists.newArrayList(nodeOne, nodeTwo));
+		verify(mockDao).create(MigrationType.NODE, Lists.newArrayList(nodeOne, nodeTwo));
 		// second batch is revisions.
-		verify(mockDao).createOrUpdate(MigrationType.NODE_REVISION, Lists.newArrayList(Lists.newArrayList(revOne, revTwo)));
+		verify(mockDao).create(MigrationType.NODE_REVISION, Lists.newArrayList(Lists.newArrayList(revOne, revTwo)));
 	}
 	
 	@Test
@@ -666,7 +666,7 @@ public class MigrationManagerImplTest {
 		// count should match 
 		assertEquals(new Long(0), response.getRestoredRowCount());
 		verify(mockDao, never()).deleteByRange(any(), anyLong(), anyLong());
-		verify(mockDao, never()).createOrUpdate(any(MigrationType.class), anyList());
+		verify(mockDao, never()).create(any(MigrationType.class), anyList());
 	}
 	
 	@Test
@@ -685,9 +685,9 @@ public class MigrationManagerImplTest {
 		verify(mockDao).deleteByRange(nodeTypeData, manifest.getMinimumId(), manifest.getMaximumId());
 		verify(mockDao, never()).deleteByRange(eq(revisionTypeData), anyLong(), anyLong());
 
-		verify(mockDao, times(1)).createOrUpdate(any(MigrationType.class), anyList());
+		verify(mockDao, times(1)).create(any(MigrationType.class), anyList());
 		// primary should be added but not secondary.
-		verify(mockDao).createOrUpdate(MigrationType.NODE, Lists.newArrayList(nodeOne, nodeTwo));
+		verify(mockDao).create(MigrationType.NODE, Lists.newArrayList(nodeOne, nodeTwo));
 	}
 	
 	@Test

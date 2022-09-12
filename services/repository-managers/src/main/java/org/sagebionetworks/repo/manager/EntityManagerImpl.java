@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.json.JSONObject;
@@ -621,13 +622,14 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(id, "id");
 		entityAuthorizationManager.hasAccess(userInfo, id, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return getBoundSchema(id);
+		return findBoundSchema(id)
+				.orElseThrow(() -> new NotFoundException(String.format("No JSON schema found for '%s'", id)));
 	}
 	
 	@Override
-	public JsonSchemaObjectBinding getBoundSchema(String entityId) {
-		Long boundEntityId = nodeManager.findFirstBoundJsonSchema(KeyFactory.stringToKey(entityId));
-		return jsonSchemaManager.getJsonSchemaObjectBinding(boundEntityId, BoundObjectType.entity);
+	public Optional<JsonSchemaObjectBinding> findBoundSchema(String entityId) {
+		Optional<Long> boundEntityId = nodeManager.findFirstBoundJsonSchema(KeyFactory.stringToKey(entityId));
+		return boundEntityId.map(b->jsonSchemaManager.getJsonSchemaObjectBinding(b, BoundObjectType.entity));
 	}
 	
 
@@ -701,14 +703,14 @@ public class EntityManagerImpl implements EntityManager {
 		Entity entity = getEntity(entityId, entityClass);
 
 		Annotations annotations = getAnnotations(entityId, includeDerivedAnnotations);
-		
+
 		JSONObject json = null;
-		
-		try {
-			String schemaId = getBoundSchema(entityId).getJsonSchemaVersionInfo().get$id();
-			JsonSchema schema = jsonSchemaManager.getValidationSchema(schemaId);
+		Optional<JsonSchemaObjectBinding> boundSchema = findBoundSchema(entityId);
+		if (boundSchema.isPresent()) {
+			JsonSchema schema = jsonSchemaManager
+					.getValidationSchema(boundSchema.get().getJsonSchemaVersionInfo().get$id());
 			json = annotationsTranslator.writeToJsonObject(entity, annotations, schema);
-		} catch (NotFoundException e) {
+		} else {
 			json = annotationsTranslator.writeToJsonObject(entity, annotations, null);
 		}
 		return new EntityJsonSubject(entity, json);

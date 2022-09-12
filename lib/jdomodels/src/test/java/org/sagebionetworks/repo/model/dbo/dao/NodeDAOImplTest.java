@@ -4504,13 +4504,13 @@ public class NodeDAOImplTest {
 				grandId, BoundObjectType.entity);
 
 		// call under test
-		Long boundEntityId = nodeDao.getEntityIdOfFirstBoundSchema(childId);
+		Long boundEntityId = nodeDao.getEntityIdOfFirstBoundSchema(childId).get();
 		assertEquals(grandId, boundEntityId);
 		// call under test
-		boundEntityId = nodeDao.getEntityIdOfFirstBoundSchema(parentId);
+		boundEntityId = nodeDao.getEntityIdOfFirstBoundSchema(parentId).get();
 		assertEquals(grandId, boundEntityId);
 		// call under test
-		boundEntityId = nodeDao.getEntityIdOfFirstBoundSchema(grandId);
+		boundEntityId = nodeDao.getEntityIdOfFirstBoundSchema(grandId).get();
 		assertEquals(grandId, boundEntityId);
 
 		// override the schema at the parent level
@@ -4518,13 +4518,13 @@ public class NodeDAOImplTest {
 				BoundObjectType.entity);
 
 		// call under test
-		boundEntityId = nodeDao.getEntityIdOfFirstBoundSchema(childId);
+		boundEntityId = nodeDao.getEntityIdOfFirstBoundSchema(childId).get();
 		assertEquals(parentId, boundEntityId);
 		// call under test
-		boundEntityId = nodeDao.getEntityIdOfFirstBoundSchema(parentId);
+		boundEntityId = nodeDao.getEntityIdOfFirstBoundSchema(parentId).get();
 		assertEquals(parentId, boundEntityId);
 		// call under test
-		boundEntityId = nodeDao.getEntityIdOfFirstBoundSchema(grandId);
+		boundEntityId = nodeDao.getEntityIdOfFirstBoundSchema(grandId).get();
 		assertEquals(grandId, boundEntityId);
 	}
 	
@@ -4541,7 +4541,6 @@ public class NodeDAOImplTest {
 		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
 		parent.setParentId(grandparent.getId());
 		parent = nodeDao.createNewNode(parent);
-		Long parentId = KeyFactory.stringToKey(parent.getId());
 		toDelete.add(parent.getId());
 		// child
 		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
@@ -4549,7 +4548,7 @@ public class NodeDAOImplTest {
 		child = nodeDao.createNewNode(child);
 		Long childId = KeyFactory.stringToKey(child.getId());
 		toDelete.add(child.getId());
-
+		
 		String schema$id = "my.org-foo.bar-1.2.3";
 		int index = 0;
 		JsonSchemaVersionInfo schemaInfo = jsonSchemaTestHelper.createNewSchemaVersion(creatorUserGroupId, schema$id,
@@ -4559,13 +4558,15 @@ public class NodeDAOImplTest {
 				grandId, BoundObjectType.entity);
 		
 		// call under test
-		Long boundEntityId = nodeDao.getEntityIdOfFirstBoundSchema(childId, 3/*maxDepth*/);
-		assertEquals(grandId, boundEntityId);
-		String message = assertThrows(NotFoundException.class, () -> {
-			// call under test
-			nodeDao.getEntityIdOfFirstBoundSchema(childId, 2/*maxDepth*/);
-		}).getMessage();
-		assertEquals("No JSON schema found for 'syn" + childId + "'", message);
+		assertEquals(Optional.of(grandId), nodeDao.getEntityIdOfFirstBoundSchema(childId, 3/*maxDepth*/));
+		// call under test
+		assertEquals(Optional.empty(), nodeDao.getEntityIdOfFirstBoundSchema(childId, 2/*maxDepth*/));
+	}
+	
+	@Test
+	public void testFindFirstBoundJsonSchemaWithNotFound() throws JSONObjectAdapterException {
+		// call under test
+		assertEquals(Optional.empty(), nodeDao.getEntityIdOfFirstBoundSchema(-1L));
 	}
 
 	@Test
@@ -4576,11 +4577,7 @@ public class NodeDAOImplTest {
 		grandparent = nodeDao.createNewNode(grandparent);
 		Long grandId = KeyFactory.stringToKey(grandparent.getId());
 		toDelete.add(grandparent.getId());
-		String message = assertThrows(NotFoundException.class, () -> {
-			// call under test
-			nodeDao.getEntityIdOfFirstBoundSchema(grandId);
-		}).getMessage();
-		assertEquals("No JSON schema found for 'syn" + grandId + "'", message);
+		assertEquals(Optional.empty(), nodeDao.getEntityIdOfFirstBoundSchema(grandId));
 	}
 
 	@Test
