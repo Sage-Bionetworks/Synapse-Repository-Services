@@ -1034,7 +1034,7 @@
 		<reflectionsVersion>0.10.2</reflectionsVersion>
 		<org.springframework.version>5.3.18</org.springframework.version>
 		<jackson.version>2.10.3</jackson.version>
-		<jackson.databind.version>2.10.5.1</jackson.databind.version>
+		<jackson.databind.version>2.12.6.1</jackson.databind.version>
 		<xstream.version>1.4.17</xstream.version>
 		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
 		<javax.transaction.jta.version>1.1</javax.transaction.jta.version>
