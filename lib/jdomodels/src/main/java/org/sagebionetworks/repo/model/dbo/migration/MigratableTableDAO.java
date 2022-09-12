@@ -114,12 +114,12 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	Map<String, Set<String>> mapSecondaryTablesToPrimaryGroups();
 
 	/**
-	 * Create a batch of database objects
+	 * Create or update a batch of database objects
 	 * @param batch
 	 * @return
 	 * @throws Exception 
 	 */
-	public List<Long> create(MigrationType type, List<DatabaseObject<?>> batch);
+	public List<Long> createOrUpdate(MigrationType type, List<DatabaseObject<?>> batch);
 
 	/**
 	 * Delete all rows of the given type and row ID range.
