@@ -38,7 +38,7 @@ public class SettingsLoader {
 		FileInputStream in = new FileInputStream(settingsFile);
 		try{
 			SAXBuilder builder = new SAXBuilder();
-			builder.setExpandEntities(false);
+			//builder.setExpandEntities(false);
 			builder.setValidation(false);
 			builder.setIgnoringElementContentWhitespace(true);
 			Document doc = builder.build(settingsFile);
