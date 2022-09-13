@@ -1220,11 +1220,11 @@ public class SQLTranslatorUtilsTest {
 		//method under test
 		SQLTranslatorUtils.translateArrayFunctions(querySpecification, singleTableMapper);
 
-		String expected = "SELECT _C222_, _C111__UNNEST, _C333__UNNEST " +
+		String expected = "SELECT _C222_, T123_456_INDEX_C111_._C111__UNNEST, T123_456_INDEX_C333_._C333__UNNEST " +
 				"FROM T123 " +
 				"LEFT JOIN T123_456_INDEX_C111_ ON T123.ROW_ID = T123_456_INDEX_C111_.ROW_ID_REF_C111_ " +
 				"LEFT JOIN T123_456_INDEX_C333_ ON T123.ROW_ID = T123_456_INDEX_C333_.ROW_ID_REF_C333_ " +
-				"ORDER BY _C111__UNNEST, _C333__UNNEST";
+				"ORDER BY T123_456_INDEX_C111_._C111__UNNEST, T123_456_INDEX_C333_._C333__UNNEST";
 		assertEquals(expected, querySpecification.toSql());
 	}
 
@@ -2260,11 +2260,11 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		String expectedSql = "SELECT _C111__UNNEST, COUNT(*) " +
+		String expectedSql = "SELECT T123_INDEX_C111_._C111__UNNEST, COUNT(*) " +
 				"FROM T123 " +
 				"LEFT JOIN T123_INDEX_C111_ ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
 				"WHERE _C333_ IN ( :b0, :b1 ) " +
-				"GROUP BY _C111__UNNEST";
+				"GROUP BY T123_INDEX_C111_._C111__UNNEST";
 		assertEquals(expectedSql,element.toSql());
 		assertEquals("asdf", parameters.get("b0"));
 		assertEquals("qwerty", parameters.get("b1"));
@@ -2297,7 +2297,7 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		String expectedSql = "SELECT _C111__UNNEST, _C333__UNNEST "
+		String expectedSql = "SELECT T123_INDEX_C111_._C111__UNNEST, T123_INDEX_C333_._C333__UNNEST "
 				+ "FROM T123 LEFT JOIN T123_INDEX_C111_ "
 				+ "ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ LEFT JOIN T123_INDEX_C333_ "
 				+ "ON T123.ROW_ID = T123_INDEX_C333_.ROW_ID_REF_C333_";

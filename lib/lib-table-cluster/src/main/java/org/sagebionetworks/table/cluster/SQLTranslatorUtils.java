@@ -505,13 +505,15 @@ public class SQLTranslatorUtils {
 			if(arrayFunctionSpecification.getListFunctionType() == ArrayFunctionType.UNNEST){
 				ColumnReference referencedColumn = arrayFunctionSpecification.getColumnReference();
 
-				SchemaColumnTranslationReference columnTranslationReference = lookupAndRequireListColumn(mapper, referencedColumn, "UNNEST()");
-
+				ColumnReferenceMatch columnReferenceMatch = lookupAndRequireListColumn(mapper, referencedColumn, "UNNEST()");
+				SchemaColumnTranslationReference columnTranslationReference = (SchemaColumnTranslationReference) columnReferenceMatch.getColumnTranslationReference();
+				
 				//add column id to be joined
 				columnIdsToJoin.add(columnTranslationReference.getId());
 
-				//replace "UNNEST(_C123_)" with column "_C123__UNNEST"
+				//replace "UNNEST(_C123_)" with column "_C123__UNNEST", uses the full table name of the multivalue column
 				ColumnReference replacementColumn = SqlElementUtils.createColumnReference(
+						SQLUtils.getTableNameForMultiValueColumnIndex(columnReferenceMatch.getTableInfo().getTableIdAndVersion(), columnTranslationReference.getId()) + "." +
 						SQLUtils.getUnnestedColumnNameForId(columnTranslationReference.getId())
 				);
 				valueExpressionPrimary.replaceChildren(replacementColumn);
@@ -758,7 +760,9 @@ public class SQLTranslatorUtils {
 
 		ColumnReference columnRefernece = arrayHasPredicate.getLeftHandSide();
 
-		SchemaColumnTranslationReference schemaColumnTranslationReference = lookupAndRequireListColumn(mapper, columnRefernece, "The " + arrayHasPredicate.getKeyWord() + " keyword");
+		ColumnReferenceMatch columnMatch = lookupAndRequireListColumn(mapper, columnRefernece, "The " + arrayHasPredicate.getKeyWord() + " keyword");
+		
+		SchemaColumnTranslationReference schemaColumnTranslationReference = (SchemaColumnTranslationReference) columnMatch.getColumnTranslationReference();
 
 		//build up subquery against the flattened index table
 		String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, schemaColumnTranslationReference.getId());
@@ -867,20 +871,23 @@ public class SQLTranslatorUtils {
 	 * @param columnName column name for which to
 	 * @param errorMessageFunctionName name of the function that requires a list column type
 	 * @throws IllegalArgumentException if the column is not defined in the schema or does not have a _LIST ColumnType
-	 * @return SchemaColumnTranslationReference associated with the columnName
+	 * @return ColumnReferenceMatch associated with the columnName, the {@link ColumnReferenceMatch#getColumnTranslationReference()} is guaranteed to be a SchemaColumnTranslationReference
 	 */
-	private static SchemaColumnTranslationReference lookupAndRequireListColumn(TableAndColumnMapper mapper, ColumnReference columnRefrence, String errorMessageFunctionName){
-		ColumnTranslationReference columnTranslationReference = mapper.lookupColumnReference(columnRefrence)
+	private static ColumnReferenceMatch lookupAndRequireListColumn(TableAndColumnMapper mapper, ColumnReference columnRefrence, String errorMessageFunctionName){
+		ColumnReferenceMatch columnRefMatch = mapper.lookupColumnReferenceMatch(columnRefrence)
 				.orElseThrow(() ->  new IllegalArgumentException("Unknown column reference: " + columnRefrence.toSqlWithoutQuotes()));
-		if( !(columnTranslationReference instanceof SchemaColumnTranslationReference) ){
+				
+		if( !(columnRefMatch.getColumnTranslationReference() instanceof SchemaColumnTranslationReference) ){
 			throw new IllegalArgumentException(errorMessageFunctionName + " may only be used on columns defined in the schema");
 		}
-		SchemaColumnTranslationReference schemaColumnTranslationReference = (SchemaColumnTranslationReference) columnTranslationReference;
+		
+		SchemaColumnTranslationReference schemaColumnTranslationReference = (SchemaColumnTranslationReference) columnRefMatch.getColumnTranslationReference();
 
-		if( !ColumnTypeListMappings.isList(columnTranslationReference.getColumnType()) ){
+		if( !ColumnTypeListMappings.isList(schemaColumnTranslationReference.getColumnType()) ){
 			throw new IllegalArgumentException(errorMessageFunctionName + " only works for columns that hold list values");
 		}
-		return schemaColumnTranslationReference;
+		
+		return columnRefMatch;
 	}
 
 	public static String translateQueryFilters(List<QueryFilter> additionalFilters){
