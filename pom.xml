@@ -223,7 +223,7 @@
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-databind</artifactId>
-				<version>${jackson.databind.version}</version>
+				<version>${jackson.version}</version>
 			</dependency>
 
 			<!-- Used for timer triggers (cron-like) Note: spring-context-support 
@@ -635,7 +635,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>database-semaphore</artifactId>
-				<version>3.0.5</version>
+				<version>3.0.6</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -645,7 +645,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>aws-utilities</artifactId>
-				<version>1.0.14</version>
+				<version>1.0.15</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -660,7 +660,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>simple-http-client</artifactId>
-				<version>0.0.10</version>
+				<version>0.0.11</version>
 			</dependency>
 			<dependency>
 				<groupId>com.google.gwt</groupId>
@@ -1033,8 +1033,7 @@
 		<guavaVersion>30.1.1-jre</guavaVersion>
 		<reflectionsVersion>0.10.2</reflectionsVersion>
 		<org.springframework.version>5.3.18</org.springframework.version>
-		<jackson.version>2.10.3</jackson.version>
-		<jackson.databind.version>2.12.6.1</jackson.databind.version>
+		<jackson.version>2.13.4</jackson.version>
 		<xstream.version>1.4.17</xstream.version>
 		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
 		<javax.transaction.jta.version>1.1</javax.transaction.jta.version>
