@@ -806,6 +806,38 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	}
 	
 	@Test
+	public void testMaterializedViewWithMultiValueColumnUnnest() throws Exception {
+		int numberOfFiles = 0;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		Project project = entites.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+		
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L).withMultiValue(List.of("a", "b")),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		
+		IdAndVersion folderview = createFolderViewWithPatientData(entites, patientData);
+		
+		String definingSql = String.format(
+				"select p.patientId as patientId, p.code as code, unnest(p.multiValue) from %s p order by p.patientId, unnest(p.multiValue)", folderview.toString());
+		
+		IdAndVersion materializedViewId = createMaterializedView(project.getId(), definingSql);
+		
+		String materializedQuery = "select * from "+materializedViewId.toString();
+		
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList("111", "abc", "a")),
+				new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList("111", "abc", "b")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList("222", "def", null))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+	}
+	
+	@Test
 	public void testMaterializedViewWithJoinAndMultiValueColumnUnnest() throws Exception {
 		int numberOfFiles = 5;
 		List<Entity> entites = createProjectHierachy(numberOfFiles);
