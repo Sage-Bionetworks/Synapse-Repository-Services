@@ -1113,31 +1113,14 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testAppendJoinsToFromClause() throws ParseException {
+	public void testAppendJoinsToFromClauseWithEmptyUnnested() throws ParseException {
 		FromClause fromClause = new TableQueryParser("from syn123").fromClause();
-		Set<String> columnIdsToJoin = Collections.emptySet();
-		SQLTranslatorUtils.appendJoinsToFromClause(singleTableMapper, fromClause, columnIdsToJoin);
+		List<ColumnReferenceMatch> unnestedColumns = Collections.emptyList();
+		SQLTranslatorUtils.appendUnnestJoinsToFromClause(singleTableMapper, fromClause, unnestedColumns);
 	}
 	
 	@Test
-	public void testAppendJoinsToFromClauseWithEmptyIdsAndJoin() throws ParseException {
-		FromClause fromClause = new TableQueryParser("from syn123 join syn456").fromClause();
-		Set<String> columnIdsToJoin = Collections.emptySet();
-		SQLTranslatorUtils.appendJoinsToFromClause(singleTableMapper, fromClause, columnIdsToJoin);
-	}
-	
-	@Test
-	public void testAppendJoinsToFromClauseWithColumnIdsAndJoin() throws ParseException {
-		FromClause fromClause = new TableQueryParser("from syn123 join syn456").fromClause();
-		Set<String> columnIdsToJoin = Sets.newHashSet("11");
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			SQLTranslatorUtils.appendJoinsToFromClause(singleTableMapper, fromClause, columnIdsToJoin);
-		}).getMessage();
-		assertEquals("UNEST cannot be used with a JOIN", message);
-	}
-
-	@Test
-	public void tesTranslateArrayFunction_columnNotFound() throws ParseException {
+	public void tesTranslateArrayFunctionWithColumnNotFound() throws ParseException {
 		//_C987654_ does not exist
 		QuerySpecification querySpecification = TableQueryParser.parserQuery(
 				"SELECT UNNEST(_C987654_) FROM T123 ORDER BY UNNEST(_C987654_)"
@@ -1155,25 +1138,60 @@ public class SQLTranslatorUtilsTest {
 	public void tesTranslateArrayFunctionWithJoin() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		
-		singleTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123.456").querySpecification(), (IdAndVersion tableId) -> {
-					return Arrays.asList(columnFoo);
+		TableAndColumnMapper multiTableMapper = new TableAndColumnMapper(
+				new TableQueryParser("select * from syn123 join syn456").querySpecification(), (IdAndVersion tableId) -> {
+					if (tableId.getId() == 123L) {
+						return Arrays.asList(columnFoo);
+					} else {
+						return Arrays.asList(columnBar);
+					}
 				});
 		
 		QuerySpecification querySpecification = TableQueryParser.parserQuery(
-				"SELECT UNNEST(_C111_) FROM T123 join T456 ORDER BY UNNEST(_C111_)"
+				"SELECT UNNEST(T123._C111_) FROM T123 _A0 join T456 _A1 ORDER BY UNNEST(T123._C111_)"
 		);
+		
+		SQLTranslatorUtils.translateArrayFunctions(querySpecification, multiTableMapper);
 
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			//method under test
-			SQLTranslatorUtils.translateArrayFunctions(querySpecification, singleTableMapper);
-		}).getMessage();
+		String expected = "SELECT T123_INDEX_C111_._C111__UNNEST " +
+				"FROM T123 _A0 JOIN T456 _A1 " +
+				"LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"ORDER BY T123_INDEX_C111_._C111__UNNEST";
+		
+		assertEquals(expected, querySpecification.toSql());
+	}
+	
+	@Test
+	public void tesTranslateArrayFunctionWithJoinAndMultipleColumns() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		columnBar.setColumnType(ColumnType.STRING_LIST);
+		
+		TableAndColumnMapper multiTableMapper = new TableAndColumnMapper(
+				new TableQueryParser("select * from syn123 join syn456").querySpecification(), (IdAndVersion tableId) -> {
+					if (tableId.getId() == 123L) {
+						return Arrays.asList(columnFoo);
+					} else {
+						return Arrays.asList(columnBar);
+					}
+				});
+		
+		QuerySpecification querySpecification = TableQueryParser.parserQuery(
+				"SELECT UNNEST(T123._C111_), UNNEST(T456._C333_) FROM T123 _A0 join T456 _A1 ORDER BY UNNEST(T123._C111_), UNNEST(T456._C333_)"
+		);
+		
+		SQLTranslatorUtils.translateArrayFunctions(querySpecification, multiTableMapper);
 
-		assertEquals("UNEST cannot be used with a JOIN", errorMessage);
+		String expected = "SELECT T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C333_._C333__UNNEST " +
+				"FROM T123 _A0 JOIN T456 _A1 " +
+				"LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"LEFT JOIN T456_INDEX_C333_ ON _A1.ROW_ID = T456_INDEX_C333_.ROW_ID_REF_C333_ " +
+				"ORDER BY T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C333_._C333__UNNEST";
+		
+		assertEquals(expected, querySpecification.toSql());
 	}
 
 	@Test
-	public void tesTranslateArrayFunction_columnNotInSchema() throws ParseException {
+	public void tesTranslateArrayFunctionWithColumnNotInSchema() throws ParseException {
 		//can not perform UNNEST on one of the metadata columns
 		QuerySpecification querySpecification = TableQueryParser.parserQuery(
 				"SELECT UNNEST(ROW_ID) FROM T123 ORDER BY UNNEST(ROW_ID)"
@@ -1188,7 +1206,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void tesTranslateArrayFunction_columnNotListType() throws ParseException {
+	public void tesTranslateArrayFunctionWithColumnNotListType() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING);
 
 		//_C111_ is a STRING type instead of STRING_LIST
@@ -1205,7 +1223,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void tesTranslateArrayFunction_multipleColumns() throws ParseException {
+	public void tesTranslateArrayFunctionWithMultipleColumns() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnBar.setColumnType(ColumnType.STRING_LIST);
 		singleTableMapper = new TableAndColumnMapper(
@@ -1214,16 +1232,16 @@ public class SQLTranslatorUtilsTest {
 				});
 
 		QuerySpecification querySpecification = TableQueryParser.parserQuery(
-				"SELECT _C222_, UNNEST(_C111_), UNNEST(_C333_) FROM T123 ORDER BY UNNEST(_C111_), UNNEST(_C333_)"
+				"SELECT _C222_, UNNEST(_C111_), UNNEST(_C333_) FROM T123_456 ORDER BY UNNEST(_C111_), UNNEST(_C333_)"
 		);
 
 		//method under test
 		SQLTranslatorUtils.translateArrayFunctions(querySpecification, singleTableMapper);
 
 		String expected = "SELECT _C222_, T123_456_INDEX_C111_._C111__UNNEST, T123_456_INDEX_C333_._C333__UNNEST " +
-				"FROM T123 " +
-				"LEFT JOIN T123_456_INDEX_C111_ ON T123.ROW_ID = T123_456_INDEX_C111_.ROW_ID_REF_C111_ " +
-				"LEFT JOIN T123_456_INDEX_C333_ ON T123.ROW_ID = T123_456_INDEX_C333_.ROW_ID_REF_C333_ " +
+				"FROM T123_456 " +
+				"LEFT JOIN T123_456_INDEX_C111_ ON T123_456.ROW_ID = T123_456_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"LEFT JOIN T123_456_INDEX_C333_ ON T123_456.ROW_ID = T123_456_INDEX_C333_.ROW_ID_REF_C333_ " +
 				"ORDER BY T123_456_INDEX_C111_._C111__UNNEST, T123_456_INDEX_C333_._C333__UNNEST";
 		assertEquals(expected, querySpecification.toSql());
 	}
@@ -1827,6 +1845,19 @@ public class SQLTranslatorUtilsTest {
 			SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
 		}).getMessage();
 		assertEquals("Column does not exist: b.wrong", message);
+	}
+	
+	@Test
+	public void testTranslateModelWithJoinColumnAndUnnestFunction() throws ParseException{
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		
+		QuerySpecification element = new TableQueryParser("select unnest(a.foo) from syn123 a join syn123 b on (a.id = b.id)").querySpecification();
+		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		// call under test
+		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
+		assertEquals("SELECT T123_INDEX_C111_._C111__UNNEST FROM T123 _A0 JOIN T123 _A1 ON ( _A0._C444_ = _A1._C444_ )"
+				+ " LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_",element.toSql());
 	}
 	
 	@Test
@@ -2949,6 +2980,14 @@ public class SQLTranslatorUtilsTest {
 		assertTrue(translated.isPresent());
 		assertEquals("ROW_ID", translated.get().toSql());
 	}
+
+	@Test
+	public void testAddLongWithNull() {
+		assertEquals(null, SQLTranslatorUtils.addLongsWithNull(null, null));
+		assertEquals(123L, SQLTranslatorUtils.addLongsWithNull(null, 123L));
+		assertEquals(123L, SQLTranslatorUtils.addLongsWithNull(123L, null));
+		assertEquals(4L, SQLTranslatorUtils.addLongsWithNull(3L, 1L));
+	}
 	
 	@Test
 	public void testGetSchemaOfDerivedColumnWithSimpleString() throws ParseException {
@@ -2968,7 +3007,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testGetSchemaOfDerivedColumnWithStringAlais() throws ParseException {
+	public void testGetSchemaOfDerivedColumnWithStringAlias() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select foo as bar from syn123").querySpecification();
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
@@ -3006,14 +3045,6 @@ public class SQLTranslatorUtilsTest {
 		expected.setId(null);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
-	}
-	
-	@Test
-	public void testAddLongWithNull() {
-		assertEquals(null, SQLTranslatorUtils.addLongsWithNull(null, null));
-		assertEquals(123L, SQLTranslatorUtils.addLongsWithNull(null, 123L));
-		assertEquals(123L, SQLTranslatorUtils.addLongsWithNull(123L, null));
-		assertEquals(4L, SQLTranslatorUtils.addLongsWithNull(3L, 1L));
 	}
 	
 	@Test
@@ -3074,7 +3105,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testGetSchemaOfDerivedColumnWithDerivedWithAverge() throws ParseException {
+	public void testGetSchemaOfDerivedColumnWithDerivedWithAverage() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select avg(id) from syn123").querySpecification();
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("id")));
@@ -3083,7 +3114,7 @@ public class SQLTranslatorUtilsTest {
 		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
 		ColumnModel expected = new ColumnModel();
 		expected.setName("AVG(id)");
-		expected.setColumnType(ColumnType.INTEGER);
+		expected.setColumnType(ColumnType.DOUBLE);
 		expected.setMaximumSize(null);
 		expected.setId(null);
 		// call under test
@@ -3107,6 +3138,24 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
 	}
 	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithUnnest() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select unnest(foo) from syn123").querySpecification();
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		
+		ColumnModel expected = new ColumnModel();
+		expected.setName("UNNEST(foo)");
+		expected.setColumnType(ColumnType.STRING);
+		expected.setMaximumSize(columnNameMap.get("foo").getMaximumSize());
+		expected.setId(null);
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
 
 	@Test
 	public void testCreateMaterializedViewInsertSqlWithDependentView() {
