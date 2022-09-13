@@ -635,7 +635,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>database-semaphore</artifactId>
-				<version>3.0.6</version>
+				<version>3.0.5</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -645,7 +645,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>aws-utilities</artifactId>
-				<version>1.0.15</version>
+				<version>1.0.14</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -660,7 +660,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>simple-http-client</artifactId>
-				<version>0.0.11</version>
+				<version>0.0.10</version>
 			</dependency>
 			<dependency>
 				<groupId>com.google.gwt</groupId>
