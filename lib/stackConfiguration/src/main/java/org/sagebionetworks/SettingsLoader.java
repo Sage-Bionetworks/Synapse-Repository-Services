@@ -13,6 +13,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
+import org.jdom2.input.sax.XMLReaders;
 
 /**
  * A helper class to load properties from the users .m2 settings file.
@@ -38,7 +39,7 @@ public class SettingsLoader {
 		FileInputStream in = new FileInputStream(settingsFile);
 		try{
 			SAXBuilder builder = new SAXBuilder();
-			builder.setValidation(false);
+			builder.setXMLReaderFactory(XMLReaders.NONVALIDATING);
 			builder.setIgnoringElementContentWhitespace(true);
 			Document doc = builder.build(settingsFile);
 			Element root = doc.getRootElement();
