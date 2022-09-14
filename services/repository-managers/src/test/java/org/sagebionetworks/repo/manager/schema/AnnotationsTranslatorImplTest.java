@@ -29,12 +29,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 public class AnnotationsTranslatorImplTest {
@@ -664,7 +664,7 @@ public class AnnotationsTranslatorImplTest {
 	}
 	
 	@Test
-	public void testWriteAnnotationsToJSONObjectWithNullWithEmptyListValue() throws InstantiationException, IllegalAccessException {
+	public void testWriteAnnotationsToJSONObjectWithNullWithEmptyListValue() {
 		schema = null;
 		Annotations toWrite = new Annotations();
 		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
@@ -674,10 +674,9 @@ public class AnnotationsTranslatorImplTest {
 		map.put("emptyList", annoValue);
 		toWrite.setAnnotations(map);
 		JSONObject json = new JSONObject();
-		JSONArray emptyJsonArray = new JSONArray();
 		// call under test
 		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
-		assertTrue(emptyJsonArray.similar(json.get("emptyList")));
+		assertEquals("", json.get("emptyList"));
 	}
 	
 	@Test

@@ -403,7 +403,7 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			return;
 		}
 		if (value.getValue().isEmpty()) {
-			jsonObject.put(key, new ArrayList<>());
+			jsonObject.put(key, "");
 		} else if (value.getValue().size() == 1 && Boolean.TRUE.equals(isSingleMap.get(key))) {
 			/*
 			 * The only case where we write a single is when the annotations is a single

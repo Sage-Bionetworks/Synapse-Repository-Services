@@ -1,19 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
+import com.google.common.collect.Lists;
+import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
@@ -23,8 +11,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
@@ -32,20 +31,41 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
+import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.FORMAT;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JsonDateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.google.common.collect.Lists;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -68,6 +88,8 @@ public class EntityManagerImplAutowireTest {
 	
 	@Autowired
 	private DerivedAnnotationDao derivedAnnotationsDao;
+	@Autowired
+	JsonSchemaManager jsonSchemaManager;
 
 	private List<String> toDelete;
 	private List<String> activitiesToDelete;
@@ -78,6 +100,10 @@ public class EntityManagerImplAutowireTest {
 	private Long userId;
 	
 	private AccessRequirement arToDelete;
+
+	private Organization organization = null;
+
+	private JsonSchema schema = null;
 	
 	@BeforeEach
 	public void before() throws Exception{
@@ -127,6 +153,9 @@ public class EntityManagerImplAutowireTest {
 		if (userId!=null) {
 			userManager.deletePrincipal(adminUserInfo, userId);
 		}
+
+		jsonSchemaManager.truncateAll();
+
 		derivedAnnotationsDao.clearAll();
 	}
 	
@@ -577,6 +606,983 @@ public class EntityManagerImplAutowireTest {
 		JSONObject projectJSON = entityManager.getEntityJson(adminUserInfo, pid, false);
 		assertEquals(projectJSON.getJSONArray("key").get(0).getClass(), Boolean.class);
 		assertEquals(projectJSON.getJSONArray("key").get(1).getClass(), Boolean.class);
+	}
+
+	@Test
+	public void testAddEmptyStringAnnotationWIthEntityJson() {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+
+		// get entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		// add a empty value key annotation
+		toUpdate.put("key", "");
+		// put entity JSON
+		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+		//call under test
+		// get the entity JSON will have array of string for key annotation containing empty string
+		JSONObject projectJSON = entityManager.getEntityJson(adminUserInfo, pid, false);
+		JSONObject expectedJson = new JSONObject();
+		expectedJson.put("key", List.of(""));
+		assertEquals(expectedJson.get("key").toString(), projectJSON.get("key").toString());
+		//call under test
+		Annotations annotations = entityManager.getAnnotations(userInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(annotations.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of(""),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,annotations);
+	}
+
+	@Test
+	public void testAddSingleStringAnnotationWIthEntityJson() {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+
+		// get entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		// add a empty value key annotation
+		toUpdate.put("key", "test");
+		// put entity JSON
+		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+
+		//call under test
+		// get the entity JSON will have array of string for key annotation containing empty string
+		JSONObject projectJSON = entityManager.getEntityJson(adminUserInfo, pid, false);
+		JSONObject expectedJson = new JSONObject();
+		expectedJson.put("key", List.of("test"));
+		assertEquals(expectedJson.get("key").toString(), projectJSON.get("key").toString());
+
+		//call under test
+		Annotations annotations = entityManager.getAnnotations(userInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(annotations.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of("test"),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,annotations);
+	}
+
+	@Test
+	public void testAddMultipleAnnotationWIthEntityJson() {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		// get entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		// add a list of String annotation
+		toUpdate.put("key", Arrays.asList("one","","two"));
+		// put entity JSON
+		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+		// get the entity JSON will have array of string for key annotation
+		JSONObject projectJSON = entityManager.getEntityJson(adminUserInfo, pid, false);
+		JSONObject expectedJson = new JSONObject();
+		expectedJson.put("key",Arrays.asList("one","","two"));
+		assertEquals(expectedJson.get("key").toString(), projectJSON.get("key").toString());
+
+		Annotations annotations = entityManager.getAnnotations(userInfo, pid);
+
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(annotations.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key",Arrays.asList("one","","two"),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,annotations);
+	}
+
+	@Test
+	public void testUpdateEmptyExistingAnnotationWithEmptyStringWIthEntityJson() {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+		Annotations annotations =AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		AnnotationsV2TestUtils.putAnnotations(annotations, "key", List.of(),
+				AnnotationsValueType.LONG);
+		annotations.setEtag(project.getEtag());
+
+		// Add/update empty list of Long
+		entityManager.updateAnnotations(userInfo, pid, annotations);
+
+		// // get the entity JSON will have array of string for key annotation containing empty string
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		assertEquals(toUpdate.get("key").getClass(), String.class);
+		assertEquals(toUpdate.get("key").toString(), "");
+
+		//call under test
+		// put entity JSON
+		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+		// get the entity JSON will have array of string for key annotation containing empty string
+		JSONObject projectJSON = entityManager.getEntityJson(adminUserInfo, pid, false);
+		JSONObject expectedJson = new JSONObject();
+		expectedJson.put("key", List.of(""));
+		assertEquals(expectedJson.get("key").toString(), projectJSON.get("key").toString());
+
+		// get the entity Annotation will have array of string for key annotation containing empty string
+		Annotations latestAnnotations = entityManager.getAnnotations(userInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(latestAnnotations.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of(""),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,latestAnnotations);
+	}
+
+	@Test
+	public void testUpdateExistingAnnotationWithEmptyStringWIthEntityJson() {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+		Annotations annotations =AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		AnnotationsV2TestUtils.putAnnotations(annotations, "key", List.of("1","2"),
+				AnnotationsValueType.LONG);
+		annotations.setEtag(project.getEtag());
+
+		// Add/update list of Long
+		entityManager.updateAnnotations(userInfo, pid, annotations);
+
+		// get the entity JSON will have array of Long
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		JSONObject expectedJson = new JSONObject();
+		expectedJson.put("key",List.of(1,2));
+		assertEquals(expectedJson.get("key").toString(), toUpdate.get("key").toString());
+
+		toUpdate.put("key", "");
+		// put entity JSON with empty annotation
+		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+		// get the entity JSON  will have array of string for key annotation containing empty string
+		JSONObject projectJSON = entityManager.getEntityJson(adminUserInfo, pid, false);
+		JSONObject newExpectedJson = new JSONObject();
+		newExpectedJson.put("key",List.of(""));
+		assertEquals(newExpectedJson.get("key").toString(), projectJSON.get("key").toString());
+
+		// get the entity Annotation will have array of string for key annotation containing empty string
+		Annotations latestAnnotations = entityManager.getAnnotations(userInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(latestAnnotations.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of(""),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,latestAnnotations);
+	}
+	@Test
+	public void testUpdateExistingAnnotationWithMixedValuesWIthEntityJson() {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+		Annotations annotations =AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		AnnotationsV2TestUtils.putAnnotations(annotations, "key", List.of("1","2"),
+				AnnotationsValueType.LONG);
+		annotations.setEtag(project.getEtag());
+
+		// Add/update list of Long
+		entityManager.updateAnnotations(userInfo, pid, annotations);
+
+		// get the entity JSON will have array of Long
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		JSONObject expectedJson = new JSONObject();
+		expectedJson.put("key",List.of(1,2));
+		assertEquals(expectedJson.get("key").toString(), toUpdate.get("key").toString());
+
+		toUpdate.put("key", List.of("","1"));
+		// put entity JSON with mixed type annotation
+		assertEquals("List of mixed types found for key: 'key'", assertThrows(IllegalArgumentException.class ,()-> {
+			entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+				}).getMessage());
+	}
+
+	@Test
+	public void testUpdateExistingAnnotationWithMixedValuesWIthEntityAnnotation() {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+		Annotations annotations =AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		AnnotationsV2TestUtils.putAnnotations(annotations, "key", List.of("","2"),
+				AnnotationsValueType.LONG);
+		annotations.setEtag(project.getEtag());
+		// call under test
+		// Add/update list of Long
+		assertEquals("Value associated with key=key is not valid for type=LONG: ", assertThrows(IllegalArgumentException.class ,()-> {
+			entityManager.updateAnnotations(userInfo, pid, annotations);
+		}).getMessage());
+
+	}
+
+	@Test
+	public void testAddEmptyArrayAnnotationWIthEntityJson() {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		// get the entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		toUpdate.put("key", List.of());
+
+		// call under test
+		// put entity JSON with empty array
+		assertEquals("a value type must be set for values associated with key=key", assertThrows(IllegalArgumentException.class ,()-> {
+		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+		}).getMessage());
+	}
+
+	@Test
+	public void testAddEmptyArrayAnnotationWIthAnnotationAPI() {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		// get the entity JSON
+		Annotations annotations = entityManager.getAnnotations(userInfo,pid);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "key", List.of(),
+				AnnotationsValueType.STRING);
+
+		entityManager.updateAnnotations(adminUserInfo, pid, annotations);
+
+		// call under test
+		JSONObject projectJSON = entityManager.getEntityJson(adminUserInfo, pid, false);
+		JSONObject expectedJson = new JSONObject();
+		expectedJson.put("key","");
+		assertEquals(expectedJson.get("key").toString(), projectJSON.get("key").toString());
+
+		Annotations latestAnnotations = entityManager.getAnnotations(userInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(latestAnnotations.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of(),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,latestAnnotations);
+	}
+
+	@Test
+	public void testUpdateExistingAnnotationWithEmptyArrayWIthEntityJson() {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+		Annotations annotations =AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		AnnotationsV2TestUtils.putAnnotations(annotations, "key", List.of("1","2"),
+				AnnotationsValueType.LONG);
+		annotations.setEtag(project.getEtag());
+		// Add list of Long
+		entityManager.updateAnnotations(userInfo, pid, annotations);
+
+		//call under test
+		// get the entity JSON having list of long
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		JSONObject expectedJson = new JSONObject();
+		expectedJson.put("key",List.of(1,2));
+		assertEquals(expectedJson.get("key").toString(), toUpdate.get("key").toString());
+
+		toUpdate.put("key", List.of());
+		// put entity JSON with empty array
+		assertEquals("a value type must be set for values associated with key=key", assertThrows(IllegalArgumentException.class ,()-> {
+			entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+		}).getMessage());
+	}
+
+	@Test
+	public void testAddNullASAStringAnnotationWIthEntityJson() {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+
+		//call under test
+		// get the entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		toUpdate.put("key", "null");
+
+		// get the entity JSON  will have array of string with null as value of array
+		JSONObject updateEntityJson = entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+		JSONObject expectedJson = new JSONObject();
+		expectedJson.put("key",List.of("null"));
+		assertEquals(expectedJson.get("key").toString(), updateEntityJson.get("key").toString());
+
+		//get with annotation
+		Annotations latestAnnotations = entityManager.getAnnotations(userInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(latestAnnotations.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of("null"),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,latestAnnotations);
+	}
+
+	@Test
+	public void testAddNullASAStringAnnotationWIthAnnotation() {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+
+		//call under test
+		Annotations annotations =AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		AnnotationsV2TestUtils.putAnnotations(annotations, "key", List.of("null"),
+				AnnotationsValueType.STRING);
+		annotations.setEtag(project.getEtag());
+		// Add list of Long
+		entityManager.updateAnnotations(userInfo, pid, annotations);
+
+		// get the entity JSON having list of long
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		JSONObject expectedJson = new JSONObject();
+		expectedJson.put("key",List.of("null"));
+		assertEquals(expectedJson.get("key").toString(), toUpdate.get("key").toString());
+
+		//get with annotation
+		Annotations latestAnnotations = entityManager.getAnnotations(userInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(latestAnnotations.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of("null"),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,latestAnnotations);
+	}
+
+	@Test
+	public void testAddNullAnnotationWIthEntityJson() {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+
+		//call under test
+		// get the entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		toUpdate.put("key", JSONObject.NULL);
+		// get the entity JSON  will have array of string with null as value of array
+		JSONObject updateEntityJson = entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+		JSONObject expectedJson = new JSONObject();
+		expectedJson.put("key",List.of("null"));
+		assertEquals(expectedJson.get("key").toString(), updateEntityJson.get("key").toString());
+
+
+		//get with annotation
+		Annotations latestAnnotations = entityManager.getAnnotations(userInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(latestAnnotations.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of("null"),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,latestAnnotations);
+
+	}
+
+	@Test
+	public void testAddNullAnnotationWIthAnnotation() {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+
+		//call under test
+		Annotations annotations =AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		AnnotationsV2TestUtils.putAnnotations(annotations, "key", Collections.singletonList(null),
+				AnnotationsValueType.STRING);
+		annotations.setEtag(project.getEtag());
+		// Add list of Long
+		assertEquals("null is not allowed. To indicate no values, use an empty list.",
+				assertThrows(IllegalArgumentException.class , () ->{
+			entityManager.updateAnnotations(userInfo, pid, annotations);
+				}).getMessage());
+	}
+
+	@Test
+	public void testJsonSingledValueSchemaWithMultiValueWithEntityJson() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		//call under test
+		// get the entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		toUpdate.put("key", List.of("one","two"));
+		//update entity with list of values
+		 entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("[\"one\",\"two\"]", jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of("one", "two"), AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonSingledValueSchemaWithMultiValueWithAnnotationAPI() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		//call under test
+		Annotations annotations =entityManager.getAnnotations(adminUserInfo,pid);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "key", List.of("one","two"),
+				AnnotationsValueType.STRING);
+
+		entityManager.updateAnnotations(adminUserInfo, pid, annotations);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("[\"one\",\"two\"]", jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of("one", "two"), AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonSingledValueSchemaWithSingleValueInListWithEntityJson() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// get the entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		toUpdate.put("key", List.of("one"));
+
+		//call under test
+		// update entity Json
+		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("one", jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of("one"), AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonSingledValueSchemaWithSingleValueInListWithAnnotationAPI() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// get the entity JSON
+		Annotations annotations =entityManager.getAnnotations(adminUserInfo,pid);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "key", List.of("one"),
+				AnnotationsValueType.STRING);
+		annotations.setEtag(annotations.getEtag());
+
+		//call under test
+		// update entity Json
+		entityManager.updateAnnotations(adminUserInfo, pid, annotations);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("one", jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of("one"), AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonSingledValueSchemaWithSingleValueWithEntityJson() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// get the entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		toUpdate.put("key", "one");
+
+		//call under test
+		// update entity
+		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("one", jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of("one"), AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonSingledValueSchemaWithEmptyStringWithEntityJson() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// get the entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		toUpdate.put("key", "");
+
+		// call under test
+		 entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("", jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of(""), AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonSingledValueSchemaWithEmptyStringWithAnnotation() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		Annotations annotations =entityManager.getAnnotations(adminUserInfo,pid);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "key", List.of(""),
+				AnnotationsValueType.STRING);
+		annotations.setEtag(annotations.getEtag());
+
+		// call under test
+		entityManager.updateAnnotations(adminUserInfo, pid, annotations);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("", jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of(""), AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonSingledValueSchemaWitNullWithEntityJson() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// get the entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		toUpdate.put("key", JSONObject.NULL);
+
+		// call under test
+		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("null", jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of("null"), AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonMultiValueSchemaWithMultiValueWithEntityJson() throws Exception {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createMultiValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// get the entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		toUpdate.put("key", List.of("one","two"));
+
+		// call under test
+		 entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("[\"one\",\"two\"]", jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key",Arrays.asList("one","two"),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonMultiValueSchemaWithMultiValueWithAnnotationAPI() throws Exception {
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createMultiValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		Annotations annotations =entityManager.getAnnotations(adminUserInfo,pid);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "key", List.of("one","two"),
+				AnnotationsValueType.STRING);
+		annotations.setEtag(annotations.getEtag());
+
+		// call under test
+		entityManager.updateAnnotations(adminUserInfo, pid, annotations);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("[\"one\",\"two\"]", jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key",Arrays.asList("one","two"),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonMultiValueSchemaWithSingleValueInListWithEntityJson() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createMultiValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// get the entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		toUpdate.put("key", List.of("one"));
+
+		// call under test
+		 entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("[\"one\"]", jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of("one"),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonMultiValueSchemaWithSingleValueInListWithAnnotationAPI() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createMultiValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		Annotations annotations =entityManager.getAnnotations(adminUserInfo,pid);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "key", List.of("one"),
+				AnnotationsValueType.STRING);
+		annotations.setEtag(annotations.getEtag());
+
+		// call under test
+		entityManager.updateAnnotations(adminUserInfo, pid, annotations);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("[\"one\"]", jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of("one"),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonMultiValueSchemaWithSingleValueASString() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createMultiValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// get the entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		toUpdate.put("key", "one");
+
+		// call under test
+		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("[\"one\"]", jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of("one"),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonMultiValueSchemaWithEmptyString() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createMultiValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// get the entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		toUpdate.put("key", "");
+
+		// call under test
+		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("[\"\"]",jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of(""),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonMultiValueSchemaWithEmptyStringWithAnnotationAPI() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createMultiValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		Annotations annotations =entityManager.getAnnotations(adminUserInfo,pid);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "key", List.of(""),
+				AnnotationsValueType.STRING);
+		annotations.setEtag(annotations.getEtag());
+
+		// call under test
+		entityManager.updateAnnotations(adminUserInfo, pid, annotations);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("[\"\"]",jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of(""),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	@Test
+	public void testJsonMultiValueSchemaWitNull() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createMultiValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// get the entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		toUpdate.put("key", JSONObject.NULL);
+
+		// call under test
+		 entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid,false);
+		assertEquals("[\"null\"]", jsonObject.get("key").toString());
+
+		Annotations updatedAnnotation = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(updatedAnnotation.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation,"key", List.of("null"),AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation,updatedAnnotation);
+	}
+
+	private CreateOrganizationRequest createOrganizationRequest(){
+		final String organizationName = "a.z1.b.com";
+		final CreateOrganizationRequest createOrganizationRequest = new CreateOrganizationRequest();
+		createOrganizationRequest.setOrganizationName(organizationName);
+		return createOrganizationRequest;
+	}
+
+	private CreateSchemaRequest createSingleValueSchemaRequest(final Organization organization) throws Exception {
+		// create the schema
+		String fileName = "schemas/StringSingleValued.json";
+		String schemaName = "schema.StringSingleValued.json";
+		String semanticVersionString = "1.2.0";
+		schema = loadStringFromClasspath(fileName);
+		schema.set$id(organization.getName() + "-" + schemaName + "-" + semanticVersionString);
+		CreateSchemaRequest createSchemaRequest = new CreateSchemaRequest();
+		createSchemaRequest.setSchema(schema);
+		return createSchemaRequest;
+	}
+
+	private CreateSchemaRequest createMultiValueSchemaRequest(final Organization organization) throws Exception {
+		// create the schema
+		String fileName = "schemas/StringMultiValued.json";
+		String schemaName = "schema.StringMultiValued.json";
+		String semanticVersionString = "1.2.0";
+		JsonSchema schema = loadStringFromClasspath(fileName);
+		schema.set$id(organization.getName() + "-" + schemaName + "-" + semanticVersionString);
+		CreateSchemaRequest createSchemaRequest = new CreateSchemaRequest();
+		createSchemaRequest.setSchema(schema);
+		return createSchemaRequest;
+	}
+
+	public JsonSchema loadStringFromClasspath(String name) throws Exception {
+		try (InputStream in =EntityManagerImplAutowireTest.class.getClassLoader().getResourceAsStream(name)) {
+			if (in == null) {
+				throw new IllegalArgumentException("Cannot find: '" + name + "' on the classpath");
+			}
+			return EntityFactory.createEntityFromJSONString(IOUtils.toString(in, "UTF-8"), JsonSchema.class);
+		}
 	}
 	
 	@Test
