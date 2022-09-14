@@ -24,7 +24,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -88,7 +87,6 @@ import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class SQLTranslatorUtilsTest {
@@ -1189,6 +1187,33 @@ public class SQLTranslatorUtilsTest {
 		
 		assertEquals(expected, querySpecification.toSql());
 	}
+	
+	@Test
+	public void tesTranslateArrayFunctionWithJoinAndSameColumnDifferentTable() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		
+		TableAndColumnMapper multiTableMapper = new TableAndColumnMapper(
+				new TableQueryParser("select * from syn123 join syn456").querySpecification(), (IdAndVersion tableId) -> {
+					// Both tables have the multi value column
+					return Arrays.asList(columnFoo);
+				});
+		
+		QuerySpecification querySpecification = TableQueryParser.parserQuery(
+				// We unnest both columns, make sure we join on the indices of both tables
+				"SELECT UNNEST(T123._C111_), UNNEST(T456._C111_) FROM T123 _A0 join T456 _A1 ORDER BY UNNEST(T123._C111_), UNNEST(T456._C111_)"
+		);
+		
+		SQLTranslatorUtils.translateArrayFunctions(querySpecification, multiTableMapper);
+
+		String expected = "SELECT T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C111_._C111__UNNEST " +
+				"FROM T123 _A0 JOIN T456 _A1 " +
+				"LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"LEFT JOIN T456_INDEX_C111_ ON _A1.ROW_ID = T456_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"ORDER BY T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C111_._C111__UNNEST";
+		
+		assertEquals(expected, querySpecification.toSql());
+	}
+	
 
 	@Test
 	public void tesTranslateArrayFunctionWithColumnNotInSchema() throws ParseException {
