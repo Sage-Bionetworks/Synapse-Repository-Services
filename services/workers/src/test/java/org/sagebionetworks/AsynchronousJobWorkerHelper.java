@@ -2,6 +2,7 @@ package org.sagebionetworks;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
 import org.sagebionetworks.AsynchronousJobWorkerHelperImpl.AsyncJobResponse;
@@ -9,6 +10,7 @@ import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -243,5 +245,24 @@ public interface AsynchronousJobWorkerHelper {
 	 * @throws Exception 
 	 */
 	String waitForEmailMessgae(String recieverEmailsAddress, long maxWaitMs) throws Exception;
+	
+	/**
+	 * Run the given function while the stack is in read-only mode. This call will
+	 * unconditionally put the stack back in read-write mode before returning.
+	 * 
+	 * @param <T>
+	 * @param <R>
+	 * @param function
+	 * @return
+	 */
+	<R> R runInReadOnlyMode(Callable<R> runner) throws Exception;
+
+	/**
+	 * Wait for a table/view to become available.
+	 * @param id
+	 * @param maxWaitMs The max wait time (MS)
+	 * @throws InterruptedException
+	 */
+	void waitForTableOrViewToBeAvailable(IdAndVersion id, long maxWaitMs) throws InterruptedException;
 
 }

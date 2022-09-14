@@ -3452,6 +3452,24 @@ public class TableWorkerIntegrationTest {
 			});
 	}
 
+	@Test
+	public void testWorkerRunInReadOnlyMode() throws Exception {
+		asyncHelper.runInReadOnlyMode(()->{
+			schema = Lists.newArrayList(
+					columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING).setName("one")),
+					columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING_LIST).setName("two"))
+				);
+				
+				headers = TableModelUtils.getIds(schema);
+				
+				tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, false).getId();
+
+				// Wait for the table to be available to avoid a race condition when we update the table below (that might throw a temporary unavailable)
+				assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
+			return 0;
+		});
+	}
+	
 	/**
 	 * Create a string of the given size.
 	 * @param numberOfCharacters

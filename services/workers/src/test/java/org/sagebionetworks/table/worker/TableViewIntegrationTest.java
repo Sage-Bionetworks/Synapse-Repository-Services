@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -77,6 +78,8 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -152,7 +155,7 @@ public class TableViewIntegrationTest {
 	private BulkDownloadManager bulkDownloadManager;
 	@Autowired
 	private DownloadListManagerImpl downloadListManager;
-	
+
 	
 	ProgressCallback mockProgressCallbackVoid;
 	
@@ -2239,6 +2242,17 @@ public class TableViewIntegrationTest {
 			assertEquals(1L, queryResult.getQueryResult().getQueryResults().getRows().size());
 		});
 		
+	}
+	
+	@Test
+	public void testWorkerRunInReadOnlyMode() throws Exception {
+		asyncHelper.runInReadOnlyMode(()->{
+			createFileView();
+			// wait for replication
+			waitForEntityReplication(fileViewId);
+			waitForViewToBeAvailable(IdAndVersion.parse(fileViewId));
+			return 0;
+		});
 	}
 
 	/**

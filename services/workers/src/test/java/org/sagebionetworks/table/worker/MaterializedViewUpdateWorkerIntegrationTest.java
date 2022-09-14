@@ -177,6 +177,36 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	}
 	
 	@Test
+	public void testMaterializedViewOfFileViewWithReadOnlyMode() throws Exception {
+		asyncHelper.runInReadOnlyMode(()->{
+			int numberOfFiles = 5;
+			List<Entity> entites = createProjectHierachy(numberOfFiles);
+			EntityView view = createEntityView(entites);
+			
+			Project project = entites.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+			Long projectId = KeyFactory.stringToKey(project.getId());
+			// the user can only see files with the project as their benefactor.
+			List<String> fileIdsUserCanSee = entites.stream()
+					.filter((e) -> e instanceof FileEntity
+							&& projectId.equals(entityManager.getEntityHeader(adminUserInfo, e.getId()).getBenefactorId()))
+					.map(e -> e.getId()).collect(Collectors.toList());
+			assertEquals(3, fileIdsUserCanSee.size());
+
+			// Currently do not support doubles so the double key is excluded.
+			String definingSql = "select id, stringKey, longKey, doubleKey, dateKey, booleanKey from " + view.getId();
+
+			MaterializedView materializedView = entityManager.getEntity(
+					adminUserInfo, entityManager.createEntity(adminUserInfo, new MaterializedView()
+							.setName("aMaterializedView").setParentId(view.getParentId()).setDefiningSQL(definingSql), null),
+					MaterializedView.class);
+			IdAndVersion matViewId = IdAndVersion.parse(materializedView.getId());
+			materializedViewManager.registerSourceTables(matViewId, definingSql);
+			asyncHelper.waitForTableOrViewToBeAvailable(matViewId, MAX_WAIT_MS);
+			return 0;
+		});
+	}
+	
+	@Test
 	public void testTableSchemaChange() throws Exception {
 		
 		String projectId = createProject();

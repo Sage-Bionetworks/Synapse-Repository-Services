@@ -9,8 +9,11 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
@@ -26,15 +29,19 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetCollection;
@@ -48,6 +55,7 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -242,7 +250,9 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	private FileHandleDao fileHandleDao;
 	@Autowired
 	private SynapseS3Client s3Client;
-
+	@Autowired
+	private StackStatusDao stackStatusDao;
+	
 	@Override
 	public <R extends AsynchronousRequestBody, T extends AsynchronousResponseBody> AsyncJobResponse<T> assertJobResponse(
 			UserInfo user, R request, Consumer<T> responseConsumer, long maxWaitMs)
@@ -558,6 +568,32 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 				return new Pair<>(false, null);
 			}
 		});
+	}
+
+
+	@Override
+	public <R> R runInReadOnlyMode(Callable<R> callable) throws Exception {
+		ValidateArgument.required(callable, "callable");
+		try {
+			stackStatusDao.updateStatus(new StackStatus().setStatus(StatusEnum.READ_ONLY));
+			return callable.call();
+		}finally {
+			stackStatusDao.updateStatus(new StackStatus().setStatus(StatusEnum.READ_WRITE));
+		}
+	}
+	
+	@Override
+	public void waitForTableOrViewToBeAvailable(IdAndVersion id,long maxWaitMs) throws InterruptedException {
+		long startTime = System.currentTimeMillis();
+		while(true) {
+			Optional<TableState> optional = tableMangerSupport.getTableStatusState(id);
+			if(optional.isPresent() && TableState.AVAILABLE.equals(optional.get())) {
+				break;
+			}
+			assertTrue((System.currentTimeMillis()-startTime) < maxWaitMs, "Timed out waiting for a table/view to become available.");
+			System.out.println(String.format("Waiting for '%s' to become available", id.toString()));
+			Thread.sleep(2000);
+		}
 	}
 
 }

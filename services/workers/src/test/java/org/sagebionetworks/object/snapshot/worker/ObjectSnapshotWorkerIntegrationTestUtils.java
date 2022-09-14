@@ -28,7 +28,7 @@ public class ObjectSnapshotWorkerIntegrationTestUtils {
 			if (newKeys.size() != 0 && findRecords(expectedRecords, newKeys, objectRecordDAO, type)) {
 				return true;
 			}
-
+			System.out.println("Waiting for object snapshots...");
 			// wait for 1 second before calling the service again
 			Thread.sleep(1000);
 		}

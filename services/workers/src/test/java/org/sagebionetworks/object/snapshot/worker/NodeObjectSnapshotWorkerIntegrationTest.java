@@ -13,11 +13,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.object.snapshot.worker.utils.NodeObjectRecordWriter;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -58,6 +58,8 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 	private AccessControlListDAO accessControlListDAO;
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
+	@Autowired
+	AsynchronousJobWorkerHelper asyncHelper;
 
 	private List<String> toDelete = new ArrayList<String>();
 	private Long creatorUserGroupId;
@@ -97,32 +99,35 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 	}
 
 	@Test
-	public void test() throws Exception {
-		Set<String> keys = ObjectSnapshotWorkerIntegrationTestUtils.listAllKeys(objectRecordDAO, type);
+	public void testObjectSnapshotsWithReadOnlyMode() throws Exception {
+		asyncHelper.runInReadOnlyMode(()->{
+			Set<String> keys = ObjectSnapshotWorkerIntegrationTestUtils.listAllKeys(objectRecordDAO, type);
 
-		Node toCreate = createNew("node name", creatorUserGroupId, altUserGroupId);
-		toCreate = nodeDao.createNewNode(toCreate);
-		toDelete.add(toCreate.getId());
-		assertNotNull(toCreate.getId());
-		// This node should exist
-		assertTrue(nodeDao.doesNodeExist(KeyFactory.stringToKey(toCreate.getId())));
-		// add an acl.
-		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(toCreate.getId(), adminUser, new Date());
-		accessControlListDAO.create(acl, ObjectType.ENTITY);
+			Node toCreate = createNew("node name", creatorUserGroupId, altUserGroupId);
+			toCreate = nodeDao.createNewNode(toCreate);
+			toDelete.add(toCreate.getId());
+			assertNotNull(toCreate.getId());
+			// This node should exist
+			assertTrue(nodeDao.doesNodeExist(KeyFactory.stringToKey(toCreate.getId())));
+			// add an acl.
+			AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(toCreate.getId(), adminUser, new Date());
+			accessControlListDAO.create(acl, ObjectType.ENTITY);
 
-		// fetch it
-		Node node = nodeDao.getNode(toCreate.getId());
-		String benefactorId = nodeDao.getBenefactor(toCreate.getId());
-		String projectId = nodeDao.getProjectId(toCreate.getId());
-		NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node, benefactorId, projectId);
-		record.setIsPublic(false);
-		record.setIsRestricted(false);
-		record.setIsControlled(false);
-		ObjectRecord expectedRecord = new ObjectRecord();
-		expectedRecord.setJsonClassName(record.getClass().getSimpleName().toLowerCase());
-		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(record));
+			// fetch it
+			Node node = nodeDao.getNode(toCreate.getId());
+			String benefactorId = nodeDao.getBenefactor(toCreate.getId());
+			String projectId = nodeDao.getProjectId(toCreate.getId());
+			NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node, benefactorId, projectId);
+			record.setIsPublic(false);
+			record.setIsRestricted(false);
+			record.setIsControlled(false);
+			ObjectRecord expectedRecord = new ObjectRecord();
+			expectedRecord.setJsonClassName(record.getClass().getSimpleName().toLowerCase());
+			expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(record));
 
-		assertTrue(ObjectSnapshotWorkerIntegrationTestUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO, type));
+			assertTrue(ObjectSnapshotWorkerIntegrationTestUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO, type));
+			return 0;
+		});
 	}
 
 	@Test
