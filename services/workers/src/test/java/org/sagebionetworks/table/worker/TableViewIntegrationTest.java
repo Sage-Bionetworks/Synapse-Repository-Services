@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -49,7 +48,6 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -78,8 +76,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -1566,7 +1562,7 @@ public class TableViewIntegrationTest {
 		waitForEntityReplication(fileViewId);
 		IdAndVersion viewId = IdAndVersion.parse(fileViewId);
 		// wait for the view to become available to ensure the worker is done with the view.
-		waitForViewToBeAvailable(viewId);
+		asyncHelper.waitForTableOrViewToBeAvailable(IdAndVersion.parse(fileViewId), MAX_WAIT_MS);
 		
 		// simulate the case where there is no state for the view
 		tableStatusDao.clearAllTableState();
@@ -1576,7 +1572,7 @@ public class TableViewIntegrationTest {
 		// sending a change message to the view worker.
 		broadcastChangeMessageToViewWorker(viewId);
 		// The view should become available only from the message
-		waitForViewToBeAvailable(viewId);
+		asyncHelper.waitForTableOrViewToBeAvailable(IdAndVersion.parse(fileViewId), MAX_WAIT_MS);
 	}
 
 	@Test
@@ -2250,7 +2246,7 @@ public class TableViewIntegrationTest {
 			createFileView();
 			// wait for replication
 			waitForEntityReplication(fileViewId);
-			waitForViewToBeAvailable(IdAndVersion.parse(fileViewId));
+			asyncHelper.waitForTableOrViewToBeAvailable(IdAndVersion.parse(fileViewId), MAX_WAIT_MS);
 			return 0;
 		});
 	}
@@ -2270,25 +2266,6 @@ public class TableViewIntegrationTest {
 		this.repositoryMessagePublisher.publishToTopic(message);
 	}
 
-	/**
-	 * Wait for the view to become available.
-	 * 
-	 * @param viewId
-	 * @throws InterruptedException
-	 */
-	void waitForViewToBeAvailable(IdAndVersion viewId) throws InterruptedException {
-		long startTime = System.currentTimeMillis();
-		while(true) {
-			Optional<TableState> optional = tableManagerSupport.getTableStatusState(viewId);
-			if(optional.isPresent() && TableState.AVAILABLE.equals(optional.get())) {
-				break;
-			}
-			assertTrue((System.currentTimeMillis()-startTime) < MAX_WAIT_MS, "Timed out waiting for a view to become available.");
-			System.out.println("Waiting for view to become available.");
-			Thread.sleep(2000);
-		}
-	}
-	
 
 	/**
 	 * Helper to update a view using a result set.
