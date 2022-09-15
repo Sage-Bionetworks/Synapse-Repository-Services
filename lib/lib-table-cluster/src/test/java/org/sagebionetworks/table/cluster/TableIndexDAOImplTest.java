@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
@@ -17,6 +18,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_SEARCH_CON
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.io.UnsupportedEncodingException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,6 +34,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.collections4.ListUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -249,10 +252,20 @@ public class TableIndexDAOImplTest {
 	 * @param schema
 	 */
 	public void createOrUpdateOrDeleteRows(IdAndVersion tableId, RowSet rowSet, List<ColumnModel> schema){
-		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, schema);
-		for(Grouping grouping: sparse.groupByValidValues()){
-			tableIndexDAO.createOrUpdateOrDeleteRows(tableId, grouping);
-		}
+		ListUtils.partition(rowSet.getRows(), 10_000).forEach( rows -> {
+			RowSet batch = new RowSet().setEtag(rowSet.getEtag())
+					.setHeaders(rowSet.getHeaders())
+					.setTableId(rowSet.getTableId())
+					.setRows(rows);
+		
+			SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(batch, schema);
+		
+			for(Grouping grouping: sparse.groupByValidValues()){
+				tableIndexDAO.createOrUpdateOrDeleteRows(tableId, grouping);
+			}
+		
+		});
+		
 	}
 	
 	@Test
@@ -1455,6 +1468,53 @@ public class TableIndexDAOImplTest {
 		assertEquals(MySqlColumnType.VARCHAR, info.getType());
 		assertEquals(255, info.getMaxSize());
 
+	}
+	
+	// This test would fail with MySQL version 8.0.28 (See https://sagebionetworks.jira.com/browse/PLFM-7471)
+	@Test
+	public void testColumnInfoAndCardinalityWithLargeTable() {
+		List<ColumnModel> schema = List.of(
+			new ColumnModel()
+				.setId("0")
+				.setName("aLargeTextColumn")
+				.setMaximumSize(20L)
+				.setColumnType(ColumnType.LARGETEXT), // This is translated into a MEDIUMTEXT
+			new ColumnModel()
+				.setId("1")
+				.setName("aStringListColumn")
+				.setMaximumSize(20L)
+				.setMaximumListLength(2L)
+				.setColumnType(ColumnType.STRING_LIST), // This is translated into a JSON
+			new ColumnModel()
+				.setId("2")
+				.setName("aStringColumn")
+				.setMaximumSize(20L)
+				.setColumnType(ColumnType.STRING)
+				
+		);
+		
+		createOrUpdateTable(schema, indexDescription);
+		
+		int rowNumber = 100_000;
+		List<Row> rows = TableModelTestUtils.createRows(schema, rowNumber);
+		
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getSelectColumns(schema));
+		set.setTableId(tableId.toString());
+		
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(range.getMinimumId() + rowNumber);
+		range.setVersionNumber(1L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		
+		createOrUpdateOrDeleteRows(tableId, set, schema);
+
+		// This should work and return, on 8.0.28 this would wait for the server wait_timeout
+		assertTimeoutPreemptively(Duration.ofSeconds(15), () -> {
+			getAllColumnInfo(tableId);
+		});
 	}
 	
 	@Test
