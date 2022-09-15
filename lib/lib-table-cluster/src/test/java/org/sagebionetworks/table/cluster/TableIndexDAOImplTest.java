@@ -1559,7 +1559,7 @@ public class TableIndexDAOImplTest {
 		DatabaseColumnInfo info = infoList.get(0);
 		// ROW_ID
 		assertEquals("ROW_ID", info.getColumnName());
-		assertEquals(new Long(5), info.getCardinality());
+		assertEquals(-1L, info.getCardinality());
 		assertEquals("PRIMARY", info.getIndexName());
 		assertTrue(info.hasIndex());
 

@@ -73,7 +73,7 @@ public class TableConstants {
 	 * The set of reserved column names includes things like ROW_ID and
 	 * ROW_VERSION
 	 */
-	private static final Set<String> RESERVED_COLUMNS_NAMES = new HashSet<String>(
+	public static final Set<String> RESERVED_COLUMNS_NAMES = new HashSet<String>(
 			Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, ROW_SEARCH_CONTENT));
 
 	/**

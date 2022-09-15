@@ -1019,9 +1019,16 @@ public class SQLUtils {
 			if(!isFirst){
 				builder.append(", ");
 			}
-			builder.append("COUNT(DISTINCT ");
-			builder.append(info.getColumnName());
-			builder.append(") AS ");
+			// There is no need to run the actual count for columns for which an index is not created 
+			// or for metadata columns (such as row id) that manage their own indices
+			if (info.isMetadata() || !info.getType().isCreateIndex()) {
+				builder.append("-1");
+			} else {
+				builder.append("COUNT(DISTINCT ");
+				builder.append(info.getColumnName());
+				builder.append(")");
+			}
+			builder.append(" AS ");
 			builder.append(info.getColumnName());
 			isFirst = false;
 		}
@@ -1065,18 +1072,12 @@ public class SQLUtils {
 		
 		int indexCount = 1;
 		for(DatabaseColumnInfo info: list){
-			//do not create indexes for JSON columns, these will be done as a separate table
-			if(info.getType() == MySqlColumnType.JSON){
+			// ignore metadata columns such as row id and version
+			if (info.isMetadata()) {
 				continue;
 			}
-
-			// ignore row_id and version
-			if(info.isMetadata()){
-				continue;
-			}
-			// do not index blobs.
-			if(MySqlColumnType.MEDIUMTEXT.equals(info.getType())) {
-				// remove the index if it has one
+			// If the index is skipped for the type, make sure to remove existing ones
+			if (!info.getType().isCreateIndex()) {
 				if(info.hasIndex()){
 					toRemove.add(info);
 				}
