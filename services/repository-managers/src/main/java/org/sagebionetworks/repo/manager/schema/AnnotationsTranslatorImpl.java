@@ -96,6 +96,10 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	@Override
 	public AnnotationsValue getAnnotationValueFromJsonObject(String key, JSONObject jsonObject) {
 		// @formatter:off
+		if (jsonObject.isNull(key)) {
+			throw new IllegalArgumentException("null is not allowed as a value for key: '" + key + "'");
+		}
+
 		return Stream
 				.of(
 						attemptToReadAsJSONArray(key, jsonObject),
@@ -404,9 +408,15 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 		}
 		if (value.getValue().isEmpty()) {
 			jsonObject.put(key, "");
+		} else if (value.getValue().size() == 1 && isSingleMap.isEmpty()) {
+			/*
+			 * if isSingleMap is empty means no schema definition is bounded,
+			 *  and value list has only one item that should be added as single.
+			 */
+			jsonObject.put(key, stringToObject(value.getType(), value.getValue().get(0)));
 		} else if (value.getValue().size() == 1 && Boolean.TRUE.equals(isSingleMap.get(key))) {
 			/*
-			 * The only case where we write a single is when the annotations is a single
+			 * we write a single is when the annotations is a single
 			 * and the schema defines it as a single, const, or enum
 			 */
 			jsonObject.put(key, stringToObject(value.getType(), value.getValue().get(0)));
