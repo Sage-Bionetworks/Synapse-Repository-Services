@@ -98,7 +98,10 @@ public class DataAccessNotificationDaoImpl implements DataAccessNotificationDao 
 			
 			// Now we exclude from the set the approvals for which other approvals with the same requirement and submitter 
 			// exist that do not expire (expiredOn is 0) or that expire in the future
-			+ "EXPIRED_APPROVALS AS ("
+			
+			// NOTE: this empty space before EXPIRED_APPROVALS is needed after the previous comma for the MySQL 8.0.30 Driver to correctly parse the query 
+			// otherwise it will consider it a query that return no result and will fail (See com.mysql.cj.QueryInfo#getContextForWithStatement)
+			+ " EXPIRED_APPROVALS AS ("
 			+ " SELECT E.* FROM EXPIRING_APPROVALS E LEFT JOIN " + TABLE_ACCESS_APPROVAL + " A"
 			+ " ON ("
 			+ " E." + COL_ACCESS_APPROVAL_REQUIREMENT_ID + " = A." + COL_ACCESS_APPROVAL_REQUIREMENT_ID 
