@@ -33,10 +33,10 @@
 									value="120" />
 								<property name="queueName"
 									value="#{stackConfiguration.getQueueName('MATERIALIZED_VIEW_UPDATE')}" />
+								<!-- Note: This worker always runs, even if the stack is in read-only mode -->
 								<property name="gate">
-									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+									<bean class="org.sagebionetworks.worker.utils.AlwaysOpen" />
 								</property>
-
 							</bean>
 						</constructor-arg>
 					</bean>
@@ -74,10 +74,10 @@
 								<property name="semaphoreMaxLockCount" value="10" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="30" />
 								<property name="queueName" value="#{stackConfiguration.getQueueName('MATERIALIZED_VIEW_SOURCE_UPDATE')}" />
+								<!-- Note: This worker always runs, even if the stack is in read-only mode -->
 								<property name="gate">
-									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+									<bean class="org.sagebionetworks.worker.utils.AlwaysOpen" />
 								</property>
-
 							</bean>
 						</constructor-arg>
 					</bean>

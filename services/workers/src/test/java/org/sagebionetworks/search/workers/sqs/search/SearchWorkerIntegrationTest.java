@@ -1,6 +1,5 @@
 package org.sagebionetworks.search.workers.sqs.search;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -15,6 +14,7 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -55,7 +55,6 @@ import com.google.common.base.Predicate;
  * This test validates that entity messages pushed to the topic propagate to the search queue,
  * then processed by the worker and pushed to the search index.
  * 
- * @author jmhill
  *
  */
 @ExtendWith(SpringExtension.class)
@@ -94,6 +93,9 @@ public class SearchWorkerIntegrationTest {
 
 	@Autowired
 	private SearchManager searchManager;
+	
+	@Autowired
+	private AsynchronousJobWorkerHelper asyncHelper;
 	
 	private UserInfo adminUserInfo;
 	private UserInfo anotherUser;
@@ -192,7 +194,16 @@ public class SearchWorkerIntegrationTest {
 		if (anotherUser != null) {
 			userManager.deletePrincipal(adminUserInfo, anotherUser.getId());
 		}
-	}	
+	}
+	
+	@Test
+	public void testBuildSearchWithReadOnlyMode() throws Exception {
+		asyncHelper.runInReadOnlyMode(() -> {
+			// Wait for the project to appear.
+			waitForPojectToAppearInSearch();
+			return 0;
+		});
+	}
 	
 	@Test
 	public void testRoundTrip() throws Exception {

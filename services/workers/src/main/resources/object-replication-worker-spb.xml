@@ -31,10 +31,10 @@
 								<property name="semaphoreMaxLockCount" value="10" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="120" />
 								<property name="queueName" value="#{stackConfiguration.getQueueName('TABLE_ENTITY_REPLICATION')}"/>
+								<!-- Note: This worker always runs, even if the stack is in read-only mode -->
 								<property name="gate">
-									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>
+									<bean class="org.sagebionetworks.worker.utils.AlwaysOpen" />
 								</property>
-
 							</bean>
 						</constructor-arg>
 					</bean>
