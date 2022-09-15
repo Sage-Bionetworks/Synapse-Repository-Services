@@ -28,7 +28,7 @@
 									<bean class="org.sagebionetworks.table.worker.TableViewWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="tableViewWorker" />
-								<property name="semaphoreMaxLockCount" value="10" />
+								<property name="semaphoreMaxLockCount" value="100" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="120" />
 								<property name="queueName"
@@ -42,11 +42,11 @@
 					</bean>
 				</property>
 				<property name="targetMethod" value="run" />
-				<property name="concurrent" value="false" />
+				<property name="concurrent" value="true" />
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="253" />
-		<property name="repeatInterval" value="750" />
+		<property name="repeatInterval" value="60000" />
 	</bean>
 </beans>
