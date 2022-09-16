@@ -130,6 +130,20 @@ public class AnnotationsTranslatorImplTest {
 		List<String> expected = Lists.newArrayList(value.toString());
 		assertEquals(expected, annoValue.getValue());
 	}
+
+	@Test
+	public void testGetAnnotationValueFromJsonObjectWithBooleanAsString() {
+		String key = "theKey";
+		String value = "true";
+		JSONObject json = new JSONObject();
+		json.put(key, value);
+		// call under test
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
+		assertEquals(AnnotationsValueType.STRING, annoValue.getType());
+		List<String> expected = Lists.newArrayList(value);
+		assertEquals(expected, annoValue.getValue());
+	}
 	
 	/**
 	 * Not sure we want to support this.
@@ -163,6 +177,32 @@ public class AnnotationsTranslatorImplTest {
 	}
 
 	@Test
+	public void testGetAnnotationValueFromJsonObjectWithLongAsStringValue() {
+		String key = "theKey";
+		String value = "123456";
+		JSONObject json = new JSONObject();
+		json.put(key, "123456");
+		// call under test
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
+		assertEquals(AnnotationsValueType.STRING, annoValue.getType());
+		List<String> expected = Lists.newArrayList(value);
+		assertEquals(expected, annoValue.getValue());
+	}
+
+	@Test
+	public void testGetAnnotationValueFromJsonObjectWithNullValue() {
+		String key = "theKey";
+		JSONObject json = new JSONObject();
+		json.put(key, JSONObject.NULL);
+		// call under test
+		assertEquals("null is not allowed as a value for key: 'theKey'",
+				assertThrows(IllegalArgumentException.class, () -> {
+					translator.getAnnotationValueFromJsonObject(key, json);
+		}).getMessage());
+	}
+
+	@Test
 	public void testGetAnnotationValueFromJsonObjectWithInteger() {
 		String key = "theKey";
 		Integer value = 123;
@@ -187,6 +227,20 @@ public class AnnotationsTranslatorImplTest {
 		assertNotNull(annoValue);
 		assertEquals(AnnotationsValueType.DOUBLE, annoValue.getType());
 		List<String> expected = Lists.newArrayList(value.toString());
+		assertEquals(expected, annoValue.getValue());
+	}
+
+	@Test
+	public void testGetAnnotationValueFromJsonObjectWithDoubleAsString() {
+		String key = "theKey";
+		String value = "3.14";
+		JSONObject json = new JSONObject();
+		json.put(key, value);
+		// call under test
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
+		assertEquals(AnnotationsValueType.STRING, annoValue.getType());
+		List<String> expected = Lists.newArrayList(value);
 		assertEquals(expected, annoValue.getValue());
 	}
 
@@ -253,6 +307,37 @@ public class AnnotationsTranslatorImplTest {
 	}
 
 	@Test
+	public void testGetAnnotationValueFromJsonObjectWithArrayHavingNull() {
+		String key = "theKey";
+		JSONArray value = new JSONArray();
+		value.put(0, new Long(123));
+		value.put(1, JSONObject.NULL);
+		JSONObject json = new JSONObject();
+		json.put(key, value);
+		// call under test
+		assertEquals("null is not allowed as a value in the list for key: 'theKey'",
+				assertThrows(IllegalArgumentException.class, () -> {
+					translator.getAnnotationValueFromJsonObject(key, json);
+				}).getMessage());
+	}
+
+	@Test
+	public void testGetAnnotationValueFromJsonObjectWithArrayOfLongsAsString() {
+		String key = "theKey";
+		JSONArray value = new JSONArray();
+		value.put(0, "123");
+		value.put(1, "456");
+		JSONObject json = new JSONObject();
+		json.put(key, value);
+		// call under test
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
+		assertEquals(AnnotationsValueType.STRING, annoValue.getType());
+		List<String> expected = Lists.newArrayList("123", "456");
+		assertEquals(expected, annoValue.getValue());
+	}
+
+	@Test
 	public void testGetAnnotationValueFromJsonObjectWithArrayOfDoubles() {
 		String key = "theKey";
 		JSONArray value = new JSONArray();
@@ -265,6 +350,54 @@ public class AnnotationsTranslatorImplTest {
 		assertNotNull(annoValue);
 		assertEquals(AnnotationsValueType.DOUBLE, annoValue.getType());
 		List<String> expected = Lists.newArrayList("3.14", "4.56");
+		assertEquals(expected, annoValue.getValue());
+	}
+
+	@Test
+	public void testGetAnnotationValueFromJsonObjectWithArrayOfDoublesAsString() {
+		String key = "theKey";
+		JSONArray value = new JSONArray();
+		value.put(0, "3.14");
+		value.put(1, "4.56");
+		JSONObject json = new JSONObject();
+		json.put(key, value);
+		// call under test
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
+		assertEquals(AnnotationsValueType.STRING, annoValue.getType());
+		List<String> expected = Lists.newArrayList("3.14", "4.56");
+		assertEquals(expected, annoValue.getValue());
+	}
+
+	@Test
+	public void testGetAnnotationValueFromJsonObjectWithArrayOfBooleans() {
+		String key = "theKey";
+		JSONArray value = new JSONArray();
+		value.put(0, true);
+		value.put(1, false);
+		JSONObject json = new JSONObject();
+		json.put(key, value);
+		// call under test
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
+		assertEquals(AnnotationsValueType.BOOLEAN, annoValue.getType());
+		List<String> expected = Lists.newArrayList("true", "false");
+		assertEquals(expected, annoValue.getValue());
+	}
+
+	@Test
+	public void testGetAnnotationValueFromJsonObjectWithArrayOfBooleansASString() {
+		String key = "theKey";
+		JSONArray value = new JSONArray();
+		value.put(0, "true");
+		value.put(1, "false");
+		JSONObject json = new JSONObject();
+		json.put(key, value);
+		// call under test
+		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
+		assertNotNull(annoValue);
+		assertEquals(AnnotationsValueType.STRING, annoValue.getType());
+		List<String> expected = Lists.newArrayList("true", "false");
 		assertEquals(expected, annoValue.getValue());
 	}
 
@@ -305,7 +438,7 @@ public class AnnotationsTranslatorImplTest {
 	@Test
 	public void testReadFromJsonObject() {
 		jsonObject.put("aString", "some string");
-		jsonObject.put("aLong", "123");
+		jsonObject.put("aLong", 123L);
 		arrayOfLongs = new JSONArray();
 		arrayOfLongs.put(567);
 		arrayOfLongs.put(789);
@@ -812,7 +945,22 @@ public class AnnotationsTranslatorImplTest {
 		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(222)), array.getString(0));
 		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(333)), array.getString(1));
 	}
-	
+
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithListOfBooleans() {
+		schema = null;
+		Annotations toWrite = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfBooleans", Lists.newArrayList("true", "false"), AnnotationsValueType.BOOLEAN);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		JSONArray array = json.getJSONArray("aListOfBooleans");
+		assertNotNull(array);
+		assertEquals(2, array.length());
+		assertEquals(true, array.getBoolean(0));
+		assertEquals(false, array.getBoolean(1));
+	}
+
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithSchemaArrayAndAnnotationArray() {
 		JsonSchema typeSchema = new JsonSchema();

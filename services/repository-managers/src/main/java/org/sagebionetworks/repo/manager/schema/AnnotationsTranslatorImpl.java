@@ -201,15 +201,22 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 */
 	Optional<AnnotationsValue> attemptToReadAsDouble(String key, JSONObject jsonObject) {
 		try {
-			Double value = jsonObject.getDouble(key);
+			Object object = jsonObject.get(key);
+
+			if (!(object instanceof Number)) {
+				return Optional.empty();
+			}
+
+			double value = ((Number) object).doubleValue();
 			String testString = jsonObject.getString(key);
-			if (!testString.equals(value.toString())) {
+			if (!testString.equals(Double.toString(value))) {
 				// data loss
 				return Optional.empty();
 			}
+
 			AnnotationsValue annValue = new AnnotationsValue();
 			annValue.setType(AnnotationsValueType.DOUBLE);
-			annValue.setValue(Collections.singletonList(value.toString()));
+			annValue.setValue(Collections.singletonList(Double.toString(value)));
 			return Optional.of(annValue);
 		} catch (JSONException e) {
 			return Optional.empty();
@@ -226,13 +233,18 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 */
 	Optional<ListValue> attemptToReadAsDouble(int index, JSONArray array) {
 		try {
-			Double value = array.getDouble(index);
+			Object object = array.get(index);
+			if (!(object instanceof Number)) {
+				return Optional.empty();
+			}
+
+			double value = ((Number) object).doubleValue();
 			String testString = array.getString(index);
-			if (!testString.equals(value.toString())) {
+			if (!testString.equals(Double.toString(value))) {
 				// data loss
 				return Optional.empty();
 			}
-			return Optional.of(new ListValue(AnnotationsValueType.DOUBLE, value.toString()));
+			return Optional.of(new ListValue(AnnotationsValueType.DOUBLE, Double.toString(value)));
 		} catch (JSONException e) {
 			return Optional.empty();
 		}
@@ -269,10 +281,16 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 */
 	Optional<AnnotationsValue> attemptToReadAsLong(String key, JSONObject jsonObject) {
 		try {
-			Long value = jsonObject.getLong(key);
+			Object object = jsonObject.get(key);
+
+			if (!(object instanceof Number)) {
+				return Optional.empty();
+			}
+
+			long value = ((Number) object).longValue();
 			AnnotationsValue annValue = new AnnotationsValue();
 			annValue.setType(AnnotationsValueType.LONG);
-			annValue.setValue(Collections.singletonList(value.toString()));
+			annValue.setValue(Collections.singletonList(Long.toString(value)));
 			return Optional.of(annValue);
 		} catch (JSONException e) {
 			return Optional.empty();
@@ -289,10 +307,19 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 */
 	Optional<AnnotationsValue> attemptToReadAsBoolean(String key, JSONObject jsonObject) {
 		try {
-			Boolean value = jsonObject.getBoolean(key);
+			Object object = jsonObject.get(key);
+			boolean value;
+			if (object.equals(Boolean.FALSE) && (!(object instanceof String))) {
+				value = false;
+			} else if (object.equals(Boolean.TRUE) && (!(object instanceof String))) {
+				value = true;
+			} else {
+				return Optional.empty();
+			}
+
 			AnnotationsValue annValue = new AnnotationsValue();
 			annValue.setType(AnnotationsValueType.BOOLEAN);
-			annValue.setValue(Collections.singletonList(value.toString()));
+			annValue.setValue(Collections.singletonList(Boolean.toString(value)));
 			return Optional.of(annValue);
 		} catch (JSONException e) {
 			return Optional.empty();
@@ -309,8 +336,12 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 */
 	Optional<ListValue> attemptToReadAsLong(int index, JSONArray array) {
 		try {
-			Long value = array.getLong(index);
-			return Optional.of(new ListValue(AnnotationsValueType.LONG, value.toString()));
+			Object object = array.get(index);
+			if (!(object instanceof Number)) {
+				return Optional.empty();
+			}
+			long value = ((Number) object).longValue();
+			return Optional.of(new ListValue(AnnotationsValueType.LONG, Long.toString(value)));
 		} catch (JSONException e) {
 			return Optional.empty();
 		}
@@ -330,6 +361,10 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			List<String> valueList = new ArrayList<String>(array.length());
 			AnnotationsValueType lastType = null;
 			for (int i = 0; i < array.length(); i++) {
+				if (array.isNull(i)) {
+					throw new IllegalArgumentException("null is not allowed as a value in the list for key: '" + key + "'");
+				}
+
 				ListValue listValue = Stream.of(
 					attemptToReadAsBoolean(i, array), 
 					attemptToReadAsDouble(i, array), 

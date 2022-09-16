@@ -808,7 +808,7 @@ public class EntityManagerImplAutowireTest {
 	}
 
 	@Test
-	public void testUpdateExistingAnnotationWithMixedValuesWIthEntityJson() {
+	public void testUpdateExistingAnnotationWithMixedValuesAsStringWIthEntityJson() {
 		Project project = new Project();
 		project.setName("project");
 		String pid = entityManager.createEntity(userInfo, project, null);
@@ -826,9 +826,15 @@ public class EntityManagerImplAutowireTest {
 
 		toUpdate.put("key", List.of("", "1"));
 		// call under test
-		assertEquals("List of mixed types found for key: 'key'", assertThrows(IllegalArgumentException.class, () -> {
-			entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
-		}).getMessage());
+		  entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+
+		JSONObject latestUpdate = entityManager.getEntityJson(pid, false);
+		assertEquals("[\"\",\"1\"]", latestUpdate.get("key").toString());
+
+		Annotations latestAnnotations = entityManager.getAnnotations(adminUserInfo, pid);
+		Annotations expectedAnnotation = new Annotations().setId(pid).setEtag(latestAnnotations.getEtag());
+		AnnotationsV2TestUtils.putAnnotations(expectedAnnotation, "key", List.of("","1"), AnnotationsValueType.STRING);
+		assertEquals(expectedAnnotation, latestAnnotations);
 	}
 
 	@Test
@@ -1581,7 +1587,7 @@ public class EntityManagerImplAutowireTest {
 
 
 		// Call under test
-		// Verify that we can submit the string representations of the values and they are still treated as doubles
+		// Verify that we can submit the string representations of the values and they are treated as String,
 		JSONObject result = entityManager.updateEntityJson(userInfo, pid, toUpdate);
 
 		assertNotNull(result);
@@ -1602,7 +1608,7 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(map);
 		assertEquals(1, map.size());
 		AnnotationsValue value = map.get("listOfDoubles");
-		assertEquals(AnnotationsValueType.DOUBLE, value.getType());
+		assertEquals(AnnotationsValueType.STRING, value.getType());
 		assertEquals(Arrays.asList("NaN", "NaN", "Infinity", "Infinity", "-Infinity", "-Infinity"), value.getValue());
 	}
 
