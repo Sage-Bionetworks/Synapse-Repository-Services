@@ -63,6 +63,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.Table;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
@@ -1587,6 +1588,193 @@ public class TableIndexDAOImplTest {
 		assertEquals(MySqlColumnType.TINYINT, info.getType());
 		assertNull(info.getMaxSize());
 		assertEquals(ColumnType.BOOLEAN, info.getColumnType());
+	}
+	
+	@Test
+	public void testColumnInfoAndCardinalityWithEmptyTable(){
+		// create a table with a long column.
+		ColumnModel intColumn = new ColumnModel();
+		intColumn.setId("12");
+		intColumn.setName("foo");
+		intColumn.setColumnType(ColumnType.INTEGER);
+		
+		ColumnModel booleanColumn = new ColumnModel();
+		booleanColumn.setId("13");
+		booleanColumn.setName("bar");
+		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+		
+		List<ColumnModel> schema = Lists.newArrayList(intColumn, booleanColumn);
+		
+		createOrUpdateTable(schema, indexDescription);
+				
+		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		tableIndexDAO.optimizeTableIndices(infoList, tableId, 4);
+		infoList = getAllColumnInfo(tableId);
+		assertEquals(5, infoList.size());
+		
+		DatabaseColumnInfo info = infoList.get(0);
+		
+		// ROW_ID
+		assertEquals("ROW_ID", info.getColumnName());
+		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
+		assertEquals("PRIMARY", info.getIndexName());
+		assertTrue(info.hasIndex());
+		assertEquals(MySqlColumnType.BIGINT, info.getType());
+		assertNull(info.getMaxSize());
+		assertNull(info.getColumnType());
+		
+		info = infoList.get(1);
+		assertEquals("ROW_VERSION", info.getColumnName());
+		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
+		assertNull(info.getIndexName());
+		assertFalse(info.hasIndex());
+		assertEquals(MySqlColumnType.BIGINT, info.getType());
+		assertNull(info.getMaxSize());
+		assertNull(info.getColumnType());
+		
+		info = infoList.get(2);
+		assertEquals("ROW_SEARCH_CONTENT", info.getColumnName());
+		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
+		assertEquals("ROW_SEARCH_CONTENT_INDEX", info.getIndexName());
+		assertTrue(info.hasIndex());
+		assertEquals(MySqlColumnType.MEDIUMTEXT, info.getType());
+		assertNull(info.getMaxSize());
+		assertNull(info.getColumnType());
+
+		// one
+		info = infoList.get(3);
+		assertEquals("_C12_", info.getColumnName());
+		assertEquals(0, info.getCardinality());
+		assertTrue(info.hasIndex());
+		assertEquals("_C12_idx_", info.getIndexName());
+		assertEquals(MySqlColumnType.BIGINT, info.getType());
+		assertNull(info.getMaxSize());
+		assertEquals(ColumnType.INTEGER, info.getColumnType());
+		
+		// two
+		info = infoList.get(4);
+		assertEquals("_C13_", info.getColumnName());
+		assertEquals(0, info.getCardinality());
+		assertTrue(info.hasIndex());
+		assertEquals("_C13_idx_", info.getIndexName());
+		assertEquals(MySqlColumnType.TINYINT, info.getType());
+		assertNull(info.getMaxSize());
+		assertEquals(ColumnType.BOOLEAN, info.getColumnType());
+	}
+	
+	@Test
+	public void testColumnInfoAndCardinalityWithEmptyTableAndEmptySchema(){
+		List<ColumnModel> schema = Collections.emptyList();
+		
+		createOrUpdateTable(schema, indexDescription);
+				
+		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		tableIndexDAO.optimizeTableIndices(infoList, tableId, 4);
+		infoList = getAllColumnInfo(tableId);
+		assertEquals(3, infoList.size());
+		
+		DatabaseColumnInfo info = infoList.get(0);
+		
+		// ROW_ID
+		assertEquals("ROW_ID", info.getColumnName());
+		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
+		assertEquals("PRIMARY", info.getIndexName());
+		assertTrue(info.hasIndex());
+		assertEquals(MySqlColumnType.BIGINT, info.getType());
+		assertNull(info.getMaxSize());
+		assertNull(info.getColumnType());
+		
+		info = infoList.get(1);
+		assertEquals("ROW_VERSION", info.getColumnName());
+		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
+		assertNull(info.getIndexName());
+		assertFalse(info.hasIndex());
+		assertEquals(MySqlColumnType.BIGINT, info.getType());
+		assertNull(info.getMaxSize());
+		assertNull(info.getColumnType());
+		
+		info = infoList.get(2);
+		assertEquals("ROW_SEARCH_CONTENT", info.getColumnName());
+		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
+		assertEquals("ROW_SEARCH_CONTENT_INDEX", info.getIndexName());
+		assertTrue(info.hasIndex());
+		assertEquals(MySqlColumnType.MEDIUMTEXT, info.getType());
+		assertNull(info.getMaxSize());
+		assertNull(info.getColumnType());
+	}
+	
+	@Test
+	public void testColumnInfoAndCardinalityWithEmptyTableAndNoIndexeableColumn(){
+		// create a table with a long column.
+		ColumnModel stringListColumn = new ColumnModel();
+		stringListColumn.setId("12");
+		stringListColumn.setName("foo");
+		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+		stringListColumn.setMaximumSize(10L);
+		stringListColumn.setMaximumListLength(2L);
+		
+		ColumnModel largeTextColumn = new ColumnModel();
+		largeTextColumn.setId("13");
+		largeTextColumn.setName("bar");
+		largeTextColumn.setColumnType(ColumnType.LARGETEXT);
+		
+		List<ColumnModel> schema = Lists.newArrayList(stringListColumn, largeTextColumn);
+		
+		createOrUpdateTable(schema, indexDescription);
+				
+		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		tableIndexDAO.optimizeTableIndices(infoList, tableId, 4);
+		infoList = getAllColumnInfo(tableId);
+		assertEquals(5, infoList.size());
+		
+		DatabaseColumnInfo info = infoList.get(0);
+		
+		// ROW_ID
+		assertEquals("ROW_ID", info.getColumnName());
+		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
+		assertEquals("PRIMARY", info.getIndexName());
+		assertTrue(info.hasIndex());
+		assertEquals(MySqlColumnType.BIGINT, info.getType());
+		assertNull(info.getMaxSize());
+		assertNull(info.getColumnType());
+		
+		info = infoList.get(1);
+		assertEquals("ROW_VERSION", info.getColumnName());
+		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
+		assertNull(info.getIndexName());
+		assertFalse(info.hasIndex());
+		assertEquals(MySqlColumnType.BIGINT, info.getType());
+		assertNull(info.getMaxSize());
+		assertNull(info.getColumnType());
+		
+		info = infoList.get(2);
+		assertEquals("ROW_SEARCH_CONTENT", info.getColumnName());
+		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
+		assertEquals("ROW_SEARCH_CONTENT_INDEX", info.getIndexName());
+		assertTrue(info.hasIndex());
+		assertEquals(MySqlColumnType.MEDIUMTEXT, info.getType());
+		assertNull(info.getMaxSize());
+		assertNull(info.getColumnType());
+
+		// one
+		info = infoList.get(3);
+		assertEquals("_C12_", info.getColumnName());
+		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
+		assertFalse(info.hasIndex());
+		assertNull(info.getIndexName());
+		assertEquals(MySqlColumnType.JSON, info.getType());
+		assertNull(info.getMaxSize());
+		assertEquals(ColumnType.STRING_LIST, info.getColumnType());
+		
+		// two
+		info = infoList.get(4);
+		assertEquals("_C13_", info.getColumnName());
+		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
+		assertFalse(info.hasIndex());
+		assertNull(info.getIndexName());
+		assertEquals(MySqlColumnType.MEDIUMTEXT, info.getType());
+		assertNull(info.getMaxSize());
+		assertEquals(ColumnType.LARGETEXT, info.getColumnType());
 	}
 	
 	@Test

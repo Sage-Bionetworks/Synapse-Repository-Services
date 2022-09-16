@@ -105,7 +105,6 @@ public class SQLUtils {
 	public static final String COLUMN_PREFIX = "_C";
 	public static final String COLUMN_POSTFIX = "_";
 	public static final String UNNEST_SUFFIX = "_UNNEST";
-
 	private static final String DOUBLE_NAN = Double.toString(Double.NaN);
 	private static final String DOUBLE_POSITIVE_INFINITY = Double.toString(Double.POSITIVE_INFINITY);
 	private static final String DOUBLE_NEGATIVE_INFINITY = Double.toString(Double.NEGATIVE_INFINITY);
@@ -1000,7 +999,6 @@ public class SQLUtils {
 		return "DELETE FROM "+getTableNameForId(tableId, TableType.INDEX);
 	}
 
-	
 	/**
 	 * A single SQL statement to get the cardinality of each column as a single call.
 	 * 
@@ -1022,7 +1020,7 @@ public class SQLUtils {
 			// There is no need to run the actual count for columns for which an index is not created 
 			// or for metadata columns (such as row id) that manage their own indices
 			if (info.isMetadata() || !info.getType().isCreateIndex()) {
-				builder.append("-1");
+				builder.append(TableConstants.COLUMN_NO_CARDINALITY);
 			} else {
 				builder.append("COUNT(DISTINCT ");
 				builder.append(info.getColumnName());
@@ -1076,7 +1074,7 @@ public class SQLUtils {
 			if (info.isMetadata()) {
 				continue;
 			}
-			// If the index is skipped for the type, make sure to remove existing ones
+			// If the index is skipped for the type, make sure to remove existing ones (e.g. if the type was updated)
 			if (!info.getType().isCreateIndex()) {
 				if(info.hasIndex()){
 					toRemove.add(info);
