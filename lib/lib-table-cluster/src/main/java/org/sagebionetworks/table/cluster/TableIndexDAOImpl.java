@@ -104,6 +104,7 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -400,8 +401,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		ValidateArgument.required(newSchema, "newSchema");
 		String newSchemaHash = TableModelUtils
 				.createSchemaMD5Hex(newSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()));
-		String indexSchemaHash = getCurrentSchemaMD5Hex(tableId);
-		return indexSchemaHash.equals(newSchemaHash);
+		Optional<String> indexHashOptional = getCurrentSchemaMD5Hex(tableId);
+		if(indexHashOptional.isEmpty()) {
+			return false;
+		}
+		return indexHashOptional.get().equals(newSchemaHash);
 	}
 	
 	@Override
@@ -411,13 +415,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public String getCurrentSchemaMD5Hex(IdAndVersion tableId) {
+	public Optional<String> getCurrentSchemaMD5Hex(IdAndVersion tableId) {
 		String sql = SQLUtils.getSchemaHashSQL(tableId);
 		try {
-			return template.queryForObject(sql, new SingleColumnRowMapper<String>());
-		} catch (Exception e) {
-			// Spring throws this when the table is empty
-			return TableModelUtils.EMPTY_SCHEMA_MD5;
+			return Optional.of(template.queryForObject(sql, new SingleColumnRowMapper<String>()));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		} catch (BadSqlGrammarException e) {
+			// This is thrown if the status table was not created yet
+			return Optional.empty();
 		}
 	}
 	
@@ -562,8 +568,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		if (indexVersion != versionNumber){
 			return false;
 		}
-		String indexMD5Hex = getCurrentSchemaMD5Hex(tableId);
-		if (!indexMD5Hex.equals(schemaMD5Hex)) {
+		Optional<String> indexMD5Optional = getCurrentSchemaMD5Hex(tableId);
+		if(indexMD5Optional.isEmpty()) {
+			return false;
+		}
+		if (!indexMD5Optional.get().equals(schemaMD5Hex)) {
 			return false;
 		}
 		return searchEnabled == isSearchEnabled(tableId);

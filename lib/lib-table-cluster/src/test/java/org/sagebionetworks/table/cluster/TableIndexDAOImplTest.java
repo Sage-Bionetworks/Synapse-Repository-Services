@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
@@ -437,21 +438,29 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
+	public void testGetSchemaHashForTableWithTableDoesNotExist(){
+		tableIndexDAO.deleteTable(tableId);
+		// call under test
+		Optional<String> hashOptional = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
+		assertTrue(hashOptional.isEmpty());
+	}
+	
+	@Test
 	public void testGetSchemaHashForTable(){
 		tableIndexDAO.createSecondaryTables(tableId);
 		// Before the table exists the max version should be -1L
-		String hash = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
-		assertEquals(TableModelUtils.EMPTY_SCHEMA_MD5, hash);
+		Optional<String> hashOptional = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
+		assertTrue(hashOptional.isEmpty());
 		
-		hash = "some hash";
+		String hash = "some hash";
 		tableIndexDAO.setCurrentSchemaMD5Hex(tableId, hash);
-		String returnHash = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
-		assertEquals(hash, returnHash);
+		hashOptional = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
+		assertEquals(Optional.of(hash), hashOptional);
 		// setting the version should not change the hash
 		tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, 4L);
 		// did it change?
-		returnHash = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
-		assertEquals(hash, returnHash);
+		hashOptional = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
+		assertEquals(Optional.of(hash), hashOptional);
 	}
 
 	@Test
@@ -962,7 +971,7 @@ public class TableIndexDAOImplTest {
 		// call under test.
 		this.tableIndexDAO.setIndexVersionAndSchemaMD5Hex(tableId, version, md5);
 		
-		assertEquals(md5, this.tableIndexDAO.getCurrentSchemaMD5Hex(tableId));
+		assertEquals(Optional.of(md5), this.tableIndexDAO.getCurrentSchemaMD5Hex(tableId));
 		assertEquals(version, this.tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId));
 	}
 	
