@@ -2250,6 +2250,19 @@ public class TableViewIntegrationTest {
 			return 0;
 		});
 	}
+	
+	/**
+	 * Test added to reproduce PLFM-7472. The view would fail to create with:
+	 * "Table 't.<id>s' doesn't exist"
+	 * @throws InterruptedException
+	 */
+	@Test
+	public void testViewWithEmptySchema() throws InterruptedException {
+		defaultColumnIds = Collections.emptyList();
+		boolean searchEnabled = true;
+		String viewId = createView(ViewTypeMask.File.getMask(), List.of(project.getId()), searchEnabled);
+		asyncHelper.waitForTableOrViewToBeAvailable(IdAndVersion.parse(viewId), MAX_WAIT_MS);
+	}
 
 	/**
 	 * Broadcast a change message to the view worker.

@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -144,9 +145,9 @@ public interface TableIndexDAO {
 	 * Get the MD5 hex of the table's current schema.
 	 * 
 	 * @param tableId
-	 * @return
+	 * @return Optional.empty() if there is no stored state for this table.
 	 */
-	String getCurrentSchemaMD5Hex(IdAndVersion tableId);
+	Optional<String> getCurrentSchemaMD5Hex(IdAndVersion tableId);
 	
 	void setSearchEnabled(IdAndVersion tableId, boolean searchStatus);
 	
