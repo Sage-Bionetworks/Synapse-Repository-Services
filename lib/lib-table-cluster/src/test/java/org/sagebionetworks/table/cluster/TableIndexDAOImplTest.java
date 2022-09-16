@@ -971,7 +971,7 @@ public class TableIndexDAOImplTest {
 		// call under test.
 		this.tableIndexDAO.setIndexVersionAndSchemaMD5Hex(tableId, version, md5);
 		
-		assertEquals(md5, this.tableIndexDAO.getCurrentSchemaMD5Hex(tableId));
+		assertEquals(Optional.of(md5), this.tableIndexDAO.getCurrentSchemaMD5Hex(tableId));
 		assertEquals(version, this.tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId));
 	}
 	
