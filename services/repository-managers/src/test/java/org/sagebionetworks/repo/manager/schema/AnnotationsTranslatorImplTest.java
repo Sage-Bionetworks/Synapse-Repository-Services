@@ -435,7 +435,7 @@ public class AnnotationsTranslatorImplTest {
 				json.getString("modifiedOn"));
 		assertEquals(Project.class.getName(), json.getString("concreteType"));
 		// annotations
-		assertEquals("some string!", json.getJSONArray("aString").getString(0));
+		assertEquals("some string!", json.getString("aString"));
 		JSONArray array = json.getJSONArray("listOfLongs");
 		assertNotNull(array);
 		assertEquals(2, array.length());
@@ -471,7 +471,7 @@ public class AnnotationsTranslatorImplTest {
 				json.getString("modifiedOn"));
 		assertEquals(Project.class.getName(), json.getString("concreteType"));
 		// annotations
-		assertEquals("some string!", json.getJSONArray("aString").getString(0));
+		assertEquals("some string!", json.getString("aString"));
 		JSONArray array = json.getJSONArray("listOfLongs");
 		assertNotNull(array);
 		assertEquals(2, array.length());
@@ -703,7 +703,7 @@ public class AnnotationsTranslatorImplTest {
 		JSONObject json = new JSONObject();
 		// call under test
 		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
-		assertEquals("someString", json.getJSONArray("aString").getString(0));
+		assertEquals("someString", json.getString("aString"));
 	}
 	
 	@Test
@@ -714,7 +714,7 @@ public class AnnotationsTranslatorImplTest {
 		JSONObject json = new JSONObject();
 		// call under test
 		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
-		assertEquals(new Long(123), json.getJSONArray("aLong").get(0));
+		assertEquals(new Long(123), json.getLong("aLong"));
 	}
 	
 	@Test
@@ -725,7 +725,7 @@ public class AnnotationsTranslatorImplTest {
 		JSONObject json = new JSONObject();
 		// call under test
 		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
-		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(12345)), json.getJSONArray("aTimestamp").getString(0));
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(12345)), json.getString("aTimestamp"));
 	}
 	
 	@Test
@@ -736,7 +736,7 @@ public class AnnotationsTranslatorImplTest {
 		JSONObject json = new JSONObject();
 		// call under test
 		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
-		assertEquals(new Double(3.14), json.getJSONArray("aDouble").getDouble(0));
+		assertEquals(new Double(3.14), json.getDouble("aDouble"));
 	}
 	
 	@Test
@@ -747,7 +747,7 @@ public class AnnotationsTranslatorImplTest {
 		JSONObject json = new JSONObject();
 		// call under test
 		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
-		assertEquals(true, json.getJSONArray("hasBoolean").getBoolean(0));
+		assertEquals(true, json.getBoolean("hasBoolean"));
 	}
 	
 	@Test
