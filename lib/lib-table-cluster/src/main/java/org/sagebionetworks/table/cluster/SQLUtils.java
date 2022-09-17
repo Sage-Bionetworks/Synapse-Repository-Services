@@ -1017,10 +1017,13 @@ public class SQLUtils {
 			if(!isFirst){
 				builder.append(", ");
 			}
-			// There is no need to run the actual count for columns for which an index is not created 
+			// There is no need to run a distinct count for columns for which an index is not created 
 			// or for metadata columns (such as row id) that manage their own indices
+			// Using MAX with a constant is relatively cheap, note that when there are no rows in the table MAX will return NULL
 			if (info.isMetadata() || !info.getType().isCreateIndex()) {
+				builder.append("MAX(");
 				builder.append(TableConstants.COLUMN_NO_CARDINALITY);
+				builder.append(")");
 			} else {
 				builder.append("COUNT(DISTINCT ");
 				builder.append(info.getColumnName());

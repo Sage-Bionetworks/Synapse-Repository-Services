@@ -1155,10 +1155,10 @@ public class SQLUtilsTest {
 			+ "COUNT(DISTINCT VARCHAR) AS VARCHAR, "
 			+ "COUNT(DISTINCT DOUBLE) AS DOUBLE, "
 			+ "COUNT(DISTINCT BOOLEAN) AS BOOLEAN, "
-			+ "-1 AS MEDIUMTEXT, "
+			+ "MAX(0) AS MEDIUMTEXT, "
 			+ "COUNT(DISTINCT TINYINT) AS TINYINT, "
 			+ "COUNT(DISTINCT ENUM) AS ENUM, "
-			+ "-1 AS JSON FROM T999", results
+			+ "MAX(0) AS JSON FROM T999", results
 		);
 	}
 	
@@ -1175,7 +1175,7 @@ public class SQLUtilsTest {
 		String results = SQLUtils.createCardinalitySql(list, tableId);
 		
 		assertEquals(
-			"SELECT -1 AS ROW_BENEFACTOR, -1 AS ROW_ETAG, -1 AS ROW_ID, -1 AS ROW_SEARCH_CONTENT, -1 AS ROW_VERSION FROM T999", results
+			"SELECT MAX(0) AS ROW_BENEFACTOR, MAX(0) AS ROW_ETAG, MAX(0) AS ROW_ID, MAX(0) AS ROW_SEARCH_CONTENT, MAX(0) AS ROW_VERSION FROM T999", results
 		);
 	}
 	

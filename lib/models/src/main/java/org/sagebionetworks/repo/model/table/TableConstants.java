@@ -366,6 +366,6 @@ public class TableConstants {
 	
 	public static final String MAXIMUM_OF_ITEMS_IN_A_DATASET_COLLECTION_EXCEEDED = "Maximum of %,d items in a dataset collection exceeded.";
 
-	public static final Long COLUMN_NO_CARDINALITY = -1L;
+	public static final Long COLUMN_NO_CARDINALITY = 0L;
 	
 }

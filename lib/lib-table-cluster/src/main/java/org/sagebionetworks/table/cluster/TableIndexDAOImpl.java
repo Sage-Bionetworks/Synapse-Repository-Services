@@ -649,12 +649,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			IdAndVersion tableId) {
 		ValidateArgument.required(list, "list");
 		ValidateArgument.required(tableId, "tableId");
+		
 		if(list.isEmpty()){
 			return;
 		}
-		// If the table is empty, the query might not return any row if no count is performed for any column
-		list.forEach(info -> info.setCardinality(TableConstants.COLUMN_NO_CARDINALITY));
-		
+				
 		String sql = SQLUtils.createCardinalitySql(list, tableId);
 		
 		template.query(sql, new RowCallbackHandler() {
@@ -662,6 +661,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			public void processRow(ResultSet rs) throws SQLException {
 				for (DatabaseColumnInfo info : list) {
 					info.setCardinality(rs.getLong(info.getColumnName()));
+					if (rs.wasNull()) {
+						// When we run the MAX(constant) and there are no rows, MySQL returns NULL
+						info.setCardinality(TableConstants.COLUMN_NO_CARDINALITY);
+					}
 				}
 			}
 		});
