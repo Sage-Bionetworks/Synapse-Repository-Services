@@ -1217,6 +1217,27 @@ public class TableIndexDAOImplTest {
 
 		assertEquals(expectedBatch, tableIndexDAO.fetchSearchContent(tableId, rowIds));
 	}
+	
+	@Test
+	public void testUpdateSearchIndexWithLargeBatch() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, indexDescription);
+		
+		List<Row> rows = generateAndAppendRows(tableId, columns, 10_000);
+		
+		List<RowSearchContent> batch = rows.stream().map(row -> 
+			new RowSearchContent(row.getRowId(), String.join(" - ", row.getValues()))
+		).collect(Collectors.toList());
+			
+		assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {	
+			// Call under test
+			tableIndexDAO.updateSearchIndex(tableId, batch);
+		});
+	}
 		
 	@Test
 	public void testUpdateSearchIndexWithEmptyTable() {

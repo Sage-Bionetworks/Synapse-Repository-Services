@@ -1564,11 +1564,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		List<Object[]> batchUpdateArgs = new ArrayList<>(searchContentRows.size());
 		
 		for (RowSearchContent searchContent : searchContentRows) {
-			batchUpdateArgs.add(new Object[] {searchContent.getSearchContent(), searchContent.getRowId()});
+			batchUpdateArgs.add(new Object[] { 
+				searchContent.getSearchContent(), 
+				searchContent.getRowId()
+			});
 		}
 
-		template.batchUpdate(updateSql, batchUpdateArgs);
-	
+		writeTransactionTemplate.executeWithoutResult( txStatus -> template.batchUpdate(updateSql, batchUpdateArgs));
 	}
 	
 	@Override
@@ -1577,7 +1579,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 		String updateSql = SQLUtils.buildClearSearchContentSql(idAndVersion);
 		
-		template.update(updateSql);
+		writeTransactionTemplate.executeWithoutResult( txStatus -> template.update(updateSql));
+		
 	}
 	
 	@Override
