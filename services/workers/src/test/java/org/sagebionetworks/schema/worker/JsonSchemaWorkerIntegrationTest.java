@@ -971,7 +971,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		expected.setEtag(annotations.getEtag());
 		AnnotationsV2TestUtils.putAnnotations(expected, "someBoolean", "true", AnnotationsValueType.BOOLEAN);
 		AnnotationsV2TestUtils.putAnnotations(expected, "_accessRequirementIds",
-				List.of(ar1.getId().toString(), ar2.getId().toString()), AnnotationsValueType.LONG);
+				List.of(ar1.getId().toString(), ar2.getId().toString()), AnnotationsValueType.STRING);
 		assertEquals(expected, annotations);
 		
 		Long limit = 50L;
