@@ -105,7 +105,6 @@ public class SQLUtils {
 	public static final String COLUMN_PREFIX = "_C";
 	public static final String COLUMN_POSTFIX = "_";
 	public static final String UNNEST_SUFFIX = "_UNNEST";
-
 	private static final String DOUBLE_NAN = Double.toString(Double.NaN);
 	private static final String DOUBLE_POSITIVE_INFINITY = Double.toString(Double.POSITIVE_INFINITY);
 	private static final String DOUBLE_NEGATIVE_INFINITY = Double.toString(Double.NEGATIVE_INFINITY);
@@ -1000,7 +999,6 @@ public class SQLUtils {
 		return "DELETE FROM "+getTableNameForId(tableId, TableType.INDEX);
 	}
 
-	
 	/**
 	 * A single SQL statement to get the cardinality of each column as a single call.
 	 * 
@@ -1019,9 +1017,19 @@ public class SQLUtils {
 			if(!isFirst){
 				builder.append(", ");
 			}
-			builder.append("COUNT(DISTINCT ");
-			builder.append(info.getColumnName());
-			builder.append(") AS ");
+			// There is no need to run a distinct count for columns for which an index is not created 
+			// or for metadata columns (such as row id) that manage their own indices
+			// Using MAX with a constant is relatively cheap, note that when there are no rows in the table MAX will return NULL
+			if (info.isMetadata() || !info.getType().isCreateIndex()) {
+				builder.append("MAX(");
+				builder.append(TableConstants.COLUMN_NO_CARDINALITY);
+				builder.append(")");
+			} else {
+				builder.append("COUNT(DISTINCT ");
+				builder.append(info.getColumnName());
+				builder.append(")");
+			}
+			builder.append(" AS ");
 			builder.append(info.getColumnName());
 			isFirst = false;
 		}
@@ -1065,18 +1073,12 @@ public class SQLUtils {
 		
 		int indexCount = 1;
 		for(DatabaseColumnInfo info: list){
-			//do not create indexes for JSON columns, these will be done as a separate table
-			if(info.getType() == MySqlColumnType.JSON){
+			// ignore metadata columns such as row id and version
+			if (info.isMetadata()) {
 				continue;
 			}
-
-			// ignore row_id and version
-			if(info.isMetadata()){
-				continue;
-			}
-			// do not index blobs.
-			if(MySqlColumnType.MEDIUMTEXT.equals(info.getType())) {
-				// remove the index if it has one
+			// If the index is skipped for the type, make sure to remove existing ones (e.g. if the type was updated)
+			if (!info.getType().isCreateIndex()) {
 				if(info.hasIndex()){
 					toRemove.add(info);
 				}

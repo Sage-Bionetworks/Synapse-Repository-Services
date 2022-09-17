@@ -1,10 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_SEARCH_CONTENT;
+import static org.sagebionetworks.repo.model.table.TableConstants.RESERVED_COLUMNS_NAMES;
 
 import java.util.Comparator;
 
@@ -75,11 +71,7 @@ public class DatabaseColumnInfo {
 	 * @return
 	 */
 	public boolean isMetadata(){
-		return ROW_ID.equals(this.columnName)
-				|| ROW_VERSION.equals(this.columnName)
-				|| ROW_ETAG.equals(this.columnName)
-				|| ROW_BENEFACTOR.equals(this.columnName)
-				|| ROW_SEARCH_CONTENT.equals(this.columnName);
+		return RESERVED_COLUMNS_NAMES.contains(this.columnName);
 	}
 	
 	

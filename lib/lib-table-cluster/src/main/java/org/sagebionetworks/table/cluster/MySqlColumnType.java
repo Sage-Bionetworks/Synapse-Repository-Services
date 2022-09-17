@@ -5,20 +5,22 @@ package org.sagebionetworks.table.cluster;
  *
  */
 public enum MySqlColumnType {
-	BIGINT(false),
-	VARCHAR(true),
-	DOUBLE(false),
-	BOOLEAN(false),
-	MEDIUMTEXT(false),
-	TINYINT(false),
-	ENUM(false),
-	JSON(false);
+	BIGINT(false, true),
+	VARCHAR(true, true),
+	DOUBLE(false, true),
+	BOOLEAN(false, true),
+	MEDIUMTEXT(false, false),
+	TINYINT(false, true),
+	ENUM(false, true),
+	JSON(false, false);
 
 	
 	boolean hasSize;
+	boolean isCreateIndex;
 	
-	private MySqlColumnType(boolean hasSize){
+	private MySqlColumnType(boolean hasSize, boolean isCreateIndex){
 		this.hasSize = hasSize;
+		this.isCreateIndex = isCreateIndex;
 	}
 	
 	/**
@@ -29,6 +31,12 @@ public enum MySqlColumnType {
 		return hasSize;
 	}
 	
+	/**
+	 * @return Should we attempt to add an index for this type of column?
+	 */
+	public boolean isCreateIndex() {
+		return isCreateIndex;
+	}
 	
 	/**
 	 * Get the MySqlColumnType for a given type string.
