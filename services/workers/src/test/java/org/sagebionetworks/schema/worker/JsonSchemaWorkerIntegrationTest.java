@@ -936,8 +936,9 @@ public class JsonSchemaWorkerIntegrationTest {
 		AccessRequirement ar2 =  termsOfUseAccessRequirementObjectHelper.create((a)->{a.setName("two");});
 		AccessRequirement ar3 =  termsOfUseAccessRequirementObjectHelper.create((a)->{a.setName("three");});
 
-		// create the schema
-		String fileName = "schema/DerivedWithAccessRequirementIds.json";
+		// create the schema,
+		// DerivedWithAccessRequirementIds.json.vtp(stands for velocity) is not a json file, it's a template used by velocity to create json
+		String fileName = "schema/DerivedWithAccessRequirementIds.json.vtp";
 		JsonSchema schema = getSchemaTemplateFromClasspath(fileName, "my.organization-DerivedWithAccessRequirementIds",
 				new VelocityContext(Map.of("arOne", ar1.getId(), "arTwo", ar2.getId(), "arThree", ar3.getId())));
 		CreateSchemaResponse createResponse = registerSchema(schema);
@@ -971,7 +972,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		expected.setEtag(annotations.getEtag());
 		AnnotationsV2TestUtils.putAnnotations(expected, "someBoolean", "true", AnnotationsValueType.BOOLEAN);
 		AnnotationsV2TestUtils.putAnnotations(expected, "_accessRequirementIds",
-				List.of(ar1.getId().toString(), ar2.getId().toString()), AnnotationsValueType.STRING);
+				List.of(ar1.getId().toString(), ar2.getId().toString()), AnnotationsValueType.LONG);
 		assertEquals(expected, annotations);
 		
 		Long limit = 50L;
