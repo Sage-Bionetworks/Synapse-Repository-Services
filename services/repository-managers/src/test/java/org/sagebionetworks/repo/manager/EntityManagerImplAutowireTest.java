@@ -1554,6 +1554,68 @@ public class EntityManagerImplAutowireTest {
 		assertEquals("null is not allowed as a value for key: 'key'",message);
 	}
 
+
+	@Test
+	public void testSingleValueAnnotationNotPresentInJsonSchemaWithEntityJson() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createMultiValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		toUpdate.put("singleValue", "value");
+
+		// call under test
+		entityManager.updateEntityJson(adminUserInfo, pid,toUpdate);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid, false);
+		assertEquals("value", jsonObject.getString("singleValue"));
+	}
+
+	@Test
+	public void testMutliValueAnnotationNotPresentInJsonSchemaWithEntityJson() throws Exception {
+		Project project = new Project();
+		project.setName("project1");
+		String pid = entityManager.createEntity(adminUserInfo, project, null);
+		toDelete.add(pid);
+
+		//create Schema
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createMultiValueSchemaRequest(organization));
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+
+		//bind schema to entity
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(pid);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
+		JSONArray array = new JSONArray();
+		array.put(0, "one");
+		array.put(1, "two");
+		toUpdate.put("multiValue", array);
+
+		// call under test
+		entityManager.updateEntityJson(adminUserInfo, pid,toUpdate);
+
+		JSONObject jsonObject = entityManager.getEntityJson(pid, false);
+		assertEquals("[\"one\",\"two\"]", jsonObject.getJSONArray("multiValue").toString());
+	}
+
 	@Test
 	public void testUpdateEntityJsonWithStringListOfBooleans() {
 		// Test for PLFM-6874: To show that string false/true are still strings

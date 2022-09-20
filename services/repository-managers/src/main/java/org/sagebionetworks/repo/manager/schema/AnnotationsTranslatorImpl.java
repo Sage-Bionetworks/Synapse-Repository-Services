@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.common.SchemaDataType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
@@ -424,7 +425,7 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 * @param jsonObject
 	 */
 	void writeAnnotationsToJSONObject(Annotations toWrite, JSONObject jsonObject, JsonSchema schema) {
-		Map<String, Boolean> isSingleMap = Collections.emptyMap();
+		Map<String, SchemaDataType> isSingleMap = Collections.emptyMap();
 		if (schema != null) {
 			isSingleMap = buildJsonSchemaIsSingleMap(schema);
 		}
@@ -433,28 +434,24 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 		}
 	}
 
-	void writeAnnotationValue(String key, AnnotationsValue value, JSONObject jsonObject, Map<String, Boolean> isSingleMap) {
+	void writeAnnotationValue(String key, AnnotationsValue value, JSONObject jsonObject, Map<String, SchemaDataType> isSingleMap) {
 		if (value == null || value.getValue() == null || value.getType() == null) {
 			return;
 		}
+		final SchemaDataType schemaDataType = isSingleMap.getOrDefault(key, SchemaDataType.NOT_DEFINED);
+
 		if (value.getValue().isEmpty()) {
 			jsonObject.put(key, "");
-		} else if (value.getValue().size() == 1 && isSingleMap.isEmpty()) {
-			/*
-			 * if isSingleMap is empty means no schema definition is bounded,
-			 *  and value list has only one item that should be added as single.
-			 */
-			jsonObject.put(key, stringToObject(value.getType(), value.getValue().get(0)));
-		} else if (value.getValue().size() == 1 && Boolean.TRUE.equals(isSingleMap.get(key))) {
-			/*
-			 * we write a single is when the annotations is a single
-			 * and the schema defines it as a single, const, or enum
-			 */
-			jsonObject.put(key, stringToObject(value.getType(), value.getValue().get(0)));
-		} else {
+		} else if (value.getValue().size() > 1 || (schemaDataType == SchemaDataType.ARRAY)) {
 			JSONArray array = new JSONArray();
 			jsonObject.put(key, array);
 			value.getValue().forEach(s -> array.put(stringToObject(value.getType(), s)));
+		} else  {
+			/*
+			 *  if value list has only one item and either it has single value schema bounded
+			 * or no schema bounded, we will add single value.
+			 */
+			jsonObject.put(key, stringToObject(value.getType(), value.getValue().get(0)));
 		}
 	}
 	
@@ -464,8 +461,8 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 * @param schema
 	 * @return
 	 */
-	Map<String, Boolean> buildJsonSchemaIsSingleMap(JsonSchema schema) {
-		Map<String, Boolean> result = new HashMap<>();
+	Map<String, SchemaDataType> buildJsonSchemaIsSingleMap(JsonSchema schema) {
+		Map<String, SchemaDataType> result = new HashMap<>();
 		// definitions for $refs will always be at the root.
 		Map<String, JsonSchema> definitions = schema.getDefinitions() != null ? schema.getDefinitions()
 				: new HashMap<>();
@@ -479,7 +476,13 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 							// replace the $ref with its definition.
 							typeSchema = definitions.get(getRelative$Ref(typeSchema.get$ref()));
 						}
-						result.put(key, isSingleType(typeSchema));
+						if(typeSchema == null){
+							result.put(key, SchemaDataType.NOT_DEFINED);
+						}else if(Type.array.equals(typeSchema.getType())){
+							result.put(key, SchemaDataType.ARRAY);
+						}else{
+							result.put(key, SchemaDataType.SINGLE);
+						}
 					}
 				}
 			}
@@ -499,27 +502,6 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			return $ref.substring(DEFINITIONS_STRING_LENGTH);
 		}
 	}
-	
-	/**
-	 * Does the passed JsonSchema represent a single value?
-	 * If we cannot explicitly determine that a value is a single, then we will
-	 * treat it as an array (return false).
-	 * @param typeSchema
-	 * @return Will return true if the provided schema explicitly states that is is a single.  Will
-	 * return false for all other cases. 
-	 */
-	boolean isSingleType(JsonSchema typeSchema) {
-		if(typeSchema == null) {
-			return false;
-		}
-		if (typeSchema.getType() != null) {
-			return !typeSchema.getType().equals(Type.array);
-		} else {
-			// if const/enum exists, we assume it is a single in our map
-			return typeSchema.get_enum() != null || typeSchema.get_const() != null;
-		}
-	}
-	
 
 	Object stringToObject(AnnotationsValueType type, String value) {
 		switch (type) {

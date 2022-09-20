@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.common.SchemaDataType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -34,7 +35,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 public class AnnotationsTranslatorImplTest {
@@ -655,7 +655,7 @@ public class AnnotationsTranslatorImplTest {
 				json.getString("modifiedOn"));
 		assertEquals(Project.class.getName(), json.getString("concreteType"));
 		// annotations
-		assertEquals("some string!", json.getJSONArray("aString").get(0));
+		assertEquals("some string!", json.getString("aString"));
 		JSONArray array = json.getJSONArray("listOfLongs");
 		assertNotNull(array);
 		assertEquals(2, array.length());
@@ -701,45 +701,28 @@ public class AnnotationsTranslatorImplTest {
 				json.getString("modifiedOn"));
 		assertEquals(Project.class.getName(), json.getString("concreteType"));
 		// annotations
-		assertEquals("some string!", json.getJSONArray("aString").getString(0));
+		assertEquals("some string!", json.getString("aString"));
 		JSONArray array = json.getJSONArray("listOfLongs");
 		assertNotNull(array);
 		assertEquals(2, array.length());
 		assertEquals(new Long(222),array.getLong(0));
 		assertEquals(new Long(333),array.getLong(1));
 	}
-	
-	@Test
-	public void testIsSingleType() {
-		// default to null
-		assertFalse(translator.isSingleType(null));
-		assertFalse(translator.isSingleType(new JsonSchema()));
-		assertFalse(translator.isSingleType(new JsonSchema().setType(Type.array)));
-		assertTrue(translator.isSingleType(new JsonSchema().setType(Type.string)));
-		assertTrue(translator.isSingleType(new JsonSchema().setType(Type.integer)));
-		assertTrue(translator.isSingleType(new JsonSchema().setType(Type.number)));
-		assertTrue(translator.isSingleType(new JsonSchema().setType(Type._boolean)));
-		assertTrue(translator.isSingleType(new JsonSchema().setType(Type._null)));
-		assertTrue(translator.isSingleType(new JsonSchema().setType(Type.object)));
-		assertTrue(translator.isSingleType(new JsonSchema().set_enum(Collections.emptyList())));
-		assertTrue(translator.isSingleType(new JsonSchema().set_enum(Arrays.asList("one"))));
-		assertTrue(translator.isSingleType(new JsonSchema().set_const("one")));
-	}
-	
+
 	@Test
 	public void testBuildJsonSchemaIsSingleMap() throws Exception {
 		JsonSchema schema = SchemaTestUtils.loadSchemaFromClasspath("schemas/ComplexReferences.json");
 		// call under test
-		Map<String, Boolean> map = translator.buildJsonSchemaIsSingleMap(schema);
-		Map<String, Boolean> expected = new HashMap<>(10);
-		expected.put("simple-single-ref", true);
-		expected.put("simple-array-ref", false);
-		expected.put("array-items-ref", false);
-		expected.put("ref-to-const", true);
-		expected.put("ref-to-enum", true);
-		expected.put("inside-if", true);
-		expected.put("then-value", false);
-		expected.put("else-value", true);
+		Map<String, SchemaDataType> map = translator.buildJsonSchemaIsSingleMap(schema);
+		Map<String, SchemaDataType> expected = new HashMap<>(10);
+		expected.put("simple-single-ref", SchemaDataType.SINGLE);
+		expected.put("simple-array-ref", SchemaDataType.ARRAY);
+		expected.put("array-items-ref", SchemaDataType.ARRAY);
+		expected.put("ref-to-const", SchemaDataType.SINGLE);
+		expected.put("ref-to-enum", SchemaDataType.SINGLE);
+		expected.put("inside-if", SchemaDataType.SINGLE);
+		expected.put("then-value", SchemaDataType.ARRAY);
+		expected.put("else-value", SchemaDataType.SINGLE);
 		assertEquals(expected, map);
 	}
 	
@@ -748,17 +731,17 @@ public class AnnotationsTranslatorImplTest {
 		JsonSchema schema = SchemaTestUtils.loadSchemaFromClasspath("schemas/ComplexReferences.json");
 		schema.setDefinitions(null);
 		// call under test
-		Map<String, Boolean> map = translator.buildJsonSchemaIsSingleMap(schema);
+		Map<String, SchemaDataType> map = translator.buildJsonSchemaIsSingleMap(schema);
 		// without valid references everything is false.
-		Map<String, Boolean> expected = new HashMap<>(10);
-		expected.put("simple-single-ref", false);
-		expected.put("simple-array-ref", false);
-		expected.put("array-items-ref", false);
-		expected.put("ref-to-const", false);
-		expected.put("ref-to-enum", false);
-		expected.put("inside-if", false);
-		expected.put("then-value", false);
-		expected.put("else-value", false);
+		Map<String, SchemaDataType> expected = new HashMap<>(10);
+		expected.put("simple-single-ref", SchemaDataType.NOT_DEFINED);
+		expected.put("simple-array-ref", SchemaDataType.NOT_DEFINED);
+		expected.put("array-items-ref", SchemaDataType.ARRAY);
+		expected.put("ref-to-const", SchemaDataType.NOT_DEFINED);
+		expected.put("ref-to-enum", SchemaDataType.NOT_DEFINED);
+		expected.put("inside-if", SchemaDataType.NOT_DEFINED);
+		expected.put("then-value", SchemaDataType.NOT_DEFINED);
+		expected.put("else-value", SchemaDataType.NOT_DEFINED);
 		assertEquals(expected, map);
 	}
 	
@@ -776,9 +759,9 @@ public class AnnotationsTranslatorImplTest {
 		
 		schema.setDefinitions(null);
 		// call under test
-		Map<String, Boolean> map = translator.buildJsonSchemaIsSingleMap(schema);
-		Map<String, Boolean> expected = new HashMap<>(1);
-		expected.put("has-bad-ref", false);
+		Map<String, SchemaDataType> map = translator.buildJsonSchemaIsSingleMap(schema);
+		Map<String, SchemaDataType> expected = new HashMap<>(1);
+		expected.put("has-bad-ref", SchemaDataType.NOT_DEFINED);
 		assertEquals(expected, map);
 	}
 	
@@ -1124,7 +1107,7 @@ public class AnnotationsTranslatorImplTest {
 		JSONObject json = new JSONObject();
 		// call under test
 		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
-		assertEquals(json.getJSONArray("key").getString(0), "foo");
+		assertEquals("foo", json.getString("key"));
 	}
 	
 	@Test
@@ -1193,7 +1176,7 @@ public class AnnotationsTranslatorImplTest {
 		JSONObject json = new JSONObject();
 		// call under test
 		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
-		assertEquals(json.getJSONArray("key").getString(0), "foo");
+		assertEquals("foo", json.getString("key"));
 	}
 	
 	@Test
