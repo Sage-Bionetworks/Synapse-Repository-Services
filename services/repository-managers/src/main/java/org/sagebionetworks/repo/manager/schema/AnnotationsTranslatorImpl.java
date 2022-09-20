@@ -425,20 +425,20 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 * @param jsonObject
 	 */
 	void writeAnnotationsToJSONObject(Annotations toWrite, JSONObject jsonObject, JsonSchema schema) {
-		Map<String, SchemaDataType> isSingleMap = Collections.emptyMap();
+		Map<String, SchemaDataType> schemaDataTypeMap = Collections.emptyMap();
 		if (schema != null) {
-			isSingleMap = buildJsonSchemaIsSingleMap(schema);
+			schemaDataTypeMap = buildJsonSchemaIsSingleMap(schema);
 		}
 		for (Entry<String, AnnotationsValue> entry : toWrite.getAnnotations().entrySet()) {
-			writeAnnotationValue(entry.getKey(), entry.getValue(), jsonObject, isSingleMap);
+			writeAnnotationValue(entry.getKey(), entry.getValue(), jsonObject, schemaDataTypeMap);
 		}
 	}
 
-	void writeAnnotationValue(String key, AnnotationsValue value, JSONObject jsonObject, Map<String, SchemaDataType> isSingleMap) {
+	void writeAnnotationValue(String key, AnnotationsValue value, JSONObject jsonObject, Map<String, SchemaDataType> schemaDataTypeMap) {
 		if (value == null || value.getValue() == null || value.getType() == null) {
 			return;
 		}
-		final SchemaDataType schemaDataType = isSingleMap.getOrDefault(key, SchemaDataType.NOT_DEFINED);
+		final SchemaDataType schemaDataType = schemaDataTypeMap.getOrDefault(key, SchemaDataType.NOT_DEFINED);
 
 		if (value.getValue().isEmpty()) {
 			jsonObject.put(key, "");
