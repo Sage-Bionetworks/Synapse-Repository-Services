@@ -18,7 +18,10 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CUR_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_BUCKET;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_MD5;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_SIZE_BYTES;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE;
@@ -31,9 +34,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PROJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_SUBTYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_BUCKET;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
@@ -658,15 +658,22 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			IdAndVersion tableId) {
 		ValidateArgument.required(list, "list");
 		ValidateArgument.required(tableId, "tableId");
+		
 		if(list.isEmpty()){
 			return;
 		}
+				
 		String sql = SQLUtils.createCardinalitySql(list, tableId);
+		
 		template.query(sql, new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
 				for (DatabaseColumnInfo info : list) {
 					info.setCardinality(rs.getLong(info.getColumnName()));
+					if (rs.wasNull()) {
+						// When we run the MAX(constant) and there are no rows, MySQL returns NULL
+						info.setCardinality(TableConstants.COLUMN_NO_CARDINALITY);
+					}
 				}
 			}
 		});
@@ -1557,11 +1564,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		List<Object[]> batchUpdateArgs = new ArrayList<>(searchContentRows.size());
 		
 		for (RowSearchContent searchContent : searchContentRows) {
-			batchUpdateArgs.add(new Object[] {searchContent.getSearchContent(), searchContent.getRowId()});
+			batchUpdateArgs.add(new Object[] { 
+				searchContent.getSearchContent(), 
+				searchContent.getRowId()
+			});
 		}
 
-		template.batchUpdate(updateSql, batchUpdateArgs);
-	
+		writeTransactionTemplate.executeWithoutResult( txStatus -> template.batchUpdate(updateSql, batchUpdateArgs));
 	}
 	
 	@Override
@@ -1570,7 +1579,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 		String updateSql = SQLUtils.buildClearSearchContentSql(idAndVersion);
 		
-		template.update(updateSql);
+		writeTransactionTemplate.executeWithoutResult( txStatus -> template.update(updateSql));
+		
 	}
 	
 	@Override

@@ -14,8 +14,10 @@ import static org.mockito.Mockito.verify;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -1126,14 +1128,57 @@ public class SQLUtilsTest {
 	public void testCreateCardinalitySqlMultiple(){
 		DatabaseColumnInfo one = new DatabaseColumnInfo();
 		one.setColumnName("_C111_");
+		one.setType(MySqlColumnType.VARCHAR);
 		DatabaseColumnInfo two = new DatabaseColumnInfo();
 		two.setColumnName("_C222_");
+		two.setType(MySqlColumnType.BIGINT);
 
 		List<DatabaseColumnInfo> list = Lists.newArrayList(one, two);
 		String results = SQLUtils.createCardinalitySql(list, tableId);
 		assertEquals("SELECT COUNT(DISTINCT _C111_) AS _C111_, COUNT(DISTINCT _C222_) AS _C222_ FROM T999", results);
 	}
-
+	
+	@Test
+	public void testCreateCardinalitySqlWithNoIndexColumns() {
+		List<DatabaseColumnInfo> list = new ArrayList<>();
+		for (int i=0; i< MySqlColumnType.values().length; i++) {
+			MySqlColumnType type = MySqlColumnType.values()[i];
+			DatabaseColumnInfo column = new DatabaseColumnInfo();
+			column.setColumnName(type.name());
+			column.setType(type);
+			list.add(column);
+		}
+		String results = SQLUtils.createCardinalitySql(list, tableId);
+		assertEquals(
+			"SELECT "
+			+ "COUNT(DISTINCT BIGINT) AS BIGINT, "
+			+ "COUNT(DISTINCT VARCHAR) AS VARCHAR, "
+			+ "COUNT(DISTINCT DOUBLE) AS DOUBLE, "
+			+ "COUNT(DISTINCT BOOLEAN) AS BOOLEAN, "
+			+ "MAX(0) AS MEDIUMTEXT, "
+			+ "COUNT(DISTINCT TINYINT) AS TINYINT, "
+			+ "COUNT(DISTINCT ENUM) AS ENUM, "
+			+ "MAX(0) AS JSON FROM T999", results
+		);
+	}
+	
+	@Test
+	public void testCreateCardinalitySqlWithMetadataColumns() {
+		List<DatabaseColumnInfo> list = new ArrayList<>();
+		for (String name : TableConstants.RESERVED_COLUMNS_NAMES) {
+			DatabaseColumnInfo column = new DatabaseColumnInfo();
+			column.setColumnName(name);
+			list.add(column);
+		}
+		list.sort(Comparator.comparing(DatabaseColumnInfo::getColumnName));
+		
+		String results = SQLUtils.createCardinalitySql(list, tableId);
+		
+		assertEquals(
+			"SELECT MAX(0) AS ROW_BENEFACTOR, MAX(0) AS ROW_ETAG, MAX(0) AS ROW_ID, MAX(0) AS ROW_SEARCH_CONTENT, MAX(0) AS ROW_VERSION FROM T999", results
+		);
+	}
+	
 	public List<DatabaseColumnInfo> createDatabaseColumnInfo(long rowCount){
 		List<DatabaseColumnInfo> list = new LinkedList<DatabaseColumnInfo>();
 		//row id
@@ -1142,6 +1187,7 @@ public class SQLUtilsTest {
 		rowId.setCardinality(rowCount);
 		rowId.setHasIndex(true);
 		rowId.setIndexName("PRIMARY");
+		rowId.setType(MySqlColumnType.BIGINT);
 		list.add(rowId);
 		//row version
 		DatabaseColumnInfo rowVersion = new DatabaseColumnInfo();
@@ -1149,6 +1195,7 @@ public class SQLUtilsTest {
 		rowVersion.setCardinality(1L);
 		rowVersion.setHasIndex(true);
 		rowVersion.setIndexName("");
+		rowVersion.setType(MySqlColumnType.BIGINT);
 		list.add(rowVersion);
 
 		// Create rows with descending cardinality.
@@ -1158,100 +1205,80 @@ public class SQLUtilsTest {
 			info.setCardinality(rowCount-i);
 			info.setHasIndex(false);
 			info.setIndexName(null);
+			info.setType(MySqlColumnType.VARCHAR);
 			list.add(info);
 		}
 		return list;
 	}
 
 	@Test
-	public void testCalculateIndexChangesIgnoreRowIdAndVersion(){
-		int maxNumberOfIndex = 1;
-		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(2);
-		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
-		assertNotNull(changes);
-		assertNotNull(changes.getToAdd());
-		assertNotNull(changes.getToRemove());
-		assertNotNull(changes.getToRename());
-		assertEquals(0, changes.getToAdd().size());
-		assertEquals(0, changes.getToRemove().size());
-		assertEquals(0, changes.getToRename().size());
-	}
-
-	@Test
-	public void testCalculateIndexChanges_IgnoreJSONColumns(){
-		int maxNumberOfIndex = 10;
-		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(3);
-		assertEquals(5, currentInfo.size()); //row_id and row_version are also included
-		//find first column not named row_id or row_version and set it to be JSON type
-		for(DatabaseColumnInfo columnInfo : currentInfo){
-			if(!columnInfo.getColumnName().equals("ROW_ID") && !columnInfo.getColumnName().equals("ROW_VERSION")){
-				columnInfo.setType(MySqlColumnType.JSON);
-				break;
+	public void testCalculateIndexOptimizationWithNoIndexColumns() {
+		int maxNumberOfIndex = 10000;
+		
+		List<DatabaseColumnInfo> list = new ArrayList<>();
+		
+		for (MySqlColumnType type : MySqlColumnType.values()) {
+			if (type.isCreateIndex()) {
+				continue;
 			}
+			DatabaseColumnInfo column = new DatabaseColumnInfo();
+			column.setColumnName(type.name());
+			column.setType(type);
+			column.setHasIndex(false);
+			column.setCardinality(-1L);
+			list.add(column);
 		}
-
-		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
-		assertNotNull(changes);
-		assertNotNull(changes.getToAdd());
-		assertNotNull(changes.getToRemove());
-		assertNotNull(changes.getToRename());
-
-		//ignore 1 column because it is a JSON column
-		assertEquals(2, changes.getToAdd().size());
-		assertEquals(0, changes.getToRemove().size());
-		assertEquals(0, changes.getToRename().size());
-	}
-
-	/**
-	 * A LARGETEXT column that does not currently have an index should not have an index added.
-	 */
-	@Test
-	public void testCalculateIndexOptimizationLargeTextWithNoIndex(){
-		int maxNumberOfIndex = 10000;
-		DatabaseColumnInfo info = new DatabaseColumnInfo();
-		info.setCardinality(100L);
-		info.setColumnName("someBlob");
-		info.setColumnType(ColumnType.LARGETEXT);
-		// column does not have an index
-		info.setHasIndex(false);
-		info.setMaxSize(null);
-		info.setType(MySqlColumnType.MEDIUMTEXT);
-		List<DatabaseColumnInfo> currentInfo = Lists.newArrayList(info);
-		// call under test
-		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
-		assertNotNull(changes);
-		assertNotNull(changes.getToAdd());
-		assertNotNull(changes.getToRemove());
-		assertNotNull(changes.getToRename());
+		
+		IndexChange changes = SQLUtils.calculateIndexOptimization(list, tableId, maxNumberOfIndex);
+		
 		assertEquals(0, changes.getToAdd().size());
 		assertEquals(0, changes.getToRemove().size());
 		assertEquals(0, changes.getToRename().size());
 	}
-
-	/**
-	 * A LARGETEXT column that has an index should remove the index.
-	 */
+	
 	@Test
-	public void testCalculateIndexOptimizationLargeTextWithIndex(){
+	public void testCalculateIndexOptimizationWithNoIndexColumnsAndExistingIndex() {
 		int maxNumberOfIndex = 10000;
-		DatabaseColumnInfo info = new DatabaseColumnInfo();
-		info.setCardinality(100L);
-		info.setColumnName("someBlob");
-		info.setColumnType(ColumnType.LARGETEXT);
-		// column has an index
-		info.setHasIndex(true);
-		info.setMaxSize(null);
-		info.setType(MySqlColumnType.MEDIUMTEXT);
-		List<DatabaseColumnInfo> currentInfo = Lists.newArrayList(info);
-		// call under test
-		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
-		assertNotNull(changes);
-		assertNotNull(changes.getToAdd());
-		assertNotNull(changes.getToRemove());
-		assertNotNull(changes.getToRename());
+		
+		List<DatabaseColumnInfo> list = new ArrayList<>();
+		
+		for (MySqlColumnType type : MySqlColumnType.values()) {
+			if (type.isCreateIndex()) {
+				continue;
+			}
+			DatabaseColumnInfo column = new DatabaseColumnInfo();
+			column.setColumnName(type.name());
+			column.setType(type);
+			column.setHasIndex(true);
+			column.setCardinality(-1L);
+			list.add(column);
+		}
+		
+		IndexChange changes = SQLUtils.calculateIndexOptimization(list, tableId, maxNumberOfIndex);
+		
 		assertEquals(0, changes.getToAdd().size());
-		// the blob index should be removed.
-		assertEquals(1, changes.getToRemove().size());
+		assertEquals(2, changes.getToRemove().size());
+		assertEquals(0, changes.getToRename().size());
+	}
+	
+	@Test
+	public void testCalculateIndexOptimizationWithMetadataColumns() {
+		int maxNumberOfIndex = 10000;
+		
+		List<DatabaseColumnInfo> list = new ArrayList<>();
+		
+		for (String name : TableConstants.RESERVED_COLUMNS_NAMES) {
+			DatabaseColumnInfo column = new DatabaseColumnInfo();
+			column.setColumnName(name);
+			column.setCardinality(-1L);
+			column.setHasIndex(true);
+			list.add(column);
+		}
+		
+		IndexChange changes = SQLUtils.calculateIndexOptimization(list, tableId, maxNumberOfIndex);
+		
+		assertEquals(0, changes.getToAdd().size());
+		assertEquals(0, changes.getToRemove().size());
 		assertEquals(0, changes.getToRename().size());
 	}
 
@@ -1365,16 +1392,19 @@ public class SQLUtilsTest {
 		firstInfo.setHasIndex(true);
 		firstInfo.setIndexName(SQLUtils.getIndexName(firstInfo.getColumnName()));
 		firstInfo.setCardinality(1L);
+		firstInfo.setType(MySqlColumnType.BIGINT);
 		// index with a high cardinality but wrong name.
 		DatabaseColumnInfo midInfo = currentInfo.get(3);
 		midInfo.setHasIndex(true);
 		midInfo.setIndexName("wrongName");
 		midInfo.setCardinality(3L);
+		midInfo.setType(MySqlColumnType.BIGINT);
 
 		// no index with a higher cardinality.
 		DatabaseColumnInfo lastInfo = currentInfo.get(4);
 		lastInfo.setHasIndex(false);
 		lastInfo.setCardinality(2L);
+		lastInfo.setType(MySqlColumnType.BIGINT);
 
 		// call under test.
 		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
