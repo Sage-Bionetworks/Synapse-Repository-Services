@@ -182,4 +182,9 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
 	}
 
+	@Override
+	public boolean doesObjectExist(String bucketName, String objectKey) {
+		return googleCloudStorageClient.doesObjectExist(bucketName, objectKey);
+	}
+
 }

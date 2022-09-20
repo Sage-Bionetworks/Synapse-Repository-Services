@@ -123,8 +123,14 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 
 		// Has an upload already been started for this user and request
 		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(user.getId(), requestMD5Hex);
-		
-		if (status == null) {
+
+		/*CloudServiceMultipartUploadDAO cloudDao = null;
+
+		if (status != null) {
+			cloudDao = cloudDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType());
+		}*/
+
+		if (status == null || !cloudDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType()).doesObjectExist(status.getBucket(), status.getKey())) {
 			StorageLocationSetting storageLocation = storageLocationDao.get(request.getStorageLocationId());
 			
 			// Since the status for this file does not exist, create it.

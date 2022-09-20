@@ -360,4 +360,8 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		return metaData.getETag();
 	}
 
+	@Override
+	public boolean doesObjectExist(String bucketName, String objectKey) {
+		return s3Client.doesObjectExist(bucketName, objectKey);
+	}
 }
