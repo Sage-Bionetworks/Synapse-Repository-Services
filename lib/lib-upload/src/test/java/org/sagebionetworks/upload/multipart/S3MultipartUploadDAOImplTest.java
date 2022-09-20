@@ -95,6 +95,8 @@ public class S3MultipartUploadDAOImplTest {
 	private MultipartUploadRequest request;
 	private String uploadId;
 	private String filename;
+	private static final String BUCKET_NAME = "bucket-name";
+	private static final String OBJECT_KEY = "test-object-key";
 
 	@Mock
 	private ObjectMetadata mockObjectMetadata;
@@ -953,4 +955,15 @@ public class S3MultipartUploadDAOImplTest {
 		assertEquals("my.bucket/my/key%2Bsomething%2A.test", result);
 	}
 
+	@Test
+	public void testDoesObjectExist() {
+		when(mockS3Client.doesObjectExist(BUCKET_NAME, OBJECT_KEY)).thenReturn(true);
+
+		// Call under test
+		Boolean result = dao.doesObjectExist(BUCKET_NAME, OBJECT_KEY);
+
+		assertEquals(true, result);
+
+		verify(mockS3Client).doesObjectExist(BUCKET_NAME, OBJECT_KEY);
+	}
 }

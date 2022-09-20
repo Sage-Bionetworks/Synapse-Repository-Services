@@ -186,5 +186,4 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 	public boolean doesObjectExist(String bucketName, String objectKey) {
 		return googleCloudStorageClient.doesObjectExist(bucketName, objectKey);
 	}
-
 }
