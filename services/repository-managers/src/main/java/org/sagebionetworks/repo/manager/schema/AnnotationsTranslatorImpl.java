@@ -259,13 +259,12 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 */
 	Optional<ListValue> attemptToReadAsBoolean(int index, JSONArray array) {
 		try {
-			Object value = array.get(index);
-			if (value.getClass().equals(Boolean.class)) {
-				String valueAsString = array.getString(index);
-				return Optional.of(new ListValue(AnnotationsValueType.BOOLEAN, valueAsString));
-			} else {
+			Object object = array.get(index);
+
+			if (!(object instanceof Boolean)) {
 				return Optional.empty();
 			}
+			return Optional.of(new ListValue(AnnotationsValueType.BOOLEAN, object.toString()));
 		} catch (JSONException e) {
 			return Optional.empty();
 		}
@@ -308,18 +307,15 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	Optional<AnnotationsValue> attemptToReadAsBoolean(String key, JSONObject jsonObject) {
 		try {
 			Object object = jsonObject.get(key);
-			boolean value;
-			if (object.equals(Boolean.FALSE) && (!(object instanceof String))) {
-				value = false;
-			} else if (object.equals(Boolean.TRUE) && (!(object instanceof String))) {
-				value = true;
-			} else {
+			//boolean value;
+
+			if (!(object instanceof Boolean)) {
 				return Optional.empty();
 			}
 
 			AnnotationsValue annValue = new AnnotationsValue();
 			annValue.setType(AnnotationsValueType.BOOLEAN);
-			annValue.setValue(Collections.singletonList(Boolean.toString(value)));
+			annValue.setValue(Collections.singletonList(object.toString()));
 			return Optional.of(annValue);
 		} catch (JSONException e) {
 			return Optional.empty();

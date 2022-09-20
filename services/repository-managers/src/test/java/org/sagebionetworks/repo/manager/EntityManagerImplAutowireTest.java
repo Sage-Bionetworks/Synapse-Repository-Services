@@ -446,7 +446,7 @@ public class EntityManagerImplAutowireTest {
 		assertEquals(project.getParentId(), result.getString("parentId"));
 
 		// the annotations:
-		assertEquals("one", result.get("singleString").toString());
+		assertEquals("one", result.getString("singleString"));
 		JSONArray doubleArray = result.getJSONArray("listOfDoubles");
 		assertNotNull(doubleArray);
 		assertEquals(2, doubleArray.length());
@@ -478,11 +478,11 @@ public class EntityManagerImplAutowireTest {
 		// Call under test
 		JSONObject result = entityManager.getEntityJsonForVersion(userInfo, pid, 1L);
 
-		assertEquals("overrideMe!", result.get("testKey").toString());
+		assertEquals("overrideMe!", result.getString("testKey"));
 
 		result = entityManager.getEntityJsonForVersion(userInfo, pid, 2L);
 
-		assertEquals("overriden!", result.get("testKey").toString());
+		assertEquals("overriden!", result.getString("testKey"));
 
 	}
 
@@ -564,7 +564,7 @@ public class EntityManagerImplAutowireTest {
 		assertEquals(project.getParentId(), result.getString("parentId"));
 
 		// the annotations:
-		assertEquals("two", result.get("singleString").toString());
+		assertEquals("two", result.getString("singleString"));
 		doubleArray = result.getJSONArray("listOfDoubles");
 		assertNotNull(doubleArray);
 		assertEquals(2, doubleArray.length());
@@ -855,9 +855,11 @@ public class EntityManagerImplAutowireTest {
 				AnnotationsValueType.LONG);
 		annotations.setEtag(project.getEtag());
 		// call under test
-		assertEquals("Value associated with key=key is not valid for type=LONG: ", assertThrows(IllegalArgumentException.class, () -> {
+		final String message = assertThrows(IllegalArgumentException.class, () -> {
 			entityManager.updateAnnotations(userInfo, pid, annotations);
-		}).getMessage());
+		}).getMessage();
+
+		assertEquals("Value associated with key=key is not valid for type=LONG: ", message);
 
 	}
 
@@ -873,9 +875,11 @@ public class EntityManagerImplAutowireTest {
 		toUpdate.put("key", array);
 
 		// call under test
-		assertEquals("a value type must be set for values associated with key=key", assertThrows(IllegalArgumentException.class, () -> {
+		final String message = assertThrows(IllegalArgumentException.class, () -> {
 			entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
-		}).getMessage());
+		}).getMessage();
+
+		assertEquals("a value or a value type must be set for values associated with key=key", message);
 	}
 
 	@Test
@@ -919,10 +923,12 @@ public class EntityManagerImplAutowireTest {
 		assertEquals("[1,2]", toUpdate.getJSONArray("key").toString());
 		JSONArray array = new JSONArray();
 		toUpdate.put("key", array);
-		// //call under test
-		assertEquals("a value type must be set for values associated with key=key", assertThrows(IllegalArgumentException.class, () -> {
+		//call under test
+		final String message = assertThrows(IllegalArgumentException.class, () -> {
 			entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
-		}).getMessage());
+		}).getMessage();
+
+		assertEquals("a value or a value type must be set for values associated with key=key", message);
 	}
 
 	@Test
@@ -981,9 +987,11 @@ public class EntityManagerImplAutowireTest {
 		toUpdate.put("key", JSONObject.NULL);
 
 		//call under test
-		assertEquals("null is not allowed as a value for key: 'key'", assertThrows(IllegalArgumentException.class, () -> {
+		final String message = assertThrows(IllegalArgumentException.class, () -> {
 			entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
-		}).getMessage());
+		}).getMessage();
+
+		assertEquals("null is not allowed as a value for key: 'key'", message);
 	}
 
 	@Test
@@ -999,10 +1007,11 @@ public class EntityManagerImplAutowireTest {
 				AnnotationsValueType.STRING);
 		annotations.setEtag(project.getEtag());
 		// call under test
-		assertEquals("null is not allowed. To indicate no values, use an empty list.",
-				assertThrows(IllegalArgumentException.class, () -> {
-					entityManager.updateAnnotations(userInfo, pid, annotations);
-				}).getMessage());
+		final String message = assertThrows(IllegalArgumentException.class, () -> {
+			entityManager.updateAnnotations(userInfo, pid, annotations);
+		}).getMessage();
+
+		assertEquals("null is not allowed. To indicate no values, use an empty list.", message);
 	}
 
 	@Test
@@ -1013,9 +1022,7 @@ public class EntityManagerImplAutowireTest {
 		toDelete.add(pid);
 
 		//create Schema
-		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
-		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
-		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest());
 		String schema$id = createResponse.getNewVersionInfo().get$id();
 
 		//bind schema to entity
@@ -1050,9 +1057,7 @@ public class EntityManagerImplAutowireTest {
 		toDelete.add(pid);
 
 		//create Schema
-		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
-		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
-		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest());
 		String schema$id = createResponse.getNewVersionInfo().get$id();
 
 		//bind schema to entity
@@ -1084,9 +1089,7 @@ public class EntityManagerImplAutowireTest {
 		toDelete.add(pid);
 
 		//create Schema
-		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
-		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
-		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest());
 		String schema$id = createResponse.getNewVersionInfo().get$id();
 
 		//bind schema to entity
@@ -1120,9 +1123,7 @@ public class EntityManagerImplAutowireTest {
 		toDelete.add(pid);
 
 		//create Schema
-		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
-		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
-		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest());
 		String schema$id = createResponse.getNewVersionInfo().get$id();
 
 		//bind schema to entity
@@ -1156,9 +1157,7 @@ public class EntityManagerImplAutowireTest {
 		toDelete.add(pid);
 
 		//create Schema
-		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
-		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
-		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest());
 		String schema$id = createResponse.getNewVersionInfo().get$id();
 
 		//bind schema to entity
@@ -1190,9 +1189,7 @@ public class EntityManagerImplAutowireTest {
 		toDelete.add(pid);
 
 		//create Schema
-		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
-		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
-		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest());
 		String schema$id = createResponse.getNewVersionInfo().get$id();
 
 		//bind schema to entity
@@ -1224,9 +1221,7 @@ public class EntityManagerImplAutowireTest {
 		toDelete.add(pid);
 
 		//create Schema
-		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
-		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
-		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest());
 		String schema$id = createResponse.getNewVersionInfo().get$id();
 
 		//bind schema to entity
@@ -1260,9 +1255,7 @@ public class EntityManagerImplAutowireTest {
 		toDelete.add(pid);
 
 		//create Schema
-		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
-		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
-		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest(organization));
+		final CreateSchemaResponse createResponse = jsonSchemaManager.createJsonSchema(adminUserInfo, createSingleValueSchemaRequest());
 		String schema$id = createResponse.getNewVersionInfo().get$id();
 
 		//bind schema to entity
@@ -1275,9 +1268,11 @@ public class EntityManagerImplAutowireTest {
 		toUpdate.put("key", JSONObject.NULL);
 
 		// call under test
-		assertEquals("null is not allowed as a value for key: 'key'", assertThrows(IllegalArgumentException.class, () -> {
+		final String message = assertThrows(IllegalArgumentException.class, () -> {
 			entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
-		}).getMessage());
+		}).getMessage();
+
+		assertEquals("null is not allowed as a value for key: 'key'", message);
 	}
 
 	@Test
@@ -1552,9 +1547,11 @@ public class EntityManagerImplAutowireTest {
 		toUpdate.put("key", JSONObject.NULL);
 
 		// call under test
-		assertEquals("null is not allowed as a value for key: 'key'", assertThrows(IllegalArgumentException.class, () -> {
+		final String message =  assertThrows(IllegalArgumentException.class, () -> {
 			entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
-		}).getMessage());
+		}).getMessage();
+
+		assertEquals("null is not allowed as a value for key: 'key'",message);
 	}
 
 	@Test
@@ -1636,9 +1633,11 @@ public class EntityManagerImplAutowireTest {
         return createOrganizationRequest;
     }
 
-    private CreateSchemaRequest createSingleValueSchemaRequest(final Organization organization) throws Exception {
+    private CreateSchemaRequest createSingleValueSchemaRequest() throws Exception {
         // create the schema
-        String fileName = "schemas/StringSingleValued.json";
+		final CreateOrganizationRequest createdOrganizationRequest = createOrganizationRequest();
+		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createdOrganizationRequest);
+		String fileName = "schemas/StringSingleValued.json";
         String schemaName = "schema.StringSingleValued.json";
         String semanticVersionString = "1.2.0";
         schema = loadStringFromClasspath(fileName);
