@@ -1,21 +1,10 @@
 package org.sagebionetworks.repo.manager.schema;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.stream.Stream;
-
+import com.google.common.collect.Lists;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.common.SchemaDataType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
@@ -31,7 +20,18 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.doubles.DoubleUtils;
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.Lists;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 @Service
 public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
@@ -97,6 +97,10 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	@Override
 	public AnnotationsValue getAnnotationValueFromJsonObject(String key, JSONObject jsonObject) {
 		// @formatter:off
+		if (jsonObject.isNull(key)) {
+			throw new IllegalArgumentException("null is not allowed as a value for key: '" + key + "'");
+		}
+
 		return Stream
 				.of(
 						attemptToReadAsJSONArray(key, jsonObject),
@@ -198,15 +202,22 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 */
 	Optional<AnnotationsValue> attemptToReadAsDouble(String key, JSONObject jsonObject) {
 		try {
-			Double value = jsonObject.getDouble(key);
+			Object object = jsonObject.get(key);
+
+			if (!(object instanceof Number)) {
+				return Optional.empty();
+			}
+
+			double value = ((Number) object).doubleValue();
 			String testString = jsonObject.getString(key);
-			if (!testString.equals(value.toString())) {
+			if (!testString.equals(Double.toString(value))) {
 				// data loss
 				return Optional.empty();
 			}
+
 			AnnotationsValue annValue = new AnnotationsValue();
 			annValue.setType(AnnotationsValueType.DOUBLE);
-			annValue.setValue(Collections.singletonList(value.toString()));
+			annValue.setValue(Collections.singletonList(Double.toString(value)));
 			return Optional.of(annValue);
 		} catch (JSONException e) {
 			return Optional.empty();
@@ -223,13 +234,18 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 */
 	Optional<ListValue> attemptToReadAsDouble(int index, JSONArray array) {
 		try {
-			Double value = array.getDouble(index);
+			Object object = array.get(index);
+			if (!(object instanceof Number)) {
+				return Optional.empty();
+			}
+
+			double value = ((Number) object).doubleValue();
 			String testString = array.getString(index);
-			if (!testString.equals(value.toString())) {
+			if (!testString.equals(Double.toString(value))) {
 				// data loss
 				return Optional.empty();
 			}
-			return Optional.of(new ListValue(AnnotationsValueType.DOUBLE, value.toString()));
+			return Optional.of(new ListValue(AnnotationsValueType.DOUBLE, Double.toString(value)));
 		} catch (JSONException e) {
 			return Optional.empty();
 		}
@@ -244,13 +260,12 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 */
 	Optional<ListValue> attemptToReadAsBoolean(int index, JSONArray array) {
 		try {
-			Object value = array.get(index);
-			if (value.getClass().equals(Boolean.class)) {
-				String valueAsString = array.getString(index);
-				return Optional.of(new ListValue(AnnotationsValueType.BOOLEAN, valueAsString));
-			} else {
+			Object object = array.get(index);
+
+			if (!(object instanceof Boolean)) {
 				return Optional.empty();
 			}
+			return Optional.of(new ListValue(AnnotationsValueType.BOOLEAN, object.toString()));
 		} catch (JSONException e) {
 			return Optional.empty();
 		}
@@ -266,10 +281,16 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 */
 	Optional<AnnotationsValue> attemptToReadAsLong(String key, JSONObject jsonObject) {
 		try {
-			Long value = jsonObject.getLong(key);
+			Object object = jsonObject.get(key);
+
+			if (!(object instanceof Number)) {
+				return Optional.empty();
+			}
+
+			long value = ((Number) object).longValue();
 			AnnotationsValue annValue = new AnnotationsValue();
 			annValue.setType(AnnotationsValueType.LONG);
-			annValue.setValue(Collections.singletonList(value.toString()));
+			annValue.setValue(Collections.singletonList(Long.toString(value)));
 			return Optional.of(annValue);
 		} catch (JSONException e) {
 			return Optional.empty();
@@ -286,10 +307,16 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 */
 	Optional<AnnotationsValue> attemptToReadAsBoolean(String key, JSONObject jsonObject) {
 		try {
-			Boolean value = jsonObject.getBoolean(key);
+			Object object = jsonObject.get(key);
+			//boolean value;
+
+			if (!(object instanceof Boolean)) {
+				return Optional.empty();
+			}
+
 			AnnotationsValue annValue = new AnnotationsValue();
 			annValue.setType(AnnotationsValueType.BOOLEAN);
-			annValue.setValue(Collections.singletonList(value.toString()));
+			annValue.setValue(Collections.singletonList(object.toString()));
 			return Optional.of(annValue);
 		} catch (JSONException e) {
 			return Optional.empty();
@@ -306,8 +333,12 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 */
 	Optional<ListValue> attemptToReadAsLong(int index, JSONArray array) {
 		try {
-			Long value = array.getLong(index);
-			return Optional.of(new ListValue(AnnotationsValueType.LONG, value.toString()));
+			Object object = array.get(index);
+			if (!(object instanceof Number)) {
+				return Optional.empty();
+			}
+			long value = ((Number) object).longValue();
+			return Optional.of(new ListValue(AnnotationsValueType.LONG, Long.toString(value)));
 		} catch (JSONException e) {
 			return Optional.empty();
 		}
@@ -327,6 +358,10 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			List<String> valueList = new ArrayList<String>(array.length());
 			AnnotationsValueType lastType = null;
 			for (int i = 0; i < array.length(); i++) {
+				if (array.isNull(i)) {
+					throw new IllegalArgumentException("null is not allowed as a value in the list for key: '" + key + "'");
+				}
+
 				ListValue listValue = Stream.of(
 					attemptToReadAsBoolean(i, array), 
 					attemptToReadAsDouble(i, array), 
@@ -390,31 +425,33 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 * @param jsonObject
 	 */
 	void writeAnnotationsToJSONObject(Annotations toWrite, JSONObject jsonObject, JsonSchema schema) {
-		Map<String, Boolean> isSingleMap = Collections.emptyMap();
+		Map<String, SchemaDataType> schemaDataTypeMap = Collections.emptyMap();
 		if (schema != null) {
-			isSingleMap = buildJsonSchemaIsSingleMap(schema);
+			schemaDataTypeMap = buildJsonSchemaIsSingleMap(schema);
 		}
 		for (Entry<String, AnnotationsValue> entry : toWrite.getAnnotations().entrySet()) {
-			writeAnnotationValue(entry.getKey(), entry.getValue(), jsonObject, isSingleMap);
+			writeAnnotationValue(entry.getKey(), entry.getValue(), jsonObject, schemaDataTypeMap);
 		}
 	}
 
-	void writeAnnotationValue(String key, AnnotationsValue value, JSONObject jsonObject, Map<String, Boolean> isSingleMap) {
+	void writeAnnotationValue(String key, AnnotationsValue value, JSONObject jsonObject, Map<String, SchemaDataType> schemaDataTypeMap) {
 		if (value == null || value.getValue() == null || value.getType() == null) {
 			return;
 		}
+		final SchemaDataType schemaDataType = schemaDataTypeMap.getOrDefault(key, SchemaDataType.NOT_DEFINED);
+
 		if (value.getValue().isEmpty()) {
 			jsonObject.put(key, "");
-		} else if (value.getValue().size() == 1 && Boolean.TRUE.equals(isSingleMap.get(key))) {
-			/*
-			 * The only case where we write a single is when the annotations is a single
-			 * and the schema defines it as a single, const, or enum
-			 */
-			jsonObject.put(key, stringToObject(value.getType(), value.getValue().get(0)));
-		} else {
+		} else if (value.getValue().size() > 1 || (schemaDataType == SchemaDataType.ARRAY)) {
 			JSONArray array = new JSONArray();
 			jsonObject.put(key, array);
 			value.getValue().forEach(s -> array.put(stringToObject(value.getType(), s)));
+		} else  {
+			/*
+			 *  if value list has only one item and either it has single value schema bounded
+			 * or no schema bounded, we will add single value.
+			 */
+			jsonObject.put(key, stringToObject(value.getType(), value.getValue().get(0)));
 		}
 	}
 	
@@ -424,8 +461,8 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 * @param schema
 	 * @return
 	 */
-	Map<String, Boolean> buildJsonSchemaIsSingleMap(JsonSchema schema) {
-		Map<String, Boolean> result = new HashMap<>();
+	Map<String, SchemaDataType> buildJsonSchemaIsSingleMap(JsonSchema schema) {
+		Map<String, SchemaDataType> result = new HashMap<>();
 		// definitions for $refs will always be at the root.
 		Map<String, JsonSchema> definitions = schema.getDefinitions() != null ? schema.getDefinitions()
 				: new HashMap<>();
@@ -439,7 +476,13 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 							// replace the $ref with its definition.
 							typeSchema = definitions.get(getRelative$Ref(typeSchema.get$ref()));
 						}
-						result.put(key, isSingleType(typeSchema));
+						if(typeSchema == null){
+							result.put(key, SchemaDataType.NOT_DEFINED);
+						}else if(Type.array.equals(typeSchema.getType())){
+							result.put(key, SchemaDataType.ARRAY);
+						}else{
+							result.put(key, SchemaDataType.SINGLE);
+						}
 					}
 				}
 			}
@@ -459,27 +502,6 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			return $ref.substring(DEFINITIONS_STRING_LENGTH);
 		}
 	}
-	
-	/**
-	 * Does the passed JsonSchema represent a single value?
-	 * If we cannot explicitly determine that a value is a single, then we will
-	 * treat it as an array (return false).
-	 * @param typeSchema
-	 * @return Will return true if the provided schema explicitly states that is is a single.  Will
-	 * return false for all other cases. 
-	 */
-	boolean isSingleType(JsonSchema typeSchema) {
-		if(typeSchema == null) {
-			return false;
-		}
-		if (typeSchema.getType() != null) {
-			return !typeSchema.getType().equals(Type.array);
-		} else {
-			// if const/enum exists, we assume it is a single in our map
-			return typeSchema.get_enum() != null || typeSchema.get_const() != null;
-		}
-	}
-	
 
 	Object stringToObject(AnnotationsValueType type, String value) {
 		switch (type) {

@@ -19,12 +19,12 @@
 						"allOf": [
 							{
 								"contains": {
-									"const": "$arOne"
+									"const": $arOne
 								}
 							},
 							{
 								"contains": {
-									"const": "$arTwo"
+									"const": $arTwo
 								}
 							}
 						]
@@ -50,12 +50,12 @@
 						"allOf": [
 							{
 								"contains": {
-									"const": "$arTwo"
+									"const": $arTwo
 								}
 							},
 							{
 								"contains": {
-									"const": "$arThree"
+									"const": $arThree
 								}
 							}
 						]
