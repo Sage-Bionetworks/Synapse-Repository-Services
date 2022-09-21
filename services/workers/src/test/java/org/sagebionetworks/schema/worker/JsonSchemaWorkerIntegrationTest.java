@@ -602,8 +602,8 @@ public class JsonSchemaWorkerIntegrationTest {
 		folderJson = entityManager.getEntityJson(folderId, false);
 		// barKey is defined as an array in a subschema, it will stay as an array
 		assertEquals(folderJson.getJSONArray("barKey").getString(0), "bar");
-		// bazKey is not defined in the schema, so it defaults to an array
-		assertEquals(folderJson.getJSONArray("bazKey").getString(0), "baz");
+		// bazKey is not defined in the schema, and it has single value. so it's a single value
+		assertEquals("baz", folderJson.getString("bazKey"));
 		// fooKey is defined as a single in the schema, it will become a single
 		assertEquals(folderJson.getString("fooKey"), "foo");
 		
@@ -708,7 +708,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		folderJson = entityManager.getEntityJson(folderId, true);
 		
 		assertEquals(true, folderJson.getBoolean("someBoolean"));
-		assertEquals(456, folderJson.getJSONArray("unconditionalDefault").getLong(0));
+		assertEquals(456, folderJson.getLong("unconditionalDefault"));
 		assertEquals("someBoolean was true", folderJson.getString("someConditional"));
 		assertEquals(999, folderJson.getLong("conditionalLong"));
 	}
