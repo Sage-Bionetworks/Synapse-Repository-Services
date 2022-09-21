@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.cloud.storage.Acl;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -115,22 +116,13 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 
 		// The MD5 is used to identify if this upload request already exists for this user.
 		String requestMD5Hex = MultipartRequestUtils.calculateMD5AsHex(request);
-		
-		// When forcing a restart we clear the old hash changing the cache key, the previous multipart upload will be garbage collected by a worker
-		if (forceRestart) {
-			multipartUploadDAO.setUploadStatusHash(user.getId(), requestMD5Hex, RESTARTED_HASH_PREFIX + requestMD5Hex + "_" + UUID.randomUUID().toString());
-		}
 
 		// Has an upload already been started for this user and request
 		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(user.getId(), requestMD5Hex);
 
-		/*CloudServiceMultipartUploadDAO cloudDao = null;
+		boolean newUploadRequestRequired = isNewUploadRequestRequired(forceRestart, user, requestMD5Hex, status);
 
-		if (status != null) {
-			cloudDao = cloudDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType());
-		}*/
-
-		if (status == null || !cloudDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType()).doesObjectExist(status.getBucket(), status.getKey())) {
+		if (status == null || newUploadRequestRequired) {
 			StorageLocationSetting storageLocation = storageLocationDao.get(request.getStorageLocationId());
 			
 			// Since the status for this file does not exist, create it.
@@ -153,7 +145,18 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		
 		return status.getMultipartUploadStatus();
 	}
-	
+
+	private boolean isNewUploadRequestRequired(boolean forceRestart, UserInfo user, String requestMD5Hex, CompositeMultipartUploadStatus status) {
+		// If the existing upload request is complete, we check if the underlying object has been deleted and start a new upload request if it has been
+		if (forceRestart || (status != null && MultipartUploadState.COMPLETED.equals(status.getMultipartUploadStatus().getState()) && !cloudDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType()).doesObjectExist(status.getBucket(), status.getKey()))) {
+			// When forcing a restart or if the underlying object key of a file handle does not exist we clear the old hash changing the cache key, the previous multipart upload will be garbage collected by a worker
+			multipartUploadDAO.setUploadStatusHash(user.getId(), requestMD5Hex, RESTARTED_HASH_PREFIX + requestMD5Hex + "_" + UUID.randomUUID().toString());
+			return true;
+		}
+
+		return false;
+	}
+
 	private void validateMultipartRequest(UserInfo user, MultipartRequest request) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(user.getId(), "UserInfo.getId");

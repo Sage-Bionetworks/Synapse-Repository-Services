@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.file;
 
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -38,12 +39,16 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
+import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
@@ -546,7 +551,77 @@ public class MultipartManagerV2ImplAutowireTest {
 		// Uses the max part size to do a one shot copy
 		doMultipartCopy(sourceEntity, copyDestination, PartUtils.MAX_PART_SIZE_BYTES);
 	}
-	
+
+	@Test
+	public void testS3StartOrResumeMultipartRequestWithObjectDeleted() throws Exception {
+		String fileName = "foo.txt";
+		String contentType = "plain/text";
+		String fileContent = "This is the content of the file";
+		Long storageLocationId = null;
+		boolean useContentTypeForParts = false;
+
+		S3FileHandle sourceFileHandle = (S3FileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts, true);
+
+		s3Client.deleteObject(sourceFileHandle.getBucketName(), sourceFileHandle.getKey());
+
+		assertFalse(s3Client.doesObjectExist(sourceFileHandle.getBucketName(), sourceFileHandle.getKey()));
+
+		// Call under test
+		S3FileHandle resultFileHandle = (S3FileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts, false);
+
+		assertNotEquals(sourceFileHandle, resultFileHandle);
+	}
+
+	@Test
+	public void testGCStartOrResumeMultipartRequestWithObjectDeleted() throws Exception {
+		Assume.assumeTrue(stackConfiguration.getGoogleCloudEnabled());
+
+		String fileName = "foo.txt";
+		String contentType = "plain/text";
+		String fileContent = "This is the content of the file";
+		Long storageLocationId = null;
+		boolean useContentTypeForParts = false;
+
+		GoogleCloudFileHandle sourceFileHandle = (GoogleCloudFileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts, true);
+
+		googleCloudStorageClient.deleteObject(sourceFileHandle.getBucketName(), sourceFileHandle.getKey());
+
+		assertFalse(s3Client.doesObjectExist(sourceFileHandle.getBucketName(), sourceFileHandle.getKey()));
+
+		// Call under test
+		GoogleCloudFileHandle resultFileHandle = (GoogleCloudFileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts, false);
+
+		assertNotEquals(sourceFileHandle, resultFileHandle);
+	}
+
+	@Test
+	public void testS3StartOrResumeMultipartRequestAfterUploadNotComplete() throws Exception {
+		String fileName = "foo.txt";
+		String contentType = "plain/text";
+		String fileContent = "This is the content of the file";
+		Long storageLocationId = null;
+		byte[] fileDataBytes = fileContent.getBytes(StandardCharsets.UTF_8);
+		String contentMd5 = BinaryUtils.toHex(Md5Utils.computeMD5Hash(fileDataBytes));
+		Long partSizeBytes = PartUtils.MIN_PART_SIZE_BYTES;
+
+		MultipartUploadStatus sourceStatus = startUpload(fileName, contentType, contentMd5, Long.valueOf(fileDataBytes.length), storageLocationId, partSizeBytes, true);
+
+		assertEquals(MultipartUploadState.UPLOADING, sourceStatus.getState());
+
+		MultipartUploadRequest request = new MultipartUploadRequest();
+		request.setContentMD5Hex(contentMd5);
+		request.setContentType(contentType);
+		request.setFileName(fileName);
+		request.setFileSizeBytes(Long.valueOf(fileDataBytes.length));
+		request.setPartSizeBytes(partSizeBytes);
+		request.setStorageLocationId(storageLocationId);
+
+		// Call under test
+		MultipartUploadStatus resultStatus = multipartManagerV2.startOrResumeMultipartUpload(adminUserInfo, request, false);
+
+		assertEquals(sourceStatus.getUploadId(), resultStatus.getUploadId());
+	}
+
 	private FileEntity doCreateEntity(CloudProviderFileHandleInterface fileHandle) {
 		FileEntity fileEntity = new FileEntity();
 		
@@ -562,14 +637,14 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		return fileEntity;
 	}
-	
-	private CloudProviderFileHandleInterface doMultipartUpload(String fileName, String contentType, String contentString, Long storageLocationId, boolean contentTypeForParts) throws Exception {
+
+	private CloudProviderFileHandleInterface doMultipartUpload(String fileName, String contentType, String contentString, Long storageLocationId, boolean contentTypeForParts, boolean forceRestart) throws Exception {
 		byte[] fileDataBytes = contentString.getBytes(StandardCharsets.UTF_8);
 		String fileMD5Hex = BinaryUtils.toHex(Md5Utils.computeMD5Hash(fileDataBytes));
 		Long partSizeBytes = PartUtils.MIN_PART_SIZE_BYTES;
 		
 		// step one start the upload.
-		MultipartUploadStatus status = startUpload(fileName, contentType, fileMD5Hex, Long.valueOf(fileDataBytes.length), storageLocationId, partSizeBytes);
+		MultipartUploadStatus status = startUpload(fileName, contentType, fileMD5Hex, Long.valueOf(fileDataBytes.length), storageLocationId, partSizeBytes, forceRestart);
 		
 		int numberOfParts = status.getPartsState().length();
 		
@@ -612,7 +687,13 @@ public class MultipartManagerV2ImplAutowireTest {
 
 		return fileHandle;
 	}
-	
+
+	private CloudProviderFileHandleInterface doMultipartUpload(String fileName, String contentType, String contentString, Long storageLocationId, boolean contentTypeForParts) throws Exception {
+		boolean forceRestart = true;
+
+		return doMultipartUpload(fileName, contentType, contentString, storageLocationId, contentTypeForParts, forceRestart);
+	}
+
 	private CloudProviderFileHandleInterface doMultipartCopy(FileEntity sourceEntity, StorageLocationSetting destination) throws Exception {
 		return doMultipartCopy(sourceEntity, destination, PartUtils.MIN_PART_SIZE_BYTES);
 	}
@@ -667,7 +748,7 @@ public class MultipartManagerV2ImplAutowireTest {
 	 * Start the upload.
 	 * @return
 	 */
-	private MultipartUploadStatus startUpload(String fileName, String contentType, String contentMd5, Long fileSize, Long storageLocationId, Long partSizeBytes) {
+	private MultipartUploadStatus startUpload(String fileName, String contentType, String contentMd5, Long fileSize, Long storageLocationId, Long partSizeBytes, boolean forceRestart) {
 		MultipartUploadRequest request = new MultipartUploadRequest();
 		
 		request.setContentMD5Hex(contentMd5);
@@ -677,14 +758,18 @@ public class MultipartManagerV2ImplAutowireTest {
 		request.setPartSizeBytes(partSizeBytes);
 		request.setStorageLocationId(storageLocationId);
 		
-		boolean forceRestart = true;
-		
 		MultipartUploadStatus status = multipartManagerV2.startOrResumeMultipartUpload(adminUserInfo, request, forceRestart);
 		assertNotNull(status);
 		assertNotNull(status.getUploadId());
 		return status;
 	}
-	
+
+	private MultipartUploadStatus startUpload(String fileName, String contentType, String contentMd5, Long fileSize, Long storageLocationId, Long partSizeBytes) {
+		boolean forceRestart = true;
+
+		return startUpload(fileName, contentType, contentMd5, fileSize, storageLocationId, partSizeBytes, forceRestart);
+	}
+
 	private MultipartUploadStatus startUploadCopy(FileHandleAssociation association, Long storageLocationId, Long partSizeBytes) {
 		
 		MultipartUploadCopyRequest request = new MultipartUploadCopyRequest();
