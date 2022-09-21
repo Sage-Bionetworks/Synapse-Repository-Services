@@ -835,6 +835,80 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		assertEquals(message, TableConstants.DEFINING_SQL_WITH_GROUP_BY_ERROR);
 	}
 	
+	@Test
+	public void testMaterializedViewWithMultiValueColumnUnnest() throws Exception {
+		int numberOfFiles = 0;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		Project project = entites.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+		
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L).withMultiValue(List.of("a", "b")),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		
+		IdAndVersion folderview = createFolderViewWithPatientData(entites, patientData);
+		
+		String definingSql = String.format(
+				"select p.patientId as patientId, p.code as code, unnest(p.multiValue) from %s p order by p.patientId, unnest(p.multiValue)", folderview.toString());
+		
+		IdAndVersion materializedViewId = createMaterializedView(project.getId(), definingSql);
+		
+		String materializedQuery = "select * from "+materializedViewId.toString();
+		
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList("111", "abc", "a")),
+				new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList("111", "abc", "b")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList("222", "def", null))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+	}
+	
+	@Test
+	public void testMaterializedViewWithJoinAndMultiValueColumnUnnest() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		Project project = entites.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIds.size());
+		
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L).withMultiValue(List.of("a", "b")),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		
+		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
+		IdAndVersion folderview = createFolderViewWithPatientData(entites, patientData);
+		
+		String definingSql = String.format(
+				"select v.id as id, p.patientId as patientId, p.code as code, unnest(p.multiValue) from %s v join %s p on (v.patientId = p.patientId) order by v.id, unnest(p.multiValue)",
+				viewId.toString(), folderview.toString());
+		
+		IdAndVersion materializedViewId = createMaterializedView(project.getId(), definingSql);
+		
+		String materializedQuery = "select * from "+materializedViewId.toString()+" order by id asc";
+		
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", "abc", "a")),
+				new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", "abc", "b")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(1), "222", "def", null)),
+				new Row().setRowId(4L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(2), "111", "abc", "a")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(2), "111", "abc", "b")),
+				new Row().setRowId(6L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(3), "222", "def", null)),
+				new Row().setRowId(7L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", "abc", "a")),
+				new Row().setRowId(8L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", "abc", "b"))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+	}
+	
 	/**
 	 * Create a snapshot of the passed table/view.
 	 * @param viewId
@@ -1016,8 +1090,9 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	public IdAndVersion createTableWithPatientIds(String projectId, List<PatientData> patientData) throws AssertionError, AsynchJobFailedException {
 
 		List<ColumnModel> schema = Arrays.asList(
-				new ColumnModel().setName("code").setColumnType(ColumnType.STRING).setMaximumSize(50L),
-				new ColumnModel().setName("patientId").setColumnType(ColumnType.INTEGER));
+			new ColumnModel().setName("code").setColumnType(ColumnType.STRING).setMaximumSize(50L),
+			new ColumnModel().setName("patientId").setColumnType(ColumnType.INTEGER)
+		);
 
 		schema = columnModelManager.createColumnModels(adminUserInfo, schema);
 
@@ -1067,8 +1142,10 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		Long viewTypeMask = ViewTypeMask.Folder.getMask();
 
 		List<ColumnModel> schema = Arrays.asList(
-				new ColumnModel().setName("code").setColumnType(ColumnType.STRING).setMaximumSize(50L),
-				new ColumnModel().setName("patientId").setColumnType(ColumnType.INTEGER));
+			new ColumnModel().setName("code").setColumnType(ColumnType.STRING).setMaximumSize(50L),
+			new ColumnModel().setName("patientId").setColumnType(ColumnType.INTEGER),
+			new ColumnModel().setName("multiValue").setColumnType(ColumnType.STRING_LIST)
+		);
 
 		schema = columnModelManager.createColumnModels(adminUserInfo, schema);
 
@@ -1083,6 +1160,11 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 						AnnotationsValueType.LONG);
 				AnnotationsV2TestUtils.putAnnotations(annos, "code", data.getCode(),
 						AnnotationsValueType.STRING);
+				
+				if (data.getMultiValue() != null) {
+					AnnotationsV2TestUtils.putAnnotations(annos, "multiValue", data.getMultiValue(), AnnotationsValueType.STRING);
+				}
+				
 				index++;
 				entityManager.updateAnnotations(adminUserInfo, folder.getId(), annos);
 				folder = entityManager.getEntity(adminUserInfo, folder.getId(), Folder.class);
@@ -1167,6 +1249,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	static class PatientData {
 		Long patientId;
 		String code;
+		List<String> multiValue;
 
 		public PatientData withPatientId(Long patientId) {
 			this.patientId = patientId;
@@ -1177,6 +1260,11 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			this.code = code;
 			return this;
 		}
+		
+		public PatientData withMultiValue(List<String> multiValue) {
+			this.multiValue = multiValue;
+			return this;
+		}
 
 		public Long getPatientId() {
 			return patientId;
@@ -1185,7 +1273,11 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		public String getCode() {
 			return code;
 		}
-
+		
+		public List<String> getMultiValue() {
+			return multiValue;
+		}
+		
 		@Override
 		public int hashCode() {
 			return Objects.hash(code, patientId);

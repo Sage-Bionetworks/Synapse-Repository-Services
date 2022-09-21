@@ -89,7 +89,6 @@ import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
-import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -487,10 +486,10 @@ public class SQLTranslatorUtils {
 	}
 
 	static void translateArrayFunctions(QuerySpecification transformedModel, TableAndColumnMapper mapper) throws ParseException {
-		// UNNEST(columnName) for the same columnName
-		// may appear in multiple places (select clause ,group by, order by, etc.)
+		// UNNEST(columnName) for the same columnName may appear in multiple places (select clause ,group by, order by, etc.)
 		// but should only join the unnested index table for that column once
-		Set<String> columnIdsToJoin = new HashSet<>();
+		Set<String> uniqueUnnestedRefs = new HashSet<>();
+		List<ColumnReferenceMatch> unnestedColumns = new ArrayList<>();
 
 		// iterate over all ValueExpressionPrimary since its may hold a ArrayFunctionSpecification.
 		// Its held element then may need to be replaced with a different child element.
@@ -502,46 +501,56 @@ public class SQLTranslatorUtils {
 			ArrayFunctionSpecification arrayFunctionSpecification = (ArrayFunctionSpecification) valueExpressionPrimary.getChild();
 
 			//handle UNNEST() functions
-			if(arrayFunctionSpecification.getListFunctionType() == ArrayFunctionType.UNNEST){
+			if (arrayFunctionSpecification.getListFunctionType() == ArrayFunctionType.UNNEST) {
 				ColumnReference referencedColumn = arrayFunctionSpecification.getColumnReference();
 
-				SchemaColumnTranslationReference columnTranslationReference = lookupAndRequireListColumn(mapper, referencedColumn, "UNNEST()");
+				ColumnReferenceMatch columnReferenceMatch = lookupAndRequireListColumn(mapper, referencedColumn, "UNNEST()");
+				SchemaColumnTranslationReference columnTranslationReference = (SchemaColumnTranslationReference) columnReferenceMatch.getColumnTranslationReference();
+				
+				IdAndVersion tableIdRef = columnReferenceMatch.getTableInfo().getTableIdAndVersion();
+				
+				// The reference to the unnested column reference in the secondary index
+				String unnestedColumnRef = 
+					SQLUtils.getTableNameForMultiValueColumnIndex(tableIdRef, columnTranslationReference.getId()) 
+						+ "." +
+					SQLUtils.getUnnestedColumnNameForId(columnTranslationReference.getId());
+				
+				// add the column reference to the unique columns set
+				if (uniqueUnnestedRefs.add(unnestedColumnRef)) {
+					// If not present already we need to join on the secondary index to fetch the data
+					unnestedColumns.add(columnReferenceMatch);
+				}
 
-				//add column id to be joined
-				columnIdsToJoin.add(columnTranslationReference.getId());
-
-				//replace "UNNEST(_C123_)" with column "_C123__UNNEST"
-				ColumnReference replacementColumn = SqlElementUtils.createColumnReference(
-						SQLUtils.getUnnestedColumnNameForId(columnTranslationReference.getId())
-				);
-				valueExpressionPrimary.replaceChildren(replacementColumn);
+				//replace "UNNEST(_C123_)" with column "_C123__UNNEST", uses the full table name of the multivalue column
+				valueExpressionPrimary.replaceChildren(SqlElementUtils.createColumnReference(unnestedColumnRef));
 			}
 		}
 
-		appendJoinsToFromClause(mapper, transformedModel.getTableExpression().getFromClause(), columnIdsToJoin);
+		appendUnnestJoinsToFromClause(mapper, transformedModel.getTableExpression().getFromClause(), unnestedColumns);
 	}
 
-	static void appendJoinsToFromClause(TableAndColumnMapper mapper, FromClause fromClause, Set<String> columnIdsToJoin) throws ParseException {
+	static void appendUnnestJoinsToFromClause(TableAndColumnMapper mapper, FromClause fromClause, List<ColumnReferenceMatch> unnestedColumns) throws ParseException {
 		TableReference currentTableReference = fromClause.getTableReference();
-		if(currentTableReference.hasJoin() && !columnIdsToJoin.isEmpty()) {
-			throw new IllegalArgumentException("UNEST cannot be used with a JOIN");
-		}
-		String mainTableName = currentTableReference.toSql();
-
+		
 		//chain additional tables to join via right-recursion
-		for(String columnId : columnIdsToJoin){
-			IdAndVersion idAndVersion = mapper.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
-			String joinTableName = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, columnId);
-
+		for (ColumnReferenceMatch columnMatch : unnestedColumns) {
+			IdAndVersion referencedTable = columnMatch.getTableInfo().getTableIdAndVersion();
+			SchemaColumnTranslationReference columnReference = (SchemaColumnTranslationReference) columnMatch.getColumnTranslationReference();
+			
+			// When we have multiple tables (join) we reference them by a generated alias
+			String mainTableName = mapper.getNumberOfTables() > 1 ? columnMatch.getTableInfo().getTranslatedTableAlias() : columnMatch.getTableInfo().getTranslatedTableName();
+			String joinTableName = SQLUtils.getTableNameForMultiValueColumnIndex(referencedTable, columnReference.getId());
+			
 			TableReference joinedTableRef = tableReferenceForName(joinTableName);
 			JoinCondition joinOnRowId = new JoinCondition(new TableQueryParser(
-				mainTableName + "." + ROW_ID + "=" + joinTableName + "." + SQLUtils.getRowIdRefColumnNameForId(columnId)
+				mainTableName + "." + ROW_ID + "=" + joinTableName + "." + SQLUtils.getRowIdRefColumnNameForId(columnReference.getId())
 			).searchCondition());
 			JoinType leftOuterJoin = new JoinType(OuterJoinType.LEFT);
 			currentTableReference = new TableReference(new QualifiedJoin(
 					currentTableReference, leftOuterJoin, joinedTableRef, joinOnRowId
 			));
 		}
+		
 		fromClause.setTableReference(currentTableReference);
 	}
 
@@ -758,7 +767,9 @@ public class SQLTranslatorUtils {
 
 		ColumnReference columnRefernece = arrayHasPredicate.getLeftHandSide();
 
-		SchemaColumnTranslationReference schemaColumnTranslationReference = lookupAndRequireListColumn(mapper, columnRefernece, "The " + arrayHasPredicate.getKeyWord() + " keyword");
+		ColumnReferenceMatch columnMatch = lookupAndRequireListColumn(mapper, columnRefernece, "The " + arrayHasPredicate.getKeyWord() + " keyword");
+		
+		SchemaColumnTranslationReference schemaColumnTranslationReference = (SchemaColumnTranslationReference) columnMatch.getColumnTranslationReference();
 
 		//build up subquery against the flattened index table
 		String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, schemaColumnTranslationReference.getId());
@@ -867,20 +878,23 @@ public class SQLTranslatorUtils {
 	 * @param columnName column name for which to
 	 * @param errorMessageFunctionName name of the function that requires a list column type
 	 * @throws IllegalArgumentException if the column is not defined in the schema or does not have a _LIST ColumnType
-	 * @return SchemaColumnTranslationReference associated with the columnName
+	 * @return ColumnReferenceMatch associated with the columnName, the {@link ColumnReferenceMatch#getColumnTranslationReference()} is guaranteed to be a SchemaColumnTranslationReference
 	 */
-	private static SchemaColumnTranslationReference lookupAndRequireListColumn(TableAndColumnMapper mapper, ColumnReference columnRefrence, String errorMessageFunctionName){
-		ColumnTranslationReference columnTranslationReference = mapper.lookupColumnReference(columnRefrence)
+	private static ColumnReferenceMatch lookupAndRequireListColumn(TableAndColumnMapper mapper, ColumnReference columnRefrence, String errorMessageFunctionName){
+		ColumnReferenceMatch columnRefMatch = mapper.lookupColumnReferenceMatch(columnRefrence)
 				.orElseThrow(() ->  new IllegalArgumentException("Unknown column reference: " + columnRefrence.toSqlWithoutQuotes()));
-		if( !(columnTranslationReference instanceof SchemaColumnTranslationReference) ){
+				
+		if( !(columnRefMatch.getColumnTranslationReference() instanceof SchemaColumnTranslationReference) ){
 			throw new IllegalArgumentException(errorMessageFunctionName + " may only be used on columns defined in the schema");
 		}
-		SchemaColumnTranslationReference schemaColumnTranslationReference = (SchemaColumnTranslationReference) columnTranslationReference;
+		
+		SchemaColumnTranslationReference schemaColumnTranslationReference = (SchemaColumnTranslationReference) columnRefMatch.getColumnTranslationReference();
 
-		if( !ColumnTypeListMappings.isList(columnTranslationReference.getColumnType()) ){
+		if( !ColumnTypeListMappings.isList(schemaColumnTranslationReference.getColumnType()) ){
 			throw new IllegalArgumentException(errorMessageFunctionName + " only works for columns that hold list values");
 		}
-		return schemaColumnTranslationReference;
+		
+		return columnRefMatch;
 	}
 
 	public static String translateQueryFilters(List<QueryFilter> additionalFilters){
@@ -1022,6 +1036,7 @@ public class SQLTranslatorUtils {
 		SelectColumn selectColumn = getSelectColumns(derivedColumn, tableAndColumnMapper);
 		Long maximumSize = null;
 		Long maxListLength = null;
+		// The data type is correctly inferred by the #getSelectColumns call
 		ColumnType columnType = selectColumn.getColumnType();
 		String defaultValue = null;
 		FacetType facetType = null;
@@ -1030,7 +1045,6 @@ public class SQLTranslatorUtils {
 			if (ctr != null) {
 				maximumSize = addLongsWithNull(maximumSize, ctr.getMaximumSize());
 				maxListLength = addLongsWithNull(maxListLength, ctr.getMaximumListLength());
-				columnType = ctr.getColumnType();
 				defaultValue = ctr.getDefaultValues();
 				facetType = ctr.getFacetType();
 			}
