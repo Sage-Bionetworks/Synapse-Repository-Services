@@ -1,5 +1,16 @@
 package org.sagebionetworks.repo.model.annotation.v2;
 
+import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator.AnnotationsV2TypeToValidator;
+import org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator.AnnotationsV2ValueListValidator;
+import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.ValidateArgument;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -12,17 +23,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.StringUtils;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator.AnnotationsV2TypeToValidator;
-import org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator.AnnotationsV2ValueListValidator;
-import org.sagebionetworks.repo.model.table.AnnotationType;
-import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.util.ValidateArgument;
 
 public class AnnotationsV2Utils {
 
@@ -189,7 +189,7 @@ public class AnnotationsV2Utils {
 
 		AnnotationsValueType type = annotationsV2Value.getType();
 		if(type == null){
-			throw new IllegalArgumentException("a value type must be set for values associated with key=" + key);
+			throw new IllegalArgumentException("a value or a value type must be set for values associated with key=" + key);
 		}
 
 		AnnotationsV2ValueListValidator valueValidator = AnnotationsV2TypeToValidator.validatorFor(type);

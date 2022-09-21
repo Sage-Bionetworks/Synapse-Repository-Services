@@ -1,19 +1,7 @@
 package org.sagebionetworks;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.function.Consumer;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
@@ -65,8 +53,19 @@ import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.doubles.DoubleJSONStringWrapper;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.function.Consumer;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(ITTestExtension.class)
 public class ITJsonSchemaControllerTest {
@@ -485,7 +484,7 @@ public class ITJsonSchemaControllerTest {
 		projectJSON.put("sample", "some value");
 		// call under test
 		JSONObject updatedJson = synapse.updateEntityJson(project.getId(), projectJSON);
-		assertEquals("some value", updatedJson.getJSONArray("sample").getString(0));
+		assertEquals("some value", updatedJson.getString("sample"));
 		Annotations annos = synapse.getAnnotationsV2(project.getId());
 		assertNotNull(annos);
 		assertNotNull(annos.getAnnotations());

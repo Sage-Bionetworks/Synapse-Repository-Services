@@ -1,24 +1,5 @@
 package org.sagebionetworks.schema.worker;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.when;
-
-import java.io.InputStream;
-import java.io.StringWriter;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
@@ -86,6 +67,25 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import java.io.InputStream;
+import java.io.StringWriter;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -435,7 +435,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
 		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
 		// Add the foo annotation to the folder
-		folderJson.put("hasBoolean", "true");
+		folderJson.put("hasBoolean", true);
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
 		Folder resultFolder = entityManager.getEntity(adminUserInfo, folderId, Folder.class);
 
@@ -488,7 +488,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
 		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
 		// Add the foo annotation to the folder
-		folderJson.put("hasBoolean", "true");
+		folderJson.put("hasBoolean", true);
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
 		Folder resultFolder = entityManager.getEntity(adminUserInfo, folderId, Folder.class);
 		
@@ -602,8 +602,8 @@ public class JsonSchemaWorkerIntegrationTest {
 		folderJson = entityManager.getEntityJson(folderId, false);
 		// barKey is defined as an array in a subschema, it will stay as an array
 		assertEquals(folderJson.getJSONArray("barKey").getString(0), "bar");
-		// bazKey is not defined in the schema, so it defaults to an array
-		assertEquals(folderJson.getJSONArray("bazKey").getString(0), "baz");
+		// bazKey is not defined in the schema, and it has single value. so it's a single value
+		assertEquals("baz", folderJson.getString("bazKey"));
 		// fooKey is defined as a single in the schema, it will become a single
 		assertEquals(folderJson.getString("fooKey"), "foo");
 		
@@ -697,7 +697,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
 		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
 		
-		folderJson.put("someBoolean", "true");
+		folderJson.put("someBoolean", true);
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
 		
 		waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
@@ -708,7 +708,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		folderJson = entityManager.getEntityJson(folderId, true);
 		
 		assertEquals(true, folderJson.getBoolean("someBoolean"));
-		assertEquals(456, folderJson.getJSONArray("unconditionalDefault").getLong(0));
+		assertEquals(456, folderJson.getLong("unconditionalDefault"));
 		assertEquals("someBoolean was true", folderJson.getString("someConditional"));
 		assertEquals(999, folderJson.getLong("conditionalLong"));
 	}
@@ -831,7 +831,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		}, MAX_WAIT_MS);
 		
 		// Now we put an explicit property that should be replicated as well
-		folderJson.put("someBoolean", "false");
+		folderJson.put("someBoolean", false);
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
 				
 		asynchronousJobWorkerHelper.waitForReplicationIndexData(folderId, data-> {
@@ -845,7 +845,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		}, MAX_WAIT_MS);
 		
 		// Now switch the boolean
-		folderJson.put("someBoolean", "true");
+		folderJson.put("someBoolean", true);
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
 		
 		asynchronousJobWorkerHelper.waitForReplicationIndexData(folderId, data-> {
@@ -928,7 +928,7 @@ public class JsonSchemaWorkerIntegrationTest {
 	}
 	
 	@Test
-	public void testDerivedAnnotationWithAccessRequirmentIdBinding() throws Exception {
+	public void testDerivedAnnotationWithAccessRequirementIdBinding() throws Exception {
 		bootstrapAndCreateOrganization();
 		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
 		
@@ -936,8 +936,9 @@ public class JsonSchemaWorkerIntegrationTest {
 		AccessRequirement ar2 =  termsOfUseAccessRequirementObjectHelper.create((a)->{a.setName("two");});
 		AccessRequirement ar3 =  termsOfUseAccessRequirementObjectHelper.create((a)->{a.setName("three");});
 
-		// create the schema
-		String fileName = "schema/DerivedWithAccessRequirementIds.json";
+		// create the schema,
+		// DerivedWithAccessRequirementIds.json.vtp(stands for velocity) is not a json file, it's a template used by velocity to create json
+		String fileName = "schema/DerivedWithAccessRequirementIds.json.vtp";
 		JsonSchema schema = getSchemaTemplateFromClasspath(fileName, "my.organization-DerivedWithAccessRequirementIds",
 				new VelocityContext(Map.of("arOne", ar1.getId(), "arTwo", ar2.getId(), "arThree", ar3.getId())));
 		CreateSchemaResponse createResponse = registerSchema(schema);
