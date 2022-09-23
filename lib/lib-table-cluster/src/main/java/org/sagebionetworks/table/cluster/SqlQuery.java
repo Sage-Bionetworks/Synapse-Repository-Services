@@ -180,6 +180,14 @@ public class SqlQuery {
 		List<ColumnModel> unionOfSchemas = tableAndColumnMapper.getUnionOfAllTableSchemas();
 		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(unionOfSchemas);
 
+		// SELECT * is replaced with a select including each column in the schema.
+		if (BooleanUtils.isTrue(this.model.getSelectList().getAsterisk())) {
+			SelectList expandedSelectList = tableAndColumnMapper.buildSelectAllColumns();
+			this.model.getSelectList().replaceElement(expandedSelectList);
+		}
+
+		this.schemaOfSelect = SQLTranslatorUtils.getSchemaOfSelect(this.model.getSelectList(), tableAndColumnMapper);
+
 		//Append additionalFilters onto the WHERE clause
 		if(additionalFilters != null && !additionalFilters.isEmpty()) {
 			String additionalFilterSearchCondition = SQLTranslatorUtils.translateQueryFilters(additionalFilters);
@@ -191,17 +199,6 @@ public class SqlQuery {
 				throw new IllegalArgumentException(e);
 			}
 		}
-
-		this.combinedSQL = model.toSql();
-
-		// SELECT * is replaced with a select including each column in the schema.
-		if (BooleanUtils.isTrue(this.model.getSelectList().getAsterisk())) {
-			SelectList expandedSelectList = tableAndColumnMapper.buildSelectAllColumns();
-			this.model.getSelectList().replaceElement(expandedSelectList);
-		}
-		
-		this.schemaOfSelect = SQLTranslatorUtils.getSchemaOfSelect(this.model.getSelectList(), tableAndColumnMapper);
-
 
 		// Track if this is an aggregate query.
 		this.isAggregatedResult = model.hasAnyAggregateElements();
@@ -227,6 +224,8 @@ public class SqlQuery {
 		}
 		SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(),
 				indexDescription.getColumnNamesToAddToSelect(sqlContext, this.includeEntityEtag, this.isAggregatedResult));
+
+		this.combinedSQL = transformedModel.toSql();
 
 		SQLTranslatorUtils.translateModel(transformedModel, parameters, userId, tableAndColumnMapper);
 		this.outputSQL = transformedModel.toSql();		

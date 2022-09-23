@@ -38,6 +38,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
@@ -94,6 +95,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				rowHandler = new SinglePageRowHandler();
 			}
 
+			String combinedSql = createCombinedSql(user, query, options.returnCombinedSql());
 			// pre-flight includes parsing and authorization
 			SqlQuery sqlQuery = queryPreflight(user, query, this.maxBytesPerRequest);
 			
@@ -104,10 +106,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				bundle.setMaxRowsPerPage(sqlQuery.getMaxRowsPerPage());
 			}
 			// add combined sql to the bundle
-			if(options.returnCombinedSql()){
-				bundle.setCombinedSql(createCombinedSql(query,user));
+			if (options.returnCombinedSql()) {
+				bundle.setCombinedSql(combinedSql);
 			}
-
 			// add captured rows to the bundle
 			if (options.runQuery()) {
 				bundle.getQueryResult().getQueryResults().setRows(rowHandler.getRows());
@@ -128,13 +129,35 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 	}
 
-	 String createCombinedSql(Query query, UserInfo user){
+	/**
+	 * Combined sql query is basic input query combined with all additional filter.
+	 * createCombinedSql includes the following:
+	 * <ol>
+	 * <li>Parse the query SQL string, and identify the tableId.</li>
+	 * <li>Build SqlQuery with additional filter, offset, limit and sortList.</li>
+	 * <li>Add selected facet to query</li>
+	 * <li>Parse again the combined sql to replace selectList with original select list</li>
+	 * </ol>
+	 *
+	 * @param user
+	 * @param query
+	 * @param returnCombinedSql
+	 * @return
+	 *
+	 */
+	String createCombinedSql(UserInfo user, Query query, boolean returnCombinedSql) {
+		if(!returnCombinedSql){
+			return null;
+		}
+
 		QuerySpecification model = parserQuery(query.getSql());
+		// SqlQuery changes the selectList of query so keep the original selected list.
+		SelectList selectListFromUser = model.getSelectList();
 		// We now have the table's ID.
 		String tableId = model.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
-		SqlQuery sqlQuery = new SqlQueryBuilder(model, user.getId())
+		SqlQuery combinedSql = new SqlQueryBuilder(model, user.getId())
 				.schemaProvider(tableManagerSupport)
 				.overrideOffset(query.getOffset())
 				.overrideLimit(query.getLimit())
@@ -142,7 +165,19 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				.selectedFacets(query.getSelectedFacets())
 				.sortList(query.getSort())
 				.additionalFilters(query.getAdditionalFilters()).build();
-		return sqlQuery.getCombinedSQL();
+
+		//SqlQuery does not include facetModel, So add selected facet to query.
+		FacetModel facetModel = new FacetModel(query.getSelectedFacets(), combinedSql, query.getSelectedFacets() != null);
+
+		// determine whether to run with facet filters
+		if (facetModel.hasFiltersApplied()) {
+			combinedSql = facetModel.getFacetFilteredQuery();
+		}
+
+		// parse again the query to replace selectList with original select list.
+		QuerySpecification finalModel = parserQuery(combinedSql.getCombinedSQL());
+		finalModel.getSelectList().replaceElement(selectListFromUser);
+		return finalModel.toSql();
 	}
 
 	/**
