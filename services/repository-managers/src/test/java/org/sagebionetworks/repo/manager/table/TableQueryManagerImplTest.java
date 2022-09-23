@@ -1,40 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COLUMN_MODELS;
-import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COUNT;
-import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_FACETS;
-import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE;
-import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_RESULTS;
-import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_SELECT_COLUMNS;
-import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_SUM_FILE_SIZES;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -84,6 +51,7 @@ import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -105,8 +73,41 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.jdbc.BadSqlGrammarException;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COLUMN_MODELS;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COUNT;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_FACETS;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_RESULTS;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_SELECT_COLUMNS;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_SUM_FILE_SIZES;
 
 @ExtendWith(MockitoExtension.class)
 public class TableQueryManagerImplTest {
@@ -304,7 +305,137 @@ public class TableQueryManagerImplTest {
 		manager.queryPreflight(user, query, null);
 		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
 	}
-	
+
+	@Test
+	public void testCreateCombinedSqlSimpleQuery() {
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+		String sql = manager.createCombinedSql(user, query, true);
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
+		assertEquals("SELECT * FROM syn123", sql);
+	}
+
+	@Test
+	public void testCreateCombinedSqlSimpleQueryWithWhereClause() {
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId + " where i2 = 1");
+		String sql = manager.createCombinedSql(user, query, true);
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
+		assertEquals("SELECT * FROM syn123 WHERE i2 = 1", sql);
+	}
+
+	@Test
+	public void testCreateCombinedSqlHavingSelectedFacet() {
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId + " where i1 = 1.0");
+		query.setSelectedFacets(Collections.singletonList(facetColumnRequest));
+		String sql = manager.createCombinedSql(user, query, true);
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
+		assertEquals("SELECT * FROM syn123 WHERE ( i1 = 1.0 ) AND ( ( ( \"i2\" <= '45' ) ) )", sql);
+	}
+
+	@Test
+	public void testCreateCombinedSqlHavingAdditionalFilter() {
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+
+		ColumnSingleValueQueryFilter likeFilter = new ColumnSingleValueQueryFilter();
+		likeFilter.setColumnName("i0");
+		likeFilter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		likeFilter.setValues(Arrays.asList("foo%"));
+
+		ColumnMultiValueFunctionQueryFilter hasFilter = new ColumnMultiValueFunctionQueryFilter();
+		hasFilter.setColumnName("i12");
+		hasFilter.setFunction(ColumnMultiValueFunction.HAS);
+		hasFilter.setValues(Arrays.asList("foo%", "bar"));
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+		query.setAdditionalFilters(Arrays.asList(likeFilter, hasFilter));
+		String sql = manager.createCombinedSql(user, query, true);
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
+		assertEquals("SELECT * FROM syn123 WHERE ( \"i0\" LIKE 'foo%' ) AND ( \"i12\" HAS ( 'foo%', 'bar' ) )", sql);
+	}
+
+	@Test
+	public void testCreateCombinedSqlHavingAdditionalFilterTextSearch() {
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+		query.setAdditionalFilters(Arrays.asList(new TextMatchesQueryFilter().setSearchExpression("value")));
+		String sql = manager.createCombinedSql(user, query, true);
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
+		assertEquals("SELECT * FROM syn123 WHERE ( TEXT_MATCHES('value') )", sql);
+	}
+
+	@Test
+	public void testCreateCombinedSqlWithSort() {
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+
+		SortItem sort1 = new SortItem();
+		sort1.setColumn("i0");
+		sort1.setDirection(SortDirection.DESC);
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+		query.setSort(Lists.newArrayList(sort1));
+		String sql = manager.createCombinedSql(user, query, true);
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
+		assertEquals("SELECT * FROM syn123 ORDER BY \"i0\" DESC", sql);
+	}
+
+	@Test
+	public void testCreateCombinedSqlWithALLFilter() {
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+
+		SortItem sort1 = new SortItem();
+		sort1.setColumn("i0");
+		sort1.setDirection(SortDirection.DESC);
+
+		ColumnSingleValueQueryFilter likeFilter = new ColumnSingleValueQueryFilter();
+		likeFilter.setColumnName("i0");
+		likeFilter.setOperator(ColumnSingleValueFilterOperator.LIKE);
+		likeFilter.setValues(Arrays.asList("foo%"));
+
+		ColumnMultiValueFunctionQueryFilter hasFilter = new ColumnMultiValueFunctionQueryFilter();
+		hasFilter.setColumnName("i12");
+		hasFilter.setFunction(ColumnMultiValueFunction.HAS);
+		hasFilter.setValues(Arrays.asList("foo%", "bar"));
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId + " where i1 = 1");
+		query.setSelectedFacets(Collections.singletonList(facetColumnRequest));
+		query.setSort(Lists.newArrayList(sort1));
+		query.setAdditionalFilters(Arrays.asList(likeFilter, hasFilter));
+		query.setLimit(2L);
+		query.setOffset(3L);
+		String sql = manager.createCombinedSql(user, query, true);
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
+		assertEquals("SELECT * FROM syn123 WHERE ( ( i1 = 1 ) AND ( ( \"i0\" LIKE 'foo%' ) " +
+				"AND ( \"i12\" HAS ( 'foo%', 'bar' ) ) ) ) AND ( ( ( \"i2\" <= '45' ) ) ) " +
+				"ORDER BY \"i0\" DESC LIMIT 2 OFFSET 3", sql);
+	}
+
 	@Test
 	public void testQueryAsStream() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
