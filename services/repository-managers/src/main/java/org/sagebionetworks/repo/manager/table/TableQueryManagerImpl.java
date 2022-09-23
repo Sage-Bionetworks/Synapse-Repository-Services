@@ -94,9 +94,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				rowHandler = new SinglePageRowHandler();
 			}
 
-			//get the combined sql before authorization and extra row-level filtering
-			String combinedSql = createCombinedSql(query,user);
-
 			// pre-flight includes parsing and authorization
 			SqlQuery sqlQuery = queryPreflight(user, query, this.maxBytesPerRequest);
 			
@@ -108,7 +105,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			}
 			// add combined sql to the bundle
 			if(options.returnCombinedSql()){
-				bundle.setCombinedSql(combinedSql);
+				bundle.setCombinedSql(createCombinedSql(query,user));
 			}
 
 			// add captured rows to the bundle
@@ -131,7 +128,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 	}
 
-	private String createCombinedSql(Query query, UserInfo user){
+	 String createCombinedSql(Query query, UserInfo user){
 		QuerySpecification model = parserQuery(query.getSql());
 		// We now have the table's ID.
 		String tableId = model.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
