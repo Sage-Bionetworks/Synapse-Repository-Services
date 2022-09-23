@@ -1,14 +1,5 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -57,6 +48,14 @@ import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.BadSqlGrammarException;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 public class TableQueryManagerImpl implements TableQueryManager {
 
 	public static final long MAX_ROWS_PER_CALL = 100;
@@ -94,6 +93,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			if (options.runQuery()) {
 				rowHandler = new SinglePageRowHandler();
 			}
+
+			//get the combined sql before authorization and extra row-level filtering
+			String combinedSql = createCombinedSql(query,user);
+
 			// pre-flight includes parsing and authorization
 			SqlQuery sqlQuery = queryPreflight(user, query, this.maxBytesPerRequest);
 			
@@ -102,6 +105,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// save the max rows per page.
 			if(options.returnMaxRowsPerPage()) {
 				bundle.setMaxRowsPerPage(sqlQuery.getMaxRowsPerPage());
+			}
+			// add combined sql to the bundle
+			if(options.returnCombinedSql()){
+				bundle.setCombinedSql(combinedSql);
 			}
 
 			// add captured rows to the bundle
@@ -122,6 +129,23 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			return createEmptyBundle(e.getTableId(), options);
 		}
 
+	}
+
+	private String createCombinedSql(Query query, UserInfo user){
+		QuerySpecification model = parserQuery(query.getSql());
+		// We now have the table's ID.
+		String tableId = model.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
+		SqlQuery sqlQuery = new SqlQueryBuilder(model, user.getId())
+				.schemaProvider(tableManagerSupport)
+				.overrideOffset(query.getOffset())
+				.overrideLimit(query.getLimit())
+				.indexDescription(indexDescription)
+				.selectedFacets(query.getSelectedFacets())
+				.sortList(query.getSort())
+				.additionalFilters(query.getAdditionalFilters()).build();
+		return sqlQuery.getCombinedSQL();
 	}
 
 	/**

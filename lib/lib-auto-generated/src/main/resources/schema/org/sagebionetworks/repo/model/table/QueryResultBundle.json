@@ -47,6 +47,10 @@
 			"description": "The date-time when this table/view was last updated. Note: Since views are eventually consistent a view might still be out-of-date even if it was recently updated. Use mask = 0x80 to include in the bundle.",
 			"type": "string",
 			"format": "date-time"
+		},
+		"combinedSql": {
+			"description": "A SQL statement that would return the same results as the request Query object. Use mask = 0x100 to include in the bundle.",
+			"type": "string"
 		}
 	}
 }
