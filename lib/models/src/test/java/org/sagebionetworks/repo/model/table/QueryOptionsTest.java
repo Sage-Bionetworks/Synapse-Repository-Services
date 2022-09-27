@@ -1,16 +1,18 @@
 package org.sagebionetworks.repo.model.table;
 
+import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_COMBINED_SQL;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_LAST_UPDATED_ON;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COLUMN_MODELS;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COUNT;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_FACETS;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_RESULTS;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_SELECT_COLUMNS;
-import static org.sagebionetworks.repo.model.table.QueryOptions.*;
-
-import org.junit.Test;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_SUM_FILE_SIZES;
 
 public class QueryOptionsTest {
 	
@@ -124,6 +126,17 @@ public class QueryOptionsTest {
 		assertTrue(options.returnSelectColumns());
 		// the rest of the values should be false
 		options.withReturnSelectColumns(false);
+		boolean expectedValue = false;
+		assertAll(expectedValue, options);
+	}
+
+	@Test
+	public void testSelectCombinedSqlMask() {
+		// call under test
+		QueryOptions options = new QueryOptions().withMask(BUNDLE_MASK_COMBINED_SQL);
+		assertTrue(options.returnCombinedSql);
+		// the rest of the values should be false
+		options.withReturnCombinedSql(false);
 		boolean expectedValue = false;
 		assertAll(expectedValue, options);
 	}
