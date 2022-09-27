@@ -49,14 +49,13 @@ public class ConcurrentWorkerStack implements Runnable {
 	private final Integer semaphoreLockAndMessageVisibilityTimeoutSec;
 	private final Integer maxThreadsPerMachine;
 	private final MessageDrivenRunner worker;
-
 	private final int lockRefreshFrequencyMS;
-	private final List<WorkerJob> runningJobs;
 	private final String queueUrl;
 
 	private long nextRefreshTimeMS;
 	private State state;;
-	private final ConcurrentProgressCallback lockCallback;
+	private ConcurrentProgressCallback lockCallback;
+	private List<WorkerJob> runningJobs;
 
 	public ConcurrentWorkerStack(ConcurrentSingleton singleton, Boolean canRunInReadOnly, String semaphoreLockKey,
 			Integer semaphoreMaxLockCount, Integer semaphoreLockAndMessageVisibilityTimeoutSec,
@@ -71,8 +70,6 @@ public class ConcurrentWorkerStack implements Runnable {
 		this.worker = worker;
 		this.lockRefreshFrequencyMS = (semaphoreLockAndMessageVisibilityTimeoutSec * 1000) / 3;
 		this.queueUrl = singleton.getSqsQueueUrl(queueName);
-		this.runningJobs = new ArrayList<>(semaphoreMaxLockCount);
-		this.lockCallback = new ConcurrentProgressCallback(semaphoreLockAndMessageVisibilityTimeoutSec);
 	}
 
 	/**
@@ -81,7 +78,7 @@ public class ConcurrentWorkerStack implements Runnable {
 	 */
 	@Override
 	public void run() {
-		state = State.CONTINUING;
+		resetAllState();
 		if (!canProcessMoreMessages()) {
 			return;
 		}
@@ -96,12 +93,22 @@ public class ConcurrentWorkerStack implements Runnable {
 	}
 
 	/**
+	 * Reset all state.
+	 */
+	void resetAllState() {
+		state = State.CONTINUING;
+		runningJobs = new ArrayList<>(semaphoreMaxLockCount);
+		lockCallback = new ConcurrentProgressCallback(semaphoreLockAndMessageVisibilityTimeoutSec);
+		resetNextRefreshTimeMS();
+	}
+
+	/**
 	 * Start the shutdown process for this stack. The stack will no longer add get
 	 * new messages and start new worker threads. However, the stack will continue
 	 * to wait for the existing jobs to complete.
 	 */
 	void startShutdown() {
-		state = State.CONTINUING;
+		state = State.SHUTTING_DOWN;
 	}
 
 	/**
@@ -150,7 +157,7 @@ public class ConcurrentWorkerStack implements Runnable {
 		}
 		return State.CONTINUING.equals(state);
 	}
-	
+
 	/**
 	 * Check on all of the running jobs. Any job that is finished will be removed.
 	 * If a {@link Future#get()} throws an {@link InterruptedException}, the stack
@@ -197,7 +204,8 @@ public class ConcurrentWorkerStack implements Runnable {
 	}
 
 	/**
-	 * If now() >= nextRefreshTimeMS, then trigger the refresh of all locks/messages.
+	 * If now() >= nextRefreshTimeMS, then trigger the refresh of all
+	 * locks/messages.
 	 */
 	void refreshLocksIfNeeded() {
 		if (singleton.getCurrentTimeMS() >= nextRefreshTimeMS) {

@@ -37,7 +37,7 @@ public class ConcurrentSingletonImpl implements ConcurrentSingleton {
 
 	@Override
 	public boolean isStackAvailableForWrite() {
-		return !stackStatusDao.isStackReadWrite();
+		return stackStatusDao.isStackReadWrite();
 	}
 
 	@Override
@@ -87,6 +87,14 @@ public class ConcurrentSingletonImpl implements ConcurrentSingleton {
 		}).collect(Collectors.toList());
 	}
 
+	/**
+	 * For the given message, submit a new worker instance to the thread pool.
+	 * @param queueUrl
+	 * @param messageVisibilityTimeoutSec
+	 * @param worker
+	 * @param message
+	 * @return
+	 */
 	WorkerJob startWorkerJob(String queueUrl, int messageVisibilityTimeoutSec, MessageDrivenRunner worker,
 			Message message) {
 		ConcurrentProgressCallback callback = new ConcurrentProgressCallback(messageVisibilityTimeoutSec);
