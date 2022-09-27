@@ -314,7 +314,7 @@ public class TableQueryManagerImplTest {
 
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
-		String sql = manager.createCombinedSql(user, query, true);
+		String sql = manager.createCombinedSql(user, query);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		assertEquals("SELECT * FROM syn123", sql);
 	}
@@ -327,7 +327,7 @@ public class TableQueryManagerImplTest {
 
 		Query query = new Query();
 		query.setSql("select * from " + tableId + " where i2 = 1");
-		String sql = manager.createCombinedSql(user, query, true);
+		String sql = manager.createCombinedSql(user, query);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		assertEquals("SELECT * FROM syn123 WHERE i2 = 1", sql);
 	}
@@ -341,7 +341,7 @@ public class TableQueryManagerImplTest {
 		Query query = new Query();
 		query.setSql("select * from " + tableId + " where i1 = 1.0");
 		query.setSelectedFacets(Collections.singletonList(facetColumnRequest));
-		String sql = manager.createCombinedSql(user, query, true);
+		String sql = manager.createCombinedSql(user, query);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		assertEquals("SELECT * FROM syn123 WHERE ( i1 = 1.0 ) AND ( ( ( \"i2\" <= '45' ) ) )", sql);
 	}
@@ -365,7 +365,7 @@ public class TableQueryManagerImplTest {
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		query.setAdditionalFilters(Arrays.asList(likeFilter, hasFilter));
-		String sql = manager.createCombinedSql(user, query, true);
+		String sql = manager.createCombinedSql(user, query);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		assertEquals("SELECT * FROM syn123 WHERE ( \"i0\" LIKE 'foo%' ) AND ( \"i12\" HAS ( 'foo%', 'bar' ) )", sql);
 	}
@@ -379,7 +379,7 @@ public class TableQueryManagerImplTest {
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		query.setAdditionalFilters(Arrays.asList(new TextMatchesQueryFilter().setSearchExpression("value")));
-		String sql = manager.createCombinedSql(user, query, true);
+		String sql = manager.createCombinedSql(user, query);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		assertEquals("SELECT * FROM syn123 WHERE ( TEXT_MATCHES('value') )", sql);
 	}
@@ -397,7 +397,7 @@ public class TableQueryManagerImplTest {
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		query.setSort(Lists.newArrayList(sort1));
-		String sql = manager.createCombinedSql(user, query, true);
+		String sql = manager.createCombinedSql(user, query);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		assertEquals("SELECT * FROM syn123 ORDER BY \"i0\" DESC", sql);
 	}
@@ -429,7 +429,7 @@ public class TableQueryManagerImplTest {
 		query.setAdditionalFilters(Arrays.asList(likeFilter, hasFilter));
 		query.setLimit(2L);
 		query.setOffset(3L);
-		String sql = manager.createCombinedSql(user, query, true);
+		String sql = manager.createCombinedSql(user, query);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		assertEquals("SELECT * FROM syn123 WHERE ( ( i1 = 1 ) AND ( ( \"i0\" LIKE 'foo%' ) " +
 				"AND ( \"i12\" HAS ( 'foo%', 'bar' ) ) ) ) AND ( ( ( \"i2\" <= '45' ) ) ) " +

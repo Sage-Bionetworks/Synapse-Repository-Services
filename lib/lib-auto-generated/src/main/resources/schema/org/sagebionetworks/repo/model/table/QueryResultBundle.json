@@ -49,7 +49,7 @@
 			"format": "date-time"
 		},
 		"combinedSql": {
-			"description": "A SQL statement that would return the same results as the request Query object. Use mask = 0x100 to include in the bundle.",
+			"description": "The SQL that is combination of a the input SQL, FacetRequests, AdditionalFilters, Sorting, and Pagination. Use mask = 0x100 to include in the bundle.",
 			"type": "string"
 		}
 	}

@@ -95,19 +95,21 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				rowHandler = new SinglePageRowHandler();
 			}
 
-			String combinedSql = createCombinedSql(user, query, options.returnCombinedSql());
+			//get combined sql before pre-flight and authorization
+			String combinedSql = null;
+			if (options.returnCombinedSql()) {
+				combinedSql = createCombinedSql(user, query);
+			}
 			// pre-flight includes parsing and authorization
 			SqlQuery sqlQuery = queryPreflight(user, query, this.maxBytesPerRequest);
 			
 			// run the query as a stream.
 			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, rowHandler, options);
+			// add combined sql to the bundle
+			bundle.setCombinedSql(combinedSql);
 			// save the max rows per page.
 			if(options.returnMaxRowsPerPage()) {
 				bundle.setMaxRowsPerPage(sqlQuery.getMaxRowsPerPage());
-			}
-			// add combined sql to the bundle
-			if (options.returnCombinedSql()) {
-				bundle.setCombinedSql(combinedSql);
 			}
 			// add captured rows to the bundle
 			if (options.runQuery()) {
@@ -141,15 +143,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 *
 	 * @param user
 	 * @param query
-	 * @param returnCombinedSql
 	 * @return
 	 *
 	 */
-	String createCombinedSql(UserInfo user, Query query, boolean returnCombinedSql) {
-		if(!returnCombinedSql){
-			return null;
-		}
-
+	String createCombinedSql(UserInfo user, Query query) {
 		QuerySpecification model = parserQuery(query.getSql());
 		// SqlQuery changes the selectList of query so keep the original selected list.
 		SelectList selectListFromUser = model.getSelectList();

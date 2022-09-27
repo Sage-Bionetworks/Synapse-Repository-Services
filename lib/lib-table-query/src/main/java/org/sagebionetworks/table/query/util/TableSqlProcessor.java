@@ -1,11 +1,5 @@
 package org.sagebionetworks.table.query.util;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.SortDirection;
@@ -22,12 +16,19 @@ import org.sagebionetworks.table.query.model.SortSpecificationList;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.util.ValidateArgument;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 /**
  * A utility for processing table SQL strings. This class is part of the table
  * API.
  * 
  * 
  */
+@Deprecated
 public class TableSqlProcessor {
 
 	/**
