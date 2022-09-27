@@ -644,10 +644,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			log.warn("InvalidStatusTokenException occurred for "+idAndVersion+", message will be returned to the queue");
 			throw new RecoverableMessageException(e);
 		} catch (Exception e) {
+			// This is not an error we can recover from.
+			log.error("Unrecoverable failure to update table index " + idAndVersion, e);
 			// Any other error is a table failure.
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
-			// This is not an error we can recover from.
-			log.info("Unrecoverable failure to update table index: "+idAndVersion);
 		}
 	}
 	
