@@ -169,7 +169,20 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 			throw new IllegalArgumentException(
 					"This method cannot be used to change the state to PROCESSING because it does not change the reset-token");
 		}
-		DBOTableStatus current = selectResetTokenForUpdate(idAndVersion);
+		
+		DBOTableStatus current = selectResetTokenForUpdate(idAndVersion).orElseGet(() -> {
+			// If we failed the processing for any reason we should be able to unconditionally set the table as failed
+			if (TableState.PROCESSING_FAILED.equals(state)) {
+				DBOTableStatus failed = new DBOTableStatus();
+				failed.setTableId(idAndVersion.getId());
+				failed.setVersion(validateAndGetVersion(idAndVersion));
+				failed.setStartedOn(System.currentTimeMillis());
+				return failed;
+			}
+			
+			throw new NotFoundException("Table status does not exist for: " + idAndVersion.toString());
+		});
+		
 		if (resetToken != null && !current.getResetToken().equals(resetToken)) {
 			throw new InvalidStatusTokenException(CONFLICT_MESSAGE);
 		}
@@ -188,7 +201,9 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		current.setTotalRunTimeMS(runtimeMS);
 		current.setLastTableChangeEtag(tableChangeEtag);
 		current.setResetToken(UUID.randomUUID().toString());
-		basicDao.update(current);
+		
+		basicDao.createOrUpdate(current);
+		
 		sendTableStatusEvent(idAndVersion, state);
 	}
 
@@ -199,13 +214,13 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	DBOTableStatus selectResetTokenForUpdate(IdAndVersion idAndVersion) throws NotFoundException {
+	Optional<DBOTableStatus> selectResetTokenForUpdate(IdAndVersion idAndVersion) throws NotFoundException {
 		try {
 			long version = validateAndGetVersion(idAndVersion);
-			return jdbcTemplate.queryForObject(SQL_SELECT_STATUS_FOR_UPDATE, tableMapping, idAndVersion.getId(),
-					version);
+			DBOTableStatus status = jdbcTemplate.queryForObject(SQL_SELECT_STATUS_FOR_UPDATE, tableMapping, idAndVersion.getId(), version);
+			return Optional.of(status);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Table status does not exist for: " + idAndVersion.toString());
+			return Optional.empty();
 		}
 	}
 
@@ -219,7 +234,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	public void attemptToUpdateTableProgress(IdAndVersion idAndVersion, String resetToken, String progressMessage,
 			Long currentProgress, Long totalProgress) throws NotFoundException {
 		// Ensure the reset-token matches.
-		DBOTableStatus current = selectResetTokenForUpdate(idAndVersion);
+		DBOTableStatus current = selectResetTokenForUpdate(idAndVersion).orElseThrow(() -> new NotFoundException("Table status does not exist for: " + idAndVersion.toString()));
 		if (!current.getResetToken().equals(resetToken)) {
 			throw new InvalidStatusTokenException(CONFLICT_MESSAGE);
 		}
