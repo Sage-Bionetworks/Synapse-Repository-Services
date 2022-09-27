@@ -8,6 +8,7 @@ import java.util.concurrent.Future;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
@@ -42,25 +43,37 @@ public class ConcurrentWorkerStack implements Runnable {
 
 	private static final Logger log = LogManager.getLogger(ConcurrentWorkerStack.class);
 
+	// direct parameters
 	private final ConcurrentSingleton singleton;
-	private final Boolean canRunInReadOnly;
+	private final boolean canRunInReadOnly;
 	private final String semaphoreLockKey;
-	private final Integer semaphoreMaxLockCount;
-	private final Integer semaphoreLockAndMessageVisibilityTimeoutSec;
-	private final Integer maxThreadsPerMachine;
+	private final int semaphoreMaxLockCount;
+	private final int semaphoreLockAndMessageVisibilityTimeoutSec;
+	private final int maxThreadsPerMachine;
 	private final MessageDrivenRunner worker;
+	
+	// derived parameters
 	private final int lockRefreshFrequencyMS;
 	private final String queueUrl;
 
+	// local state
 	private long nextRefreshTimeMS;
 	private State state;;
 	private ConcurrentProgressCallback lockCallback;
 	private List<WorkerJob> runningJobs;
 
-	public ConcurrentWorkerStack(ConcurrentSingleton singleton, Boolean canRunInReadOnly, String semaphoreLockKey,
+	private ConcurrentWorkerStack(ConcurrentSingleton singleton, Boolean canRunInReadOnly, String semaphoreLockKey,
 			Integer semaphoreMaxLockCount, Integer semaphoreLockAndMessageVisibilityTimeoutSec,
 			Integer maxThreadsPerMachine, MessageDrivenRunner worker, String queueName) {
 		super();
+		ValidateArgument.required(singleton, "singleton");
+		ValidateArgument.required(semaphoreLockKey, "semaphoreLockKey");
+		ValidateArgument.required(semaphoreMaxLockCount, "semaphoreMaxLockCount");
+		ValidateArgument.required(semaphoreLockAndMessageVisibilityTimeoutSec, "semaphoreLockAndMessageVisibilityTimeoutSec");
+		ValidateArgument.required(maxThreadsPerMachine, "maxThreadsPerMachine");
+		ValidateArgument.required(worker, "worker");
+		ValidateArgument.required(queueName, "queueName");
+		
 		this.singleton = singleton;
 		this.canRunInReadOnly = Boolean.TRUE.equals(canRunInReadOnly);
 		this.semaphoreLockKey = semaphoreLockKey;
@@ -91,12 +104,30 @@ public class ConcurrentWorkerStack implements Runnable {
 					}
 				});
 	}
+	
+	/**
+	 * 
+	 */
+	void mainLoop() {
+		while (shouldContinueRunning()) {
+			refreshLocksIfNeeded();
+			checkRunningJobs();
+			attemptToAddMoreWorkers();
+			try {
+				singleton.sleep(1000);
+			} catch (InterruptedException e) {
+
+				startShutdown();
+			}
+		}
+	}
+
 
 	/**
 	 * Reset all state.
 	 */
 	void resetAllState() {
-		state = State.CONTINUING;
+		state = State.CONTINUE;
 		runningJobs = new ArrayList<>(semaphoreMaxLockCount);
 		lockCallback = new ConcurrentProgressCallback(semaphoreLockAndMessageVisibilityTimeoutSec);
 		resetNextRefreshTimeMS();
@@ -108,7 +139,8 @@ public class ConcurrentWorkerStack implements Runnable {
 	 * to wait for the existing jobs to complete.
 	 */
 	void startShutdown() {
-		state = State.SHUTTING_DOWN;
+		log.info("Interrupted. Will shutdown after all existing jobs finish running.");
+		state = State.SHUT_DOWN;
 	}
 
 	/**
@@ -116,7 +148,7 @@ public class ConcurrentWorkerStack implements Runnable {
 	 * 
 	 */
 	boolean canProcessMoreMessages() {
-		if (State.SHUTTING_DOWN.equals(state)) {
+		if (State.SHUT_DOWN.equals(state)) {
 			return false;
 		}
 		if (canRunInReadOnly) {
@@ -132,19 +164,6 @@ public class ConcurrentWorkerStack implements Runnable {
 		nextRefreshTimeMS = singleton.getCurrentTimeMS() + lockRefreshFrequencyMS;
 	}
 
-	void mainLoop() {
-		while (shouldContinueRunning()) {
-			refreshLocksIfNeeded();
-			checkRunningJobs();
-			attemptToAddMoreWorkers();
-			try {
-				singleton.sleep(1000);
-			} catch (InterruptedException e) {
-				log.info("Interrupted. Will shutdown after all jobs finish running");
-				startShutdown();
-			}
-		}
-	}
 
 	/**
 	 * The loop should continue to run if this returns true.
@@ -155,7 +174,7 @@ public class ConcurrentWorkerStack implements Runnable {
 		if (runningJobs.size() > 1) {
 			return true;
 		}
-		return State.CONTINUING.equals(state);
+		return State.CONTINUE.equals(state);
 	}
 
 	/**
@@ -172,7 +191,7 @@ public class ConcurrentWorkerStack implements Runnable {
 				try {
 					job.getFuture().get();
 				} catch (InterruptedException e) {
-					log.info("Interrupted. Will shutdown after all jobs finish running");
+					log.info("Interrupted. Will shutdown after all jobs finish running.");
 					startShutdown();
 				} catch (ExecutionException e) {
 					Throwable cause = e.getCause();
@@ -222,7 +241,7 @@ public class ConcurrentWorkerStack implements Runnable {
 	 *
 	 */
 	static enum State {
-		CONTINUING, SHUTTING_DOWN
+		CONTINUE, SHUT_DOWN
 	}
 
 	/**
@@ -236,10 +255,53 @@ public class ConcurrentWorkerStack implements Runnable {
 
 	public static class Builder {
 
+		private ConcurrentSingleton singleton;
+		private Boolean canRunInReadOnly;
+		private String semaphoreLockKey;
+		private Integer semaphoreMaxLockCount;
+		private Integer semaphoreLockAndMessageVisibilityTimeoutSec;
+		private Integer maxThreadsPerMachine;
+		private MessageDrivenRunner worker;
+
+		public Builder withSingleton(ConcurrentSingleton singleton) {
+			this.singleton = singleton;
+			return this;
+		}
+
+		public Builder withCanRunInReadOnly(Boolean canRunInReadOnly) {
+			this.canRunInReadOnly = canRunInReadOnly;
+			return this;
+		}
+
+		public Builder withSemaphoreLockKey(String semaphoreLockKey) {
+			this.semaphoreLockKey = semaphoreLockKey;
+			return this;
+		}
+
+		public Builder withSemaphoreMaxLockCount(Integer semaphoreMaxLockCount) {
+			this.semaphoreMaxLockCount = semaphoreMaxLockCount;
+			return this;
+		}
+
+		public Builder withSemaphoreLockAndMessageVisibilityTimeoutSec(
+				Integer semaphoreLockAndMessageVisibilityTimeoutSec) {
+			this.semaphoreLockAndMessageVisibilityTimeoutSec = semaphoreLockAndMessageVisibilityTimeoutSec;
+			return this;
+		}
+
+		public Builder withMaxThreadsPerMachine(Integer maxThreadsPerMachine) {
+			this.maxThreadsPerMachine = maxThreadsPerMachine;
+			return this;
+		}
+
+		public Builder withWorker(MessageDrivenRunner worker) {
+			this.worker = worker;
+			return this;
+		}
+
 		public ConcurrentWorkerStack build() {
-//			return new ConcurrentWorkerStack(countingSempahore, gate, semaphoreLockKey, semaphoreMaxLockCount,
-//					semaphoreLockAndMessageVisibilityTimeoutSec, runner, executorService);
-			return null;
+			return new ConcurrentWorkerStack(singleton, canRunInReadOnly, semaphoreLockKey, semaphoreMaxLockCount,
+					semaphoreLockAndMessageVisibilityTimeoutSec, maxThreadsPerMachine, worker, semaphoreLockKey);
 		}
 	}
 
