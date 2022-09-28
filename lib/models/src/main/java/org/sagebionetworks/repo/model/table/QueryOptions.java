@@ -10,6 +10,7 @@ public class QueryOptions {
 	public static final long BUNDLE_MASK_QUERY_FACETS = 0x20;
 	public static final long BUNDLE_MASK_SUM_FILE_SIZES = 0x40;
 	public static final long BUNDLE_MASK_LAST_UPDATED_ON = 0x80;
+	public static final long BUNDLE_MASK_COMBINED_SQL = 0x100;
 
 	boolean runQuery;
 	boolean runCount;
@@ -19,6 +20,7 @@ public class QueryOptions {
 	boolean returnFacets;
 	boolean runSumFileSizes;
 	boolean returnLastUpdatedOn;
+	boolean returnCombinedSql;
 	
 	public QueryOptions() {
 		// all default to false
@@ -30,6 +32,7 @@ public class QueryOptions {
 		this.returnFacets = false;
 		this.runSumFileSizes = false;
 		this.returnLastUpdatedOn = false;
+		this.returnCombinedSql = false;
 	}
 
 	public boolean runQuery() {
@@ -62,6 +65,10 @@ public class QueryOptions {
 	
 	public boolean returnLastUpdatedOn() {
 		return this.returnLastUpdatedOn;
+	}
+
+	public boolean returnCombinedSql() {
+		return this.returnCombinedSql;
 	}
 
 	public QueryOptions withRunQuery(boolean runQuery) {
@@ -104,6 +111,11 @@ public class QueryOptions {
 		return this;
 	}
 
+	public QueryOptions withReturnCombinedSql(boolean returnCombinedSql) {
+		this.returnCombinedSql = returnCombinedSql;
+		return this;
+	}
+
 	public QueryOptions withMask(Long partMaskIn) {
 		final long partMask = partMaskIn != null ? partMaskIn : -1L;// default all.
 		this.runQuery = ((partMask & BUNDLE_MASK_QUERY_RESULTS) != 0);
@@ -114,6 +126,7 @@ public class QueryOptions {
 		this.returnFacets = ((partMask & BUNDLE_MASK_QUERY_FACETS) != 0);
 		this.runSumFileSizes = ((partMask & BUNDLE_MASK_SUM_FILE_SIZES) != 0);
 		this.returnLastUpdatedOn = ((partMask & BUNDLE_MASK_LAST_UPDATED_ON) != 0);
+		this.returnCombinedSql = ((partMask & BUNDLE_MASK_COMBINED_SQL) !=0 );
 		return this;
 	}
 	
@@ -148,6 +161,9 @@ public class QueryOptions {
 		if(this.returnLastUpdatedOn) {
 			partMask = partMask | BUNDLE_MASK_LAST_UPDATED_ON;
 		}
+		if(this.returnCombinedSql) {
+			partMask = partMask | BUNDLE_MASK_COMBINED_SQL;
+		}
 		return partMask;
 	}
 
@@ -163,6 +179,7 @@ public class QueryOptions {
 		result = prime * result + (runCount ? 1231 : 1237);
 		result = prime * result + (runQuery ? 1231 : 1237);
 		result = prime * result + (runSumFileSizes ? 1231 : 1237);
+		result = prime * result + (returnCombinedSql ? 1231 : 1237);
 		return result;
 	}
 
@@ -191,6 +208,8 @@ public class QueryOptions {
 			return false;
 		if (runSumFileSizes != other.runSumFileSizes)
 			return false;
+		if(returnCombinedSql != other.returnCombinedSql)
+			return false;
 		return true;
 	}
 
@@ -199,7 +218,7 @@ public class QueryOptions {
 		return "QueryOptions [runQuery=" + runQuery + ", runCount=" + runCount + ", returnSelectColumns="
 				+ returnSelectColumns + ", returnMaxRowsPerPage=" + returnMaxRowsPerPage + ", returnColumnModels="
 				+ returnColumnModels + ", returnFacets=" + returnFacets + ", runSumFileSizes=" + runSumFileSizes
-				+ ", returnLastUpdatedOn=" + returnLastUpdatedOn + "]";
+				+ ", returnLastUpdatedOn=" + returnLastUpdatedOn + ", returnCombinedSql=" + returnCombinedSql +"]";
 	}
 
 }
