@@ -2239,8 +2239,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			sql += " AND R." + COL_REVISION_NUMBER + " = ?";
 			args = List.of(nodeId, versionNumber);
 		}
-				
-		Boolean result = jdbcTemplate.queryForObject(sql, Boolean.class, args.toArray());
+			
+		Boolean result;
+		
+		try {
+			result = jdbcTemplate.queryForObject(sql, Boolean.class, args.toArray());
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Entity " + KeyFactory.idAndVersion(nodeId.toString(), versionNumber) + " does not exist.");
+		}
 		
 		return result != null && result;
 	}
