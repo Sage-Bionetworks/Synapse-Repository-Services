@@ -36,6 +36,9 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
  * "shutdown" state is started, it will continue to run and monitor all Existing
  * jobs, but it will no longer add new jobs. Once all of the existing jobs are
  * completed, shutdown will be completed and the loop will terminate.
+ * <p>
+ * Note: While this stack manages all worker threads from the thread that calls
+ * {@link ConcurrentWorkerStack#run()}.
  */
 public class ConcurrentWorkerStack implements Runnable {
 
@@ -51,7 +54,7 @@ public class ConcurrentWorkerStack implements Runnable {
 	private final int semaphoreLockAndMessageVisibilityTimeoutSec;
 	private final int maxThreadsPerMachine;
 	private final MessageDrivenRunner worker;
-	
+
 	// derived parameters
 	private final int lockRefreshFrequencyMS;
 	private final String queueUrl;
@@ -69,11 +72,16 @@ public class ConcurrentWorkerStack implements Runnable {
 		ValidateArgument.required(singleton, "singleton");
 		ValidateArgument.required(semaphoreLockKey, "semaphoreLockKey");
 		ValidateArgument.required(semaphoreMaxLockCount, "semaphoreMaxLockCount");
-		ValidateArgument.required(semaphoreLockAndMessageVisibilityTimeoutSec, "semaphoreLockAndMessageVisibilityTimeoutSec");
+		ValidateArgument.required(semaphoreLockAndMessageVisibilityTimeoutSec,
+				"semaphoreLockAndMessageVisibilityTimeoutSec");
+		ValidateArgument.requirement(semaphoreLockAndMessageVisibilityTimeoutSec >= 30,
+				"semaphoreLockAndMessageVisibilityTimeoutSec must be greater than or equal to 30 seconds.");
 		ValidateArgument.required(maxThreadsPerMachine, "maxThreadsPerMachine");
+		ValidateArgument.requirement(maxThreadsPerMachine >= 1,
+				"maxThreadsPerMachine must be greater than or equal to one.");
 		ValidateArgument.required(worker, "worker");
 		ValidateArgument.required(queueName, "queueName");
-		
+
 		this.singleton = singleton;
 		this.canRunInReadOnly = Boolean.TRUE.equals(canRunInReadOnly);
 		this.semaphoreLockKey = semaphoreLockKey;
@@ -86,8 +94,9 @@ public class ConcurrentWorkerStack implements Runnable {
 	}
 
 	/**
-	 * The main entry point for the stack. This method should be called from a
-	 * timer.
+	 * The main entry point for the stack. This method should be called from a timer
+	 * thread. Unless an {@link InterruptedException} is encountered, this method
+	 * will run indefinitely.
 	 */
 	@Override
 	public void run() {
@@ -98,17 +107,14 @@ public class ConcurrentWorkerStack implements Runnable {
 		singleton.runWithSemaphoreLock(semaphoreLockKey, semaphoreLockAndMessageVisibilityTimeoutSec,
 				semaphoreMaxLockCount, lockCallback, () -> {
 					try {
-						mainLoop();
+						infiniteLoop();
 					} catch (Exception e) {
 						log.error("Failed:", e);
 					}
 				});
 	}
-	
-	/**
-	 * 
-	 */
-	void mainLoop() {
+
+	void infiniteLoop() {
 		while (shouldContinueRunning()) {
 			refreshLocksIfNeeded();
 			checkRunningJobs();
@@ -116,12 +122,10 @@ public class ConcurrentWorkerStack implements Runnable {
 			try {
 				singleton.sleep(1000);
 			} catch (InterruptedException e) {
-
 				startShutdown();
 			}
 		}
 	}
-
 
 	/**
 	 * Reset all state.
@@ -163,7 +167,6 @@ public class ConcurrentWorkerStack implements Runnable {
 	void resetNextRefreshTimeMS() {
 		nextRefreshTimeMS = singleton.getCurrentTimeMS() + lockRefreshFrequencyMS;
 	}
-
 
 	/**
 	 * The loop should continue to run if this returns true.
@@ -263,37 +266,89 @@ public class ConcurrentWorkerStack implements Runnable {
 		private Integer maxThreadsPerMachine;
 		private MessageDrivenRunner worker;
 
+		/**
+		 * Wrapper of all of the stack's dependencies. Note: {@link ConcurrentSingleton}
+		 * does not encapsulate any worker state.
+		 * 
+		 * @param singleton
+		 * @return
+		 */
 		public Builder withSingleton(ConcurrentSingleton singleton) {
 			this.singleton = singleton;
 			return this;
 		}
 
+		/**
+		 * Can this worker run while the stack is in read-only mode? Defaults to false.
+		 * 
+		 * @param canRunInReadOnly
+		 * @return
+		 */
 		public Builder withCanRunInReadOnly(Boolean canRunInReadOnly) {
 			this.canRunInReadOnly = canRunInReadOnly;
 			return this;
 		}
 
+		/**
+		 * Both the semaphoreLockKey and semaphoreMaxLockCount are used to limit the
+		 * number of machines across the cluster that can run this type of worker at any
+		 * given time. For example, if semaphoreLockKey='someWorker' and
+		 * semaphoreMaxLockCount=3, then the semaphore system will ensure that no more
+		 * than three instances of 'someWorker' will be running in the worker cluster at
+		 * one time. Note: Each instance can run multiple threads if
+		 * maxThreadsPerMachine is greater than one.
+		 * 
+		 * @param semaphoreLockKey
+		 * @return
+		 */
 		public Builder withSemaphoreLockKey(String semaphoreLockKey) {
 			this.semaphoreLockKey = semaphoreLockKey;
 			return this;
 		}
 
+		/**
+		 * See: {@link Builder#withSemaphoreLockKey(String)}
+		 */
 		public Builder withSemaphoreMaxLockCount(Integer semaphoreMaxLockCount) {
 			this.semaphoreMaxLockCount = semaphoreMaxLockCount;
 			return this;
 		}
 
+		/**
+		 * Sets the semaphore lock timeout and SQS messages visibility timeout in
+		 * seconds. The stack will automatically refresh all locks/visibility at
+		 * frequency of one third of this timeout. This timeout must be greater than or
+		 * equal to 30 seconds. Required.
+		 * 
+		 * @param semaphoreLockAndMessageVisibilityTimeoutSec
+		 * @return
+		 */
 		public Builder withSemaphoreLockAndMessageVisibilityTimeoutSec(
 				Integer semaphoreLockAndMessageVisibilityTimeoutSec) {
 			this.semaphoreLockAndMessageVisibilityTimeoutSec = semaphoreLockAndMessageVisibilityTimeoutSec;
 			return this;
 		}
 
+		/**
+		 * Sets the maximum number of threads per machine that will be used to run this
+		 * worker. Must be greater than or equal to one. Required.
+		 * 
+		 * @param maxThreadsPerMachine
+		 * @return
+		 */
 		public Builder withMaxThreadsPerMachine(Integer maxThreadsPerMachine) {
 			this.maxThreadsPerMachine = maxThreadsPerMachine;
 			return this;
 		}
 
+		/**
+		 * The {@link MessageDrivenRunner} is the worker that will be invoke to process
+		 * each SQS messages polled by this worker stack. The worker should be a
+		 * thread-safe singleton. Required.
+		 * 
+		 * @param worker
+		 * @return
+		 */
 		public Builder withWorker(MessageDrivenRunner worker) {
 			this.worker = worker;
 			return this;

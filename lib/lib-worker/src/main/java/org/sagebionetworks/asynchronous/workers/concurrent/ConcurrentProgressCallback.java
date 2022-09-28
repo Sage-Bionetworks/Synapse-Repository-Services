@@ -55,9 +55,9 @@ public class ConcurrentProgressCallback implements ProgressCallback, ProgressLis
 				ProgressListener listener = it.next();
 				listener.progressMade();
 			} catch (Exception e) {
+				it.remove();
 				log.error(String.format("Error on progressMade for: '%s'. Listener will be removed.",
 						listeners.getClass()), e);
-				it.remove();
 			}
 		}
 	}
