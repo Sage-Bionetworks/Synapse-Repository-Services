@@ -120,9 +120,14 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		// Has an upload already been started for this user and request
 		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(user.getId(), requestMD5Hex);
 
-		boolean newUploadRequestRequired = isNewUploadRequestRequired(forceRestart, user, requestMD5Hex, status);
+		boolean fileHandleExistsFileNoLongerInCloudStorage = fileHandleExistsFileNoLongerInCloudStorage(user, status);
 
-		if (status == null || newUploadRequestRequired) {
+		if (forceRestart || fileHandleExistsFileNoLongerInCloudStorage) {
+			// When forcing a restart or if the underlying object key of a file handle does not exist we clear the old hash changing the cache key, the previous multipart upload will be garbage collected by a worker
+			multipartUploadDAO.setUploadStatusHash(user.getId(), requestMD5Hex, RESTARTED_HASH_PREFIX + requestMD5Hex + "_" + UUID.randomUUID().toString());
+		}
+
+		if (status == null || forceRestart || fileHandleExistsFileNoLongerInCloudStorage) {
 			StorageLocationSetting storageLocation = storageLocationDao.get(request.getStorageLocationId());
 			
 			// Since the status for this file does not exist, create it.
@@ -146,15 +151,10 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return status.getMultipartUploadStatus();
 	}
 
-	private boolean isNewUploadRequestRequired(boolean forceRestart, UserInfo user, String requestMD5Hex, CompositeMultipartUploadStatus status) {
-		// If the existing upload request is complete, we check if the underlying object has been deleted and start a new upload request if it has been
-		if (forceRestart || (status != null && MultipartUploadState.COMPLETED.equals(status.getMultipartUploadStatus().getState()) && !cloudDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType()).doesObjectExist(status.getBucket(), status.getKey()))) {
-			// When forcing a restart or if the underlying object key of a file handle does not exist we clear the old hash changing the cache key, the previous multipart upload will be garbage collected by a worker
-			multipartUploadDAO.setUploadStatusHash(user.getId(), requestMD5Hex, RESTARTED_HASH_PREFIX + requestMD5Hex + "_" + UUID.randomUUID().toString());
-			return true;
-		}
-
-		return false;
+	private boolean fileHandleExistsFileNoLongerInCloudStorage(UserInfo user, CompositeMultipartUploadStatus status) {
+		// If the existing upload request is complete, we check if the underlying object has been deleted
+		return (status != null && MultipartUploadState.COMPLETED.equals(status.getMultipartUploadStatus().getState())
+				&& !cloudDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType()).doesObjectExist(status.getBucket(), status.getKey()));
 	}
 
 	private void validateMultipartRequest(UserInfo user, MultipartRequest request) {
