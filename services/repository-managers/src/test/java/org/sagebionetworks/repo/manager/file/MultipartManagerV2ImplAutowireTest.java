@@ -559,17 +559,20 @@ public class MultipartManagerV2ImplAutowireTest {
 		String fileContent = "This is the content of the file";
 		Long storageLocationId = null;
 		boolean useContentTypeForParts = false;
+		boolean forceRestart = true;
 
-		S3FileHandle sourceFileHandle = (S3FileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts, true);
+		S3FileHandle sourceFileHandle = (S3FileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts, forceRestart);
 
 		s3Client.deleteObject(sourceFileHandle.getBucketName(), sourceFileHandle.getKey());
 
 		assertFalse(s3Client.doesObjectExist(sourceFileHandle.getBucketName(), sourceFileHandle.getKey()));
 
-		// Call under test
-		S3FileHandle resultFileHandle = (S3FileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts, false);
+		forceRestart = false;
 
-		assertNotEquals(sourceFileHandle, resultFileHandle);
+		// Call under test
+		S3FileHandle resultFileHandle = (S3FileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts, forceRestart);
+
+		assertNotEquals(sourceFileHandle.getId(), resultFileHandle.getId());
 	}
 
 	@Test
@@ -579,19 +582,22 @@ public class MultipartManagerV2ImplAutowireTest {
 		String fileName = "foo.txt";
 		String contentType = "plain/text";
 		String fileContent = "This is the content of the file";
-		Long storageLocationId = null;
+		Long storageLocationId = googleCloudStorageLocationSetting.getStorageLocationId();
 		boolean useContentTypeForParts = false;
+		boolean forceRestart = true;
 
-		GoogleCloudFileHandle sourceFileHandle = (GoogleCloudFileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts, true);
+		GoogleCloudFileHandle sourceFileHandle = (GoogleCloudFileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts, forceRestart);
 
 		googleCloudStorageClient.deleteObject(sourceFileHandle.getBucketName(), sourceFileHandle.getKey());
 
-		assertFalse(s3Client.doesObjectExist(sourceFileHandle.getBucketName(), sourceFileHandle.getKey()));
+		assertFalse(googleCloudStorageClient.doesObjectExist(sourceFileHandle.getBucketName(), sourceFileHandle.getKey()));
+
+		forceRestart = false;
 
 		// Call under test
-		GoogleCloudFileHandle resultFileHandle = (GoogleCloudFileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts, false);
+		GoogleCloudFileHandle resultFileHandle = (GoogleCloudFileHandle) doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts, forceRestart);
 
-		assertNotEquals(sourceFileHandle, resultFileHandle);
+		assertNotEquals(sourceFileHandle.getId(), resultFileHandle.getId());
 	}
 
 	@Test
@@ -603,8 +609,9 @@ public class MultipartManagerV2ImplAutowireTest {
 		byte[] fileDataBytes = fileContent.getBytes(StandardCharsets.UTF_8);
 		String contentMd5 = BinaryUtils.toHex(Md5Utils.computeMD5Hash(fileDataBytes));
 		Long partSizeBytes = PartUtils.MIN_PART_SIZE_BYTES;
+		boolean forceRestart = true;
 
-		MultipartUploadStatus sourceStatus = startUpload(fileName, contentType, contentMd5, Long.valueOf(fileDataBytes.length), storageLocationId, partSizeBytes, true);
+		MultipartUploadStatus sourceStatus = startUpload(fileName, contentType, contentMd5, Long.valueOf(fileDataBytes.length), storageLocationId, partSizeBytes, forceRestart);
 
 		assertEquals(MultipartUploadState.UPLOADING, sourceStatus.getState());
 
@@ -616,8 +623,10 @@ public class MultipartManagerV2ImplAutowireTest {
 		request.setPartSizeBytes(partSizeBytes);
 		request.setStorageLocationId(storageLocationId);
 
+		forceRestart = false;
+
 		// Call under test
-		MultipartUploadStatus resultStatus = multipartManagerV2.startOrResumeMultipartUpload(adminUserInfo, request, false);
+		MultipartUploadStatus resultStatus = multipartManagerV2.startOrResumeMultipartUpload(adminUserInfo, request, forceRestart);
 
 		assertEquals(sourceStatus.getUploadId(), resultStatus.getUploadId());
 	}

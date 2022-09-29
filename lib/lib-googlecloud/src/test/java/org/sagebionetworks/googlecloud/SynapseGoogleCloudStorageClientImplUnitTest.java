@@ -183,13 +183,25 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 	}
 
 	@Test
-	public void testDoesObjectExist() {
+	public void testDoesObjectExistExists() {
 		when(mockStorage.get(OBJECT_BLOB_ID)).thenReturn(mockBlob);
 
 		// Call under test
 		Boolean result = client.doesObjectExist(BUCKET_NAME, OBJECT_KEY);
 
 		assertEquals(true, result);
+
+		verify(mockStorage).get(OBJECT_BLOB_ID);
+	}
+
+	@Test
+	public void testDoesObjectExistNull() {
+		when(mockStorage.get(OBJECT_BLOB_ID)).thenReturn(null);
+
+		// Call under test
+		Boolean result = client.doesObjectExist(BUCKET_NAME, OBJECT_KEY);
+
+		assertEquals(false, result);
 
 		verify(mockStorage).get(OBJECT_BLOB_ID);
 	}

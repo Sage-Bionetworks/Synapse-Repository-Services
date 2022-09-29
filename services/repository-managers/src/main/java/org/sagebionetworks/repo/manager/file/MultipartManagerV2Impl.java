@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-import com.google.cloud.storage.Acl;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -114,35 +114,24 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			request.setStorageLocationId(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
 		}
 
-		// The MD5 is used to identify if this upload request already exists for this user.
-		String requestMD5Hex = MultipartRequestUtils.calculateMD5AsHex(request);
-
-		// Has an upload already been started for this user and request
-		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(user.getId(), requestMD5Hex);
-
-		boolean fileHandleExistsFileNoLongerInCloudStorage = fileHandleExistsFileNoLongerInCloudStorage(user, status);
-
-		if (forceRestart || fileHandleExistsFileNoLongerInCloudStorage) {
-			// When forcing a restart or if the underlying object key of a file handle does not exist we clear the old hash changing the cache key, the previous multipart upload will be garbage collected by a worker
-			multipartUploadDAO.setUploadStatusHash(user.getId(), requestMD5Hex, RESTARTED_HASH_PREFIX + requestMD5Hex + "_" + UUID.randomUUID().toString());
-		}
-
-		if (status == null || forceRestart || fileHandleExistsFileNoLongerInCloudStorage) {
+		CompositeMultipartUploadStatus status = getCachedUploadOrRestart(user, request, forceRestart).orElseGet(() -> {
 			StorageLocationSetting storageLocation = storageLocationDao.get(request.getStorageLocationId());
-			
+
 			// Since the status for this file does not exist, create it.
 			CreateMultipartRequest createRequest;
-			
+
+			String requestMD5Hex = MultipartRequestUtils.calculateMD5AsHex(request);
+
 			try {
 				createRequest = handler.initiateRequest(user, request, requestMD5Hex, storageLocation);
 			} catch (UnsupportedOperationException e) {
 				// Not all the source/targets are supported by the cloud providers. Rather than returning a 500 we turn around and return a 400
 				throw new IllegalArgumentException(e.getMessage(), e);
 			}
-			
-			status = multipartUploadDAO.createUploadStatus(createRequest);
-		}
-		
+
+			return multipartUploadDAO.createUploadStatus(createRequest);
+		});
+
 		// Calculate the parts state for this file.
 		String partsState = setupPartState(status);
 		
@@ -151,10 +140,25 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return status.getMultipartUploadStatus();
 	}
 
-	private boolean fileHandleExistsFileNoLongerInCloudStorage(UserInfo user, CompositeMultipartUploadStatus status) {
-		// If the existing upload request is complete, we check if the underlying object has been deleted
-		return (status != null && MultipartUploadState.COMPLETED.equals(status.getMultipartUploadStatus().getState())
-				&& !cloudDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType()).doesObjectExist(status.getBucket(), status.getKey()));
+	Optional<CompositeMultipartUploadStatus> getCachedUploadOrRestart(UserInfo user, MultipartRequest request, boolean forceRestart) {
+		// The MD5 is used to identify if this upload request already exists for this user.
+		String requestMD5Hex = MultipartRequestUtils.calculateMD5AsHex(request);
+
+		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(user.getId(), requestMD5Hex);
+
+		boolean isExistingUploadDataMissing = false;
+
+		if (status != null && MultipartUploadState.COMPLETED.equals(status.getMultipartUploadStatus().getState())) {
+			CloudServiceMultipartUploadDAO cloudDao = cloudDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType());
+			isExistingUploadDataMissing = !cloudDao.doesObjectExist(status.getBucket(), status.getKey());
+		}
+
+		if (forceRestart || isExistingUploadDataMissing) {
+			multipartUploadDAO.setUploadStatusHash(user.getId(), requestMD5Hex, RESTARTED_HASH_PREFIX + requestMD5Hex + "_" + UUID.randomUUID().toString());
+			status = null;
+		}
+
+		return Optional.ofNullable(status);
 	}
 
 	private void validateMultipartRequest(UserInfo user, MultipartRequest request) {
