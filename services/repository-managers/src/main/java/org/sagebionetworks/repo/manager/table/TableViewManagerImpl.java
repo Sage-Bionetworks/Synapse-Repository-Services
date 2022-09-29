@@ -467,6 +467,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			} while (!rowsIdsWithChanges.isEmpty());
 		} catch (Exception e) {
 			// failed.
+			log.error("Failed to apply changes to AVAILABLE view " + viewId, e);
 			tableManagerSupport.attemptToSetTableStatusToFailed(viewId, e);
 			throw e;
 		}
@@ -549,9 +550,9 @@ public class TableViewManagerImpl implements TableViewManager {
 			log.warn("InvalidStatusTokenException occurred for "+idAndVersion+", message will be returned to the queue");
 			throw new RecoverableMessageException(e);
 		} catch (Exception e) {
+			log.error(String.format("Set view: '%s' to PROCESSING_FAILED. ", idAndVersion.toString()), e);
 			// failed.
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
-			log.info(String.format("Set view: '%s' to PROCESSING_FAILED.", idAndVersion.toString()));
 			throw e;
 		}
 	}

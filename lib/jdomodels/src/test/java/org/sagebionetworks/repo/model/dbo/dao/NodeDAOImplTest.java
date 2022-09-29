@@ -81,7 +81,6 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
-import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaTestHelper;
@@ -157,10 +156,7 @@ public class NodeDAOImplTest {
 	
 	@Autowired
 	private MigratableTableDAO migratableTableDao;
-	
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	
+		
 	@Autowired
 	private JdbcTemplate migrationJdbcTemplate;
 
@@ -4912,6 +4908,24 @@ public class NodeDAOImplTest {
 		assertTrue(nodeDao.isSearchEnabled(KeyFactory.stringToKey(table.getId()), newVersion));
 		assertFalse(nodeDao.isSearchEnabled(KeyFactory.stringToKey(table.getId()), firstVersion));
 		
+	}
+
+	@Test
+	public void testIsSearchEnabledWithNonExisting() {
+		String result = assertThrows(NotFoundException.class, () -> {
+			nodeDao.isSearchEnabled(123L, 123L);
+		}).getMessage();
+		
+		assertEquals("Entity syn123.123 does not exist.", result);
+	}
+	
+	@Test
+	public void testIsSearchEnabledWithNonExistingAndNullVersion() {
+		String result = assertThrows(NotFoundException.class, () -> {
+			nodeDao.isSearchEnabled(123L, null);
+		}).getMessage();
+		
+		assertEquals("Entity syn123 does not exist.", result);
 	}
 	
 	@Test

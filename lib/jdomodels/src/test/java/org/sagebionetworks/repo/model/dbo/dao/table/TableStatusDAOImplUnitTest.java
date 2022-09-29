@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -78,7 +80,7 @@ public class TableStatusDAOImplUnitTest {
 	@Test
 	public void testPublishMessageWhenAttemptToSetTableStatusToFailed() {
 
-		doReturn(mockStatus).when(daoSpy).selectResetTokenForUpdate(any());
+		doReturn(Optional.of(mockStatus)).when(daoSpy).selectResetTokenForUpdate(any());
 		
 		TableStatusChangeEvent expectedEvent = new TableStatusChangeEvent()
 			.setObjectType(ObjectType.TABLE_STATUS_EVENT)
@@ -96,7 +98,7 @@ public class TableStatusDAOImplUnitTest {
 	public void testPublishMessageWhenAttemptToSetTableStatusToAvailable() {
 
 		when(mockStatus.getResetToken()).thenReturn("resetToken");
-		doReturn(mockStatus).when(daoSpy).selectResetTokenForUpdate(any());
+		doReturn(Optional.of(mockStatus)).when(daoSpy).selectResetTokenForUpdate(any());
 		
 		TableStatusChangeEvent expectedEvent = new TableStatusChangeEvent()
 			.setObjectType(ObjectType.TABLE_STATUS_EVENT)
