@@ -204,7 +204,9 @@ public class MultipartManagerV2ImplAutowireTest {
 			if (fileHandle instanceof S3FileHandle) {
 				s3Client.deleteObject(fileHandle.getBucketName(), fileHandle.getKey());
 			} else if (fileHandle instanceof GoogleCloudFileHandle) {
-				gcClient.deleteObject(fileHandle.getBucketName(), fileHandle.getKey());
+				if (gcClient.doesObjectExist(fileHandle.getBucketName(), fileHandle.getKey())) {
+					gcClient.deleteObject(fileHandle.getBucketName(), fileHandle.getKey());
+				}
 			}	
 		}
 		
