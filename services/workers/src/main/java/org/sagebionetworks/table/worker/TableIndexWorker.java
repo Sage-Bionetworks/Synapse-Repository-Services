@@ -15,14 +15,21 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class TableIndexWorker implements ChangeMessageDrivenRunner {
 
-	@Autowired
-	TableEntityManager tableEntityManager;
-	@Autowired
-	TableIndexConnectionFactory connectionFactory;
+	private final TableEntityManager tableEntityManager;
+	private final TableIndexConnectionFactory connectionFactory;
+	
+	public TableIndexWorker(TableEntityManager tableEntityManager, TableIndexConnectionFactory connectionFactory) {
+		super();
+		this.tableEntityManager = tableEntityManager;
+		this.connectionFactory = connectionFactory;
+	}
+
+
 
 	@Override
 	public void run(ProgressCallback progressCallback, ChangeMessage message)

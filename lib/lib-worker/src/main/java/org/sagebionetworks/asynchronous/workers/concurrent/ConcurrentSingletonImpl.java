@@ -149,4 +149,9 @@ public class ConcurrentSingletonImpl implements ConcurrentSingleton {
 		return new WorkerJob(future, callback);
 	}
 
+	@Override
+	public AmazonSQSClient getSqsClient() {
+		return this.amazonSQSClient;
+	}
+
 }

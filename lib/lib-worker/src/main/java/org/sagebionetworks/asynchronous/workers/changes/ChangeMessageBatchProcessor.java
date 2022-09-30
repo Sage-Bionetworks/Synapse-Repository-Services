@@ -9,6 +9,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
@@ -33,6 +34,10 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 
 	public ChangeMessageBatchProcessor(AmazonSQS awsSQSClient,
 			String queueName, ChangeMessageRunner runner) {
+		ValidateArgument.required(awsSQSClient, "awsSQSClient");
+		ValidateArgument.required(queueName, "queueName");
+		ValidateArgument.required(runner, "ChangeMessageRunner");
+		
 		this.awsSQSClient = awsSQSClient;
 		this.queueUrl = awsSQSClient.getQueueUrl(queueName).getQueueUrl();
 		this.runner = runner;

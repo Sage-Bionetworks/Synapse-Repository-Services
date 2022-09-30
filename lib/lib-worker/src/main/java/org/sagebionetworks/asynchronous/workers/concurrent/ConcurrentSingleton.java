@@ -8,6 +8,8 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 
+import com.amazonaws.services.sqs.AmazonSQSClient;
+
 /**
  * This singleton provides access to all dependencies that are shared by all
  * worker stack instances. Note: This singleton does not directly encapsulate
@@ -90,4 +92,5 @@ public interface ConcurrentSingleton {
 	List<WorkerJob> pollForMessagesAndStartJobs(String queueUrl, int maxNumberOfMessages,
 			int messageVisibilityTimeoutSec, MessageDrivenRunner worker);
 
+	AmazonSQSClient getSqsClient();
 }
