@@ -18,7 +18,7 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
  * worker. The stack will first attempt to acquire a global semaphore lock using
  * a combination of the provided semaphoreLockKey and semaphoreMaxLockCount. An
  * acquired lock will be held for the duration of the stacks's
- * {@link Runnable#run()} method.
+ * {@link ConcurrentWorkerStack#run()} method.
  * <p>
  * Once a semaphore lock is acquired, this instance will run an infinite loop
  * that will perform three main tasks:
@@ -33,7 +33,7 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
  * in the termination of the stack. However, if an {@link InterruptedException}
  * is encountered either from a {@link Future#get()} or
  * {@link Thread#sleep(long)}, the stack will enter a "shutdown" state. Once the
- * "shutdown" state is started, it will continue to run and monitor all Existing
+ * "shutdown" state is started, it will continue to run and monitor all existing
  * jobs, but it will no longer add new jobs. Once all of the existing jobs are
  * completed, shutdown will be completed and the loop will terminate.
  * <p>
@@ -61,7 +61,7 @@ public class ConcurrentWorkerStack implements Runnable {
 
 	// local state
 	private long nextRefreshTimeMS;
-	private State state;;
+	private StackState state;;
 	private ConcurrentProgressCallback lockCallback;
 	private List<WorkerJob> runningJobs;
 
@@ -72,13 +72,14 @@ public class ConcurrentWorkerStack implements Runnable {
 		ValidateArgument.required(singleton, "singleton");
 		ValidateArgument.required(semaphoreLockKey, "semaphoreLockKey");
 		ValidateArgument.required(semaphoreMaxLockCount, "semaphoreMaxLockCount");
+		ValidateArgument.requirement(semaphoreMaxLockCount >= 1, "semaphoreMaxLockCount must be greater than or equals to 1.");
 		ValidateArgument.required(semaphoreLockAndMessageVisibilityTimeoutSec,
 				"semaphoreLockAndMessageVisibilityTimeoutSec");
 		ValidateArgument.requirement(semaphoreLockAndMessageVisibilityTimeoutSec >= 30,
 				"semaphoreLockAndMessageVisibilityTimeoutSec must be greater than or equal to 30 seconds.");
 		ValidateArgument.required(maxThreadsPerMachine, "maxThreadsPerMachine");
 		ValidateArgument.requirement(maxThreadsPerMachine >= 1,
-				"maxThreadsPerMachine must be greater than or equal to one.");
+				"maxThreadsPerMachine must be greater than or equal to 1.");
 		ValidateArgument.required(worker, "worker");
 		ValidateArgument.required(queueName, "queueName");
 
@@ -131,7 +132,7 @@ public class ConcurrentWorkerStack implements Runnable {
 	 * Reset all state.
 	 */
 	void resetAllState() {
-		state = State.CONTINUE;
+		state = StackState.CONTINUE;
 		runningJobs = new ArrayList<>(semaphoreMaxLockCount);
 		lockCallback = new ConcurrentProgressCallback(semaphoreLockAndMessageVisibilityTimeoutSec);
 		resetNextRefreshTimeMS();
@@ -144,7 +145,7 @@ public class ConcurrentWorkerStack implements Runnable {
 	 */
 	void startShutdown() {
 		log.info("Interrupted. Will shutdown after all existing jobs finish running.");
-		state = State.SHUT_DOWN;
+		state = StackState.SHUT_DOWN;
 	}
 
 	/**
@@ -152,7 +153,7 @@ public class ConcurrentWorkerStack implements Runnable {
 	 * 
 	 */
 	boolean canProcessMoreMessages() {
-		if (State.SHUT_DOWN.equals(state)) {
+		if (StackState.SHUT_DOWN.equals(state)) {
 			return false;
 		}
 		if (canRunInReadOnly) {
@@ -174,10 +175,10 @@ public class ConcurrentWorkerStack implements Runnable {
 	 * @return True if runningJobs.size > 1 || State.RUNNING.equals(state)
 	 */
 	boolean shouldContinueRunning() {
-		if (runningJobs.size() > 1) {
+		if (!runningJobs.isEmpty()) {
 			return true;
 		}
-		return State.CONTINUE.equals(state);
+		return StackState.CONTINUE.equals(state);
 	}
 
 	/**
@@ -221,9 +222,10 @@ public class ConcurrentWorkerStack implements Runnable {
 		}
 
 		runningJobs.addAll(singleton.pollForMessagesAndStartJobs(queueUrl, maxNumberOfMessagesToRecieve,
-				maxNumberOfMessagesToRecieve, worker));
-
+				semaphoreLockAndMessageVisibilityTimeoutSec, worker));
 	}
+	
+	
 
 	/**
 	 * If now() >= nextRefreshTimeMS, then trigger the refresh of all
@@ -238,12 +240,32 @@ public class ConcurrentWorkerStack implements Runnable {
 			resetNextRefreshTimeMS();
 		}
 	}
+	
+	ConcurrentProgressCallback getLockCallback() {
+		return this.lockCallback;
+	}
+	
+	StackState getState() {
+		return state;
+	}
+	
+	List<WorkerJob> getRunningJobs(){
+		return runningJobs;
+	}
+	
+	long getNextRefreshTimeMS() {
+		return this.nextRefreshTimeMS;
+	}
+	
+	long getLockRefreshFrequencyMS() {
+		return lockRefreshFrequencyMS;
+	}
 
 	/**
 	 * Possible states for this stack.
 	 *
 	 */
-	static enum State {
+	static enum StackState {
 		CONTINUE, SHUT_DOWN
 	}
 
@@ -264,6 +286,7 @@ public class ConcurrentWorkerStack implements Runnable {
 		private Integer semaphoreMaxLockCount;
 		private Integer semaphoreLockAndMessageVisibilityTimeoutSec;
 		private Integer maxThreadsPerMachine;
+		private String queueName;
 		private MessageDrivenRunner worker;
 
 		/**
@@ -353,10 +376,20 @@ public class ConcurrentWorkerStack implements Runnable {
 			this.worker = worker;
 			return this;
 		}
+		
+		/**
+		 * The full name of the SQS queue that will provide messages for this worker stack.
+		 * @param queueName
+		 * @return
+		 */
+		public Builder withQueueName(String queueName) {
+			this.queueName = queueName;
+			return this;
+		}
 
 		public ConcurrentWorkerStack build() {
 			return new ConcurrentWorkerStack(singleton, canRunInReadOnly, semaphoreLockKey, semaphoreMaxLockCount,
-					semaphoreLockAndMessageVisibilityTimeoutSec, maxThreadsPerMachine, worker, semaphoreLockKey);
+					semaphoreLockAndMessageVisibilityTimeoutSec, maxThreadsPerMachine, worker, queueName);
 		}
 	}
 

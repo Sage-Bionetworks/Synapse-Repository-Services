@@ -1,5 +1,6 @@
 package org.sagebionetworks.asynchronous.workers.concurrent;
 
+import java.util.Objects;
 import java.util.concurrent.Future;
 
 import org.sagebionetworks.common.util.progress.ProgressListener;
@@ -35,6 +36,23 @@ public class WorkerJob {
 	 */
 	public ProgressListener getListener() {
 		return listener;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(future, listener);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof WorkerJob)) {
+			return false;
+		}
+		WorkerJob other = (WorkerJob) obj;
+		return Objects.equals(future, other.future) && Objects.equals(listener, other.listener);
 	}
 
 }
