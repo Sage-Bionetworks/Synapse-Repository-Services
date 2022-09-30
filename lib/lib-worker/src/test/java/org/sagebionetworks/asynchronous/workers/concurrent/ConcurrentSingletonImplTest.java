@@ -13,6 +13,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -153,6 +154,17 @@ public class ConcurrentSingletonImplTest {
 		verify(mockCountingSemaphore).refreshLockTimeout(lockKey, token, lockTimeoutSec);
 		verify(mockRunner).run();
 		verify(mockCountingSemaphore).releaseLock(lockKey, token);
+	}
+	
+	@Test
+	public void testRunWithSemaphoreLockWithNullLock() {
+		String token = null;
+		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt())).thenReturn(token);
+		// call under test
+		singleton.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
+
+		verify(mockCountingSemaphore).attemptToAcquireLock(lockKey, lockTimeoutSec, maxLockCount);
+		verifyNoMoreInteractions(mockCountingSemaphore);
 	}
 
 	@Test

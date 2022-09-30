@@ -188,8 +188,6 @@ public class ConcurrentWorkerStackTest {
 
 	@Test
 	public void testRunWithInterruptSleep() throws InterruptedException {
-		canRunInReadOnly = false;
-		when(mockSingleton.isStackAvailableForWrite()).thenReturn(true);
 
 		doAnswer((InvocationOnMock i) -> {
 			((Runnable) i.getArgument(4)).run();
@@ -201,6 +199,7 @@ public class ConcurrentWorkerStackTest {
 
 		ConcurrentWorkerStack stack = Mockito.spy(createStack());
 
+		doReturn(true).when(stack).canProcessMoreMessages();
 		doNothing().when(stack).resetNextRefreshTimeMS();
 		doNothing().when(stack).checkRunningJobs();
 		doNothing().when(stack).attemptToAddMoreWorkers();
@@ -208,13 +207,26 @@ public class ConcurrentWorkerStackTest {
 		// call under test
 		stack.run();
 
-		verify(mockSingleton).isStackAvailableForWrite();
+		verify(stack).canProcessMoreMessages();
 		verify(mockSingleton).runWithSemaphoreLock(eq(semaphoreLockKey),
 				eq(semaphoreLockAndMessageVisibilityTimeoutSec), eq(semaphoreMaxLockCount), any(), any());
 		verify(mockSingleton, times(5)).sleep(1000L);
 		verify(stack, times(5)).refreshLocksIfNeeded();
 		verify(stack, times(5)).checkRunningJobs();
 		verify(stack, times(5)).attemptToAddMoreWorkers();
+	}
+
+	@Test
+	public void testRunWithCannotProcessMoreMessages() throws InterruptedException {
+		ConcurrentWorkerStack stack = Mockito.spy(createStack());
+
+		doReturn(false).when(stack).canProcessMoreMessages();
+
+		// call under test
+		stack.run();
+
+		verify(stack).canProcessMoreMessages();
+		verify(mockSingleton, never()).runWithSemaphoreLock(any(), anyInt(), anyInt(), any(), any());
 	}
 
 	@Test
@@ -624,7 +636,7 @@ public class ConcurrentWorkerStackTest {
 				semaphoreLockAndMessageVisibilityTimeoutSec, mockWorker);
 
 	}
-	
+
 	@Test
 	public void testAttemptToAddMoreWorkersWithMaxThreadEqualMaxSqsMessagesPerRequest() {
 		maxThreadsPerMachine = 10;
@@ -640,8 +652,7 @@ public class ConcurrentWorkerStackTest {
 		doReturn(true).when(stack).canProcessMoreMessages();
 
 		// three will get added
-		when(mockSingleton.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any()))
-				.thenReturn(allJobs);
+		when(mockSingleton.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any())).thenReturn(allJobs);
 
 		// call under test
 		stack.attemptToAddMoreWorkers();
@@ -654,7 +665,7 @@ public class ConcurrentWorkerStackTest {
 				semaphoreLockAndMessageVisibilityTimeoutSec, mockWorker);
 
 	}
-	
+
 	@Test
 	public void testAttemptToAddMoreWorkersWithMaxThreadExceedsMaxSqsMessagesPerRequest() {
 		maxThreadsPerMachine = 11;
@@ -670,8 +681,7 @@ public class ConcurrentWorkerStackTest {
 		doReturn(true).when(stack).canProcessMoreMessages();
 
 		// three will get added
-		when(mockSingleton.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any()))
-				.thenReturn(allJobs);
+		when(mockSingleton.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any())).thenReturn(allJobs);
 
 		// call under test
 		stack.attemptToAddMoreWorkers();
@@ -692,12 +702,11 @@ public class ConcurrentWorkerStackTest {
 		ConcurrentWorkerStack stack = Mockito.spy(createStack());
 		stack.resetAllState();
 
-
 		List<WorkerJob> allJobs = List.of(new WorkerJob(futureOne, mockProgressListenerOne),
 				new WorkerJob(futureTwo, mockProgressListenerTwo),
 				new WorkerJob(futureThree, mockProgressListenerThree),
 				new WorkerJob(futureFour, mockProgressListenerFour));
-		
+
 		stack.getRunningJobs().addAll(allJobs);
 
 		doReturn(true).when(stack).canProcessMoreMessages();
@@ -709,7 +718,7 @@ public class ConcurrentWorkerStackTest {
 		assertEquals(allJobs, stack.getRunningJobs());
 		verify(mockSingleton, never()).pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any());
 	}
-	
+
 	@Test
 	public void testAttemptToAddMoreWorkersWithCannotProcessMoreMessages() {
 		maxThreadsPerMachine = 4;
@@ -721,7 +730,7 @@ public class ConcurrentWorkerStackTest {
 				new WorkerJob(futureTwo, mockProgressListenerTwo),
 				new WorkerJob(futureThree, mockProgressListenerThree),
 				new WorkerJob(futureFour, mockProgressListenerFour));
-		
+
 		stack.getRunningJobs().addAll(allJobs);
 
 		doReturn(false).when(stack).canProcessMoreMessages();
