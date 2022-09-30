@@ -458,7 +458,6 @@ public class MultipartManagerV2ImplTest {
 	@Test
 	public void testGetCachedUploadOrRestartNewUpload() {
 		boolean forceRestart = false;
-		// Mimic a new upload
 		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
 
 		// Call under test
@@ -470,7 +469,6 @@ public class MultipartManagerV2ImplTest {
 	@Test
 	public void testGetCachedUploadOrRestartComplete() {
 		boolean forceRestart = false;
-		// Mimic a new upload
 		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(mockCompositeStatus);
 
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
@@ -487,9 +485,7 @@ public class MultipartManagerV2ImplTest {
 	@Test
 	public void testGetCachedUploadOrRestartForceRestart() {
 		boolean forceRestart = true;
-		// Mimic a new upload
 		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(mockCompositeStatus);
-
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
 		when(mockStatus.getState()).thenReturn(MultipartUploadState.COMPLETED);
 		when(mockCloudDaoProvider.getCloudServiceMultipartUploadDao(any())).thenReturn(mockCloudDao);
@@ -506,9 +502,7 @@ public class MultipartManagerV2ImplTest {
 	@Test
 	public void testGetCachedUploadOrRestartObjectDeleted() {
 		boolean forceRestart = false;
-		// Mimic a new upload
 		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(mockCompositeStatus);
-
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
 		when(mockStatus.getState()).thenReturn(MultipartUploadState.COMPLETED);
 		when(mockCloudDaoProvider.getCloudServiceMultipartUploadDao(any())).thenReturn(mockCloudDao);
