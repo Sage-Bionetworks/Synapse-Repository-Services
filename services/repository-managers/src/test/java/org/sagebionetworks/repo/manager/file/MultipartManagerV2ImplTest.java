@@ -25,6 +25,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -452,6 +453,73 @@ public class MultipartManagerV2ImplTest {
 		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockHandler).initiateRequest(user, mockRequest, requestHash, mockStorageSettings);
 		verify(mockMultipartUploadDAO, never()).createUploadStatus(mockCreateMultipartRequest);
+	}
+
+	@Test
+	public void testGetCachedUploadOrRestartNewUpload() {
+		boolean forceRestart = false;
+		// Mimic a new upload
+		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
+
+		// Call under test
+		Optional<CompositeMultipartUploadStatus> status = manager.getCachedUploadOrRestart(user, mockRequest, forceRestart);
+
+		assertTrue(status.isEmpty());
+	}
+
+	@Test
+	public void testGetCachedUploadOrRestartComplete() {
+		boolean forceRestart = false;
+		// Mimic a new upload
+		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(mockCompositeStatus);
+
+		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
+		when(mockStatus.getState()).thenReturn(MultipartUploadState.COMPLETED);
+		when(mockCloudDaoProvider.getCloudServiceMultipartUploadDao(any())).thenReturn(mockCloudDao);
+		when(mockCloudDao.doesObjectExist(any(), any())).thenReturn(true);
+
+		// Call under test
+		Optional<CompositeMultipartUploadStatus> status = manager.getCachedUploadOrRestart(user, mockRequest, forceRestart);
+
+		assertEquals(mockCompositeStatus, status.get());
+	}
+
+	@Test
+	public void testGetCachedUploadOrRestartForceRestart() {
+		boolean forceRestart = true;
+		// Mimic a new upload
+		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(mockCompositeStatus);
+
+		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
+		when(mockStatus.getState()).thenReturn(MultipartUploadState.COMPLETED);
+		when(mockCloudDaoProvider.getCloudServiceMultipartUploadDao(any())).thenReturn(mockCloudDao);
+		when(mockCloudDao.doesObjectExist(any(), any())).thenReturn(true);
+
+		// Call under test
+		Optional<CompositeMultipartUploadStatus> status = manager.getCachedUploadOrRestart(user, mockRequest, forceRestart);
+
+		assertTrue(status.isEmpty());
+
+		verify(mockMultipartUploadDAO).setUploadStatusHash(anyLong(), any(), any());
+	}
+
+	@Test
+	public void testGetCachedUploadOrRestartObjectDeleted() {
+		boolean forceRestart = false;
+		// Mimic a new upload
+		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(mockCompositeStatus);
+
+		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
+		when(mockStatus.getState()).thenReturn(MultipartUploadState.COMPLETED);
+		when(mockCloudDaoProvider.getCloudServiceMultipartUploadDao(any())).thenReturn(mockCloudDao);
+		when(mockCloudDao.doesObjectExist(any(), any())).thenReturn(false);
+
+		// Call under test
+		Optional<CompositeMultipartUploadStatus> status = manager.getCachedUploadOrRestart(user, mockRequest, forceRestart);
+
+		assertTrue(status.isEmpty());
+
+		verify(mockMultipartUploadDAO).setUploadStatusHash(anyLong(), any(), any());
 	}
 
 	@Test
