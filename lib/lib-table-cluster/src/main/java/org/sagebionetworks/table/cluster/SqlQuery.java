@@ -1,11 +1,5 @@
 package org.sagebionetworks.table.cluster;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
@@ -25,6 +19,12 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
+
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Represents a SQL query for a table.
@@ -114,6 +114,11 @@ public class SqlQuery {
 	private final SqlContext sqlContext;
 
 	/**
+	 * The combined sql is, basic input sql combined with requested filters.
+	 */
+	private final String combinedSQL;
+
+	/**
 	 * @param tableId
 	 * @param sql
 	 * @param columnNameToModelMap
@@ -180,7 +185,7 @@ public class SqlQuery {
 			SelectList expandedSelectList = tableAndColumnMapper.buildSelectAllColumns();
 			this.model.getSelectList().replaceElement(expandedSelectList);
 		}
-		
+
 		this.schemaOfSelect = SQLTranslatorUtils.getSchemaOfSelect(this.model.getSelectList(), tableAndColumnMapper);
 
 		//Append additionalFilters onto the WHERE clause
@@ -219,6 +224,8 @@ public class SqlQuery {
 		}
 		SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(),
 				indexDescription.getColumnNamesToAddToSelect(sqlContext, this.includeEntityEtag, this.isAggregatedResult));
+
+		this.combinedSQL = transformedModel.toSql();
 
 		SQLTranslatorUtils.translateModel(transformedModel, parameters, userId, tableAndColumnMapper);
 		this.outputSQL = transformedModel.toSql();		
@@ -410,6 +417,14 @@ public class SqlQuery {
 	
 	public SqlContext getSqlContext() {
 		return this.sqlContext;
+	}
+
+	/**
+	 * Get the combined sql
+	 * @return
+	 */
+	public String getCombinedSQL(){
+		return this.combinedSQL;
 	}
 	
 }

@@ -257,11 +257,18 @@ public class TableStatusDAOImplTest {
 	}
 	
 	@Test
-	public void testattemptToSetTableStatusToFailedNotFound() throws NotFoundException{
-		assertThrows(NotFoundException.class, ()->{
-			// Not make available
-			tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, "error", "error details");
-		});
+	public void testattemptToSetTableStatusToFailedNotFound() {
+		// Call under test
+		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, "error", "error details");
+		// the state should have been inserted
+		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
+		assertNotNull(status);
+		assertEquals("123", status.getTableId());
+		assertEquals(TableState.PROCESSING_FAILED, status.getState());
+		assertNotNull(status.getTotalTimeMS());
+		assertEquals("error", status.getErrorMessage());
+		assertEquals("error details", status.getErrorDetails());
+		assertEquals(null, status.getLastTableChangeEtag());
 	}
 	
 	/**
