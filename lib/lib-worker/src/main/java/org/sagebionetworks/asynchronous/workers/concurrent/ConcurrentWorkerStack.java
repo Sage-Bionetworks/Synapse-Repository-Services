@@ -64,6 +64,18 @@ public class ConcurrentWorkerStack implements Runnable {
 	private StackState state;;
 	private ConcurrentProgressCallback lockCallback;
 	private List<WorkerJob> runningJobs;
+	
+	ConcurrentWorkerStack(){
+		singleton = null;
+		canRunInReadOnly = false;
+		semaphoreLockKey = null;
+		semaphoreMaxLockCount = -1;
+		semaphoreLockAndMessageVisibilityTimeoutSec = -1;
+		maxThreadsPerMachine = -1;
+		worker = null;
+		lockRefreshFrequencyMS = -1;
+		queueUrl = null;
+	};
 
 	private ConcurrentWorkerStack(ConcurrentSingleton singleton, Boolean canRunInReadOnly, String semaphoreLockKey,
 			Integer semaphoreMaxLockCount, Integer semaphoreLockAndMessageVisibilityTimeoutSec,

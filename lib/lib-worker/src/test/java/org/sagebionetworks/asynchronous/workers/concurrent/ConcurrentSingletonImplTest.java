@@ -233,7 +233,7 @@ public class ConcurrentSingletonImplTest {
 		job.getListener().progressMade();
 		verify(mockAmazonSQSClient, times(1)).changeMessageVisibility(any());
 		verify(mockAmazonSQSClient, times(1)).changeMessageVisibility(new ChangeMessageVisibilityRequest()
-				.withQueueUrl(queueUrl).withQueueUrl(receiptHandle).withVisibilityTimeout(lockTimeoutSec));
+				.withQueueUrl(queueUrl).withReceiptHandle(receiptHandle).withVisibilityTimeout(lockTimeoutSec));
 
 		verify(mockWorker).run((ProgressCallback) job.getListener(), mockMessage);
 		verify(mockAmazonSQSClient)
@@ -256,10 +256,10 @@ public class ConcurrentSingletonImplTest {
 		job.getListener().progressMade();
 		verify(mockAmazonSQSClient, times(2)).changeMessageVisibility(any());
 		verify(mockAmazonSQSClient, times(1)).changeMessageVisibility(new ChangeMessageVisibilityRequest()
-				.withQueueUrl(queueUrl).withQueueUrl(receiptHandle).withVisibilityTimeout(lockTimeoutSec));
+				.withQueueUrl(queueUrl).withReceiptHandle(receiptHandle).withVisibilityTimeout(lockTimeoutSec));
 		// second call to put the message back in the queue in 5 seconds.
 		verify(mockAmazonSQSClient, times(1)).changeMessageVisibility(new ChangeMessageVisibilityRequest()
-				.withQueueUrl(queueUrl).withQueueUrl(receiptHandle).withVisibilityTimeout(5));
+				.withQueueUrl(queueUrl).withReceiptHandle(receiptHandle).withVisibilityTimeout(5));
 
 		assertNotNull(job.getFuture());
 		assertTrue(job.getFuture().isDone());
