@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.MaterializedView;
-import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -179,8 +178,15 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			List<IdAndVersion> dependentTables = sqlQuery.getTableIds();
 			for (IdAndVersion dependent : dependentTables) {
 				TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(dependent);
-				if (!TableState.AVAILABLE.equals(status.getState())) {
+				switch (status.getState()) {
+				case AVAILABLE:
+					break;
+				case PROCESSING:
 					throw new RecoverableMessageException();
+				case PROCESSING_FAILED:
+					throw new IllegalArgumentException("Cannot build materialized view " + idAndVersion + ", the dependent table " + dependent + " failed to build");
+				default:
+					throw new IllegalStateException("Cannot build materialized view " + idAndVersion + ", unsupported state for dependent table " + dependent + ": " + status.getState());
 				}
 			}
 			IdAndVersion[] dependentArray = dependentTables.toArray(new IdAndVersion[dependentTables.size()]);
