@@ -126,7 +126,7 @@ public class ConcurrentSingletonImpl implements ConcurrentSingleton {
 		ConcurrentProgressCallback callback = new ConcurrentProgressCallback(messageVisibilityTimeoutSec);
 		callback.addProgressListener(() -> {
 			amazonSQSClient.changeMessageVisibility(new ChangeMessageVisibilityRequest().withQueueUrl(queueUrl)
-					.withQueueUrl(message.getReceiptHandle()).withVisibilityTimeout(messageVisibilityTimeoutSec));
+					.withReceiptHandle(message.getReceiptHandle()).withVisibilityTimeout(messageVisibilityTimeoutSec));
 		});
 		Future<Void> future = executorService.submit(() -> {
 			boolean deleteMessage = true;
@@ -135,7 +135,7 @@ public class ConcurrentSingletonImpl implements ConcurrentSingleton {
 			} catch (RecoverableMessageException e) {
 				deleteMessage = false;
 				amazonSQSClient.changeMessageVisibility(new ChangeMessageVisibilityRequest().withQueueUrl(queueUrl)
-						.withQueueUrl(message.getReceiptHandle()).withVisibilityTimeout(5));
+						.withReceiptHandle(message.getReceiptHandle()).withVisibilityTimeout(5));
 			} finally {
 				if (deleteMessage) {
 					amazonSQSClient.deleteMessage(new DeleteMessageRequest().withQueueUrl(queueUrl)
