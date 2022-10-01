@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.springframework.stereotype.Repository;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityRequest;
@@ -20,7 +19,6 @@ import com.amazonaws.services.sqs.model.DeleteMessageRequest;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 
-@Repository
 public class ConcurrentSingletonImpl implements ConcurrentSingleton {
 
 	private final CountingSemaphore countingSemaphore;
@@ -147,6 +145,11 @@ public class ConcurrentSingletonImpl implements ConcurrentSingleton {
 			return null;
 		});
 		return new WorkerJob(future, callback);
+	}
+
+	@Override
+	public AmazonSQSClient getAmazonSQSClient() {
+		return amazonSQSClient;
 	}
 
 }

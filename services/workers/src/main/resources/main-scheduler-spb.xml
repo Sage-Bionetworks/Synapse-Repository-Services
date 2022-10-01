@@ -11,6 +11,8 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
 	<aop:aspectj-autoproxy />
+	
+
 
 	<import resource="classpath:worker-trace-profiler-spb.xml" />
 
@@ -76,6 +78,7 @@
     <import resource="classpath:materialized-view-workers-spb.xml" />
     <import resource="classpath:access-requirement-to-project-worker-spb.xml" />
    
+   	<bean id="concurrentStackManager" class="org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentSingletonImpl" />
 
 	<util:list id="workerTriggersList">
 		<!-- workers -->
