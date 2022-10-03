@@ -114,13 +114,19 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			request.setStorageLocationId(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
 		}
 
-		CompositeMultipartUploadStatus status = getCachedUploadOrRestart(user, request, forceRestart).orElseGet(() -> {
+		// The MD5 is used to identify if this upload request already exists for this user.
+		String requestMD5Hex = MultipartRequestUtils.calculateMD5AsHex(request);
+
+		Optional<CompositeMultipartUploadStatus> cachedStatus = forceRestart ? Optional.empty() : getCachedUpload(user, requestMD5Hex);
+
+		CompositeMultipartUploadStatus status = cachedStatus.orElseGet(() -> {
+			// When forcing a restart or if an existing upload is complete, we clear the old hash changing the cache key, the previous multipart upload will be garbage collected by a worker
+			multipartUploadDAO.setUploadStatusHash(user.getId(), requestMD5Hex, RESTARTED_HASH_PREFIX + requestMD5Hex + "_" + UUID.randomUUID().toString());
+
 			StorageLocationSetting storageLocation = storageLocationDao.get(request.getStorageLocationId());
 
 			// Since the status for this file does not exist, create it.
 			CreateMultipartRequest createRequest;
-
-			String requestMD5Hex = MultipartRequestUtils.calculateMD5AsHex(request);
 
 			try {
 				createRequest = handler.initiateRequest(user, request, requestMD5Hex, storageLocation);
@@ -140,22 +146,15 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return status.getMultipartUploadStatus();
 	}
 
-	Optional<CompositeMultipartUploadStatus> getCachedUploadOrRestart(UserInfo user, MultipartRequest request, boolean forceRestart) {
-		// The MD5 is used to identify if this upload request already exists for this user.
-		String requestMD5Hex = MultipartRequestUtils.calculateMD5AsHex(request);
-
+	Optional<CompositeMultipartUploadStatus> getCachedUpload(UserInfo user, String requestMD5Hex) {
 		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(user.getId(), requestMD5Hex);
-
-		boolean isExistingUploadDataMissing = false;
 
 		if (status != null && MultipartUploadState.COMPLETED.equals(status.getMultipartUploadStatus().getState())) {
 			CloudServiceMultipartUploadDAO cloudDao = cloudDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType());
-			isExistingUploadDataMissing = !cloudDao.doesObjectExist(status.getBucket(), status.getKey());
-		}
 
-		if (forceRestart || isExistingUploadDataMissing) {
-			multipartUploadDAO.setUploadStatusHash(user.getId(), requestMD5Hex, RESTARTED_HASH_PREFIX + requestMD5Hex + "_" + UUID.randomUUID().toString());
-			status = null;
+			if (!cloudDao.doesObjectExist(status.getBucket(), status.getKey())) {
+				status = null;
+			}
 		}
 
 		return Optional.ofNullable(status);

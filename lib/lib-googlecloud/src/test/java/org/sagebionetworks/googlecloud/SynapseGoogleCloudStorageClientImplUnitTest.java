@@ -183,7 +183,7 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 	}
 
 	@Test
-	public void testDoesObjectExistExists() {
+	public void testDoesObjectExistWithExisting() {
 		when(mockStorage.get(OBJECT_BLOB_ID)).thenReturn(mockBlob);
 
 		// Call under test
