@@ -752,6 +752,37 @@ public class MaterializedViewManagerImplTest {
 	}
 	
 	@Test
+	public void testCreateOrRebuildViewHoldingExclusiveLockWithMultipleDependenciesWithProcessingFailed() throws Exception {
+		idAndVersion = IdAndVersion.parse("syn123");
+
+		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any()))
+				.thenReturn(Optional.of("select * from syn456 join syn789"));
+		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema);
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE),
+				new TableStatus().setState(TableState.PROCESSING_FAILED));
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(SqlQuery.class));
+
+		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn456"),
+				IdAndVersion.parse("syn789") };
+
+		String result = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, idAndVersion);
+		}).getMessage();
+		
+		assertEquals("Cannot build materialized view syn123, the dependent table syn789 failed to build", result);
+		
+		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(SqlQuery.class));
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[0]);
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[1]);
+		verify(mockTableManagerSupport, never()).tryRunWithTableNonExclusiveLock(any(), any(), any(IdAndVersion.class));
+		verify(managerSpy, never()).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(any(), any());
+	}
+	
+	@Test
 	public void testCreateOrRebuildViewHoldingExclusiveLockWithNoDefiningSql() throws Exception {
 		
 		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.empty());

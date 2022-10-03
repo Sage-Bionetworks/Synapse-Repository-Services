@@ -2646,11 +2646,15 @@ public class TableWorkerIntegrationTest {
 				rowSet, mockProgressCallback);
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
 		
+		TableStatus status = waitForTableProcessing(tableId);
+		assertNotNull(status);
+		assertEquals(TableState.AVAILABLE, status.getState());
+		
 		// delete the table schema
 		tableEntityManager.setTableAsDeleted(tableId);
 		String localTableId = tableId;
 		// Get the table status
-		TableStatus status = waitForTableProcessing(localTableId);
+		status = waitForTableProcessing(localTableId);
 		assertNotNull(status);
 		assertEquals(TableState.AVAILABLE, status.getState());
 	}
