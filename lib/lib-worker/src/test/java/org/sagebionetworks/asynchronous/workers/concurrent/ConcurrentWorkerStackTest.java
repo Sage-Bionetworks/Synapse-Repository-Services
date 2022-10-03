@@ -37,7 +37,7 @@ import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 public class ConcurrentWorkerStackTest {
 
 	@Mock
-	private ConcurrentSingleton mockSingleton;
+	private ConcurrentManager mockSingleton;
 	@Mock
 	private MessageDrivenRunner mockWorker;
 	@Mock
@@ -187,36 +187,6 @@ public class ConcurrentWorkerStackTest {
 	}
 
 	@Test
-	public void testRunWithInterruptSleep() throws InterruptedException {
-
-		doAnswer((InvocationOnMock i) -> {
-			((Runnable) i.getArgument(4)).run();
-			return null;
-		}).when(mockSingleton).runWithSemaphoreLock(any(), anyInt(), anyInt(), any(), any());
-
-		doNothing().doNothing().doNothing().doNothing().doThrow(new InterruptedException()).when(mockSingleton)
-				.sleep(anyLong());
-
-		ConcurrentWorkerStack stack = Mockito.spy(createStack());
-
-		doReturn(true).when(stack).canProcessMoreMessages();
-		doNothing().when(stack).resetNextRefreshTimeMS();
-		doNothing().when(stack).checkRunningJobs();
-		doNothing().when(stack).attemptToAddMoreWorkers();
-
-		// call under test
-		stack.run();
-
-		verify(stack).canProcessMoreMessages();
-		verify(mockSingleton).runWithSemaphoreLock(eq(semaphoreLockKey),
-				eq(semaphoreLockAndMessageVisibilityTimeoutSec), eq(semaphoreMaxLockCount), any(), any());
-		verify(mockSingleton, times(5)).sleep(1000L);
-		verify(stack, times(5)).refreshLocksIfNeeded();
-		verify(stack, times(5)).checkRunningJobs();
-		verify(stack, times(5)).attemptToAddMoreWorkers();
-	}
-
-	@Test
 	public void testRunWithCannotProcessMoreMessages() throws InterruptedException {
 		ConcurrentWorkerStack stack = Mockito.spy(createStack());
 
@@ -230,7 +200,7 @@ public class ConcurrentWorkerStackTest {
 	}
 
 	@Test
-	public void testRunWithWithInterruptSleep() throws InterruptedException {
+	public void testRunWithInterruptSleep() throws InterruptedException {
 		canRunInReadOnly = true;
 		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
 
