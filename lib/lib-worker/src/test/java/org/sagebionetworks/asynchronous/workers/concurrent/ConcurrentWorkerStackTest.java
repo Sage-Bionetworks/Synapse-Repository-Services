@@ -37,7 +37,7 @@ import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 public class ConcurrentWorkerStackTest {
 
 	@Mock
-	private ConcurrentManager mockSingleton;
+	private ConcurrentManager mockManager;
 	@Mock
 	private MessageDrivenRunner mockWorker;
 	@Mock
@@ -77,7 +77,7 @@ public class ConcurrentWorkerStackTest {
 	}
 
 	ConcurrentWorkerStack createStack() {
-		return ConcurrentWorkerStack.builder().withSingleton(mockSingleton).withCanRunInReadOnly(canRunInReadOnly)
+		return ConcurrentWorkerStack.builder().withSingleton(mockManager).withCanRunInReadOnly(canRunInReadOnly)
 				.withSemaphoreLockKey(semaphoreLockKey).withSemaphoreMaxLockCount(semaphoreMaxLockCount)
 				.withSemaphoreLockAndMessageVisibilityTimeoutSec(semaphoreLockAndMessageVisibilityTimeoutSec)
 				.withMaxThreadsPerMachine(maxThreadsPerMachine).withWorker(mockWorker).withQueueName(queueName).build();
@@ -85,13 +85,13 @@ public class ConcurrentWorkerStackTest {
 
 	@Test
 	public void testBuildWithNullSingleton() {
-		mockSingleton = null;
+		mockManager = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			createStack();
 
 		}).getMessage();
-		assertEquals("singleton is required.", message);
+		assertEquals("manager is required.", message);
 	}
 
 	@Test
@@ -196,20 +196,20 @@ public class ConcurrentWorkerStackTest {
 		stack.run();
 
 		verify(stack).canProcessMoreMessages();
-		verify(mockSingleton, never()).runWithSemaphoreLock(any(), anyInt(), anyInt(), any(), any());
+		verify(mockManager, never()).runWithSemaphoreLock(any(), anyInt(), anyInt(), any(), any());
 	}
 
 	@Test
 	public void testRunWithInterruptSleep() throws InterruptedException {
 		canRunInReadOnly = true;
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 
 		doAnswer((InvocationOnMock i) -> {
 			((Runnable) i.getArgument(4)).run();
 			return null;
-		}).when(mockSingleton).runWithSemaphoreLock(any(), anyInt(), anyInt(), any(), any());
+		}).when(mockManager).runWithSemaphoreLock(any(), anyInt(), anyInt(), any(), any());
 
-		doNothing().doNothing().doNothing().doNothing().doThrow(new InterruptedException()).when(mockSingleton)
+		doNothing().doNothing().doNothing().doNothing().doThrow(new InterruptedException()).when(mockManager)
 				.sleep(anyLong());
 
 		ConcurrentWorkerStack stack = Mockito.spy(createStack());
@@ -224,10 +224,10 @@ public class ConcurrentWorkerStackTest {
 
 		verify(stack).resetAllState();
 		verify(stack).canProcessMoreMessages();
-		verify(mockSingleton).getSqsQueueUrl(queueName);
-		verify(mockSingleton).runWithSemaphoreLock(eq(semaphoreLockKey),
+		verify(mockManager).getSqsQueueUrl(queueName);
+		verify(mockManager).runWithSemaphoreLock(eq(semaphoreLockKey),
 				eq(semaphoreLockAndMessageVisibilityTimeoutSec), eq(semaphoreMaxLockCount), any(), any());
-		verify(mockSingleton, times(5)).sleep(1000L);
+		verify(mockManager, times(5)).sleep(1000L);
 		verify(stack, times(5)).refreshLocksIfNeeded();
 		verify(stack, times(5)).checkRunningJobs();
 		verify(stack, times(5)).attemptToAddMoreWorkers();
@@ -238,66 +238,66 @@ public class ConcurrentWorkerStackTest {
 	public void testCanProcessMoreMessagesWithNoRunInReadOnlyAndInReadOnly() throws InterruptedException {
 
 		canRunInReadOnly = false;
-		when(mockSingleton.isStackAvailableForWrite()).thenReturn(false);
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.isStackAvailableForWrite()).thenReturn(false);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 
 		ConcurrentWorkerStack stack = createStack();
 
 		// call under test
 		assertFalse(stack.canProcessMoreMessages());
-		verify(mockSingleton).getSqsQueueUrl(queueName);
-		verify(mockSingleton).isStackAvailableForWrite();
+		verify(mockManager).getSqsQueueUrl(queueName);
+		verify(mockManager).isStackAvailableForWrite();
 	}
 
 	@Test
 	public void testCanProcessMoreMessagesWithNoRunInReadOnlyAndInReadWrite() throws InterruptedException {
 		canRunInReadOnly = false;
-		when(mockSingleton.isStackAvailableForWrite()).thenReturn(true);
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.isStackAvailableForWrite()).thenReturn(true);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 
 		ConcurrentWorkerStack stack = createStack();
 
 		// call under test
 		assertTrue(stack.canProcessMoreMessages());
-		verify(mockSingleton).getSqsQueueUrl(queueName);
-		verify(mockSingleton).isStackAvailableForWrite();
+		verify(mockManager).getSqsQueueUrl(queueName);
+		verify(mockManager).isStackAvailableForWrite();
 	}
 
 	@Test
 	public void testCanProcessMoreMessagesWithCanunInReadOnly() throws InterruptedException {
 
 		canRunInReadOnly = true;
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 
 		ConcurrentWorkerStack stack = createStack();
 
 		// call under test
 		assertTrue(stack.canProcessMoreMessages());
-		verify(mockSingleton).getSqsQueueUrl(queueName);
-		verify(mockSingleton, never()).isStackAvailableForWrite();
+		verify(mockManager).getSqsQueueUrl(queueName);
+		verify(mockManager, never()).isStackAvailableForWrite();
 	}
 
 	@Test
 	public void testCanProcessMoreMessagesWithAfterShutdown() throws InterruptedException {
 		canRunInReadOnly = false;
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 
 		ConcurrentWorkerStack stack = createStack();
 
 		stack.startShutdown();
 		// call under test
 		assertFalse(stack.canProcessMoreMessages());
-		verify(mockSingleton).getSqsQueueUrl(queueName);
-		verify(mockSingleton, never()).isStackAvailableForWrite();
+		verify(mockManager).getSqsQueueUrl(queueName);
+		verify(mockManager, never()).isStackAvailableForWrite();
 	}
 
 	@Test
 	public void testResetNextRefreshTimeMS() {
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 
 		ConcurrentWorkerStack stack = createStack();
 
-		when(mockSingleton.getCurrentTimeMS()).thenReturn(101L);
+		when(mockManager.getCurrentTimeMS()).thenReturn(101L);
 
 		assertEquals((semaphoreLockAndMessageVisibilityTimeoutSec * 1000) / 3, stack.getLockRefreshFrequencyMS());
 
@@ -305,14 +305,14 @@ public class ConcurrentWorkerStackTest {
 		stack.resetNextRefreshTimeMS();
 
 		assertEquals(10000L + 101L, stack.getNextRefreshTimeMS());
-		verify(mockSingleton).getCurrentTimeMS();
+		verify(mockManager).getCurrentTimeMS();
 	}
 
 	@Test
 	public void testResetAllState() {
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 
-		when(mockSingleton.getCurrentTimeMS()).thenReturn(1L, 2L, 3L);
+		when(mockManager.getCurrentTimeMS()).thenReturn(1L, 2L, 3L);
 
 		ConcurrentWorkerStack stack = createStack();
 
@@ -331,15 +331,15 @@ public class ConcurrentWorkerStackTest {
 		assertFalse(oldCallback == stack.getLockCallback());
 		assertEquals(10000L + 2L, stack.getNextRefreshTimeMS());
 
-		verify(mockSingleton).getSqsQueueUrl(queueName);
-		verify(mockSingleton, times(2)).getCurrentTimeMS();
+		verify(mockManager).getSqsQueueUrl(queueName);
+		verify(mockManager, times(2)).getCurrentTimeMS();
 	}
 
 	@Test
 	public void testShouldContinueRunningWithRunningJobAndStateContinue() {
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 
-		when(mockSingleton.getCurrentTimeMS()).thenReturn(1L, 2L, 3L);
+		when(mockManager.getCurrentTimeMS()).thenReturn(1L, 2L, 3L);
 
 		ConcurrentWorkerStack stack = createStack();
 		stack.resetAllState();
@@ -351,9 +351,9 @@ public class ConcurrentWorkerStackTest {
 
 	@Test
 	public void testShouldContinueRunningWithRunningJobAndStateShutdown() {
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 
-		when(mockSingleton.getCurrentTimeMS()).thenReturn(1L, 2L, 3L);
+		when(mockManager.getCurrentTimeMS()).thenReturn(1L, 2L, 3L);
 
 		ConcurrentWorkerStack stack = createStack();
 		stack.resetAllState();
@@ -366,9 +366,9 @@ public class ConcurrentWorkerStackTest {
 
 	@Test
 	public void testShouldContinueRunningWithNoRunningJobAndStateShutdown() {
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 
-		when(mockSingleton.getCurrentTimeMS()).thenReturn(1L, 2L, 3L);
+		when(mockManager.getCurrentTimeMS()).thenReturn(1L, 2L, 3L);
 
 		ConcurrentWorkerStack stack = createStack();
 		stack.resetAllState();
@@ -381,9 +381,9 @@ public class ConcurrentWorkerStackTest {
 
 	@Test
 	public void testRefreshLocksIfNeeded() {
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 
-		when(mockSingleton.getCurrentTimeMS()).thenReturn(1L, 2L, 3L);
+		when(mockManager.getCurrentTimeMS()).thenReturn(1L, 2L, 3L);
 
 		ConcurrentWorkerStack stack = createStack();
 		stack.resetAllState();
@@ -401,40 +401,40 @@ public class ConcurrentWorkerStackTest {
 		verify(mockProgressListenerOne, never()).progressMade();
 		verify(mockProgressListenerTwo, never()).progressMade();
 		verify(mockProgressListenerThree, never()).progressMade();
-		verify(mockSingleton, times(3)).getCurrentTimeMS();
+		verify(mockManager, times(3)).getCurrentTimeMS();
 		assertEquals(10_002L, stack.getNextRefreshTimeMS());
 
-		reset(mockProgressListenerOne, mockProgressListenerTwo, mockProgressListenerThree, mockSingleton);
-		when(mockSingleton.getCurrentTimeMS()).thenReturn(10_002L, 10_003L);
+		reset(mockProgressListenerOne, mockProgressListenerTwo, mockProgressListenerThree, mockManager);
+		when(mockManager.getCurrentTimeMS()).thenReturn(10_002L, 10_003L);
 
 		// call under test
 		stack.refreshLocksIfNeeded();
 		verify(mockProgressListenerOne).progressMade();
 		verify(mockProgressListenerTwo).progressMade();
 		verify(mockProgressListenerThree).progressMade();
-		verify(mockSingleton, times(2)).getCurrentTimeMS();
+		verify(mockManager, times(2)).getCurrentTimeMS();
 		assertEquals(20_003L, stack.getNextRefreshTimeMS());
 
-		reset(mockProgressListenerOne, mockProgressListenerTwo, mockProgressListenerThree, mockSingleton);
-		when(mockSingleton.getCurrentTimeMS()).thenReturn(10_004L);
+		reset(mockProgressListenerOne, mockProgressListenerTwo, mockProgressListenerThree, mockManager);
+		when(mockManager.getCurrentTimeMS()).thenReturn(10_004L);
 
 		// call under test
 		stack.refreshLocksIfNeeded();
 		verify(mockProgressListenerOne, never()).progressMade();
 		verify(mockProgressListenerTwo, never()).progressMade();
 		verify(mockProgressListenerThree, never()).progressMade();
-		verify(mockSingleton, times(1)).getCurrentTimeMS();
+		verify(mockManager, times(1)).getCurrentTimeMS();
 		assertEquals(20_003L, stack.getNextRefreshTimeMS());
 
-		reset(mockProgressListenerOne, mockProgressListenerTwo, mockProgressListenerThree, mockSingleton);
-		when(mockSingleton.getCurrentTimeMS()).thenReturn(20_008L, 20_009L);
+		reset(mockProgressListenerOne, mockProgressListenerTwo, mockProgressListenerThree, mockManager);
+		when(mockManager.getCurrentTimeMS()).thenReturn(20_008L, 20_009L);
 
 		// call under test
 		stack.refreshLocksIfNeeded();
 		verify(mockProgressListenerOne).progressMade();
 		verify(mockProgressListenerTwo).progressMade();
 		verify(mockProgressListenerThree).progressMade();
-		verify(mockSingleton, times(2)).getCurrentTimeMS();
+		verify(mockManager, times(2)).getCurrentTimeMS();
 		assertEquals(30_009L, stack.getNextRefreshTimeMS());
 	}
 
@@ -551,7 +551,7 @@ public class ConcurrentWorkerStackTest {
 	@Test
 	public void testAttemptToAddMoreWorkers() {
 		maxThreadsPerMachine = 8;
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 		ConcurrentWorkerStack stack = Mockito.spy(createStack());
 		stack.resetAllState();
 
@@ -561,16 +561,16 @@ public class ConcurrentWorkerStackTest {
 				new WorkerJob(futureTwo, mockProgressListenerTwo),
 				new WorkerJob(futureThree, mockProgressListenerThree));
 
-		when(mockSingleton.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any())).thenReturn(jobs);
+		when(mockManager.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any())).thenReturn(jobs);
 
 		// call under test
 		stack.attemptToAddMoreWorkers();
 
-		verify(mockSingleton).getSqsQueueUrl(queueName);
+		verify(mockManager).getSqsQueueUrl(queueName);
 		assertEquals(jobs, stack.getRunningJobs());
 		verify(stack).canProcessMoreMessages();
 		int maxNumberOfMessages = maxThreadsPerMachine;
-		verify(mockSingleton).pollForMessagesAndStartJobs(queueUrl, maxNumberOfMessages,
+		verify(mockManager).pollForMessagesAndStartJobs(queueUrl, maxNumberOfMessages,
 				semaphoreLockAndMessageVisibilityTimeoutSec, mockWorker);
 
 	}
@@ -578,7 +578,7 @@ public class ConcurrentWorkerStackTest {
 	@Test
 	public void testAttemptToAddMoreWorkersWithRuningJobs() {
 		maxThreadsPerMachine = 4;
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 		ConcurrentWorkerStack stack = Mockito.spy(createStack());
 		stack.resetAllState();
 
@@ -592,17 +592,17 @@ public class ConcurrentWorkerStackTest {
 		stack.getRunningJobs().add(allJobs.get(0));
 
 		// three will get added
-		when(mockSingleton.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any()))
+		when(mockManager.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any()))
 				.thenReturn(List.of(allJobs.get(1), allJobs.get(2), allJobs.get(3)));
 
 		// call under test
 		stack.attemptToAddMoreWorkers();
 
-		verify(mockSingleton).getSqsQueueUrl(queueName);
+		verify(mockManager).getSqsQueueUrl(queueName);
 		assertEquals(allJobs, stack.getRunningJobs());
 		verify(stack).canProcessMoreMessages();
 		int maxNumberOfMessages = 3;
-		verify(mockSingleton).pollForMessagesAndStartJobs(queueUrl, maxNumberOfMessages,
+		verify(mockManager).pollForMessagesAndStartJobs(queueUrl, maxNumberOfMessages,
 				semaphoreLockAndMessageVisibilityTimeoutSec, mockWorker);
 
 	}
@@ -610,7 +610,7 @@ public class ConcurrentWorkerStackTest {
 	@Test
 	public void testAttemptToAddMoreWorkersWithMaxThreadEqualMaxSqsMessagesPerRequest() {
 		maxThreadsPerMachine = 10;
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 		ConcurrentWorkerStack stack = Mockito.spy(createStack());
 		stack.resetAllState();
 
@@ -622,16 +622,16 @@ public class ConcurrentWorkerStackTest {
 		doReturn(true).when(stack).canProcessMoreMessages();
 
 		// three will get added
-		when(mockSingleton.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any())).thenReturn(allJobs);
+		when(mockManager.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any())).thenReturn(allJobs);
 
 		// call under test
 		stack.attemptToAddMoreWorkers();
 
-		verify(mockSingleton).getSqsQueueUrl(queueName);
+		verify(mockManager).getSqsQueueUrl(queueName);
 		assertEquals(allJobs, stack.getRunningJobs());
 		verify(stack).canProcessMoreMessages();
 		int maxNumberOfMessages = 10;
-		verify(mockSingleton).pollForMessagesAndStartJobs(queueUrl, maxNumberOfMessages,
+		verify(mockManager).pollForMessagesAndStartJobs(queueUrl, maxNumberOfMessages,
 				semaphoreLockAndMessageVisibilityTimeoutSec, mockWorker);
 
 	}
@@ -639,7 +639,7 @@ public class ConcurrentWorkerStackTest {
 	@Test
 	public void testAttemptToAddMoreWorkersWithMaxThreadExceedsMaxSqsMessagesPerRequest() {
 		maxThreadsPerMachine = 11;
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 		ConcurrentWorkerStack stack = Mockito.spy(createStack());
 		stack.resetAllState();
 
@@ -651,16 +651,16 @@ public class ConcurrentWorkerStackTest {
 		doReturn(true).when(stack).canProcessMoreMessages();
 
 		// three will get added
-		when(mockSingleton.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any())).thenReturn(allJobs);
+		when(mockManager.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any())).thenReturn(allJobs);
 
 		// call under test
 		stack.attemptToAddMoreWorkers();
 
-		verify(mockSingleton).getSqsQueueUrl(queueName);
+		verify(mockManager).getSqsQueueUrl(queueName);
 		assertEquals(allJobs, stack.getRunningJobs());
 		verify(stack).canProcessMoreMessages();
 		int maxNumberOfMessages = 10;
-		verify(mockSingleton).pollForMessagesAndStartJobs(queueUrl, maxNumberOfMessages,
+		verify(mockManager).pollForMessagesAndStartJobs(queueUrl, maxNumberOfMessages,
 				semaphoreLockAndMessageVisibilityTimeoutSec, mockWorker);
 
 	}
@@ -668,7 +668,7 @@ public class ConcurrentWorkerStackTest {
 	@Test
 	public void testAttemptToAddMoreWorkersWithNoEmptySlots() {
 		maxThreadsPerMachine = 4;
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 		ConcurrentWorkerStack stack = Mockito.spy(createStack());
 		stack.resetAllState();
 
@@ -684,15 +684,15 @@ public class ConcurrentWorkerStackTest {
 		// call under test
 		stack.attemptToAddMoreWorkers();
 
-		verify(mockSingleton).getSqsQueueUrl(queueName);
+		verify(mockManager).getSqsQueueUrl(queueName);
 		assertEquals(allJobs, stack.getRunningJobs());
-		verify(mockSingleton, never()).pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any());
+		verify(mockManager, never()).pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any());
 	}
 
 	@Test
 	public void testAttemptToAddMoreWorkersWithCannotProcessMoreMessages() {
 		maxThreadsPerMachine = 4;
-		when(mockSingleton.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 		ConcurrentWorkerStack stack = Mockito.spy(createStack());
 		stack.resetAllState();
 
@@ -708,8 +708,8 @@ public class ConcurrentWorkerStackTest {
 		// call under test
 		stack.attemptToAddMoreWorkers();
 
-		verify(mockSingleton).getSqsQueueUrl(queueName);
+		verify(mockManager).getSqsQueueUrl(queueName);
 		assertEquals(allJobs, stack.getRunningJobs());
-		verify(mockSingleton, never()).pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any());
+		verify(mockManager, never()).pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any());
 	}
 }
