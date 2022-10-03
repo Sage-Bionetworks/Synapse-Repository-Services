@@ -78,7 +78,7 @@
     <import resource="classpath:materialized-view-workers-spb.xml" />
     <import resource="classpath:access-requirement-to-project-worker-spb.xml" />
    
-   	<bean id="concurrentStackManager" class="org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentSingletonImpl" />
+   	<bean id="concurrentStackManager" class="org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManagerImpl" />
 
 	<util:list id="workerTriggersList">
 		<!-- workers -->
