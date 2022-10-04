@@ -45,7 +45,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
 @ExtendWith(MockitoExtension.class)
-public class ConcurrentSingletonImplTest {
+public class ConcurrentManagerImplTest {
 
 	@Mock
 	private CountingSemaphore mockCountingSemaphore;
@@ -66,7 +66,7 @@ public class ConcurrentSingletonImplTest {
 
 	@Spy
 	@InjectMocks
-	ConcurrentSingletonImpl singleton;
+	ConcurrentManagerImpl manager;
 
 	private String lockKey;
 	private int lockTimeoutSec;
@@ -87,7 +87,7 @@ public class ConcurrentSingletonImplTest {
 	public void testIsStackAvailableForWriteWithTrue() {
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
 		// call under test
-		assertTrue(singleton.isStackAvailableForWrite());
+		assertTrue(manager.isStackAvailableForWrite());
 		verify(mockStackStatusDao).isStackReadWrite();
 	}
 
@@ -95,7 +95,7 @@ public class ConcurrentSingletonImplTest {
 	public void testIsStackAvailableForWriteWithFalse() {
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(false);
 		// call under test
-		assertFalse(singleton.isStackAvailableForWrite());
+		assertFalse(manager.isStackAvailableForWrite());
 		verify(mockStackStatusDao).isStackReadWrite();
 	}
 
@@ -103,14 +103,14 @@ public class ConcurrentSingletonImplTest {
 	public void testGetCurrentTimeMS() {
 		long now = System.currentTimeMillis();
 		// call under test
-		assertTrue(singleton.getCurrentTimeMS() >= now);
+		assertTrue(manager.getCurrentTimeMS() >= now);
 	}
 
 	@Test
 	public void testSleep() throws InterruptedException {
 		long start = System.currentTimeMillis();
 		// call under test
-		singleton.sleep(100L);
+		manager.sleep(100L);
 		long end = System.currentTimeMillis();
 		assertTrue((end - start) >= 100);
 	}
@@ -122,7 +122,7 @@ public class ConcurrentSingletonImplTest {
 		when(mockAmazonSQSClient.getQueueUrl(any(String.class)))
 				.thenReturn(new GetQueueUrlResult().withQueueUrl(queueUrl));
 		// call under test
-		String resultUrl = singleton.getSqsQueueUrl(queueName);
+		String resultUrl = manager.getSqsQueueUrl(queueName);
 		assertEquals(queueUrl, resultUrl);
 		verify(mockAmazonSQSClient).getQueueUrl(queueName);
 	}
@@ -132,7 +132,7 @@ public class ConcurrentSingletonImplTest {
 		String queueName = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			singleton.getSqsQueueUrl(queueName);
+			manager.getSqsQueueUrl(queueName);
 		}).getMessage();
 		assertEquals("queueName is required.", message);
 	}
@@ -147,7 +147,7 @@ public class ConcurrentSingletonImplTest {
 		}).when(mockCallback).addProgressListener(any());
 
 		// call under test
-		singleton.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
+		manager.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
 
 		verify(mockCountingSemaphore).attemptToAcquireLock(lockKey, lockTimeoutSec, maxLockCount);
 		verify(mockCallback).addProgressListener(any());
@@ -161,7 +161,7 @@ public class ConcurrentSingletonImplTest {
 		String token = null;
 		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt())).thenReturn(token);
 		// call under test
-		singleton.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
+		manager.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
 
 		verify(mockCountingSemaphore).attemptToAcquireLock(lockKey, lockTimeoutSec, maxLockCount);
 		verifyNoMoreInteractions(mockCountingSemaphore);
@@ -179,7 +179,7 @@ public class ConcurrentSingletonImplTest {
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			singleton.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
+			manager.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
 		});
 
 		verify(mockCountingSemaphore).attemptToAcquireLock(lockKey, lockTimeoutSec, maxLockCount);
@@ -193,7 +193,7 @@ public class ConcurrentSingletonImplTest {
 		lockKey = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			singleton.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
+			manager.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
 		}).getMessage();
 		assertEquals("lockKey is required.", message);
 	}
@@ -203,7 +203,7 @@ public class ConcurrentSingletonImplTest {
 		mockCallback = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			singleton.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
+			manager.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
 		}).getMessage();
 		assertEquals("callback is required.", message);
 	}
@@ -213,7 +213,7 @@ public class ConcurrentSingletonImplTest {
 		mockRunner = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			singleton.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
+			manager.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
 		}).getMessage();
 		assertEquals("runner is required.", message);
 	}
@@ -222,15 +222,25 @@ public class ConcurrentSingletonImplTest {
 	public void testStartWorkerJobWithProgressMade() throws RecoverableMessageException, Exception {
 		String receiptHandle = "receiptHandle";
 		when(mockMessage.getReceiptHandle()).thenReturn(receiptHandle);
+		
+		doAnswer((a)->{
+			// We sleep to get a chance to call progressMade() before the job terminates.
+			Thread.sleep(100);
+			return null;
+		}).when(mockWorker).run(any(), any());
 
 		// call under test
-		WorkerJob job = singleton.startWorkerJob(queueUrl, lockTimeoutSec, mockWorker, mockMessage);
+		WorkerJob job = manager.startWorkerJob(queueUrl, lockTimeoutSec, mockWorker, mockMessage);
 		assertNotNull(job);
 		assertNotNull(job.getListener());
-		waitForFuture(job.getFuture());
-
 		// progress made should refresh the lock
 		job.getListener().progressMade();
+		
+		waitForFuture(job.getFuture());
+		
+		// the listener should be removed after the job is finished so this should be a no-op.
+		job.getListener().progressMade();
+
 		verify(mockAmazonSQSClient, times(1)).changeMessageVisibility(any());
 		verify(mockAmazonSQSClient, times(1)).changeMessageVisibility(new ChangeMessageVisibilityRequest()
 				.withQueueUrl(queueUrl).withReceiptHandle(receiptHandle).withVisibilityTimeout(lockTimeoutSec));
@@ -245,15 +255,20 @@ public class ConcurrentSingletonImplTest {
 		String receiptHandle = "receiptHandle";
 		when(mockMessage.getReceiptHandle()).thenReturn(receiptHandle);
 
-		doThrow(new RecoverableMessageException("Try again later")).when(mockWorker).run(any(), any());
+		doAnswer((a)->{
+			// We sleep to get a chance to call progressMade() before the job terminates.
+			Thread.sleep(100);
+			throw new RecoverableMessageException("Try again later");
+		}).when(mockWorker).run(any(), any());
 
 		// call under test
-		WorkerJob job = singleton.startWorkerJob(queueUrl, lockTimeoutSec, mockWorker, mockMessage);
+		WorkerJob job = manager.startWorkerJob(queueUrl, lockTimeoutSec, mockWorker, mockMessage);
 		assertNotNull(job);
 		assertNotNull(job.getListener());
-		waitForFuture(job.getFuture());
 		// progress made should refresh the lock
 		job.getListener().progressMade();
+		waitForFuture(job.getFuture());
+
 		verify(mockAmazonSQSClient, times(2)).changeMessageVisibility(any());
 		verify(mockAmazonSQSClient, times(1)).changeMessageVisibility(new ChangeMessageVisibilityRequest()
 				.withQueueUrl(queueUrl).withReceiptHandle(receiptHandle).withVisibilityTimeout(lockTimeoutSec));
@@ -295,7 +310,7 @@ public class ConcurrentSingletonImplTest {
 		doThrow(toThrow).when(mockWorker).run(any(), any());
 
 		// call under test
-		WorkerJob job = singleton.startWorkerJob(queueUrl, lockTimeoutSec, mockWorker, mockMessage);
+		WorkerJob job = manager.startWorkerJob(queueUrl, lockTimeoutSec, mockWorker, mockMessage);
 		assertNotNull(job);
 		assertNotNull(job.getListener());
 		Throwable cause = assertThrows(ExecutionException.class, () -> {
@@ -314,14 +329,14 @@ public class ConcurrentSingletonImplTest {
 				.thenReturn(new ReceiveMessageResult().withMessages(Collections.emptyList()));
 
 		// call under test
-		List<WorkerJob> jobs = singleton.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec,
+		List<WorkerJob> jobs = manager.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec,
 				mockWorker);
 		assertEquals(Collections.emptyList(), jobs);
 
 		verify(mockAmazonSQSClient).receiveMessage(new ReceiveMessageRequest().withQueueUrl(queueUrl)
 				.withWaitTimeSeconds(0).withMaxNumberOfMessages(maxThreadCount).withVisibilityTimeout(lockTimeoutSec));
 
-		verify(singleton, never()).startWorkerJob(any(), anyInt(), any(), any());
+		verify(manager, never()).startWorkerJob(any(), anyInt(), any(), any());
 	}
 
 	@Test
@@ -334,7 +349,7 @@ public class ConcurrentSingletonImplTest {
 				.thenReturn(new ReceiveMessageResult().withMessages(messages));
 
 		// call under test
-		List<WorkerJob> jobs = singleton.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec,
+		List<WorkerJob> jobs = manager.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec,
 				mockWorker);
 
 		assertNotNull(jobs);
@@ -343,9 +358,9 @@ public class ConcurrentSingletonImplTest {
 		verify(mockAmazonSQSClient).receiveMessage(new ReceiveMessageRequest().withQueueUrl(queueUrl)
 				.withWaitTimeSeconds(0).withMaxNumberOfMessages(maxThreadCount).withVisibilityTimeout(lockTimeoutSec));
 
-		verify(singleton, times(2)).startWorkerJob(any(), anyInt(), any(), any());
-		verify(singleton).startWorkerJob(queueUrl, lockTimeoutSec, mockWorker, messages.get(0));
-		verify(singleton).startWorkerJob(queueUrl, lockTimeoutSec, mockWorker, messages.get(1));
+		verify(manager, times(2)).startWorkerJob(any(), anyInt(), any(), any());
+		verify(manager).startWorkerJob(queueUrl, lockTimeoutSec, mockWorker, messages.get(0));
+		verify(manager).startWorkerJob(queueUrl, lockTimeoutSec, mockWorker, messages.get(1));
 	}
 
 	@Test
@@ -353,7 +368,7 @@ public class ConcurrentSingletonImplTest {
 		queueUrl = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			singleton.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec, mockWorker);
+			manager.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec, mockWorker);
 		}).getMessage();
 		assertEquals("queueUrl is required.", message);
 	}
@@ -363,7 +378,7 @@ public class ConcurrentSingletonImplTest {
 		mockWorker = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			singleton.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec, mockWorker);
+			manager.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec, mockWorker);
 		}).getMessage();
 		assertEquals("worker is required.", message);
 	}
@@ -373,7 +388,7 @@ public class ConcurrentSingletonImplTest {
 		maxThreadCount = 0;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			singleton.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec, mockWorker);
+			manager.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec, mockWorker);
 		}).getMessage();
 		assertEquals("maxNumberOfMessages must be greater than or equals to 1.", message);
 	}
@@ -383,7 +398,7 @@ public class ConcurrentSingletonImplTest {
 		maxThreadCount = 11;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			singleton.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec, mockWorker);
+			manager.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec, mockWorker);
 		}).getMessage();
 		assertEquals("maxNumberOfMessages must be less than or equals to 10.", message);
 	}
@@ -393,7 +408,7 @@ public class ConcurrentSingletonImplTest {
 		lockTimeoutSec = 9;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			singleton.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec, mockWorker);
+			manager.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec, mockWorker);
 		}).getMessage();
 		assertEquals("messageVisibilityTimeoutSec must be greater than or equals to 10.", message);
 	}

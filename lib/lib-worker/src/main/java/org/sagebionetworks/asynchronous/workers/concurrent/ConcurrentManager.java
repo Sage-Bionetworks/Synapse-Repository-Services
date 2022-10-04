@@ -11,14 +11,14 @@ import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 
 /**
- * This singleton provides access to all dependencies that are shared by all
- * worker stack instances. Note: This singleton does not directly encapsulate
+ * This manager provides access to all dependencies that are shared by all
+ * worker stack instances. Note: This manager does not directly encapsulate
  * the state of individual workers or worker stacks. However, it does
  * encapsulate the {@link Executors#newCachedThreadPool()} used to run each
  * worker on a separate thread.
  *
  */
-public interface ConcurrentSingleton {
+public interface ConcurrentManager {
 
 	/**
 	 * Is the stack available for write (read-write mode)?
@@ -92,6 +92,10 @@ public interface ConcurrentSingleton {
 	List<WorkerJob> pollForMessagesAndStartJobs(String queueUrl, int maxNumberOfMessages,
 			int messageVisibilityTimeoutSec, MessageDrivenRunner worker);
 	
+	/**
+	 * Allows the client to be shared with the rest of the stack.
+	 * @return
+	 */
 	AmazonSQSClient getAmazonSQSClient();
 
 }

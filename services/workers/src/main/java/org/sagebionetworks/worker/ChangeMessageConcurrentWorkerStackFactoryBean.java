@@ -2,7 +2,7 @@ package org.sagebionetworks.worker;
 
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageBatchProcessor;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
-import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentSingleton;
+import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManager;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentWorkerStack;
 import org.springframework.beans.factory.FactoryBean;
 
@@ -15,7 +15,7 @@ public class ChangeMessageConcurrentWorkerStackFactoryBean implements FactoryBea
 	private AmazonSQS amazonSQS;
 	private ConcurrentWorkerStack.Builder builder = ConcurrentWorkerStack.builder();
 	
-	public void setSingleton(ConcurrentSingleton singleton) {
+	public void setSingleton(ConcurrentManager singleton) {
 		amazonSQS = singleton.getAmazonSQSClient();
 		builder.withSingleton(singleton);
 	}
