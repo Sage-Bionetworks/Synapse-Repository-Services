@@ -25,6 +25,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -234,7 +235,6 @@ public class MultipartManagerV2ImplTest {
 		doNothing().when(mockMultipartUploadDAO).setUploadStatusHash(anyLong(), any(), any());
 
 		// Mimic a new upload
-		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
 		when(mockStorageLocationDao.get(any())).thenReturn(mockStorageSettings);
 		when(mockHandler.initiateRequest(any(), any(), any(), any())).thenReturn(mockCreateMultipartRequest);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
@@ -251,7 +251,6 @@ public class MultipartManagerV2ImplTest {
 
 		verify(mockHandler).validateRequest(user, mockRequest);
 		verify(mockMultipartUploadDAO).setUploadStatusHash(eq(user.getId()), eq(requestHash), startsWith("R_" + requestHash + "_"));
-		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockHandler).initiateRequest(user, mockRequest, requestHash, mockStorageSettings);
 		verify(mockMultipartUploadDAO).createUploadStatus(mockCreateMultipartRequest);
 		verify(mockStatus).setPartsState("0000");
@@ -267,6 +266,7 @@ public class MultipartManagerV2ImplTest {
 
 		when(mockRequest.getPartSizeBytes()).thenReturn(partSize);
 		doNothing().when(mockHandler).validateRequest(any(), any());
+		doNothing().when(mockMultipartUploadDAO).setUploadStatusHash(anyLong(), any(), any());
 
 		// Mimic a new upload
 		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
@@ -285,7 +285,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(mockStatus, result);
 
 		verify(mockHandler).validateRequest(user, mockRequest);
-		verify(mockMultipartUploadDAO, never()).setUploadStatusHash(anyLong(), any(), any());
+		verify(mockMultipartUploadDAO).setUploadStatusHash(eq(user.getId()), eq(requestHash), startsWith("R_" + requestHash + "_"));
 		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockHandler).initiateRequest(user, mockRequest, requestHash, mockStorageSettings);
 		verify(mockMultipartUploadDAO).createUploadStatus(mockCreateMultipartRequest);
@@ -326,6 +326,47 @@ public class MultipartManagerV2ImplTest {
 	}
 
 	@Test
+	public void testStartOrResumeMultipartRequestWithCompletedObjectDeleted() {
+		Long partSize = PartUtils.MIN_PART_SIZE_BYTES;
+		String requestHash = MultipartRequestUtils.calculateMD5AsHex(mockRequest);
+		int numberOfParts = 4;
+
+		boolean forceRestart = false;
+
+		when(mockRequest.getPartSizeBytes()).thenReturn(partSize);
+		doNothing().when(mockHandler).validateRequest(any(), any());
+
+		// Mimic a new upload
+		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(mockCompositeStatus);
+		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
+		when(mockStatus.getState()).thenReturn(MultipartUploadState.COMPLETED);
+		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
+
+		when(mockCompositeStatus.getUploadType()).thenReturn(UploadType.S3);
+		when(mockCloudDaoProvider.getCloudServiceMultipartUploadDao(any())).thenReturn(mockCloudDao);
+		when(mockCloudDao.doesObjectExist(any(), any())).thenReturn(false);
+
+		doNothing().when(mockMultipartUploadDAO).setUploadStatusHash(anyLong(), any(), any());
+		when(mockStorageLocationDao.get(any())).thenReturn(mockStorageSettings);
+		when(mockHandler.initiateRequest(any(), any(), any(), any())).thenReturn(mockCreateMultipartRequest);
+		when(mockMultipartUploadDAO.createUploadStatus(any())).thenReturn(mockCompositeStatus);
+
+		// Call under test
+		MultipartUploadStatus result = manager.startOrResumeMultipartRequest(mockHandler, user, mockRequest,
+				forceRestart);
+
+		assertEquals(mockStatus, result);
+
+		verify(mockHandler).validateRequest(user, mockRequest);
+		verify(mockMultipartUploadDAO).setUploadStatusHash(anyLong(), any(), any());
+		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
+		verify(mockStatus).setPartsState("1111");
+		verify(mockMultipartUploadDAO, never()).getPartsState(any(), anyInt());
+		verify(mockMultipartUploadDAO).setUploadStatusHash(eq(user.getId()), eq(requestHash), startsWith("R_" + requestHash + "_"));
+	}
+
+
+	@Test
 	public void testStartOrResumeMultipartRequestWithCompleted() {
 		Long partSize = PartUtils.MIN_PART_SIZE_BYTES;
 		String requestHash = MultipartRequestUtils.calculateMD5AsHex(mockRequest);
@@ -341,6 +382,11 @@ public class MultipartManagerV2ImplTest {
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
 		when(mockStatus.getState()).thenReturn(MultipartUploadState.COMPLETED);
 		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
+
+		when(mockCompositeStatus.getUploadType()).thenReturn(UploadType.S3);
+		when(mockCloudDaoProvider.getCloudServiceMultipartUploadDao(any())).thenReturn(mockCloudDao);
+		when(mockCloudDao.doesObjectExist(any(), any())).thenReturn(true);
+
 
 		// Call under test
 		MultipartUploadStatus result = manager.startOrResumeMultipartRequest(mockHandler, user, mockRequest,
@@ -386,6 +432,7 @@ public class MultipartManagerV2ImplTest {
 
 		when(mockRequest.getPartSizeBytes()).thenReturn(partSize);
 		doNothing().when(mockHandler).validateRequest(any(), any());
+		doNothing().when(mockMultipartUploadDAO).setUploadStatusHash(anyLong(), any(), any());
 
 		// Mimic a new upload
 		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
@@ -404,10 +451,65 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(cause, ex.getCause());
 
 		verify(mockHandler).validateRequest(user, mockRequest);
-		verify(mockMultipartUploadDAO, never()).setUploadStatusHash(anyLong(), any(), any());
+		verify(mockMultipartUploadDAO).setUploadStatusHash(eq(user.getId()), eq(requestHash), startsWith("R_" + requestHash + "_"));
 		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
 		verify(mockHandler).initiateRequest(user, mockRequest, requestHash, mockStorageSettings);
 		verify(mockMultipartUploadDAO, never()).createUploadStatus(mockCreateMultipartRequest);
+	}
+
+	@Test
+	public void testGetCachedUploadNewUpload() {
+		String requestHash = MultipartRequestUtils.calculateMD5AsHex(mockRequest);
+
+		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(null);
+
+		// Call under test
+		Optional<CompositeMultipartUploadStatus> status = manager.getCachedUpload(user, requestHash);
+
+		assertTrue(status.isEmpty());
+
+		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
+	}
+
+	@Test
+	public void testGetCachedUploadWithComplete() {
+		String requestHash = MultipartRequestUtils.calculateMD5AsHex(mockRequest);
+
+		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(mockCompositeStatus);
+
+		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
+		when(mockStatus.getState()).thenReturn(MultipartUploadState.COMPLETED);
+		when(mockCloudDaoProvider.getCloudServiceMultipartUploadDao(any())).thenReturn(mockCloudDao);
+		when(mockCloudDao.doesObjectExist(any(), any())).thenReturn(true);
+
+		// Call under test
+		Optional<CompositeMultipartUploadStatus> status = manager.getCachedUpload(user, requestHash);
+
+		assertEquals(mockCompositeStatus, status.get());
+
+		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
+		verify(mockCloudDaoProvider).getCloudServiceMultipartUploadDao(mockCompositeStatus.getUploadType());
+		verify(mockCloudDao).doesObjectExist(mockCompositeStatus.getBucket(), mockCompositeStatus.getKey());
+	}
+
+	@Test
+	public void testGetCachedUploadWithCompleteAndObjectDeleted() {
+		String requestHash = MultipartRequestUtils.calculateMD5AsHex(mockRequest);
+
+		when(mockMultipartUploadDAO.getUploadStatus(any(), any())).thenReturn(mockCompositeStatus);
+		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
+		when(mockStatus.getState()).thenReturn(MultipartUploadState.COMPLETED);
+		when(mockCloudDaoProvider.getCloudServiceMultipartUploadDao(any())).thenReturn(mockCloudDao);
+		when(mockCloudDao.doesObjectExist(any(), any())).thenReturn(false);
+
+		// Call under test
+		Optional<CompositeMultipartUploadStatus> status = manager.getCachedUpload(user, requestHash);
+
+		assertTrue(status.isEmpty());
+
+		verify(mockMultipartUploadDAO).getUploadStatus(user.getId(), requestHash);
+		verify(mockCloudDaoProvider).getCloudServiceMultipartUploadDao(mockCompositeStatus.getUploadType());
+		verify(mockCloudDao).doesObjectExist(mockCompositeStatus.getBucket(), mockCompositeStatus.getKey());
 	}
 
 	@Test

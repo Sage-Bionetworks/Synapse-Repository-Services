@@ -84,6 +84,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	private static final int PART_NUMBER = 4;
 	private static final String PART_KEY_NAME = KEY_NAME + "/" + PART_NUMBER;
 	private static final String BUCKET_NAME = "test-bucket-name";
+	private static final String OBJECT_KEY = "test-object-key";
 	private static final String PART_MD5 = "abcdef0123456789abcdef0123456789";
 	private static final String CONTENT_TYPE = "application/json";
 	
@@ -482,5 +483,17 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		}).getMessage();
 		
 		assertEquals("Copying from a Google Cloud Bucket is not supported yet.", errorMessage);
+	}
+
+	@Test
+	public void testDoesObjectExist() {
+		when(mockStorageClient.doesObjectExist(BUCKET_NAME, OBJECT_KEY)).thenReturn(true);
+
+		// Call under test
+		Boolean result = googleMpuDAO.doesObjectExist(BUCKET_NAME, OBJECT_KEY);
+
+		assertEquals(true, result);
+
+		verify(mockStorageClient).doesObjectExist(BUCKET_NAME, OBJECT_KEY);
 	}
 }

@@ -87,4 +87,11 @@ public interface CloudServiceMultipartUploadDAO {
 	 */
 	String getObjectEtag(String bucket, String key);
 
+	/**
+	 * Checks to see if an object in an S3 Storage bucket exists or not
+	 * @param bucketName the name of the bucket
+	 * @param objectKey the name/key of the object
+	 * @return whether or not the object exists
+	 */
+	boolean doesObjectExist(String bucketName, String objectKey);
 }

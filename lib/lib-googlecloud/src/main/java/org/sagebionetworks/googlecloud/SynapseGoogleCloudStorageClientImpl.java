@@ -112,4 +112,9 @@ public class SynapseGoogleCloudStorageClientImpl implements SynapseGoogleCloudSt
 		return storage.get(bucket, Storage.BucketGetOption.fields()) != null;
 	}
 
+	@Override
+	public Boolean doesObjectExist(String bucketName, String objectKey) {
+		return storage.get(BlobId.of(bucketName, objectKey)) != null;
+	}
+
 }

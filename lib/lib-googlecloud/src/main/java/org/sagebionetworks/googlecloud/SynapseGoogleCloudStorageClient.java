@@ -98,4 +98,12 @@ public interface SynapseGoogleCloudStorageClient {
 	 */
 	Boolean bucketExists(String bucket);
 
+	/**
+	 * Checks to see if an object in a Google Cloud Storage bucket exists or not
+	 * @param bucketName the name of the bucket
+	 * @param objectKey the name/key of the object
+	 * @return whether or not the object exists
+	 */
+	Boolean doesObjectExist(String bucketName, String objectKey);
+
 }
