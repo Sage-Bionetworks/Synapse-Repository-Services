@@ -1800,6 +1800,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				dto.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
 				dto.setEtag(rs.getString(COL_NODE_ETAG));
 				dto.setName(rs.getString(COL_NODE_NAME));
+				dto.setDescription(rs.getString(COL_REVISION_DESCRIPTION));
 				dto.setSubType(SubType.valueOf(rs.getString(COL_NODE_TYPE)));
 				dto.setParentId(rs.getLong(COL_NODE_PARENT_ID));
 				if(rs.wasNull()){
