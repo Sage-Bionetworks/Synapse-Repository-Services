@@ -280,10 +280,28 @@ public class EntitySchemaValidatorImplTest {
 	
 	@Test
 	public void testSetDerivedAnnotationsAndBindAccessRequirements() {
+		when(mockDerivedAnnotationDao.getDerivedAnnotations(any())).thenReturn(Optional.empty());
+
 		// call under test
 		boolean changed = manager.setDerivedAnnotationsAndBindAccessRequirements(objectDescriptor, annotations,
 				accessRequirmentIdsToBind);
 		assertTrue(changed);
+		verify(mockDerivedAnnotationDao).getDerivedAnnotations(entityId);
+		verify(mockAccessRequirementManager).setDynamicallyBoundAccessRequirementsForSubject(objectDescriptor,
+				accessRequirmentIdsToBind);
+		verify(mockDerivedAnnotationDao).saveDerivedAnnotations(entityId, annotations);
+		verify(mockDerivedAnnotationDao, never()).clearDerivedAnnotations(any());
+	}
+
+	@Test
+	public void testSetDerivedAnnotationsAndBindAccessRequirementsWithEqualAnnotations() {
+		when(mockDerivedAnnotationDao.getDerivedAnnotations(any())).thenReturn(Optional.of(annotations));
+
+		// call under test
+		boolean changed = manager.setDerivedAnnotationsAndBindAccessRequirements(objectDescriptor, annotations,
+				accessRequirmentIdsToBind);
+		assertFalse(changed);
+		verify(mockDerivedAnnotationDao).getDerivedAnnotations(entityId);
 		verify(mockAccessRequirementManager).setDynamicallyBoundAccessRequirementsForSubject(objectDescriptor,
 				accessRequirmentIdsToBind);
 		verify(mockDerivedAnnotationDao).saveDerivedAnnotations(entityId, annotations);

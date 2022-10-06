@@ -156,7 +156,7 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 		if(annotations != null) {
 			derivedAnnotationDao.saveDerivedAnnotations(objectDescriptor.getId(), annotations);
 
-			if (annotations.equals(derivedAnnotationDao.getDerivedAnnotations(objectDescriptor.getId()).get())) {
+			if (annotations.equals(derivedAnnotationDao.getDerivedAnnotations(objectDescriptor.getId()).orElse(null))) {
 				return false;
 			}
 
