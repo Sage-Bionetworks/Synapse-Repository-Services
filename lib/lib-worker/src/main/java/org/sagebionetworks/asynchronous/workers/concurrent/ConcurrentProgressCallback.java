@@ -17,7 +17,7 @@ import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
  */
 public class ConcurrentProgressCallback implements ProgressCallback, ProgressListener {
 
-	private static final Logger log = LogManager.getLogger(SynchronizedProgressCallback.class);
+	private static final Logger log = LogManager.getLogger(ConcurrentProgressCallback.class);
 
 	private final Set<ProgressListener> listeners;
 	private final long lockTimeoutSeconds;
@@ -55,9 +55,8 @@ public class ConcurrentProgressCallback implements ProgressCallback, ProgressLis
 				ProgressListener listener = it.next();
 				listener.progressMade();
 			} catch (Exception e) {
+				log.error("Error on progressMade. Listener will be removed.", e);
 				it.remove();
-				log.error(String.format("Error on progressMade for: '%s'. Listener will be removed.",
-						listeners.getClass()), e);
 			}
 		}
 	}
