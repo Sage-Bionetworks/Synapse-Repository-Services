@@ -304,7 +304,6 @@ public class EntitySchemaValidatorImplTest {
 		verify(mockDerivedAnnotationDao).getDerivedAnnotations(entityId);
 		verify(mockAccessRequirementManager).setDynamicallyBoundAccessRequirementsForSubject(objectDescriptor,
 				accessRequirmentIdsToBind);
-		verify(mockDerivedAnnotationDao).saveDerivedAnnotations(entityId, annotations);
 		verify(mockDerivedAnnotationDao, never()).clearDerivedAnnotations(any());
 	}
 	
