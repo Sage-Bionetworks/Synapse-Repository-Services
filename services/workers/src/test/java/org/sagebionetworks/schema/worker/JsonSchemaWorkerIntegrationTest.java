@@ -712,6 +712,65 @@ public class JsonSchemaWorkerIntegrationTest {
 		assertEquals("someBoolean was true", folderJson.getString("someConditional"));
 		assertEquals(999, folderJson.getLong("conditionalLong"));
 	}
+
+	@Test
+	public void testGetEntityJsonWithDerivedAnnotationsWithInfiniteLoop() throws Exception {
+		bootstrapAndCreateOrganization();
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
+
+		// create the schema
+		String fileName = "schema/DerivedConditionalConst.json";
+		JsonSchema schema = getSchemaFromClasspath(fileName);
+		CreateSchemaResponse createResponse = registerSchema(schema);
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+		// bind the schema to the project
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(projectId);
+		bindRequest.setSchema$id(schema$id);
+		bindRequest.setEnableDerivedAnnotations(true);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// add a folder to the project
+		Folder folder = new Folder();
+		folder.setParentId(project.getId());
+		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
+		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
+
+		folderJson.put("someBoolean", true);
+		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
+
+		ValidationResults previousValidationResults = waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
+			assertNotNull(t);
+			assertTrue(t.getIsValid());
+		});
+
+
+		System.out.println("Current result time: " + previousValidationResults.getValidatedOn());
+
+		int diffCount = 0;
+
+		for (int i = 0; i < 10; i++) {
+
+			Thread.sleep(1000);
+
+			ValidationResults newValidationResults = entityManager.getEntityValidationResults(adminUserInfo, folderId);
+
+			if (!newValidationResults.getValidatedOn().equals(previousValidationResults.getValidatedOn())) {
+				diffCount++;
+				previousValidationResults = newValidationResults;
+			}
+
+			assertTrue(diffCount <= 3);
+
+			System.out.println("New result time: " + newValidationResults.getValidatedOn());
+
+		}
+
+		System.out.println("Change count: " + diffCount);
+
+
+	}
 	
 	@Test
 	public void testValidationSchemaIndexWithReindexingAndRevalidation() throws Exception {
