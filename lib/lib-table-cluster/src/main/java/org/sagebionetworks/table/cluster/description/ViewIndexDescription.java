@@ -11,7 +11,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -29,7 +28,7 @@ public class ViewIndexDescription implements IndexDescription {
 		super();
 		this.idAndVersion = idAndVersion;
 		this.viewType = viewtype;
-		ObjectType benefactorType = EntityType.submissionview.equals(viewtype) ? ObjectType.EVALUATION : ObjectType.ENTITY;
+		ObjectType benefactorType = TableType.submissionview.equals(viewtype) ? ObjectType.EVALUATION : ObjectType.ENTITY;
 		this.description = new BenefactorDescription(ROW_BENEFACTOR, benefactorType);
 	}
 

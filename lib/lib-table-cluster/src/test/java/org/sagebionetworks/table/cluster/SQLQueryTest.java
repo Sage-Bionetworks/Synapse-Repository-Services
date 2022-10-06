@@ -835,7 +835,7 @@ public class SQLQueryTest {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(schema))
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
 		// should default to table.
-		assertEquals(EntityType.table, query.getTableType());
+		assertEquals(TableType.table, query.getTableType());
 	}
 
 	@Test
