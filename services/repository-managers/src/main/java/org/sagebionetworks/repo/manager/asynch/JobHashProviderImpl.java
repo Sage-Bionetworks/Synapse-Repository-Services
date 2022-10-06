@@ -31,7 +31,7 @@ public class JobHashProviderImpl implements JobHashProvider {
 			String tableId = TableQueryUtils.getTableIdFromRequestBody(body);
 			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 
-			ObjectType type = tableManagerSupport.getTableType(idAndVersion);
+			ObjectType type = tableManagerSupport.getTableObjectType(idAndVersion);
 			
 			/* 
 			 * We only support caching of queries from tables. 

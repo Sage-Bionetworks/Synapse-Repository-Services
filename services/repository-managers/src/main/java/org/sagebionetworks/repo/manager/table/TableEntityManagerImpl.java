@@ -1026,7 +1026,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		
-		ObjectType type = tableManagerSupport.getTableType(idAndVersion);
+		ObjectType type = tableManagerSupport.getTableObjectType(idAndVersion);
 		
 		if (ObjectType.ENTITY_VIEW.equals(type)) {
 			throw new IllegalArgumentException("EntityView snapshots can only be created via an asynchronous table transaction job.");

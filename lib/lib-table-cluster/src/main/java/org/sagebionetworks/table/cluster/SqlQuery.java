@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
@@ -159,7 +160,7 @@ public class SqlQuery {
 		this.indexDescription = indexDescription;
 		
 		// only a view can include the etag
-		if(EntityTypeUtils.isViewType(indexDescription.getTableType()) && includeEntityEtag != null){
+		if(indexDescription.getTableType().isViewEntityType() && includeEntityEtag != null){
 			this.includeEntityEtag = includeEntityEtag;
 		}else{
 			this.includeEntityEtag = false;
@@ -379,7 +380,7 @@ public class SqlQuery {
 	 * The type of table.
 	 * @return
 	 */
-	public EntityType getTableType(){
+	public TableType getTableType(){
 		return this.indexDescription.getTableType();
 	}
 

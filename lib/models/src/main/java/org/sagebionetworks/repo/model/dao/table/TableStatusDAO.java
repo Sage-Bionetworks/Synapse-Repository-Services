@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dao.table;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -143,4 +144,5 @@ public interface TableStatusDAO {
 	 *         change will be returned.
 	 */
 	public Optional<String> getLastChangeEtag(IdAndVersion idAndVersion);
+	
 }

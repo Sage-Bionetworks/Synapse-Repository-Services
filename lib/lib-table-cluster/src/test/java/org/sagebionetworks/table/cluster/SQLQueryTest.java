@@ -18,6 +18,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -848,7 +849,7 @@ public class SQLQueryTest {
 	@Test
 	public void testSelectViewWithoutEtag() throws ParseException {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(schema))
-				.indexDescription(new ViewIndexDescription(idAndVersion, EntityType.entityview)).includeEntityEtag(null).build();
+				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).includeEntityEtag(null).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
 		assertFalse(query.includeEntityEtag());
 	}
@@ -856,7 +857,7 @@ public class SQLQueryTest {
 	@Test
 	public void testViewDefaultEtag() throws ParseException {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(schema))
-				.indexDescription(new ViewIndexDescription(idAndVersion, EntityType.entityview)).build();
+				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).build();
 		// should default to false
 		assertFalse(query.includeEntityEtag());
 	}
@@ -865,7 +866,7 @@ public class SQLQueryTest {
 	public void testSelectViewWithEtag() throws ParseException {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(schema))
 				.includeEntityEtag(true)
-				.indexDescription(new ViewIndexDescription(idAndVersion, EntityType.entityview)).build();
+				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123", query.getOutputSQL());
 		assertTrue(query.includeEntityEtag());
 	}
@@ -874,7 +875,7 @@ public class SQLQueryTest {
 	public void testSelectViewWithEtagFalse() throws ParseException {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(schema))
 				.includeEntityEtag(false)
-				.indexDescription(new ViewIndexDescription(idAndVersion, EntityType.entityview)).build();
+				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
 		assertFalse(query.includeEntityEtag());
 	}
@@ -891,7 +892,7 @@ public class SQLQueryTest {
 	public void testSelectViewWithEtagAggregate() throws ParseException {
 		sql = "select count(*) from syn123";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(schema))
-				.indexDescription(new ViewIndexDescription(idAndVersion, EntityType.entityview)).build();
+				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).build();
 		assertEquals("SELECT COUNT(*) FROM T123", query.getOutputSQL());
 	}
 
@@ -1041,7 +1042,7 @@ public class SQLQueryTest {
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has\"quote")));
 
 		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")),
-				new ViewIndexDescription(IdAndVersion.parse("syn2"), EntityType.entityview));
+				new ViewIndexDescription(IdAndVersion.parse("syn2"), TableType.entityview));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select * from syn1 join syn2 on (syn1.foo = syn2.foo) WHERE syn1.bar = 'some text' order by syn1.bar";
@@ -1060,7 +1061,7 @@ public class SQLQueryTest {
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 
 		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")),
-				new ViewIndexDescription(IdAndVersion.parse("syn2"), EntityType.entityview));
+				new ViewIndexDescription(IdAndVersion.parse("syn2"), TableType.entityview));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select * from syn123 WHERE bar = 'some text'";
@@ -1119,7 +1120,7 @@ public class SQLQueryTest {
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 
 		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn1"), EntityType.entityview));
+				new ViewIndexDescription(IdAndVersion.parse("syn1"), TableType.entityview));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select * from syn1 a join syn1 b on (a.foo = b.foo) WHERE a.bar = 'some text' order by b.bar";
@@ -1258,7 +1259,7 @@ public class SQLQueryTest {
 		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("doubletype")));
 		schemaMap.put(materializedViewId, Arrays.asList(columnNameToModelMap.get("doubletype")));
 
-		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, EntityType.dataset));
+		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.dataset));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		// this query is used to build the materialized view.
@@ -1277,7 +1278,7 @@ public class SQLQueryTest {
 		schemaMap.put(materializedViewId, Arrays.asList(columnNameToModelMap.get("doubletype")));
 		
 		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(viewId, EntityType.dataset));
+				new ViewIndexDescription(viewId, TableType.dataset));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		
 		// this is a query against a materialized view.
@@ -1318,7 +1319,7 @@ public class SQLQueryTest {
 		// Note: The dependencies are in a different order. 
 		List<IndexDescription> dependencies = Arrays.asList(
 				new TableIndexDescription(tableId),
-				new ViewIndexDescription(viewId, EntityType.entityview)
+				new ViewIndexDescription(viewId, TableType.entityview)
 		);
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
@@ -1344,7 +1345,7 @@ public class SQLQueryTest {
 		// Note: The dependencies are in a different order. 
 		List<IndexDescription> dependencies = Arrays.asList(
 				new TableIndexDescription(tableId),
-				new ViewIndexDescription(viewId, EntityType.entityview)
+				new ViewIndexDescription(viewId, TableType.entityview)
 		);
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
@@ -1366,7 +1367,7 @@ public class SQLQueryTest {
 		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("foo"),columnNameToModelMap.get("bar")));
 
 		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(viewId, EntityType.entityview)
+				new ViewIndexDescription(viewId, TableType.entityview)
 		);
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
@@ -1393,7 +1394,7 @@ public class SQLQueryTest {
 		// Note: The dependencies are in a different order. 
 		List<IndexDescription> dependencies = Arrays.asList(
 				new TableIndexDescription(tableId),
-				new ViewIndexDescription(viewId, EntityType.entityview)
+				new ViewIndexDescription(viewId, TableType.entityview)
 		);
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
@@ -1419,7 +1420,7 @@ public class SQLQueryTest {
 		// Note: The dependencies are in a different order. 
 		List<IndexDescription> dependencies = Arrays.asList(
 				new TableIndexDescription(tableId),
-				new ViewIndexDescription(viewId, EntityType.entityview)
+				new ViewIndexDescription(viewId, TableType.entityview)
 		);
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
@@ -1444,7 +1445,7 @@ public class SQLQueryTest {
 
 		// Note: The dependencies are in a different order.
 		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(tableId),
-				new ViewIndexDescription(viewId, EntityType.entityview));
+				new ViewIndexDescription(viewId, TableType.entityview));
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);

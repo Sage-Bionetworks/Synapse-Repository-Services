@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -19,14 +19,12 @@ public class TableUpdateRequestManagerProviderImplTest {
 	
 	@Test
 	public void testAllTypes() {
-		for (EntityType type : EntityType.values()) {
+		for (TableType type : TableType.values()) {
 			// We do not support updates from a materialized view yet
 			if (EntityType.materializedview.equals(type)) {
 				continue;
 			}
-			if (EntityTypeUtils.isTableOrViewType(type)) {
-				assertNotNull(provider.getUpdateRequestManagerForType(type));
-			}
+			assertNotNull(provider.getUpdateRequestManagerForType(type));
 		}
 	}
 

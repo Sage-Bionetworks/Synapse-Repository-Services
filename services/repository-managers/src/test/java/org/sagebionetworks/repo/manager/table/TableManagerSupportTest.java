@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -469,7 +470,7 @@ public class TableManagerSupportTest {
 	public void testGetTableTypeTable() {
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		// call under test
-		ObjectType type = manager.getTableType(idAndVersion);
+		ObjectType type = manager.getTableObjectType(idAndVersion);
 		assertEquals(ObjectType.TABLE, type);
 	}
 
@@ -478,7 +479,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(
 				EntityType.entityview);
 		// call under test
-		ObjectType type = manager.getTableType(idAndVersion);
+		ObjectType type = manager.getTableObjectType(idAndVersion);
 		assertEquals(ObjectType.ENTITY_VIEW, type);
 	}
 	
@@ -487,7 +488,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(
 				EntityType.materializedview);
 		// call under test
-		ObjectType type = manager.getTableType(idAndVersion);
+		ObjectType type = manager.getTableObjectType(idAndVersion);
 		assertEquals(ObjectType.MATERIALIZED_VIEW, type);
 	}
 
@@ -497,31 +498,10 @@ public class TableManagerSupportTest {
 				EntityType.project);
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.getTableType(idAndVersion);
+			manager.getTableObjectType(idAndVersion);
 		});
 	}
-	
-	@Test
-	public void testGetObjectTypeForEntityType(){
-		assertEquals(ObjectType.TABLE, TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.table));
-		for (EntityType type : EntityType.values()) {
-			if (EntityTypeUtils.isViewType(type)) {
-				assertEquals(ObjectType.ENTITY_VIEW, TableManagerSupportImpl.getObjectTypeForEntityType(type));
-			}
-		}
-	}
-	
-	@Test
-	public void testGetObjectTypeForEntityTypeUnknownType(){
-		for (EntityType type : EntityType.values()) {
-			if (!EntityTypeUtils.isViewType(type) && !EntityType.table.equals(type)) {
-				assertThrows(IllegalArgumentException.class, ()->{
-					// call under test
-					TableManagerSupportImpl.getObjectTypeForEntityType(EntityType.project);
-				});
-			}
-		}
-	}
+
 	
 	@Test
 	public void testGetLastTableChangeNumberNoVersion() {
@@ -675,7 +655,7 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testValidateTableReadAccessFileView(){
-		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, EntityType.entityview);
+		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
 		manager.validateTableReadAccess(userInfo, indexDescription);
@@ -686,7 +666,7 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testValidateTableReadAccessFileViewNoRead(){
-		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, EntityType.entityview);
+		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
 		assertThrows(UnauthorizedException.class, ()->{
 			//  call under test
@@ -700,7 +680,7 @@ public class TableManagerSupportTest {
 		IdAndVersion viewId = IdAndVersion.parse("syn2");
 		IdAndVersion materializedId = IdAndVersion.parse("syn3");
 		IndexDescription tableDescription = new TableIndexDescription(tableId);
-		IndexDescription viewDescription = new ViewIndexDescription(viewId, EntityType.entityview);
+		IndexDescription viewDescription = new ViewIndexDescription(viewId, TableType.entityview);
 		IndexDescription materializedDescription = new MaterializedViewIndexDescription(materializedId,
 				Arrays.asList(tableDescription, viewDescription));		
 		
@@ -931,10 +911,10 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testSendAsynchronousActivitySignal() {
-		doReturn(ObjectType.ENTITY_VIEW).when(managerSpy).getTableType(idAndVersion);
+		doReturn(ObjectType.ENTITY_VIEW).when(managerSpy).getTableObjectType(idAndVersion);
 		// call under test
 		managerSpy.sendAsynchronousActivitySignal(idAndVersion);
-		verify(managerSpy).getTableType(idAndVersion);
+		verify(managerSpy).getTableObjectType(idAndVersion);
 		MessageToSend expected = new MessageToSend().withObjectId(idAndVersion.getId().toString())
 				.withObjectVersion(null).withObjectType(ObjectType.ENTITY_VIEW)
 				.withChangeType(ChangeType.UPDATE);
@@ -944,10 +924,10 @@ public class TableManagerSupportTest {
 	@Test
 	public void testSendAsynchronousActivitySignalWithVersion() {
 		idAndVersion = IdAndVersion.parse("syn123.1");
-		doReturn(ObjectType.ENTITY_VIEW).when(managerSpy).getTableType(idAndVersion);
+		doReturn(ObjectType.ENTITY_VIEW).when(managerSpy).getTableObjectType(idAndVersion);
 		// call under test
 		managerSpy.sendAsynchronousActivitySignal(idAndVersion);
-		verify(managerSpy).getTableType(idAndVersion);
+		verify(managerSpy).getTableObjectType(idAndVersion);
 		MessageToSend expected = new MessageToSend().withObjectId("123")
 				.withObjectVersion(new Long(1)).withObjectType(ObjectType.ENTITY_VIEW)
 				.withChangeType(ChangeType.UPDATE);
@@ -956,10 +936,10 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testSendAsynchronousActivitySignalWithNonView() {
-		doReturn(ObjectType.ENTITY).when(managerSpy).getTableType(idAndVersion);
+		doReturn(ObjectType.ENTITY).when(managerSpy).getTableObjectType(idAndVersion);
 		// call under test
 		managerSpy.sendAsynchronousActivitySignal(idAndVersion);
-		verify(managerSpy).getTableType(idAndVersion);
+		verify(managerSpy).getTableObjectType(idAndVersion);
 		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 	
@@ -979,7 +959,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.entityview);
 		// call under test
 		IndexDescription result = manager.getIndexDescription(idAndVersion);
-		IndexDescription expected = new ViewIndexDescription(idAndVersion, EntityType.entityview);
+		IndexDescription expected = new ViewIndexDescription(idAndVersion, TableType.entityview);
 		assertEquals(expected, result);
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
 		verifyZeroInteractions(mockMaterializedViewDao);
@@ -990,7 +970,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.dataset);
 		// call under test
 		IndexDescription result = manager.getIndexDescription(idAndVersion);
-		IndexDescription expected = new ViewIndexDescription(idAndVersion, EntityType.dataset);
+		IndexDescription expected = new ViewIndexDescription(idAndVersion, TableType.dataset);
 		assertEquals(expected, result);
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
 		verifyZeroInteractions(mockMaterializedViewDao);
@@ -1001,7 +981,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.submissionview);
 		// call under test
 		IndexDescription result = manager.getIndexDescription(idAndVersion);
-		IndexDescription expected = new ViewIndexDescription(idAndVersion, EntityType.submissionview);
+		IndexDescription expected = new ViewIndexDescription(idAndVersion, TableType.submissionview);
 		assertEquals(expected, result);
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
 		verifyZeroInteractions(mockMaterializedViewDao);
@@ -1012,9 +992,9 @@ public class TableManagerSupportTest {
 		IdAndVersion tableId = IdAndVersion.parse("syn111");
 		IndexDescription tableIndexDescription = new TableIndexDescription(tableId);
 		IdAndVersion fileViewId = IdAndVersion.parse("syn222");
-		IndexDescription fileViewIndexDescription = new ViewIndexDescription(fileViewId, EntityType.entityview);
+		IndexDescription fileViewIndexDescription = new ViewIndexDescription(fileViewId, TableType.entityview);
 		IdAndVersion submissionViewId = IdAndVersion.parse("syn333");
-		IndexDescription submissionViewIndexDescription = new ViewIndexDescription(submissionViewId, EntityType.submissionview);
+		IndexDescription submissionViewIndexDescription = new ViewIndexDescription(submissionViewId, TableType.submissionview);
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.materializedview, EntityType.table,
 				EntityType.entityview, EntityType.submissionview);
 		when(mockMaterializedViewDao.getSourceTablesIds(any()))

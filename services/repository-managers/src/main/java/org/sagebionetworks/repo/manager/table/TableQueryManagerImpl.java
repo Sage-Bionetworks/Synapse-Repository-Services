@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
@@ -788,7 +789,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
     }
 
     @Override
-    public EntityType getTableEntityType(IdAndVersion idAndVersion) {
-        return tableManagerSupport.getTableEntityType(idAndVersion);
+    public TableType getTableEntityType(IdAndVersion idAndVersion) {
+        return tableManagerSupport.getTableType(idAndVersion);
     }
 }

@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
-import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 
 public interface TableUpdateRequestManagerProvider {
 	
@@ -10,6 +10,6 @@ public interface TableUpdateRequestManagerProvider {
 	 * @param type
 	 * @return
 	 */
-	public TableUpdateRequestManager getUpdateRequestManagerForType(EntityType type);
+	public TableUpdateRequestManager getUpdateRequestManagerForType(TableType type);
 
 }

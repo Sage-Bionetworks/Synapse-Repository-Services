@@ -111,7 +111,7 @@ public class SQLUtils {
 	private static final String DOUBLE_ENUM_CLAUSE = " ENUM ('" + DOUBLE_NAN + "', '" + DOUBLE_POSITIVE_INFINITY + "', '"
 			+ DOUBLE_NEGATIVE_INFINITY + "') DEFAULT null";
 
-	public enum TableType {
+	public enum TableIndexType {
 		/**
 		 * The index tables
 		 */
@@ -128,7 +128,7 @@ public class SQLUtils {
 		private final String tablePostFix;
 		private final Pattern tableNamePattern;
 
-		private TableType(String tablePostFix) {
+		private TableIndexType(String tablePostFix) {
 			this.tablePostFix = tablePostFix;
 			this.tableNamePattern = Pattern.compile(TABLE_PREFIX + "\\d+" + tablePostFix);
 		}
@@ -145,7 +145,7 @@ public class SQLUtils {
 	/**
 	 * Secondary tables are additional tables used to support a table's index.
 	 */
-	public static final List<TableType> SECONDARY_TYPES = ImmutableList.of(TableType.STATUS, TableType.FILE_IDS);
+	public static final List<TableIndexType> SECONDARY_TYPES = ImmutableList.of(TableIndexType.STATUS, TableIndexType.FILE_IDS);
 	
 	/**
 	 * Given a new schema generate the create table DDL.
@@ -153,7 +153,7 @@ public class SQLUtils {
 	 * @param newSchema
 	 * @return
 	 */
-	public static String createTableSQL(IdAndVersion tableId, TableType type) {
+	public static String createTableSQL(IdAndVersion tableId, TableIndexType type) {
 		ValidateArgument.required(tableId, "tableId");
 		StringBuilder columnDefinitions = new StringBuilder();
 		switch (type) {
@@ -172,7 +172,7 @@ public class SQLUtils {
 		return createTableSQL(tableId, type, columnDefinitions.toString());
 	}
 
-	private static String createTableSQL(IdAndVersion tableId, TableType type, String columnDefinitions) {
+	private static String createTableSQL(IdAndVersion tableId, TableIndexType type, String columnDefinitions) {
 		return "CREATE TABLE IF NOT EXISTS `" + getTableNameForId(tableId, type) + "` ( " + columnDefinitions + " )";
 	}
 
@@ -230,7 +230,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String getTableNameForId(IdAndVersion id, TableType type) {
+	public static String getTableNameForId(IdAndVersion id, TableIndexType type) {
 		if (id == null) {
 			throw new IllegalArgumentException("Table ID cannot be null");			
 		}
@@ -248,7 +248,7 @@ public class SQLUtils {
 		return "_A"+tableIndex;
 	}
 
-	private static void appendTableNameForId(IdAndVersion id, TableType type, StringBuilder builder) {
+	private static void appendTableNameForId(IdAndVersion id, TableIndexType type, StringBuilder builder) {
 		builder.append(TABLE_PREFIX);
 		builder.append(id.getId());
 		if(id.getVersion().isPresent()) {
@@ -268,7 +268,7 @@ public class SQLUtils {
 			builder.append(TEMP);
 		}
 		//currently only TableType.INDEX (i.e. the original user table) have multi-value columns
-		appendTableNameForId(idAndVersion, TableType.INDEX, builder);
+		appendTableNameForId(idAndVersion, TableIndexType.INDEX, builder);
 		builder.append("_INDEX");
 		return builder.toString();
 	}
@@ -416,7 +416,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String dropTableSQL(IdAndVersion tableId, TableType type) {
+	public static String dropTableSQL(IdAndVersion tableId, TableIndexType type) {
 		String tableName = getTableNameForId(tableId, type);
 		return "DROP TABLE IF EXISTS " + tableName;
 	}
@@ -433,7 +433,7 @@ public class SQLUtils {
 		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
  		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
-		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		builder.append(getTableNameForId(tableId, TableIndexType.INDEX));
 		builder.append(" (");
 		// Unconditionally set these two columns
 		builder.append(ROW_ID);
@@ -486,7 +486,7 @@ public class SQLUtils {
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
-		builder.append(getTableNameForId(tableId, TableType.STATUS));
+		builder.append(getTableNameForId(tableId, TableIndexType.STATUS));
 		builder.append(" ( ");
 		builder.append(STATUS_COL_SINGLE_KEY);
 		builder.append(",");
@@ -504,7 +504,7 @@ public class SQLUtils {
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
-		builder.append(getTableNameForId(tableId, TableType.STATUS));
+		builder.append(getTableNameForId(tableId, TableIndexType.STATUS));
 		builder.append(" ( ");
 		builder.append(STATUS_COL_SINGLE_KEY);
 		builder.append(",");
@@ -522,7 +522,7 @@ public class SQLUtils {
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
-		builder.append(getTableNameForId(tableId, TableType.STATUS));
+		builder.append(getTableNameForId(tableId, TableIndexType.STATUS));
 		builder.append(" ( ");
 		builder.append(STATUS_COL_SINGLE_KEY);
 		builder.append(",");
@@ -540,7 +540,7 @@ public class SQLUtils {
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
-		builder.append(getTableNameForId(tableId, TableType.STATUS));
+		builder.append(getTableNameForId(tableId, TableIndexType.STATUS));
 		builder.append(" ( ");
 		builder.append(STATUS_COL_SINGLE_KEY);
 		builder.append(",");
@@ -564,7 +564,7 @@ public class SQLUtils {
 		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
  		StringBuilder builder = new StringBuilder();
 		builder.append("DELETE FROM ");
-		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		builder.append(getTableNameForId(tableId, TableIndexType.INDEX));
 		builder.append(" WHERE ");
 		builder.append(ROW_ID);
 		builder.append(" IN ( :").append(ROW_ID_BIND).append(" )");
@@ -655,7 +655,7 @@ public class SQLUtils {
 	 */
 	public static String getCountSQL(IdAndVersion tableId){
 		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT COUNT(").append(ROW_ID).append(") FROM ").append(getTableNameForId(tableId, TableType.INDEX));
+		builder.append("SELECT COUNT(").append(ROW_ID).append(") FROM ").append(getTableNameForId(tableId, TableIndexType.INDEX));
 		return builder.toString();
 	}
 	
@@ -664,7 +664,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String getStatusMaxVersionSQL(IdAndVersion tableId) {
-		return "SELECT " + ROW_VERSION + " FROM " + getTableNameForId(tableId, TableType.STATUS);
+		return "SELECT " + ROW_VERSION + " FROM " + getTableNameForId(tableId, TableIndexType.STATUS);
 	}
 
 	/**
@@ -673,11 +673,11 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String getSchemaHashSQL(IdAndVersion tableId) {
-		return "SELECT " + STATUS_COL_SCHEMA_HASH + " FROM " + getTableNameForId(tableId, TableType.STATUS);
+		return "SELECT " + STATUS_COL_SCHEMA_HASH + " FROM " + getTableNameForId(tableId, TableIndexType.STATUS);
 	}
 	
 	public static String getSearchStatusSQL(IdAndVersion tableId) {
-		return "SELECT COUNT(" + STATUS_COL_SEARCH_ENABLED + ") FROM " + getTableNameForId(tableId, TableType.STATUS) + " WHERE " + STATUS_COL_SEARCH_ENABLED + " = TRUE";
+		return "SELECT COUNT(" + STATUS_COL_SEARCH_ENABLED + ") FROM " + getTableNameForId(tableId, TableIndexType.STATUS) + " WHERE " + STATUS_COL_SEARCH_ENABLED + " = TRUE";
 	}
 	
 	/**
@@ -686,7 +686,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String createSQLInsertIgnoreFileHandleId(IdAndVersion tableId){
-		return "INSERT IGNORE INTO "+getTableNameForId(tableId, TableType.FILE_IDS)+" ("+FILE_ID+") VALUES(?)";
+		return "INSERT IGNORE INTO "+getTableNameForId(tableId, TableIndexType.FILE_IDS)+" ("+FILE_ID+") VALUES(?)";
 	}
 	
 	/**
@@ -695,7 +695,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String createSQLGetBoundFileHandleId(IdAndVersion tableId){
-		return "SELECT "+FILE_ID+" FROM "+getTableNameForId(tableId, TableType.FILE_IDS)+" WHERE "+FILE_ID+" IN( :"+FILE_ID_BIND+")";
+		return "SELECT "+FILE_ID+" FROM "+getTableNameForId(tableId, TableIndexType.FILE_IDS)+" WHERE "+FILE_ID+" IN( :"+FILE_ID_BIND+")";
 	}
 	
 	/**
@@ -706,7 +706,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String createSQLGetDistinctValues(IdAndVersion tableId, String columnName){
-		return "SELECT DISTINCT "+columnName+" FROM "+getTableNameForId(tableId, TableType.INDEX);
+		return "SELECT DISTINCT "+columnName+" FROM "+getTableNameForId(tableId, TableIndexType.INDEX);
 	}
 
 	/**
@@ -722,7 +722,7 @@ public class SQLUtils {
 		if (alterTemp) {
 			tableName = getTemporaryTableName(tableId);
 		} else {
-			tableName = getTableNameForId(tableId, TableType.INDEX);
+			tableName = getTableNameForId(tableId, TableIndexType.INDEX);
 		}
 		for (ColumnChangeDetails change : changes) {
 			result.addAll(createAlterTableSqlColumnChangeDetailHandler(change, tableName, useDepricatedUtf8ThreeBytes));
@@ -766,7 +766,7 @@ public class SQLUtils {
 
 		String oldRowRefName = getRowIdRefColumnNameForId(oldColumnId.toString());
 		String newRowRefName = getRowIdRefColumnNameForId(newColumn.getId());
-		String parentTableName = alterTemp ? getTemporaryTableName(tableId) : getTableNameForId(tableId, TableType.INDEX);
+		String parentTableName = alterTemp ? getTemporaryTableName(tableId) : getTableNameForId(tableId, TableIndexType.INDEX);
 
 		return  "ALTER TABLE " + tableName +
 				" DROP INDEX " + oldColumnName + "_IDX," +
@@ -996,7 +996,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String createTruncateSql(IdAndVersion tableId) {
-		return "DELETE FROM "+getTableNameForId(tableId, TableType.INDEX);
+		return "DELETE FROM "+getTableNameForId(tableId, TableIndexType.INDEX);
 	}
 
 	/**
@@ -1034,7 +1034,7 @@ public class SQLUtils {
 			isFirst = false;
 		}
 		builder.append(" FROM ");
-		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		builder.append(getTableNameForId(tableId, TableIndexType.INDEX));
 		return builder.toString();
 	}
 	
@@ -1127,7 +1127,7 @@ public class SQLUtils {
 		
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
-		builder.append(getTableNameForId(tableId, TableType.INDEX));
+		builder.append(getTableNameForId(tableId, TableIndexType.INDEX));
 		builder.append(" ");
 		boolean isFirst = true;
 		//deletes first
@@ -1286,7 +1286,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String getTemporaryTableName(IdAndVersion tableId){
-		return TEMP+getTableNameForId(tableId, TableType.INDEX);
+		return TEMP+getTableNameForId(tableId, TableIndexType.INDEX);
 	}
 
 	/**
@@ -1295,7 +1295,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String createTempTableSql(IdAndVersion tableId) {
-		String tableName = getTableNameForId(tableId, TableType.INDEX);
+		String tableName = getTableNameForId(tableId, TableIndexType.INDEX);
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(CREATE_TABLE_LIKE, tempName, tableName);
 	}
@@ -1308,7 +1308,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String copyTableToTempSql(IdAndVersion tableId){
-		String tableName = getTableNameForId(tableId, TableType.INDEX);
+		String tableName = getTableNameForId(tableId, TableIndexType.INDEX);
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(SQL_COPY_TABLE_TO_TEMP, tempName, tableName);
 	}
@@ -1433,7 +1433,7 @@ public class SQLUtils {
 	public static String createSelectInsertFromObjectReplication(Long viewId, List<ColumnMetadata> metadata, String filterSql) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
-		builder.append(getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX));
+		builder.append(getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableIndexType.INDEX));
 		builder.append("(");
 		buildInsertValues(builder, metadata);
 		builder.append(") ");
@@ -1625,7 +1625,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String buildTableViewCRC32Sql(Long viewId){
-		String tableName = getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX);
+		String tableName = getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableIndexType.INDEX);
 		return String.format(SQL_TABLE_VIEW_CRC_32_TEMPLATE, tableName);
 	}
 	
@@ -1912,7 +1912,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String createInsertViewFromSnapshot(IdAndVersion idAndVersion, String[] headers) {
-		String tableName = getTableNameForId(idAndVersion, TableType.INDEX);
+		String tableName = getTableNameForId(idAndVersion, TableIndexType.INDEX);
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
 		builder.append(tableName);
@@ -1963,7 +1963,7 @@ public class SQLUtils {
 		ValidateArgument.required(columnModel, "columnModel");
 		ValidateArgument.requirement(ColumnTypeListMappings.isList(columnModel.getColumnType()), "columnModel's type must be a LIST type");
 
-		String parentTable = alterTemp ? getTemporaryTableName(tableIdAndVersion) : getTableNameForId(tableIdAndVersion, TableType.INDEX);
+		String parentTable = alterTemp ? getTemporaryTableName(tableIdAndVersion) : getTableNameForId(tableIdAndVersion, TableIndexType.INDEX);
 		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnModel.getId(), alterTemp);
 		String columnName = getUnnestedColumnNameForId(columnModel.getId());
 		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnModel.getId());
@@ -1996,7 +1996,7 @@ public class SQLUtils {
 
 		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnInfo.getId());
 		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId(), alterTemp);
-		String tableName = alterTemp ? getTemporaryTableName(tableIdAndVersion) : getTableNameForId(tableIdAndVersion, TableType.INDEX);
+		String tableName = alterTemp ? getTemporaryTableName(tableIdAndVersion) : getTableNameForId(tableIdAndVersion, TableIndexType.INDEX);
 		MySqlColumnType mySqlColumnType = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).getMySqlType();
 
 		String columnExpandTypeSQl =  mySqlColumnType.name() + (mySqlColumnType.hasSize() && columnInfo.getMaximumSize() != null ? "("  + columnInfo.getMaximumSize() + ")" : "");
@@ -2027,7 +2027,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String getOutOfDateRowsForViewSql(IdAndVersion viewId, String filterSql) {
-		String viewName = SQLUtils.getTableNameForId(viewId, TableType.INDEX);
+		String viewName = SQLUtils.getTableNameForId(viewId, TableIndexType.INDEX);
 		return String.format(VIEW_ROWS_OUT_OF_DATE_TEMPLATE, viewName, filterSql);
 	}
 	
@@ -2039,13 +2039,13 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String getDeleteRowsFromViewSql(IdAndVersion viewId) {
-		String viewName = SQLUtils.getTableNameForId(viewId, TableType.INDEX);
+		String viewName = SQLUtils.getTableNameForId(viewId, TableIndexType.INDEX);
 		return String.format(DELETE_ROWS_FROM_VIEW_TEMPLATE, viewName);
 	}
 
 	public static String generateSqlToRefreshViewBenefactors(IdAndVersion viewId) {
 		ValidateArgument.required(viewId, "viewId");
-		String viewName = SQLUtils.getTableNameForId(viewId, TableType.INDEX);
+		String viewName = SQLUtils.getTableNameForId(viewId, TableIndexType.INDEX);
 		return String.format("UPDATE %1$s T JOIN " + OBJECT_REPLICATION_TABLE + " O ON (T." + ROW_ID + " = O."
 				+ OBJECT_REPLICATION_COL_OBJECT_ID + " AND O." + OBJECT_REPLICATION_COL_OBJECT_TYPE + " = ?) SET T."
 				+ ROW_BENEFACTOR + " = O." + OBJECT_REPLICATION_COL_BENEFACTOR_ID + " WHERE T." + ROW_BENEFACTOR
@@ -2096,19 +2096,19 @@ public class SQLUtils {
 		
 		return builder.append(String.join(",", getColumnNames(columns)))
 				.append(" FROM ")
-				.append(getTableNameForId(id, TableType.INDEX));
+				.append(getTableNameForId(id, TableIndexType.INDEX));
 	}
 	 
 	public static String buildBatchUpdateSearchContentSql(IdAndVersion id) {
 		ValidateArgument.required(id, "The id");
 		
-		return "UPDATE " + getTableNameForId(id, TableType.INDEX) + " SET `" + ROW_SEARCH_CONTENT + "` = ? WHERE " + ROW_ID + " = ?";
+		return "UPDATE " + getTableNameForId(id, TableIndexType.INDEX) + " SET `" + ROW_SEARCH_CONTENT + "` = ? WHERE " + ROW_ID + " = ?";
 	}
 	
 	public static String buildClearSearchContentSql(IdAndVersion id) {
 		ValidateArgument.required(id, "The id");
 		
-		return "UPDATE " + getTableNameForId(id, TableType.INDEX) + " SET `" + ROW_SEARCH_CONTENT + "` = NULL";
+		return "UPDATE " + getTableNameForId(id, TableIndexType.INDEX) + " SET `" + ROW_SEARCH_CONTENT + "` = NULL";
 	}
 	
 }

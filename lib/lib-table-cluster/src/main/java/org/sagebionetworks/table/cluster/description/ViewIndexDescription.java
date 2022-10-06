@@ -13,18 +13,19 @@ import java.util.Objects;
 
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.cluster.SQLUtils;
-import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.SQLUtils.TableIndexType;
 import org.sagebionetworks.table.query.model.SqlContext;
 
 public class ViewIndexDescription implements IndexDescription {
 
 	private final IdAndVersion idAndVersion;
-	private final EntityType viewType;
+	private final TableType viewType;
 	private final BenefactorDescription description;
 
-	public ViewIndexDescription(IdAndVersion idAndVersion, EntityType viewtype) {
+	public ViewIndexDescription(IdAndVersion idAndVersion, TableType viewtype) {
 		super();
 		this.idAndVersion = idAndVersion;
 		this.viewType = viewtype;
@@ -41,7 +42,7 @@ public class ViewIndexDescription implements IndexDescription {
 	public String getCreateOrUpdateIndexSql() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("CREATE TABLE IF NOT EXISTS ");
-		builder.append(SQLUtils.getTableNameForId(idAndVersion, TableType.INDEX));
+		builder.append(SQLUtils.getTableNameForId(idAndVersion, TableIndexType.INDEX));
 		builder.append("( ");
 		builder.append(ROW_ID).append(" BIGINT NOT NULL, ");
 		builder.append(ROW_VERSION).append(" BIGINT NOT NULL, ");
@@ -62,7 +63,7 @@ public class ViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public EntityType getTableType() {
+	public TableType getTableType() {
 		return viewType;
 	}
 

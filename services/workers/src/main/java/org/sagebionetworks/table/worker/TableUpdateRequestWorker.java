@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.manager.table.TableUpdateRequestManager;
 import org.sagebionetworks.repo.manager.table.TableUpdateRequestManagerProvider;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -61,7 +62,7 @@ public class TableUpdateRequestWorker implements AsyncJobRunner<TableUpdateTrans
 			ValidateArgument.required(request.getEntityId(), "TableUpdateTransactionRequest.entityId");
 			// Lookup the type of the table
 			IdAndVersion idAndVersion = IdAndVersion.parse(request.getEntityId());
-			EntityType tableType = tableManagerSupport.getTableEntityType(idAndVersion);
+			TableType tableType = tableManagerSupport.getTableType(idAndVersion);
 			// Lookup the manger for this type
 			TableUpdateRequestManager requestManager = tableUpdateRequestManagerProvider.getUpdateRequestManagerForType(tableType);
 			// Listen to progress events.

@@ -86,7 +86,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.SQLUtils.TableIndexType;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
@@ -288,7 +288,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public void deleteTable(IdAndVersion tableId) {
 		boolean alterTemp = false;
 		deleteMultiValueTablesForTable(tableId, alterTemp);
-		template.update(SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX));
+		template.update(SQLUtils.dropTableSQL(tableId, SQLUtils.TableIndexType.INDEX));
 		deleteSecondaryTables(tableId);
 	}
 	
@@ -297,7 +297,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	 * @param tableId
 	 */
 	void deleteSecondaryTables(IdAndVersion tableId) {
-		for(TableType type: SQLUtils.SECONDARY_TYPES){
+		for(TableIndexType type: SQLUtils.SECONDARY_TYPES){
 			String dropStatusTableDML = SQLUtils.dropTableSQL(tableId, type);
 			template.update(dropStatusTableDML);
 		}	
@@ -429,7 +429,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	@Override
 	public void createSecondaryTables(IdAndVersion tableId) {
-		for(TableType type: SQLUtils.SECONDARY_TYPES){
+		for(TableIndexType type: SQLUtils.SECONDARY_TYPES){
 			String sql = SQLUtils.createTableSQL(tableId, type);
 			template.update(sql);
 		}	
@@ -644,7 +644,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId) {
 		try {
-			String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
+			String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableIndexType.INDEX);
 			// Bind variables do not seem to work here
 			return template.query(SQL_SHOW_COLUMNS + tableName, DB_COL_INFO_MAPPER);
 		} catch (BadSqlGrammarException e) {
@@ -690,7 +690,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		for(DatabaseColumnInfo info: list){
 			nameToInfoMap.put(info.getColumnName(), info);
 		}
-		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
+		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableIndexType.INDEX);
 		template.query(SHOW_INDEXES_FROM+tableName, new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
@@ -1585,7 +1585,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	@Override
 	public List<RowSearchContent> fetchSearchContent(IdAndVersion id, Set<Long> rowIds) {
-		String sql = "SELECT " + TableConstants.ROW_ID + ", " + TableConstants.ROW_SEARCH_CONTENT + " FROM " + SQLUtils.getTableNameForId(id, TableType.INDEX) + " WHERE " + TableConstants.ROW_ID + " IN(:" + TableConstants.ROW_ID + ") ORDER BY " + TableConstants.ROW_ID;
+		String sql = "SELECT " + TableConstants.ROW_ID + ", " + TableConstants.ROW_SEARCH_CONTENT + " FROM " + SQLUtils.getTableNameForId(id, TableIndexType.INDEX) + " WHERE " + TableConstants.ROW_ID + " IN(:" + TableConstants.ROW_ID + ") ORDER BY " + TableConstants.ROW_ID;
 		return namedTemplate.query(sql, Collections.singletonMap(TableConstants.ROW_ID, rowIds), (RowMapper<RowSearchContent>) (rs, rowNum) -> new RowSearchContent(rs.getLong(1), rs.getString(2)));
 	}
 
