@@ -14,6 +14,7 @@ public class JDORevisionUtils {
 	public static DBORevision makeCopyForNewVersion(DBORevision toCopy, Long revisionNumber) {
 		DBORevision copy = new DBORevision();
 		
+		copy.setDescription(toCopy.getDescription());
 		copy.setOwner(toCopy.getOwner());
 		copy.setRevisionNumber(revisionNumber);
 

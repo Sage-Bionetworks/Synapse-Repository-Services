@@ -37,6 +37,7 @@ public class JDORevisionUtilsTest {
 		DBONode owner = new DBONode();
 		owner.setId(12l);
 		DBORevision original = new DBORevision();
+		original.setDescription("description");
 		original.setOwner(owner.getId());
 		original.setRevisionNumber(2L);
 		original.setUserAnnotationsJSON("{}");
@@ -58,6 +59,7 @@ public class JDORevisionUtilsTest {
 		// We do not copy over the label or the comment
 		assertNull(copy.getLabel());
 		assertNull(copy.getComment());
+		assertEquals(original.getDescription(), copy.getDescription());
 		// We do make a copy of the annotations blob
 		// but it should be a copy and not the original
 		assertEquals(original.getUserAnnotationsJSON(), copy.getUserAnnotationsJSON());

@@ -26,6 +26,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DESCRIPTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DEFINING_SQL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
@@ -178,7 +179,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " = ? AND " + COL_REVISION_NUMBER + " = ?";
 
 	private static final String UPDATE_REVISION = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_ACTIVITY_ID
-			+ " = ?, " + COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_FILE_HANDLE_ID
+			+ " = ?, " + COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_DESCRIPTION + " = ?, " + COL_REVISION_FILE_HANDLE_ID
 			+ " = ?, " + COL_REVISION_COLUMN_MODEL_IDS + " = ?, " + COL_REVISION_SCOPE_IDS 
 			+ " = ?, " + COL_REVISION_REF_BLOB + " = ?, "+COL_REVISION_ITEMS+" = ?, " + COL_REVISION_SEARCH_ENABLED + " = ?, " + COL_REVISION_DEFINING_SQL 
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
@@ -317,7 +318,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public static final String SQL_ID_NOT_IN_SET = " AND N."+COL_NODE_ID+" NOT IN (:"+BIND_NODE_IDS+")";
 	
 	private static final String SQL_SELECT_WITHOUT_ANNOTATIONS = "SELECT N.*, R." + COL_REVISION_OWNER_NODE + ", R."
-			+ COL_REVISION_NUMBER + ", R." + COL_REVISION_ACTIVITY_ID + ", R." + COL_REVISION_LABEL + ", R."
+			+ COL_REVISION_NUMBER + ", R." + COL_REVISION_ACTIVITY_ID + ", R." + COL_REVISION_DESCRIPTION + ", R." + COL_REVISION_LABEL + ", R."
 			+ COL_REVISION_COMMENT + ", R." + COL_REVISION_MODIFIED_BY + ", R." + COL_REVISION_MODIFIED_ON + ", R."
 			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_COLUMN_MODEL_IDS + ", R." + COL_REVISION_SCOPE_IDS
 			+ ", R." + COL_REVISION_REF_BLOB + ", R." + COL_REVISION_ITEMS + ", R." + COL_REVISION_SEARCH_ENABLED 
@@ -570,7 +571,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Make sure to set the corret revision number
 		dto.setVersionNumber(revisionNumber);
 
-		DBORevision dboRevision = NodeUtils.transalteNodeToDBORevision(dto);
+		DBORevision dboRevision = NodeUtils.translateNodeToDBORevision(dto);
 		
 		DBONode dboNode = NodeUtils.translateNodeToDBONode(dto);
 		
@@ -969,9 +970,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		String items = NodeUtils.writeItemsToJson(updatedNode.getItems());
 		Boolean searchEnabled = updatedNode.getIsSearchEnabled();
 		String definingSQL = updatedNode.getDefiningSQL();
+		String newDescription = updatedNode.getDescription();
 		
 		// Update the revision
-		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newFileHandleId, newColumns,
+		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newDescription, newFileHandleId, newColumns,
 				newScope, newReferences, items, searchEnabled, definingSQL, nodeId, currentRevision);
 	}
 	

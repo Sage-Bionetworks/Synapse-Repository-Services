@@ -324,6 +324,7 @@ public class NodeDAOImplTest {
 		toCreate.setVersionComment("This is the first version of the first node ever!");
 		toCreate.setVersionLabel("0.0.1");		
 		toCreate.setActivityId(testActivity.getId());
+		toCreate.setDescription("Description");
 		long initialCount = nodeDao.getCount();
 		String id = nodeDao.createNew(toCreate);
 		assertEquals(1+initialCount, nodeDao.getCount()); // piggy-back checking count on top of other tests :^)
@@ -342,6 +343,7 @@ public class NodeDAOImplTest {
 		assertEquals(new Long(1),loaded.getVersionNumber());
 		assertEquals(toCreate.getVersionComment(), loaded.getVersionComment());
 		assertEquals(toCreate.getVersionLabel(), loaded.getVersionLabel());
+		assertEquals(toCreate.getDescription(), loaded.getDescription());
 		assertEquals(testActivity.getId(), loaded.getActivityId());
 	}
 	

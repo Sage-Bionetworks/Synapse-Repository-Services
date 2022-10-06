@@ -34,6 +34,7 @@ public class SqlConstants {
 	public static final String COL_REVISION_OWNER_NODE		= "OWNER_NODE_ID";
 	public static final String COL_REVISION_NUMBER			= "NUMBER";
 	public static final String COL_REVISION_ACTIVITY_ID		= "ACTIVITY_ID";
+	public static final String COL_REVISION_DESCRIPTION	    = "DESCRIPTION";
 	public static final String COL_REVISION_LABEL			= "LABEL";
 	public static final String COL_REVISION_COMMENT			= "COMMENT";
 	public static final String COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB = "ENTITY_PROPERTY_ANNOTATIONS";
