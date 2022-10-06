@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_DESCRIPTION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PROJECT_ID;
@@ -25,6 +26,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 public enum ObjectField {	
 	id						(OBJECT_REPLICATION_COL_OBJECT_ID, 			null, 						null,	null),
 	name					(OBJECT_REPLICATION_COL_NAME,				ColumnType.STRING,			256L,	null),
+	description				(OBJECT_REPLICATION_COL_DESCRIPTION,		ColumnType.STRING,			1000L,	null),
 	createdOn				(OBJECT_REPLICATION_COL_CREATED_ON, 		ColumnType.DATE,			null,	FacetType.range),
 	createdBy				(OBJECT_REPLICATION_COL_CREATED_BY, 		ColumnType.USERID,			null,	FacetType.enumeration),
 	etag					(OBEJCT_REPLICATION_COL_ETAG,	 			ColumnType.STRING,			36L,	null),

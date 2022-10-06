@@ -3444,6 +3444,7 @@ public class TableIndexDAOImplTest {
 		objectDataDTO.setCreatedOn(new Date());
 		objectDataDTO.setEtag("etag"+id);
 		objectDataDTO.setName("name"+id);
+		objectDataDTO.setDescription("description" + id);
 		objectDataDTO.setSubType(SubType.valueOf(type.name()));
 		objectDataDTO.setParentId(1L);
 		objectDataDTO.setBenefactorId(2L);
