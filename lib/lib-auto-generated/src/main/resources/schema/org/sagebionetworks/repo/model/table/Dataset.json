@@ -12,6 +12,14 @@
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.EntityRef"
 			}
+		},
+		"size": {
+			"description": "The cumulative size, in bytes, of all items in the dataSet.",
+			"type": "integer"
+		},
+		"checksum": {
+			"description": "The checksum is computed over a sorted concatenation of the checksums of all items in the dataSet.",
+			"type": "string"
 		}
 	}
 }

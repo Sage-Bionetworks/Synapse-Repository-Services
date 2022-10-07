@@ -1,10 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
+import com.google.common.collect.Lists;
 import org.json.JSONObject;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
@@ -38,6 +34,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.dbo.file.FileSummary;
 import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
@@ -58,6 +55,7 @@ import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
 import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
+import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -65,7 +63,10 @@ import org.sagebionetworks.upload.multipart.MultipartUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.Lists;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 /**
  *
  */
@@ -110,6 +111,9 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity, String activityId)
 			throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
+		if(newEntity instanceof Dataset){
+			calculateSizeAndChecksum((Dataset)newEntity);
+		}
 		// First create a node the represent the entity
 		Node node = NodeTranslationUtils.createFromEntity(newEntity);
 		// Set the type for this object
@@ -122,6 +126,18 @@ public class EntityManagerImpl implements EntityManager {
 		node = nodeManager.createNewNode(node, entityPropertyAnnotations, userInfo);
 		// Return the id of the newly created entity
 		return node.getId();
+	}
+
+	void calculateSizeAndChecksum(Dataset dataset) {
+		if (dataset.getItems() == null || dataset.getItems().isEmpty()) {
+			return;
+		}
+		FileSummary fileSummary = fileHandleManager.getFileSummary((dataset).getItems());
+		if ((dataset).getItems().size() != fileSummary.getCount()) {
+
+		}
+		(dataset).setChecksum(fileSummary.getChecksum());
+		(dataset).setSize(fileSummary.getSize());
 	}
 
 	@Override
@@ -346,6 +362,10 @@ public class EntityManagerImpl implements EntityManager {
 			 * unconditionally ignore this parameter for table/views.
 			 */
 			newVersion = false;
+		}
+
+		if (updated instanceof Dataset) {
+			calculateSizeAndChecksum((Dataset) updated);
 		}
 
 		final boolean newVersionFinal = newVersion;

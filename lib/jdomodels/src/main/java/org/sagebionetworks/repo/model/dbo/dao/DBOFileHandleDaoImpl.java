@@ -1,34 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_IS_PREVIEW;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STATUS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_UPDATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
-
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -38,6 +11,7 @@ import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.file.FileSummary;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -61,8 +35,38 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_IS_PREVIEW;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STATUS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_UPDATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
 /**
  * Basic JDBC implementation of the FileMetadataDao.
@@ -112,7 +116,23 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			+ " ON S." + COL_FILES_CONTENT_MD5 + " = T." + COL_FILES_CONTENT_MD5
 			+ " WHERE S." + COL_FILES_ID + "= ?"
 			+ " AND T." + COL_FILES_ID + "= ?";
-	
+
+	private static final String SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION = "SELECT COUNT(*) AS COUNT, " +
+			"MD5(GROUP_CONCAT(F." + COL_FILES_CONTENT_MD5 + " ORDER BY F." + COL_FILES_CONTENT_MD5 + " ASC )) AS CHECKSUM, " +
+			"SUM(F." + COL_FILES_CONTENT_SIZE + ") AS SIZE " +
+			" FROM " + TABLE_REVISION + " R JOIN " + TABLE_FILES + " F ON R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID +
+			" WHERE (R." + COL_REVISION_OWNER_NODE + ", R." + COL_REVISION_NUMBER + ") IN (:pairs)";
+
+	private static final RowMapper<FileSummary> FILE_SUMMARY_ROW_MAPPER = new RowMapper<FileSummary>() {
+		@Override
+		public FileSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
+			String checksum = rs.getString("CHECKSUM");
+			long size = rs.getLong("SIZE");
+			int count = rs.getInt("COUNT");
+			return new FileSummary(checksum, size, count);
+		}
+	};
+
 	private TransactionalMessenger transactionalMessenger;
 		
 	private DBOBasicDao basicDao;
@@ -594,4 +614,8 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}
 	}
 
+	@Override
+	public FileSummary getFileSummary(Map<String, List<Long[]>> namedParameters) {
+		return namedJdbcTemplate.query(SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION, namedParameters, FILE_SUMMARY_ROW_MAPPER).get(0);
+	}
 }

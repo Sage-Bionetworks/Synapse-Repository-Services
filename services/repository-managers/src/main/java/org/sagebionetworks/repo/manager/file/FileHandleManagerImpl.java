@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -55,6 +56,7 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.file.FileSummary;
 import org.sagebionetworks.repo.model.file.BaseKeyUploadDestination;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
@@ -87,6 +89,7 @@ import org.sagebionetworks.repo.model.file.StsUploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.project.BaseKeyStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
@@ -1392,4 +1395,19 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		
 		return fileHandleDao.isMatchingMD5(sourceFileHandleId, targetFileHandleId);
 	}
+
+	@Override
+	public FileSummary getFileSummary(final List<EntityRef> entityRefs) {
+		List<Long[]> specificIdVersionPairs = new ArrayList<>(entityRefs.size());
+		for (EntityRef ref : entityRefs) {
+			if (ref.getEntityId() != null) {
+				Long entityId = KeyFactory.stringToKey(ref.getEntityId());
+				specificIdVersionPairs.add(new Long[]{entityId, ref.getVersionNumber()});
+			}
+		}
+
+		Map<String, List<Long[]>> namedParameters = Collections.singletonMap("pairs", specificIdVersionPairs);
+		return fileHandleDao.getFileSummary(namedParameters);
+	}
+
 }

@@ -1,17 +1,12 @@
 package org.sagebionetworks.repo.manager.file.preview;
 
-import java.time.Instant;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.Maps;
 import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.file.FileSummary;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -19,7 +14,12 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.common.collect.Maps;
+import java.time.Instant;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A simple stub implementation of the FileMetadataDao.
@@ -125,6 +125,12 @@ public class StubFileMetadataDao implements FileHandleDao {
 	public void createBatchDbo(List<DBOFileHandle> dbos) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public FileSummary getFileSummary(Map<String, List<Long[]>> namedParameters) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
