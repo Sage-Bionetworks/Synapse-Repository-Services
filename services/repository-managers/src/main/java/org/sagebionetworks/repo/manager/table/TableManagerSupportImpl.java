@@ -395,7 +395,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		authorizationManager.canAccess(userInfo, indexDescription.getIdAndVersion().getId().toString(),
 				ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		// User must have the download permission to read from a TableEntity.
-		if (EntityType.table.equals(indexDescription.getTableType())) {
+		if (TableType.table.equals(indexDescription.getTableType())) {
 			// And they must have download permission to access table content.
 			authorizationManager.canAccess(userInfo, indexDescription.getIdAndVersion().getId().toString(),
 					ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();

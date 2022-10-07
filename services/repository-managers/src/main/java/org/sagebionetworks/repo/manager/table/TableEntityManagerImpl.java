@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
@@ -477,7 +478,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);	
 		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
 		tableManagerSupport.validateTableReadAccess(userInfo, indexDescription);
-		if(!EntityType.table.equals(indexDescription.getTableType())){
+		if(!TableType.table.equals(indexDescription.getTableType())){
 			throw new UnauthorizedException("Can only be called for TableEntities");
 		}
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);

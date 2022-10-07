@@ -1022,7 +1022,7 @@ public class TableManagerSupportTest {
 			// call under test
 			manager.getIndexDescription(idAndVersion);
 		}).getMessage();
-		assertEquals("Unexpected type for entity with id " + idAndVersion.toString() + ": folder (expected a table or view type)", message);
+		assertEquals("syn123 is not a table or view", message);
 	}
 	
 	@Test

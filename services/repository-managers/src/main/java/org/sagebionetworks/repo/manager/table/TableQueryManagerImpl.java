@@ -595,7 +595,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		SumFileSizes result = new SumFileSizes();
 		result.setGreaterThan(false);
 		result.setSumFileSizesBytes(0L);
-		if(EntityType.entityview.equals(query.getTableType()) || EntityType.dataset.equals(query.getTableType())){
+		if(TableType.entityview.equals(query.getTableType()) || TableType.dataset.equals(query.getTableType())){
 			// actual values are only provided for entity views.
 			try {
 				// first get the rowId and rowVersions for the given query up to the limit + 1.
