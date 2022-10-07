@@ -1417,15 +1417,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			String[] row = input.next();
 			long rowSize = SQLUtils.calculateBytes(row);
 			if (batchSize + rowSize > maxBytesPerBatch) {
-				template.batchUpdate(sql, batch);
+				writeTransactionTemplate.executeWithoutResult(txStatus -> template.batchUpdate(sql, batch));
 				batch.clear();
+				batchSize = 0;
 			}
 			batch.add(row);
 			batchSize += rowSize;
 		}
 
 		if (!batch.isEmpty()) {
-			template.batchUpdate(sql, batch);
+			writeTransactionTemplate.executeWithoutResult(txStatus -> template.batchUpdate(sql, batch));
 		}
 	}
 	
