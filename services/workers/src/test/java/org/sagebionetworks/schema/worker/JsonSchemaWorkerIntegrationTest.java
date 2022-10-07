@@ -745,31 +745,19 @@ public class JsonSchemaWorkerIntegrationTest {
 			assertTrue(t.getIsValid());
 		});
 
-
-		System.out.println("Current result time: " + previousValidationResults.getValidatedOn());
-
+		// The purpose of the below loop is to detect if an infinite loop occurs between the EntitySchemaValidator and
+		// SchemaValidationWorker when updating annotations for an entity.
 		int diffCount = 0;
-
 		for (int i = 0; i < 10; i++) {
-
 			Thread.sleep(1000);
-
 			ValidationResults newValidationResults = entityManager.getEntityValidationResults(adminUserInfo, folderId);
 
 			if (!newValidationResults.getValidatedOn().equals(previousValidationResults.getValidatedOn())) {
 				diffCount++;
 				previousValidationResults = newValidationResults;
 			}
-
 			assertTrue(diffCount <= 3);
-
-			System.out.println("New result time: " + newValidationResults.getValidatedOn());
-
 		}
-
-		System.out.println("Change count: " + diffCount);
-
-
 	}
 	
 	@Test

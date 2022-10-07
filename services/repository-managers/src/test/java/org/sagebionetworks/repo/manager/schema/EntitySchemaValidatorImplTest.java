@@ -294,7 +294,7 @@ public class EntitySchemaValidatorImplTest {
 	}
 
 	@Test
-	public void testSetDerivedAnnotationsAndBindAccessRequirementsWithEqualAnnotations() {
+	public void testSetDerivedAnnotationsAndBindAccessRequirementsWithExistingEqualAnnotations() {
 		when(mockDerivedAnnotationDao.getDerivedAnnotations(any())).thenReturn(Optional.of(annotations));
 
 		// call under test
