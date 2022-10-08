@@ -9,8 +9,8 @@ import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.model.SqlContext;
@@ -19,7 +19,7 @@ public class ViewIndexDescriptionTest {
 
 	@Test
 	public void testGetCreateOrUpdateIndexSql() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
 		// call under test
 		String sql = vid.getCreateOrUpdateIndexSql();
 		assertEquals("CREATE TABLE IF NOT EXISTS T999( "
@@ -36,7 +36,7 @@ public class ViewIndexDescriptionTest {
 
 	@Test
 	public void testGetBenefactorColumnNamesWithEntityView() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
 		// call under test
 		assertEquals(
 				Collections.singletonList(new BenefactorDescription(TableConstants.ROW_BENEFACTOR, ObjectType.ENTITY)),
@@ -45,7 +45,7 @@ public class ViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetBenefactorColumnNamesWithDataset() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.dataset);
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.dataset);
 		// call under test
 		assertEquals(
 				Collections.singletonList(new BenefactorDescription(TableConstants.ROW_BENEFACTOR, ObjectType.ENTITY)),
@@ -54,7 +54,7 @@ public class ViewIndexDescriptionTest {
 
 	@Test
 	public void testGetBenefactorColumnNamesWithSubmissionView() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.submissionview);
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.submissionview);
 		// call under test
 		assertEquals(
 				Collections
@@ -64,7 +64,7 @@ public class ViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithQueryWithEtagWithNonAggregate() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
 		boolean includeEtag = true;
 		boolean isAggregate = false;
 		// call under test
@@ -74,7 +74,7 @@ public class ViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithQueryWithoutEtagWithNonAggregate() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
 		boolean includeEtag = false;
 		boolean isAggregate = false;
 		// call under test
@@ -84,7 +84,7 @@ public class ViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithQueryWithEtagWithAggregate() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
 		boolean includeEtag = true;
 		boolean isAggregate = true;
 		// call under test
@@ -94,7 +94,7 @@ public class ViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithQueryWithoutEtagWithAggregate() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
 		boolean includeEtag = false;
 		boolean isAggregate = true;
 		// call under test
@@ -104,7 +104,7 @@ public class ViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithBuild() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
 		boolean includeEtag = true;
 		boolean isAggregate = false;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
@@ -115,7 +115,7 @@ public class ViewIndexDescriptionTest {
 	}
 	@Test
 	public void testGetColumnNamesToAddToSelectWithNull() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
 		boolean includeEtag = true;
 		boolean isAggregate = false;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
@@ -127,14 +127,14 @@ public class ViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetDependencies() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
 		// Call under test
 		assertEquals(Collections.emptyList(), vid.getDependencies());
 	}
 	
 	@Test
 	public void testAddRowIdToSearchIndex() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
 		// Call under test
 		assertTrue(vid.addRowIdToSearchIndex());
 	}

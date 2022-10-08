@@ -1,18 +1,18 @@
 package org.sagebionetworks.table.cluster.description;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_SEARCH_CONTENT;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.cluster.SQLUtils;
-import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.SQLUtils.TableIndexType;
 import org.sagebionetworks.table.query.model.SqlContext;
 
 public class TableIndexDescription implements IndexDescription {
@@ -33,7 +33,7 @@ public class TableIndexDescription implements IndexDescription {
 	public String getCreateOrUpdateIndexSql() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("CREATE TABLE IF NOT EXISTS ");
-		builder.append(SQLUtils.getTableNameForId(idAndVersion, TableType.INDEX));
+		builder.append(SQLUtils.getTableNameForId(idAndVersion, TableIndexType.INDEX));
 		builder.append("( ");
 		builder.append(ROW_ID).append(" BIGINT NOT NULL, ");
 		builder.append(ROW_VERSION).append(" BIGINT NOT NULL, ");
@@ -50,8 +50,8 @@ public class TableIndexDescription implements IndexDescription {
 	}
 	
 	@Override
-	public EntityType getTableType() {
-		return EntityType.table;
+	public TableType getTableType() {
+		return TableType.table;
 	}
 	
 	@Override

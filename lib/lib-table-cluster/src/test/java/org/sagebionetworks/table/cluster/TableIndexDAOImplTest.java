@@ -46,6 +46,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -67,7 +68,7 @@ import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.SQLUtils.TableIndexType;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
@@ -347,7 +348,7 @@ public class TableIndexDAOImplTest {
 				.queryForList(
 						"SELECT * FROM "
 								+ SQLUtils.getTableNameForId(tableId,
-										TableType.INDEX));
+										TableIndexType.INDEX));
 		assertNotNull(result);
 		assertEquals(5, result.size());
 		// Row zero
@@ -371,7 +372,7 @@ public class TableIndexDAOImplTest {
 		// Check the update
 		result = tableIndexDAO.getConnection().queryForList(
 				"SELECT * FROM "
-						+ SQLUtils.getTableNameForId(tableId, TableType.INDEX));
+						+ SQLUtils.getTableNameForId(tableId, TableIndexType.INDEX));
 		assertNotNull(result);
 		assertEquals(5, result.size());
 		// row four
@@ -2264,7 +2265,7 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testGetMaxListSizeForAnnotations() throws ParseException {
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
@@ -2318,7 +2319,7 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testGetMaxListSizeForAnnotations_noAnnotationsInReplication() throws ParseException {
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
@@ -2350,7 +2351,7 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testGetMaxListSizeForAnnotations_WithObjectIdFilter() throws ParseException {
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
@@ -2409,7 +2410,7 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testCopyEntityReplicationToTable(){
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
@@ -2443,7 +2444,7 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testCopyEntityReplicationToTable_WithListAnnotations() throws ParseException {
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
@@ -2496,7 +2497,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testCopyEntityReplicationToTableScopeWithDoubleAnnotation(){
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
@@ -2537,7 +2538,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testPopulateViewFromSnapshot(){
 		tableId = IdAndVersion.parse("syn123.45");
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		tableIndexDAO.deleteTable(tableId);
@@ -2566,7 +2567,7 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testCopyEntityReplicationToTableScopeEmpty(){
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
@@ -3690,7 +3691,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_ReplicationRowsMissingFromView(){
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3719,7 +3720,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_DeletedRowsStillInView(){
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3754,7 +3755,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_MovedOutOfScope(){
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3792,7 +3793,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_EtagDoesNotMatch(){
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3830,7 +3831,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_BenefactorDoesNotMatch(){
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3868,7 +3869,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_ViewUpToDate(){
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3897,7 +3898,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_Limit(){
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3926,7 +3927,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_FilterTypes(){
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3960,7 +3961,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_RemoveTypesNoLongerInView(){
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -4094,7 +4095,7 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testDeleteRowsFromView() {
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -4128,7 +4129,7 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testDeleteRowsFromViewEmpty() {
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -4179,7 +4180,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testCopyEntityReplicationToViewWithRowFilter() {
 		long limit = 100;
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);		
 
@@ -4220,7 +4221,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testCopyEntityReplicationToViewWithRowFilterNull() {
 		long limit = 100;
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);			
 		
@@ -4242,7 +4243,7 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testPopulateListColumnIndexTableView_NoIdFilter() {
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 4;
 		boolean includeMultiValue = true;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount, includeMultiValue);
@@ -4280,7 +4281,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testPopulateListColumnIndexTableView_WithIdFilter() {
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		int rowCount = 4;
 		boolean includeMultiValue = true;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount, includeMultiValue);
@@ -4573,7 +4574,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testRefreshViewBenefactors() throws ParseException{
 		tableId = IdAndVersion.parse("syn123");
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		tableIndexDAO.deleteTable(tableId);
@@ -4686,7 +4687,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testViewWithMultipleVersions() throws ParseException{
 		tableId = IdAndVersion.parse("syn123");
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		Long objectIdOne = 22L;
 		Long objectIdTwo = 33L;
 		// delete all data
@@ -4766,7 +4767,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetIdAndChecksumsForFilterWithFlatIdAndVersionFilter() {
 		tableId = IdAndVersion.parse("syn123");
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		Long objectIdOne = 22L;
 		Long objectIdTwo = 33L;
 		Long objectIdThree = 44L;
@@ -4817,7 +4818,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetIdAndChecksumsForFilterWithHierarchyFilter() {
 		tableId = IdAndVersion.parse("syn123");
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		Long objectIdOne = 22L;
 		Long objectIdTwo = 33L;
 		Long objectIdThree = 44L;
@@ -4858,7 +4859,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetIdAndChecksumsForFilterWithFlatFilter() {
 		tableId = IdAndVersion.parse("syn123");
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		Long objectIdOne = 22L;
 		Long objectIdTwo = 33L;
 		Long objectIdThree = 44L;
@@ -4972,7 +4973,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testStreamTableToCSV() {
 		tableId = IdAndVersion.parse("syn123");
-		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		tableIndexDAO.deleteTable(tableId);

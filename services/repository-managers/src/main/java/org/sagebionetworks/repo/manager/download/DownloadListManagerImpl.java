@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
@@ -430,9 +431,9 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		try {
 			QuerySpecification model = TableQueryParser.parserQuery(query.getSql());
 			IdAndVersion idAndVersion = IdAndVersion.parse(model.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
-			EntityType tableType = tableQueryManager.getTableEntityType(idAndVersion);
+			TableType tableType = tableQueryManager.getTableEntityType(idAndVersion);
 			
-			if (!EntityType.entityview.equals(tableType) && !EntityType.dataset.equals(tableType)) {
+			if (!TableType.entityview.equals(tableType) && !TableType.dataset.equals(tableType)) {
 				throw new IllegalArgumentException(String.format("'%s' is not a file view or a dataset", idAndVersion.toString()));
 			}
 			

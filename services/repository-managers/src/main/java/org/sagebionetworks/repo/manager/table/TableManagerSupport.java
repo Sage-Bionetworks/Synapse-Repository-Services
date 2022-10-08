@@ -9,10 +9,10 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableState;
@@ -180,7 +180,7 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @param tableId
 	 * @return
 	 */
-	ObjectType getTableType(IdAndVersion tableId);
+	ObjectType getTableObjectType(IdAndVersion tableId);
 
 	/**
 	 * Get the number currently associated with a view, for consistency checks.
@@ -333,7 +333,7 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @param tableId
 	 * @return
 	 */
-	EntityType getTableEntityType(IdAndVersion tableId);
+	TableType getTableType(IdAndVersion tableId);
 
 	/**
 	 * Get the view scope type for the view with the give id

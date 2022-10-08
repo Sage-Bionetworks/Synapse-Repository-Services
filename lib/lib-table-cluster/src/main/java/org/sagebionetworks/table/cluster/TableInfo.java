@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.SQLUtils.TableIndexType;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.RowMetadataColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
@@ -36,7 +36,7 @@ public class TableInfo implements ColumnLookup {
 		originalTableName = tableNameCorrelation.getTableName().toSql();
 		tableIdAndVersion = IdAndVersion.parse(originalTableName);
 		tableAlias = tableNameCorrelation.getTableAlias().orElse(null);
-		translatedTableName = SQLUtils.getTableNameForId(tableIdAndVersion, TableType.INDEX);
+		translatedTableName = SQLUtils.getTableNameForId(tableIdAndVersion, TableIndexType.INDEX);
 		this.translatedTableAlias = SQLUtils.getTableAliasForIndex(tableIndex);
 		this.tableSchema = schema;
 		this.tableIndex = tableIndex;

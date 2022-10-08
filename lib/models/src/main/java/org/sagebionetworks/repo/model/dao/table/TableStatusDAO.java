@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.model.dao.table;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.IdVersionTableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -143,4 +145,12 @@ public interface TableStatusDAO {
 	 *         change will be returned.
 	 */
 	public Optional<String> getLastChangeEtag(IdAndVersion idAndVersion);
+	
+	/**
+	 * Get the ID, version, and type of every table or view that does not have a table status.
+	 * @param limit
+	 * @return
+	 */
+	List<IdVersionTableType> getAllTablesAndViewsWithMissingStatus(long limit);
+	
 }

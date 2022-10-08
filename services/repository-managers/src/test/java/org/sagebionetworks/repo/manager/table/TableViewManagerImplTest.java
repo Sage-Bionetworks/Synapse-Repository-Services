@@ -67,6 +67,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshot;
@@ -273,7 +274,7 @@ public class TableViewManagerImplTest {
 		
 		scopeType = new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.File.getMask());
 		
-		indexDescription =  new ViewIndexDescription(idAndVersion, EntityType.entityview);
+		indexDescription =  new ViewIndexDescription(idAndVersion, TableType.entityview);
 		
 		managerSpy = Mockito.spy(manager);
 	}

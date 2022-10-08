@@ -77,6 +77,7 @@
     <import resource="classpath:validation-schema-index-spb.xml" />
     <import resource="classpath:materialized-view-workers-spb.xml" />
     <import resource="classpath:access-requirement-to-project-worker-spb.xml" />
+    <import resource="classpath:missing-table-status-worker.spb.xml" />
    
    	<bean id="concurrentStackManager" class="org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManagerImpl" />
 
@@ -151,6 +152,8 @@
 		<ref bean="materializedViewUpdateWorkerTrigger"/>
 		<ref bean="materializedViewSourceUpdateWorkerTrigger"/>
 		<ref bean="accessRequirementToProjectWorkerTrigger"/>
+		<ref bean="missingTableStatusWorkerTrigger"/>
+		
 	</util:list>
 
 	<bean id="mainScheduler"
