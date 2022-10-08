@@ -28,6 +28,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_DESCRIPTION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_VERSION;
@@ -146,6 +147,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		dto.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
 		dto.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
 		dto.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
+		dto.setDescription(rs.getString(OBJECT_REPLICATION_COL_DESCRIPTION));
 		dto.setSubType(SubType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
 		dto.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
 		if (rs.wasNull()) {
@@ -858,7 +860,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					throws SQLException {
 				ObjectDataDTO dto = sorted.get(i);
 				int parameterIndex = 1;
-				int updateOffset = 17;
+				int updateOffset = 18;
 				
 				ps.setString(parameterIndex++, mainType.name());
 				ps.setLong(parameterIndex++, dto.getId());
@@ -878,6 +880,14 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				
 				ps.setString(parameterIndex++, dto.getName());
 				ps.setString(parameterIndex + updateOffset, dto.getName());
+				
+				if (dto.getDescription() != null) {
+					ps.setString(parameterIndex++, dto.getDescription());
+					ps.setString(parameterIndex + updateOffset, dto.getDescription());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.VARCHAR);
+				}
 				
 				ps.setString(parameterIndex++, dto.getSubType().name());
 				ps.setString(parameterIndex + updateOffset, dto.getSubType().name());
@@ -1407,15 +1417,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			String[] row = input.next();
 			long rowSize = SQLUtils.calculateBytes(row);
 			if (batchSize + rowSize > maxBytesPerBatch) {
-				template.batchUpdate(sql, batch);
+				writeTransactionTemplate.executeWithoutResult(txStatus -> template.batchUpdate(sql, batch));
 				batch.clear();
+				batchSize = 0;
 			}
 			batch.add(row);
 			batchSize += rowSize;
 		}
 
 		if (!batch.isEmpty()) {
-			template.batchUpdate(sql, batch);
+			writeTransactionTemplate.executeWithoutResult(txStatus -> template.batchUpdate(sql, batch));
 		}
 	}
 	

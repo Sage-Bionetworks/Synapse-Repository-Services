@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DEFINING_SQL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DESCRIPTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ITEMS;
@@ -13,24 +15,28 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DEFINING_SQL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * The DatabaseObject for Revision.
@@ -40,10 +46,42 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  */
 public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORevision> {
 	public static final int MAX_COMMENT_LENGTH = 256;
-
-	static final MigratableTableTranslation<DBORevision, DBORevision> TRANSLATOR = new BasicMigratableTableTranslation<DBORevision>();
 	
-	private static FieldColumn[] FIELDS = new FieldColumn[] {
+	public static final Log LOG = LogFactory.getLog(DBORevision.class);
+
+	static final MigratableTableTranslation<DBORevision, DBORevision> TRANSLATOR = new MigratableTableTranslation<DBORevision, DBORevision>() {
+				
+		@Override
+		public DBORevision createBackupFromDatabaseObject(DBORevision dbo) {
+			return dbo;
+		}
+		
+		@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "To be removed after stack 426 is released")
+		@Override
+		public DBORevision createDatabaseObjectFromBackup(DBORevision backup) {
+			// Backfil for https://sagebionetworks.jira.com/browse/PLFM-7486
+			if (backup.getDescription() == null && backup.getEntityPropertyAnnotations() != null) {
+				try {
+					Annotations entityProperties = AnnotationUtils.decompressedAnnotationsV1(backup.getEntityPropertyAnnotations());
+					
+					Object descriptionValue = entityProperties.getSingleValue("description");
+					
+					if (descriptionValue != null && descriptionValue instanceof String) {
+						backup.setDescription((String) descriptionValue);
+						entityProperties.deleteAnnotation("description");
+						backup.setEntityPropertyAnnotations(AnnotationUtils.compressAnnotationsV1(entityProperties));
+					}
+					
+				} catch (IOException e) {
+					LOG.warn(e.getMessage(), e);					
+				}
+			}
+			
+			return backup;
+		}
+	};
+	
+	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		// This is a sub-table of node, so it gets backed up with nodes using the node ids
 		// so its backup ID is the owner.
 		new FieldColumn("owner", COL_REVISION_OWNER_NODE, true).withIsBackupId(true),
@@ -51,6 +89,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("activityId", COL_REVISION_ACTIVITY_ID),
 		new FieldColumn("label", COL_REVISION_LABEL),
 		new FieldColumn("comment", COL_REVISION_COMMENT),
+		new FieldColumn("description", COL_REVISION_DESCRIPTION),
 		new FieldColumn("modifiedBy", COL_REVISION_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_REVISION_MODIFIED_ON),
 		new FieldColumn("fileHandleId", COL_REVISION_FILE_HANDLE_ID).withHasFileHandleRef(true),
@@ -63,36 +102,39 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("isSearchEnabled", COL_REVISION_SEARCH_ENABLED),
 		new FieldColumn("definingSQL", COL_REVISION_DEFINING_SQL)
 	};
+	
+	private static final TableMapping<DBORevision> TABLE_MAPPING = new TableMapping<DBORevision>(){
+		@Override
+		public DBORevision mapRow(ResultSet rs, int rowNum)	throws SQLException {
+			boolean includeAnnotations = true;
+			DBORevisionMapper mapper = new DBORevisionMapper(includeAnnotations);
+			return mapper.mapRow(rs, rowNum);
+		}
+
+		@Override
+		public String getTableName() {
+			return TABLE_REVISION;
+		}
+
+		@Override
+		public String getDDLFileName() {
+			return DDL_FILE_REVISION;
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+
+		@Override
+		public Class<? extends DBORevision> getDBOClass() {
+			return DBORevision.class;
+		}
+	};
 
 	@Override
 	public TableMapping<DBORevision> getTableMapping() {
-		return new TableMapping<DBORevision>(){
-			@Override
-			public DBORevision mapRow(ResultSet rs, int rowNum)	throws SQLException {
-				boolean includeAnnotations = true;
-				DBORevisionMapper mapper = new DBORevisionMapper(includeAnnotations);
-				return mapper.mapRow(rs, rowNum);
-			}
-
-			@Override
-			public String getTableName() {
-				return TABLE_REVISION;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return DDL_FILE_REVISION;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends DBORevision> getDBOClass() {
-				return DBORevision.class;
-			}};
+		return TABLE_MAPPING;
 	}
 	
 	private Long owner;
@@ -100,6 +142,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	private Long activityId;
 	private String label;
 	private String comment;
+	private String description;
 	private Long modifiedBy;
 	private Long modifiedOn;
 	private Long fileHandleId;
@@ -137,6 +180,12 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	}
 	public void setComment(String comment) {
 		this.comment = comment;
+	}
+	public String getDescription() {
+		return description;
+	}
+	public void setDescription(String description) {
+		this.description = description;
 	}
 	public Long getModifiedBy() {
 		return modifiedBy;
@@ -262,15 +311,13 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		if (this == obj) {
 			return true;
 		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (!(obj instanceof DBORevision)) {
 			return false;
 		}
 		DBORevision other = (DBORevision) obj;
 		return Objects.equals(activityId, other.activityId) && Arrays.equals(columnModelIds, other.columnModelIds)
 				&& Objects.equals(comment, other.comment) && Objects.equals(definingSQL, other.definingSQL)
+				&& Objects.equals(description, other.description)
 				&& Arrays.equals(entityPropertyAnnotations, other.entityPropertyAnnotations)
 				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(isSearchEnabled, other.isSearchEnabled)
 				&& Objects.equals(items, other.items) && Objects.equals(label, other.label) && Objects.equals(modifiedBy, other.modifiedBy)
@@ -287,18 +334,18 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		result = prime * result + Arrays.hashCode(entityPropertyAnnotations);
 		result = prime * result + Arrays.hashCode(reference);
 		result = prime * result + Arrays.hashCode(scopeIds);
-		result = prime * result + Objects.hash(activityId, comment, definingSQL, fileHandleId, isSearchEnabled, items, label, modifiedBy,
-				modifiedOn, owner, revisionNumber, userAnnotationsJSON);
+		result = prime * result + Objects.hash(activityId, comment, definingSQL, description, fileHandleId, isSearchEnabled, items, label,
+				modifiedBy, modifiedOn, owner, revisionNumber, userAnnotationsJSON);
 		return result;
 	}
 
 	@Override
 	public String toString() {
 		return "DBORevision [owner=" + owner + ", revisionNumber=" + revisionNumber + ", activityId=" + activityId + ", label=" + label
-				+ ", comment=" + comment + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", fileHandleId=" + fileHandleId
-				+ ", columnModelIds=" + Arrays.toString(columnModelIds) + ", scopeIds=" + Arrays.toString(scopeIds) + ", items=" + items
-				+ ", entityPropertyAnnotations=" + Arrays.toString(entityPropertyAnnotations) + ", reference=" + Arrays.toString(reference)
-				+ ", userAnnotationsJSON=" + userAnnotationsJSON + ", isSearchEnabled=" + isSearchEnabled + ", definingSQL=" + definingSQL
-				+ "]";
+				+ ", comment=" + comment + ", description=" + description + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
+				+ ", fileHandleId=" + fileHandleId + ", columnModelIds=" + Arrays.toString(columnModelIds) + ", scopeIds="
+				+ Arrays.toString(scopeIds) + ", items=" + items + ", entityPropertyAnnotations="
+				+ Arrays.toString(entityPropertyAnnotations) + ", reference=" + Arrays.toString(reference) + ", userAnnotationsJSON="
+				+ userAnnotationsJSON + ", isSearchEnabled=" + isSearchEnabled + ", definingSQL=" + definingSQL + "]";
 	}
 }

@@ -74,6 +74,7 @@ public class NodeUtils {
 		if(dto.getVersionLabel() != null){
 			rev.setLabel(dto.getVersionLabel());
 		} 	
+		rev.setDescription(dto.getDescription());
 		if(dto.getFileHandleId() != null){
 			rev.setFileHandleId(KeyFactory.stringToKey(dto.getFileHandleId()));
 		}else{
@@ -167,13 +168,14 @@ public class NodeUtils {
 	 * @param dto
 	 * @return
 	 */
-	public static DBORevision transalteNodeToDBORevision(Node dto) {
+	public static DBORevision translateNodeToDBORevision(Node dto) {
 		DBORevision dbo = new DBORevision();
 		dbo.setOwner(translateNodeId(dto.getId()));
 		dbo.setRevisionNumber(translateVersionNumber(dto.getVersionNumber()));
 		dbo.setActivityId(translateActivityId(dto.getActivityId()));
 		dbo.setColumnModelIds(createByteForIdList(dto.getColumnModelIds()));
 		dbo.setComment(translateVersionComment(dto.getVersionComment()));
+		dbo.setDescription(dto.getDescription());
 		dbo.setFileHandleId(translateFileHandleId(dto.getFileHandleId()));
 		dbo.setLabel(translateVersionLabel(dto.getVersionLabel()));
 		dbo.setModifiedBy(dto.getModifiedByPrincipalId());
@@ -280,6 +282,7 @@ public class NodeUtils {
 		dto.setModifiedOn(new Date(rev.getModifiedOn()));
 		dto.setVersionComment(rev.getComment());
 		dto.setVersionLabel(rev.getLabel());
+		dto.setDescription(rev.getDescription());
 		if(rev.getRevisionNumber() != null){
 			dto.setVersionNumber(rev.getRevisionNumber());
 			dto.setIsLatestVersion(rev.getRevisionNumber().equals(jdo.getCurrentRevNumber()));

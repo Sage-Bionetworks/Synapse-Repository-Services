@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
@@ -29,12 +30,14 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetCollection;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.worker.TestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -59,11 +62,14 @@ public class DatasetCollectionIntegrationTest {
 	@Autowired
 	private ColumnModelManager columnModelManager;
 	@Autowired
+	private DefaultColumnModelMapper defaultColumnMapper;
+	@Autowired
 	private FileHandleDao fileHandleDao;
 	
 	private UserInfo userInfo;
 	private Project project;
 	private ColumnModel stringColumn;
+	private ColumnModel descriptionColumn;
 	
 	@BeforeEach
 	public void before() throws Exception {
@@ -80,6 +86,8 @@ public class DatasetCollectionIntegrationTest {
 		stringColumn.setColumnType(ColumnType.STRING);
 		stringColumn.setMaximumSize(50L);
 		stringColumn = columnModelManager.createColumnModel(userInfo, stringColumn);
+		
+		descriptionColumn = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION, ObjectField.description).get(0);
 	}
 
 	@AfterEach
@@ -102,15 +110,15 @@ public class DatasetCollectionIntegrationTest {
 		DatasetCollection collection = asyncHelper.createDatasetCollection(userInfo, new DatasetCollection()
 			.setParentId(project.getId())
 			.setName("Dataset Collection")
-			.setColumnIds(Arrays.asList(stringColumn.getId()))
+			.setColumnIds(Arrays.asList(stringColumn.getId(), descriptionColumn.getId()))
 			.setItems(List.of(
 				new EntityRef().setEntityId(datasetOne.getId()).setVersionNumber(snapshotVersion),
 				new EntityRef().setEntityId(datasetTwo.getId()).setVersionNumber(snapshotVersion)
 			)));
 		
 		List<Row> expectedRows = Arrays.asList(
-			new Row().setRowId(KeyFactory.stringToKey(datasetOne.getId())).setVersionNumber(snapshotVersion).setEtag(datasetOne.getEtag()).setValues(Arrays.asList(datasetOne.getId())),
-			new Row().setRowId(KeyFactory.stringToKey(datasetTwo.getId())).setVersionNumber(snapshotVersion).setEtag(datasetTwo.getEtag()).setValues(Arrays.asList(datasetTwo.getId()))
+			new Row().setRowId(KeyFactory.stringToKey(datasetOne.getId())).setVersionNumber(snapshotVersion).setEtag(datasetOne.getEtag()).setValues(Arrays.asList(datasetOne.getId(), datasetOne.getDescription())),
+			new Row().setRowId(KeyFactory.stringToKey(datasetTwo.getId())).setVersionNumber(snapshotVersion).setEtag(datasetTwo.getEtag()).setValues(Arrays.asList(datasetTwo.getId(), datasetTwo.getDescription()))
 		);
 		
 		// call under test
@@ -127,6 +135,7 @@ public class DatasetCollectionIntegrationTest {
 		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset()
 			.setParentId(project.getId())
 			.setName(UUID.randomUUID().toString())
+			.setDescription(UUID.randomUUID().toString())
 			.setColumnIds(Arrays.asList(stringColumn.getId()))
 			.setItems(List.of(
 				new EntityRef().setEntityId(fileOne.getId()).setVersionNumber(fileOne.getVersionNumber()),

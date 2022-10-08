@@ -324,6 +324,7 @@ public class NodeDAOImplTest {
 		toCreate.setVersionComment("This is the first version of the first node ever!");
 		toCreate.setVersionLabel("0.0.1");		
 		toCreate.setActivityId(testActivity.getId());
+		toCreate.setDescription("Description");
 		long initialCount = nodeDao.getCount();
 		String id = nodeDao.createNew(toCreate);
 		assertEquals(1+initialCount, nodeDao.getCount()); // piggy-back checking count on top of other tests :^)
@@ -342,6 +343,7 @@ public class NodeDAOImplTest {
 		assertEquals(new Long(1),loaded.getVersionNumber());
 		assertEquals(toCreate.getVersionComment(), loaded.getVersionComment());
 		assertEquals(toCreate.getVersionLabel(), loaded.getVersionLabel());
+		assertEquals(toCreate.getDescription(), loaded.getDescription());
 		assertEquals(testActivity.getId(), loaded.getActivityId());
 	}
 	
@@ -3094,6 +3096,7 @@ public class NodeDAOImplTest {
 	@Test
 	public void testGetEntityDTOs(){
 		Node project = NodeTestUtils.createNew("project", creatorUserGroupId);
+		project.setDescription("project description");
 		project.setNodeType(EntityType.project);
 		project = nodeDao.createNewNode(project);
 		toDelete.add(project.getId());
@@ -3154,6 +3157,7 @@ public class NodeDAOImplTest {
 		assertEquals(fileHandle.getContentSize(), fileDto.getFileSizeBytes());
 		assertEquals(NodeUtils.isBucketSynapseStorage(fileHandle.getBucketName()), fileDto.getIsInSynapseStorage());
 		assertEquals(fileHandle.getContentMd5(), fileDto.getFileMD5());
+		assertNull(fileDto.getDescription());
 
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(4, fileDto.getAnnotations().size());
@@ -3170,6 +3174,7 @@ public class NodeDAOImplTest {
 		// null checks on the project
 		ObjectDataDTO projectDto = results.get(0);
 		assertEquals(KeyFactory.stringToKey(project.getId()), projectDto.getId());
+		assertEquals("project description", project.getDescription());
 		assertEquals(null, projectDto.getParentId());
 		assertEquals(projectDto.getId(), projectDto.getBenefactorId());
 		assertEquals(projectDto.getId(), projectDto.getProjectId());

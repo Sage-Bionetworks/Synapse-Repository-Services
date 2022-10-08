@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DESCRIPTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
@@ -48,6 +49,7 @@ public class DBORevisionMapper implements RowMapper<DBORevision> {
 		if(rs.wasNull()) rev.setActivityId(null); // getLong returns 0 instead of null
 		rev.setLabel(rs.getString(COL_REVISION_LABEL));
 		rev.setComment(rs.getString(COL_REVISION_COMMENT));
+		rev.setDescription(rs.getString(COL_REVISION_DESCRIPTION));
 		rev.setModifiedBy(rs.getLong(COL_REVISION_MODIFIED_BY));
 		rev.setModifiedOn(rs.getLong(COL_REVISION_MODIFIED_ON));
 		rev.setFileHandleId(rs.getLong(COL_REVISION_FILE_HANDLE_ID));

@@ -1,20 +1,20 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -39,7 +39,7 @@ public class NodeUtilsTest {
 	
 	private Long createdById;
 	
-	@Before 
+	@BeforeEach 
 	public void before() {
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 	}
@@ -48,6 +48,7 @@ public class NodeUtilsTest {
 	public void testRoundTrip() throws DatastoreException, InvalidModelException {
 		Node node = new Node();
 		node.setName("myName");
+		node.setDescription("description");
 		node.setId(KeyFactory.keyToString(101L));
 		// This is an update round trip and the type cannot be changed on an update.
 		node.setCreatedByPrincipalId(createdById);
@@ -72,7 +73,7 @@ public class NodeUtilsTest {
 		DBONode jdoNode = new DBONode();
 		DBORevision jdoRev = new DBORevision();
 		NodeUtils.updateFromDto(node, jdoNode, jdoRev, false);
-		assertEquals("The user cannot change an eTag.", null, jdoNode.getEtag());
+		assertEquals(null, jdoNode.getEtag(), "The user cannot change an eTag.");
 		// Set it to make sure the copy works
 		jdoNode.seteTag("1013");
 		
@@ -96,12 +97,9 @@ public class NodeUtilsTest {
 		DBONode jdoNode = new DBONode();
 		
 		DBORevision jdoRev = new DBORevision();
-		try {
+		assertThrows(IllegalArgumentException.class, () -> {
 			NodeUtils.updateFromDto(node, jdoNode, jdoRev, false);
-			fail("Expected IllegalArgumentException");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
 	}
 	
 	@Test
@@ -316,13 +314,14 @@ public class NodeUtilsTest {
 	@Test
 	public void testTranslateCommentOverLimit() {
 		String comment = createStringOfSize(DBORevision.MAX_COMMENT_LENGTH+1);
-		try {
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			NodeUtils.translateVersionComment(comment);
-			fail();
-		}catch(IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains(""+DBORevision.MAX_COMMENT_LENGTH));
-		}
+		}).getMessage();
+		
+		assertTrue(result.contains(""+DBORevision.MAX_COMMENT_LENGTH));
+		
 	}
 	
 	@Test
@@ -359,7 +358,7 @@ public class NodeUtilsTest {
 	public void testTransalteNodeToDBORevision() {
 		Node dto = createDefaultNode();
 		// call under test
-		DBORevision dbo = NodeUtils.transalteNodeToDBORevision(dto);
+		DBORevision dbo = NodeUtils.translateNodeToDBORevision(dto);
 		assertNotNull(dbo);
 		assertEquals(null, dbo.getActivityId());
 		assertNotNull(dbo.getColumnModelIds());
@@ -437,6 +436,7 @@ public class NodeUtilsTest {
 		node.setModifiedByPrincipalId(22L);
 		node.setModifiedOn(new Date(777L));
 		node.setName("aName");
+		node.setDescription("description");
 		node.setParentId("syn456");
 		node.setFileHandleId("8888");
 		Reference reference = new Reference();
