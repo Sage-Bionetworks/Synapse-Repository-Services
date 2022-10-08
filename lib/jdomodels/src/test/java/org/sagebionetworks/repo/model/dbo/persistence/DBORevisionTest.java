@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -125,6 +126,7 @@ public class DBORevisionTest {
 		backup = translator.createDatabaseObjectFromBackup(backup);
 		
 		assertEquals("a description", backup.getDescription());
+		assertNull(AnnotationUtils.decompressedAnnotationsV1(backup.getEntityPropertyAnnotations()).getSingleValue("description"));
 
 	}
 	
@@ -144,6 +146,7 @@ public class DBORevisionTest {
 		backup = translator.createDatabaseObjectFromBackup(backup);
 		
 		assertNull(backup.getDescription());
+		assertEquals(123L, AnnotationUtils.decompressedAnnotationsV1(backup.getEntityPropertyAnnotations()).getSingleValue("description"));
 
 	}
 	
@@ -163,6 +166,7 @@ public class DBORevisionTest {
 		backup = translator.createDatabaseObjectFromBackup(backup);
 		
 		assertNull(backup.getDescription());
+		assertArrayEquals(new byte[] {1, 2, 3}, backup.getEntityPropertyAnnotations());
 
 	}
 	
@@ -182,6 +186,7 @@ public class DBORevisionTest {
 		backup = translator.createDatabaseObjectFromBackup(backup);
 		
 		assertNull(backup.getDescription());
+		assertNull(AnnotationUtils.decompressedAnnotationsV1(backup.getEntityPropertyAnnotations()).getSingleValue("description"));
 
 	}
 	
@@ -197,6 +202,7 @@ public class DBORevisionTest {
 		backup = translator.createDatabaseObjectFromBackup(backup);
 		
 		assertNull(backup.getDescription());
+		assertNull(backup.getEntityPropertyAnnotations());
 
 	}
 	
@@ -217,6 +223,7 @@ public class DBORevisionTest {
 		backup = translator.createDatabaseObjectFromBackup(backup);
 		
 		assertEquals("existing", backup.getDescription());
+		assertEquals("a description", AnnotationUtils.decompressedAnnotationsV1(backup.getEntityPropertyAnnotations()).getSingleValue("description"));
 
 	}
 }
