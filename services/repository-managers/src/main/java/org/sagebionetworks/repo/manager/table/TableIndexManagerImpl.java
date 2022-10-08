@@ -82,7 +82,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 
 	public static final int MAX_MYSQL_INDEX_COUNT = 60; // mysql only supports a max of 64 secondary indices per table.
 
-	public static final long MAX_BYTES_PER_BATCH = 1024*1024*10;// 10MB
+	public static final long MAX_BYTES_PER_BATCH = 1024*1024*5;// 5MB
 	
 	/**
 	 * Each container can only be re-synchronized at this frequency.
