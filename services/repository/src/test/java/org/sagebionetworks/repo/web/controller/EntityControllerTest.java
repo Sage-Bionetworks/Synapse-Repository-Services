@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -30,7 +29,6 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -486,62 +484,5 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		results = entityServletHelper.getEntityHeaderByMd5(adminUserId, handleOne.getContentMd5());
 		assertNotNull(results);
 		assertEquals(0, results.getTotalNumberOfResults());
-	}
-
-	@Test
-	public void testDataSetCreationAndUpdateAddSizeAndChecksum() throws Exception {
-		final Project parent = new Project();
-		parent.setName("project");
-		Project parentClone = (Project) entityServletHelper.createEntity(parent, adminUserId, null);
-		String parentId = parentClone.getId();
-		toDelete.add(parentId);
-		// Create a file entity
-		FileEntity file = new FileEntity();
-		file.setName("FileName");
-		file.setParentId(parentId);
-		file.setDataFileHandleId(handleOne.getId());
-		// Save it
-		file = (FileEntity) entityServletHelper.createEntity(file, adminUserId, null);
-		assertNotNull(file);
-		toDelete.add(file.getId());
-		//create DataSet
-		final Dataset dataset = new Dataset();
-		dataset.setParentId(parentId);
-		dataset.setVersionComment("1");
-		dataset.setName("Dataset");
-		dataset.setDescription("Human readable text");
-		final List<EntityRef> entityRefList = new ArrayList<>();
-		final EntityRef entityRef = new EntityRef();
-		entityRef.setEntityId(file.getId());
-		entityRef.setVersionNumber(file.getVersionNumber());
-		entityRefList.add(entityRef);
-		dataset.setItems(entityRefList);
-
-		//call under test
-		final Dataset createdDataset = (Dataset) entityServletHelper.createEntity(dataset, adminUserId, null);
-		assertNotNull(createdDataset);
-		assertNotNull(createdDataset.getChecksum());
-		assertEquals(handleOne.getContentSize(), createdDataset.getSize());
-
-		//update Dataset
-		FileEntity file2 = new FileEntity();
-		file2.setName("FileName1");
-		file2.setParentId(parentId);
-		file2.setDataFileHandleId(handleTwo.getId());
-		// Save it
-		file2 = (FileEntity) entityServletHelper.createEntity(file2, adminUserId, null);
-		assertNotNull(file2);
-		toDelete.add(file2.getId());
-
-		final EntityRef entityRef2 = new EntityRef();
-		entityRef2.setEntityId(file2.getId());
-		entityRef2.setVersionNumber(file2.getVersionNumber());
-		createdDataset.getItems().add(entityRef2);
-		//call under test
-		final Dataset updatedDataset = (Dataset) entityServletHelper.updateEntity(createdDataset, adminUserId);
-		assertNotNull(updatedDataset);
-		assertNotNull(updatedDataset.getChecksum());
-		assertEquals(handleOne.getContentSize() + handleTwo.getContentSize(), updatedDataset.getSize());
-		toDelete.add(updatedDataset.getId());
 	}
 }

@@ -133,9 +133,9 @@ public class EntityManagerImpl implements EntityManager {
 			return;
 		}
 		FileSummary fileSummary = fileHandleManager.getFileSummary((dataset).getItems());
-		if ((dataset).getItems().size() != fileSummary.getCount()) {
+		/*if ((dataset).getItems().size() != fileSummary.getCount()) {
 			throw new IllegalArgumentException("Invalid item present for dataset.");
-		}
+		}*/
 		(dataset).setChecksum(fileSummary.getChecksum());
 		(dataset).setSize(fileSummary.getSize());
 	}
