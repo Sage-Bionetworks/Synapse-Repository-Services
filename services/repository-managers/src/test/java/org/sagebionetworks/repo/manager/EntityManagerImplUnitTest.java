@@ -1,41 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyListOf;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anySetOf;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.notNull;
-import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_BY;
-import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_DIRECTION;
-import static org.sagebionetworks.repo.model.NextPageToken.DEFAULT_LIMIT;
-import static org.sagebionetworks.repo.model.NextPageToken.DEFAULT_OFFSET;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,6 +27,7 @@ import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -76,6 +43,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.dbo.file.FileSummary;
 import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
@@ -96,11 +64,46 @@ import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
 import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
+import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyListOf;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anySetOf;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.notNull;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_BY;
+import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_DIRECTION;
+import static org.sagebionetworks.repo.model.NextPageToken.DEFAULT_LIMIT;
+import static org.sagebionetworks.repo.model.NextPageToken.DEFAULT_OFFSET;
 
 @ExtendWith(MockitoExtension.class)
 public class EntityManagerImplUnitTest {
@@ -1675,6 +1678,52 @@ public class EntityManagerImplUnitTest {
 		verify(mockNodeManager, never()).getUserAnnotations(any());
 		verify(mockDerivedAnnotationDao, never()).getDerivedAnnotations(any());
 	}
-	
 
+	@Test
+	public void tesCalculateSizeAndChecksum() {
+		final Dataset dataSet = new Dataset();
+		final List<EntityRef> entityRefs = new ArrayList<>();
+		final EntityRef entityRef = new EntityRef();
+		entityRef.setEntityId("syn123");
+		entityRef.setVersionNumber(1L);
+		entityRefs.add(entityRef);
+		dataSet.setItems(entityRefs);
+
+		FileSummary expectedSummary = new FileSummary("gef4563h", 15L, 1);
+		ArgumentCaptor<List<EntityRef>> captor = ArgumentCaptor.forClass(List.class);
+		when(mockFileHandleManager.getFileSummary(any())).thenReturn(expectedSummary);
+
+		//call under test
+		entityManager.calculateSizeAndChecksum(dataSet);
+		assertEquals(expectedSummary.getSize(), dataSet.getSize());
+		assertEquals(expectedSummary.getChecksum(), dataSet.getChecksum());
+		verify(mockFileHandleManager, times(1)).getFileSummary(captor.capture());
+	}
+
+	@Test
+	public void tesCalculateSizeAndChecksumWithInvalidCount() {
+		final Dataset dataSet = new Dataset();
+		final List<EntityRef> entityRefs = new ArrayList<>();
+		final EntityRef entityRef1 = new EntityRef();
+		entityRef1.setEntityId("syn123");
+		entityRef1.setVersionNumber(1L);
+		entityRefs.add(entityRef1);
+
+		final EntityRef entityRef2 = new EntityRef();
+		entityRef2.setEntityId("syn124");
+		entityRef2.setVersionNumber(1L);
+		entityRefs.add(entityRef2);
+
+		dataSet.setItems(entityRefs);
+
+		FileSummary expectedSummary = new FileSummary("gef4563h", 15L, 1);
+		ArgumentCaptor<List<EntityRef>> captor = ArgumentCaptor.forClass(List.class);
+		when(mockFileHandleManager.getFileSummary(any())).thenReturn(expectedSummary);
+		assertEquals("Invalid item present for dataset.", assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityManager.calculateSizeAndChecksum(dataSet);
+		}).getMessage());
+
+		verify(mockFileHandleManager, times(1)).getFileSummary(captor.capture());
+	}
 }
