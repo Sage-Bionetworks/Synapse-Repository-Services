@@ -6,7 +6,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
-import org.sagebionetworks.repo.model.dbo.file.FileSummary;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -125,12 +124,6 @@ public class StubFileMetadataDao implements FileHandleDao {
 	public void createBatchDbo(List<DBOFileHandle> dbos) {
 		// TODO Auto-generated method stub
 		
-	}
-
-	@Override
-	public FileSummary getFileSummary(Map<String, List<Long[]>> namedParameters) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override

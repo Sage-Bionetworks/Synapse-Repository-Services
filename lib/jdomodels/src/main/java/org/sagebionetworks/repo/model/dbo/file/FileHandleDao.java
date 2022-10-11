@@ -267,7 +267,5 @@ public interface FileHandleDao {
 	 * @param dbos
 	 */
 	void createBatchDbo(List<DBOFileHandle> dbos);
-
-	FileSummary getFileSummary(Map<String, List<Long[]>> namedParameters);
 	
 }

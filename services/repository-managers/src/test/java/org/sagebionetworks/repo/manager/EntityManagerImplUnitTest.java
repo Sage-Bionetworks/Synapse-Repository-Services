@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
-import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -43,7 +42,6 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
-import org.sagebionetworks.repo.model.dbo.file.FileSummary;
 import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
@@ -64,7 +62,6 @@ import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
 import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
-import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -95,7 +92,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -1679,51 +1675,5 @@ public class EntityManagerImplUnitTest {
 		verify(mockDerivedAnnotationDao, never()).getDerivedAnnotations(any());
 	}
 
-	@Test
-	public void tesCalculateSizeAndChecksum() {
-		final Dataset dataSet = new Dataset();
-		final List<EntityRef> entityRefs = new ArrayList<>();
-		final EntityRef entityRef = new EntityRef();
-		entityRef.setEntityId("syn123");
-		entityRef.setVersionNumber(1L);
-		entityRefs.add(entityRef);
-		dataSet.setItems(entityRefs);
 
-		FileSummary expectedSummary = new FileSummary("gef4563h", 15L, 1);
-		ArgumentCaptor<List<EntityRef>> captor = ArgumentCaptor.forClass(List.class);
-		when(mockFileHandleManager.getFileSummary(any())).thenReturn(expectedSummary);
-
-		//call under test
-		entityManager.calculateSizeAndChecksum(dataSet);
-		assertEquals(expectedSummary.getSize(), dataSet.getSize());
-		assertEquals(expectedSummary.getChecksum(), dataSet.getChecksum());
-		verify(mockFileHandleManager, times(1)).getFileSummary(captor.capture());
-	}
-
-	/*@Test
-	public void tesCalculateSizeAndChecksumWithInvalidCount() {
-		final Dataset dataSet = new Dataset();
-		final List<EntityRef> entityRefs = new ArrayList<>();
-		final EntityRef entityRef1 = new EntityRef();
-		entityRef1.setEntityId("syn123");
-		entityRef1.setVersionNumber(1L);
-		entityRefs.add(entityRef1);
-
-		final EntityRef entityRef2 = new EntityRef();
-		entityRef2.setEntityId("syn124");
-		entityRef2.setVersionNumber(1L);
-		entityRefs.add(entityRef2);
-
-		dataSet.setItems(entityRefs);
-
-		FileSummary expectedSummary = new FileSummary("gef4563h", 15L, 1);
-		ArgumentCaptor<List<EntityRef>> captor = ArgumentCaptor.forClass(List.class);
-		when(mockFileHandleManager.getFileSummary(any())).thenReturn(expectedSummary);
-		assertEquals("Invalid item present for dataset.", assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			entityManager.calculateSizeAndChecksum(dataSet);
-		}).getMessage());
-
-		verify(mockFileHandleManager, times(1)).getFileSummary(captor.capture());
-	}*/
 }

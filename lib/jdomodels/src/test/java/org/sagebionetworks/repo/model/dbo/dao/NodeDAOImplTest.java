@@ -1,40 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,6 +22,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.FileSummary;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.IdAndChecksum;
@@ -120,9 +90,40 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.UnexpectedRollbackException;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -5267,4 +5268,43 @@ public class NodeDAOImplTest {
 		assertEquals("Resource: 'syn-1' does not exist", message);
 	}
 
+	@Test
+	public void testFileSummary() {
+		//create a project
+		Node parent = privateCreateNew("parent");
+		parent.setNodeType(EntityType.project);
+		String parentId = nodeDao.createNew(parent);
+		toDelete.add(parentId);
+
+		// create a file 1
+		Node file1 = privateCreateNew("file1");
+		file1.setNodeType(EntityType.file);
+		file1.setFileHandleId(fileHandle.getId());
+		String file1Id = nodeDao.createNew(file1);
+		toDelete.add(file1Id);
+
+		// create a file 2
+		Node file2 = privateCreateNew("file2");
+		file2.setNodeType(EntityType.file);
+		file2.setFileHandleId(fileHandle2.getId());
+		String file2Id = nodeDao.createNew(file2);
+		toDelete.add(file2Id);
+
+		long expectedTotalSize = fileHandle.getContentSize() + fileHandle2.getContentSize();
+
+		// create list of md5
+		List<String> md5List = Arrays.asList(fileHandle.getContentMd5(), fileHandle2.getContentMd5());
+		//sort md5
+		Collections.sort(md5List);
+		//concatenate sorted md5
+		String concatenatedString = String.join(",", md5List);
+		//calculate md5 of concatenated string
+		String expectedChecksum = DigestUtils.md5Hex(concatenatedString);
+		FileSummary expectedFileSummary = new FileSummary(expectedChecksum, expectedTotalSize, 2);
+
+		FileSummary fileSummary = nodeDao.getFileSummary(Arrays.asList(new EntityRef().setEntityId(file1Id).setVersionNumber(1L),
+				new EntityRef().setEntityId(file2Id).setVersionNumber(1L)));
+		assertNotNull(fileSummary);
+		assertEquals(expectedFileSummary, fileSummary);
+	}
 }

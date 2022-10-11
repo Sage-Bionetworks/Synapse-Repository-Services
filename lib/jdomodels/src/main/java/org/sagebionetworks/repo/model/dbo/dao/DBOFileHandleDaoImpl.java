@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
-import org.sagebionetworks.repo.model.dbo.file.FileSummary;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -62,11 +61,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ME
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_UPDATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
 /**
  * Basic JDBC implementation of the FileMetadataDao.
@@ -116,22 +111,6 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			+ " ON S." + COL_FILES_CONTENT_MD5 + " = T." + COL_FILES_CONTENT_MD5
 			+ " WHERE S." + COL_FILES_ID + "= ?"
 			+ " AND T." + COL_FILES_ID + "= ?";
-
-	private static final String SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION = "SELECT COUNT(*) AS COUNT, " +
-			"MD5(GROUP_CONCAT(F." + COL_FILES_CONTENT_MD5 + " ORDER BY F." + COL_FILES_CONTENT_MD5 + " ASC )) AS CHECKSUM, " +
-			"SUM(F." + COL_FILES_CONTENT_SIZE + ") AS SIZE " +
-			" FROM " + TABLE_REVISION + " R JOIN " + TABLE_FILES + " F ON R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID +
-			" WHERE (R." + COL_REVISION_OWNER_NODE + ", R." + COL_REVISION_NUMBER + ") IN (:pairs)";
-
-	private static final RowMapper<FileSummary> FILE_SUMMARY_ROW_MAPPER = new RowMapper<FileSummary>() {
-		@Override
-		public FileSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
-			String checksum = rs.getString("CHECKSUM");
-			long size = rs.getLong("SIZE");
-			int count = rs.getInt("COUNT");
-			return new FileSummary(checksum, size, count);
-		}
-	};
 
 	private TransactionalMessenger transactionalMessenger;
 		
@@ -612,10 +591,5 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}finally {
 			jdbcTemplate.update("SET FOREIGN_KEY_CHECKS = ?", true);
 		}
-	}
-
-	@Override
-	public FileSummary getFileSummary(Map<String, List<Long[]>> namedParameters) {
-		return namedJdbcTemplate.query(SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION, namedParameters, FILE_SUMMARY_ROW_MAPPER).get(0);
 	}
 }

@@ -42,7 +42,6 @@ import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -51,7 +50,6 @@ import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
-import org.sagebionetworks.repo.model.dbo.file.FileSummary;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
@@ -2619,27 +2617,5 @@ public class FileHandleManagerImplTest {
 			temp.delete();
 		}
 		
-	}
-
-	@Test
-	public void testGetFileSummary() {
-		FileSummary expectedSummary = new FileSummary("gef4563h", 15L, 1);
-		List<Long[]> specificIdVersionPairs = new ArrayList<>();
-		specificIdVersionPairs.add(new Long[]{123L, 1L});
-		Map<String, List<Long[]>> namedParameters = Collections.singletonMap("pairs", specificIdVersionPairs);
-		ArgumentCaptor<Map<String, List<Long[]>>> captor = ArgumentCaptor.forClass(Map.class);
-		when(mockFileHandleDao.getFileSummary(any())).thenReturn(expectedSummary);
-		final List<EntityRef> entityRefs = new ArrayList<>();
-		final EntityRef entityRef = new EntityRef();
-		entityRef.setEntityId("syn123");
-		entityRef.setVersionNumber(1L);
-		entityRefs.add(entityRef);
-
-		// Call under test
-		FileSummary result = manager.getFileSummary(entityRefs);
-
-		assertEquals(expectedSummary, result);
-
-		verify(mockFileHandleDao, times(1)).getFileSummary(captor.capture());
 	}
 }

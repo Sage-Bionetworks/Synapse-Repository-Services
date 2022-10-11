@@ -3,10 +3,8 @@ package org.sagebionetworks.repo.manager.file;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.file.FileSummary;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
@@ -327,6 +325,4 @@ public interface FileHandleManager {
 	 * @return True if the MD5 of the source and target file handle matches, false otherwise
 	 */
 	boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId);
-
-	FileSummary getFileSummary(List<EntityRef> entityRefs);
 }

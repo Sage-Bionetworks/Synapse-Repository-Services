@@ -1,5 +1,7 @@
-package org.sagebionetworks.repo.model.dbo.file;
+package org.sagebionetworks.repo.model;
 
+
+import java.util.Objects;
 
 public class FileSummary {
     String checksum;
@@ -34,6 +36,19 @@ public class FileSummary {
 
     public void setCount(int count) {
         this.count = count;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FileSummary that = (FileSummary) o;
+        return size == that.size && count == that.count && Objects.equals(checksum, that.checksum);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(checksum, size, count);
     }
 
     @Override

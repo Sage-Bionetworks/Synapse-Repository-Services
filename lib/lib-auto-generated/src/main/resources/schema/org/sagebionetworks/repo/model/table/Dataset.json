@@ -14,11 +14,11 @@
 			}
 		},
 		"size": {
-			"description": "The cumulative size, in bytes, of all items in the dataSet.",
+			"description": "The cumulative size, in bytes, of all items(files) in the dataSet.",
 			"type": "integer"
 		},
 		"checksum": {
-			"description": "The checksum is computed over a sorted concatenation of the checksums of all items in the dataSet.",
+			"description": "The checksum is computed over a sorted concatenation of the checksums of all items in the dataSet.eq if a dataset contains files with the following checksums: md5(file1) = 72794b6d md5(file2) = 5e089d29 Then the checksum of the dataset is: md5( concat( sort( md5(blob1), md5(blob2) ) ) ) = md5( concat( sort( 72794b6d, 5e089d29 ) ) ) = md5( concat( 5e089d29, 72794b6d ) ) = md5( 5e089d2972794b6d ) = f7a29a04.",
 			"type": "string"
 		}
 	}
