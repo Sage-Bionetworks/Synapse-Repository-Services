@@ -154,13 +154,14 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 			Set<Long> accessRequirmentIdsToBind) {
 		accessRequirementManager.setDynamicallyBoundAccessRequirementsForSubject(objectDescriptor, accessRequirmentIdsToBind);
 		if(annotations != null) {
-			if (annotations.equals(derivedAnnotationDao.getDerivedAnnotations(objectDescriptor.getId()).orElse(null))) {
+			Annotations existingDerivedAnnotations = derivedAnnotationDao.getDerivedAnnotations(objectDescriptor.getId()).orElse(null);
+
+			if (annotations.equals(existingDerivedAnnotations)) {
 				return false;
+			} else {
+				derivedAnnotationDao.saveDerivedAnnotations(objectDescriptor.getId(), annotations);
+				return true;
 			}
-
-			derivedAnnotationDao.saveDerivedAnnotations(objectDescriptor.getId(), annotations);
-
-			return true;
 		}else {
 			return derivedAnnotationDao.clearDerivedAnnotations(objectDescriptor.getId()); 
 		}
