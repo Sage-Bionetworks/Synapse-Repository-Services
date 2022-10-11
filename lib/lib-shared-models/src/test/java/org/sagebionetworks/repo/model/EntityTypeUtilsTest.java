@@ -5,12 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.table.ViewEntityType;
 
 public class EntityTypeUtilsTest {
 
@@ -46,31 +41,6 @@ public class EntityTypeUtilsTest {
 			assertEquals(expected, isValid);
 		}
 		
-	}
-	
-	@Test
-	public void testIsViewType() {
-		Set<EntityType> viewTypes = Stream.of(ViewEntityType.values())
-				.map((viewType) -> EntityType.valueOf(viewType.name()))
-				.collect(Collectors.toSet());
-
-		for (EntityType type : EntityType.values()) {
-			boolean result = EntityTypeUtils.isViewType(type);
-			assertEquals(viewTypes.contains(type), result);
-		}
-	}
-	
-	@Test
-	public void testIsTableOrViewType() {
-		Set<EntityType> viewTypes = Stream.of(ViewEntityType.values())
-				.map((viewType) -> EntityType.valueOf(viewType.name()))
-				.collect(Collectors.toSet());
-
-		for (EntityType type : EntityType.values()) {
-			boolean result = EntityTypeUtils.isTableOrViewType(type);
-			boolean expected = viewTypes.contains(type) || EntityType.table == type || EntityType.materializedview == type;
-			assertEquals(expected, result);
-		}
 	}
 	
 	/**

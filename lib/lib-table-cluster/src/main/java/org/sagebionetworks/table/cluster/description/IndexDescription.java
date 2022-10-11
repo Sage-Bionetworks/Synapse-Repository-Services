@@ -2,7 +2,7 @@ package org.sagebionetworks.table.cluster.description;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.query.model.SqlContext;
 
@@ -22,7 +22,7 @@ public interface IndexDescription extends Comparable<IndexDescription> {
 	 * Get the type of table for this index.
 	 * @return
 	 */
-	EntityType getTableType();
+	TableType getTableType();
 	
 	/**
 	 * The SQL statement to create or update the index for this table/view

@@ -9,6 +9,7 @@ SELECT
  N.PARENT_ID,
  getEntityBenefactorId(N.ID),
  getEntityProjectId(N.ID),
+ R.DESCRIPTION,
  R.MODIFIED_BY,
  R.MODIFIED_ON,
  R.FILE_HANDLE_ID,

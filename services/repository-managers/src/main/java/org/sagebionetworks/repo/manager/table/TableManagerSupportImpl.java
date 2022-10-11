@@ -20,12 +20,12 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -91,7 +91,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	private DefaultColumnModelMapper defaultColumnMapper;
 	@Autowired
 	private MaterializedViewDao materializedViewDao;
-	
 
 	/*
 	 * (non-Javadoc)
@@ -137,7 +136,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	public void sendAsynchronousActivitySignal(IdAndVersion idAndVersion) {
 		// lookup the table type.
-		ObjectType tableType = getTableType(idAndVersion);
+		ObjectType tableType = getTableObjectType(idAndVersion);
 
 		// Currently we only signal views
 		if (ObjectType.ENTITY_VIEW.equals(tableType)) {
@@ -160,7 +159,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public TableStatus setTableToProcessingAndTriggerUpdate(IdAndVersion idAndVersion) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		// lookup the table type.
-		ObjectType tableType = getTableType(idAndVersion);
+		ObjectType tableType = getTableObjectType(idAndVersion);
 		// we get here, if the index for this table is not (yet?) being build. We need
 		// to kick off the
 		// building of the index and report the table as unavailable
@@ -226,7 +225,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// get the search flag for the node
 		boolean truthSearchEnabled = isTableSearchEnabled(idAndVersion);
 		// compare the truth with the index.
-		return tableConnectionFactory.getConnection(idAndVersion).doesIndexStateMatch(idAndVersion, truthLastVersion, truthSchemaMD5Hex, truthSearchEnabled);
+		return tableConnectionFactory.getConnection(idAndVersion).doesIndexStateMatch(idAndVersion, truthLastVersion,
+				truthSchemaMD5Hex, truthSearchEnabled);
 	}
 
 	/*
@@ -314,26 +314,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * lang.String)
 	 */
 	@Override
-	public ObjectType getTableType(IdAndVersion idAndVersion) {
-		EntityType type = getTableEntityType(idAndVersion);
-		return getObjectTypeForEntityType(type);
-	}
-
-	/**
-	 * Convert an EntityType to an Object.
-	 * 
-	 * @param type
-	 * @return
-	 */
-	public static ObjectType getObjectTypeForEntityType(EntityType type) {
-		if (EntityType.table.equals(type)) {
-			return ObjectType.TABLE;
-		} else if (EntityTypeUtils.isViewType(type)) {
-			return ObjectType.ENTITY_VIEW;
-		} else if (EntityType.materializedview.equals(type)) {
-			return ObjectType.MATERIALIZED_VIEW;
-		} 
-		throw new IllegalArgumentException("unknown table type: " + type);
+	public ObjectType getTableObjectType(IdAndVersion idAndVersion) {
+		return getTableType(idAndVersion).getObjectType();
 	}
 
 	@Override
@@ -361,7 +343,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public long getTableVersion(IdAndVersion idAndVersion) {
 		// Determine the type of able
-		ObjectType type = getTableType(idAndVersion);
+		ObjectType type = getTableObjectType(idAndVersion);
 		switch (type) {
 		case TABLE:
 			// For TableEntity the version of the last change set is used.
@@ -390,10 +372,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, runner);
 	}
 
-
 	@Override
-	public <R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, ProgressingCallable<R> runner, String... keys)
-			throws Exception {
+	public <R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, ProgressingCallable<R> runner,
+			String... keys) throws Exception {
 		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, runner, keys);
 	}
 
@@ -406,23 +387,21 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// The semaphore runner does all of the lock work.
 		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, callable, keys.toArray(new String[keys.size()]));
 	}
-	
 
 	@Override
 	public void validateTableReadAccess(UserInfo userInfo, IndexDescription indexDescription)
 			throws UnauthorizedException, DatastoreException, NotFoundException {
 		// They must have read permission to access table content.
-		authorizationManager.canAccess(userInfo, indexDescription.getIdAndVersion().getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.READ)
-				.checkAuthorizationOrElseThrow();
+		authorizationManager.canAccess(userInfo, indexDescription.getIdAndVersion().getId().toString(),
+				ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		// User must have the download permission to read from a TableEntity.
-		if (EntityType.table.equals(indexDescription.getTableType())) {
+		if (TableType.table.equals(indexDescription.getTableType())) {
 			// And they must have download permission to access table content.
-			authorizationManager
-					.canAccess(userInfo, indexDescription.getIdAndVersion().getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)
-					.checkAuthorizationOrElseThrow();
+			authorizationManager.canAccess(userInfo, indexDescription.getIdAndVersion().getId().toString(),
+					ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
 		}
 		// must also have access to each dependency
-		for(IndexDescription dependency: indexDescription.getDependencies()) {
+		for (IndexDescription dependency : indexDescription.getDependencies()) {
 			validateTableReadAccess(userInfo, dependency);
 		}
 	}
@@ -441,8 +420,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public EntityType getTableEntityType(IdAndVersion idAndVersion) {
-		return nodeDao.getNodeTypeById(idAndVersion.getId().toString());
+	public TableType getTableType(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		EntityType entityType = nodeDao.getNodeTypeById(idAndVersion.getId().toString());
+		return TableType.lookupByEntityType(entityType).orElseThrow(() -> new IllegalArgumentException(String.format("%s is not a table or view", idAndVersion.toString())));
 	}
 
 	@Override
@@ -479,7 +460,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(ChangeType.UPDATE);
-		message.setObjectType(getTableType(idAndVersion));
+		message.setObjectType(getTableObjectType(idAndVersion));
 		message.setObjectId(idAndVersion.getId().toString());
 		transactionalMessenger.sendMessageAfterCommit(message);
 	}
@@ -541,7 +522,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	@Override
 	public IndexDescription getIndexDescription(IdAndVersion idAndVersion) {
-		EntityType type = nodeDao.getNodeTypeById(idAndVersion.getId().toString());
+		TableType type = getTableType(idAndVersion);
 		switch (type) {
 		case table:
 			return new TableIndexDescription(idAndVersion);
@@ -555,7 +536,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 					materializedViewDao.getSourceTablesIds(idAndVersion).stream()
 							.map(childId -> getIndexDescription(childId)).collect(Collectors.toList()));
 		default:
-			throw new IllegalArgumentException("Unexpected type for entity with id " + idAndVersion.toString() + ": " + type +  " (expected a table or view type)");
+			throw new IllegalArgumentException("Unexpected type for entity with id " + idAndVersion.toString() + ": "
+					+ type + " (expected a table or view type)");
 		}
 	}
 

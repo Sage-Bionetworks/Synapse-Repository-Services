@@ -67,6 +67,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
@@ -1179,7 +1180,7 @@ public class DownloadListManagerImplTest {
 				new Row().setRowId(222L).setVersionNumber(2L)
 		);
 		// @formatter:on
-		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(EntityType.entityview);
+		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(TableType.entityview);
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenReturn(
 				new QueryResultBundle().setQueryResult(new QueryResult().setQueryResults(new RowSet().setRows(rows))));
 		when(mockDownloadListDao.addBatchOfFilesToDownloadList(anyLong(), any())).thenReturn(filesAdded);
@@ -1213,7 +1214,7 @@ public class DownloadListManagerImplTest {
 				new Row().setRowId(222L).setVersionNumber(2L)
 		);
 		// @formatter:on
-		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(EntityType.entityview);
+		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(TableType.entityview);
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenReturn(
 				new QueryResultBundle().setQueryResult(new QueryResult().setQueryResults(new RowSet().setRows(rows))));
 		when(mockDownloadListDao.addBatchOfFilesToDownloadList(anyLong(), any())).thenReturn(filesAdded);
@@ -1247,7 +1248,7 @@ public class DownloadListManagerImplTest {
 				new Row().setRowId(222L).setVersionNumber(2L)
 		);
 		// @formatter:on
-		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(EntityType.dataset);
+		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(TableType.dataset);
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenReturn(
 				new QueryResultBundle().setQueryResult(new QueryResult().setQueryResults(new RowSet().setRows(rows))));
 		when(mockDownloadListDao.addBatchOfFilesToDownloadList(anyLong(), any())).thenReturn(filesAdded);
@@ -1281,7 +1282,7 @@ public class DownloadListManagerImplTest {
 				new Row().setRowId(222L).setVersionNumber(2L)
 		);
 		// @formatter:on
-		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(EntityType.entityview);
+		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(TableType.entityview);
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenReturn(
 				new QueryResultBundle().setQueryResult(new QueryResult().setQueryResults(new RowSet().setRows(rows))));
 		when(mockDownloadListDao.addBatchOfFilesToDownloadList(anyLong(), any())).thenReturn(filesAdded);
@@ -1316,7 +1317,7 @@ public class DownloadListManagerImplTest {
 				new Row().setRowId(222L).setVersionNumber(2L)
 		);
 		// @formatter:on
-		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(EntityType.entityview);
+		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(TableType.entityview);
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenReturn(
 				new QueryResultBundle().setQueryResult(new QueryResult().setQueryResults(new RowSet().setRows(rows))));
 		when(mockDownloadListDao.addBatchOfFilesToDownloadList(anyLong(), any())).thenReturn(filesAdded);
@@ -1357,7 +1358,7 @@ public class DownloadListManagerImplTest {
 				new Row().setRowId(555L).setVersionNumber(5L)
 		);
 		// @formatter:on
-		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(EntityType.entityview);
+		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(TableType.entityview);
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenReturn(
 				new QueryResultBundle()
 						.setQueryResult(new QueryResult().setQueryResults(new RowSet().setRows(pageOne))),
@@ -1403,7 +1404,7 @@ public class DownloadListManagerImplTest {
 
 	@Test
 	public void testAddQueryResultsToDownloadListWithNonViewOrDataset() throws Exception {
-		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(EntityType.table);
+		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(TableType.table);
 
 		Query query = new Query().setSql("select * from syn123");
 		boolean userVersion = true;
@@ -1472,7 +1473,7 @@ public class DownloadListManagerImplTest {
 	@Test
 	public void testAddQueryResultsToDownloadListWithTableUnavailable() throws Exception {
 
-		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(EntityType.entityview);
+		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(TableType.entityview);
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any()))
 				.thenThrow(new TableUnavailableException(new TableStatus().setState(TableState.PROCESSING_FAILED)));
 
@@ -1496,7 +1497,7 @@ public class DownloadListManagerImplTest {
 	@Test
 	public void testAddQueryResultsToDownloadListWithLockUnavailableException() throws Exception {
 
-		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(EntityType.entityview);
+		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(TableType.entityview);
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any()))
 				.thenThrow(new LockUnavilableException("no lock for you"));
 
@@ -1519,7 +1520,7 @@ public class DownloadListManagerImplTest {
 
 	@Test
 	public void testAddQueryResultsToDownloadListWithTableFailedException() throws Exception {
-		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(EntityType.entityview);
+		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(TableType.entityview);
 		TableFailedException exception = new TableFailedException(
 				new TableStatus().setState(TableState.PROCESSING_FAILED));
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenThrow(exception);
@@ -1544,7 +1545,7 @@ public class DownloadListManagerImplTest {
 
 	@Test
 	public void testAddQueryResultsToDownloadListWithDatastoreException() throws Exception {
-		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(EntityType.entityview);
+		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(TableType.entityview);
 		DatastoreException exception = new DatastoreException("wrong");
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenThrow(exception);
 

@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
-import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.SQLUtils.TableIndexType;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
@@ -1086,7 +1086,7 @@ public class SQLTranslatorUtils {
 	 * @return
 	 */
 	public static String createMaterializedViewInsertSql(List<ColumnModel> schemaOfSelect, String outputSQL, IndexDescription indexDescription) {
-		String tableName = SQLUtils.getTableNameForId(indexDescription.getIdAndVersion(), TableType.INDEX);
+		String tableName = SQLUtils.getTableNameForId(indexDescription.getIdAndVersion(), TableIndexType.INDEX);
 		StringJoiner joiner = new StringJoiner(",");
 		// start with the columns from the select
 		for(ColumnModel cm: schemaOfSelect) {

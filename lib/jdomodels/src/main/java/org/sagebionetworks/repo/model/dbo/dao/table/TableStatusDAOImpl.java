@@ -16,19 +16,27 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATUS
 import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdVersionTableType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.table.TableStatusUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.entity.IdAndVersionBuilder;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -41,6 +49,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -49,7 +58,13 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class TableStatusDAOImpl implements TableStatusDAO {
+	
+	public static final Long TRASH_FOLDER_ID = Long.parseLong(
+			StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
+	public static final String TABLES_WITH_MISSING_STATUS = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/GetTablesWithMissingStatus.sql");
+	
 	private static final String SELECT_STATUS_TEMPLATE = "SELECT %1$s FROM " + TABLE_STATUS + " WHERE "
 			+ COL_TABLE_STATUS_ID + " = ? AND " + COL_TABLE_STATUS_VERSION + " = ?";
 
@@ -91,11 +106,14 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		
 	private TransactionalMessenger messenger;
 	
+	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+	
 	@Autowired
 	public TableStatusDAOImpl(DBOBasicDao basicDao, JdbcTemplate jdbcTemplate, TransactionalMessenger messenger) {
 		this.basicDao = basicDao;
 		this.jdbcTemplate = jdbcTemplate;
 		this.messenger = messenger;
+		this.namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 	}
 
 	@Override
@@ -333,5 +351,22 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 				.setTimestamp(Date.from(Instant.now()));
 		
 		messenger.publishMessageAfterCommit(event);
+	}
+	
+	@Override
+	public List<IdVersionTableType> getAllTablesAndViewsWithMissingStatus(long limit) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("tableTypes", Stream.of(TableType.values()).map(t -> t.name()).collect(Collectors.toList()));
+		params.addValue("trashId", TRASH_FOLDER_ID);
+		params.addValue("limit", limit);
+		return namedParameterJdbcTemplate.query(TABLES_WITH_MISSING_STATUS, params, (ResultSet rs, int rowNum) -> {
+			Long id = rs.getLong("ID");
+			Long version = rs.getLong("VERSION");
+			if (version == -1L) {
+				version = null;
+			}
+			TableType type = TableType.valueOf(rs.getString("TYPE"));
+			return new IdVersionTableType(new IdAndVersionBuilder().setId(id).setVersion(version).build(), type);
+		});
 	}
 }

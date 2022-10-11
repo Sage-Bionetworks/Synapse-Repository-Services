@@ -39,6 +39,10 @@ public class NodeDaoObjectHelper implements DaoObjectHelper<Node> {
 		
 	}
 	
+	public Long createNewVersion(Node node) {
+		return nodeDao.createNewVersion(node);
+	}
+	
 	public void truncateAll() {
 		nodeDao.truncateAll();	
 	}

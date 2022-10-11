@@ -28,6 +28,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_DESCRIPTION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_VERSION;
@@ -86,7 +87,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.SQLUtils.TableIndexType;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
@@ -146,6 +147,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		dto.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
 		dto.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
 		dto.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
+		dto.setDescription(rs.getString(OBJECT_REPLICATION_COL_DESCRIPTION));
 		dto.setSubType(SubType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
 		dto.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
 		if (rs.wasNull()) {
@@ -288,7 +290,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public void deleteTable(IdAndVersion tableId) {
 		boolean alterTemp = false;
 		deleteMultiValueTablesForTable(tableId, alterTemp);
-		template.update(SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX));
+		template.update(SQLUtils.dropTableSQL(tableId, SQLUtils.TableIndexType.INDEX));
 		deleteSecondaryTables(tableId);
 	}
 	
@@ -297,7 +299,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	 * @param tableId
 	 */
 	void deleteSecondaryTables(IdAndVersion tableId) {
-		for(TableType type: SQLUtils.SECONDARY_TYPES){
+		for(TableIndexType type: SQLUtils.SECONDARY_TYPES){
 			String dropStatusTableDML = SQLUtils.dropTableSQL(tableId, type);
 			template.update(dropStatusTableDML);
 		}	
@@ -429,7 +431,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	@Override
 	public void createSecondaryTables(IdAndVersion tableId) {
-		for(TableType type: SQLUtils.SECONDARY_TYPES){
+		for(TableIndexType type: SQLUtils.SECONDARY_TYPES){
 			String sql = SQLUtils.createTableSQL(tableId, type);
 			template.update(sql);
 		}	
@@ -644,7 +646,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId) {
 		try {
-			String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
+			String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableIndexType.INDEX);
 			// Bind variables do not seem to work here
 			return template.query(SQL_SHOW_COLUMNS + tableName, DB_COL_INFO_MAPPER);
 		} catch (BadSqlGrammarException e) {
@@ -690,7 +692,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		for(DatabaseColumnInfo info: list){
 			nameToInfoMap.put(info.getColumnName(), info);
 		}
-		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
+		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableIndexType.INDEX);
 		template.query(SHOW_INDEXES_FROM+tableName, new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
@@ -858,7 +860,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					throws SQLException {
 				ObjectDataDTO dto = sorted.get(i);
 				int parameterIndex = 1;
-				int updateOffset = 17;
+				int updateOffset = 18;
 				
 				ps.setString(parameterIndex++, mainType.name());
 				ps.setLong(parameterIndex++, dto.getId());
@@ -878,6 +880,14 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				
 				ps.setString(parameterIndex++, dto.getName());
 				ps.setString(parameterIndex + updateOffset, dto.getName());
+				
+				if (dto.getDescription() != null) {
+					ps.setString(parameterIndex++, dto.getDescription());
+					ps.setString(parameterIndex + updateOffset, dto.getDescription());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.VARCHAR);
+				}
 				
 				ps.setString(parameterIndex++, dto.getSubType().name());
 				ps.setString(parameterIndex + updateOffset, dto.getSubType().name());
@@ -1407,15 +1417,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			String[] row = input.next();
 			long rowSize = SQLUtils.calculateBytes(row);
 			if (batchSize + rowSize > maxBytesPerBatch) {
-				template.batchUpdate(sql, batch);
+				writeTransactionTemplate.executeWithoutResult(txStatus -> template.batchUpdate(sql, batch));
 				batch.clear();
+				batchSize = 0;
 			}
 			batch.add(row);
 			batchSize += rowSize;
 		}
 
 		if (!batch.isEmpty()) {
-			template.batchUpdate(sql, batch);
+			writeTransactionTemplate.executeWithoutResult(txStatus -> template.batchUpdate(sql, batch));
 		}
 	}
 	
@@ -1585,7 +1596,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	@Override
 	public List<RowSearchContent> fetchSearchContent(IdAndVersion id, Set<Long> rowIds) {
-		String sql = "SELECT " + TableConstants.ROW_ID + ", " + TableConstants.ROW_SEARCH_CONTENT + " FROM " + SQLUtils.getTableNameForId(id, TableType.INDEX) + " WHERE " + TableConstants.ROW_ID + " IN(:" + TableConstants.ROW_ID + ") ORDER BY " + TableConstants.ROW_ID;
+		String sql = "SELECT " + TableConstants.ROW_ID + ", " + TableConstants.ROW_SEARCH_CONTENT + " FROM " + SQLUtils.getTableNameForId(id, TableIndexType.INDEX) + " WHERE " + TableConstants.ROW_ID + " IN(:" + TableConstants.ROW_ID + ") ORDER BY " + TableConstants.ROW_ID;
 		return namedTemplate.query(sql, Collections.singletonMap(TableConstants.ROW_ID, rowIds), (RowMapper<RowSearchContent>) (rs, rowNum) -> new RowSearchContent(rs.getLong(1), rs.getString(2)));
 	}
 

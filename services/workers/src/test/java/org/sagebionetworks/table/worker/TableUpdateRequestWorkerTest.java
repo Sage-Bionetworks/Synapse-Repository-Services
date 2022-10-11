@@ -21,8 +21,8 @@ import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableUpdateRequestManager;
 import org.sagebionetworks.repo.manager.table.TableUpdateRequestManagerProvider;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -53,7 +53,7 @@ public class TableUpdateRequestWorkerTest {
 	private String tableId;
 	private IdAndVersion idAndVersion;
 	private TableUpdateTransactionRequest request;
-	private EntityType tableType;
+	private TableType tableType;
 	private TableUpdateTransactionResponse responseBody;
 	private UserInfo userInfo;
 	private RuntimeException translatedException;
@@ -66,7 +66,7 @@ public class TableUpdateRequestWorkerTest {
 		jobId = "123";
 		tableId = "syn123";
 		idAndVersion = IdAndVersion.parse(tableId);
-		tableType = EntityType.table;
+		tableType = TableType.table;
 	
 		request = new TableUpdateTransactionRequest();
 		request.setEntityId(tableId);
@@ -78,7 +78,7 @@ public class TableUpdateRequestWorkerTest {
 	@Test
 	public void testBasicRun() throws Exception{
 		when(mockTableUpdateRequestManagerProvider.getUpdateRequestManagerForType(tableType)).thenReturn(mockTableUpdateRequestManager);
-		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(tableType);
+		when(mockTableManagerSupport.getTableType(idAndVersion)).thenReturn(tableType);
 		when(mockTableUpdateRequestManager.updateTableWithTransaction(any(), any(), any())).thenReturn(responseBody);
 		makeProgress();
 		// call under test
@@ -110,7 +110,7 @@ public class TableUpdateRequestWorkerTest {
 	@Test
 	public void testProgressListenerRemovedException() throws Exception{
 		when(mockTableUpdateRequestManagerProvider.getUpdateRequestManagerForType(tableType)).thenReturn(mockTableUpdateRequestManager);
-		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(tableType);
+		when(mockTableManagerSupport.getTableType(idAndVersion)).thenReturn(tableType);
 		when(mockTableExceptionTranslator.translateException(any())).thenReturn(translatedException);
 		makeProgress();
 		IllegalStateException error = new IllegalStateException("an error");
@@ -128,20 +128,6 @@ public class TableUpdateRequestWorkerTest {
 		verify(mockJobCallback).removeProgressListener(any(ProgressListener.class));
 		// The error should be translated.
 		verify(mockTableExceptionTranslator).translateException(error);
-	}
-	
-	@Test
-	public void testNoManagerForType() throws RecoverableMessageException, Exception {
-		doThrow(IllegalArgumentException.class).when(mockTableUpdateRequestManagerProvider).getUpdateRequestManagerForType(any());
-		// setup an unknown type
-		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(EntityType.project);
-		when(mockTableExceptionTranslator.translateException(any())).thenReturn(translatedException);
-		RuntimeException result = assertThrows(RuntimeException.class, () -> {
-			// call under test
-			worker.run(jobId, userInfo, request, mockJobCallback);
-		});
-		
-		assertEquals(translatedException, result);
 	}
 	
 	@Test
@@ -173,7 +159,7 @@ public class TableUpdateRequestWorkerTest {
 	@Test
 	public void testTableUnavailable() throws Exception{
 		when(mockTableUpdateRequestManagerProvider.getUpdateRequestManagerForType(tableType)).thenReturn(mockTableUpdateRequestManager);
-		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(tableType);
+		when(mockTableManagerSupport.getTableType(idAndVersion)).thenReturn(tableType);
 		makeProgress();
 		when(mockTableUpdateRequestManager.updateTableWithTransaction(any(), any(), any())).thenThrow(new TableUnavailableException(null));
 		
@@ -188,7 +174,7 @@ public class TableUpdateRequestWorkerTest {
 	@Test
 	public void testLockUnavilable() throws Exception{
 		when(mockTableUpdateRequestManagerProvider.getUpdateRequestManagerForType(tableType)).thenReturn(mockTableUpdateRequestManager);
-		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(tableType);
+		when(mockTableManagerSupport.getTableType(idAndVersion)).thenReturn(tableType);
 		makeProgress();
 		when(mockTableUpdateRequestManager.updateTableWithTransaction(any(), any(), any())).thenThrow(new LockUnavilableException());
 		
@@ -204,7 +190,7 @@ public class TableUpdateRequestWorkerTest {
 	@Test
 	public void testRecoverableMessageException() throws Exception{
 		when(mockTableUpdateRequestManagerProvider.getUpdateRequestManagerForType(tableType)).thenReturn(mockTableUpdateRequestManager);
-		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(tableType);
+		when(mockTableManagerSupport.getTableType(idAndVersion)).thenReturn(tableType);
 		makeProgress();
 		when(mockTableUpdateRequestManager.updateTableWithTransaction(any(), any(), any())).thenThrow(new RecoverableMessageException("message"));
 		
@@ -219,7 +205,7 @@ public class TableUpdateRequestWorkerTest {
 	@Test
 	public void testUnknownException() throws Exception{
 		when(mockTableUpdateRequestManagerProvider.getUpdateRequestManagerForType(tableType)).thenReturn(mockTableUpdateRequestManager);
-		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(tableType);
+		when(mockTableManagerSupport.getTableType(idAndVersion)).thenReturn(tableType);
 		makeProgress();
 		
 		RuntimeException exception = new RuntimeException("message");

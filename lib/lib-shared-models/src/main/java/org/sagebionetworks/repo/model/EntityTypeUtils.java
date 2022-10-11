@@ -240,24 +240,4 @@ public class EntityTypeUtils {
 		return getMetadata(type).getDisplayName();
 	}
 
-	/**
-	 * @param type
-	 * @return True if the type defines a view, false otherwise
-	 */
-	public static boolean isViewType(EntityType type) {
-		if (type == null) {
-			throw new IllegalArgumentException("The type cannot be null");
-		}
-
-		return Stream.of(ViewEntityType.values()).anyMatch((viewType) -> viewType.name().equals(type.name()));
-	}
-	
-	/**
-	 * 
-	 * @param type
-	 * @return True if the type defines a table or a view, false otherwise
-	 */
-	public static boolean isTableOrViewType(EntityType type) {
-		return isViewType(type) || EntityType.table == type || EntityType.materializedview == type;
-	}
 }
