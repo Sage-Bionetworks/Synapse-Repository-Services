@@ -1,6 +1,12 @@
 package org.sagebionetworks.repo.manager.file.preview;
 
-import com.google.common.collect.Maps;
+import java.time.Instant;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
@@ -13,12 +19,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import java.time.Instant;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.Maps;
 
 /**
  * A simple stub implementation of the FileMetadataDao.

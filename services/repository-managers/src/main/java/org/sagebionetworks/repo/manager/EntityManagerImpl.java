@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
-import com.google.common.collect.Lists;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 import org.json.JSONObject;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
@@ -61,10 +65,7 @@ import org.sagebionetworks.upload.multipart.MultipartUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import com.google.common.collect.Lists;
 /**
  *
  */

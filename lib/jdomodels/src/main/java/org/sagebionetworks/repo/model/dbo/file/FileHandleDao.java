@@ -1,5 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
@@ -9,11 +14,6 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Abstraction for creating/updating/reading/deleting CRUD metadata about files. 
