@@ -51,7 +51,7 @@
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
-		<property name="startDelay" value="137" />
+		<property name="startDelay" value="3600000" />
 		<!-- This delay determines the maximum amount of time before Synapse object 
 			schema changes will appear on a new production stack. Currently set to one 
 			hour. -->
