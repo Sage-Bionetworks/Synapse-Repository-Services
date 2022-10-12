@@ -15,12 +15,14 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * This worker will completely re-build a table view
  * on any change to a the view schema or scope.
  *
  */
+@Service
 public class TableViewWorker implements ChangeMessageDrivenRunner {
 
 	TableViewManager tableViewManager;
