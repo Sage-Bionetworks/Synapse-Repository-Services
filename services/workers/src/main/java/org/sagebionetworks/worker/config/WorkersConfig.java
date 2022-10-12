@@ -8,9 +8,14 @@ import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentWorkerStack
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.replication.workers.ObjectReplicationReconciliationWorker;
 import org.sagebionetworks.replication.workers.ObjectReplicationWorker;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.table.worker.TableIndexWorker;
+import org.sagebionetworks.table.worker.TableQueryNextPageWorker;
+import org.sagebionetworks.table.worker.TableQueryWorker;
 import org.sagebionetworks.table.worker.TableViewWorker;
+import org.sagebionetworks.worker.AsyncJobRunnerAdapter;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,14 +25,27 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
 
 @Configuration
 public class WorkersConfig {
-		
+	
+	// Shared components
+	private AmazonSQSClient amazonSQSClient;
+	private StackConfiguration stackConfig;
+	private AsynchJobStatusManager jobStatusManager;
+	private UserManager userManager;
+	
+	public WorkersConfig(AmazonSQSClient amazonSQSClient, StackConfiguration stackConfig, AsynchJobStatusManager jobStatusManager, UserManager userManager) {
+		this.amazonSQSClient = amazonSQSClient;
+		this.stackConfig = stackConfig;
+		this.jobStatusManager = jobStatusManager;
+		this.userManager = userManager;
+	}
+
 	@Bean
-	public ConcurrentManager concurrentStackManager(CountingSemaphore countingSemaphore, AmazonSQSClient amazonSQSClient, StackStatusDao stackStatusDao) {
+	public ConcurrentManager concurrentStackManager(CountingSemaphore countingSemaphore, StackStatusDao stackStatusDao) {
 		return new ConcurrentManagerImpl(countingSemaphore, amazonSQSClient, stackStatusDao);
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean objectReplicationWorkerTrigger(ConcurrentManager concurrentStackManager, AmazonSQSClient amazonSQSClient, StackConfiguration stackConfig, ObjectReplicationWorker objectReplicationWorker) {
+	public SimpleTriggerFactoryBean objectReplicationWorkerTrigger(ConcurrentManager concurrentStackManager, ObjectReplicationWorker objectReplicationWorker) {
 		
 		String queueName = stackConfig.getQueueName("TABLE_ENTITY_REPLICATION");
 		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, objectReplicationWorker);
@@ -50,7 +68,7 @@ public class WorkersConfig {
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean objectReplicationReconciliationWorkerTrigger(ConcurrentManager concurrentStackManager, AmazonSQSClient amazonSQSClient, StackConfiguration stackConfig, ObjectReplicationReconciliationWorker objectReplicationReconciliationWorker) {
+	public SimpleTriggerFactoryBean objectReplicationReconciliationWorkerTrigger(ConcurrentManager concurrentStackManager, ObjectReplicationReconciliationWorker objectReplicationReconciliationWorker) {
 		
 		String queueName = stackConfig.getQueueName("ENTITY_REPLICATION_RECONCILIATION");
 		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, objectReplicationReconciliationWorker);
@@ -73,7 +91,7 @@ public class WorkersConfig {
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean tableIndexWorkerTrigger(ConcurrentManager concurrentStackManager, AmazonSQSClient amazonSQSClient, StackConfiguration stackConfig, TableIndexWorker tableIndexWorker) {
+	public SimpleTriggerFactoryBean tableIndexWorkerTrigger(ConcurrentManager concurrentStackManager, TableIndexWorker tableIndexWorker) {
 		
 		String queueName = stackConfig.getQueueName("TABLE_UPDATE");
 		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, tableIndexWorker);
@@ -96,7 +114,7 @@ public class WorkersConfig {
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean tableViewWorkerTrigger(ConcurrentManager concurrentStackManager, AmazonSQSClient amazonSQSClient, StackConfiguration stackConfig, TableViewWorker tableViewWorker) {
+	public SimpleTriggerFactoryBean tableViewWorkerTrigger(ConcurrentManager concurrentStackManager, TableViewWorker tableViewWorker) {
 		
 		String queueName = stackConfig.getQueueName("TABLE_VIEW");
 		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, tableViewWorker);
@@ -116,6 +134,54 @@ public class WorkersConfig {
 			.withRepeatInterval(750)
 			.withStartDelay(253)
 			.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean tableQueryTrigger(ConcurrentManager concurrentStackManager, TableQueryWorker tableQueryWorker) {
+		
+		String queueName = stackConfig.getQueueName("QUERY");		
+		AsyncJobRunnerAdapter<?, ?> worker = new AsyncJobRunnerAdapter<>(tableQueryWorker);
+		worker.configure(jobStatusManager, userManager);
+		
+		return new WorkerTriggerBuilder()
+				.withStack(ConcurrentWorkerStack.builder()
+					.withSemaphoreLockKey("tableQueryWorker")
+					.withSemaphoreMaxLockCount(10)
+					.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
+					.withMaxThreadsPerMachine(3)
+					.withSingleton(concurrentStackManager)
+					.withCanRunInReadOnly(false)
+					.withQueueName(queueName)
+					.withWorker(worker)
+					.build()
+				)
+				.withRepeatInterval(2187)
+				.withStartDelay(1025)
+				.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean tableQueryNextPageTrigger(ConcurrentManager concurrentStackManager, TableQueryNextPageWorker tableQueryNextPageWorker) {
+		
+		String queueName = stackConfig.getQueueName("QUERY_NEXT_PAGE");		
+		AsyncJobRunnerAdapter<?, ?> worker = new AsyncJobRunnerAdapter<>(tableQueryNextPageWorker);
+		worker.configure(jobStatusManager, userManager);
+		
+		return new WorkerTriggerBuilder()
+				.withStack(ConcurrentWorkerStack.builder()
+					.withSemaphoreLockKey("tableQueryNextPageWorker")
+					.withSemaphoreMaxLockCount(10)
+					.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
+					.withMaxThreadsPerMachine(3)
+					.withSingleton(concurrentStackManager)
+					.withCanRunInReadOnly(false)
+					.withQueueName(queueName)
+					.withWorker(worker)
+					.build()
+				)
+				.withRepeatInterval(2180)
+				.withStartDelay(1024)
+				.build();
 	}
 
 }
