@@ -6,6 +6,8 @@ import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManager;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManagerImpl;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentWorkerStack;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
+import org.sagebionetworks.replication.workers.ObjectReplicationReconciliationWorker;
+import org.sagebionetworks.replication.workers.ObjectReplicationWorker;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.table.worker.TableIndexWorker;
 import org.sagebionetworks.table.worker.TableViewWorker;
@@ -22,6 +24,52 @@ public class WorkersConfig {
 	@Bean
 	public ConcurrentManager concurrentStackManager(CountingSemaphore countingSemaphore, AmazonSQSClient amazonSQSClient, StackStatusDao stackStatusDao) {
 		return new ConcurrentManagerImpl(countingSemaphore, amazonSQSClient, stackStatusDao);
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean objectReplicationWorkerTrigger(ConcurrentManager concurrentStackManager, AmazonSQSClient amazonSQSClient, StackConfiguration stackConfig, ObjectReplicationWorker objectReplicationWorker) {
+		
+		String queueName = stackConfig.getQueueName("TABLE_ENTITY_REPLICATION");
+		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, objectReplicationWorker);
+		
+		return new WorkerTriggerBuilder()
+			.withStack(ConcurrentWorkerStack.builder()
+				.withSemaphoreLockKey("objectReplication")
+				.withSemaphoreMaxLockCount(10)
+				.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
+				.withMaxThreadsPerMachine(5)
+				.withSingleton(concurrentStackManager)
+				.withCanRunInReadOnly(true)
+				.withQueueName(queueName)
+				.withWorker(worker)
+				.build()
+			)
+			.withRepeatInterval(553)
+			.withStartDelay(15)
+			.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean objectReplicationReconciliationWorkerTrigger(ConcurrentManager concurrentStackManager, AmazonSQSClient amazonSQSClient, StackConfiguration stackConfig, ObjectReplicationReconciliationWorker objectReplicationReconciliationWorker) {
+		
+		String queueName = stackConfig.getQueueName("ENTITY_REPLICATION_RECONCILIATION");
+		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, objectReplicationReconciliationWorker);
+		
+		return new WorkerTriggerBuilder()
+			.withStack(ConcurrentWorkerStack.builder()
+				.withSemaphoreLockKey("objectReplicationReconciliationWorker")
+				.withSemaphoreMaxLockCount(10)
+				.withSemaphoreLockAndMessageVisibilityTimeoutSec(60)
+				.withMaxThreadsPerMachine(5)
+				.withSingleton(concurrentStackManager)
+				.withCanRunInReadOnly(false)
+				.withQueueName(queueName)
+				.withWorker(worker)
+				.build()
+			)
+			.withRepeatInterval(2034)
+			.withStartDelay(17)
+			.build();
 	}
 	
 	@Bean

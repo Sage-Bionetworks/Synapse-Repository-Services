@@ -14,6 +14,7 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.stereotype.Service;
 
 import com.amazonaws.AmazonServiceException;
 
@@ -24,6 +25,7 @@ import com.amazonaws.AmazonServiceException;
  * @author John
  *
  */
+@Service
 public class ObjectReplicationWorker implements BatchChangeMessageDrivenRunner {
 	
 	static private Logger log = LogManager.getLogger(ObjectReplicationWorker.class);

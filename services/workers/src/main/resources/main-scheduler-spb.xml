@@ -17,6 +17,7 @@
 	<context:annotation-config/>
 	
     <context:component-scan base-package="org.sagebionetworks.worker" annotation-config="false"/>
+	<context:component-scan base-package="org.sagebionetworks.replication.workers" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.table.worker" annotation-config="false"/>
 
 	<import resource="classpath:worker-trace-profiler-spb.xml" />
@@ -56,8 +57,6 @@
     <import resource="classpath:table-update-request-worker-sqs-spb.xml"/>
     <import resource="classpath:migration-sqs-spb.xml" />
     <import resource="classpath:entity-hierarchy-change-worker-spb.xml" />
-    <import resource="classpath:object-replication-worker-spb.xml"/>
-    <import resource="classpath:object-replication-reconciliation-worker-spb.xml" />
     <import resource="classpath:worker-profiler-spb.xml" />
     <import resource="classpath:id-generator-cleanup-worker-spb.xml" />
     <import resource="classpath:doi-worker-sqs-spb.xml" />

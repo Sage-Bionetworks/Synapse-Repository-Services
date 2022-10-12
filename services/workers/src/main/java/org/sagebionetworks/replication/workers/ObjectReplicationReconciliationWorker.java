@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * <p>
@@ -32,6 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * object replicated data as needed.
  * </p>
  */
+@Service
 public class ObjectReplicationReconciliationWorker implements ChangeMessageDrivenRunner {
 
 	static final int MAX_MESSAGE_TO_RUN_RECONCILIATION = 100;
