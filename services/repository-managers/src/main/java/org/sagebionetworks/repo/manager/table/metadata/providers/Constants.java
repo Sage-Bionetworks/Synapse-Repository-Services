@@ -7,6 +7,7 @@ public class Constants {
 	public static final ObjectField[] BASIC_DEAFULT_COLUMNS = new ObjectField[] {
 					ObjectField.id, 
 					ObjectField.name, 
+					ObjectField.description,
 					ObjectField.createdOn, 
 					ObjectField.createdBy,
 					ObjectField.etag, 

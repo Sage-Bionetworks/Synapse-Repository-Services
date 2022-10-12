@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.NormalizedJsonSchema;
 import org.sagebionetworks.repo.model.schema.SubSchemaIterable;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
@@ -55,6 +56,7 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 	@Autowired
 	SchemaTranslator translator;
 
+	@WriteTransaction
 	@Override
 	public void bootstrapSynapseSchemas() throws RecoverableMessageException {
 		// The process is run as the Synapse admin

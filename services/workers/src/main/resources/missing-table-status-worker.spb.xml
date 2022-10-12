@@ -13,13 +13,12 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy proxy-target-class="true" />
 
-	<bean id="schemaBootstrapWorker"
-		class="org.sagebionetworks.schema.worker.SynapseSchemaBootstrapWorker"
+
+	<bean id="missingTableStatusWorker"
+		class="org.sagebionetworks.table.worker.MissingTableStatusWorker"
 		scope="singleton" />
 
-
-	<!-- This is the trigger used to fire this worker -->
-	<bean id="schemaBoostrapTrigger"
+	<bean id="missingTableStatusWorkerTrigger"
 		class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
@@ -33,11 +32,11 @@
 							<bean
 								class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
 								<property name="progressingRunner"
-									ref="schemaBootstrapWorker" />
+									ref="missingTableStatusWorker" />
 								<property name="semaphoreLockKey"
-									value="schemaBootstrapWorker" />
+									value="missingTableStatusWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
-								<property name="semaphoreLockTimeoutSec" value="60" />
+								<property name="semaphoreLockTimeoutSec" value="120" />
 								<property name="gate">
 									<bean
 										class="org.sagebionetworks.worker.utils.StackStatusGate" />
@@ -51,11 +50,9 @@
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
-		<property name="startDelay" value="3600000" />
-		<!-- This delay determines the maximum amount of time before Synapse object 
-			schema changes will appear on a new production stack. Currently set to one 
-			hour. -->
-		<property name="repeatInterval" value="3600000" />
+		<!-- 24 hours  -->
+		<property name="startDelay" value="86400000" />
+		<property name="repeatInterval" value="86400000" />
 	</bean>
 
 </beans>

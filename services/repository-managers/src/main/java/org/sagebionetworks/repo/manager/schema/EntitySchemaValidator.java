@@ -154,12 +154,14 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 			Set<Long> accessRequirmentIdsToBind) {
 		accessRequirementManager.setDynamicallyBoundAccessRequirementsForSubject(objectDescriptor, accessRequirmentIdsToBind);
 		if(annotations != null) {
-			derivedAnnotationDao.saveDerivedAnnotations(objectDescriptor.getId(), annotations);
-			/*
-			 * Unconditionally returning true will cause an infinite loop. When true, a message is
-			 * sent to the Entity topic which will rerun this code. See: PLFM-7452.
-			 */
-			return true;
+			Annotations existingDerivedAnnotations = derivedAnnotationDao.getDerivedAnnotations(objectDescriptor.getId()).orElse(null);
+
+			if (annotations.equals(existingDerivedAnnotations)) {
+				return false;
+			} else {
+				derivedAnnotationDao.saveDerivedAnnotations(objectDescriptor.getId(), annotations);
+				return true;
+			}
 		}else {
 			return derivedAnnotationDao.clearDerivedAnnotations(objectDescriptor.getId()); 
 		}

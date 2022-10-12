@@ -36,6 +36,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -3188,7 +3189,7 @@ public class SQLTranslatorUtilsTest {
 		IdAndVersion viewId = IdAndVersion.parse("syn111");
 		List<ColumnModel> schemaOfSelect = Arrays.asList(columnFoo, columnBar);
 		String outputSQL = "select _C111_,_C333_, ROW_BENEFACTOR from T111"; 
-		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, EntityType.entityview));
+		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.entityview));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
 		String result = SQLTranslatorUtils.createMaterializedViewInsertSql(schemaOfSelect, outputSQL, indexDescription);

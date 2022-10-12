@@ -11,12 +11,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils;
-import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.SQLUtils.TableIndexType;
 import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -50,7 +50,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 		for (IndexDescription dependency : this.orderedDependencies) {
 			for (BenefactorDescription desc : dependency.getBenefactors()) {
 				// The SQL translator will be able to translate from this table name to the appropriate table alias.
-				String dependencyTranslatedTableName = SQLUtils.getTableNameForId(dependency.getIdAndVersion(), TableType.INDEX);
+				String dependencyTranslatedTableName = SQLUtils.getTableNameForId(dependency.getIdAndVersion(), TableIndexType.INDEX);
 				String selectColumnReference = dependencyTranslatedTableName + "." + desc.getBenefactorColumnName();
 				String ifNullCheck = String.format("IFNULL( %s , -1)",selectColumnReference);
 				buildColumnsToAddToSelect.add(ifNullCheck);
@@ -70,7 +70,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	public String getCreateOrUpdateIndexSql() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("CREATE TABLE IF NOT EXISTS ");
-		builder.append(SQLUtils.getTableNameForId(idAndVersion, TableType.INDEX));
+		builder.append(SQLUtils.getTableNameForId(idAndVersion, TableIndexType.INDEX));
 		builder.append("( ");
 		builder.append(ROW_ID).append(" BIGINT NOT NULL AUTO_INCREMENT, ");
 		builder.append(ROW_VERSION).append(" BIGINT NOT NULL DEFAULT 0, ");
@@ -93,8 +93,8 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public EntityType getTableType() {
-		return EntityType.materializedview;
+	public TableType getTableType() {
+		return TableType.materializedview;
 	}
 
 	@Override

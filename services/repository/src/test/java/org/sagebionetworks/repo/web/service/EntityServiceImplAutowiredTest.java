@@ -649,7 +649,7 @@ public class EntityServiceImplAutowiredTest  {
 			entityService.createEntity(adminUserId, materializedView, activityId);
 		}).getMessage();
 
-		assertEquals("Unexpected type for entity with id " + project.getId() + ": project (expected a table or view type)", errorMessage);
+		assertEquals(project.getId() + " is not a table or view", errorMessage);
 	}
 	
 	@Test

@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
@@ -676,7 +677,7 @@ public class NodeManagerImpl implements NodeManager {
 			UnauthorizedException, DatastoreException {
 		validateReadAccess(userInfo, entityId);
 		EntityType type = nodeDao.getNodeTypeById(entityId);
-		if (EntityTypeUtils.isTableOrViewType(type)) {
+		if (TableType.lookupByEntityType(type).isPresent()) {
 			/*
 			 * Snapshots do not exist for the current version of tables/views. Therefore the
 			 * current version is excluded from the results by incrementing the offset by

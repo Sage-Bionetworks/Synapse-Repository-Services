@@ -363,6 +363,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		}
 	}
 
+	@WriteTransaction
 	@Override
 	public void truncateAll() {
 		jsonSchemaDao.truncateAll();

@@ -1,6 +1,75 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import com.google.common.collect.Maps;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DERIVED_ANNOTATIONS_ANNOS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JONS_SCHEMA_BINDING_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_BIND_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_LAST_ACCESSED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_USER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DESCRIPTION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DEFINING_SQL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ITEMS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_OBJECT_BINDING;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STAT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
+
+import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
@@ -75,74 +144,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
-import java.io.IOException;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DERIVED_ANNOTATIONS_ANNOS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JONS_SCHEMA_BINDING_OBJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_BIND_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_LAST_ACCESSED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_USER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DEFINING_SQL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ITEMS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_PROJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_OBJECT_BINDING;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STAT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
+import com.google.common.collect.Maps;
 
 /**
  * This is a basic implementation of the NodeDAO.
@@ -178,7 +180,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " = ? AND " + COL_REVISION_NUMBER + " = ?";
 
 	private static final String UPDATE_REVISION = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_ACTIVITY_ID
-			+ " = ?, " + COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_FILE_HANDLE_ID
+			+ " = ?, " + COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_DESCRIPTION + " = ?, " + COL_REVISION_FILE_HANDLE_ID
 			+ " = ?, " + COL_REVISION_COLUMN_MODEL_IDS + " = ?, " + COL_REVISION_SCOPE_IDS 
 			+ " = ?, " + COL_REVISION_REF_BLOB + " = ?, "+COL_REVISION_ITEMS+" = ?, " + COL_REVISION_SEARCH_ENABLED + " = ?, " + COL_REVISION_DEFINING_SQL 
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
@@ -317,7 +319,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public static final String SQL_ID_NOT_IN_SET = " AND N."+COL_NODE_ID+" NOT IN (:"+BIND_NODE_IDS+")";
 	
 	private static final String SQL_SELECT_WITHOUT_ANNOTATIONS = "SELECT N.*, R." + COL_REVISION_OWNER_NODE + ", R."
-			+ COL_REVISION_NUMBER + ", R." + COL_REVISION_ACTIVITY_ID + ", R." + COL_REVISION_LABEL + ", R."
+			+ COL_REVISION_NUMBER + ", R." + COL_REVISION_ACTIVITY_ID + ", R." + COL_REVISION_DESCRIPTION + ", R." + COL_REVISION_LABEL + ", R."
 			+ COL_REVISION_COMMENT + ", R." + COL_REVISION_MODIFIED_BY + ", R." + COL_REVISION_MODIFIED_ON + ", R."
 			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_COLUMN_MODEL_IDS + ", R." + COL_REVISION_SCOPE_IDS
 			+ ", R." + COL_REVISION_REF_BLOB + ", R." + COL_REVISION_ITEMS + ", R." + COL_REVISION_SEARCH_ENABLED 
@@ -350,7 +352,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			" JOIN "+TABLE_REVISION+" R"+
 			" ON (N."+COL_NODE_ID+" = R."+COL_REVISION_OWNER_NODE+")"+
 			" WHERE (N."+COL_NODE_ID+", R."+COL_REVISION_NUMBER+") IN (:pairs)";
-
+	
 	private static final String PARAM_NAME_IDS = "ids_param";
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
@@ -453,7 +455,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		int count = rs.getInt("COUNT");
 		return new FileSummary(checksum, size, count);
 	};
-	
+
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
@@ -580,7 +582,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Make sure to set the corret revision number
 		dto.setVersionNumber(revisionNumber);
 
-		DBORevision dboRevision = NodeUtils.transalteNodeToDBORevision(dto);
+		DBORevision dboRevision = NodeUtils.translateNodeToDBORevision(dto);
 		
 		DBONode dboNode = NodeUtils.translateNodeToDBONode(dto);
 		
@@ -979,9 +981,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		String items = NodeUtils.writeItemsToJson(updatedNode.getItems());
 		Boolean searchEnabled = updatedNode.getIsSearchEnabled();
 		String definingSQL = updatedNode.getDefiningSQL();
-		
+		String newDescription = updatedNode.getDescription();
+
 		// Update the revision
-		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newFileHandleId, newColumns,
+		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newDescription, newFileHandleId, newColumns,
 				newScope, newReferences, items, searchEnabled, definingSQL, nodeId, currentRevision);
 	}
 	
@@ -1808,6 +1811,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				dto.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
 				dto.setEtag(rs.getString(COL_NODE_ETAG));
 				dto.setName(rs.getString(COL_NODE_NAME));
+				dto.setDescription(rs.getString(COL_REVISION_DESCRIPTION));
 				dto.setSubType(SubType.valueOf(rs.getString(COL_NODE_TYPE)));
 				dto.setParentId(rs.getLong(COL_NODE_PARENT_ID));
 				if(rs.wasNull()){

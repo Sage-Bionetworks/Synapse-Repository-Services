@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
@@ -594,7 +595,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		SumFileSizes result = new SumFileSizes();
 		result.setGreaterThan(false);
 		result.setSumFileSizesBytes(0L);
-		if(EntityType.entityview.equals(query.getTableType()) || EntityType.dataset.equals(query.getTableType())){
+		if(TableType.entityview.equals(query.getTableType()) || TableType.dataset.equals(query.getTableType())){
 			// actual values are only provided for entity views.
 			try {
 				// first get the rowId and rowVersions for the given query up to the limit + 1.
@@ -788,7 +789,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
     }
 
     @Override
-    public EntityType getTableEntityType(IdAndVersion idAndVersion) {
-        return tableManagerSupport.getTableEntityType(idAndVersion);
+    public TableType getTableEntityType(IdAndVersion idAndVersion) {
+        return tableManagerSupport.getTableType(idAndVersion);
     }
 }

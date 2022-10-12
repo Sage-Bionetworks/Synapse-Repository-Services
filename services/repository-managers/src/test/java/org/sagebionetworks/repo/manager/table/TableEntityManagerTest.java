@@ -55,13 +55,13 @@ import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
@@ -911,7 +911,7 @@ public class TableEntityManagerTest {
 	@Test
 	public void testGetCellValuesNonTable() throws DatastoreException, NotFoundException, IOException {
 		// get cell values is only authorized for tables.
-		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, EntityType.entityview);
+		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		RowReferenceSet rows = new RowReferenceSet();
 		rows.setTableId(tableId);
@@ -2020,7 +2020,7 @@ public class TableEntityManagerTest {
 	public void testCreateTableSnapshot() {
 		Long snapshotVersion = 441L;
 		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
-		when(mockTableManagerSupport.getTableType(IdAndVersion.parse(tableId))).thenReturn(ObjectType.TABLE);
+		when(mockTableManagerSupport.getTableObjectType(IdAndVersion.parse(tableId))).thenReturn(ObjectType.TABLE);
 		
 		// call under test
 		SnapshotResponse response = manager.createTableSnapshot(user, tableId, snapshotRequest);
@@ -2037,7 +2037,7 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testCreateTableSnapshotView() {
-		when(mockTableManagerSupport.getTableType(IdAndVersion.parse(tableId))).thenReturn(ObjectType.ENTITY_VIEW);
+		when(mockTableManagerSupport.getTableObjectType(IdAndVersion.parse(tableId))).thenReturn(ObjectType.ENTITY_VIEW);
 		// call under test
 		try {
 			manager.createTableSnapshot(user, tableId, snapshotRequest);

@@ -44,7 +44,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.SQLUtils.TableIndexType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -204,15 +204,15 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testGetTableNameForId(){
-		assertEquals("T999", SQLUtils.getTableNameForId(tableId, TableType.INDEX));
-		assertEquals("T999S", SQLUtils.getTableNameForId(tableId, TableType.STATUS));
+		assertEquals("T999", SQLUtils.getTableNameForId(tableId, TableIndexType.INDEX));
+		assertEquals("T999S", SQLUtils.getTableNameForId(tableId, TableIndexType.STATUS));
 	}
 
 	@Test
 	public void testGetTableNameForIdWithVersion(){
 		tableId = IdAndVersion.parse("syn123.456");
-		assertEquals("T123_456", SQLUtils.getTableNameForId(tableId, TableType.INDEX));
-		assertEquals("T123_456S", SQLUtils.getTableNameForId(tableId, TableType.STATUS));
+		assertEquals("T123_456", SQLUtils.getTableNameForId(tableId, TableIndexType.INDEX));
+		assertEquals("T123_456S", SQLUtils.getTableNameForId(tableId, TableIndexType.STATUS));
 	}
 
 	@Test
@@ -1771,6 +1771,7 @@ public class SQLUtilsTest {
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
 				+ " MAX(R.OBJECT_ID) AS OBJECT_ID,"
 				+ " MAX(R.NAME) AS NAME,"
+				+ " MAX(R.DESCRIPTION) AS DESCRIPTION,"
 				+ " MAX(R.CREATED_ON) AS CREATED_ON,"
 				+ " MAX(R.CREATED_BY) AS CREATED_BY,"
 				+ " MAX(R.ETAG) AS ETAG,"
