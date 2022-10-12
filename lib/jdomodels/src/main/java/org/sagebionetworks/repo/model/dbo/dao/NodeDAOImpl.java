@@ -2275,6 +2275,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			}
 		}
 
+		if (specificIdVersionPairs.isEmpty()) {
+			return new FileSummary(null, 0, 0);
+		}
+
 		Map<String, List<Long[]>> namedParameters = Collections.singletonMap("pairs", specificIdVersionPairs);
 		return namedParameterJdbcTemplate.queryForObject(SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION, namedParameters, FILE_SUMMARY_ROW_MAPPER);
 	}

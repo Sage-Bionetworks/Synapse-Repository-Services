@@ -5275,12 +5275,6 @@ public class NodeDAOImplTest {
 
 	@Test
 	public void testFileSummary() {
-		//create a project
-		Node parent = privateCreateNew("parent");
-		parent.setNodeType(EntityType.project);
-		String parentId = nodeDao.createNew(parent);
-		toDelete.add(parentId);
-
 		// create a file 1
 		Node file1 = privateCreateNew("file1");
 		file1.setNodeType(EntityType.file);
@@ -5312,4 +5306,32 @@ public class NodeDAOImplTest {
 		assertNotNull(fileSummary);
 		assertEquals(expectedFileSummary, fileSummary);
 	}
+
+	@Test
+	public void testGetFileSummaryWithEmptyList() {
+		FileSummary expectedFileSummary = new FileSummary(null, 0, 0);
+		FileSummary fileSummary = nodeDao.getFileSummary(Collections.emptyList());
+		assertEquals(expectedFileSummary, fileSummary);
+	}
+
+	@Test
+	public void testGetFileSummaryWithEntityVersionNull() {
+		// create a file 1
+		Node file1 = privateCreateNew("file1");
+		file1.setNodeType(EntityType.file);
+		file1.setFileHandleId(fileHandle.getId());
+		String file1Id = nodeDao.createNew(file1);
+		toDelete.add(file1Id);
+		FileSummary expectedFileSummary = new FileSummary(null, 0, 0);
+		FileSummary fileSummary = nodeDao.getFileSummary(Collections.singletonList(new EntityRef().setEntityId(file1Id).setVersionNumber(null)));
+		assertEquals(expectedFileSummary, fileSummary);
+	}
+
+	@Test
+	public void testGetFileSummaryWithEntityRefIdNull() {
+		FileSummary expectedFileSummary = new FileSummary(null, 0, 0);
+		FileSummary fileSummary = nodeDao.getFileSummary(Collections.singletonList(new EntityRef().setEntityId(null).setVersionNumber(1L)));
+		assertEquals(expectedFileSummary, fileSummary);
+	}
+
 }
