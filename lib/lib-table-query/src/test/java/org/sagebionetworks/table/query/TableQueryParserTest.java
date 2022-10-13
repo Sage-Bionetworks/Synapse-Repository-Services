@@ -533,7 +533,8 @@ public class TableQueryParserTest {
 		String message = assertThrows(ParseException.class, () -> {
 			new TableQueryParser("select * from syn111 order by foo union select * from syn222").queryExpression();
 		}).getMessage();
-		assertTrue(message.contains("Was expecting one of:\r\n    <EOF> "));
+		assertTrue(message.contains("Was expecting"));
+		assertTrue(message.contains("<EOF>"));
 	}
 
 	@Test
@@ -548,7 +549,8 @@ public class TableQueryParserTest {
 		String message = assertThrows(ParseException.class, () -> {
 			new TableQueryParser("select * from syn111 limit 10 offset 1 union select * from syn222").queryExpression();
 		}).getMessage();
-		assertTrue(message.contains("Was expecting:\r\n    <EOF> "));
+		assertTrue(message.contains("Was expecting"));
+		assertTrue(message.contains("<EOF>"));
 	}
 
 	@Test
@@ -564,7 +566,8 @@ public class TableQueryParserTest {
 			new TableQueryParser("select * from syn111 order by foo limit 10 offset 1 union select * from syn222")
 					.queryExpression();
 		}).getMessage();
-		assertTrue(message.contains("Was expecting:\r\n    <EOF> "));
+		assertTrue(message.contains("Was expecting"));
+		assertTrue(message.contains("<EOF>"));
 	}
 
 	@Test
