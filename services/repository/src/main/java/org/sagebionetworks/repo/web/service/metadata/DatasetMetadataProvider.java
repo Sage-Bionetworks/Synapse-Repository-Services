@@ -1,16 +1,11 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.FileSummary;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -23,6 +18,12 @@ import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 @Service
 public class DatasetMetadataProvider extends ViewMetadataProvider<Dataset> implements EntityValidator<Dataset> {
@@ -64,6 +65,11 @@ public class DatasetMetadataProvider extends ViewMetadataProvider<Dataset> imple
 				.ifPresent(firstNonFile -> {
 					throw new IllegalArgumentException(String.format("Currently, only files can be included in a dataset. %s is '%s'", firstNonFile.getId(), firstNonFile.getType()));	
 				});
+
+			//calculate total size and cumulative checksum of dataset
+			FileSummary fileSummary = nodeDao.getFileSummary(entity.getItems());
+			entity.setChecksum(fileSummary.getChecksum());
+			entity.setSize(fileSummary.getSize());
 		}
 	}
 

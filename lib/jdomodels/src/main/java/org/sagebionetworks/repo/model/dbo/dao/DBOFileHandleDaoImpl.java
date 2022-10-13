@@ -112,7 +112,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			+ " ON S." + COL_FILES_CONTENT_MD5 + " = T." + COL_FILES_CONTENT_MD5
 			+ " WHERE S." + COL_FILES_ID + "= ?"
 			+ " AND T." + COL_FILES_ID + "= ?";
-	
+
 	private TransactionalMessenger transactionalMessenger;
 		
 	private DBOBasicDao basicDao;

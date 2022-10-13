@@ -1675,6 +1675,6 @@ public class EntityManagerImplUnitTest {
 		verify(mockNodeManager, never()).getUserAnnotations(any());
 		verify(mockDerivedAnnotationDao, never()).getDerivedAnnotations(any());
 	}
-	
+
 
 }

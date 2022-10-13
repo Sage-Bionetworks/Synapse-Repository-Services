@@ -1,15 +1,7 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anySet;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-import java.util.List;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +12,7 @@ import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.FileSummary;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -28,8 +21,16 @@ import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class DatasetMetadataProviderTest {
@@ -60,11 +61,16 @@ public class DatasetMetadataProviderTest {
 		String fileType = FileEntity.class.getName();
 		List<EntityHeader> header = Arrays.asList(new EntityHeader().setId("syn111").setType(fileType),
 				new EntityHeader().setId("syn222").setType(fileType));
+		FileSummary fileSummary = new FileSummary("gef45637",40L,2);
 		when(mockNodeDao.getEntityHeader(anySet())).thenReturn(header);
+		when(mockNodeDao.getFileSummary(anyList())).thenReturn(fileSummary);
 		// call under test
 		provider.validateEntity(dataset, event);
-
+		assertEquals(fileSummary.getSize(),dataset.getSize());
+		assertEquals(fileSummary.getChecksum(), dataset.getChecksum());
 		verify(mockNodeDao).getEntityHeader(Sets.newHashSet(111L, 222L));
+		verify(mockNodeDao).getFileSummary(Arrays.asList(new EntityRef().setEntityId("syn111").setVersionNumber(2L),
+				new EntityRef().setEntityId("syn222").setVersionNumber(4L)));
 	}
 
 	@Test

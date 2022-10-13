@@ -1,10 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.NameIdType;
@@ -18,6 +13,11 @@ import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.web.NotFoundException;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Interface for all Node C.R.U.D. operations.
@@ -691,5 +691,12 @@ public interface NodeDAO {
 	 * @return True if the search is enabled for the node with the given id and version, if the version is null checks on the current version
 	 */
 	boolean isSearchEnabled(Long nodeId, Long versionNumber);
+
+	/**
+	 * Get cumulative checksum, total size specific entityRefs.
+	 * @param entityRefs
+	 * @return FileSummary
+	 */
+	FileSummary getFileSummary(List<EntityRef> entityRefs);
 
 }
