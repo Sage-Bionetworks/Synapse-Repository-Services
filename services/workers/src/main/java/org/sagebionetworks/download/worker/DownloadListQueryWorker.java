@@ -8,7 +8,9 @@ import org.sagebionetworks.worker.AsyncJobProgressCallback;
 import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class DownloadListQueryWorker implements AsyncJobRunner<DownloadListQueryRequest, DownloadListQueryResponse> {
 
 	private DownloadListManager downloadListManager;

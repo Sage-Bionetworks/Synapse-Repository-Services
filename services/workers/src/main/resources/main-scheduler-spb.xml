@@ -32,6 +32,12 @@
     <context:component-scan base-package="org.sagebionetworks.worker" annotation-config="false"/>
 	<context:component-scan base-package="org.sagebionetworks.replication.workers" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.table.worker" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.file.worker" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.doi.worker" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.download.worker" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.schema.worker" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.migration.worker" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.report.worker" annotation-config="false"/>
 
 	<!-- Non worker triggers that come from the repo dependencies -->
 	<import resource="classpath:external-triggers-spb.xml" />
@@ -44,37 +50,25 @@
 	<import resource="classpath:log-collate-spb.xml" />
 	<import resource="classpath:worker-log-sweep-spb.xml" />
 	<import resource="classpath:message-to-user-sqs-spb.xml" />
-    <import resource="classpath:table-csv-appender-preview-sqs-spb.xml" />
-    <import resource="classpath:table-csv-downloader-sqs-spb.xml" />
     <import resource="classpath:change-synch-worker-spb.xml" />
     <import resource="classpath:object-snapshot-sqs-spb.xml"/>
     <import resource="classpath:principal-prefix-sqs-spb.xml"/>
-    <import resource="classpath:file-bulk-download-spb.xml"/>
     <import resource="classpath:discussion-workers-spb.xml"/>
     <import resource="classpath:broadcast-message-worker-sqs-spb.xml"/>
     <import resource="classpath:project-stats-v2-sqs-spb.xml"/>
-    <import resource="classpath:table-update-request-worker-sqs-spb.xml"/>
-    <import resource="classpath:migration-sqs-spb.xml" />
     <import resource="classpath:entity-hierarchy-change-worker-spb.xml" />
     <import resource="classpath:worker-profiler-spb.xml" />
     <import resource="classpath:id-generator-cleanup-worker-spb.xml" />
-    <import resource="classpath:doi-worker-sqs-spb.xml" />
-	<import resource="classpath:storage-report-worker-sqs-spb.xml" />
-    <import resource="classpath:add-files-to-download-list-spb.xml" />
     <import resource="classpath:semaphore-garbage-collection-spb.xml" />
     <import resource="classpath:athena-spb.xml" />
     <import resource="classpath:statistics-spb.xml" />
     <import resource="classpath:ses-notification-spb.xml" />
-    <import resource="classpath:schema-create-worker-sqs-spb.xml" />
     <import resource="classpath:schema-synapse-bootstrap-spb.xml" />
-    <import resource="classpath:view-column-model-request-spb.xml" />
-    <import resource="classpath:get-validation-schema-worker-spb.xml" />
     <import resource="classpath:dataaccess-worker-spb.xml" />
     <import resource="classpath:schema-validation-worker-spb.xml" />
     <import resource="classpath:multipart-cleanup-spb.xml" />
     <import resource="classpath:file-scanner-spb.xml" />
     <import resource="classpath:file-archival-spb.xml"/>
-    <import resource="classpath:download-list-workers-spb.xml" />
     <import resource="classpath:validation-schema-index-spb.xml" />
     <import resource="classpath:materialized-view-workers-spb.xml" />
     <import resource="classpath:access-requirement-to-project-worker-spb.xml" />
@@ -92,20 +86,20 @@
 		<ref bean="messageToUserQueueMessageReceiverTrigger" />
 		<ref bean="tableIndexWorkerTrigger" />
 		<ref bean="cloudwatchTrigger" />
-		<ref bean="tableCSVAppenderPreviewQueueMessageReveiverTrigger" />
-		<ref bean="tableCSVDownloaderQueueMessageReveiverTrigger" />
+		<ref bean="tableCSVAppenderPreviewWorkerTrigger" />
+		<ref bean="tableCSVDownloaderWorkerTrigger" />
 		<ref bean="tableQueryTrigger" />
 		<ref bean="tableQueryNextPageTrigger" />
 		<ref bean="projectStatsWorkerV2QueueMessageReveiverTrigger"/>
 		<ref bean="objectQueueMessageReveiverTrigger"/>
-		<ref bean="fileBulkDownloadMessageReveiverTrigger"/>
+		<ref bean="fileBulkDownloadWorkerTrigger"/>
 		<ref bean="threadStatsWorkerTrigger"/>
 		<ref bean="discussionSearchIndexWorkerTrigger"/>
 		<ref bean="broadcastMessageQueueMessageReveiverTrigger"/>
-		<ref bean="migrationMessageReceiverTrigger"/>
-		<ref bean="doiMessageTrigger"/>
-		<ref bean="storageReportWorkerMessageTrigger"/>
-		<ref bean="addFilesToDownloadListMessageReveiverTrigger"/>
+		<ref bean="migrationWorkerTrigger"/>
+		<ref bean="doiWorkerTrigger"/>
+		<ref bean="storageReportWorkerTrigger"/>
+		<ref bean="addFilesToDownloadListTrigger"/>
 		<!-- others -->
 		<ref bean="changeSentMessageSynchTrigger" />
 		<!-- workers publish messages too -->
@@ -127,10 +121,10 @@
 		<ref bean="statisticsMonthlyStatusWatcherWorkerTrigger" /> 
 		<ref bean="statisticsMonthlyWorkerTrigger" />
 		<ref bean="sesNotificationWorkerTrigger" />
-		<ref bean="schemaCreateTransactionMessageTrigger" />
+		<ref bean="schemaCreateWorkerTrigger" />
 		<ref bean="schemaBoostrapTrigger" />
 		<ref bean="viewColumnModelRequestWorkerTrigger" />
-		<ref bean="getValidationSchemaTrigger" />
+		<ref bean="getValidationSchemaWorkerTrigger" />
 		<ref bean="accessApprovalExpirationTrigger" />
 		<ref bean="accessApprovalRevokedNotificationTrigger" />
 		<ref bean="accessApprovalReminderNotificationWorkerTrigger" />
@@ -140,10 +134,10 @@
 		<ref bean="fileHandleAssociationScanDispatcherWorkerTrigger" />
 		<ref bean="fileHandleAssociationScanRangeWorkerTrigger" />
 		<ref bean="fileHandleStreamWorkerTrigger" />
-		<ref bean="downloadListQueryTrigger" />
-		<ref bean="downloadListAddTrigger" />
-		<ref bean="downloadListPackageTrigger" />
-		<ref bean="downloadListManifestTrigger" />
+		<ref bean="downloadListQueryWorkerTrigger" />
+		<ref bean="downloadListAddWorkerTrigger" />
+		<ref bean="downloadListPackageWorkerTrigger" />
+		<ref bean="downloadListManifestWorkerTrigger" />
 		<ref bean="recurrentAthenaQueryWorkerTrigger" />
 		<ref bean="fileHandleArchivalRequestWorkerTrigger" />
 		<ref bean="fileHandleKeysArchiveWorkerTrigger"/>

@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -23,14 +22,10 @@ public class AsyncJobRunnerAdapter<RequestType extends AsynchronousRequestBody, 
 	private AsynchJobStatusManager jobManager;
 	private UserManager userManager;
 
-	public AsyncJobRunnerAdapter(AsyncJobRunner<RequestType, ResponseType> runner) {
-		this.runner = runner;
-	}
-	
-	@Autowired
-	public void configure(AsynchJobStatusManager jobManager, UserManager userManager) {
+	public AsyncJobRunnerAdapter(AsynchJobStatusManager jobManager, UserManager userManager, AsyncJobRunner<RequestType, ResponseType> runner) {
 		this.jobManager = jobManager;
 		this.userManager = userManager;
+		this.runner = runner;
 	}
 
 	@Override

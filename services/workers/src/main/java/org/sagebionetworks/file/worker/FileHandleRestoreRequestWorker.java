@@ -16,7 +16,9 @@ import org.sagebionetworks.worker.AsyncJobProgressCallback;
 import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class FileHandleRestoreRequestWorker implements AsyncJobRunner<FileHandleRestoreRequest, FileHandleRestoreResponse> {
 
 	static final int MAX_BATCH_SIZE = 1000;
