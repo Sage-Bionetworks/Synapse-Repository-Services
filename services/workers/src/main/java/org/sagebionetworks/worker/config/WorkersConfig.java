@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.report.worker.StorageReportCSVDownloadWorker;
 import org.sagebionetworks.schema.worker.CreateJsonSchemaWorker;
 import org.sagebionetworks.schema.worker.GetValidationSchemaWorker;
+import org.sagebionetworks.table.worker.MaterializedViewUpdateWorker;
 import org.sagebionetworks.table.worker.TableCSVAppenderPreviewWorker;
 import org.sagebionetworks.table.worker.TableCSVDownloadWorker;
 import org.sagebionetworks.table.worker.TableIndexWorker;
@@ -144,6 +145,29 @@ public class WorkersConfig {
 		return workerTriggerBuilder()
 			.withStack(ConcurrentWorkerStack.builder()
 				.withSemaphoreLockKey("tableViewWorker")
+				.withSemaphoreMaxLockCount(10)
+				.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
+				.withMaxThreadsPerMachine(3)
+				.withSingleton(concurrentStackManager)
+				.withCanRunInReadOnly(true)
+				.withQueueName(queueName)
+				.withWorker(worker)
+				.build()
+			)
+			.withRepeatInterval(750)
+			.withStartDelay(253)
+			.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean materializedViewWorkerTrigger(ConcurrentManager concurrentStackManager, MaterializedViewUpdateWorker materializedViewUpdateWorker) {
+		
+		String queueName = stackConfig.getQueueName("MATERIALIZED_VIEW_UPDATE");
+		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, materializedViewUpdateWorker);
+		
+		return workerTriggerBuilder()
+			.withStack(ConcurrentWorkerStack.builder()
+				.withSemaphoreLockKey("materializedViewUpdate")
 				.withSemaphoreMaxLockCount(10)
 				.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
 				.withMaxThreadsPerMachine(3)

@@ -142,7 +142,7 @@
 		<ref bean="fileHandleArchivalRequestWorkerTrigger" />
 		<ref bean="fileHandleKeysArchiveWorkerTrigger"/>
 		<ref bean="fileHandleRestoreRequestWorkerTrigger"/>
-		<ref bean="materializedViewUpdateWorkerTrigger"/>
+		<ref bean="materializedViewWorkerTrigger"/>
 		<ref bean="materializedViewSourceUpdateWorkerTrigger"/>
 		<ref bean="accessRequirementToProjectWorkerTrigger"/>
 		<ref bean="missingTableStatusWorkerTrigger"/>
