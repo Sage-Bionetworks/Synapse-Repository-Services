@@ -7,10 +7,12 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingRunner;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerJobManager;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * The worker periodically dispatches SQS messages to scan ranges for all the association types
  */
+@Service
 public class FileHandleAssociationScanDispatcherWorker implements ProgressingRunner {
 	
 	private static final String METRIC_JOB_FAILED_COUNT = "JobFailedCount";

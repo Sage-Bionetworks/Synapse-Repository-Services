@@ -14,6 +14,7 @@ import org.sagebionetworks.download.worker.DownloadListQueryWorker;
 import org.sagebionetworks.file.worker.AddFilesToDownloadListWorker;
 import org.sagebionetworks.file.worker.BulkFileDownloadWorker;
 import org.sagebionetworks.file.worker.FileHandleArchivalRequestWorker;
+import org.sagebionetworks.file.worker.FileHandleAssociationScanDispatcherWorker;
 import org.sagebionetworks.file.worker.FileHandleAssociationScanRangeWorker;
 import org.sagebionetworks.file.worker.FileHandleKeysArchiveWorker;
 import org.sagebionetworks.file.worker.FileHandleRestoreRequestWorker;
@@ -41,8 +42,10 @@ import org.sagebionetworks.table.worker.ViewColumnModelRequestWorker;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.worker.AsyncJobRunnerAdapter;
 import org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter;
+import org.sagebionetworks.worker.utils.StackStatusGate;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack;
+import org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack;
+import org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean;
@@ -69,6 +72,11 @@ public class WorkersConfig {
 		this.userManager = userManager;
 		this.countingSemaphore = countingSemaphore;
 		this.objectMapper = objectMapper;
+	}
+	
+	@Bean
+	public StackStatusGate stackStatusGate() {
+		return new StackStatusGate();
 	}
 
 	@Bean
@@ -468,6 +476,28 @@ public class WorkersConfig {
 	}
 	
 	@Bean
+	public SimpleTriggerFactoryBean fileHandleAssociationScanDispatcherWorkerTrigger(StackStatusGate stackStatusGate, FileHandleAssociationScanDispatcherWorker fileHandleAssociationScanDispatcherWorker) {
+		
+		SemaphoreGatedWorkerStackConfiguration workerConfig = new SemaphoreGatedWorkerStackConfiguration();
+		
+		workerConfig.setSemaphoreLockKey("fileHandleAssociationScanDispatcher");
+		workerConfig.setProgressingRunner(fileHandleAssociationScanDispatcherWorker);
+		workerConfig.setSemaphoreMaxLockCount(1);
+		workerConfig.setSemaphoreLockTimeoutSec(60);
+		workerConfig.setGate(stackStatusGate);
+		
+		return workerTriggerBuilder()
+			.withStack(new SemaphoreGatedWorkerStack(countingSemaphore, workerConfig))
+			// We do not need to check this often, we run this every 5 days. 
+			.withRepeatInterval(1800000)
+			// Note: the start delay is actually 2 hours, reason being that when the staging stack is first deployed it might take a while 
+			// before we start migration which is when the stack is put to read-only mode.
+			// If we do not wait for this the scanner will scan a mostly empty database delaying the next scan for at least 5 days.
+			.withStartDelay(7200000)
+			.build();
+	}
+	
+	@Bean
 	public SimpleTriggerFactoryBean fileHandleAssociationScanRangeWorkerTrigger(ConcurrentManager concurrentStackManager, FileHandleAssociationScanRangeWorker fileHandleAssociationScanRangeWorker) {
 		
 		String queueName = stackConfig.getQueueName("FILE_HANDLE_SCAN_REQUEST");
@@ -770,8 +800,8 @@ public class WorkersConfig {
 			return this;
 		}
 		
-		public WorkerTriggerBuilder withStack(MessageDrivenWorkerStack messageDrivenWorkerStack) {
-			this.targetObject = messageDrivenWorkerStack;
+		public WorkerTriggerBuilder withStack(SemaphoreGatedWorkerStack semaphoreGatedWorkerStack) {
+			this.targetObject = semaphoreGatedWorkerStack;
 			return this;
 		}
 			
