@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.file.FileHandleKeysArchiveRequest;
 import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -23,6 +24,7 @@ import com.amazonaws.services.sqs.model.Message;
  * @author Marco Marasca
  *
  */
+@Service
 public class FileHandleKeysArchiveWorker implements TypedMessageDrivenRunner<FileHandleKeysArchiveRequest> {
 	
 	private static final Logger LOG = LogManager.getLogger(FileHandleKeysArchiveWorker.class);

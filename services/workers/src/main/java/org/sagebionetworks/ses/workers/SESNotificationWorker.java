@@ -9,9 +9,11 @@ import org.sagebionetworks.repo.model.ses.SESJsonNotification;
 import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.sqs.model.Message;
 
+@Service
 public class SESNotificationWorker implements TypedMessageDrivenRunner<SESJsonNotification> {
 
 	private static final Logger LOG = LogManager.getLogger(SESNotificationWorker.class);

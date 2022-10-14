@@ -13,12 +13,14 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.sqs.model.Message;
 
 /**
  * Worker that handles a range scan request for a given association type, process an SQS message with the details about the range to scan
  */
+@Service
 public class FileHandleAssociationScanRangeWorker implements TypedMessageDrivenRunner<FileHandleAssociationScanRangeRequest> {
 	
 	private static final String METRIC_JOB_FAILED_COUNT = "JobFailedCount";

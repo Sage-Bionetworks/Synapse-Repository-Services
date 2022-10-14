@@ -14,7 +14,10 @@ import org.sagebionetworks.download.worker.DownloadListQueryWorker;
 import org.sagebionetworks.file.worker.AddFilesToDownloadListWorker;
 import org.sagebionetworks.file.worker.BulkFileDownloadWorker;
 import org.sagebionetworks.file.worker.FileHandleArchivalRequestWorker;
+import org.sagebionetworks.file.worker.FileHandleAssociationScanRangeWorker;
+import org.sagebionetworks.file.worker.FileHandleKeysArchiveWorker;
 import org.sagebionetworks.file.worker.FileHandleRestoreRequestWorker;
+import org.sagebionetworks.file.worker.FileHandleStreamWorker;
 import org.sagebionetworks.migration.worker.MigrationWorker;
 import org.sagebionetworks.replication.workers.ObjectReplicationReconciliationWorker;
 import org.sagebionetworks.replication.workers.ObjectReplicationWorker;
@@ -24,6 +27,8 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.report.worker.StorageReportCSVDownloadWorker;
 import org.sagebionetworks.schema.worker.CreateJsonSchemaWorker;
 import org.sagebionetworks.schema.worker.GetValidationSchemaWorker;
+import org.sagebionetworks.ses.workers.SESNotificationWorker;
+import org.sagebionetworks.table.worker.MaterializedViewSourceUpdateWorker;
 import org.sagebionetworks.table.worker.MaterializedViewUpdateWorker;
 import org.sagebionetworks.table.worker.TableCSVAppenderPreviewWorker;
 import org.sagebionetworks.table.worker.TableCSVDownloadWorker;
@@ -35,6 +40,7 @@ import org.sagebionetworks.table.worker.TableViewWorker;
 import org.sagebionetworks.table.worker.ViewColumnModelRequestWorker;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.worker.AsyncJobRunnerAdapter;
+import org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack;
 import org.springframework.context.annotation.Bean;
@@ -43,6 +49,7 @@ import org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean;
 import org.springframework.scheduling.quartz.SimpleTriggerFactoryBean;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Configuration
 public class WorkersConfig {
@@ -53,13 +60,15 @@ public class WorkersConfig {
 	private AsynchJobStatusManager jobStatusManager;
 	private UserManager userManager;
 	private CountingSemaphore countingSemaphore;
+	private ObjectMapper objectMapper;
 	
-	public WorkersConfig(AmazonSQSClient amazonSQSClient, StackConfiguration stackConfig, AsynchJobStatusManager jobStatusManager, UserManager userManager, CountingSemaphore countingSemaphore) {
+	public WorkersConfig(AmazonSQSClient amazonSQSClient, StackConfiguration stackConfig, AsynchJobStatusManager jobStatusManager, UserManager userManager, CountingSemaphore countingSemaphore, ObjectMapper objectMapper) {
 		this.amazonSQSClient = amazonSQSClient;
 		this.stackConfig = stackConfig;
 		this.jobStatusManager = jobStatusManager;
 		this.userManager = userManager;
 		this.countingSemaphore = countingSemaphore;
+		this.objectMapper = objectMapper;
 	}
 
 	@Bean
@@ -180,6 +189,29 @@ public class WorkersConfig {
 			.withRepeatInterval(750)
 			.withStartDelay(253)
 			.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean materializedViewSourceUpdateWorkerTrigger(ConcurrentManager concurrentStackManager, MaterializedViewSourceUpdateWorker materializedViewSourceUpdateWorker) {
+		
+		String queueName = stackConfig.getQueueName("MATERIALIZED_VIEW_SOURCE_UPDATE");
+		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, materializedViewSourceUpdateWorker);
+		
+		return workerTriggerBuilder()
+			.withStack(ConcurrentWorkerStack.builder()
+			.withSemaphoreLockKey("materializedViewSourceUpdateWorker")
+			.withSemaphoreMaxLockCount(10)
+			.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
+			.withMaxThreadsPerMachine(1)
+			.withSingleton(concurrentStackManager)
+			.withCanRunInReadOnly(true)
+			.withQueueName(queueName)
+			.withWorker(worker)
+			.build()
+		)
+		.withRepeatInterval(934)
+		.withStartDelay(578)
+		.build();
 	}
 	
 	@Bean
@@ -413,6 +445,75 @@ public class WorkersConfig {
 	}
 	
 	@Bean
+	public SimpleTriggerFactoryBean fileHandleKeysArchiveWorkerTrigger(ConcurrentManager concurrentStackManager, FileHandleKeysArchiveWorker fileHandleKeysArchiveWorker) {
+		
+		String queueName = stackConfig.getQueueName("FILE_KEY_ARCHIVE");
+		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, fileHandleKeysArchiveWorker);
+		
+		return workerTriggerBuilder()
+			.withStack(ConcurrentWorkerStack.builder()
+			.withSemaphoreLockKey("fileHandleKeysArchiveWorker")
+			.withSemaphoreMaxLockCount(10)
+			.withSemaphoreLockAndMessageVisibilityTimeoutSec(60)
+			.withMaxThreadsPerMachine(1)
+			.withSingleton(concurrentStackManager)
+			.withCanRunInReadOnly(false)
+			.withQueueName(queueName)
+			.withWorker(worker)
+			.build()
+		)
+		.withRepeatInterval(786)
+		.withStartDelay(453)
+		.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean fileHandleAssociationScanRangeWorkerTrigger(ConcurrentManager concurrentStackManager, FileHandleAssociationScanRangeWorker fileHandleAssociationScanRangeWorker) {
+		
+		String queueName = stackConfig.getQueueName("FILE_HANDLE_SCAN_REQUEST");
+		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, fileHandleAssociationScanRangeWorker);
+		
+		return workerTriggerBuilder()
+			.withStack(ConcurrentWorkerStack.builder()
+			.withSemaphoreLockKey("fileHandleAssociationScanRangeWorker")
+			.withSemaphoreMaxLockCount(10)
+			.withSemaphoreLockAndMessageVisibilityTimeoutSec(300)
+			.withMaxThreadsPerMachine(1)
+			.withSingleton(concurrentStackManager)
+			.withCanRunInReadOnly(false)
+			.withQueueName(queueName)
+			.withWorker(worker)
+			.build()
+		)
+		.withRepeatInterval(1003)
+		.withStartDelay(3465)
+		.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean fileHandleStreamWorkerTrigger(ConcurrentManager concurrentStackManager, FileHandleStreamWorker fileHandleStreamWorker) {
+		
+		String queueName = stackConfig.getQueueName("FILE_HANDLE_STREAM");
+		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, fileHandleStreamWorker);
+				
+		return workerTriggerBuilder()
+			.withStack(ConcurrentWorkerStack.builder()
+			.withSemaphoreLockKey("fileHandleStreamWorker")
+			.withSemaphoreMaxLockCount(5)
+			.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
+			.withMaxThreadsPerMachine(1)
+			.withSingleton(concurrentStackManager)
+			.withCanRunInReadOnly(false)
+			.withQueueName(queueName)
+			.withWorker(worker)
+			.build()
+		)
+		.withRepeatInterval(1023)
+		.withStartDelay(257)
+		.build();
+	}
+	
+	@Bean
 	public SimpleTriggerFactoryBean fileBulkDownloadWorkerTrigger(ConcurrentManager concurrentStackManager, BulkFileDownloadWorker bulkFileDownloadWorker) {
 		
 		String queueName = stackConfig.getQueueName("BULK_FILE_DOWNLOAD");
@@ -616,6 +717,29 @@ public class WorkersConfig {
 		)
 		.withRepeatInterval(1053)
 		.withStartDelay(850)
+		.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean sesNotificationWorkerTrigger(ConcurrentManager concurrentStackManager, SESNotificationWorker sesNotificationWorker) {
+		
+		String queueName = stackConfig.getQueueName("SES_NOTIFICATIONS");
+		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, sesNotificationWorker);
+		
+		return workerTriggerBuilder()
+			.withStack(ConcurrentWorkerStack.builder()
+			.withSemaphoreLockKey("sesNotificationWorker")
+			.withSemaphoreMaxLockCount(8)
+			.withSemaphoreLockAndMessageVisibilityTimeoutSec(60)
+			.withMaxThreadsPerMachine(1)
+			.withSingleton(concurrentStackManager)
+			.withCanRunInReadOnly(false)
+			.withQueueName(queueName)
+			.withWorker(worker)
+			.build()
+		)
+		.withRepeatInterval(1000)
+		.withStartDelay(1971)
 		.build();
 	}
 	

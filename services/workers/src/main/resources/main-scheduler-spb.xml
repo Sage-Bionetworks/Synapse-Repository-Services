@@ -38,6 +38,7 @@
     <context:component-scan base-package="org.sagebionetworks.schema.worker" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.migration.worker" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.report.worker" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.ses.workers" annotation-config="false"/>
 
 	<!-- Non worker triggers that come from the repo dependencies -->
 	<import resource="classpath:external-triggers-spb.xml" />
@@ -62,15 +63,12 @@
     <import resource="classpath:semaphore-garbage-collection-spb.xml" />
     <import resource="classpath:athena-spb.xml" />
     <import resource="classpath:statistics-spb.xml" />
-    <import resource="classpath:ses-notification-spb.xml" />
     <import resource="classpath:schema-synapse-bootstrap-spb.xml" />
     <import resource="classpath:dataaccess-worker-spb.xml" />
     <import resource="classpath:schema-validation-worker-spb.xml" />
     <import resource="classpath:multipart-cleanup-spb.xml" />
     <import resource="classpath:file-scanner-spb.xml" />
-    <import resource="classpath:file-archival-spb.xml"/>
     <import resource="classpath:validation-schema-index-spb.xml" />
-    <import resource="classpath:materialized-view-workers-spb.xml" />
     <import resource="classpath:access-requirement-to-project-worker-spb.xml" />
     <import resource="classpath:missing-table-status-worker.spb.xml" />
    
