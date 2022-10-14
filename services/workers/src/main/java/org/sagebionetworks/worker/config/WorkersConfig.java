@@ -44,6 +44,8 @@ import org.sagebionetworks.worker.AsyncJobRunnerAdapter;
 import org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter;
 import org.sagebionetworks.worker.utils.StackStatusGate;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack;
+import org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration;
 import org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack;
 import org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -210,7 +212,7 @@ public class WorkersConfig {
 			.withSemaphoreLockKey("materializedViewSourceUpdateWorker")
 			.withSemaphoreMaxLockCount(10)
 			.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
-			.withMaxThreadsPerMachine(1)
+			.withMaxThreadsPerMachine(2)
 			.withSingleton(concurrentStackManager)
 			.withCanRunInReadOnly(true)
 			.withQueueName(queueName)
@@ -269,210 +271,210 @@ public class WorkersConfig {
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean addFilesToDownloadListTrigger(ConcurrentManager concurrentStackManager, AddFilesToDownloadListWorker addFilesToDownloadListWorker) {
+	public SimpleTriggerFactoryBean addFilesToDownloadListTrigger(StackStatusGate stackStatusGate, AddFilesToDownloadListWorker addFilesToDownloadListWorker) {
 		
 		String queueName = stackConfig.getQueueName("ADD_FILES_TO_DOWNLOAD_LIST");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, addFilesToDownloadListWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(60);
+		config.setSemaphoreMaxLockCount(8);
+		config.setSemaphoreLockKey("addFilesToDownloadList");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("addFilesToDownloadList")
-			.withSemaphoreMaxLockCount(8)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(60)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(3087)
-		.withStartDelay(215)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(3087)
+			.withStartDelay(215)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean doiWorkerTrigger(ConcurrentManager concurrentStackManager, DoiWorker doiWorker) {
+	public SimpleTriggerFactoryBean doiWorkerTrigger(StackStatusGate stackStatusGate, DoiWorker doiWorker) {
 		
 		String queueName = stackConfig.getQueueName("DOI");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, doiWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(30);
+		config.setSemaphoreMaxLockCount(8);
+		config.setSemaphoreLockKey("doiWorker");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("doiWorker")
-			.withSemaphoreMaxLockCount(8)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1367)
-		.withStartDelay(217)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1367)
+			.withStartDelay(217)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean downloadListAddWorkerTrigger(ConcurrentManager concurrentStackManager, AddToDownloadListWorker addToDownloadListWorker) {
+	public SimpleTriggerFactoryBean downloadListAddWorkerTrigger(StackStatusGate stackStatusGate, AddToDownloadListWorker addToDownloadListWorker) {
 		
 		String queueName = stackConfig.getQueueName("ADD_TO_DOWNLOAD_LIST");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, addToDownloadListWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(30);
+		config.setSemaphoreMaxLockCount(8);
+		config.setSemaphoreLockKey("downloadListAdd");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("downloadListAdd")
-			.withSemaphoreMaxLockCount(8)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1001)
-		.withStartDelay(213)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1001)
+			.withStartDelay(213)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean downloadListQueryWorkerTrigger(ConcurrentManager concurrentStackManager, DownloadListQueryWorker downloadListQueryWorker) {
+	public SimpleTriggerFactoryBean downloadListQueryWorkerTrigger(StackStatusGate stackStatusGate, DownloadListQueryWorker downloadListQueryWorker) {
 		
 		String queueName = stackConfig.getQueueName("QUERY_DOWNLOAD_LIST");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, downloadListQueryWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(300);
+		config.setSemaphoreMaxLockCount(8);
+		config.setSemaphoreLockKey("downloadListQuery");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("downloadListQuery")
-			.withSemaphoreMaxLockCount(8)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(300)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1001)
-		.withStartDelay(213)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1001)
+			.withStartDelay(213)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean downloadListPackageWorkerTrigger(ConcurrentManager concurrentStackManager, DownloadListPackageWorker downloadListPackageWorker) {
+	public SimpleTriggerFactoryBean downloadListPackageWorkerTrigger(StackStatusGate stackStatusGate, DownloadListPackageWorker downloadListPackageWorker) {
 		
 		String queueName = stackConfig.getQueueName("DOWNLOAD_LIST_PACKAGE");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, downloadListPackageWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(300);
+		config.setSemaphoreMaxLockCount(8);
+		config.setSemaphoreLockKey("downloadListPackage");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("downloadListPackage")
-			.withSemaphoreMaxLockCount(8)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(300)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1001)
-		.withStartDelay(213)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1001)
+			.withStartDelay(213)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean downloadListManifestWorkerTrigger(ConcurrentManager concurrentStackManager, DownloadListManifestWorker downloadListManifestWorker) {
+	public SimpleTriggerFactoryBean downloadListManifestWorkerTrigger(StackStatusGate stackStatusGate, DownloadListManifestWorker downloadListManifestWorker) {
 		
 		String queueName = stackConfig.getQueueName("DOWNLOAD_LIST_MANIFEST");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, downloadListManifestWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(120);
+		config.setSemaphoreMaxLockCount(8);
+		config.setSemaphoreLockKey("downloadListManifest");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("downloadListManifest")
-			.withSemaphoreMaxLockCount(8)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1001)
-		.withStartDelay(213)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1001)
+			.withStartDelay(213)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean fileHandleRestoreRequestWorkerTrigger(ConcurrentManager concurrentStackManager, FileHandleRestoreRequestWorker fileHandleRestoreRequestWorker) {
+	public SimpleTriggerFactoryBean fileHandleRestoreRequestWorkerTrigger(StackStatusGate stackStatusGate, FileHandleRestoreRequestWorker fileHandleRestoreRequestWorker) {
 		
 		String queueName = stackConfig.getQueueName("FILE_HANDLE_RESTORE_REQUEST");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, fileHandleRestoreRequestWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(120);
+		config.setSemaphoreMaxLockCount(2);
+		config.setSemaphoreLockKey("fileHandleRestoreRequestWorker");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("fileHandleRestoreRequestWorker")
-			.withSemaphoreMaxLockCount(2)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(2011)
-		.withStartDelay(857)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(2011)
+			.withStartDelay(857)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean fileHandleArchivalRequestWorkerTrigger(ConcurrentManager concurrentStackManager, FileHandleArchivalRequestWorker fileHandleArchivalRequestWorker) {
+	public SimpleTriggerFactoryBean fileHandleArchivalRequestWorkerTrigger(StackStatusGate stackStatusGate, FileHandleArchivalRequestWorker fileHandleArchivalRequestWorker) {
 		
 		String queueName = stackConfig.getQueueName("FILE_HANDLE_ARCHIVAL_REQUEST");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, fileHandleArchivalRequestWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(120);
+		config.setSemaphoreMaxLockCount(1);
+		config.setSemaphoreLockKey("fileHandleArchivalRequestWorker");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("fileHandleArchivalRequestWorker")
-			.withSemaphoreMaxLockCount(1)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(2014)
-		.withStartDelay(517)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(2014)
+			.withStartDelay(517)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean fileHandleKeysArchiveWorkerTrigger(ConcurrentManager concurrentStackManager, FileHandleKeysArchiveWorker fileHandleKeysArchiveWorker) {
+	public SimpleTriggerFactoryBean fileHandleKeysArchiveWorkerTrigger(StackStatusGate stackStatusGate, FileHandleKeysArchiveWorker fileHandleKeysArchiveWorker) {
 		
 		String queueName = stackConfig.getQueueName("FILE_KEY_ARCHIVE");
 		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, fileHandleKeysArchiveWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(60);
+		config.setSemaphoreMaxLockCount(10);
+		config.setSemaphoreLockKey("fileHandleKeysArchiveWorker");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("fileHandleKeysArchiveWorker")
-			.withSemaphoreMaxLockCount(10)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(60)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(786)
-		.withStartDelay(453)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(786)
+			.withStartDelay(453)
+			.build();
 	}
 	
 	@Bean
@@ -498,279 +500,284 @@ public class WorkersConfig {
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean fileHandleAssociationScanRangeWorkerTrigger(ConcurrentManager concurrentStackManager, FileHandleAssociationScanRangeWorker fileHandleAssociationScanRangeWorker) {
+	public SimpleTriggerFactoryBean fileHandleAssociationScanRangeWorkerTrigger(StackStatusGate stackStatusGate, FileHandleAssociationScanRangeWorker fileHandleAssociationScanRangeWorker) {
 		
 		String queueName = stackConfig.getQueueName("FILE_HANDLE_SCAN_REQUEST");
 		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, fileHandleAssociationScanRangeWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setGate(stackStatusGate);
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(300);
+		config.setSemaphoreMaxLockCount(10);
+		config.setSemaphoreLockKey("fileHandleAssociationScanRangeWorker");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+				
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("fileHandleAssociationScanRangeWorker")
-			.withSemaphoreMaxLockCount(10)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(300)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1003)
-		.withStartDelay(3465)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1003)
+			.withStartDelay(3465)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean fileHandleStreamWorkerTrigger(ConcurrentManager concurrentStackManager, FileHandleStreamWorker fileHandleStreamWorker) {
+	public SimpleTriggerFactoryBean fileHandleStreamWorkerTrigger(StackStatusGate stackStatusGate, FileHandleStreamWorker fileHandleStreamWorker) {
 		
 		String queueName = stackConfig.getQueueName("FILE_HANDLE_STREAM");
 		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, fileHandleStreamWorker);
+		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setGate(stackStatusGate);
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(120);
+		config.setSemaphoreMaxLockCount(5);
+		config.setSemaphoreLockKey("fileHandleStreamWorker");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
 				
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("fileHandleStreamWorker")
-			.withSemaphoreMaxLockCount(5)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1023)
-		.withStartDelay(257)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1023)
+			.withStartDelay(257)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean fileBulkDownloadWorkerTrigger(ConcurrentManager concurrentStackManager, BulkFileDownloadWorker bulkFileDownloadWorker) {
+	public SimpleTriggerFactoryBean fileBulkDownloadWorkerTrigger(StackStatusGate stackStatusGate, BulkFileDownloadWorker bulkFileDownloadWorker) {
 		
 		String queueName = stackConfig.getQueueName("BULK_FILE_DOWNLOAD");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, bulkFileDownloadWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setGate(stackStatusGate);
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(600);
+		config.setSemaphoreMaxLockCount(4);
+		config.setSemaphoreLockKey("fileBulkDownload");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("fileBulkDownload")
-			.withSemaphoreMaxLockCount(4)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(600)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(2027)
-		.withStartDelay(154)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(2027)
+			.withStartDelay(154)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean getValidationSchemaWorkerTrigger(ConcurrentManager concurrentStackManager, GetValidationSchemaWorker getValidationSchemaWorker) {
+	public SimpleTriggerFactoryBean getValidationSchemaWorkerTrigger(StackStatusGate stackStatusGate, GetValidationSchemaWorker getValidationSchemaWorker) {
 		
 		String queueName = stackConfig.getQueueName("GET_VALIDATION_SCHEMA");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, getValidationSchemaWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setGate(stackStatusGate);
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(300);
+		config.setSemaphoreMaxLockCount(8);
+		config.setSemaphoreLockKey("getValidationSchema");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("getValidationSchema")
-			.withSemaphoreMaxLockCount(8)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(300)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1357)
-		.withStartDelay(157)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1357)
+			.withStartDelay(157)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean migrationWorkerTrigger(ConcurrentManager concurrentStackManager, MigrationWorker migrationWorker) {
+	public SimpleTriggerFactoryBean migrationWorkerTrigger(MigrationWorker migrationWorker) {
 		
 		String queueName = stackConfig.getQueueName("MIGRATION");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, migrationWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(600);
+		config.setSemaphoreMaxLockCount(10);
+		config.setSemaphoreLockKey("migration");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("migration")
-			.withSemaphoreMaxLockCount(10)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(600)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(true)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1000)
-		.withStartDelay(154)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1000)
+			.withStartDelay(154)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean schemaCreateWorkerTrigger(ConcurrentManager concurrentStackManager, CreateJsonSchemaWorker createJsonSchemaWorker) {
+	public SimpleTriggerFactoryBean schemaCreateWorkerTrigger(StackStatusGate stackStatusGate, CreateJsonSchemaWorker createJsonSchemaWorker) {
 		
 		String queueName = stackConfig.getQueueName("JSON_SCHEMA_CREATE");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, createJsonSchemaWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(300);
+		config.setSemaphoreMaxLockCount(8);
+		config.setSemaphoreLockKey("jsonSchemaCreate");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("migration")
-			.withSemaphoreMaxLockCount(10)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(300)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1377)
-		.withStartDelay(133)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1377)
+			.withStartDelay(133)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean storageReportWorkerTrigger(ConcurrentManager concurrentStackManager, StorageReportCSVDownloadWorker storageReportCSVDownloadWorker) {
+	public SimpleTriggerFactoryBean storageReportWorkerTrigger(StackStatusGate stackStatusGate, StorageReportCSVDownloadWorker storageReportCSVDownloadWorker) {
 		
 		String queueName = stackConfig.getQueueName("STORAGE_REPORT");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, storageReportCSVDownloadWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(30);
+		config.setSemaphoreMaxLockCount(2);
+		config.setSemaphoreLockKey("storageReportWorker");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("storageReportWorker")
-			.withSemaphoreMaxLockCount(2)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1864)
-		.withStartDelay(628)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1864)
+			.withStartDelay(628)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean tableCSVAppenderPreviewWorkerTrigger(ConcurrentManager concurrentStackManager, TableCSVAppenderPreviewWorker tableCSVAppenderPreviewWorker) {
+	public SimpleTriggerFactoryBean tableCSVAppenderPreviewWorkerTrigger(StackStatusGate stackStatusGate, TableCSVAppenderPreviewWorker tableCSVAppenderPreviewWorker) {
 		
 		String queueName = stackConfig.getQueueName("UPLOAD_CSV_TO_TABLE_PREVIEW");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, tableCSVAppenderPreviewWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(60);
+		config.setSemaphoreMaxLockCount(4);
+		config.setSemaphoreLockKey("tableCSVAppenderPreview");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("tableCSVAppenderPreview")
-			.withSemaphoreMaxLockCount(4)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(60)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1831)
-		.withStartDelay(15)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1831)
+			.withStartDelay(15)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean tableCSVDownloaderWorkerTrigger(ConcurrentManager concurrentStackManager, TableCSVDownloadWorker tableCSVDownloadWorker) {
+	public SimpleTriggerFactoryBean tableCSVDownloaderWorkerTrigger(StackStatusGate stackStatusGate, TableCSVDownloadWorker tableCSVDownloadWorker) {
 		
 		String queueName = stackConfig.getQueueName("DOWNLOAD_CSV_FROM_TABLE");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, tableCSVDownloadWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(60);
+		config.setSemaphoreMaxLockCount(4);
+		config.setSemaphoreLockKey("tableCSVDownloader");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("tableCSVDownloader")
-			.withSemaphoreMaxLockCount(4)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(60)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(2087)
-		.withStartDelay(15)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(2087)
+			.withStartDelay(15)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean tableUpdateRequestWorkerTrigger(ConcurrentManager concurrentStackManager, TableUpdateRequestWorker tableUpdateRequestWorker) {
+	public SimpleTriggerFactoryBean tableUpdateRequestWorkerTrigger(StackStatusGate stackStatusGate, TableUpdateRequestWorker tableUpdateRequestWorker) {
 		
 		String queueName = stackConfig.getQueueName("TABLE_UPDATE_TRANSACTION");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, tableUpdateRequestWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(300);
+		config.setSemaphoreMaxLockCount(8);
+		config.setSemaphoreLockKey("tableUpdateRequestWorker");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("tableUpdateRequestWorker")
-			.withSemaphoreMaxLockCount(8)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(300)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1377)
-		.withStartDelay(13)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1377)
+			.withStartDelay(13)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean viewColumnModelRequestWorkerTrigger(ConcurrentManager concurrentStackManager, ViewColumnModelRequestWorker viewColumnModelRequestWorker) {
+	public SimpleTriggerFactoryBean viewColumnModelRequestWorkerTrigger(StackStatusGate stackStatusGate, ViewColumnModelRequestWorker viewColumnModelRequestWorker) {
 		
 		String queueName = stackConfig.getQueueName("VIEW_COLUMN_MODEL_REQUEST");
 		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, viewColumnModelRequestWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(300);
+		config.setSemaphoreMaxLockCount(8);
+		config.setSemaphoreLockKey("viewColumnModelRequestWorker");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("viewColumnModelRequestWorker")
-			.withSemaphoreMaxLockCount(8)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(300)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1053)
-		.withStartDelay(850)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1053)
+			.withStartDelay(850)
+			.build();
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean sesNotificationWorkerTrigger(ConcurrentManager concurrentStackManager, SESNotificationWorker sesNotificationWorker) {
+	public SimpleTriggerFactoryBean sesNotificationWorkerTrigger(StackStatusGate stackStatusGate, SESNotificationWorker sesNotificationWorker) {
 		
 		String queueName = stackConfig.getQueueName("SES_NOTIFICATIONS");
 		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, sesNotificationWorker);
 		
+		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
+		
+		config.setGate(stackStatusGate);
+		config.setQueueName(queueName);
+		config.setRunner(worker);
+		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(60);
+		config.setSemaphoreMaxLockCount(8);
+		config.setSemaphoreLockKey("sesNotificationWorker");
+		
+		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
+		
 		return workerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("sesNotificationWorker")
-			.withSemaphoreMaxLockCount(8)
-			.withSemaphoreLockAndMessageVisibilityTimeoutSec(60)
-			.withMaxThreadsPerMachine(1)
-			.withSingleton(concurrentStackManager)
-			.withCanRunInReadOnly(false)
-			.withQueueName(queueName)
-			.withWorker(worker)
-			.build()
-		)
-		.withRepeatInterval(1000)
-		.withStartDelay(1971)
-		.build();
+			.withStack(stack)
+			.withRepeatInterval(1000)
+			.withStartDelay(1971)
+			.build();
 	}
 	
 	static WorkerTriggerBuilder workerTriggerBuilder() {
@@ -802,6 +809,11 @@ public class WorkersConfig {
 		
 		public WorkerTriggerBuilder withStack(SemaphoreGatedWorkerStack semaphoreGatedWorkerStack) {
 			this.targetObject = semaphoreGatedWorkerStack;
+			return this;
+		}
+		
+		public WorkerTriggerBuilder withStack(MessageDrivenWorkerStack messageDrivenWorkerStack) {
+			this.targetObject = messageDrivenWorkerStack;
 			return this;
 		}
 			
