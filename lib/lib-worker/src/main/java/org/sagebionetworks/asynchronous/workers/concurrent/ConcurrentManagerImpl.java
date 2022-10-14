@@ -6,6 +6,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
@@ -21,12 +23,15 @@ import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 
 public class ConcurrentManagerImpl implements ConcurrentManager {
+	
+	private static final Logger log = LogManager.getLogger(ConcurrentManagerImpl.class);
 
 	private static final int FIVE_SECONDS = 5;
 	private final CountingSemaphore countingSemaphore;
 	private final ExecutorService executorService;
 	private final AmazonSQSClient amazonSQSClient;
 	private final StackStatusDao stackStatusDao;
+	private volatile boolean isShutdown;
 
 	public ConcurrentManagerImpl(CountingSemaphore countingSemaphore, AmazonSQSClient amazonSQSClient,
 			StackStatusDao stackStatusDao) {
@@ -48,6 +53,13 @@ public class ConcurrentManagerImpl implements ConcurrentManager {
 		 * expire).
 		 */
 		this.executorService = Executors.newCachedThreadPool();
+		
+		isShutdown = false;
+		// We need to know when the JVM is shutting down.
+		Runtime.getRuntime().addShutdownHook(new Thread(()->{
+			isShutdown = true;
+			log.warn("JVM is shutting down. No messages will be deleted.");
+		}));
 	}
 
 	@Override
@@ -141,7 +153,7 @@ public class ConcurrentManagerImpl implements ConcurrentManager {
 						.withReceiptHandle(message.getReceiptHandle()).withVisibilityTimeout(FIVE_SECONDS));
 			} finally {
 				callback.removeProgressListener(listener);
-				if (deleteMessage) {
+				if (deleteMessage && !isShutdown) {
 					amazonSQSClient.deleteMessage(new DeleteMessageRequest().withQueueUrl(queueUrl)
 							.withReceiptHandle(message.getReceiptHandle()));
 				}
@@ -154,6 +166,10 @@ public class ConcurrentManagerImpl implements ConcurrentManager {
 	@Override
 	public AmazonSQSClient getAmazonSQSClient() {
 		return amazonSQSClient;
+	}
+	
+	public void forceShutdown() {
+		isShutdown = true;
 	}
 
 }
