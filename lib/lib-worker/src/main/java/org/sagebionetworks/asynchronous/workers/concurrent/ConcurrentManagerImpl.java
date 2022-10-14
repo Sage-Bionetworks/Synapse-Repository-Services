@@ -6,8 +6,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
@@ -24,7 +24,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 
 public class ConcurrentManagerImpl implements ConcurrentManager {
 	
-	private static final Logger log = LogManager.getLogger(ConcurrentManagerImpl.class);
+	private static final Log log = LogFactory.getLog(ConcurrentWorkerStack.class);	
 
 	private static final int FIVE_SECONDS = 5;
 	private final CountingSemaphore countingSemaphore;

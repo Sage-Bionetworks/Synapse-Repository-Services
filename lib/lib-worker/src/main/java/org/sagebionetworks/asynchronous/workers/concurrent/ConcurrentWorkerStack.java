@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 
@@ -44,7 +44,7 @@ public class ConcurrentWorkerStack implements Runnable {
 
 	public static final int MAX_MESSAGES_PER_REQUEST = 10;
 
-	private static final Logger log = LogManager.getLogger(ConcurrentWorkerStack.class);
+	private static final Log log = LogFactory.getLog(ConcurrentWorkerStack.class);	
 
 	// direct parameters
 	private final ConcurrentManager manager;
