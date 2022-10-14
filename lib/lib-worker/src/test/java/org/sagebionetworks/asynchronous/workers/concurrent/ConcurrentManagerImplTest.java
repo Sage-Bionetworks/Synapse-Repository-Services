@@ -274,7 +274,7 @@ public class ConcurrentManagerImplTest {
 				.withQueueUrl(queueUrl).withReceiptHandle(receiptHandle).withVisibilityTimeout(lockTimeoutSec));
 		// second call to put the message back in the queue in 5 seconds.
 		verify(mockAmazonSQSClient, times(1)).changeMessageVisibility(new ChangeMessageVisibilityRequest()
-				.withQueueUrl(queueUrl).withReceiptHandle(receiptHandle).withVisibilityTimeout(5));
+				.withQueueUrl(queueUrl).withReceiptHandle(receiptHandle).withVisibilityTimeout(2));
 
 		assertNotNull(job.getFuture());
 		assertTrue(job.getFuture().isDone());
