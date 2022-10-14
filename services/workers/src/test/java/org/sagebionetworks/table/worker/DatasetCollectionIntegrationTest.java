@@ -70,6 +70,9 @@ public class DatasetCollectionIntegrationTest {
 	private Project project;
 	private ColumnModel stringColumn;
 	private ColumnModel descriptionColumn;
+	private ColumnModel datasetMD5;
+	private ColumnModel datasetSize;
+	private ColumnModel datasetCount;
 	
 	@BeforeEach
 	public void before() throws Exception {
@@ -88,6 +91,9 @@ public class DatasetCollectionIntegrationTest {
 		stringColumn = columnModelManager.createColumnModel(userInfo, stringColumn);
 		
 		descriptionColumn = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION, ObjectField.description).get(0);
+		datasetMD5 = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION,ObjectField.datasetMD5Hex).get(0);
+		datasetSize = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION,ObjectField.datasetSizeInBytes).get(0);
+		//datasetCount = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION,ObjectField.datasetItemCount).get(0);
 	}
 
 	@AfterEach
@@ -110,15 +116,20 @@ public class DatasetCollectionIntegrationTest {
 		DatasetCollection collection = asyncHelper.createDatasetCollection(userInfo, new DatasetCollection()
 			.setParentId(project.getId())
 			.setName("Dataset Collection")
-			.setColumnIds(Arrays.asList(stringColumn.getId(), descriptionColumn.getId()))
+			.setColumnIds(Arrays.asList(stringColumn.getId(), descriptionColumn.getId(), datasetMD5.getId(),
+					datasetSize.getId()))
 			.setItems(List.of(
 				new EntityRef().setEntityId(datasetOne.getId()).setVersionNumber(snapshotVersion),
 				new EntityRef().setEntityId(datasetTwo.getId()).setVersionNumber(snapshotVersion)
 			)));
 		
 		List<Row> expectedRows = Arrays.asList(
-			new Row().setRowId(KeyFactory.stringToKey(datasetOne.getId())).setVersionNumber(snapshotVersion).setEtag(datasetOne.getEtag()).setValues(Arrays.asList(datasetOne.getId(), datasetOne.getDescription())),
-			new Row().setRowId(KeyFactory.stringToKey(datasetTwo.getId())).setVersionNumber(snapshotVersion).setEtag(datasetTwo.getEtag()).setValues(Arrays.asList(datasetTwo.getId(), datasetTwo.getDescription()))
+			new Row().setRowId(KeyFactory.stringToKey(datasetOne.getId())).setVersionNumber(snapshotVersion)
+					.setEtag(datasetOne.getEtag()).setValues(Arrays.asList(datasetOne.getId(),
+							datasetOne.getDescription(), datasetOne.getChecksum(), datasetOne.getSize().toString())),
+			new Row().setRowId(KeyFactory.stringToKey(datasetTwo.getId())).setVersionNumber(snapshotVersion)
+					.setEtag(datasetTwo.getEtag()).setValues(Arrays.asList(datasetTwo.getId(), datasetTwo.getDescription(),
+							datasetTwo.getChecksum(), datasetTwo.getSize().toString()))
 		);
 		
 		// call under test

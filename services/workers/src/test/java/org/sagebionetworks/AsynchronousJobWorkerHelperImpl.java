@@ -13,7 +13,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
@@ -29,6 +28,8 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.FileSummary;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
@@ -252,6 +253,8 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	private SynapseS3Client s3Client;
 	@Autowired
 	private StackStatusDao stackStatusDao;
+	@Autowired
+	private NodeDAO nodeDAO;
 	
 	@Override
 	public <R extends AsynchronousRequestBody, T extends AsynchronousResponseBody> AsyncJobResponse<T> assertJobResponse(
@@ -434,6 +437,10 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	
 	@Override
 	public Dataset createDataset(UserInfo user, Dataset dataset) {
+		FileSummary fileSummary = nodeDAO.getFileSummary(dataset.getItems());
+		dataset.setChecksum(fileSummary.getChecksum());
+		dataset.setSize(fileSummary.getSize());
+		//dataset.setChecksum();
 		ViewEntityType entityType = ViewEntityType.dataset;
 		Long typeMask = 0L;
 		String viewId = entityManager.createEntity(user, dataset, null);

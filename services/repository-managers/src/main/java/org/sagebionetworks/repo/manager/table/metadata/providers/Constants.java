@@ -28,12 +28,16 @@ public class Constants {
 					ObjectField.projectId, 
 					ObjectField.modifiedOn, 
 					ObjectField.modifiedBy,
-					ObjectField.dataFileHandleId, 
+					ObjectField.dataFileHandleId,
 					ObjectField.dataFileSizeBytes, 
 					ObjectField.dataFileMD5Hex,
 					ObjectField.dataFileConcreteType,
 					ObjectField.dataFileBucket,
 					ObjectField.dataFileKey
+	};
+
+	static final ObjectField[] DATASET_DEFAULT_COLUMNS = new ObjectField[]{
+			ObjectField.datasetItemCount
 	};
 	// @formatter:on
 }

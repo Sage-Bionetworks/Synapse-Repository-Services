@@ -152,6 +152,8 @@ public class TableConstants {
 	public static final String OBJECT_REPLICATION_COL_FILE_SIZE_BYTES		= "FILE_SIZE_BYTES";
 	public static final String OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE	= "IN_SYNAPSE_STORAGE";
 	public static final String OBJECT_REPLICATION_COL_FILE_MD5				= "FILE_MD5";
+
+	public static final String OBJECT_REPLICATION_COL_ITEM_COUNT			= "ITEM_COUNT";
 	public static final String OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE    = "FILE_CONCRETE_TYPE";
 	public static final String OBJECT_REPLICATION_COL_FILE_BUCKET			= "FILE_BUCKET";
 	public static final String OBJECT_REPLICATION_COL_FILE_KEY			    = "FILE_KEY";
@@ -230,10 +232,11 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_COL_FILE_SIZE_BYTES 	+ ","
 			+ OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE + ","
 			+ OBJECT_REPLICATION_COL_FILE_MD5			+ ","
+			+ OBJECT_REPLICATION_COL_ITEM_COUNT			+ ","
 			+ OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE + ","
 			+ OBJECT_REPLICATION_COL_FILE_BUCKET		+ ","
 			+ OBJECT_REPLICATION_COL_FILE_KEY
-			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 			+ " ON DUPLICATE KEY UPDATE "
 			+ OBJECT_REPLICATION_COL_CUR_VERSION 		+ "=?,"
 			+ OBJECT_REPLICATION_COL_CREATED_BY 		+ "=?,"
@@ -251,6 +254,7 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_COL_FILE_SIZE_BYTES 	+ "=?,"
 			+ OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE + "=?,"
 			+ OBJECT_REPLICATION_COL_FILE_MD5 			+ "=?,"
+			+ OBJECT_REPLICATION_COL_ITEM_COUNT			+ "=?,"
 			+ OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE + "=?,"
 			+ OBJECT_REPLICATION_COL_FILE_BUCKET		+ "=?,"
 			+ OBJECT_REPLICATION_COL_FILE_KEY			+ "=?";

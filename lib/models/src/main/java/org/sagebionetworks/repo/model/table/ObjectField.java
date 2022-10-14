@@ -40,6 +40,9 @@ public enum ObjectField {
 	dataFileHandleId		(OBJECT_REPLICATION_COL_FILE_ID,			ColumnType.FILEHANDLEID,	null,	null),
 	dataFileSizeBytes		(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES,	ColumnType.INTEGER,			null,	null),
 	dataFileMD5Hex			(OBJECT_REPLICATION_COL_FILE_MD5,			ColumnType.STRING,			100L,	null),
+	datasetSizeInBytes		(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES,	ColumnType.INTEGER,			null,	null),
+	datasetMD5Hex			(OBJECT_REPLICATION_COL_FILE_MD5,			ColumnType.STRING,			100L,	null),
+	datasetItemCount        (OBJECT_REPLICATION_COL_FILE_MD5,			ColumnType.INTEGER,			null,	null),
 	dataFileConcreteType	(OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE,	ColumnType.STRING,			65L,	FacetType.enumeration),
 	dataFileBucket			(OBJECT_REPLICATION_COL_FILE_BUCKET,		ColumnType.STRING,			100L,	FacetType.enumeration),
 	dataFileKey				(OBJECT_REPLICATION_COL_FILE_KEY,			ColumnType.STRING,			700L,	null);
