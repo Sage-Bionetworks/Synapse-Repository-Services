@@ -23,8 +23,8 @@ import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 
 public class ConcurrentManagerImpl implements ConcurrentManager {
-	
-	private static final Log log = LogFactory.getLog(ConcurrentWorkerStack.class);	
+
+	private static final Log log = LogFactory.getLog(ConcurrentWorkerStack.class);
 
 	private static final int FIVE_SECONDS = 5;
 	private final CountingSemaphore countingSemaphore;
@@ -53,10 +53,10 @@ public class ConcurrentManagerImpl implements ConcurrentManager {
 		 * expire).
 		 */
 		this.executorService = Executors.newCachedThreadPool();
-		
+
 		isShutdown = false;
 		// We need to know when the JVM is shutting down.
-		Runtime.getRuntime().addShutdownHook(new Thread(()->{
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			isShutdown = true;
 			log.warn("JVM is shutting down. No messages will be deleted.");
 		}));
@@ -152,10 +152,14 @@ public class ConcurrentManagerImpl implements ConcurrentManager {
 				amazonSQSClient.changeMessageVisibility(new ChangeMessageVisibilityRequest().withQueueUrl(queueUrl)
 						.withReceiptHandle(message.getReceiptHandle()).withVisibilityTimeout(FIVE_SECONDS));
 			} finally {
-				callback.removeProgressListener(listener);
-				if (deleteMessage && !isShutdown) {
-					amazonSQSClient.deleteMessage(new DeleteMessageRequest().withQueueUrl(queueUrl)
-							.withReceiptHandle(message.getReceiptHandle()));
+				try {
+					callback.removeProgressListener(listener);
+					if (deleteMessage && !isShutdown) {
+						amazonSQSClient.deleteMessage(new DeleteMessageRequest().withQueueUrl(queueUrl)
+								.withReceiptHandle(message.getReceiptHandle()));
+					}
+				} catch (Exception e) {
+					log.warn("failed to delete message", e);
 				}
 			}
 			return null;
@@ -167,7 +171,7 @@ public class ConcurrentManagerImpl implements ConcurrentManager {
 	public AmazonSQSClient getAmazonSQSClient() {
 		return amazonSQSClient;
 	}
-	
+
 	public void forceShutdown() {
 		isShutdown = true;
 	}
