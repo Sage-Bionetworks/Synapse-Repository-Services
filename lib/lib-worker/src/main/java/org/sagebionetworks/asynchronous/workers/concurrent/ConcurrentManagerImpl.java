@@ -6,6 +6,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
@@ -23,10 +25,13 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 public class ConcurrentManagerImpl implements ConcurrentManager {
 
 	private static final int TWO_SECONDS = 2;
+	private static final Log log = LogFactory.getLog(ConcurrentWorkerStack.class);
+
 	private final CountingSemaphore countingSemaphore;
 	private final ExecutorService executorService;
 	private final AmazonSQSClient amazonSQSClient;
 	private final StackStatusDao stackStatusDao;
+	private volatile boolean isShutdown;
 
 	public ConcurrentManagerImpl(CountingSemaphore countingSemaphore, AmazonSQSClient amazonSQSClient,
 			StackStatusDao stackStatusDao) {
@@ -48,6 +53,13 @@ public class ConcurrentManagerImpl implements ConcurrentManager {
 		 * expire).
 		 */
 		this.executorService = Executors.newCachedThreadPool();
+
+		isShutdown = false;
+		// We need to know when the JVM is shutting down.
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			isShutdown = true;
+			log.warn("JVM is shutting down. No messages will be deleted.");
+		}));
 	}
 
 	@Override
@@ -140,10 +152,14 @@ public class ConcurrentManagerImpl implements ConcurrentManager {
 				amazonSQSClient.changeMessageVisibility(new ChangeMessageVisibilityRequest().withQueueUrl(queueUrl)
 						.withReceiptHandle(message.getReceiptHandle()).withVisibilityTimeout(TWO_SECONDS));
 			} finally {
-				callback.removeProgressListener(listener);
-				if (deleteMessage) {
-					amazonSQSClient.deleteMessage(new DeleteMessageRequest().withQueueUrl(queueUrl)
-							.withReceiptHandle(message.getReceiptHandle()));
+				try {
+					callback.removeProgressListener(listener);
+					if (deleteMessage && !isShutdown) {
+						amazonSQSClient.deleteMessage(new DeleteMessageRequest().withQueueUrl(queueUrl)
+								.withReceiptHandle(message.getReceiptHandle()));
+					}
+				} catch (Exception e) {
+					log.warn("failed to delete message", e);
 				}
 			}
 			return null;
@@ -154,6 +170,10 @@ public class ConcurrentManagerImpl implements ConcurrentManager {
 	@Override
 	public AmazonSQSClient getAmazonSQSClient() {
 		return amazonSQSClient;
+	}
+
+	public void forceShutdown() {
+		isShutdown = true;
 	}
 
 }
