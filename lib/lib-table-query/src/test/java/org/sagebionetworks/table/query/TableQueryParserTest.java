@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SQLElement;
 import org.sagebionetworks.table.query.model.SearchCondition;
@@ -411,14 +412,14 @@ public class TableQueryParserTest {
 	@Test
 	public void testTableNameTooManyDots() throws ParseException {
 		assertThrows(ParseException.class, ()->{
-			TableQueryParser.parserQuery("select * from syn123.567.333 where foo = 'bar'");
+			new TableQueryParser("select * from syn123.567.333 where foo = 'bar'").queryExpression();
 		});
 	}
 	
 	@Test
 	public void testTableNameTrailingDot() throws ParseException {
 		assertThrows(ParseException.class, ()->{
-			TableQueryParser.parserQuery("select * from syn123.567. where foo = 'bar'");
+			new TableQueryParser("select * from syn123.567. where foo = 'bar'").queryExpression();
 		});
 	}
 	
@@ -473,6 +474,107 @@ public class TableQueryParserTest {
 		QuerySpecification element = TableQueryParser
 				.parserQuery("select * from syn1 join syn2 join syn3 on (syn1.id = syn2.id and syn2.b = syn3.b)");
 		assertEquals("SELECT * FROM syn1 JOIN syn2 JOIN syn3 ON ( syn1.id = syn2.id AND syn2.b = syn3.b )", element.toSql());
+	}
+	
+	@Test
+	public void testQueryExpression() throws ParseException {
+		QueryExpression element = new TableQueryParser("select * from syn123 where foo='bar' order by foo limit 12").queryExpression();
+		assertEquals("SELECT * FROM syn123 WHERE foo = 'bar' ORDER BY foo LIMIT 12", element.toSql());
+	}
+	
+	@Test
+	public void testQueryExpressionWithParentheses() throws ParseException {
+		QueryExpression element = new TableQueryParser("(select * from syn123)").queryExpression();
+		assertEquals("(SELECT * FROM syn123)", element.toSql());
+	}
+	
+	@Test
+	public void testQueryExpressionWithUnion() throws ParseException {
+		QueryExpression element = new TableQueryParser("select * from syn123 union select * from syn456").queryExpression();
+		assertEquals("SELECT * FROM syn123 UNION SELECT * FROM syn456", element.toSql());
+	}
+
+	@Test
+	public void testQueryExpressionWithMultipleUnion() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"select * from syn111 union select * from syn222 union all (select * from syn333) union distinct select * from syn44")
+						.queryExpression();
+		assertEquals(
+				"SELECT * FROM syn111 UNION SELECT * FROM syn222 UNION ALL (SELECT * FROM syn333) UNION DISTINCT SELECT * FROM syn44",
+				element.toSql());
+	}
+	
+	@Test
+	public void testQueryExpressionWithUnionAndJoin() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"select * from syn111 a join syn222 b on (a.id=b.id) union select * from syn222 where foo>123 order by a")
+						.queryExpression();
+		assertEquals(
+				"SELECT * FROM syn111 a JOIN syn222 b ON ( a.id = b.id ) UNION SELECT * FROM syn222 WHERE foo > 123 ORDER BY a",
+				element.toSql());
+	}
+
+	@Test
+	public void testQueryExpressionWithUnionAndGropuByNotLastQuery() throws ParseException {
+		QueryExpression element = new TableQueryParser("select * from syn111 group by foo union select * from syn222")
+				.queryExpression();
+		assertEquals("SELECT * FROM syn111 GROUP BY foo UNION SELECT * FROM syn222", element.toSql());
+	}
+
+	@Test
+	public void testQueryExpressionWithUnionAndGropuByLastQuery() throws ParseException {
+		QueryExpression element = new TableQueryParser("select * from syn111 union select * from syn222 group by foo ")
+				.queryExpression();
+		assertEquals("SELECT * FROM syn111 UNION SELECT * FROM syn222 GROUP BY foo", element.toSql());
+	}
+
+	@Test
+	public void testQueryExpressionWithUnionAndOrderNotLastQuery() throws ParseException {
+		String message = assertThrows(ParseException.class, () -> {
+			new TableQueryParser("select * from syn111 order by foo union select * from syn222").queryExpression();
+		}).getMessage();
+		assertTrue(message.contains("Was expecting"));
+		assertTrue(message.contains("<EOF>"));
+	}
+
+	@Test
+	public void testQueryExpressionWithUnionAndOrderLastQuery() throws ParseException {
+		QueryExpression element = new TableQueryParser("select * from syn111 union select * from syn222 order by foo")
+				.queryExpression();
+		assertEquals("SELECT * FROM syn111 UNION SELECT * FROM syn222 ORDER BY foo", element.toSql());
+	}
+
+	@Test
+	public void testQueryExpressionWithUnionAndPaginationNotLastQuery() throws ParseException {
+		String message = assertThrows(ParseException.class, () -> {
+			new TableQueryParser("select * from syn111 limit 10 offset 1 union select * from syn222").queryExpression();
+		}).getMessage();
+		assertTrue(message.contains("Was expecting"));
+		assertTrue(message.contains("<EOF>"));
+	}
+
+	@Test
+	public void testQueryExpressionWithUnionAndPaginationLastQuery() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"select * from syn111 union select * from syn222 limit 10 offset 1").queryExpression();
+		assertEquals("SELECT * FROM syn111 UNION SELECT * FROM syn222 LIMIT 10 OFFSET 1", element.toSql());
+	}
+
+	@Test
+	public void testQueryExpressionWithUnionAndOrderByPaginationNotLastQuery() throws ParseException {
+		String message = assertThrows(ParseException.class, () -> {
+			new TableQueryParser("select * from syn111 order by foo limit 10 offset 1 union select * from syn222")
+					.queryExpression();
+		}).getMessage();
+		assertTrue(message.contains("Was expecting"));
+		assertTrue(message.contains("<EOF>"));
+	}
+
+	@Test
+	public void testQueryExpressionWithUnionAndOrderByPaginationLastQuery() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"select * from syn111 union select * from syn222 order by foo limit 10 offset 1").queryExpression();
+		assertEquals("SELECT * FROM syn111 UNION SELECT * FROM syn222 ORDER BY foo LIMIT 10 OFFSET 1", element.toSql());
 	}
 
 }
