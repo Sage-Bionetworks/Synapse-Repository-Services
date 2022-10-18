@@ -8,10 +8,12 @@ import org.sagebionetworks.worker.AsyncJobProgressCallback;
 import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * Worker to process the archival request, the worker will only submit a subset of file handle keys to a queue for processing
  */
+@Service
 public class FileHandleArchivalRequestWorker implements AsyncJobRunner<FileHandleArchivalRequest, FileHandleArchivalResponse> {
 	
 	private FileHandleArchivalManager archivalManager;

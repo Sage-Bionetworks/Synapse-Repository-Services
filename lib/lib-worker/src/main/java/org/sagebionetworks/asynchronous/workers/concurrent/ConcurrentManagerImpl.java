@@ -24,9 +24,9 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 
 public class ConcurrentManagerImpl implements ConcurrentManager {
 
+	private static final int TWO_SECONDS = 2;
 	private static final Log log = LogFactory.getLog(ConcurrentWorkerStack.class);
 
-	private static final int FIVE_SECONDS = 5;
 	private final CountingSemaphore countingSemaphore;
 	private final ExecutorService executorService;
 	private final AmazonSQSClient amazonSQSClient;
@@ -150,7 +150,7 @@ public class ConcurrentManagerImpl implements ConcurrentManager {
 			} catch (RecoverableMessageException e) {
 				deleteMessage = false;
 				amazonSQSClient.changeMessageVisibility(new ChangeMessageVisibilityRequest().withQueueUrl(queueUrl)
-						.withReceiptHandle(message.getReceiptHandle()).withVisibilityTimeout(FIVE_SECONDS));
+						.withReceiptHandle(message.getReceiptHandle()).withVisibilityTimeout(TWO_SECONDS));
 			} finally {
 				try {
 					callback.removeProgressListener(listener);

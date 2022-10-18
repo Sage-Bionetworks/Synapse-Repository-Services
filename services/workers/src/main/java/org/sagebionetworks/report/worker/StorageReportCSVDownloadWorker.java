@@ -20,6 +20,7 @@ import org.sagebionetworks.worker.AsyncJobProgressCallback;
 import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -28,6 +29,7 @@ import au.com.bytecode.opencsv.CSVWriter;
  * file to S3 as a FileHandle.
  *
  */
+@Service
 public class StorageReportCSVDownloadWorker implements AsyncJobRunner<DownloadStorageReportRequest, DownloadStorageReportResponse> {
 
 	static private Logger log = LogManager.getLogger(StorageReportCSVDownloadWorker.class);

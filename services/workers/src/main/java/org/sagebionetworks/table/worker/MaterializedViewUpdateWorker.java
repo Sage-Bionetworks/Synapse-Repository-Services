@@ -15,11 +15,13 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * This worker will build/rebuild the index for materialized views.
  *
  */
+@Service
 public class MaterializedViewUpdateWorker implements ChangeMessageDrivenRunner {
 
 	private final MaterializedViewManager materializedViewManager;

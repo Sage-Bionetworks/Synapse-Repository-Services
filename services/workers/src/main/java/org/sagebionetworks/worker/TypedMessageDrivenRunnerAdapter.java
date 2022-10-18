@@ -23,13 +23,9 @@ public class TypedMessageDrivenRunnerAdapter<T> implements MessageDrivenRunner {
 	private TypedMessageDrivenRunner<T> runner;
 	private ObjectMapper objectMapper;
 	
-	public TypedMessageDrivenRunnerAdapter(TypedMessageDrivenRunner<T> runner) {
-		this.runner = runner;
-	}
-	
-	@Autowired
-	public void configure(ObjectMapper objectMapper) {
+	public TypedMessageDrivenRunnerAdapter(ObjectMapper objectMapper, TypedMessageDrivenRunner<T> runner) {
 		this.objectMapper = objectMapper;
+		this.runner = runner;
 	}
 	
 	@Override

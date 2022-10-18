@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -41,13 +40,7 @@ public class TypedMessageDriverRunnerAdapterTest {
 	
 	@Mock
 	private JSONEntity mockEntity;
-	
-	@BeforeEach
-	public void before() {
-		// This is automatically called by spring usually
-		adapter.configure(mockMapper);
-	}
-	
+		
 	@Test
 	public void testRun() throws Exception {
 		
