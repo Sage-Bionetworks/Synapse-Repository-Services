@@ -181,7 +181,29 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		List<String[]> results = downloadCSV(adminUserInfo, request);
 		checkResults(results, input, true);
 	}
-	
+
+	@Test
+	public void testRoundTripWithCustomFileName() throws Throwable{
+		List<String[]> input = createTable();
+
+		String customFileName = "file1234";
+		String sql = "select * from "+tableId;
+		// Wait for the table to be ready
+		RowSet result = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(result);
+		// Now download the data from this table as a csv
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql(sql);
+		request.setWriteHeader(true);
+		request.setIncludeRowIdAndRowVersion(true);
+		request.setFileName(customFileName);
+
+		// Call under test
+		List<String[]> results = downloadCSVWithCustomFileName(adminUserInfo, request);
+
+		checkResults(results, input, true);
+	}
+
 	// Test to reproduce PLFM-7050
 	@Test
 	public void testRoundTripWithAnonymousUserAndOpenData() throws Throwable {
@@ -422,6 +444,42 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		// Download the file
 		File temp = File.createTempFile("DownloadCSV", "."+CSVUtils.guessExtension(request.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor()
 				.getSeparator()));
+		try{
+			s3Client.getObject(new GetObjectRequest(fileHandle.getBucketName(), fileHandle.getKey()), temp);
+			// Load the CSV data
+			csvReader = new CSVReader(new FileReader(temp));
+			try {
+				return csvReader.readAll();
+			} finally {
+				csvReader.close();
+			}
+		}finally{
+			temp.delete();
+		}
+	}
+
+	List<String[]> downloadCSVWithCustomFileName(UserInfo user, DownloadFromTableRequest request) throws Throwable {
+		// submit the job
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(user, request);
+		// Wait for the job to complete.
+		status = waitForStatus(status);
+		assertNotNull(status);
+		assertNotNull(status.getResponseBody());
+		assertTrue(status.getResponseBody() instanceof DownloadFromTableResult);
+		DownloadFromTableResult response = (DownloadFromTableResult) status.getResponseBody();
+		assertNotNull(response.getEtag());
+		assertNotNull(response.getResultsFileHandleId());
+		// Get the filehandle
+		fileHandle = (S3FileHandle) fileHandleDao.get(response.getResultsFileHandleId());
+		// Read the CSV
+		CSVReader csvReader;
+		assertEquals("text/csv", fileHandle.getContentType());
+		assertEquals("file1234.csv", fileHandle.getFileName());
+		assertNotNull(fileHandle.getContentMd5());
+		// Download the file
+		File temp = File.createTempFile("DownloadCSV", "."+CSVUtils.guessExtension(request.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor()
+				.getSeparator()));
+
 		try{
 			s3Client.getObject(new GetObjectRequest(fileHandle.getBucketName(), fileHandle.getKey()), temp);
 			// Load the CSV data
