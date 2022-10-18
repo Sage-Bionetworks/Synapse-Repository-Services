@@ -14,12 +14,14 @@ import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * This worker will stream the results of a table SQL query to a local CSV file
  * and upload the file to S3 as a FileHandle.
  * 
  */
+@Service
 public class TableQueryWorker implements AsyncJobRunner<QueryBundleRequest, QueryResultBundle> {
 
 	static private Logger log = LogManager.getLogger(TableQueryWorker.class);

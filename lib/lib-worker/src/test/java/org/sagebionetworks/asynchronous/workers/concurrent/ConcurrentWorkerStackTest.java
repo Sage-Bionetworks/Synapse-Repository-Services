@@ -18,6 +18,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -200,7 +201,7 @@ public class ConcurrentWorkerStackTest {
 	}
 
 	@Test
-	public void testRunWithInterruptSleep() throws InterruptedException {
+	public void testRunWithInterruptSleepAndNoWorkerAdded() throws InterruptedException {
 		canRunInReadOnly = true;
 		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
 
@@ -217,7 +218,7 @@ public class ConcurrentWorkerStackTest {
 		doReturn(true).when(stack).canProcessMoreMessages();
 		doNothing().when(stack).resetNextRefreshTimeMS();
 		doNothing().when(stack).checkRunningJobs();
-		doNothing().when(stack).attemptToAddMoreWorkers();
+		doReturn(false).when(stack).attemptToAddMoreWorkers();
 
 		// call under test
 		stack.run();
@@ -227,7 +228,42 @@ public class ConcurrentWorkerStackTest {
 		verify(mockManager).getSqsQueueUrl(queueName);
 		verify(mockManager).runWithSemaphoreLock(eq(semaphoreLockKey),
 				eq(semaphoreLockAndMessageVisibilityTimeoutSec), eq(semaphoreMaxLockCount), any(), any());
-		verify(mockManager, times(5)).sleep(1000L);
+		verify(mockManager, times(5)).sleep(ConcurrentWorkerStack.MAX_WAIT_TIME);
+		verify(stack, times(5)).refreshLocksIfNeeded();
+		verify(stack, times(5)).checkRunningJobs();
+		verify(stack, times(5)).attemptToAddMoreWorkers();
+		verify(stack).startShutdown();
+	}
+	
+	@Test
+	public void testRunWithInterruptSleepAndNewWorkersAdded() throws InterruptedException {
+		canRunInReadOnly = true;
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
+
+		doAnswer((InvocationOnMock i) -> {
+			((Runnable) i.getArgument(4)).run();
+			return null;
+		}).when(mockManager).runWithSemaphoreLock(any(), anyInt(), anyInt(), any(), any());
+
+		doNothing().doNothing().doNothing().doNothing().doThrow(new InterruptedException()).when(mockManager)
+				.sleep(anyLong());
+
+		ConcurrentWorkerStack stack = Mockito.spy(createStack());
+
+		doReturn(true).when(stack).canProcessMoreMessages();
+		doNothing().when(stack).resetNextRefreshTimeMS();
+		doNothing().when(stack).checkRunningJobs();
+		doReturn(true).when(stack).attemptToAddMoreWorkers();
+
+		// call under test
+		stack.run();
+
+		verify(stack).resetAllState();
+		verify(stack).canProcessMoreMessages();
+		verify(mockManager).getSqsQueueUrl(queueName);
+		verify(mockManager).runWithSemaphoreLock(eq(semaphoreLockKey),
+				eq(semaphoreLockAndMessageVisibilityTimeoutSec), eq(semaphoreMaxLockCount), any(), any());
+		verify(mockManager, times(5)).sleep(ConcurrentWorkerStack.MIN_WAIT_TIME);
 		verify(stack, times(5)).refreshLocksIfNeeded();
 		verify(stack, times(5)).checkRunningJobs();
 		verify(stack, times(5)).attemptToAddMoreWorkers();
@@ -564,7 +600,36 @@ public class ConcurrentWorkerStackTest {
 		when(mockManager.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any())).thenReturn(jobs);
 
 		// call under test
-		stack.attemptToAddMoreWorkers();
+		boolean result = stack.attemptToAddMoreWorkers();
+		
+		assertTrue(result);
+
+		verify(mockManager).getSqsQueueUrl(queueName);
+		assertEquals(jobs, stack.getRunningJobs());
+		verify(stack).canProcessMoreMessages();
+		int maxNumberOfMessages = maxThreadsPerMachine;
+		verify(mockManager).pollForMessagesAndStartJobs(queueUrl, maxNumberOfMessages,
+				semaphoreLockAndMessageVisibilityTimeoutSec, mockWorker);
+
+	}
+	
+	@Test
+	public void testAttemptToAddMoreWorkersWithNoAddedWorkers() {
+		maxThreadsPerMachine = 8;
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		ConcurrentWorkerStack stack = Mockito.spy(createStack());
+		stack.resetAllState();
+
+		doReturn(true).when(stack).canProcessMoreMessages();
+
+		List<WorkerJob> jobs = Collections.emptyList();
+
+		when(mockManager.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any())).thenReturn(jobs);
+
+		// call under test
+		boolean result = stack.attemptToAddMoreWorkers();
+		
+		assertFalse(result);
 
 		verify(mockManager).getSqsQueueUrl(queueName);
 		assertEquals(jobs, stack.getRunningJobs());
@@ -596,7 +661,9 @@ public class ConcurrentWorkerStackTest {
 				.thenReturn(List.of(allJobs.get(1), allJobs.get(2), allJobs.get(3)));
 
 		// call under test
-		stack.attemptToAddMoreWorkers();
+		boolean result = stack.attemptToAddMoreWorkers();
+		
+		assertTrue(result);
 
 		verify(mockManager).getSqsQueueUrl(queueName);
 		assertEquals(allJobs, stack.getRunningJobs());
@@ -625,7 +692,9 @@ public class ConcurrentWorkerStackTest {
 		when(mockManager.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any())).thenReturn(allJobs);
 
 		// call under test
-		stack.attemptToAddMoreWorkers();
+		boolean result = stack.attemptToAddMoreWorkers();
+		
+		assertTrue(result);
 
 		verify(mockManager).getSqsQueueUrl(queueName);
 		assertEquals(allJobs, stack.getRunningJobs());
@@ -654,7 +723,9 @@ public class ConcurrentWorkerStackTest {
 		when(mockManager.pollForMessagesAndStartJobs(any(), anyInt(), anyInt(), any())).thenReturn(allJobs);
 
 		// call under test
-		stack.attemptToAddMoreWorkers();
+		boolean result = stack.attemptToAddMoreWorkers();
+		
+		assertTrue(result);
 
 		verify(mockManager).getSqsQueueUrl(queueName);
 		assertEquals(allJobs, stack.getRunningJobs());
@@ -682,7 +753,9 @@ public class ConcurrentWorkerStackTest {
 		doReturn(true).when(stack).canProcessMoreMessages();
 
 		// call under test
-		stack.attemptToAddMoreWorkers();
+		boolean result = stack.attemptToAddMoreWorkers();
+		
+		assertFalse(result);
 
 		verify(mockManager).getSqsQueueUrl(queueName);
 		assertEquals(allJobs, stack.getRunningJobs());
@@ -706,7 +779,9 @@ public class ConcurrentWorkerStackTest {
 		doReturn(false).when(stack).canProcessMoreMessages();
 
 		// call under test
-		stack.attemptToAddMoreWorkers();
+		boolean result = stack.attemptToAddMoreWorkers();
+		
+		assertFalse(result);
 
 		verify(mockManager).getSqsQueueUrl(queueName);
 		assertEquals(allJobs, stack.getRunningJobs());

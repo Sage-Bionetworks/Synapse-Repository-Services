@@ -274,7 +274,7 @@ public class ConcurrentManagerImplTest {
 				.withQueueUrl(queueUrl).withReceiptHandle(receiptHandle).withVisibilityTimeout(lockTimeoutSec));
 		// second call to put the message back in the queue in 5 seconds.
 		verify(mockAmazonSQSClient, times(1)).changeMessageVisibility(new ChangeMessageVisibilityRequest()
-				.withQueueUrl(queueUrl).withReceiptHandle(receiptHandle).withVisibilityTimeout(5));
+				.withQueueUrl(queueUrl).withReceiptHandle(receiptHandle).withVisibilityTimeout(2));
 
 		assertNotNull(job.getFuture());
 		assertTrue(job.getFuture().isDone());
@@ -411,5 +411,78 @@ public class ConcurrentManagerImplTest {
 			manager.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec, mockWorker);
 		}).getMessage();
 		assertEquals("messageVisibilityTimeoutSec must be greater than or equals to 10.", message);
+	}
+	
+	@Test
+	public void testStartWorkerJobWithShutDown() throws RecoverableMessageException, Exception {
+		String receiptHandle = "receiptHandle";
+		when(mockMessage.getReceiptHandle()).thenReturn(receiptHandle);
+		
+		doAnswer((a)->{
+			// We sleep to get a chance to call progressMade() before the job terminates.
+			Thread.sleep(100);
+			return null;
+		}).when(mockWorker).run(any(), any());
+		
+		manager.forceShutdown();
+
+		// call under test
+		WorkerJob job = manager.startWorkerJob(queueUrl, lockTimeoutSec, mockWorker, mockMessage);
+		assertNotNull(job);
+		assertNotNull(job.getListener());
+		// progress made should refresh the lock
+		job.getListener().progressMade();
+		
+		waitForFuture(job.getFuture());
+		
+		// the listener should be removed after the job is finished so this should be a no-op.
+		job.getListener().progressMade();
+
+		verify(mockAmazonSQSClient, times(1)).changeMessageVisibility(any());
+		verify(mockAmazonSQSClient, times(1)).changeMessageVisibility(new ChangeMessageVisibilityRequest()
+				.withQueueUrl(queueUrl).withReceiptHandle(receiptHandle).withVisibilityTimeout(lockTimeoutSec));
+
+		verify(mockWorker).run((ProgressCallback) job.getListener(), mockMessage);
+		// the message should not be deleted after shutdown.
+		verify(mockAmazonSQSClient, never()).deleteMessage(any());
+	}
+	
+	@Test
+	public void testStartWorkerJobWitDoubleException() throws RecoverableMessageException, Exception {
+		String receiptHandle = "receiptHandle";
+		when(mockMessage.getReceiptHandle()).thenReturn(receiptHandle);
+		IllegalArgumentException firstException = new IllegalArgumentException("one");
+
+		doAnswer((a) -> {
+			// We sleep to get a chance to call progressMade() before the job terminates.
+			Thread.sleep(100);
+			throw firstException;
+		}).when(mockWorker).run(any(), any());
+
+		when(mockAmazonSQSClient.deleteMessage(any())).thenThrow(new IllegalArgumentException("two"));
+
+		// call under test
+		WorkerJob job = manager.startWorkerJob(queueUrl, lockTimeoutSec, mockWorker, mockMessage);
+		assertNotNull(job);
+		assertNotNull(job.getListener());
+		// progress made should refresh the lock
+		job.getListener().progressMade();
+
+		ExecutionException thrown = assertThrows(ExecutionException.class, () -> {
+			waitForFuture(job.getFuture());
+		});
+		assertEquals(firstException, thrown.getCause());
+
+		// the listener should be removed after the job is finished so this should be a
+		// no-op.
+		job.getListener().progressMade();
+
+		verify(mockAmazonSQSClient, times(1)).changeMessageVisibility(any());
+		verify(mockAmazonSQSClient, times(1)).changeMessageVisibility(new ChangeMessageVisibilityRequest()
+				.withQueueUrl(queueUrl).withReceiptHandle(receiptHandle).withVisibilityTimeout(lockTimeoutSec));
+
+		verify(mockWorker).run((ProgressCallback) job.getListener(), mockMessage);
+		verify(mockAmazonSQSClient)
+				.deleteMessage(new DeleteMessageRequest().withQueueUrl(queueUrl).withReceiptHandle(receiptHandle));
 	}
 }

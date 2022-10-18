@@ -13,10 +13,12 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * Worker that streams file handle changes to S3 through kinesis for unlinked file handle detection
  */
+@Service
 public class FileHandleStreamWorker implements  BatchChangeMessageDrivenRunner {
 	
 	// We only stream file handles that have been updated more than 1 day ago, this is to avoid collecting smaller parquet files for newly created file handles

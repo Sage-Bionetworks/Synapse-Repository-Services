@@ -23,7 +23,7 @@ public class TableQueryParser {
 	}
 
 	/**
-	 * Parse the passed query string into a TableQueryModel
+	 * Parse the passed query string into a QuerySpecification
 	 *
 	 * @param query
 	 * @return
@@ -198,6 +198,7 @@ TOKEN [IGNORE_CASE]: {
 | < left: "LEFT">
 | < right: "RIGHT">
 | < outer: "OUTER">
+| < union: "UNION">
 }
 
 /* Aggregate functions */
@@ -350,6 +351,49 @@ TOKEN: {
 | < vertical_line: "|">
 | < right_curly_brace: "}">
 | < tilde: "~">
+}
+QueryExpression queryExpression():
+{
+	NonJoinQueryExpression nonJoinQueryExpression = null;
+}
+{
+  nonJoinQueryExpression = nonJoinQueryExpression() <EOF> { return new QueryExpression(nonJoinQueryExpression); }
+}
+NonJoinQueryExpression nonJoinQueryExpression():
+{
+	NonJoinQueryTerm nonJoinQueryTerm = null;
+	SetQuantifier setQuantifier = null;
+	NonJoinQueryExpression last = null;
+}
+{
+	nonJoinQueryTerm = nonJoinQueryTerm() { last = new NonJoinQueryExpression(nonJoinQueryTerm); }
+	(
+		<union> [ setQuantifier = setQuantifier() ] nonJoinQueryTerm = nonJoinQueryTerm() 
+			{ last = new NonJoinQueryExpression(last, setQuantifier, nonJoinQueryTerm); }
+	)*
+	{ return last; }
+}
+NonJoinQueryTerm nonJoinQueryTerm():
+{
+	NonJoinQueryPrimary nonJoinQueryPrimary = null;
+}
+{
+	nonJoinQueryPrimary = nonJoinQueryPrimary() { return new NonJoinQueryTerm(nonJoinQueryPrimary); }
+}
+NonJoinQueryPrimary nonJoinQueryPrimary():
+{
+	SimpleTable simpleTable = null;
+}
+{
+	simpleTable = simpleTable() { return new NonJoinQueryPrimary(simpleTable, false); }
+	| <left_paren> simpleTable = simpleTable()  <right_paren> { return new NonJoinQueryPrimary(simpleTable, true); }
+}
+SimpleTable simpleTable():
+{
+	QuerySpecification querySpecification = null;
+}
+{
+	querySpecification = querySpecification() { return new SimpleTable(querySpecification);}
 }
 EntityId entityId():
 {
@@ -544,7 +588,7 @@ QuerySpecification querySpecification():
 	TableExpression tableExpression = null;
 }
 {
-	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression() <EOF>
+	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression() [ <EOF> ]
 	{ return new QuerySpecification(setQuantifier, selectList, tableExpression); }
 }
 SelectList selectList():
@@ -595,8 +639,11 @@ TableExpression tableExpression():
 	fromClause  = fromClause()
 	[ whereClause = whereClause() ]
 	[ groupByClause = groupByClause() ]
-	[ orderByClause = orderByClause() ]
-	[ pagination = pagination() ]
+	[
+		[ orderByClause = orderByClause() ]
+		[ pagination = pagination() ]
+	 	<EOF>
+	 ]
 	{ return new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination); }
 }
 FromClause fromClause():

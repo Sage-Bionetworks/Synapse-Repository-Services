@@ -68,8 +68,6 @@ public class AsyncJobProgressRunnerAdapterTest {
 	
 	@BeforeEach
 	public void before() throws Exception {
-		// This will be invoked by spring
-		adapter.configure(mockJobManager, mockUserManager);
 		
 		jobId = "123";
 		userId = 456L;

@@ -10,12 +10,14 @@ import org.sagebionetworks.repo.model.table.TableStatusChangeEvent;
 import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.sqs.model.Message;
 
 /**
  * The worker listens for table status changes, if available will trigger a re-build of all the materialized views that depend on the tables
  */
+@Service
 public class MaterializedViewSourceUpdateWorker implements TypedMessageDrivenRunner<TableStatusChangeEvent> {
 		
 	private MaterializedViewManager manager;

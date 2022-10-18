@@ -24,6 +24,7 @@ import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -34,6 +35,7 @@ import au.com.bytecode.opencsv.CSVWriter;
  * @author jmhill
  *
  */
+@Service
 public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableRequest, DownloadFromTableResult> {
 
 	static private Logger log = LogManager.getLogger(TableCSVDownloadWorker.class);

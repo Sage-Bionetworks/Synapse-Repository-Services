@@ -79,6 +79,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.FileSummary;
 import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -441,29 +442,39 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	private static final String UPDATE_REVISION_FILE_HANDLE = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_FILE_HANDLE_ID
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
-	
+
+	private static final String SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION = "SELECT COUNT(*) AS COUNT, " +
+			"MD5(GROUP_CONCAT(F." + COL_FILES_CONTENT_MD5 + " ORDER BY F." + COL_FILES_CONTENT_MD5 + " ASC )) AS CHECKSUM, " +
+			"SUM(F." + COL_FILES_CONTENT_SIZE + ") AS SIZE " +
+			" FROM " + TABLE_REVISION + " R JOIN " + TABLE_FILES + " F ON R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID +
+			" WHERE (R." + COL_REVISION_OWNER_NODE + ", R." + COL_REVISION_NUMBER + ") IN (:pairs)";
+
+	private static final RowMapper<FileSummary> FILE_SUMMARY_ROW_MAPPER = (rs, rowNum) -> {
+		String checksum = rs.getString("CHECKSUM");
+		long size = rs.getLong("SIZE");
+		int count = rs.getInt("COUNT");
+		return new FileSummary(checksum, size, count);
+	};
+
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
-	private static final RowMapper<EntityHeader> ENTITY_HEADER_ROWMAPPER = new RowMapper<EntityHeader>() {
-		@Override
-		public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
-			EntityHeader header = new EntityHeader();
-			Long entityId = rs.getLong(COL_NODE_ID);
-			header.setId(KeyFactory.keyToString(entityId));
-			EntityType type = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
-			header.setType(EntityTypeUtils.getEntityTypeClassName(type));
-			header.setName(rs.getString(COL_NODE_NAME));
-			header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
-			header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
-			header.setIsLatestVersion(rs.getLong(COL_REVISION_NUMBER) == rs.getLong(COL_NODE_CURRENT_REV));
-			header.setBenefactorId(rs.getLong(BENEFACTOR_ALIAS));
-			header.setCreatedBy(rs.getString(COL_NODE_CREATED_BY));
-			header.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
-			header.setModifiedBy(rs.getString(COL_REVISION_MODIFIED_BY));
-			header.setModifiedOn(new Date(rs.getLong(COL_REVISION_MODIFIED_ON)));
-			return header;
-		}
+	private static final RowMapper<EntityHeader> ENTITY_HEADER_ROWMAPPER = (rs, rowNum) -> {
+		EntityHeader header = new EntityHeader();
+		Long entityId = rs.getLong(COL_NODE_ID);
+		header.setId(KeyFactory.keyToString(entityId));
+		EntityType type = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
+		header.setType(EntityTypeUtils.getEntityTypeClassName(type));
+		header.setName(rs.getString(COL_NODE_NAME));
+		header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
+		header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
+		header.setIsLatestVersion(rs.getLong(COL_REVISION_NUMBER) == rs.getLong(COL_NODE_CURRENT_REV));
+		header.setBenefactorId(rs.getLong(BENEFACTOR_ALIAS));
+		header.setCreatedBy(rs.getString(COL_NODE_CREATED_BY));
+		header.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
+		header.setModifiedBy(rs.getString(COL_REVISION_MODIFIED_BY));
+		header.setModifiedOn(new Date(rs.getLong(COL_REVISION_MODIFIED_ON)));
+		return header;
 	};
 	
 	private static final RowMapper<NameIdType> NAME_ID_TYPE_ROWMAPPER = (ResultSet rs, int rowNum) -> {
@@ -971,7 +982,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Boolean searchEnabled = updatedNode.getIsSearchEnabled();
 		String definingSQL = updatedNode.getDefiningSQL();
 		String newDescription = updatedNode.getDescription();
-		
+
 		// Update the revision
 		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newDescription, newFileHandleId, newColumns,
 				newScope, newReferences, items, searchEnabled, definingSQL, nodeId, currentRevision);
@@ -2252,5 +2263,23 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		
 		return result != null && result;
+	}
+
+	@Override
+	public FileSummary getFileSummary(List<EntityRef> entityRefs) {
+		List<Long[]> specificIdVersionPairs = new ArrayList<>(entityRefs.size());
+		for (EntityRef ref : entityRefs) {
+			if (ref.getEntityId() != null) {
+				Long entityId = KeyFactory.stringToKey(ref.getEntityId());
+				specificIdVersionPairs.add(new Long[]{entityId, ref.getVersionNumber()});
+			}
+		}
+
+		if (specificIdVersionPairs.isEmpty()) {
+			return new FileSummary(null, 0, 0);
+		}
+
+		Map<String, List<Long[]>> namedParameters = Collections.singletonMap("pairs", specificIdVersionPairs);
+		return namedParameterJdbcTemplate.queryForObject(SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION, namedParameters, FILE_SUMMARY_ROW_MAPPER);
 	}
 }

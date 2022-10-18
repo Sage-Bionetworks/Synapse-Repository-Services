@@ -61,6 +61,7 @@
 							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
 									<bean class="org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter">
+										<constructor-arg ref="jsonObjectMapper"></constructor-arg>
 										<constructor-arg ref="recurrentAthenaQueryWorker"/>
 									</bean>
 								</property>

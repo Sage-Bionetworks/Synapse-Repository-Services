@@ -10,7 +10,9 @@ import org.sagebionetworks.worker.AsyncJobProgressCallback;
 import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class AddFilesToDownloadListWorker implements AsyncJobRunner<AddFileToDownloadListRequest, AddFileToDownloadListResponse> {
 	
 	public static final String MUST_PROVIDE_EITHER_FOLDER_ID_OR_QUERY = "Must provide either 'folderId' or 'query'";

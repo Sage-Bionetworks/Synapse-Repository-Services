@@ -1,24 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.when;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import javax.servlet.http.HttpServletRequest;
-
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,7 +37,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.google.common.collect.Lists;
+import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -728,5 +726,57 @@ public class EntityServiceImplAutowiredTest  {
 		
 		assertTrue(table.getIsSearchEnabled());
 		
+	}
+
+	@Test
+	public void testDatasetCreationAndUpdateCalculateSizeAndChecksum() {
+		// Create a file entity
+		FileEntity file = new FileEntity();
+		file.setName("FileName");
+		file.setParentId(project.getId());
+		file.setDataFileHandleId(fileHandle1.getId());
+		// Save it
+		file = entityService.createEntity(adminUserId, file, null);
+		assertNotNull(file);
+		toDelete.add(file.getId());
+		//create DataSet
+		final Dataset dataset = new Dataset();
+		dataset.setParentId(project.getId());
+		dataset.setVersionComment("1");
+		dataset.setName("Dataset");
+		dataset.setDescription("Human readable text");
+		final List<EntityRef> entityRefList = new ArrayList<>();
+		final EntityRef entityRef = new EntityRef();
+		entityRef.setEntityId(file.getId());
+		entityRef.setVersionNumber(file.getVersionNumber());
+		entityRefList.add(entityRef);
+		dataset.setItems(entityRefList);
+
+		//call under test
+		final Dataset createdDataset = entityService.createEntity(adminUserId, dataset, null);
+		assertNotNull(createdDataset);
+		assertNotNull(createdDataset.getChecksum());
+		assertEquals(fileHandle1.getContentSize(), createdDataset.getSize());
+
+		//update Dataset
+		FileEntity file2 = new FileEntity();
+		file2.setName("FileName1");
+		file2.setParentId(project.getId());
+		file2.setDataFileHandleId(fileHandle2.getId());
+		// Save it
+		file2 = entityService.createEntity(adminUserId, file2, null);
+		assertNotNull(file2);
+		toDelete.add(file2.getId());
+
+		final EntityRef entityRef2 = new EntityRef();
+		entityRef2.setEntityId(file2.getId());
+		entityRef2.setVersionNumber(file2.getVersionNumber());
+		createdDataset.getItems().add(entityRef2);
+		//call under test
+		final Dataset updatedDataset = entityService.updateEntity(adminUserId, createdDataset, false, null);
+		assertNotNull(updatedDataset);
+		assertNotNull(updatedDataset.getChecksum());
+		assertEquals(fileHandle1.getContentSize() + fileHandle2.getContentSize(), updatedDataset.getSize());
+		toDelete.add(updatedDataset.getId());
 	}
 }

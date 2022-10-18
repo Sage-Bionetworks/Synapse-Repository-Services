@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 
@@ -43,8 +43,11 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
 public class ConcurrentWorkerStack implements Runnable {
 
 	public static final int MAX_MESSAGES_PER_REQUEST = 10;
+	
+	static final long MAX_WAIT_TIME = 1000;
+	static final long MIN_WAIT_TIME = 50;
 
-	private static final Logger log = LogManager.getLogger(ConcurrentWorkerStack.class);
+	private static final Log log = LogFactory.getLog(ConcurrentWorkerStack.class);	
 
 	// direct parameters
 	private final ConcurrentManager manager;
@@ -132,14 +135,26 @@ public class ConcurrentWorkerStack implements Runnable {
 
 	void infiniteLoop() {
 		while (shouldContinueRunning()) {
+			
 			refreshLocksIfNeeded();
+			
 			checkRunningJobs();
-			attemptToAddMoreWorkers();
+			
+			boolean newWorkersAdded = attemptToAddMoreWorkers();
+			
+			// To avoid throttling the amount of messages consumed per second we switch 
+			// to a smaller wait between polls when new threads are added to the pool 
+			// (e.g. messages were available in the queue)
+			// If no worker are added (e.g. we reached capacity or no messages available)
+			// we can wait a bit longer to avoid flooding SQS with requests.
+			long waitTimeMs = newWorkersAdded ? MIN_WAIT_TIME : MAX_WAIT_TIME;
+			
 			try {
-				manager.sleep(1000);
+				manager.sleep(waitTimeMs);
 			} catch (InterruptedException e) {
 				startShutdown();
 			}
+			
 		}
 	}
 
@@ -224,18 +239,20 @@ public class ConcurrentWorkerStack implements Runnable {
 	 * Note: Since AWS SQS has a limit of of 10 messages per
 	 * {@link AmazonSQSClient#receiveMessage(com.amazonaws.services.sqs.model.ReceiveMessageRequest)},
 	 * no more than 10 worker threads will be started per call.
+	 * 
+	 * @return True if new work was added to the pool, false otherwise
 	 */
-	void attemptToAddMoreWorkers() {
+	boolean attemptToAddMoreWorkers() {
 		if (!canProcessMoreMessages()) {
-			return;
+			return false;
 		}
 		int maxNumberOfMessagesToRecieve = Math.min(MAX_MESSAGES_PER_REQUEST,
 				maxThreadsPerMachine - runningJobs.size());
 		if (maxNumberOfMessagesToRecieve < 1) {
-			return;
+			return false;
 		}
 
-		runningJobs.addAll(manager.pollForMessagesAndStartJobs(queueUrl, maxNumberOfMessagesToRecieve,
+		return runningJobs.addAll(manager.pollForMessagesAndStartJobs(queueUrl, maxNumberOfMessagesToRecieve,
 				semaphoreLockAndMessageVisibilityTimeoutSec, worker));
 	}
 	

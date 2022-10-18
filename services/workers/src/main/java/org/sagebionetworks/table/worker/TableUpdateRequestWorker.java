@@ -22,6 +22,7 @@ import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * Umbrella worker for all table update transactions.
@@ -29,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author John
  *
  */
+@Service
 public class TableUpdateRequestWorker implements AsyncJobRunner<TableUpdateTransactionRequest, TableUpdateTransactionResponse> {
 
 	public static final String WAITING_FOR_TABLE_LOCK = "Waiting for table lock";
