@@ -178,6 +178,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		dto.setFileMD5(rs.getString(OBJECT_REPLICATION_COL_FILE_MD5));
 		dto.setItemCount(rs.getInt(OBJECT_REPLICATION_COL_ITEM_COUNT));
+		if(rs.wasNull()){
+			dto.setItemCount(null);
+		}
 		dto.setFileConcreteType(rs.getString(OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE));
 		dto.setFileBucket(rs.getString(OBJECT_REPLICATION_COL_FILE_BUCKET));
 		dto.setFileKey(rs.getString(OBJECT_REPLICATION_COL_FILE_KEY));
