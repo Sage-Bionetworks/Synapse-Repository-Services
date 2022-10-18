@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_MD5;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_SIZE_BYTES;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_ITEM_COUNT;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_NAME;
@@ -42,7 +43,7 @@ public enum ObjectField {
 	dataFileMD5Hex			(OBJECT_REPLICATION_COL_FILE_MD5,			ColumnType.STRING,			100L,	null),
 	datasetSizeInBytes		(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES,	ColumnType.INTEGER,			null,	null),
 	datasetMD5Hex			(OBJECT_REPLICATION_COL_FILE_MD5,			ColumnType.STRING,			100L,	null),
-	datasetItemCount        (OBJECT_REPLICATION_COL_FILE_MD5,			ColumnType.INTEGER,			null,	null),
+	datasetItemCount        (OBJECT_REPLICATION_COL_ITEM_COUNT,			ColumnType.INTEGER,			null,	null),
 	dataFileConcreteType	(OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE,	ColumnType.STRING,			65L,	FacetType.enumeration),
 	dataFileBucket			(OBJECT_REPLICATION_COL_FILE_BUCKET,		ColumnType.STRING,			100L,	FacetType.enumeration),
 	dataFileKey				(OBJECT_REPLICATION_COL_FILE_KEY,			ColumnType.STRING,			700L,	null);

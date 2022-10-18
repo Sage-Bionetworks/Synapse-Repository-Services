@@ -3460,6 +3460,11 @@ public class TableIndexDAOImplTest {
 			objectDataDTO.setFileKey("key");
 			objectDataDTO.setFileConcreteType(S3FileHandle.class.getName());
 		}
+		if(EntityType.dataset.equals(type)){
+			objectDataDTO.setFileSizeBytes(999L);
+			objectDataDTO.setFileMD5(Long.toHexString(id*1000));
+			objectDataDTO.setItemCount(1);
+		}
 		List<ObjectAnnotationDTO> annos = new LinkedList<ObjectAnnotationDTO>();
 		for(int i=0; i<annotationCount; i++){
 			ObjectAnnotationDTO annoDto = new ObjectAnnotationDTO(objectDataDTO);
