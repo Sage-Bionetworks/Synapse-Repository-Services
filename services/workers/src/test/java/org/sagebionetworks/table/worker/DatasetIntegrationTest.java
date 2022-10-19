@@ -450,7 +450,7 @@ public class DatasetIntegrationTest {
 	@Test
 	public void testQueryDatasetWithNoItems() throws AssertionError, AsynchJobFailedException {
 		
-		List<EntityRef> items = null;
+		List<EntityRef> items = Collections.emptyList();
 		
 		Dataset dataset = asyncHelper.createDataset(userInfo, 
 			new Dataset().setParentId(project.getId())
@@ -475,7 +475,7 @@ public class DatasetIntegrationTest {
 	@Test
 	public void testDatasetSnapshotWithNoItems() throws AssertionError, AsynchJobFailedException {
 		
-		List<EntityRef> items = null;
+		List<EntityRef> items = Collections.emptyList();
 		
 		Dataset dataset = asyncHelper.createDataset(userInfo, 
 			new Dataset().setParentId(project.getId())
