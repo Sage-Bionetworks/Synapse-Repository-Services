@@ -440,7 +440,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		FileSummary fileSummary = nodeDAO.getFileSummary(dataset.getItems());
 		dataset.setChecksum(fileSummary.getChecksum());
 		dataset.setSize(fileSummary.getSize());
-		//dataset.setChecksum();
+		dataset.setCount(fileSummary.getCount());
 		ViewEntityType entityType = ViewEntityType.dataset;
 		Long typeMask = 0L;
 		String viewId = entityManager.createEntity(user, dataset, null);

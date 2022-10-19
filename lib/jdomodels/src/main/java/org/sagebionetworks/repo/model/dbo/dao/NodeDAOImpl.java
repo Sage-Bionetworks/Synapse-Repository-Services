@@ -1876,8 +1876,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					if (size != null) {
 						dto.setFileSizeBytes(Long.parseLong(size.toString()));
 					}
+					Object count = entityPropertyAnnotation.getSingleValue("count");
+					if (count != null) {
+						dto.setItemCount(Integer.parseInt(count.toString()));
+					}
 				}
-				dto.setItemCount(1);
 				
 				List<ObjectAnnotationDTO> translatedAnnotations = new ArrayList<>(AnnotationsV2Utils.toObjectAnnotationDTOList(entityId, version, annotations, maxAnnotationSize));
 				
