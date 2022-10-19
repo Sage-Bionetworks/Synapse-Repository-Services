@@ -93,7 +93,7 @@ public class DatasetCollectionIntegrationTest {
 		descriptionColumn = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION, ObjectField.description).get(0);
 		datasetMD5 = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION,ObjectField.datasetMD5Hex).get(0);
 		datasetSize = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION,ObjectField.datasetSizeInBytes).get(0);
-		//datasetCount = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION,ObjectField.datasetItemCount).get(0);
+		datasetCount = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION,ObjectField.datasetItemCount).get(0);
 	}
 
 	@AfterEach
@@ -117,7 +117,7 @@ public class DatasetCollectionIntegrationTest {
 			.setParentId(project.getId())
 			.setName("Dataset Collection")
 			.setColumnIds(Arrays.asList(stringColumn.getId(), descriptionColumn.getId(), datasetMD5.getId(),
-					datasetSize.getId()))
+					datasetSize.getId(), datasetCount.getId()))
 			.setItems(List.of(
 				new EntityRef().setEntityId(datasetOne.getId()).setVersionNumber(snapshotVersion),
 				new EntityRef().setEntityId(datasetTwo.getId()).setVersionNumber(snapshotVersion)
@@ -126,10 +126,11 @@ public class DatasetCollectionIntegrationTest {
 		List<Row> expectedRows = Arrays.asList(
 			new Row().setRowId(KeyFactory.stringToKey(datasetOne.getId())).setVersionNumber(snapshotVersion)
 					.setEtag(datasetOne.getEtag()).setValues(Arrays.asList(datasetOne.getId(),
-							datasetOne.getDescription(), datasetOne.getChecksum(), datasetOne.getSize().toString())),
+							datasetOne.getDescription(), datasetOne.getChecksum(),
+							datasetOne.getSize().toString(), datasetOne.getCount().toString())),
 			new Row().setRowId(KeyFactory.stringToKey(datasetTwo.getId())).setVersionNumber(snapshotVersion)
 					.setEtag(datasetTwo.getEtag()).setValues(Arrays.asList(datasetTwo.getId(), datasetTwo.getDescription(),
-							datasetTwo.getChecksum(), datasetTwo.getSize().toString()))
+							datasetTwo.getChecksum(), datasetTwo.getSize().toString(), datasetTwo.getCount().toString()))
 		);
 		
 		// call under test
