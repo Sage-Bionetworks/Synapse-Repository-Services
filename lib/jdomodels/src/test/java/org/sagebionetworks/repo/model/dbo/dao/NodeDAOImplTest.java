@@ -3183,6 +3183,43 @@ public class NodeDAOImplTest {
 		assertEquals(Collections.emptyList(), projectDto.getAnnotations());
 		assertEquals(null, projectDto.getFileHandleId());
 	}
+
+	@Test
+	public void testGetEntityDTOForDataSetWithEntityPropertyAnnotations(){
+		Node file = NodeTestUtils.createNew("file", creatorUserGroupId);
+		file.setNodeType(EntityType.file);
+		file.setFileHandleId(fileHandle.getId());
+		file = nodeDao.createNewNode(file);
+
+		Node dataset = NodeTestUtils.createNew("dataset", creatorUserGroupId);
+		dataset.setNodeType(EntityType.dataset);
+		dataset.setItems(Collections.singletonList(new EntityRef().setEntityId(file.getId()).setVersionNumber(file.getVersionNumber())));
+		dataset = nodeDao.createNewNode(dataset);
+		toDelete.add(dataset.getId());
+		toDelete.add(file.getId());
+
+		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = new org.sagebionetworks.repo.model.Annotations();
+		entityPropertyAnnotations.setId(dataset.getId());
+		entityPropertyAnnotations.setEtag(dataset.getETag());
+		entityPropertyAnnotations.addAnnotation("checksum", fileHandle.getContentMd5());
+		entityPropertyAnnotations.addAnnotation("size", fileHandle.getContentSize());
+		entityPropertyAnnotations.addAnnotation("count", "1");
+		nodeDao.updateEntityPropertyAnnotations(dataset.getId(), entityPropertyAnnotations);
+
+		int maxAnnotationChars = 10;
+
+		List<Long> ids = KeyFactory.stringToKey(ImmutableList.of(dataset.getId()));
+		long limit = 100;
+		long offset = 0;
+		// call under test
+		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars, limit, offset);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		ObjectDataDTO datasetDto = results.get(0);
+		assertEquals(fileHandle.getContentMd5(), datasetDto.getFileMD5());
+		assertEquals(fileHandle.getContentSize(), datasetDto.getFileSizeBytes());
+		assertEquals(1, datasetDto.getItemCount());
+	}
 	
 	@Test
 	public void testGetEntityDTOsNullValues(){

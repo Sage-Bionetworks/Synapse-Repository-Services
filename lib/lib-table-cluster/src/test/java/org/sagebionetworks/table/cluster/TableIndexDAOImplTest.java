@@ -2041,12 +2041,13 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testEntityReplication(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L,2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L,2L,3L,4L));
 
 		ObjectDataDTO project = createObjectDataDTO(1L, EntityType.project, 0);
 		ObjectDataDTO folder = createObjectDataDTO(2L, EntityType.folder, 5);
 		ObjectDataDTO file = createObjectDataDTO(3L, EntityType.file, 10);
-		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file, folder, project));
+		ObjectDataDTO dataset = createObjectDataDTO(4L, EntityType.dataset, 0);
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file, dataset, folder, project));
 
 		// lookup each
 		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, project.getId(), project.getVersion());
@@ -2055,6 +2056,8 @@ public class TableIndexDAOImplTest {
 		assertEquals(folder, fetched);
 		fetched = tableIndexDAO.getObjectData(mainType, file.getId(), file.getVersion());
 		assertEquals(file, fetched);
+		fetched = tableIndexDAO.getObjectData(mainType, dataset.getId(), dataset.getVersion());
+		assertEquals(dataset, fetched);
 	}
 	
 	/**
