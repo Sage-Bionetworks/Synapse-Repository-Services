@@ -177,7 +177,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			dto.setIsInSynapseStorage(null);
 		}
 		dto.setFileMD5(rs.getString(OBJECT_REPLICATION_COL_FILE_MD5));
-		dto.setItemCount(rs.getInt(OBJECT_REPLICATION_COL_ITEM_COUNT));
+		dto.setItemCount(rs.getLong(OBJECT_REPLICATION_COL_ITEM_COUNT));
 		if(rs.wasNull()){
 			dto.setItemCount(null);
 		}
@@ -954,8 +954,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					ps.setNull(parameterIndex + updateOffset, java.sql.Types.VARCHAR);
 				}
 				if (dto.getItemCount() != null) {
-					ps.setInt(parameterIndex++, dto.getItemCount());
-					ps.setInt(parameterIndex + updateOffset, dto.getItemCount());
+					ps.setLong(parameterIndex++, dto.getItemCount());
+					ps.setLong(parameterIndex + updateOffset, dto.getItemCount());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 					ps.setNull(parameterIndex + updateOffset, java.sql.Types.BIGINT);

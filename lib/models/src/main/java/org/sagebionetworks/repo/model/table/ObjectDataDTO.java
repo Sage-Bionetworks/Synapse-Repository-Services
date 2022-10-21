@@ -35,7 +35,7 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 	private Long fileSizeBytes;
 	private Boolean isInSynapseStorage;
 	private String fileMD5;
-	private  Integer itemCount;
+	private Long itemCount;
 
 	private List<ObjectAnnotationDTO> annotations;
 
@@ -216,11 +216,11 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 		return this;
 	}
 
-	public Integer getItemCount() {
+	public Long getItemCount() {
 		return itemCount;
 	}
 
-	public ObjectDataDTO setItemCount(Integer itemCount) {
+	public ObjectDataDTO setItemCount(Long itemCount) {
 		this.itemCount = itemCount;
 		return this;
 	}

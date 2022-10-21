@@ -1878,7 +1878,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					}
 					Object count = entityPropertyAnnotation.getSingleValue("count");
 					if (count != null) {
-						dto.setItemCount(Integer.parseInt(count.toString()));
+						dto.setItemCount(Long.parseLong(count.toString()));
 					}
 				}
 				
