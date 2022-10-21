@@ -3,6 +3,7 @@ package org.sagebionetworks.table.worker;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -110,9 +111,9 @@ public class DatasetCollectionIntegrationTest {
 	public void testCreateAndQueryDatasetCollection() throws Exception {
 		Dataset datasetOne = createDatasetAndSnapshot();
 		Dataset datasetTwo = createDatasetAndSnapshot();
-		
+
 		Long snapshotVersion = 1L;
-		
+
 		DatasetCollection collection = asyncHelper.createDatasetCollection(userInfo, new DatasetCollection()
 			.setParentId(project.getId())
 			.setName("Dataset Collection")
@@ -122,7 +123,7 @@ public class DatasetCollectionIntegrationTest {
 				new EntityRef().setEntityId(datasetOne.getId()).setVersionNumber(snapshotVersion),
 				new EntityRef().setEntityId(datasetTwo.getId()).setVersionNumber(snapshotVersion)
 			)));
-		
+
 		List<Row> expectedRows = Arrays.asList(
 			new Row().setRowId(KeyFactory.stringToKey(datasetOne.getId())).setVersionNumber(snapshotVersion)
 					.setEtag(datasetOne.getEtag()).setValues(Arrays.asList(datasetOne.getId(),
@@ -132,7 +133,41 @@ public class DatasetCollectionIntegrationTest {
 					.setEtag(datasetTwo.getEtag()).setValues(Arrays.asList(datasetTwo.getId(), datasetTwo.getDescription(),
 							datasetTwo.getChecksum(), datasetTwo.getSize().toString(), datasetTwo.getCount().toString()))
 		);
-		
+
+		// call under test
+		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + collection.getId() + " ORDER BY ROW_VERSION ASC", (QueryResultBundle result) -> {
+			assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT);
+
+	}
+
+	@Test
+	public void testCreateAndQueryDatasetCollectionHavingDatasetWithNoItem() throws Exception {
+		Dataset datasetOne = asyncHelper.createDataset(userInfo, new Dataset()
+				.setParentId(project.getId())
+				.setName(UUID.randomUUID().toString())
+				.setDescription(UUID.randomUUID().toString())
+				.setColumnIds(Collections.singletonList(stringColumn.getId()))
+				.setItems(Collections.emptyList())
+		);
+
+		Long snapshotVersion = 1L;
+
+ 		DatasetCollection collection = asyncHelper.createDatasetCollection(userInfo, new DatasetCollection()
+				.setParentId(project.getId())
+				.setName("Dataset Collection")
+				.setColumnIds(Arrays.asList(descriptionColumn.getId(), datasetMD5.getId(),
+						datasetSize.getId(), datasetCount.getId()))
+				.setItems(List.of(
+						new EntityRef().setEntityId(datasetOne.getId()).setVersionNumber(snapshotVersion)
+				)));
+
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(KeyFactory.stringToKey(datasetOne.getId())).setVersionNumber(snapshotVersion)
+						.setEtag(datasetOne.getEtag()).setValues(Arrays.asList(datasetOne.getDescription(),
+								null, null, null))
+		);
+
 		// call under test
 		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + collection.getId() + " ORDER BY ROW_VERSION ASC", (QueryResultBundle result) -> {
 			assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
