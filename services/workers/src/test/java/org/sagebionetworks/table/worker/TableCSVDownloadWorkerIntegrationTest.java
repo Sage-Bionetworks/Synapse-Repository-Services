@@ -439,6 +439,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		// Read the CSV
 		CSVReader csvReader;
 		assertEquals("text/csv", fileHandle.getContentType());
+		assertNotNull(fileHandle.getContentMd5());
 		if (request.getFileName() == null) {
 			assertNotNull(fileHandle.getFileName());
 		} else {
