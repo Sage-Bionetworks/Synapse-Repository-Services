@@ -20,6 +20,10 @@
 		"checksum": {
 			"description": "The checksum is computed over a sorted concatenation of the checksums of all items in the dataset. For example, if a dataset contains two files with the following checksums: file1.md5 = 72794b6d and file2.md5 = 5e089d29. Then the checksum of the dataset is: md5('5e089d29,72794b6d') = f7a29a04.  This will be automatically computed by the service.",
 			"type": "string"
+		},
+		"count": {
+			"description": "The number of items/files in the dataset. This will be automatically computed by the service.",
+			"type": "integer"
 		}
 	}
 }

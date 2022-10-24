@@ -70,6 +70,7 @@ public class DatasetMetadataProvider extends ViewMetadataProvider<Dataset> imple
 			FileSummary fileSummary = nodeDao.getFileSummary(entity.getItems());
 			entity.setChecksum(fileSummary.getChecksum());
 			entity.setSize(fileSummary.getSize());
+			entity.setCount(fileSummary.getCount());
 		}
 	}
 

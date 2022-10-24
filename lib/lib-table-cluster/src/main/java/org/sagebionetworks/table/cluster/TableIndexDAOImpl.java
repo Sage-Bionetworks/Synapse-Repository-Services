@@ -25,6 +25,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_MD5;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_SIZE_BYTES;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_ITEM_COUNT;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_NAME;
@@ -176,6 +177,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			dto.setIsInSynapseStorage(null);
 		}
 		dto.setFileMD5(rs.getString(OBJECT_REPLICATION_COL_FILE_MD5));
+		dto.setItemCount(rs.getLong(OBJECT_REPLICATION_COL_ITEM_COUNT));
+		if(rs.wasNull()){
+			dto.setItemCount(null);
+		}
 		dto.setFileConcreteType(rs.getString(OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE));
 		dto.setFileBucket(rs.getString(OBJECT_REPLICATION_COL_FILE_BUCKET));
 		dto.setFileKey(rs.getString(OBJECT_REPLICATION_COL_FILE_KEY));
@@ -860,7 +865,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					throws SQLException {
 				ObjectDataDTO dto = sorted.get(i);
 				int parameterIndex = 1;
-				int updateOffset = 18;
+				int updateOffset = 19;
 				
 				ps.setString(parameterIndex++, mainType.name());
 				ps.setLong(parameterIndex++, dto.getId());
@@ -947,6 +952,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				}else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					ps.setNull(parameterIndex + updateOffset, java.sql.Types.VARCHAR);
+				}
+				if (dto.getItemCount() != null) {
+					ps.setLong(parameterIndex++, dto.getItemCount());
+					ps.setLong(parameterIndex + updateOffset, dto.getItemCount());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.BIGINT);
 				}
 				if (dto.getFileConcreteType() != null) {
 					ps.setString(parameterIndex++, dto.getFileConcreteType());

@@ -6,7 +6,7 @@ import java.util.Objects;
 public class FileSummary {
     String checksum;
     long size;
-    int count;
+    long count;
 
     public FileSummary(String checksum, long size, int count) {
         this.checksum = checksum;
@@ -30,11 +30,11 @@ public class FileSummary {
         this.size = size;
     }
 
-    public int getCount() {
+    public long getCount() {
         return count;
     }
 
-    public void setCount(int count) {
+    public void setCount(long count) {
         this.count = count;
     }
 

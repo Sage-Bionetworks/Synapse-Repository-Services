@@ -1855,6 +1855,32 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if (annotations == null) {
 					annotations = AnnotationsV2Utils.emptyAnnotations();
 				}
+
+				org.sagebionetworks.repo.model.Annotations entityPropertyAnnotation = null;
+				byte[] bytes = rs.getBytes(COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB);
+				if (bytes != null) {
+					try {
+						entityPropertyAnnotation = AnnotationUtils.decompressedAnnotationsV1(bytes);
+					} catch (IOException e) {
+						throw new DatastoreException(e);
+					}
+				}
+
+				if (entityPropertyAnnotation != null) {
+					Object checksum = entityPropertyAnnotation.getSingleValue("checksum");
+					if (checksum != null) {
+						dto.setFileMD5(checksum.toString());
+					}
+
+					Object size = entityPropertyAnnotation.getSingleValue("size");
+					if (size != null) {
+						dto.setFileSizeBytes(Long.parseLong(size.toString()));
+					}
+					Object count = entityPropertyAnnotation.getSingleValue("count");
+					if (count != null) {
+						dto.setItemCount(Long.parseLong(count.toString()));
+					}
+				}
 				
 				List<ObjectAnnotationDTO> translatedAnnotations = new ArrayList<>(AnnotationsV2Utils.toObjectAnnotationDTOList(entityId, version, annotations, maxAnnotationSize));
 				
