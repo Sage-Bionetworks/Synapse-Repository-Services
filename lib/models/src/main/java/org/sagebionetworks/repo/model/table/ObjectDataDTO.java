@@ -35,6 +35,8 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 	private Long fileSizeBytes;
 	private Boolean isInSynapseStorage;
 	private String fileMD5;
+	private Long itemCount;
+
 	private List<ObjectAnnotationDTO> annotations;
 
 	public Long getId() {
@@ -214,6 +216,15 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 		return this;
 	}
 
+	public Long getItemCount() {
+		return itemCount;
+	}
+
+	public ObjectDataDTO setItemCount(Long itemCount) {
+		this.itemCount = itemCount;
+		return this;
+	}
+
 	public String getFileConcreteType() {
 		return fileConcreteType;
 	}
@@ -241,7 +252,7 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 	@Override
 	public int hashCode() {
 		return Objects.hash(annotations, benefactorId, createdBy, createdOn, currentVersion, description, etag, fileBucket,
-				fileConcreteType, fileHandleId, fileKey, fileMD5, fileSizeBytes, id, isInSynapseStorage, modifiedBy, modifiedOn, name,
+				fileConcreteType, fileHandleId, fileKey, fileMD5, itemCount, fileSizeBytes, id, isInSynapseStorage, modifiedBy, modifiedOn, name,
 				parentId, projectId, subType, version);
 	}
 
@@ -264,7 +275,7 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 				&& Objects.equals(isInSynapseStorage, other.isInSynapseStorage) && Objects.equals(modifiedBy, other.modifiedBy)
 				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(name, other.name)
 				&& Objects.equals(parentId, other.parentId) && Objects.equals(projectId, other.projectId) && subType == other.subType
-				&& Objects.equals(version, other.version);
+				&& Objects.equals(version, other.version) && Objects.equals(itemCount, other.itemCount);
 	}
 
 	@Override
@@ -274,7 +285,7 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 				+ ", parentId=" + parentId + ", benefactorId=" + benefactorId + ", projectId=" + projectId + ", modifiedBy=" + modifiedBy
 				+ ", modifiedOn=" + modifiedOn + ", fileHandleId=" + fileHandleId + ", fileConcreteType=" + fileConcreteType
 				+ ", fileBucket=" + fileBucket + ", fileKey=" + fileKey + ", fileSizeBytes=" + fileSizeBytes + ", isInSynapseStorage="
-				+ isInSynapseStorage + ", fileMD5=" + fileMD5 + ", annotations=" + annotations + "]";
+				+ isInSynapseStorage + ", fileMD5=" + fileMD5 + ", itemCount="+ itemCount+ ", annotations=" + annotations + "]";
 	}
 
 	@Override

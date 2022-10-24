@@ -22,6 +22,8 @@ public enum TableType {
 	datasetcollection(ObjectType.ENTITY_VIEW),
 	materializedview(ObjectType.MATERIALIZED_VIEW);
 
+	// There is worker which handle each object type.This Object type should match expected type.
+	// entityview, submissionview, dataset, datasetcollection is handled by same worker.
 	private final ObjectType objectType;
 	private final EntityType entityType;
 	private final ViewEntityType viewEntityType;
