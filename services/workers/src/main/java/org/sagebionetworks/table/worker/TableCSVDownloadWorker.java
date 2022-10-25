@@ -98,7 +98,9 @@ public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableR
 			UploadProgressListener uploadListener = new UploadProgressListener(jobProgressCallback, startProgress, bytesPerRow, totalProgress);
 			String contentType = CSVUtils.guessContentType(request
 					.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor().getSeparator());
-			S3FileHandle fileHandle = fileHandleManager.uploadLocalFile(new LocalFileUploadRequest().withUserId(user.getId().toString()).withFileToUpload(temp).withContentType(contentType).withListener(uploadListener));
+			String requestFileName = request.getFileName() == null ? null : request.getFileName();
+			S3FileHandle fileHandle = fileHandleManager.uploadLocalFile(new LocalFileUploadRequest().withUserId(user.getId().toString()).withFileToUpload(temp).withContentType(contentType).withListener(uploadListener)
+					.withFileName(requestFileName));
 			result.setResultsFileHandleId(fileHandle.getId());
 			return result;
 		} catch (TableUnavailableException | LockUnavilableException e){

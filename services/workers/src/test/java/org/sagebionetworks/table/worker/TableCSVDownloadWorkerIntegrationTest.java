@@ -181,7 +181,29 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		List<String[]> results = downloadCSV(adminUserInfo, request);
 		checkResults(results, input, true);
 	}
-	
+
+	@Test
+	public void testRoundTripWithCustomFileName() throws Throwable{
+		List<String[]> input = createTable();
+
+		String customFileName = "file1234";
+		String sql = "select * from "+tableId;
+		// Wait for the table to be ready
+		RowSet result = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(result);
+		// Now download the data from this table as a csv
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql(sql);
+		request.setWriteHeader(true);
+		request.setIncludeRowIdAndRowVersion(true);
+		request.setFileName(customFileName);
+
+		// Call under test
+		List<String[]> results = downloadCSV(adminUserInfo, request);
+
+		checkResults(results, input, true);
+	}
+
 	// Test to reproduce PLFM-7050
 	@Test
 	public void testRoundTripWithAnonymousUserAndOpenData() throws Throwable {
@@ -417,8 +439,12 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		// Read the CSV
 		CSVReader csvReader;
 		assertEquals("text/csv", fileHandle.getContentType());
-		assertNotNull(fileHandle.getFileName());
 		assertNotNull(fileHandle.getContentMd5());
+		if (request.getFileName() == null) {
+			assertNotNull(fileHandle.getFileName());
+		} else {
+			assertEquals(request.getFileName(), fileHandle.getFileName());
+		}
 		// Download the file
 		File temp = File.createTempFile("DownloadCSV", "."+CSVUtils.guessExtension(request.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor()
 				.getSeparator()));
@@ -435,8 +461,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 			temp.delete();
 		}
 	}
-	
-	
+
 	private RowSet waitForConsistentQuery(UserInfo user, String sql) throws Exception {
 		Integer expectedRowCount = null;
 		return waitForConsistentQuery(user, sql,expectedRowCount);

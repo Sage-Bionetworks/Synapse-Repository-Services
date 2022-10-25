@@ -22,6 +22,10 @@
 		},
 		"csvTableDescriptor": {
 			"$ref":"org.sagebionetworks.repo.model.table.CsvTableDescriptor"
+		},
+		"fileName": {
+			"type": "string",
+			"description": "The optional name for the downloaded table."
 		}
 	}
 }
