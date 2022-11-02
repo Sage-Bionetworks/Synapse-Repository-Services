@@ -58,6 +58,7 @@ public enum IdType {
 	PERSONAL_ACCESS_TOKEN_ID(null),
 	SES_NOTIFICATION_ID(null),
 	QUARANTINED_EMAIL_ID(null),
+	// Note that this is used for both views and tables
 	VIEW_SNAPSHOT_ID(null),
 	ORGANIZATION_ID(null),
 	JSON_SCHEMA_ID(null),

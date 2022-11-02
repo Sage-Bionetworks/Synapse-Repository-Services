@@ -2,15 +2,15 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 
-public interface ViewSnapshotDao {
+public interface TableSnapshotDao {
 
 	
 	/**
-	 * Create a record of a view snapshot stored in S3.
+	 * Create a record of a table snapshot stored in S3.
 	 * @param snapshot
 	 * @return
 	 */
-	ViewSnapshot createSnapshot(ViewSnapshot snapshot);
+	TableSnapshot createSnapshot(TableSnapshot snapshot);
 
 	/**
 	 * Get the snapshot information for the given ID and version. Note: version is
@@ -19,7 +19,7 @@ public interface ViewSnapshotDao {
 	 * @param idAndVersion
 	 * @return
 	 */
-	ViewSnapshot getSnapshot(IdAndVersion idAndVersion);
+	TableSnapshot getSnapshot(IdAndVersion idAndVersion);
 
 	/**
 	 * Truncate all snapshots.
@@ -27,7 +27,7 @@ public interface ViewSnapshotDao {
 	void truncateAll();
 
 	/**
-	 * Get the snapshot ID for the given view/version.
+	 * Get the snapshot ID for the given table/version.
 	 * 
 	 * @param idAndVersion
 	 * @return
