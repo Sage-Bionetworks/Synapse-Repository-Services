@@ -54,7 +54,7 @@ public class SqlConstants {
 	
 	
 	// The User Profile table
-	public static final String TABLE_USER_PROFILE				= "JDOUSERPROFILE";
+	public static final String TABLE_USER_PROFILE				= "USER_PROFILE";
 	public static final String COL_USER_PROFILE_ID				= "OWNER_ID";
 	public static final String COL_USER_PROFILE_ETAG			= "ETAG";
 	public static final String COL_USER_PROFILE_PROPS_BLOB		= "PROPERTIES";
@@ -408,9 +408,7 @@ public class SqlConstants {
 	
 	public static final String TABLE_ANNOTATION_TYPE		= "ANNOTATION_TYPE";
 
-	public static final String TABLE_USER					= "JDOUSER";
-	public static final String TABLE_USER_GROUP				= "JDOUSERGROUP";
-	public static final String TABLE_USER_GROUP_USERS		= "JDOUSERGROUPUSERS";
+	public static final String TABLE_USER_GROUP				= "USER_GROUP";
 	public static final String COL_USER_GROUP_ID			= "ID";
 	public static final String COL_USER_GROUP_IS_INDIVIDUAL = "ISINDIVIDUAL";
 	public static final String COL_USER_GROUP_E_TAG         = "ETAG";

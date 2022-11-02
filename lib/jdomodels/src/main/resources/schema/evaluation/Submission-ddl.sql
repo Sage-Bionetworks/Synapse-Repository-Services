@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS JDOSUBMISSION (
     PRIMARY KEY (ID),
     KEY (DOCKER_REPO_NAME),
     FOREIGN KEY (EVALUATION_ID) REFERENCES JDOEVALUATION (ID) ON DELETE CASCADE,
-   	FOREIGN KEY (USER_ID) REFERENCES JDOUSERGROUP (ID),
+   	FOREIGN KEY (USER_ID) REFERENCES USER_GROUP (ID),
   	FOREIGN KEY (TEAM_ID) REFERENCES TEAM (ID),
   	# in java code we do not allow an EvaluationRound to be deleted if it has Submissions that reference it,
   	# but upon deletion of an entire Evaluation, we want both the EvaluationRounds and Submissions associated with it to be deleted
