@@ -20,7 +20,7 @@ public class SQLConstants {
 	
 	// Evaluation table constants
 	public static final String DDL_FILE_EVALUATION				= "schema/evaluation/Evaluation-ddl.sql";
-	public static final String TABLE_EVALUATION					= "JDOEVALUATION";
+	public static final String TABLE_EVALUATION					= "EVALUATION";
 	public static final String COL_EVALUATION_ID				= "ID";
 	public static final String COL_EVALUATION_ETAG				= "ETAG";
 	public static final String COL_EVALUATION_NAME				= "NAME";
@@ -51,7 +51,7 @@ public class SQLConstants {
 	
 	// Submission table constants
 	public static final String DDL_FILE_SUBMISSION				= "schema/evaluation/Submission-ddl.sql";
-	public static final String TABLE_SUBMISSION					= "JDOSUBMISSION";
+	public static final String TABLE_SUBMISSION					= "EVALUATION_SUBMISSION";
 	public static final String COL_SUBMISSION_ID 				= "ID";
 	public static final String COL_SUBMISSION_EVAL_ID 			= "EVALUATION_ID";
 	public static final String COL_SUBMISSION_EVAL_ROUND_ID 	= "EVALUATION_ROUND_ID";
@@ -77,7 +77,7 @@ public class SQLConstants {
 	
 	// SubmissionStatus table constants
 	public static final String DDL_FILE_SUBSTATUS				= "schema/evaluation/SubmissionStatus-ddl.sql";
-	public static final String TABLE_SUBSTATUS					= "JDOSUBMISSION_STATUS";
+	public static final String TABLE_SUBSTATUS					= "EVALUATION_SUBMISSION_STATUS";
 	public static final String COL_SUBSTATUS_SUBMISSION_ID 		= "ID";
 	public static final String COL_SUBSTATUS_ETAG				= "ETAG";
 	public static final String COL_SUBSTATUS_VERSION			= "SUBSTATUS_VERSION";
@@ -89,7 +89,7 @@ public class SQLConstants {
 	
 	// SubmissionFile table constants
 	public static final String DDL_FILE_SUBFILE					= "schema/evaluation/SubmissionFile-ddl.sql";
-	public static final String TABLE_SUBFILE					= "JDOSUBMISSION_FILE";
+	public static final String TABLE_SUBFILE					= "EVALUATION_SUBMISSION_FILE";
 	public static final String COL_SUBFILE_SUBMISSION_ID 		= "SUBMISSION_ID";
 	public static final String COL_SUBFILE_FILE_HANDLE_ID 		= "FILE_HANDLE_ID";
 	
