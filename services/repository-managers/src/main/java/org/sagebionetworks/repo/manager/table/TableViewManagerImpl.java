@@ -90,7 +90,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	/**
 	 * The maximum number of view rows that can be updated in a single transaction.
 	 */
-	public static final long MAX_ROWS_PER_TRANSACTION = 1000;
+	public static final long MAX_ROWS_PER_TRANSACTION = 100_000;
 
 	@Autowired
 	private ViewScopeDao viewScopeDao;
@@ -404,7 +404,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			refreshBenefactorsForViewSnapshot(viewId);
 		}else {
 			// This is not a snapshot so apply all changes as needed.
-			applyChangesToAvailableView(viewId);
+			applyChangesToAvailableView(viewId, MAX_ROWS_PER_TRANSACTION);
 		}
 	}
 	
@@ -425,7 +425,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * The caller must hold an exclusive lock on the view-change during this operation.
 	 * @param viewId
 	 */
-	void applyChangesToAvailableView(IdAndVersion viewId) {
+	void applyChangesToAvailableView(IdAndVersion viewId, long pageSize) {
 		ValidateArgument.required(viewId, "viewId");
 		if(viewId.getVersion().isPresent()) {
 			throw new IllegalArgumentException("This method cannot be called on a view snapshot");
@@ -446,7 +446,7 @@ public class TableViewManagerImpl implements TableViewManager {
 					// no point in continuing if the table is no longer available.
 					return;
 				}
-				rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, originalFilter,  MAX_ROWS_PER_TRANSACTION);
+				rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, originalFilter,  pageSize);
 				ViewFilter deltaFilter = originalFilter.newBuilder().addLimitObjectids(rowsIdsWithChanges).build();
 				// Are thrashing on the same Ids?
 				Set<Long> intersectionWithPreviousPage = Sets.intersection(rowsIdsWithChanges,
@@ -464,7 +464,7 @@ public class TableViewManagerImpl implements TableViewManager {
 					previousPageRowIdsWithChanges = rowsIdsWithChanges;
 					tableManagerSupport.updateChangedOnIfAvailable(viewId);
 				}
-			} while (!rowsIdsWithChanges.isEmpty());
+			} while (rowsIdsWithChanges.size() >= pageSize);
 		} catch (Exception e) {
 			// failed.
 			log.error("Failed to apply changes to AVAILABLE view " + viewId, e);

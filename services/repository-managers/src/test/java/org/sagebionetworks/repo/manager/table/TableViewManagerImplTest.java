@@ -59,7 +59,6 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -195,7 +194,7 @@ public class TableViewManagerImplTest {
 	private Set<Long> allContainersInScope;
 	private Annotations annotationsV2;
 	private IndexDescription indexDescription;
-	
+	private long pageSize;
 	private ViewScopeType scopeType;
 	
 	private ObjectFieldModelResolver objectFieldModelResolver;
@@ -277,6 +276,8 @@ public class TableViewManagerImplTest {
 		indexDescription =  new ViewIndexDescription(idAndVersion, TableType.entityview);
 		
 		managerSpy = Mockito.spy(manager);
+		
+		pageSize = 2;
 	}
 	
 	@Test
@@ -1441,6 +1442,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testApplyChangesToAvailableViewHoldingLock_NothingToDo() {
+
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
@@ -1453,11 +1455,12 @@ public class TableViewManagerImplTest {
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
 
 		// call under test
-		manager.applyChangesToAvailableView(idAndVersion);
+		manager.applyChangesToAvailableView(idAndVersion, pageSize);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verify(mockIndexManager, never()).updateViewRowsInTransaction(any(), any(), any(), any());
 		verifyNoMoreInteractions(mockTableManagerSupport);
+		verify(mockIndexManager, times(1)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
 	
 	@Test
@@ -1478,12 +1481,13 @@ public class TableViewManagerImplTest {
 		
 
 		// call under test
-		manager.applyChangesToAvailableView(idAndVersion);
+		manager.applyChangesToAvailableView(idAndVersion, pageSize);
 		verify(mockIndexManager).updateViewRowsInTransaction(indexDescription, scopeType, viewSchema,
 				filter.newBuilder().addLimitObjectids(rowsToUpdate).build());
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 		verify(mockTableManagerSupport).updateChangedOnIfAvailable(idAndVersion);
+		verify(mockIndexManager, times(2)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
 	
 	@Test
@@ -1497,7 +1501,7 @@ public class TableViewManagerImplTest {
 		// do no work when not available.
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.PROCESSING));
 		// call under test
-		manager.applyChangesToAvailableView(idAndVersion);
+		manager.applyChangesToAvailableView(idAndVersion, pageSize);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verifyNoMoreInteractions(mockTableManagerSupport);
@@ -1515,7 +1519,7 @@ public class TableViewManagerImplTest {
 		// do no work when not available.
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.empty());
 		// call under test
-		manager.applyChangesToAvailableView(idAndVersion);
+		manager.applyChangesToAvailableView(idAndVersion, pageSize);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verifyNoMoreInteractions(mockTableManagerSupport);
@@ -1528,7 +1532,7 @@ public class TableViewManagerImplTest {
 		idAndVersion = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.applyChangesToAvailableView(idAndVersion);
+			manager.applyChangesToAvailableView(idAndVersion, pageSize);
 		});
 	}
 	
@@ -1537,9 +1541,98 @@ public class TableViewManagerImplTest {
 		idAndVersion = IdAndVersion.parse("syn123.1");
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.applyChangesToAvailableView(idAndVersion);
+			manager.applyChangesToAvailableView(idAndVersion, pageSize);
 		}).getMessage();
 		assertEquals("This method cannot be called on a view snapshot", message);
+	}
+	
+	/**
+	 * This is a test for PLFM-7548.
+	 */
+	@Test
+	public void testApplyChangesToAvailableViewHoldingLockWithSinglePageUnderPageSize() {
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+
+		pageSize = 2;
+		Set<Long> pageOne = Sets.newHashSet(101L);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
+		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne);
+
+		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
+				allContainersInScope);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
+		
+		// call under test
+		manager.applyChangesToAvailableView(idAndVersion, pageSize);
+		verify(mockIndexManager).updateViewRowsInTransaction(indexDescription, scopeType, viewSchema,
+				filter.newBuilder().addLimitObjectids(pageOne).build());
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
+				any(Exception.class));
+		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
+		verify(mockIndexManager, times(1)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
+	}
+	
+	/**
+	 * This is a test for PLFM-7548.
+	 */
+	@Test
+	public void testApplyChangesToAvailableViewHoldingLockWithSinglePageAtPageSize() {
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+
+		pageSize = 2;
+		Set<Long> pageOne = Sets.newHashSet(101L, 102L);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
+		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne);
+
+		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
+				allContainersInScope);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
+		
+		// call under test
+		manager.applyChangesToAvailableView(idAndVersion, pageSize);
+		verify(mockIndexManager).updateViewRowsInTransaction(indexDescription, scopeType, viewSchema,
+				filter.newBuilder().addLimitObjectids(pageOne).build());
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
+				any(Exception.class));
+		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
+		verify(mockIndexManager, times(2)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
+	}
+	
+	/**
+	 * This is a test for PLFM-7548.
+	 */
+	@Test
+	public void testApplyChangesToAvailableViewHoldingLockWithSinglePageOverPageSize() {
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+
+		Set<Long> pageOne = Sets.newHashSet(101L, 102L, 103L);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
+		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne);
+
+		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
+				allContainersInScope);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
+		
+		// call under test
+		manager.applyChangesToAvailableView(idAndVersion, pageSize);
+		verify(mockIndexManager).updateViewRowsInTransaction(indexDescription, scopeType, viewSchema,
+				filter.newBuilder().addLimitObjectids(pageOne).build());
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
+				any(Exception.class));
+		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
+		verify(mockIndexManager, times(2)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
 	
 	/**
@@ -1547,12 +1640,11 @@ public class TableViewManagerImplTest {
 	 * page, and all pages should be processed.
 	 */
 	@Test
-	public void testApplyChangesToAvailableViewHoldingLock_MultiplePagesNoOverlap() {
+	public void testApplyChangesToAvailableViewHoldingLockWithMultiplePagesNoOverlap() {
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-//		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
 
 		Set<Long> pageOne = Sets.newHashSet(101L, 102L);
 		Set<Long> pageTwo = Sets.newHashSet(103L, 104L);
@@ -1565,7 +1657,7 @@ public class TableViewManagerImplTest {
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
 		
 		// call under test
-		manager.applyChangesToAvailableView(idAndVersion);
+		manager.applyChangesToAvailableView(idAndVersion, pageSize);
 		verify(mockIndexManager).updateViewRowsInTransaction(indexDescription, scopeType, viewSchema,
 				filter.newBuilder().addLimitObjectids(pageOne).build());
 		verify(mockIndexManager).updateViewRowsInTransaction(indexDescription, scopeType, viewSchema,
@@ -1573,6 +1665,7 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 		verify(mockTableManagerSupport, times(2)).updateChangedOnIfAvailable(idAndVersion);
+		verify(mockIndexManager, times(3)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
 	
 	@Test
@@ -1596,7 +1689,7 @@ public class TableViewManagerImplTest {
 		
 
 		// call under test
-		manager.applyChangesToAvailableView(idAndVersion);
+		manager.applyChangesToAvailableView(idAndVersion, pageSize);
 		verify(mockIndexManager).updateViewRowsInTransaction(indexDescription, scopeType, viewSchema,
 				filter.newBuilder().addLimitObjectids(pageOne).build());
 		// page two should not be updated because of the switch to processing.
@@ -1605,6 +1698,7 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
+		verify(mockIndexManager, times(1)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
 	
 	/**
@@ -1617,6 +1711,7 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		
+		pageSize = 2;
 		Set<Long> pageOne = Sets.newHashSet(101L,102L);
 		Set<Long> pageTwo = Sets.newHashSet(102L,103L);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
@@ -1629,7 +1724,7 @@ public class TableViewManagerImplTest {
 		
 		
 		// call under test
-		manager.applyChangesToAvailableView(idAndVersion);
+		manager.applyChangesToAvailableView(idAndVersion, pageSize);
 		verify(mockIndexManager).updateViewRowsInTransaction(indexDescription, scopeType, viewSchema,
 				filter.newBuilder().addLimitObjectids(pageOne).build());
 		// page two should be ignored since it overlaps with page one.
@@ -1638,6 +1733,7 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
+		verify(mockIndexManager, times(2)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
 	
 	/**
@@ -1665,12 +1761,13 @@ public class TableViewManagerImplTest {
 		doThrow(exception).when(mockIndexManager).updateViewRowsInTransaction(any(), any(), anyList(), any());
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.applyChangesToAvailableView(idAndVersion);
+			manager.applyChangesToAvailableView(idAndVersion, pageSize);
 		});
 		verify(mockIndexManager).updateViewRowsInTransaction(indexDescription, scopeType, viewSchema,
 				filter.newBuilder().addLimitObjectids(pageOne).build());
 		// should fail and change the table status.
 		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, exception);
+		verify(mockIndexManager, times(1)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
 	
 	@Test
@@ -1685,7 +1782,7 @@ public class TableViewManagerImplTest {
 		
 		// call under test
 		managerSpy.applyChangesToAvailableViewOrSnapshot(idAndVersion);
-		verify(managerSpy).applyChangesToAvailableView(idAndVersion);
+		verify(managerSpy).applyChangesToAvailableView(idAndVersion, TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION);
 		verify(managerSpy, never()).refreshBenefactorsForViewSnapshot(any());
 	}
 	
@@ -1695,7 +1792,7 @@ public class TableViewManagerImplTest {
 		idAndVersion = IdAndVersion.parse("syn123.1");
 		// call under test
 		managerSpy.applyChangesToAvailableViewOrSnapshot(idAndVersion);
-		verify(managerSpy, never()).applyChangesToAvailableView(any());
+		verify(managerSpy, never()).applyChangesToAvailableView(any(), anyLong());
 		verify(managerSpy).refreshBenefactorsForViewSnapshot(idAndVersion);
 	}
 	
