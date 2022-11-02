@@ -20,7 +20,7 @@ import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
- * Immutable mapping for tables and columns from a query..
+ * Immutable mapping for tables and columns from a query.
  *
  */
 public class TableAndColumnMapper implements ColumnLookup {

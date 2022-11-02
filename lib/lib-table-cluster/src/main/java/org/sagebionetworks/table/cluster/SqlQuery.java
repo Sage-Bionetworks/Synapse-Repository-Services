@@ -15,6 +15,7 @@ import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlContext;
@@ -39,7 +40,7 @@ public class SqlQuery {
 	 * The input SQL is parsed into this object model.
 	 *
 	 */
-	private QuerySpecification model;
+	private QueryExpression model;
 
 	/**
 	 * The model transformed to execute against the actual table.
@@ -126,7 +127,7 @@ public class SqlQuery {
 	 * @throws ParseException
 	 */
 	SqlQuery(
-			QuerySpecification parsedModel,
+			QueryExpression parsedModel,
 			SchemaProvider schemaProvider,
 			Long overrideOffset,
 			Long overrideLimit,
@@ -166,28 +167,30 @@ public class SqlQuery {
 			this.includeEntityEtag = false;
 		}
 
-		if (sortList != null && !sortList.isEmpty()) {
-			// change the query to use the sort list
-			try {
-				model = SqlElementUtils.convertToSortedQuery(model, sortList);
-			} catch (ParseException e) {
-				throw new IllegalArgumentException(e);
-			}
-		}
+		QuerySpecification lastQuerySpecification = model.getLastElementOfType(QuerySpecification.class);
+		lastQuerySpecification.getTableExpression().replaceOrderBy(SqlElementUtils
+				.convertToSortedQuery(lastQuerySpecification.getTableExpression().getOrderByClause(), sortList));
 
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();
 
 		List<ColumnModel> unionOfSchemas = tableAndColumnMapper.getUnionOfAllTableSchemas();
 		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(unionOfSchemas);
+		
+		for(SelectList list:  model.createIterable(SelectList.class)) {
+			if(BooleanUtils.isTrue(list.getAsterisk())){
+				SelectList expandedSelectList = tableAndColumnMapper.buildSelectAllColumns();
+				this.model.getSelectList().replaceElement(expandedSelectList);
+			}
+		}
 
 		// SELECT * is replaced with a select including each column in the schema.
 		if (BooleanUtils.isTrue(this.model.getSelectList().getAsterisk())) {
-			SelectList expandedSelectList = tableAndColumnMapper.buildSelectAllColumns();
-			this.model.getSelectList().replaceElement(expandedSelectList);
+
 		}
 
-		this.schemaOfSelect = SQLTranslatorUtils.getSchemaOfSelect(this.model.getSelectList(), tableAndColumnMapper);
+		this.schemaOfSelect = SQLTranslatorUtils.getSchemaOfSelect(
+				this.model.getFirstElementOfType(QuerySpecification.class).getSelectList(), tableAndColumnMapper);
 
 		//Append additionalFilters onto the WHERE clause
 		if(additionalFilters != null && !additionalFilters.isEmpty()) {

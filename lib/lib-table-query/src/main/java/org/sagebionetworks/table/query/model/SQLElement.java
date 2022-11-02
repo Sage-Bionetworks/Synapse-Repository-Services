@@ -88,6 +88,21 @@ public abstract class SQLElement implements Element {
 	}
 	
 	/**
+	 * Get the last element of the given type.
+	 * @param <T>
+	 * @param type
+	 * @return
+	 */
+	public <T extends Element> T getLastElementOfType(Class<T> type){
+		Iterator<T> itertor = createIterable(type).iterator();
+		T last = null;
+		while(itertor.hasNext()) {
+			last = itertor.next();
+		}
+		return last;
+	}
+	
+	/**
 	 * Does this tree have any aggregate elements? This method will do a
 	 * recursive walk of the tree and return true if any element in the tree is
 	 * an aggregate.

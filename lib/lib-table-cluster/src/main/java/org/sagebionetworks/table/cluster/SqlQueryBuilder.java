@@ -8,12 +8,13 @@ import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SqlContext;
 
 public class SqlQueryBuilder {
 
-	private QuerySpecification model;
+	private QueryExpression model;
 	private SchemaProvider schemaProvider;
 	private Long overrideOffset;
 	private Long overrideLimit;
@@ -32,29 +33,29 @@ public class SqlQueryBuilder {
 	 * @throws ParseException 
 	 */
 	public SqlQueryBuilder(String sql, Long userId) throws ParseException{
-		model = new TableQueryParser(sql).querySpecification();
+		model = new TableQueryParser(sql).queryExpression();
 		this.userId = userId;
 	}
 	
 	public SqlQueryBuilder(String sql, SchemaProvider schemaProvider, Long userId) throws ParseException{
-		this.model = new TableQueryParser(sql).querySpecification();
+		this.model = new TableQueryParser(sql).queryExpression();
 		this.schemaProvider = schemaProvider;
 		this.userId = userId;
 	}
 	
-	public SqlQueryBuilder(QuerySpecification model){
+	public SqlQueryBuilder(QueryExpression model){
 		this.model = model;
 	}
 	
-	public SqlQueryBuilder(QuerySpecification model, Long userId){
-		this.model = model;
+	public SqlQueryBuilder(QuerySpecification spec, Long userId){
+		this.model = SQLUtils.createQueryExpression(spec);
 		this.userId = userId;
 	}
 	
-	public SqlQueryBuilder(QuerySpecification model,
+	public SqlQueryBuilder(QuerySpecification spec,
 			SchemaProvider schemaProvider, Long overideOffset,
 			Long overideLimit, Long maxBytesPerPage, Long userId) {
-		this.model = model;
+		this.model = SQLUtils.createQueryExpression(spec);
 		this.schemaProvider = schemaProvider;
 		this.overrideOffset = overideOffset;
 		this.overrideLimit = overideLimit;

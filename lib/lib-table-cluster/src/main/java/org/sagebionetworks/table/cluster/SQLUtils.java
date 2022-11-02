@@ -66,6 +66,12 @@ import org.sagebionetworks.repo.model.table.parser.DoubleParser;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.table.query.model.NonJoinQueryExpression;
+import org.sagebionetworks.table.query.model.NonJoinQueryPrimary;
+import org.sagebionetworks.table.query.model.NonJoinQueryTerm;
+import org.sagebionetworks.table.query.model.QueryExpression;
+import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SimpleTable;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -2109,6 +2115,11 @@ public class SQLUtils {
 		ValidateArgument.required(id, "The id");
 		
 		return "UPDATE " + getTableNameForId(id, TableIndexType.INDEX) + " SET `" + ROW_SEARCH_CONTENT + "` = NULL";
+	}
+	
+	public static QueryExpression createQueryExpression(QuerySpecification spec) {
+		return new QueryExpression(new NonJoinQueryExpression(
+				new NonJoinQueryTerm(new NonJoinQueryPrimary(new SimpleTable(spec), false))));
 	}
 	
 }

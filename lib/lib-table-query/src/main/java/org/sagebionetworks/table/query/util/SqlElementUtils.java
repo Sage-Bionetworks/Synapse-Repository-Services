@@ -483,20 +483,25 @@ public class SqlElementUtils {
 				null, tableExpression.getPagination());
 	}
 
-	public static QuerySpecification convertToSortedQuery(QuerySpecification model, List<SortItem> sortList) throws ParseException {
-		ValidateArgument.required(model, "QuerySpecification");
-		ValidateArgument.required(sortList, "sortList");
-		TableExpression currentTableExpression = model.getTableExpression();
-		ValidateArgument.required(currentTableExpression, "TableExpression");
-
+	/**
+	 * If given a nonempty sortList, create a new OrderByClause that is the the union of the currentOrderBy and the 
+	 * sortList.
+	 * @param currentOrderBy
+	 * @param sortList
+	 * @return
+	 * @throws ParseException
+	 */
+	public static OrderByClause convertToSortedQuery(final OrderByClause currentOrderBy, List<SortItem> sortList) throws ParseException {
+		if(sortList == null || sortList.isEmpty()) {
+			return currentOrderBy;
+		}
 		Map<String, SortSpecification> originalSortSpecifications;
-		OrderByClause orderByClause = currentTableExpression.getOrderByClause();
-		if (orderByClause == null) {
+		if (currentOrderBy == null) {
 			originalSortSpecifications = Collections.emptyMap();
 		} else {
 			// need to preserve order, so use linked hash map
 			originalSortSpecifications = Maps.newLinkedHashMap();
-			for (SortSpecification spec : orderByClause.getSortSpecificationList().getSortSpecifications()) {
+			for (SortSpecification spec : currentOrderBy.getSortSpecificationList().getSortSpecifications()) {
 				String columnName = spec.getSortKey().toSql();
 				originalSortSpecifications.put(columnName, spec);
 			}
@@ -512,13 +517,7 @@ public class SqlElementUtils {
 			sortSpecifications.add(new SortSpecification(createSortKey(sortItem.getColumn()), direction));
 		}
 		sortSpecifications.addAll(originalSortSpecifications.values());
-		orderByClause = new OrderByClause(new SortSpecificationList(sortSpecifications));
-
-		// add pagination
-		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(),
-				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(), orderByClause,
-				currentTableExpression.getPagination());
-		return new QuerySpecification(model.getSetQuantifier(), model.getSelectList(), tableExpression);
+		return new OrderByClause(new SortSpecificationList(sortSpecifications));
 	}
 
 	/**
