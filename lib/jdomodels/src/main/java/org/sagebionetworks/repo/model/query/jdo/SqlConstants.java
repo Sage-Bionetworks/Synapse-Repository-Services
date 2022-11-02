@@ -50,7 +50,7 @@ public class SqlConstants {
 	public static final String COL_REVISION_DEFINING_SQL	= "DEFINING_SQL";
 	public static final String DDL_FILE_REVISION			="schema/Revision-ddl.sql";
 	
-	public static final String TABLE_STACK_STATUS		= "JDOSTACKSTATUS";
+	public static final String TABLE_STACK_STATUS		= "STACK_STATUS";
 	
 	
 	// The User Profile table
