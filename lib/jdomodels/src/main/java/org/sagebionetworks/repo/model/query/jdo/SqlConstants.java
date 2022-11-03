@@ -13,7 +13,7 @@ public class SqlConstants {
 	
 	public static final String COL_ID					= "ID";
 	// Node table constants
-	public static final String TABLE_NODE 				= "JDONODE";
+	public static final String TABLE_NODE 				= "NODE";
 	public static final String COL_NODE_ID				= "ID";
 	public static final String COL_NODE_PARENT_ID		= "PARENT_ID";
 	public static final String COL_NODE_NAME			= "NAME";
@@ -30,7 +30,7 @@ public class SqlConstants {
 	public static final String DDL_FILE_NODE			="schema/Node-ddl.sql";
 	
 	// The Revision table
-	public static final String TABLE_REVISION 				= "JDOREVISION";
+	public static final String TABLE_REVISION 				= "NODE_REVISION";
 	public static final String COL_REVISION_OWNER_NODE		= "OWNER_NODE_ID";
 	public static final String COL_REVISION_NUMBER			= "NUMBER";
 	public static final String COL_REVISION_ACTIVITY_ID		= "ACTIVITY_ID";

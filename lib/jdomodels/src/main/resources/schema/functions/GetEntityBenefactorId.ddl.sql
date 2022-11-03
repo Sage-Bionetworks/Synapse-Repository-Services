@@ -18,7 +18,7 @@ BEGIN
     	IF benefactorId IS NOT NULL THEN RETURN benefactorId;
     	END IF;
     	/*This entity does not have a benefactor so check its parent */
-    	SELECT PARENT_ID INTO parentId FROM JDONODE WHERE ID = entityId;
+    	SELECT PARENT_ID INTO parentId FROM NODE WHERE ID = entityId;
     	/*If the parentID is null then a benefactor could not be found.*/
     	IF parentId IS NULL THEN RETURN NULL;
     	END IF;

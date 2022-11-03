@@ -14,7 +14,7 @@ BEGIN
     	SET parentId = NULL;
     	SET nodeType = NULL;
     	/* Is this entity a project?*/
-    	SELECT PARENT_ID, NODE_TYPE INTO parentId, nodeType FROM JDONODE WHERE ID = entityId;
+    	SELECT PARENT_ID, NODE_TYPE INTO parentId, nodeType FROM NODE WHERE ID = entityId;
     	/* If type is null then this entity does not exist so return null */
     	IF nodeType IS NULL THEN RETURN NULL;
     	/* If the node type is project then this entity is its own project*/
