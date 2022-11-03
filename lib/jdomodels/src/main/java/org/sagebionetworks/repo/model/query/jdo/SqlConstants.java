@@ -446,7 +446,7 @@ public class SqlConstants {
 	public static final String DDL_FILE_ACL               = "schema/ACL-ddl.sql";
 	
 	// The resource access table
-	public static final String TABLE_RESOURCE_ACCESS			= "JDORESOURCEACCESS";
+	public static final String TABLE_RESOURCE_ACCESS			= "ACL_RESOURCE_ACCESS";
 	public static final String COL_RESOURCE_ACCESS_OWNER		= "OWNER_ID";
 	public static final String COL_RESOURCE_ACCESS_GROUP_ID		= "GROUP_ID";
 	public static final String COL_RESOURCE_ACCESS_ID			= "ID";
@@ -455,7 +455,7 @@ public class SqlConstants {
 	// The resource access join table
 	// datanucleus doesn't seem to be respecting the join table name when creating the schema
 	// so I've modified the string to match the generated name
-	public static final String TABLE_RESOURCE_ACCESS_TYPE			= "JDORESOURCEACCESS_ACCESSTYPE"; 
+	public static final String TABLE_RESOURCE_ACCESS_TYPE			= "ACL_RESOURCE_ACCESS_TYPE"; 
 	public static final String COL_RESOURCE_ACCESS_TYPE_OWNER		= "OWNER_ID";
 	public static final String COL_RESOURCE_ACCESS_TYPE_ID			= "ID_OID";
 	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT		= "STRING_ELE";
