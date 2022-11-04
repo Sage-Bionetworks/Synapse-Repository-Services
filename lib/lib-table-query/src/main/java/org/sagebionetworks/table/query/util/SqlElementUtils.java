@@ -458,26 +458,6 @@ public class SqlElementUtils {
 		return new TableQueryParser(sql).sortSpecificationList();
 	}
 	
-	/**
-	 * Convert the passed query into a count query.
-	 * 
-	 * @param model
-	 * @return
-	 * @throws ParseException
-	 */
-	public static QuerySpecification convertToPaginatedQuery(QuerySpecification model, Long offset, Long limit)  {
-		if (model == null)
-			throw new IllegalArgumentException("QuerySpecification cannot be null");
-		TableExpression currentTableExpression = model.getTableExpression();
-		if (currentTableExpression == null)
-			throw new IllegalArgumentException("TableExpression cannot be null");
-		// add pagination
-		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(),
-				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(),
-				currentTableExpression.getOrderByClause(), new Pagination(limit, offset));
-		return new QuerySpecification(model.getSetQuantifier(), model.getSelectList(), tableExpression);
-	}
-
 	public static TableExpression removeOrderByClause(TableExpression tableExpression) {
 		return new TableExpression(tableExpression.getFromClause(), tableExpression.getWhereClause(), tableExpression.getGroupByClause(),
 				null, tableExpression.getPagination());
@@ -528,11 +508,10 @@ public class SqlElementUtils {
 	 * @param limit
 	 * @return
 	 */
-	public static QuerySpecification overridePagination(
-			QuerySpecification model, Long offset, Long limit, Long maxRowsPerPage) {
+	public static Pagination overridePagination(Pagination pagination, Long offset, Long limit, Long maxRowsPerPage) {
 		if(offset == null && limit == null && maxRowsPerPage == null){
 			// there is nothing to do.
-			return model;
+			return pagination;
 		}
 		long limitFromRequest = (limit != null) ? limit : Long.MAX_VALUE;
 		long offsetFromRequest = (offset != null) ? offset : 0L;
@@ -540,7 +519,6 @@ public class SqlElementUtils {
 		long limitFromQuery = Long.MAX_VALUE;
 		long offsetFromQuery = 0L;
 		
-		Pagination pagination = model.getTableExpression().getPagination();
 		if (pagination != null) {
 			if (pagination.getLimitLong() != null) {
 				limitFromQuery = pagination.getLimitLong();
@@ -562,7 +540,7 @@ public class SqlElementUtils {
 				paginatedLimit = maxRowsPerPage;
 			}
 		}
-		return convertToPaginatedQuery(model, paginatedOffset, paginatedLimit);
+		return new Pagination(paginatedLimit, paginatedOffset);
 	}
 	
 	/**

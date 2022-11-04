@@ -22,6 +22,7 @@ import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,10 +43,10 @@ public class SqlQuery {
 	 */
 	private QueryExpression model;
 
-	/**
-	 * The model transformed to execute against the actual table.
-	 */
-	private final QuerySpecification transformedModel;
+//	/**
+//	 * The model transformed to execute against the actual table.
+//	 */
+//	private final QuerySpecification transformedModel;
 	
 	private final SchemaProvider schemaProvider;
 
@@ -57,7 +58,7 @@ public class SqlQuery {
 	/**
 	 * The map of column names to column models.
 	 */
-	private final LinkedHashMap<String, ColumnModel> columnNameToModelMap;
+//	private final LinkedHashMap<String, ColumnModel> columnNameToModelMap;
 
 	/**
 	 * The translated SQL.
@@ -108,7 +109,7 @@ public class SqlQuery {
 	
 	private final boolean isIncludeSearch;
 	
-	private final TableAndColumnMapper tableAndColumnMapper;
+//	private final TableAndColumnMapper tableAndColumnMapper;
 	private final List<ColumnModel> schemaOfSelect;
 	
 	private final IndexDescription indexDescription;
@@ -149,10 +150,7 @@ public class SqlQuery {
 		}else {
 			this.sqlContext = sqlContextIn;
 		}
-		this.tableAndColumnMapper = new TableAndColumnMapper(model, schemaProvider);
-		if(this.tableAndColumnMapper.getTableIds().size() > 1 && !SqlContext.build.equals(this.sqlContext)) {
-			throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
-		}
+		this.model.setSqlContext(this.sqlContext);
 		this.maxBytesPerPage = maxBytesPerPage;
 		this.selectedFacets = selectedFacets;
 		this.overrideLimit = overrideLimit;
@@ -166,39 +164,31 @@ public class SqlQuery {
 		}else{
 			this.includeEntityEtag = false;
 		}
-
-		QuerySpecification lastQuerySpecification = model.getLastElementOfType(QuerySpecification.class);
+		QuerySpecification firstQuerySpecification = null;
+		QuerySpecification lastQuerySpecification = null;
+		List<QuerySpecificationDetails> specDetails = new ArrayList<>();
+		for(QuerySpecification qs:  model.createIterable(QuerySpecification.class)) {
+			specDetails.add(new QuerySpecificationDetails(qs, schemaProvider, sqlContextIn));
+			if(firstQuerySpecification == null) {
+				firstQuerySpecification = qs;
+			}
+			lastQuerySpecification = qs;
+		}
+		
 		lastQuerySpecification.getTableExpression().replaceOrderBy(SqlElementUtils
 				.convertToSortedQuery(lastQuerySpecification.getTableExpression().getOrderByClause(), sortList));
 
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();
 
-		List<ColumnModel> unionOfSchemas = tableAndColumnMapper.getUnionOfAllTableSchemas();
-		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(unionOfSchemas);
-		
-		for(SelectList list:  model.createIterable(SelectList.class)) {
-			if(BooleanUtils.isTrue(list.getAsterisk())){
-				SelectList expandedSelectList = tableAndColumnMapper.buildSelectAllColumns();
-				this.model.getSelectList().replaceElement(expandedSelectList);
-			}
-		}
-
-		// SELECT * is replaced with a select including each column in the schema.
-		if (BooleanUtils.isTrue(this.model.getSelectList().getAsterisk())) {
-
-		}
-
-		this.schemaOfSelect = SQLTranslatorUtils.getSchemaOfSelect(
-				this.model.getFirstElementOfType(QuerySpecification.class).getSelectList(), tableAndColumnMapper);
 
 		//Append additionalFilters onto the WHERE clause
 		if(additionalFilters != null && !additionalFilters.isEmpty()) {
 			String additionalFilterSearchCondition = SQLTranslatorUtils.translateQueryFilters(additionalFilters);
 			StringBuilder whereClauseBuilder = new StringBuilder();
-			SqlElementUtils.appendCombinedWhereClauseToStringBuilder(whereClauseBuilder,additionalFilterSearchCondition, this.model.getTableExpression().getWhereClause());
+			SqlElementUtils.appendCombinedWhereClauseToStringBuilder(whereClauseBuilder,additionalFilterSearchCondition, lastQuerySpecification.getTableExpression().getWhereClause());
 			try {
-				this.model.getTableExpression().replaceWhere(new TableQueryParser(whereClauseBuilder.toString()).whereClause());
+				lastQuerySpecification.getTableExpression().replaceWhere(new TableQueryParser(whereClauseBuilder.toString()).whereClause());
 			} catch (ParseException e) {
 				throw new IllegalArgumentException(e);
 			}
@@ -208,31 +198,32 @@ public class SqlQuery {
 		this.isAggregatedResult = model.hasAnyAggregateElements();
 		this.includesRowIdAndVersion = !this.isAggregatedResult;
 		// Build headers that describe how the client should read the results of this query.
-		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), tableAndColumnMapper, this.isAggregatedResult);
+		this.selectColumns = SQLTranslatorUtils.getSelectColumns(firstQuerySpecification.getSelectList(), tableAndColumnMapper, this.isAggregatedResult);
 		// Maximum row size is a function of both the select clause and schema.
 		this.maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(selectColumns, columnNameToModelMap);
 		if(maxBytesPerPage != null){
 			this.maxRowsPerPage =  Math.max(1, maxBytesPerPage / this.maxRowSizeBytes);
 		}
 		// Does the query contain any text_matches elements?
-		this.isIncludeSearch = model.isIncludeSearch();
+		this.isIncludeSearch = lastQuerySpecification.isIncludeSearch();
 		// paginated model includes all overrides and max rows per page.
-		QuerySpecification paginatedModel = SqlElementUtils.overridePagination(model, overrideOffset, overrideLimit, maxRowsPerPage);
+		lastQuerySpecification.getTableExpression().replacePagination(
+				SqlElementUtils.overridePagination(lastQuerySpecification.getTableExpression().getPagination(),
+						overrideOffset, overrideLimit, maxRowsPerPage));
 
-		// Create a copy of the paginated model.
-		try {
-			transformedModel = new TableQueryParser(paginatedModel.toSql()).querySpecification();
-			transformedModel.setSqlContext(this.sqlContext);
-		} catch (ParseException e) {
-			throw new IllegalArgumentException(e);
+		for(QuerySpecification qs:  model.createIterable(QuerySpecification.class)) {
+			SQLTranslatorUtils.addMetadataColumnsToSelect(qs.getSelectList(),
+					indexDescription.getColumnNamesToAddToSelect(sqlContext, this.includeEntityEtag, qs.hasAnyAggregateElements()));
 		}
-		SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(),
-				indexDescription.getColumnNamesToAddToSelect(sqlContext, this.includeEntityEtag, this.isAggregatedResult));
 
-		this.combinedSQL = transformedModel.toSql();
 
-		SQLTranslatorUtils.translateModel(transformedModel, parameters, userId, tableAndColumnMapper);
-		this.outputSQL = transformedModel.toSql();		
+		this.combinedSQL = model.toSql();
+		
+		for(QuerySpecification qs:  model.createIterable(QuerySpecification.class)) {
+			SQLTranslatorUtils.translateModel(qs, parameters, userId, new TableAndColumnMapper(qs, schemaProvider));
+		}
+
+		this.outputSQL = model.toSql();		
 	}
 	
 	/**
@@ -268,15 +259,6 @@ public class SqlQuery {
 	 */
 	public Map<String, Object> getParameters() {
 		return parameters;
-	}
-
-
-	/**
-	 * The column name to column ID mapping.
-	 * @return
-	 */
-	public Map<String, ColumnModel> getColumnNameToModelMap() {
-		return columnNameToModelMap;
 	}
 
 

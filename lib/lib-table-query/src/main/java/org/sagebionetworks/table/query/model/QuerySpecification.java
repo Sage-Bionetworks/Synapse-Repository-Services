@@ -5,20 +5,17 @@ import java.util.Optional;
 /**
  * This matches &ltquery specification&gt in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
-public class QuerySpecification extends SQLElement implements HasAggregate, HasSingleTableName, HasReplaceableChildren<SelectList>, HasSqlContext {
+public class QuerySpecification extends SQLElement implements HasAggregate, HasSingleTableName, HasReplaceableChildren<SelectList> {
 
 	SetQuantifier setQuantifier;
 	SelectList selectList;
 	TableExpression tableExpression;
-	SqlContext sqlContext;
 
 
 	public QuerySpecification(SetQuantifier setQuantifier, SelectList selectList, TableExpression tableExpression) {
 		this.setQuantifier = setQuantifier;
 		this.selectList = selectList;
 		this.tableExpression = tableExpression;
-		// defaults to query for most cases.
-		this.sqlContext = SqlContext.query;
 		this.recursiveSetParent();
 	}
 
@@ -82,12 +79,4 @@ public class QuerySpecification extends SQLElement implements HasAggregate, HasS
 		this.selectList = replacement;
 	}
 
-	@Override
-	public SqlContext getSqlContext() {
-		return sqlContext;
-	}
-	
-	public void setSqlContext(SqlContext context) {
-		this.sqlContext = context;
-	}
 }
