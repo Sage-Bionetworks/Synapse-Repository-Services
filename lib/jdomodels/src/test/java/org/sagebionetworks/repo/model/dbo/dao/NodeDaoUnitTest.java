@@ -287,7 +287,7 @@ public class NodeDaoUnitTest {
 	
 		assertTrue(result);
 		
-		verify(mockJdbcTemplate).update("UPDATE JDOREVISION SET FILE_HANDLE_ID = ? WHERE OWNER_NODE_ID = ? AND NUMBER = ?", Long.valueOf(newFileHandleId), KeyFactory.stringToKey(nodeId), versionNumber);
+		verify(mockJdbcTemplate).update("UPDATE NODE_REVISION SET FILE_HANDLE_ID = ? WHERE OWNER_NODE_ID = ? AND NUMBER = ?", Long.valueOf(newFileHandleId), KeyFactory.stringToKey(nodeId), versionNumber);
 	}
 	
 	@Test

@@ -4014,7 +4014,7 @@ public class NodeDAOImplTest {
 
 	@Test
 	public void testLoopupChildFound(){
-		String entityName = "; drop table JDONODE;";
+		String entityName = "; drop table NODE;";
 		// Create a project
 		Node project = NodeTestUtils.createNew("project", creatorUserGroupId);
 		project.setNodeType(EntityType.project);
@@ -4354,7 +4354,7 @@ public class NodeDAOImplTest {
 		// Write the annotation to database
 		nodeDao.updateUserAnnotations(id, annos);
 
-		//check no BLOB no data has been stored in the actual JDOREVISIONS table
+		//check no BLOB no data has been stored in the actual NODE_REVISION table
 		MapSqlParameterSource parameterSource = new MapSqlParameterSource();
 		parameterSource.addValue("owner", KeyFactory.stringToKey(id));
 		parameterSource.addValue("revisionNumber", nodeDao.getCurrentRevisionNumber(id));

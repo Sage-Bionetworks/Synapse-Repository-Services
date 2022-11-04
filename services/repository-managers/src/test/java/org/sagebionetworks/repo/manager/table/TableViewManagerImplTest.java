@@ -69,8 +69,8 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshot;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -138,7 +138,7 @@ public class TableViewManagerImplTest {
 	@Mock
 	private StackConfiguration mockConfig;
 	@Mock
-	private ViewSnapshotDao mockViewSnapshotDao;
+	private TableSnapshotDao mockViewSnapshotDao;
 	@Mock
 	private MetadataIndexProviderFactory mockMetadataIndexProviderFactory;
 	@Mock
@@ -162,7 +162,7 @@ public class TableViewManagerImplTest {
 	@Captor
 	private ArgumentCaptor<PutObjectRequest> putRequestCaptor;
 	@Captor
-	private ArgumentCaptor<ViewSnapshot> snapshotCaptor;
+	private ArgumentCaptor<TableSnapshot> snapshotCaptor;
 	@Captor
 	private ArgumentCaptor<Annotations> annotationsCaptor;
 	
@@ -831,7 +831,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testPopulateViewFromSnapshot() throws IOException {
 		long snapshotId = 998L;
-		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
+		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
 		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		setupReader("foo,bar");
@@ -849,7 +849,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testPopulateViewFromSnapshotError() throws IOException {
 		long snapshotId = 998L;
-		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
+		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
 		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		AmazonServiceException error = new AmazonServiceException("not correct");
@@ -869,7 +869,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testPopulateViewFromSnapshotFileCreateError() throws IOException {
 		long snapshotId = 998L;
-		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
+		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
 		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
 		IOException error = new IOException("some IO error");
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenThrow(error);
@@ -972,7 +972,7 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
 		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 		long snapshotId = 998L;
-		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
+		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
 		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
@@ -1324,16 +1324,16 @@ public class TableViewManagerImplTest {
 		
 		verify(mockColumnModelManager).bindColumnsToVersionOfObject(schema, expectedIdAndVersion);
 		
-		ViewSnapshot expectedSnapshot = new ViewSnapshot()
+		TableSnapshot expectedSnapshot = new TableSnapshot()
 			.withBucket(bucket)
 			.withKey(key)
 			.withCreatedBy(userInfo.getId())
-			.withViewId(idAndVersion.getId())
+			.withTableId(idAndVersion.getId())
 			.withVersion(snapshotVersion);
 		
 		verify(mockViewSnapshotDao).createSnapshot(snapshotCaptor.capture());
 		
-		ViewSnapshot snapshot = snapshotCaptor.getValue();
+		TableSnapshot snapshot = snapshotCaptor.getValue();
 		expectedSnapshot.withCreatedOn(snapshot.getCreatedOn());
 		
 		assertEquals(expectedSnapshot, snapshot);

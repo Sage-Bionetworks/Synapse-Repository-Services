@@ -31,8 +31,8 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshot;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -111,7 +111,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	@Autowired
 	private StackConfiguration config;
 	@Autowired
-	private ViewSnapshotDao viewSnapshotDao;
+	private TableSnapshotDao viewSnapshotDao;
 	@Autowired
 	private MetadataIndexProviderFactory metadataIndexProviderFactory;
 	@Autowired
@@ -576,7 +576,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @param indexManager
 	 */
 	long populateViewFromSnapshot(IdAndVersion idAndVersion, TableIndexManager indexManager) {
-		ViewSnapshot snapshot = viewSnapshotDao.getSnapshot(idAndVersion);
+		TableSnapshot snapshot = viewSnapshotDao.getSnapshot(idAndVersion);
 		File tempFile = null;
 		try {
 			tempFile = fileProvider.createTempFile("ViewSnapshotDownload", ".csv.gzip");
@@ -691,12 +691,12 @@ public class TableViewManagerImpl implements TableViewManager {
 			columModelManager.bindColumnsToVersionOfObject(schemaColumnIds, resultingIdAndVersion);
 			
 			// save the snapshot metadata
-			viewSnapshotDao.createSnapshot(new ViewSnapshot()
+			viewSnapshotDao.createSnapshot(new TableSnapshot()
 				.withBucket(bucket)
 				.withKey(key)
 				.withCreatedBy(userInfo.getId())
 				.withCreatedOn(new Date())
-				.withViewId(idAndVersion.getId())
+				.withTableId(idAndVersion.getId())
 				.withVersion(snapshotVersion)
 			);
 			

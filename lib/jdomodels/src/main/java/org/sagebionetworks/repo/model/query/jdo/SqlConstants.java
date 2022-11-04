@@ -13,7 +13,7 @@ public class SqlConstants {
 	
 	public static final String COL_ID					= "ID";
 	// Node table constants
-	public static final String TABLE_NODE 				= "JDONODE";
+	public static final String TABLE_NODE 				= "NODE";
 	public static final String COL_NODE_ID				= "ID";
 	public static final String COL_NODE_PARENT_ID		= "PARENT_ID";
 	public static final String COL_NODE_NAME			= "NAME";
@@ -30,7 +30,7 @@ public class SqlConstants {
 	public static final String DDL_FILE_NODE			="schema/Node-ddl.sql";
 	
 	// The Revision table
-	public static final String TABLE_REVISION 				= "JDOREVISION";
+	public static final String TABLE_REVISION 				= "NODE_REVISION";
 	public static final String COL_REVISION_OWNER_NODE		= "OWNER_NODE_ID";
 	public static final String COL_REVISION_NUMBER			= "NUMBER";
 	public static final String COL_REVISION_ACTIVITY_ID		= "ACTIVITY_ID";
@@ -50,11 +50,11 @@ public class SqlConstants {
 	public static final String COL_REVISION_DEFINING_SQL	= "DEFINING_SQL";
 	public static final String DDL_FILE_REVISION			="schema/Revision-ddl.sql";
 	
-	public static final String TABLE_STACK_STATUS		= "JDOSTACKSTATUS";
+	public static final String TABLE_STACK_STATUS		= "STACK_STATUS";
 	
 	
 	// The User Profile table
-	public static final String TABLE_USER_PROFILE				= "JDOUSERPROFILE";
+	public static final String TABLE_USER_PROFILE				= "USER_PROFILE";
 	public static final String COL_USER_PROFILE_ID				= "OWNER_ID";
 	public static final String COL_USER_PROFILE_ETAG			= "ETAG";
 	public static final String COL_USER_PROFILE_PROPS_BLOB		= "PROPERTIES";
@@ -408,9 +408,7 @@ public class SqlConstants {
 	
 	public static final String TABLE_ANNOTATION_TYPE		= "ANNOTATION_TYPE";
 
-	public static final String TABLE_USER					= "JDOUSER";
-	public static final String TABLE_USER_GROUP				= "JDOUSERGROUP";
-	public static final String TABLE_USER_GROUP_USERS		= "JDOUSERGROUPUSERS";
+	public static final String TABLE_USER_GROUP				= "USER_GROUP";
 	public static final String COL_USER_GROUP_ID			= "ID";
 	public static final String COL_USER_GROUP_IS_INDIVIDUAL = "ISINDIVIDUAL";
 	public static final String COL_USER_GROUP_E_TAG         = "ETAG";
@@ -448,7 +446,7 @@ public class SqlConstants {
 	public static final String DDL_FILE_ACL               = "schema/ACL-ddl.sql";
 	
 	// The resource access table
-	public static final String TABLE_RESOURCE_ACCESS			= "JDORESOURCEACCESS";
+	public static final String TABLE_RESOURCE_ACCESS			= "ACL_RESOURCE_ACCESS";
 	public static final String COL_RESOURCE_ACCESS_OWNER		= "OWNER_ID";
 	public static final String COL_RESOURCE_ACCESS_GROUP_ID		= "GROUP_ID";
 	public static final String COL_RESOURCE_ACCESS_ID			= "ID";
@@ -457,7 +455,7 @@ public class SqlConstants {
 	// The resource access join table
 	// datanucleus doesn't seem to be respecting the join table name when creating the schema
 	// so I've modified the string to match the generated name
-	public static final String TABLE_RESOURCE_ACCESS_TYPE			= "JDORESOURCEACCESS_ACCESSTYPE"; 
+	public static final String TABLE_RESOURCE_ACCESS_TYPE			= "ACL_RESOURCE_ACCESS_TYPE"; 
 	public static final String COL_RESOURCE_ACCESS_TYPE_OWNER		= "OWNER_ID";
 	public static final String COL_RESOURCE_ACCESS_TYPE_ID			= "ID_OID";
 	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT		= "STRING_ELE";
@@ -579,15 +577,15 @@ public class SqlConstants {
 	public static final String DDL_VIEW_SCOPE = "schema/ViewScope-ddl.sql";
 	
 	// Metadata about view snapshots.
-	public static final String TABLE_VIEW_SNAPSHOT 			= "VIEW_SNAPSHOT";
-	public static final String COL_VIEW_SNAPSHOT_ID			= "SNAPSHOT_ID";
-	public static final String COL_VIEW_SNAPSHOT_VIEW_ID	= "VIEW_ID";
-	public static final String COL_VIEW_SNAPSHOT_VERSION	= "VERSION";
-	public static final String COL_VIEW_SNAPSHOT_CREATED_BY	= "CREATED_BY";
-	public static final String COL_VIEW_SNAPSHOT_CREATED_ON = "CREATED_ON";
-	public static final String COL_VIEW_SNAPSHOT_BUCKET		= "BUCKET_NAME";
-	public static final String COL_VIEW_SNAPSHOT_KEY		= "KEY";
-	public static final String DDL_VIEW_SNAPSHOT = "schema/ViewSnapshot-ddl.sql";
+	public static final String TABLE_TABLE_SNAPSHOT 			= "TABLE_SNAPSHOT";
+	public static final String COL_TABLE_SNAPSHOT_ID			= "SNAPSHOT_ID";
+	public static final String COL_TABLE_SNAPSHOT_TABLE_ID		= "TABLE_ID";
+	public static final String COL_TABLE_SNAPSHOT_VERSION		= "VERSION";
+	public static final String COL_TABLE_SNAPSHOT_CREATED_BY	= "CREATED_BY";
+	public static final String COL_TABLE_SNAPSHOT_CREATED_ON	= "CREATED_ON";
+	public static final String COL_TABLE_SNAPSHOT_BUCKET		= "BUCKET_NAME";
+	public static final String COL_TABLE_SNAPSHOT_KEY			= "KEY";
+	public static final String DDL_TABLE_SNAPSHOT 				= "schema/TableSnapshot-ddl.sql";
 		
 	public static final String TABLE_BOUND_COLUMN_OWNER		= "BOUND_COLUMN_OWNER";
 	public static final String COL_BOUND_OWNER_OBJECT_ID	= "OBJECT_ID";

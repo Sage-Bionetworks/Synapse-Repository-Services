@@ -6,10 +6,10 @@ import java.util.Date;
  * Data transfer object for a view snapshot.
  *
  */
-public class ViewSnapshot {
+public class TableSnapshot {
 
 	Long snapshotId;
-	Long viewId;
+	Long tableId;
 	Long version;
 	String bucket;
 	String key;
@@ -19,49 +19,49 @@ public class ViewSnapshot {
 	public Long getSnapshotId() {
 		return snapshotId;
 	}
-	public ViewSnapshot withSnapshotId(Long snapshotId) {
+	public TableSnapshot withSnapshotId(Long snapshotId) {
 		this.snapshotId = snapshotId;
 		return this;
 	}
-	public Long getViewId() {
-		return viewId;
+	public Long getTableId() {
+		return tableId;
 	}
-	public ViewSnapshot withViewId(Long viewId) {
-		this.viewId = viewId;
+	public TableSnapshot withTableId(Long tableId) {
+		this.tableId = tableId;
 		return this;
 	}
 	public Long getVersion() {
 		return version;
 	}
-	public ViewSnapshot withVersion(Long version) {
+	public TableSnapshot withVersion(Long version) {
 		this.version = version;
 		return this;
 	}
 	public String getBucket() {
 		return bucket;
 	}
-	public ViewSnapshot withBucket(String bucket) {
+	public TableSnapshot withBucket(String bucket) {
 		this.bucket = bucket;
 		return this;
 	}
 	public String getKey() {
 		return key;
 	}
-	public ViewSnapshot withKey(String key) {
+	public TableSnapshot withKey(String key) {
 		this.key = key;
 		return this;
 	}
 	public Long getCreatedBy() {
 		return createdBy;
 	}
-	public ViewSnapshot withCreatedBy(Long createdBy) {
+	public TableSnapshot withCreatedBy(Long createdBy) {
 		this.createdBy = createdBy;
 		return this;
 	}
 	public Date getCreatedOn() {
 		return createdOn;
 	}
-	public ViewSnapshot withCreatedOn(Date createdOn) {
+	public TableSnapshot withCreatedOn(Date createdOn) {
 		this.createdOn = createdOn;
 		return this;
 	}
@@ -75,7 +75,7 @@ public class ViewSnapshot {
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
 		result = prime * result + ((snapshotId == null) ? 0 : snapshotId.hashCode());
 		result = prime * result + ((version == null) ? 0 : version.hashCode());
-		result = prime * result + ((viewId == null) ? 0 : viewId.hashCode());
+		result = prime * result + ((tableId == null) ? 0 : tableId.hashCode());
 		return result;
 	}
 	@Override
@@ -86,7 +86,7 @@ public class ViewSnapshot {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ViewSnapshot other = (ViewSnapshot) obj;
+		TableSnapshot other = (TableSnapshot) obj;
 		if (bucket == null) {
 			if (other.bucket != null)
 				return false;
@@ -117,16 +117,16 @@ public class ViewSnapshot {
 				return false;
 		} else if (!version.equals(other.version))
 			return false;
-		if (viewId == null) {
-			if (other.viewId != null)
+		if (tableId == null) {
+			if (other.tableId != null)
 				return false;
-		} else if (!viewId.equals(other.viewId))
+		} else if (!tableId.equals(other.tableId))
 			return false;
 		return true;
 	}
 	@Override
 	public String toString() {
-		return "ViewSnapshot [snapshotId=" + snapshotId + ", viewId=" + viewId + ", version=" + version + ", bucket="
+		return "TableSnapshot [snapshotId=" + snapshotId + ", tableId=" + tableId + ", version=" + version + ", bucket="
 				+ bucket + ", key=" + key + ", createdBy=" + createdBy + ", createdOn=" + createdOn + "]";
 	}
 
