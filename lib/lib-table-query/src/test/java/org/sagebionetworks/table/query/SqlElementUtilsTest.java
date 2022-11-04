@@ -6,25 +6,25 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.google.common.collect.Lists;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.DerivedColumn;
-import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
+import org.sagebionetworks.table.query.model.OrderByClause;
+import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SortKey;
-import org.sagebionetworks.table.query.model.TableExpression;
-import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.UnsignedValueSpecification;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
+
+import com.google.common.collect.Lists;
 
 public class SqlElementUtilsTest {
 
@@ -39,25 +39,10 @@ public class SqlElementUtilsTest {
 		stringBuilder = new StringBuilder();
 	}
 	
-	@Test
-	public void testConvertToPaginated() throws ParseException {
-		QuerySpecification model = TableQueryParser.parserQuery("select foo, bar from syn123 where foo = 1 order by bar");
-		QuerySpecification converted = SqlElementUtils.convertToPaginatedQuery(model, 234L, 567L);
-		assertNotNull(converted);
-		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY bar LIMIT 567 OFFSET 234", converted.toString());
-	}
-
-	@Test
-	public void testReplacePaginated() throws ParseException {
-		QuerySpecification model = TableQueryParser.parserQuery("select foo, bar from syn123 where foo = 1 order by bar limit 1 offset 2");
-		QuerySpecification converted = SqlElementUtils.convertToPaginatedQuery(model, 234L, 567L);
-		assertNotNull(converted);
-		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY bar LIMIT 567 OFFSET 234", converted.toString());
-	}
 
 	@Test
 	public void testConvertToSorted() throws ParseException {
-		QuerySpecification model = TableQueryParser.parserQuery("select foo, bar from syn123 where foo = 1 order by bar limit 1");
+		OrderByClause model = new TableQueryParser("order by bar").orderByClause();
 		SortItem sort1 = new SortItem();
 		sort1.setColumn("foo");
 		SortItem sort2 = new SortItem();
@@ -66,15 +51,14 @@ public class SqlElementUtilsTest {
 		SortItem sort3 = new SortItem();
 		sort3.setColumn("zaa");
 		sort3.setDirection(SortDirection.DESC);
-		QuerySpecification converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2, sort3));
+		OrderByClause converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2, sort3));
 		assertNotNull(converted);
-		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY \"foo\" ASC, \"zoo\" ASC, \"zaa\" DESC, bar LIMIT 1", converted.toString());
+		assertEquals("ORDER BY \"foo\" ASC, \"zoo\" ASC, \"zaa\" DESC, bar", converted.toString());
 	}
 
 	@Test
 	public void testConvertToSortedEscaped() throws ParseException {
-		QuerySpecification model = TableQueryParser
-				.parserQuery("select \"foo-bar\", bar from syn123 where \"foo-bar\" = 1 order by bar limit 1");
+		OrderByClause model = new TableQueryParser("order by bar").orderByClause();
 		SortItem sort1 = new SortItem();
 		sort1.setColumn("foo-bar");
 		SortItem sort2 = new SortItem();
@@ -83,168 +67,163 @@ public class SqlElementUtilsTest {
 		SortItem sort3 = new SortItem();
 		sort3.setColumn("zaa");
 		sort3.setDirection(SortDirection.DESC);
-		QuerySpecification converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2, sort3));
+		OrderByClause converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2, sort3));
 		assertNotNull(converted);
-		assertEquals("SELECT \"foo-bar\", bar FROM syn123 WHERE \"foo-bar\" = 1 ORDER BY \"foo-bar\" ASC, \"zoo\" ASC, \"zaa\" DESC, bar LIMIT 1",
-				converted.toString());
+		assertEquals("ORDER BY \"foo-bar\" ASC, \"zoo\" ASC, \"zaa\" DESC, bar", converted.toString());
 	}
 	
 	@Test
 	public void testConvertToSortedPLFM_4118() throws ParseException {
-		QuerySpecification model = TableQueryParser
-				.parserQuery("select * from syn123");
+		OrderByClause model = null;
 		SortItem sort1 = new SortItem();
 		sort1.setColumn("First Name");
-		QuerySpecification converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1));
+		OrderByClause converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1));
 		assertNotNull(converted);
-		assertEquals("SELECT * FROM syn123 ORDER BY \"First Name\" ASC",
-				converted.toString());
+		assertEquals("ORDER BY \"First Name\" ASC", converted.toString());
 	}
 
 	@Test
 	public void testReplaceSorted() throws ParseException {
-		QuerySpecification model = TableQueryParser.parserQuery("select foo, bar from syn123 where foo = 1 order by bar limit 1");
+		OrderByClause model = new TableQueryParser("order by bar").orderByClause();
 		SortItem sort1 = new SortItem();
 		sort1.setColumn("bar");
 		sort1.setDirection(SortDirection.DESC);
 		SortItem sort2 = new SortItem();
 		sort2.setColumn("foo");
-		QuerySpecification converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2));
+		OrderByClause converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2));
 		assertNotNull(converted);
-		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY \"bar\" DESC, \"foo\" ASC LIMIT 1", converted.toString());
+		assertEquals("ORDER BY \"bar\" DESC, \"foo\" ASC", converted.toString());
 	}
 
 
 	@Test
 	public void testConvertToSortedQuerySortWithDoubleQuote() throws ParseException {
-		QuerySpecification model = TableQueryParser
-				.parserQuery("select * from syn123");
+		OrderByClause model = null;
 		SortItem sort1 = new SortItem();
 		sort1.setColumn("has\"Quote");
-		QuerySpecification converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1));
+		OrderByClause converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1));
 		assertNotNull(converted);
-		assertEquals("SELECT * FROM syn123 ORDER BY \"has\"\"Quote\" ASC",
-				converted.toString());
+		assertEquals("ORDER BY \"has\"\"Quote\" ASC", converted.toString());
 	}
 	
 	@Test
 	public void testOverridePaginationQueryWithoutPagingOverridesNull() throws ParseException{
-		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123");
+		Pagination model = null;
 		Long limit = null;
 		Long offset = null;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
-		assertEquals("SELECT * FROM syn123 LIMIT 1000 OFFSET 0", converted.toString());
+		Pagination converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("LIMIT 1000 OFFSET 0", converted.toString());
 	}
 	
 	@Test
 	public void testOverridePaginationQueryWithoutPagingOverrideLimitNull() throws ParseException{
-		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123");
+		Pagination model = null;
 		Long limit = null;
 		Long offset = 12L;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
-		assertEquals("SELECT * FROM syn123 LIMIT 1000 OFFSET 12", converted.toString());
+		Pagination converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("LIMIT 1000 OFFSET 12", converted.toString());
 	}
 	
 	@Test
 	public void testOverridePaginationQueryWithoutPagingOverrideOffsetNull() throws ParseException{
-		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123");
+		Pagination model = null;
 		Long limit = 15L;
 		Long offset = null;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
-		assertEquals("SELECT * FROM syn123 LIMIT 15 OFFSET 0", converted.toString());
+		Pagination converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("LIMIT 15 OFFSET 0", converted.toString());
 	}
 	
 	@Test
 	public void testOverridePaginationQueryWithLimitOverridesNull() throws ParseException{
-		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 34");
+		Pagination model = new TableQueryParser("limit 34").pagination();
 		Long limit = null;
 		Long offset = null;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
-		assertEquals("SELECT * FROM syn123 LIMIT 34 OFFSET 0", converted.toString());
+		Pagination converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("LIMIT 34 OFFSET 0", converted.toString());
 	}
 	
 	@Test
 	public void testOverridePaginationQueryWithLimitOffsetOverridesNull() throws ParseException{
-		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 34 offset 12");
+		Pagination model = new TableQueryParser("limit 34 offset 12").pagination();
 		Long limit = null;
 		Long offset = null;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
-		assertEquals("SELECT * FROM syn123 LIMIT 34 OFFSET 12", converted.toString());
+		Pagination converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("LIMIT 34 OFFSET 12", converted.toString());
 	}
 	
 	@Test
 	public void testOverridePaginationQueryWithLimitOffsetOverrideLimitNull() throws ParseException{
-		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 34 offset 12");
+		Pagination model = new TableQueryParser("limit 34 offset 12").pagination();
 		Long limit = null;
 		Long offset = 2L;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
-		assertEquals("SELECT * FROM syn123 LIMIT 32 OFFSET 14", converted.toString());
+		Pagination converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("LIMIT 32 OFFSET 14", converted.toString());
 	}
 	
 	@Test
 	public void testOverridePaginationQueryWithLimitOffsetOverrideOffsetNull() throws ParseException{
-		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 34 offset 12");
+		Pagination model = new TableQueryParser("limit 34 offset 12").pagination();
 		Long limit = 3L;
 		Long offset = null;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
-		assertEquals("SELECT * FROM syn123 LIMIT 3 OFFSET 12", converted.toString());
+		Pagination converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("LIMIT 3 OFFSET 12", converted.toString());
 	}
 	
 	@Test
 	public void testOverridePaginationQueryQueryLimitGreaterThanOverrideOffset() throws ParseException{
-		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100 offset 50");
+		Pagination model = new TableQueryParser("limit 100 offset 50").pagination();
 		Long limit = 25L;
 		Long offset = 10L;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
-		assertEquals("SELECT * FROM syn123 LIMIT 25 OFFSET 60", converted.toString());
+		Pagination converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("LIMIT 25 OFFSET 60", converted.toString());
 	}
 	
 	@Test
 	public void testOverridePaginationQueryQueryLimitLessThanOverrideOffset() throws ParseException{
-		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100 offset 50");
+		Pagination model = new TableQueryParser("limit 100 offset 50").pagination();
 		Long limit = 25L;
 		Long offset = 101L;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
-		assertEquals("SELECT * FROM syn123 LIMIT 0 OFFSET 151", converted.toString());
+		Pagination converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("LIMIT 0 OFFSET 151", converted.toString());
 	}
 	
 	@Test
 	public void testOverridePaginationQueryMaxRowsLessLimit() throws ParseException{
-		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100");
+		Pagination model = new TableQueryParser("limit 100").pagination();
 		Long limit = null;
 		Long offset = null;
 		Long maxRowsPerPage = 99L;
-		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
-		assertEquals("SELECT * FROM syn123 LIMIT 99 OFFSET 0", converted.toString());
+		Pagination converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("LIMIT 99 OFFSET 0", converted.toString());
 	}
 	
 	@Test
 	public void testOverridePaginationMaxRowPerPageNull() throws ParseException{
-		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100 offset 75");
+		Pagination model = new TableQueryParser("limit 100 offset 75").pagination();
 		Long limit = 50L;
 		Long offset = 10L;
 		Long maxRowsPerPage = null;
-		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
-		assertEquals("SELECT * FROM syn123 LIMIT 50 OFFSET 85", converted.toString());
+		Pagination converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("LIMIT 50 OFFSET 85", converted.toString());
 	}
 	
 	@Test
 	public void testOverridePaginationAllNull() throws ParseException{
-		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 limit 100 offset 75");
+		Pagination model = new TableQueryParser("limit 100 offset 75").pagination();
 		Long limit = null;
 		Long offset = null;
 		Long maxRowsPerPage = null;
-		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
-		assertEquals("SELECT * FROM syn123 LIMIT 100 OFFSET 75", converted.toString());
+		Pagination converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
+		assertEquals("LIMIT 100 OFFSET 75", converted.toString());
 	}
 	
 	@Test

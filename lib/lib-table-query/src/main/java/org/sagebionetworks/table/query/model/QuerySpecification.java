@@ -55,17 +55,6 @@ public class QuerySpecification extends SQLElement implements HasAggregate, HasS
 		return setQuantifier == SetQuantifier.DISTINCT;
 	}
 	
-	/**
-	 * 
-	 * @return True if the query includes a {@link TextMatchesPredicate}
-	 */
-	public boolean isIncludeSearch() {
-		if (tableExpression != null) {
-			return tableExpression.getFirstElementOfType(TextMatchesPredicate.class) != null;
-		}
-		return false;
-	}
-
 	@Override
 	public Optional<String> getSingleTableName() {
 		if(tableExpression == null) {

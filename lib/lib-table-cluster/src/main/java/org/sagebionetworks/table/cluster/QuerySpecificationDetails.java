@@ -40,7 +40,25 @@ public class QuerySpecificationDetails {
 		this.selectColumns = SQLTranslatorUtils.getSelectColumns(querySpecification.getSelectList(),
 				tableAndColumnMapper, querySpecification.isElementAggregate());
 		this.maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(selectColumns, columnNameToModelMap);
-
+	}
+	
+	public QuerySpecification getQuerySpecification() {
+		return querySpecification;
 	}
 
+	public List<SelectColumn> getSelectList() {
+		return selectColumns;
+	}
+
+	public int getMaxRowSizeBytes() {
+		return maxRowSizeBytes;
+	}
+
+	public TableAndColumnMapper getTableAndColumnMapper() {
+		return tableAndColumnMapper;
+	}
+
+	public List<ColumnModel> getSchemaOfSelect() {
+		return schemaOfSelect;
+	}
 }
