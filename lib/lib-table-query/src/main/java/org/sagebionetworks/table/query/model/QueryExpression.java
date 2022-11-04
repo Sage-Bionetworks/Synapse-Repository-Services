@@ -12,6 +12,7 @@ public class QueryExpression extends SimpleBranch implements HasSqlContext {
 		super(nonJoinQueryExpression);
 		// defaults to query for most cases.
 		this.sqlContext = SqlContext.query;
+		this.recursiveSetParent();
 	}
 
 	@Override
