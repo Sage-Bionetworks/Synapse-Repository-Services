@@ -305,4 +305,11 @@ public interface TableEntityManager {
 	 */
 	Iterator<TableRowChange> newTableRowChangeWithFileRefsIterator(IdRange idRange);
 	
+	/**
+	 * Stores a copy of the data of the table snapshot with the given id and version to S3, the table must be available. If a snapshot already exist doesn't do anything.
+	 * 
+	 * @param tableId The id and version of the snapshot to store
+	 */
+	void storeTableSnapshot(IdAndVersion tableId);
+	
 }

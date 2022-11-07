@@ -482,6 +482,12 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public String getViewSnapshotBucketName();
+	
+	/**
+	 * S3 bucket for table snapshots.
+	 * @return
+	 */
+	public String getTableSnapshotBucketName();
 
 	/**
 	 * 

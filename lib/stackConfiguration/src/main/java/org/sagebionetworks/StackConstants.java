@@ -44,6 +44,11 @@ public class StackConstants {
 	public static final String VIEW_SNAPSHOT_BUCKET = "%1$s.view.snapshots";
 	
 	/**
+	 * Bucket name for table snapshots.
+	 */
+	public static final String TABLE_SNAPSHOT_BUCKET = "%1$s.table.snapshots";
+	
+	/**
 	 * The bucket containing all access record data.
 	 */
 	public static final String ACCESS_RECORD_BUCKET = "%1$s.access.record.sagebase.org";

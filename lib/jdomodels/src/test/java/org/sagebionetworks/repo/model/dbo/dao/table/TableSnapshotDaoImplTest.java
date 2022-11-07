@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Date;
+import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -142,16 +144,16 @@ public class TableSnapshotDaoImplTest {
 		TableSnapshot created = viewSnapshotDao.createSnapshot(viewSnapshot);
 		assertNotNull(created);
 		// call under test
-		TableSnapshot result = viewSnapshotDao.getSnapshot(idAndVersion);
+		TableSnapshot result = viewSnapshotDao.getSnapshot(idAndVersion).get();
 		assertEquals(created, result);
 	}
 	
 	@Test
 	public void testGetSnapshotNotFound() {
-		assertThrows(NotFoundException.class, ()->{
-			// call under test
-			viewSnapshotDao.getSnapshot(idAndVersion);
-		});
+		// call under test
+		Optional<TableSnapshot> result = viewSnapshotDao.getSnapshot(idAndVersion);
+		
+		assertFalse(result.isPresent());
 	}
 	
 	@Test

@@ -25,7 +25,12 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -36,6 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +53,7 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.table.change.ListColumnIndexTableChange;
@@ -54,7 +61,6 @@ import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
@@ -100,13 +106,14 @@ import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
-import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -136,11 +143,21 @@ public class TableIndexManagerImplTest {
 	@Mock
 	private TableRowSearchProcessor mockSearchProcessor;
 	@Mock
+	private FileProvider mockFileProvider;
+	@Mock
+	private SynapseS3Client mockS3Client;
+	@Mock
 	private ViewFilter mockFilter;
 	@Mock
 	private ViewFilterBuilder mockFilterBuilder;
 	@Mock
 	private ViewFilter mockNewFilter;
+	@Mock
+	private File mockFile;
+	@Mock
+	private OutputStream mockOutStream;
+	@Mock
+	private GZIPOutputStream mockGzipOutStream;
 
 	@Captor
 	ArgumentCaptor<List<ColumnChangeDetails>> changeCaptor;
@@ -185,7 +202,7 @@ public class TableIndexManagerImplTest {
 		objectType = ViewObjectType.ENTITY;
 		tableId = IdAndVersion.parse("syn123");
 		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory,
-				mockObjectFieldModelResolverFactory, mockSearchProcessor);
+				mockObjectFieldModelResolverFactory, mockSearchProcessor, mockFileProvider, mockS3Client);
 		managerSpy = Mockito.spy(manager);
 		versionNumber = 99L;
 		schema = Arrays.asList(TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
@@ -240,7 +257,7 @@ public class TableIndexManagerImplTest {
 	public void testNullDao() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			new TableIndexManagerImpl(null, mockManagerSupport, mockMetadataProviderFactory,
-					mockObjectFieldModelResolverFactory, mockSearchProcessor);
+					mockObjectFieldModelResolverFactory, mockSearchProcessor, mockFileProvider, mockS3Client);
 		});
 	}
 
@@ -248,28 +265,42 @@ public class TableIndexManagerImplTest {
 	public void testNullSupport() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			new TableIndexManagerImpl(mockIndexDao, null, mockMetadataProviderFactory,
-					mockObjectFieldModelResolverFactory, mockSearchProcessor);
+					mockObjectFieldModelResolverFactory, mockSearchProcessor, mockFileProvider, mockS3Client);
 		});
 	}
 
 	@Test
 	public void testNullProviderFactory() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, null, mockObjectFieldModelResolverFactory, mockSearchProcessor);
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, null, mockObjectFieldModelResolverFactory, mockSearchProcessor, mockFileProvider, mockS3Client);
 		});
 	}
 
 	@Test
 	public void testNullObjectFieldFactory() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, null, mockSearchProcessor);
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, null, mockSearchProcessor, mockFileProvider, mockS3Client);
 		});
 	}
 	
 	@Test
-	public void testNullSSearchProcessor() {
+	public void testNullSearchProcessor() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory, null);
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory, null, mockFileProvider, mockS3Client);
+		});
+	}
+	
+	@Test
+	public void testNullFileProvider() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory, mockSearchProcessor, null, mockS3Client);
+		});
+	}
+	
+	@Test
+	public void testNullS3Client() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory, mockSearchProcessor, mockFileProvider, null);
 		});
 	}
 
@@ -2973,19 +3004,58 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testStreamTableToCSV() {
-		CSVWriterStream stream = new CSVWriterStream() {
-			
-			@Override
-			public void writeNext(String[] nextLine) {
-				// nothing
-			}
-		};
+	public void testSaveSnapshotToS3() throws IOException {
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		StringWriter writer = new StringWriter();
+		when(mockFileProvider.createFileOutputStream(mockFile)).thenReturn(mockOutStream);
+		when(mockFileProvider.createGZIPOutputStream(mockOutStream)).thenReturn(mockGzipOutStream);
+		when(mockFileProvider.createWriter(mockGzipOutStream, StandardCharsets.UTF_8)).thenReturn(writer);
+		List<String> schemaIds = schema.stream().map(ColumnModel::getId).collect(Collectors.toList());
+		when(mockIndexDao.streamTableToCSV(any(), any())).thenReturn(schemaIds);
 		
-		// Call under test
-		manager.streamTableToCSV(tableId, stream);
+		String bucket = "snapshot.bucket";
+		String key = "key";
 		
-		verify(mockIndexDao).streamTableToCSV(tableId, stream);
+		// call under test
+		List<String> result = manager.streamTableToS3(tableId, bucket, key);
+		
+		assertEquals(schemaIds, result);
+		
+		verify(mockFileProvider).createTempFile("table", ".csv");
+		verify(mockFileProvider).createFileOutputStream(mockFile);
+		verify(mockFileProvider).createGZIPOutputStream(mockOutStream);
+		verify(mockFileProvider).createWriter(mockGzipOutStream, StandardCharsets.UTF_8);
+		verify(mockIndexDao).streamTableToCSV(eq(tableId), any());
+		
+		ArgumentCaptor<PutObjectRequest> putRequestCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
+		
+		verify(mockS3Client).putObject(putRequestCaptor.capture());
+		PutObjectRequest putRequest = putRequestCaptor.getValue();
+		assertEquals(bucket, putRequest.getBucketName());
+		assertEquals(key, putRequest.getKey());
+		assertEquals(mockFile, putRequest.getFile());
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testSaveSnapshotToS3WithIOException() throws IOException {
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		IOException ex = new FileNotFoundException("nope");
+		when(mockFileProvider.createFileOutputStream(mockFile)).thenThrow(ex);
+		
+		String bucket = "snapshot.bucket";
+		String key = "key";
+		
+		RuntimeException result = assertThrows(RuntimeException.class, () -> {			
+			// call under test
+			manager.streamTableToS3(tableId, bucket, key);
+		});
+		
+		assertEquals(ex, result.getCause());
+		
+		verify(mockFileProvider).createTempFile("table", ".csv");
+		verify(mockIndexDao, never()).streamTableToCSV(any(), any());
+		verify(mockFile).delete();
 	}
 	
 	@SuppressWarnings("unchecked")

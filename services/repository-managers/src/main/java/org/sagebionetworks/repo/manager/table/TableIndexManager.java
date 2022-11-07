@@ -19,7 +19,6 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.SparseChangeSet;
-import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**
@@ -187,15 +186,6 @@ public interface TableIndexManager {
 	long populateViewFromEntityReplication(Long viewId, ViewScopeType scopeType, List<ColumnModel> currentSchema);
 	
 	/**
-	 * Stream the data of the table with the given id to the given stream
-	 * 
-	 * @param idAndVersion
-	 * @param stream
-	 * @return The column model ids for the table index
-	 */
-	List<String> streamTableToCSV(IdAndVersion idAndVersion, CSVWriterStream stream);
-
-	/**
 	 * Get the possible ColumnModel definitions based on annotation within a given
 	 * scope.
 	 * 
@@ -322,5 +312,15 @@ public interface TableIndexManager {
 	 * @return
 	 */
 	Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, SqlQuery definingSql);
+
+	/**
+	 * Stream the data from the given table to the given bucket and key in S3
+	 * 
+	 * @param idAndVersion
+	 * @param bucket
+	 * @param key
+	 * @return The schema of the table as read from the index
+	 */
+	List<String> streamTableToS3(IdAndVersion idAndVersion, String bucket, String key);
 
 }

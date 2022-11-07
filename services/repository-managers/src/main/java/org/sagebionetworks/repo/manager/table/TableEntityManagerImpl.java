@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -10,8 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
@@ -21,9 +24,9 @@ import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -32,6 +35,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -59,6 +64,7 @@ import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableSearchChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSearchChangeResponse;
+import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
@@ -84,6 +90,7 @@ import org.sagebionetworks.table.model.TableChange;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -130,6 +137,12 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	private EventsCollector statisticsCollector;
 	@Autowired
 	private TableTransactionManager transactionManager;
+	@Autowired
+	private TableIndexConnectionFactory indexConnectionFactory;
+	@Autowired
+	private TableSnapshotDao tableSnapshotDao;
+	@Autowired
+	private StackConfiguration config;
 	
 	/**
 	 * Injected via spring
@@ -1059,6 +1072,49 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		ValidateArgument.required(idRange, "The idRange");
 		ValidateArgument.requirement(idRange.getMinId() <= idRange.getMaxId(), "Invalid idRange, the minId must be lesser or equal than the maxId");
 		return new PaginationIterator<TableRowChange>((long limit, long offset) -> tableRowTruthDao.getTableRowChangeWithFileRefsPage(idRange, limit, offset), PAGE_SIZE_LIMIT);
+	}
+
+
+	@Override
+	@WriteTransaction
+	public void storeTableSnapshot(IdAndVersion tableId) {
+		ValidateArgument.required(tableId, "tableId");
+		ValidateArgument.requirement(tableId.getVersion().isPresent(), "The tableId.version is required.");
+		
+		TableType tableType = tableManagerSupport.getTableType(tableId);
+		
+		ValidateArgument.requirement(TableType.table.equals(tableType), "Unexpected table type for " + tableId + " (Was " + tableType + ").");
+		
+		// The snapshot is already saved, nothing to do
+		if (tableSnapshotDao.getSnapshot(tableId).isPresent()) {
+			return;
+		}
+		
+		TableState tableState = tableManagerSupport.getTableStatusState(tableId)
+			.orElseThrow(() -> new IllegalStateException("The table " + tableId + " status does not exist."));
+		
+		if (!TableState.AVAILABLE.equals(tableState)) {
+			throw new IllegalStateException("The table " +tableId + " is not available.");
+		}
+		
+		String bucket = config.getTableSnapshotBucketName();
+		String key = tableId + "/" + UUID.randomUUID().toString() + ".csv.gzip";
+		
+		try {
+			TableIndexManager tableIndexManager = indexConnectionFactory.connectToTableIndex(tableId);
+			tableIndexManager.streamTableToS3(tableId, bucket, key);
+		} catch (RuntimeException ex) {
+			throw new RecoverableMessageException(ex);
+		}
+		
+		tableSnapshotDao.createSnapshot(new TableSnapshot()
+			.withTableId(tableId.getId())
+			.withVersion(tableId.getVersion().get())
+			.withCreatedOn(new Date())
+			.withCreatedBy(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())
+			.withBucket(bucket)
+			.withKey(key)
+		);
 	}
 
 }
