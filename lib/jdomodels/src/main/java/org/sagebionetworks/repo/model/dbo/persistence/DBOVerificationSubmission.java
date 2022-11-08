@@ -60,15 +60,7 @@ public class DBOVerificationSubmission implements
 
 	@Override
 	public MigratableTableTranslation<DBOVerificationSubmission, DBOVerificationSubmission> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOVerificationSubmission>() {
-			@Override
-			public DBOVerificationSubmission createDatabaseObjectFromBackup(DBOVerificationSubmission backup) {
-				if (backup.getEtag() == null) {
-					backup.setEtag(UUID.randomUUID().toString());
-				}
-				return backup;
-			}
-		};
+		return new BasicMigratableTableTranslation<>();
 	}
 
 	@Override

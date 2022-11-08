@@ -16,6 +16,7 @@ import java.util.UUID;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -124,24 +125,7 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 
 	@Override
 	public MigratableTableTranslation<DBOTableTransaction, DBOTableTransaction> getTranslator() {
-		return new MigratableTableTranslation<DBOTableTransaction, DBOTableTransaction>(){
-
-			@Override
-			public DBOTableTransaction createDatabaseObjectFromBackup(DBOTableTransaction backup) {
-				/*
-				 *  This DBO did not start out with an etag.  The etag was added to support
-				 *  linking a a transaction to a table's version.
-				 */
-				if(backup.getEtag() == null) {
-					backup.setEtag(UUID.randomUUID().toString());
-				}
-				return backup;
-			}
-
-			@Override
-			public DBOTableTransaction createBackupFromDatabaseObject(DBOTableTransaction dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<>();
 	}
 
 	@Override

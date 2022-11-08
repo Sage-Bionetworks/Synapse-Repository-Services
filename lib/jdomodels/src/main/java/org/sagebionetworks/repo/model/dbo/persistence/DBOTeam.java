@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.dao.TeamUtils;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.util.TemporaryCode;
@@ -81,24 +82,7 @@ public class DBOTeam implements MigratableDatabaseObject<DBOTeam, DBOTeam> {
 
 	};
 
-	@TemporaryCode(author = "peter.harvey@sagebase.org", comment = "One time migration of team state.  Can be removed after all teams have a state.")
-	private static final MigratableTableTranslation<DBOTeam, DBOTeam> MIGRATION_MAPPER = new  MigratableTableTranslation<DBOTeam, DBOTeam>() {
-		@Override
-		public DBOTeam createDatabaseObjectFromBackup(DBOTeam backup) {
-
-			if (backup.getState() == null) {
-				TeamState state = TeamState.from(TeamUtils.copyDboToDto(backup));
-				backup.setState(state.name());
-			}
-
-			return backup;
-		}
-
-		@Override
-		public DBOTeam createBackupFromDatabaseObject(DBOTeam dbo) {
-			return dbo;
-		}
-	};
+	private static final MigratableTableTranslation<DBOTeam, DBOTeam> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
 
 	private Long id;
 	private String etag;
