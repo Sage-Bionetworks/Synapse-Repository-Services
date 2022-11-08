@@ -170,8 +170,6 @@ public class TableEntityManagerTest {
 	@Mock
 	TableTransactionContext mockTransactionContext;
 	@Mock
-	TableIndexConnectionFactory mockIndexConnectionFactory;
-	@Mock
 	TableSnapshotDao mockTableSnapshotDao;
 	@Mock
 	StackConfiguration mockConfig;
@@ -2168,9 +2166,8 @@ public class TableEntityManagerTest {
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
 		when(mockTableSnapshotDao.getSnapshot(any())).thenReturn(Optional.empty());
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.AVAILABLE));
-		when(mockIndexConnectionFactory.connectToTableIndex(any())).thenReturn(mockIndexManager);
 		when(mockConfig.getTableSnapshotBucketName()).thenReturn("bucket");
-		when(mockIndexManager.streamTableToS3(any(), any(), any())).thenReturn(newColumnIds);
+		when(mockTableManagerSupport.streamTableToS3(any(), any(), any())).thenReturn(newColumnIds);
 		
 		TableSnapshot expectedSnapshot = new TableSnapshot()
 			.withTableId(idAndVersion.getId())
@@ -2185,10 +2182,9 @@ public class TableEntityManagerTest {
 		verify(mockTableManagerSupport).getTableType(idAndVersion);
 		verify(mockTableSnapshotDao).getSnapshot(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
-		verify(mockIndexConnectionFactory).connectToTableIndex(idAndVersion);
 		
 		ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
-		verify(mockIndexManager).streamTableToS3(eq(idAndVersion), eq("bucket"), keyCaptor.capture());
+		verify(mockTableManagerSupport).streamTableToS3(eq(idAndVersion), eq("bucket"), keyCaptor.capture());
 		
 		assertTrue(keyCaptor.getValue().startsWith(idAndVersion.toString() + "/"));
 		
@@ -2312,46 +2308,17 @@ public class TableEntityManagerTest {
 	}
 	
 	@Test
-	public void testStoreTableSnapshotWithTableConnectionNotAvailable() throws Exception {
-		idAndVersion = IdAndVersion.parse("syn123.2");
-		
-		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
-		when(mockTableSnapshotDao.getSnapshot(any())).thenReturn(Optional.empty());
-		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.AVAILABLE));
-		when(mockConfig.getTableSnapshotBucketName()).thenReturn("bucket");
-		
-		TableIndexConnectionUnavailableException ex = new TableIndexConnectionUnavailableException("not now");
-		
-		when(mockIndexConnectionFactory.connectToTableIndex(any())).thenThrow(ex);
-		
-		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
-			// Call under test
-			manager.storeTableSnapshot(idAndVersion);
-		});
-		
-		assertEquals(ex, result.getCause());
-		
-		verify(mockTableManagerSupport).getTableType(idAndVersion);
-		verify(mockTableSnapshotDao).getSnapshot(idAndVersion);
-		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
-		verify(mockIndexConnectionFactory).connectToTableIndex(idAndVersion);
-		verify(mockTableIndexDAO, never()).streamTableToCSV(any(), any());
-		verify(mockTableSnapshotDao, never()).createSnapshot(any());
-	}
-	
-	@Test
 	public void testStoreTableSnapshotWithErrorStreaming() throws Exception {
 		idAndVersion = IdAndVersion.parse("syn123.2");
 		
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
 		when(mockTableSnapshotDao.getSnapshot(any())).thenReturn(Optional.empty());
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.AVAILABLE));
-		when(mockIndexConnectionFactory.connectToTableIndex(any())).thenReturn(mockIndexManager);
 		when(mockConfig.getTableSnapshotBucketName()).thenReturn("bucket");
 		
 		RuntimeException ex = new RuntimeException("some error");
 		
-		when(mockIndexManager.streamTableToS3(any(), any(), any())).thenThrow(ex);
+		when(mockTableManagerSupport.streamTableToS3(any(), any(), any())).thenThrow(ex);
 		
 		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
 			// Call under test
@@ -2363,8 +2330,7 @@ public class TableEntityManagerTest {
 		verify(mockTableManagerSupport).getTableType(idAndVersion);
 		verify(mockTableSnapshotDao).getSnapshot(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
-		verify(mockIndexConnectionFactory).connectToTableIndex(idAndVersion);
-		verify(mockIndexManager).streamTableToS3(eq(idAndVersion), eq("bucket"), any());
+		verify(mockTableManagerSupport).streamTableToS3(eq(idAndVersion), eq("bucket"), any());
 		verify(mockTableIndexDAO, never()).streamTableToCSV(any(), any());
 		verify(mockTableSnapshotDao, never()).createSnapshot(any());
 	}

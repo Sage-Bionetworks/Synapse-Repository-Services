@@ -138,8 +138,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Autowired
 	private TableTransactionManager transactionManager;
 	@Autowired
-	private TableIndexConnectionFactory indexConnectionFactory;
-	@Autowired
 	private TableSnapshotDao tableSnapshotDao;
 	@Autowired
 	private StackConfiguration config;
@@ -1101,8 +1099,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		String key = tableId + "/" + UUID.randomUUID().toString() + ".csv.gzip";
 		
 		try {
-			TableIndexManager tableIndexManager = indexConnectionFactory.connectToTableIndex(tableId);
-			tableIndexManager.streamTableToS3(tableId, bucket, key);
+			tableManagerSupport.streamTableToS3(tableId, bucket, key);
 		} catch (RuntimeException ex) {
 			throw new RecoverableMessageException(ex);
 		}

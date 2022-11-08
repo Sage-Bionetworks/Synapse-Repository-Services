@@ -7,21 +7,31 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.zip.GZIPOutputStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +44,7 @@ import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -43,7 +54,6 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -54,8 +64,8 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -79,9 +89,11 @@ import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescri
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -122,19 +134,30 @@ public class TableManagerSupportTest {
 	private MaterializedViewDao mockMaterializedViewDao;
 	@Mock
 	private WriteReadSemaphoreRunner mockWriteReadSemaphoreRunner;
+	@Mock
+	private FileProvider mockFileProvider;
+	@Mock
+	private SynapseS3Client mockS3Client;
 	
 	@InjectMocks
-	TableManagerSupportImpl manager;
+	private TableManagerSupportImpl manager;
 	
 	@Spy
 	@InjectMocks
-	TableManagerSupportImpl managerSpy;
+	private TableManagerSupportImpl managerSpy;
 	
 	@Mock
-	DefaultColumnModel mockDefaultModel;
+	private DefaultColumnModel mockDefaultModel;
 	
 	@Mock
-	ProgressingCallable<String> mockCallable;
+	private ProgressingCallable<String> mockCallable;
+	
+	@Mock
+	private File mockFile;
+	@Mock
+	private OutputStream mockOutStream;
+	@Mock
+	private GZIPOutputStream mockGzipOutStream;
 	
 	String schemaMD5Hex;
 	String tableId;
@@ -1041,5 +1064,61 @@ public class TableManagerSupportTest {
 		// call under test
 		manager.tryRunWithTableNonExclusiveLock(mockCallback, mockCallable, keys);
 		verify(mockWriteReadSemaphoreRunner).tryRunWithReadLock(mockCallback, mockCallable, "key1", "key2");
+	}
+	
+	@Test
+	public void testStreamTableToS3() throws IOException {
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		StringWriter writer = new StringWriter();
+		when(mockFileProvider.createFileOutputStream(mockFile)).thenReturn(mockOutStream);
+		when(mockFileProvider.createGZIPOutputStream(mockOutStream)).thenReturn(mockGzipOutStream);
+		when(mockFileProvider.createWriter(mockGzipOutStream, StandardCharsets.UTF_8)).thenReturn(writer);
+		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.streamTableToCSV(any(), any())).thenReturn(columnIds);
+		
+		String bucket = "snapshot.bucket";
+		String key = "key";
+		
+		// call under test
+		List<String> result = manager.streamTableToS3(idAndVersion, bucket, key);
+		
+		assertEquals(columnIds, result);
+		
+		verify(mockFileProvider).createTempFile("table", ".csv");
+		verify(mockFileProvider).createFileOutputStream(mockFile);
+		verify(mockFileProvider).createGZIPOutputStream(mockOutStream);
+		verify(mockFileProvider).createWriter(mockGzipOutStream, StandardCharsets.UTF_8);
+		verify(mockTableConnectionFactory).getConnection(idAndVersion);
+		verify(mockTableIndexDAO).streamTableToCSV(eq(idAndVersion), any());
+		
+		ArgumentCaptor<PutObjectRequest> putRequestCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
+		
+		verify(mockS3Client).putObject(putRequestCaptor.capture());
+		PutObjectRequest putRequest = putRequestCaptor.getValue();
+		assertEquals(bucket, putRequest.getBucketName());
+		assertEquals(key, putRequest.getKey());
+		assertEquals(mockFile, putRequest.getFile());
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testStreamTableToS3WithIOException() throws IOException {
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		IOException ex = new FileNotFoundException("nope");
+		when(mockFileProvider.createFileOutputStream(mockFile)).thenThrow(ex);
+		
+		String bucket = "snapshot.bucket";
+		String key = "key";
+		
+		RuntimeException result = assertThrows(RuntimeException.class, () -> {			
+			// call under test
+			manager.streamTableToS3(idAndVersion, bucket, key);
+		});
+		
+		assertEquals(ex, result.getCause());
+		
+		verify(mockFileProvider).createTempFile("table", ".csv");
+		verify(mockTableIndexDAO, never()).streamTableToCSV(any(), any());
+		verify(mockFile).delete();
 	}
 }

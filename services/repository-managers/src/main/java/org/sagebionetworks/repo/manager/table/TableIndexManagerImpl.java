@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -16,7 +14,6 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.ListColumnIndexTableChange;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
@@ -63,20 +60,15 @@ import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
-import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.PaginationProvider;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionStatus;
 
-import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.google.common.collect.Iterators;
-
-import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * Note: This manager is created as a beans to support profiling calls to the manger. See: PLFM-5984.
@@ -101,24 +93,18 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	private final MetadataIndexProviderFactory metadataIndexProviderFactory;
 	private final ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
 	private final TableRowSearchProcessor searchProcessor;
-	private final FileProvider fileProvider;
-	private final SynapseS3Client s3Client;
 
-	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory, TableRowSearchProcessor searchProcessor, FileProvider fileProvider, SynapseS3Client s3Client){
+	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory, TableRowSearchProcessor searchProcessor){
 		ValidateArgument.required(dao, "TableIndexDao");
 		ValidateArgument.required(tableManagerSupport, "TableManagerSupport");
 		ValidateArgument.required(metadataIndexProviderFactory, "MetadataIndexProviderFactory");
 		ValidateArgument.required(objectFieldModelResolverFactory, "ObjectFieldModelResolverFactory");
 		ValidateArgument.required(searchProcessor, "RowSearchProcessor");
-		ValidateArgument.required(fileProvider, "fileProvider");
-		ValidateArgument.required(s3Client, "s3Client");
 		this.tableIndexDao = dao;
 		this.tableManagerSupport = tableManagerSupport;
 		this.metadataIndexProviderFactory = metadataIndexProviderFactory;
 		this.objectFieldModelResolverFactory = objectFieldModelResolverFactory;
 		this.searchProcessor = searchProcessor;
-		this.fileProvider = fileProvider;
-		this.s3Client = s3Client;
 	}
 	/*
 	 * (non-Javadoc)
@@ -1086,35 +1072,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			updateSearchIndex(indexDescription);
 		}
 		return result;
-	}
-	
-	@Override
-	public List<String> streamTableToS3(IdAndVersion idAndVersion, String bucket, String key) {
-		File tempFile = null;
-		List<String> schema;
-		try {
-			tempFile = fileProvider.createTempFile("table", ".csv");
-			// Stream view data from the replication database to a local CSV file.
-			try (CSVWriter writer = new CSVWriter(fileProvider.createWriter(
-					fileProvider.createGZIPOutputStream(fileProvider.createFileOutputStream(tempFile)),
-					StandardCharsets.UTF_8))) {
-				CSVWriterStream writerAdapter = (String[] nextLine) -> {
-					writer.writeNext(nextLine);
-				};
-				// write the snapshot to the temp file.
-				schema = tableIndexDao.streamTableToCSV(idAndVersion, writerAdapter);
-			}
-			// upload the resulting CSV to S3.
-			s3Client.putObject(new PutObjectRequest(bucket, key, tempFile));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		} finally {
-			// unconditionally delete the temporary file.
-			if (tempFile != null) {
-				tempFile.delete();
-			}
-		}
-		return schema;
 	}
 	
 }

@@ -644,11 +644,9 @@ public class TableViewManagerImpl implements TableViewManager {
 
 			String key = idAndVersion.getId() + "/" + UUID.randomUUID().toString() + ".csv.gzip";
 			String bucket = config.getViewSnapshotBucketName();
-			
-			TableIndexManager tableIndexManager = connectionFactory.connectToTableIndex(idAndVersion);
-			
+						
 			// Save the table to S3
-			List<String> schemaColumnIds = tableIndexManager.streamTableToS3(idAndVersion, bucket, key);
+			List<String> schemaColumnIds = tableManagerSupport.streamTableToS3(idAndVersion, bucket, key);
 			
 			// Create a new version of the node
 			long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, idAndVersion.getId().toString(), snapshotOptions);

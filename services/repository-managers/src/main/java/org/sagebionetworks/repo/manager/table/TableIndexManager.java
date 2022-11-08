@@ -313,14 +313,4 @@ public interface TableIndexManager {
 	 */
 	Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, SqlQuery definingSql);
 
-	/**
-	 * Stream the data from the given table to the given bucket and key in S3
-	 * 
-	 * @param idAndVersion
-	 * @param bucket
-	 * @param key
-	 * @return The schema of the table as read from the index
-	 */
-	List<String> streamTableToS3(IdAndVersion idAndVersion, String bucket, String key);
-
 }

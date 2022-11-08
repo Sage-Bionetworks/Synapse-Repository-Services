@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -1240,8 +1239,7 @@ public class TableViewManagerImplTest {
 		setupNonExclusiveLockWithCustomKeyToForwardToCallack();
 		
 		doNothing().when(managerSpy).validateViewForSnapshot(any());
-		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockIndexManager);
-		when(mockIndexManager.streamTableToS3(any(), any(), any())).thenReturn(schema);
+		when(mockTableManagerSupport.streamTableToS3(any(), any(), any())).thenReturn(schema);
 		
 		String bucket = "snapshot.bucket";
 		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
@@ -1260,7 +1258,7 @@ public class TableViewManagerImplTest {
 		
 		ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
 		
-		verify(mockIndexManager).streamTableToS3(eq(idAndVersion), eq(bucket), keyCaptor.capture());
+		verify(mockTableManagerSupport).streamTableToS3(eq(idAndVersion), eq(bucket), keyCaptor.capture());
 		
 		String key = keyCaptor.getValue();
 		
