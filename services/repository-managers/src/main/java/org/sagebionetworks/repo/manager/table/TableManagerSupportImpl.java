@@ -32,8 +32,8 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -59,7 +59,6 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -571,11 +570,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			try (CSVWriter writer = new CSVWriter(fileProvider.createWriter(
 					fileProvider.createGZIPOutputStream(fileProvider.createFileOutputStream(tempFile)),
 					StandardCharsets.UTF_8))) {
-				CSVWriterStream writerAdapter = (String[] nextLine) -> {
-					writer.writeNext(nextLine);
-				};
 				// write the snapshot to the temp file.
-				schema = tableIndex.streamTableToCSV(idAndVersion, writerAdapter);
+				schema = tableIndex.streamTableToCSV(idAndVersion, writer::writeNext);
 			}
 			// upload the resulting CSV to S3.
 			s3Client.putObject(new PutObjectRequest(bucket, key, tempFile));
