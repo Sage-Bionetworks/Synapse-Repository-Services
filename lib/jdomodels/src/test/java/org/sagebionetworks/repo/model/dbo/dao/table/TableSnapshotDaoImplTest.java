@@ -19,12 +19,12 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class ViewSnapshotDaoImplTest {
+public class TableSnapshotDaoImplTest {
 
 	@Autowired
-	private ViewSnapshotDao viewSnapshotDao;
+	private TableSnapshotDao viewSnapshotDao;
 
-	ViewSnapshot viewSnapshot;
+	TableSnapshot viewSnapshot;
 	IdAndVersion idAndVersion;
 	long adminUserId;
 
@@ -32,7 +32,7 @@ public class ViewSnapshotDaoImplTest {
 	public void beforeEach() {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		idAndVersion = IdAndVersion.parse("syn222.1");
-		viewSnapshot = new ViewSnapshot().withSnapshotId(111L).withViewId(idAndVersion.getId())
+		viewSnapshot = new TableSnapshot().withSnapshotId(111L).withTableId(idAndVersion.getId())
 				.withVersion(idAndVersion.getVersion().get()).withCreatedBy(adminUserId).withCreatedOn(new Date())
 				.withBucket("some bucket").withKey("some key");
 		
@@ -47,10 +47,10 @@ public class ViewSnapshotDaoImplTest {
 	@Test
 	public void testTranslate() {
 		// call under test
-		DBOViewSnapshot dbo = ViewSnapshotDaoImpl.translate(viewSnapshot);
+		DBOTableSnapshot dbo = TableSnapshotDaoImpl.translate(viewSnapshot);
 		assertNotNull(dbo);
 		// call under test
-		ViewSnapshot clone = ViewSnapshotDaoImpl.translate(dbo);
+		TableSnapshot clone = TableSnapshotDaoImpl.translate(dbo);
 		assertEquals(viewSnapshot, clone);
 	}
 
@@ -58,10 +58,10 @@ public class ViewSnapshotDaoImplTest {
 	public void testCreateSnapshot() {
 		viewSnapshot.withSnapshotId(null);
 		// call under test
-		ViewSnapshot result = viewSnapshotDao.createSnapshot(viewSnapshot);
+		TableSnapshot result = viewSnapshotDao.createSnapshot(viewSnapshot);
 		assertNotNull(result);
 		assertNotNull(result.getSnapshotId());
-		assertEquals(viewSnapshot.getViewId(), result.getViewId());
+		assertEquals(viewSnapshot.getTableId(), result.getTableId());
 		assertEquals(viewSnapshot.getVersion(), result.getVersion());
 		assertEquals(viewSnapshot.getCreatedBy(), result.getCreatedBy());
 		assertEquals(viewSnapshot.getCreatedOn(), result.getCreatedOn());
@@ -72,7 +72,7 @@ public class ViewSnapshotDaoImplTest {
 	@Test
 	public void testCreateSnapshotDuplicate() {
 		viewSnapshot.withSnapshotId(null);
-		ViewSnapshot result = viewSnapshotDao.createSnapshot(viewSnapshot);
+		TableSnapshot result = viewSnapshotDao.createSnapshot(viewSnapshot);
 		assertNotNull(result);
 		assertNotNull(result.getSnapshotId());
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -84,7 +84,7 @@ public class ViewSnapshotDaoImplTest {
 
 	@Test
 	public void testCreateSnapshotNullViewId() {
-		viewSnapshot.withViewId(null);
+		viewSnapshot.withTableId(null);
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			viewSnapshotDao.createSnapshot(viewSnapshot);
@@ -139,10 +139,10 @@ public class ViewSnapshotDaoImplTest {
 	@Test
 	public void testGetSnapshot() {
 		viewSnapshot.withSnapshotId(null);
-		ViewSnapshot created = viewSnapshotDao.createSnapshot(viewSnapshot);
+		TableSnapshot created = viewSnapshotDao.createSnapshot(viewSnapshot);
 		assertNotNull(created);
 		// call under test
-		ViewSnapshot result = viewSnapshotDao.getSnapshot(idAndVersion);
+		TableSnapshot result = viewSnapshotDao.getSnapshot(idAndVersion);
 		assertEquals(created, result);
 	}
 	
@@ -157,7 +157,7 @@ public class ViewSnapshotDaoImplTest {
 	@Test
 	public void testGetSnapshotId() {
 		viewSnapshot.withSnapshotId(null);
-		ViewSnapshot created = viewSnapshotDao.createSnapshot(viewSnapshot);
+		TableSnapshot created = viewSnapshotDao.createSnapshot(viewSnapshot);
 		assertNotNull(created);
 		// call under test
 		long id = viewSnapshotDao.getSnapshotId(idAndVersion);

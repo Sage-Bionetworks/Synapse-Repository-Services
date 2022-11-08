@@ -76,7 +76,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	private static final String SELECT_ANNO_BLOB = "SELECT " + COL_SUBSTATUS_ANNO_BLOB + " FROM " +
 			TABLE_SUBSTATUS_ANNO_BLOB + " WHERE " + COL_SUBSTATUS_ANNO_SUBID + " = ?";
 	
-	//	select s.*, t.* from JDOSUBMISSION s, JDOSUBMISSION_STATUS t 
+	//	select s.*, t.* from EVALUATION_SUBMISSION s, EVALUATION_SUBMISSION_STATUS t 
 	//	left outer join SUBSTATUS_ANNOTATIONS_BLOB a on a.SUBMISSION_ID=t.ID
 	//	where
 	//	s.ID=t.ID and

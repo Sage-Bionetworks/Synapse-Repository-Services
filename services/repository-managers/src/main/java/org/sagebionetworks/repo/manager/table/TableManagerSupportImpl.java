@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -84,7 +84,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Autowired
 	private AuthorizationManager authorizationManager;
 	@Autowired
-	private ViewSnapshotDao viewSnapshotDao;
+	private TableSnapshotDao viewSnapshotDao;
 	@Autowired
 	private MetadataIndexProviderFactory metadataIndexProviderFactory;
 	@Autowired

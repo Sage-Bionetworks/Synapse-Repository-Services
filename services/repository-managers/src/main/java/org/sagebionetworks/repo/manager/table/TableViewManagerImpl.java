@@ -31,8 +31,8 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshot;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -90,7 +90,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	/**
 	 * The maximum number of view rows that can be updated in a single transaction.
 	 */
-	public static final long MAX_ROWS_PER_TRANSACTION = 1000;
+	public static final long MAX_ROWS_PER_TRANSACTION = 100_000;
 
 	@Autowired
 	private ViewScopeDao viewScopeDao;
@@ -111,7 +111,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	@Autowired
 	private StackConfiguration config;
 	@Autowired
-	private ViewSnapshotDao viewSnapshotDao;
+	private TableSnapshotDao viewSnapshotDao;
 	@Autowired
 	private MetadataIndexProviderFactory metadataIndexProviderFactory;
 	@Autowired
@@ -404,7 +404,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			refreshBenefactorsForViewSnapshot(viewId);
 		}else {
 			// This is not a snapshot so apply all changes as needed.
-			applyChangesToAvailableView(viewId);
+			applyChangesToAvailableView(viewId, MAX_ROWS_PER_TRANSACTION);
 		}
 	}
 	
@@ -425,7 +425,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * The caller must hold an exclusive lock on the view-change during this operation.
 	 * @param viewId
 	 */
-	void applyChangesToAvailableView(IdAndVersion viewId) {
+	void applyChangesToAvailableView(IdAndVersion viewId, long pageSize) {
 		ValidateArgument.required(viewId, "viewId");
 		if(viewId.getVersion().isPresent()) {
 			throw new IllegalArgumentException("This method cannot be called on a view snapshot");
@@ -446,7 +446,7 @@ public class TableViewManagerImpl implements TableViewManager {
 					// no point in continuing if the table is no longer available.
 					return;
 				}
-				rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, originalFilter,  MAX_ROWS_PER_TRANSACTION);
+				rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, originalFilter,  pageSize);
 				ViewFilter deltaFilter = originalFilter.newBuilder().addLimitObjectids(rowsIdsWithChanges).build();
 				// Are thrashing on the same Ids?
 				Set<Long> intersectionWithPreviousPage = Sets.intersection(rowsIdsWithChanges,
@@ -464,7 +464,7 @@ public class TableViewManagerImpl implements TableViewManager {
 					previousPageRowIdsWithChanges = rowsIdsWithChanges;
 					tableManagerSupport.updateChangedOnIfAvailable(viewId);
 				}
-			} while (!rowsIdsWithChanges.isEmpty());
+			} while (rowsIdsWithChanges.size() >= pageSize);
 		} catch (Exception e) {
 			// failed.
 			log.error("Failed to apply changes to AVAILABLE view " + viewId, e);
@@ -576,7 +576,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @param indexManager
 	 */
 	long populateViewFromSnapshot(IdAndVersion idAndVersion, TableIndexManager indexManager) {
-		ViewSnapshot snapshot = viewSnapshotDao.getSnapshot(idAndVersion);
+		TableSnapshot snapshot = viewSnapshotDao.getSnapshot(idAndVersion);
 		File tempFile = null;
 		try {
 			tempFile = fileProvider.createTempFile("ViewSnapshotDownload", ".csv.gzip");
@@ -691,12 +691,12 @@ public class TableViewManagerImpl implements TableViewManager {
 			columModelManager.bindColumnsToVersionOfObject(schemaColumnIds, resultingIdAndVersion);
 			
 			// save the snapshot metadata
-			viewSnapshotDao.createSnapshot(new ViewSnapshot()
+			viewSnapshotDao.createSnapshot(new TableSnapshot()
 				.withBucket(bucket)
 				.withKey(key)
 				.withCreatedBy(userInfo.getId())
 				.withCreatedOn(new Date())
-				.withViewId(idAndVersion.getId())
+				.withTableId(idAndVersion.getId())
 				.withVersion(snapshotVersion)
 			);
 			

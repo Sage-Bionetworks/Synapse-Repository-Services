@@ -55,7 +55,7 @@ import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -111,7 +111,7 @@ public class TableManagerSupportTest {
 	@Mock
 	private ProgressCallback mockCallback;
 	@Mock
-	private ViewSnapshotDao mockViewSnapshotDao;
+	private TableSnapshotDao mockViewSnapshotDao;
 	@Mock
 	private MetadataIndexProviderFactory mockMetadataIndexProviderFactory;
 	@Mock

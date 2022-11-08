@@ -450,11 +450,11 @@ public class MigratableTableDAOImplAutowireTest {
 	public void testGetPrimaryCardinalitySql() {
 		String expected = 
 				"SELECT P0.ID, 1  + T0.CARD AS CARD"
-				+ " FROM JDONODE AS P0"
+				+ " FROM NODE AS P0"
 				+ " JOIN"
 				+ " (SELECT P.ID, + COUNT(S.OWNER_NODE_ID) AS CARD"
-				+ " FROM JDONODE AS P"
-				+ " LEFT JOIN JDOREVISION AS S ON (P.ID =  S.OWNER_NODE_ID)"
+				+ " FROM NODE AS P"
+				+ " LEFT JOIN NODE_REVISION AS S ON (P.ID =  S.OWNER_NODE_ID)"
 				+ " WHERE P.ID >= :BMINID AND P.ID <= :BMAXID GROUP BY P.ID) T0"
 				+ " ON (P0.ID = T0.ID)"
 				+ " WHERE P0.ID >= :BMINID AND P0.ID <= :BMAXID"
