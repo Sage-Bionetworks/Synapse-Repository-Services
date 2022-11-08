@@ -1074,7 +1074,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 
 	@Override
-	@WriteTransaction
 	public void storeTableSnapshot(IdAndVersion tableId) {
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.requirement(tableId.getVersion().isPresent(), "The tableId.version is required.");
