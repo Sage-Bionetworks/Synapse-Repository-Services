@@ -55,7 +55,7 @@ public class FacetTransformerRange implements FacetTransformer {
 	 */
 	private SqlQuery generateFacetSqlQuery(SqlQuery originalQuery) {
 		
-		TableExpression tableExpressionFromModel = originalQuery.getModel().getTableExpression();
+		TableExpression tableExpressionFromModel = originalQuery.getModel().getFirstElementOfType(TableExpression.class);
 		StringBuilder builder = new StringBuilder("SELECT MIN(");
 		builder.append("\"");
 		builder.append(columnName);

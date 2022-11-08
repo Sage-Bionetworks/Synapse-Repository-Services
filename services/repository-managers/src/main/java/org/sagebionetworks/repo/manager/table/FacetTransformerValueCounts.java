@@ -60,7 +60,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	private SqlQuery generateFacetSqlQuery(SqlQuery originalQuery, boolean columnTypeIsList) {
 		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
 		
-		TableExpression tableExpressionFromModel = originalQuery.getModel().getTableExpression();
+		TableExpression tableExpressionFromModel = originalQuery.getModel().getFirstElementOfType(TableExpression.class);
 		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);
 
 		String columnToUse = columnTypeIsList ? "UNNEST(\"" + columnName + "\")" : "\"" + columnName + "\"";

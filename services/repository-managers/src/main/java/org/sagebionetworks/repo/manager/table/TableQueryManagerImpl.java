@@ -556,7 +556,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	long runCountQuery(SqlQuery query, TableIndexDAO indexDao) {
 		try {
 			// create the count SQL from the already transformed model.
-			String countSql = SqlElementUtils.createCountSql(query.getTransformedModel());
+			String countSql = SqlElementUtils.createCountSql(query.getTransformedModel().getFirstElementOfType(QuerySpecification.class));
 			// execute the count query
 			Long count = indexDao.countQuery(countSql, query.getParameters());
 
@@ -566,7 +566,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			 * to the one row count(*) returns. In actuality, we want to apply that limit &
 			 * offset to the count itself. We do that here manually.
 			 */
-			Pagination pagination = query.getModel().getTableExpression().getPagination();
+			Pagination pagination = query.getModel().getFirstElementOfType(Pagination.class);
 			if (pagination != null) {
 				if (pagination.getOffsetLong() != null) {
 					long offsetForCount = pagination.getOffsetLong();
@@ -599,12 +599,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// actual values are only provided for entity views.
 			try {
 				// first get the rowId and rowVersions for the given query up to the limit + 1.
-				String sqlSelectIdAndVersions = SqlElementUtils.buildSqlSelectRowIdAndVersions(query.getTransformedModel(), MAX_ROWS_PER_CALL + 1L);
-				List<IdAndVersion> rowIdAndVersions = indexDao.getRowIdAndVersions(sqlSelectIdAndVersions, query.getParameters());
+				String sqlSelectIdAndVersions = SqlElementUtils.buildSqlSelectRowIdAndVersions(query.getTransformedModel().getFirstElementOfType(QuerySpecification.class),
+						MAX_ROWS_PER_CALL + 1L);
+				List<IdAndVersion> rowIdAndVersions = indexDao.getRowIdAndVersions(sqlSelectIdAndVersions,
+						query.getParameters());
 				boolean isGreaterThan = rowIdAndVersions.size() > MAX_ROWS_PER_CALL;
 				result.setGreaterThan(isGreaterThan);
 				// Use the rowIds to calculate the sum of the file sizes.
-				long sumFileSizesBytes = indexDao.getSumOfFileSizes(ViewObjectType.ENTITY.getMainType(), rowIdAndVersions);
+				long sumFileSizesBytes = indexDao.getSumOfFileSizes(ViewObjectType.ENTITY.getMainType(),
+						rowIdAndVersions);
 				result.setSumFileSizesBytes(sumFileSizesBytes);
 			} catch (SimpleAggregateQueryException e) {
 				// zero results will be returned for this case.
