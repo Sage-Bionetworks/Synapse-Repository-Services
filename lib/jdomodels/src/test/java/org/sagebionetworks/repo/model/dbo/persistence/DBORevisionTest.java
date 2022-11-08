@@ -1,11 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
@@ -17,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -26,7 +22,6 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -109,121 +104,21 @@ public class DBORevisionTest {
 		DBORevision updatedClone = dboBasicDao.getObjectByPrimaryKey(DBORevision.class, params).get();
 		assertEquals(clone, updatedClone);
 	}
-	
+
 	@Test
-	public void testDescriptionMigration() throws IOException {
+	public void testUserAnnotationTranslator_differentJSONFormat(){
+		//create a new DBORevision just to get the translator. Since getTranslator is not static, this ensures that
+		// the translator is modifying passed in params instead of the fields of the DBORevision object that created it
 		MigratableTableTranslation<DBORevision,DBORevision> translator = new DBORevision().getTranslator();
 
-		Annotations entityProperties = new Annotations();
-		
-		entityProperties.addAnnotation("description", "a description");
-		
-		DBORevision backup = new DBORevision();
-		
-		backup.setEntityPropertyAnnotations(AnnotationUtils.compressAnnotationsV1(entityProperties));
-		
-		// Call under test
-		backup = translator.createDatabaseObjectFromBackup(backup);
-		
-		assertEquals("a description", backup.getDescription());
-		assertNull(AnnotationUtils.decompressedAnnotationsV1(backup.getEntityPropertyAnnotations()).getSingleValue("description"));
+		String JSON = "{\"annotations\":{\"anno1\":{\"type\":\"DOUBLE\",\"value\":[\"1.2\"]}}}";
 
-	}
-	
-	@Test
-	public void testDescriptionMigrationWithNotString() throws IOException {
-		MigratableTableTranslation<DBORevision,DBORevision> translator = new DBORevision().getTranslator();
 
-		Annotations entityProperties = new Annotations();
-		
-		entityProperties.addAnnotation("description", 123L);
-		
-		DBORevision backup = new DBORevision();
-		
-		backup.setEntityPropertyAnnotations(AnnotationUtils.compressAnnotationsV1(entityProperties));
-		
-		// Call under test
-		backup = translator.createDatabaseObjectFromBackup(backup);
-		
-		assertNull(backup.getDescription());
-		assertEquals(123L, AnnotationUtils.decompressedAnnotationsV1(backup.getEntityPropertyAnnotations()).getSingleValue("description"));
+		DBORevision revision = new DBORevision();
+		revision.setUserAnnotationsJSON(JSON);
 
-	}
-	
-	@Test
-	public void testDescriptionMigrationWithBadEntityProperties() throws IOException {
-		MigratableTableTranslation<DBORevision,DBORevision> translator = new DBORevision().getTranslator();
-
-		Annotations entityProperties = new Annotations();
-		
-		entityProperties.addAnnotation("description", "a description");
-		
-		DBORevision backup = new DBORevision();
-		
-		backup.setEntityPropertyAnnotations(new byte[] {1, 2, 3});
-		
-		// Call under test
-		backup = translator.createDatabaseObjectFromBackup(backup);
-		
-		assertNull(backup.getDescription());
-		assertArrayEquals(new byte[] {1, 2, 3}, backup.getEntityPropertyAnnotations());
-
-	}
-	
-	@Test
-	public void testDescriptionMigrationWithNoDescription() throws IOException {
-		MigratableTableTranslation<DBORevision,DBORevision> translator = new DBORevision().getTranslator();
-
-		Annotations entityProperties = new Annotations();
-		
-		entityProperties.addAnnotation("something", "else");
-		
-		DBORevision backup = new DBORevision();
-		
-		backup.setEntityPropertyAnnotations(AnnotationUtils.compressAnnotationsV1(entityProperties));
-		
-		// Call under test
-		backup = translator.createDatabaseObjectFromBackup(backup);
-		
-		assertNull(backup.getDescription());
-		assertNull(AnnotationUtils.decompressedAnnotationsV1(backup.getEntityPropertyAnnotations()).getSingleValue("description"));
-
-	}
-	
-	@Test
-	public void testDescriptionMigrationWithNoEntityProperties() throws IOException {
-		MigratableTableTranslation<DBORevision,DBORevision> translator = new DBORevision().getTranslator();
-		
-		DBORevision backup = new DBORevision();
-		
-		backup.setEntityPropertyAnnotations(null);
-		
-		// Call under test
-		backup = translator.createDatabaseObjectFromBackup(backup);
-		
-		assertNull(backup.getDescription());
-		assertNull(backup.getEntityPropertyAnnotations());
-
-	}
-	
-	@Test
-	public void testDescriptionMigrationWithExisting() throws IOException {
-		MigratableTableTranslation<DBORevision,DBORevision> translator = new DBORevision().getTranslator();
-		
-		DBORevision backup = new DBORevision();
-		backup.setDescription("existing");
-		
-		Annotations entityProperties = new Annotations();
-		
-		entityProperties.addAnnotation("description", "a description");
-		
-		backup.setEntityPropertyAnnotations(AnnotationUtils.compressAnnotationsV1(entityProperties));
-		
-		// Call under test
-		backup = translator.createDatabaseObjectFromBackup(backup);
-		
-		assertEquals("existing", backup.getDescription());
-		assertEquals("a description", AnnotationUtils.decompressedAnnotationsV1(backup.getEntityPropertyAnnotations()).getSingleValue("description"));
-
+		//noting should change if the json is in a different format.
+		DBORevision modified = translator.createDatabaseObjectFromBackup(revision);
+		assertEquals(JSON, modified.getUserAnnotationsJSON());
 	}
 }
