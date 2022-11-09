@@ -120,7 +120,7 @@ public class DatasetMetadataIndexProviderTest {
 	public void testGetDefaultColumnModel() {
 		Long viewTypeMask = null;
 		DefaultColumnModel expected = DefaultColumnModel.builder(ViewObjectType.DATASET)
-		.withObjectField(Constants.FILE_DEFAULT_COLUMNS).withObjectField(Constants.DATASET_DEFAULT_COLUMNS).build();
+		.withObjectField(Constants.FILE_DEFAULT_COLUMNS).build();
 		// call under test
 		DefaultColumnModel model = provider.getDefaultColumnModel(viewTypeMask);
 		assertEquals(expected, model);

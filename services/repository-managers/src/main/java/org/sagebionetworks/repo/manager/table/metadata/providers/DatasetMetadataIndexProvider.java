@@ -33,7 +33,7 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 	private final NodeManager nodeManager;
 
 	static final DefaultColumnModel DATASET_FILE_COLUMNS = DefaultColumnModel.builder(ViewObjectType.DATASET)
-			.withObjectField(Constants.FILE_DEFAULT_COLUMNS).withObjectField(Constants.DATASET_DEFAULT_COLUMNS).build();
+			.withObjectField(Constants.FILE_DEFAULT_COLUMNS).build();
 
 	@Autowired
 	public DatasetMetadataIndexProvider(NodeDAO nodeDao, NodeManager nodeManager) {

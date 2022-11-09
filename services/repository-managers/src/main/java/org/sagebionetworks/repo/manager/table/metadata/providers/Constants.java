@@ -37,6 +37,8 @@ public class Constants {
 	};
 
 	static final ObjectField[] DATASET_DEFAULT_COLUMNS = new ObjectField[]{
+			ObjectField.datasetSizeInBytes,
+			ObjectField.datasetMD5Hex,
 			ObjectField.datasetItemCount
 	};
 	// @formatter:on
