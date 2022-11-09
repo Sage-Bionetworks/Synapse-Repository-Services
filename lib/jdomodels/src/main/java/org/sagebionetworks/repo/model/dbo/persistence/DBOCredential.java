@@ -7,11 +7,12 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
-public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DBOCredentialBackup> {
+public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DBOCredential> {
 	private Long principalId;
 	private String passHash;
 	private String secretKey;
@@ -21,6 +22,8 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 		new FieldColumn("passHash", SqlConstants.COL_CREDENTIAL_PASS_HASH), 
 		new FieldColumn("secretKey", SqlConstants.COL_CREDENTIAL_SECRET_KEY), 
 	};
+
+	private static final MigratableTableTranslation<DBOCredential, DBOCredential> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
 
 	@Override
 	public TableMapping<DBOCredential> getTableMapping() {
@@ -82,30 +85,11 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 	}
 	
 	@Override
-	public MigratableTableTranslation<DBOCredential, DBOCredentialBackup> getTranslator() {
-		return new MigratableTableTranslation<DBOCredential, DBOCredentialBackup>(){
-			@Override
-			public DBOCredential createDatabaseObjectFromBackup(DBOCredentialBackup backup) {
-				DBOCredential credential = new DBOCredential();
-				credential.setPassHash(backup.getPassHash());
-				credential.setPrincipalId(backup.getPrincipalId());
-				credential.setSecretKey(backup.getSecretKey());
-				return credential;
-			}
-			@Override
-			public DBOCredentialBackup createBackupFromDatabaseObject(DBOCredential dbo) {
-				DBOCredentialBackup backup = new DBOCredentialBackup();
-				backup.setPassHash(dbo.getPassHash());
-				backup.setPrincipalId(dbo.getPrincipalId());
-				backup.setSecretKey(dbo.getSecretKey());
-				return backup;
-			}
-		};
-	}
+	public MigratableTableTranslation<DBOCredential, DBOCredential> getTranslator() { return MIGRATION_MAPPER; }
 
 	@Override
-	public Class<? extends DBOCredentialBackup> getBackupClass() {
-		return DBOCredentialBackup.class;
+	public Class<? extends DBOCredential> getBackupClass() {
+		return DBOCredential.class;
 	}
 
 	@Override

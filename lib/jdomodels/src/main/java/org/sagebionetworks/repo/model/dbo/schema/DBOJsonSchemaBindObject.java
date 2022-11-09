@@ -212,9 +212,7 @@ public class DBOJsonSchemaBindObject
 	public static final MigratableTableTranslation<DBOJsonSchemaBindObject, DBOJsonSchemaBindObject> TRANSLATOR = new BasicMigratableTableTranslation<DBOJsonSchemaBindObject>();
 
 	@Override
-	public MigratableTableTranslation<DBOJsonSchemaBindObject, DBOJsonSchemaBindObject> getTranslator() {
-		return new BasicMigratableTableTranslation<>();
-	}
+	public MigratableTableTranslation<DBOJsonSchemaBindObject, DBOJsonSchemaBindObject> getTranslator() { return TRANSLATOR; }
 
 	@Override
 	public Class<? extends DBOJsonSchemaBindObject> getBackupClass() {

@@ -53,6 +53,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		new FieldColumn("concreteType", COL_ACCESS_REQUIREMENT_CONCRETE_TYPE),
 		};
 
+	private static final MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
 
 	@Override
 	public TableMapping<DBOAccessRequirement> getTableMapping() {
@@ -195,9 +196,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> getTranslator() {
-		return new BasicMigratableTableTranslation<>();
-	}
+	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> getTranslator() { return MIGRATION_MAPPER; }
 
 	@Override
 	public Class<? extends DBOAccessRequirement> getBackupClass() {

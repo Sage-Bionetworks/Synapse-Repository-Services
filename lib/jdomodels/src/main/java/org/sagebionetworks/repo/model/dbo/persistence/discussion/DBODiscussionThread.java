@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -240,6 +241,8 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 		this.modifiedOn = modifiedOn;
 	}
 
+	private static final MigratableTableTranslation<DBODiscussionThread, DBODiscussionThread> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
+
 	@Override
 	public TableMapping<DBODiscussionThread> getTableMapping() {
 		return new TableMapping<DBODiscussionThread>() {
@@ -290,9 +293,7 @@ public class DBODiscussionThread  implements MigratableDatabaseObject<DBODiscuss
 	}
 
 	@Override
-	public MigratableTableTranslation<DBODiscussionThread, DBODiscussionThread> getTranslator() {
-		return new BasicMigratableTableTranslation<>();
-	}
+	public MigratableTableTranslation<DBODiscussionThread, DBODiscussionThread> getTranslator() { return MIGRATION_MAPPER; }
 
 	@Override
 	public Class<? extends DBODiscussionThread> getBackupClass() {

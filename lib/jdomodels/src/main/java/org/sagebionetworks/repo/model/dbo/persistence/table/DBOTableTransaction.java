@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 import com.google.common.collect.Lists;
@@ -30,6 +31,8 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 			new FieldColumn("startedBy", COL_TABLE_TRX_STARTED_BY),
 			new FieldColumn("startedOn", COL_TABLE_TRX_STARTED_ON),
 			new FieldColumn("etag", COL_TABLE_TRX_ETAG).withIsEtag(true)};
+
+	private static final MigratableTableTranslation<DBOTableTransaction, DBOTableTransaction> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
 
 	Long transactionId;
 	Long tableId;
@@ -124,9 +127,7 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOTableTransaction, DBOTableTransaction> getTranslator() {
-		return new BasicMigratableTableTranslation<>();
-	}
+	public MigratableTableTranslation<DBOTableTransaction, DBOTableTransaction> getTranslator() { return MIGRATION_MAPPER; }
 
 	@Override
 	public Class<? extends DBOTableTransaction> getBackupClass() {
