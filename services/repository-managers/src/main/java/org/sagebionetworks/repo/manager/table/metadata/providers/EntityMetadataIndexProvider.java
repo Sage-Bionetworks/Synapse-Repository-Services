@@ -45,7 +45,8 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 			.withObjectField(Constants.BASIC_DEAFULT_COLUMNS).build();
 
 	static final DefaultColumnModel FILE_VIEW_DEFAULT_COLUMNS = DefaultColumnModel.builder(OBJECT_TYPE)
-			.withObjectField(Constants.FILE_DEFAULT_COLUMNS).build();
+			.withObjectField(Constants.BASIC_DEAFULT_COLUMNS)
+			.withObjectField(Constants.FILE_SPECIFIC_COLUMNS).build();
 
 	private final NodeManager nodeManager;
 	private final NodeDAO nodeDao;

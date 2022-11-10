@@ -15,19 +15,12 @@ public class Constants {
 					ObjectField.modifiedBy
 	};
 
-	static final ObjectField[] FILE_DEFAULT_COLUMNS = new ObjectField[] {
-					ObjectField.id, 
-					ObjectField.name, 
-					ObjectField.createdOn, 
-					ObjectField.createdBy,
-					ObjectField.etag, 
+	static final ObjectField[] FILE_SPECIFIC_COLUMNS = new ObjectField[] {
 					ObjectField.type, 
 					ObjectField.currentVersion, 
 					ObjectField.parentId,
 					ObjectField.benefactorId, 
-					ObjectField.projectId, 
-					ObjectField.modifiedOn, 
-					ObjectField.modifiedBy,
+					ObjectField.projectId,
 					ObjectField.dataFileHandleId,
 					ObjectField.dataFileSizeBytes, 
 					ObjectField.dataFileMD5Hex,
@@ -36,7 +29,7 @@ public class Constants {
 					ObjectField.dataFileKey
 	};
 
-	static final ObjectField[] DATASET_DEFAULT_COLUMNS = new ObjectField[]{
+	static final ObjectField[] DATASET_SPECIFIC_COLUMNS = new ObjectField[]{
 			ObjectField.datasetSizeInBytes,
 			ObjectField.datasetMD5Hex,
 			ObjectField.datasetItemCount
