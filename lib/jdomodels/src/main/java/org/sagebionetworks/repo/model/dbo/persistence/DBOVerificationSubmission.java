@@ -48,6 +48,8 @@ public class DBOVerificationSubmission implements
 
 	private static TableMapping<DBOVerificationSubmission> TABLE_MAPPING = AutoTableMapping.create(DBOVerificationSubmission.class);
 
+	private static final MigratableTableTranslation<DBOVerificationSubmission, DBOVerificationSubmission> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
+
 	@Override
 	public TableMapping<DBOVerificationSubmission> getTableMapping() {
 		return TABLE_MAPPING;
@@ -59,17 +61,7 @@ public class DBOVerificationSubmission implements
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOVerificationSubmission, DBOVerificationSubmission> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOVerificationSubmission>() {
-			@Override
-			public DBOVerificationSubmission createDatabaseObjectFromBackup(DBOVerificationSubmission backup) {
-				if (backup.getEtag() == null) {
-					backup.setEtag(UUID.randomUUID().toString());
-				}
-				return backup;
-			}
-		};
-	}
+	public MigratableTableTranslation<DBOVerificationSubmission, DBOVerificationSubmission> getTranslator() { return MIGRATION_MAPPER;}
 
 	@Override
 	public Class<? extends DBOVerificationSubmission> getBackupClass() {

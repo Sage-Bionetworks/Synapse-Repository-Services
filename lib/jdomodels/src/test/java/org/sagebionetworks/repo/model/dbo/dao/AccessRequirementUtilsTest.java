@@ -409,24 +409,4 @@ public class AccessRequirementUtilsTest {
 		
 		assertEquals("Cannot assign permissions to the public group.", message);
 	}
-	
-	@TemporaryCode(author = "john.hill@sagebase.org", comment = "One time migration of AR names.  Can be removed after all ARs have a name.")
-	@Test
-	public void testCreateDatabaseObjectFromBackupWithNullName() {
-		DBOAccessRequirement dbo = new DBOAccessRequirement();
-		dbo.setId(123L);
-		dbo.setName(null);
-		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
-		assertEquals("123", dbo.getName());
-	}
-	
-	@TemporaryCode(author = "john.hill@sagebase.org", comment = "One time migration of AR names.  Can be removed after all ARs have a name.")
-	@Test
-	public void testCreateDatabaseObjectFromBackupWithName() {
-		DBOAccessRequirement dbo = new DBOAccessRequirement();
-		dbo.setId(123L);
-		dbo.setName("foo");
-		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
-		assertEquals("foo", dbo.getName());
-	}
 }

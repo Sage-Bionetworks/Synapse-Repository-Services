@@ -59,26 +59,7 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 
 	private static final TableMapping<DBOStorageLocation> TABLE_MAPPING = AutoTableMapping.create(DBOStorageLocation.class);
 	
-	private static final MigratableTableTranslation<DBOStorageLocation, DBOStorageLocation> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<DBOStorageLocation>() {
-	
-	@Override
-		public DBOStorageLocation createDatabaseObjectFromBackup(DBOStorageLocation backup) {
-			StorageLocationSetting setting = backup.getData();
-			if (setting != null) {
-				if (setting instanceof ExternalGoogleCloudStorageLocationSetting) {
-					ExternalGoogleCloudStorageLocationSetting storageLocation = (ExternalGoogleCloudStorageLocationSetting) setting;
-					String sanitiedBaseKey = StorageLocationUtils.sanitizeBaseKey(storageLocation.getBaseKey());
-					storageLocation.setBaseKey(sanitiedBaseKey);
-					backup.setDataHash(null);
-				}
-				if (backup.getDataHash() == null) {
-					String settingHash = StorageLocationUtils.computeHash(setting);
-					backup.setDataHash(settingHash);
-				}
-			}
-			return backup;
-		}
-	};
+	private static final MigratableTableTranslation<DBOStorageLocation, DBOStorageLocation> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
 
 	@Override
 	public TableMapping<DBOStorageLocation> getTableMapping() {

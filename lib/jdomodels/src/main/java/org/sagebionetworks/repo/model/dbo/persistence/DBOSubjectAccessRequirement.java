@@ -12,16 +12,14 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.ar.BindingType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.DBOSubjectAccessRequirementBackup;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBOSubjectAccessRequirement, DBOSubjectAccessRequirementBackup> {
+public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBOSubjectAccessRequirement, DBOSubjectAccessRequirement> {
 
 	private Long subjectId;
 	private String subjectType;
@@ -34,6 +32,8 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 		new FieldColumn("accessRequirementId", COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID).withIsBackupId(true),
 		new FieldColumn("bindingType", COL_SUBJECT_ACCESS_REQUIREMENT_BINDING_TYPE, true),
 	};
+
+	private static final MigratableTableTranslation<DBOSubjectAccessRequirement, DBOSubjectAccessRequirement> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
 
 	@Override
 	public TableMapping<DBOSubjectAccessRequirement> getTableMapping() {
@@ -140,42 +140,11 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOSubjectAccessRequirement, DBOSubjectAccessRequirementBackup> getTranslator() {
-
-		return new MigratableTableTranslation<DBOSubjectAccessRequirement, DBOSubjectAccessRequirementBackup>(){
-
-			@Override
-			public DBOSubjectAccessRequirement createDatabaseObjectFromBackup(
-					DBOSubjectAccessRequirementBackup backup) {
-				DBOSubjectAccessRequirement dbo = new DBOSubjectAccessRequirement();
-				dbo.setAccessRequirementId(backup.getAccessRequirementId());
-				if (null==backup.getSubjectType()) {
-					dbo.setSubjectId(backup.getNodeId());
-					dbo.setSubjectType(RestrictableObjectType.ENTITY.toString());
-				} else {
-					dbo.setSubjectId(backup.getSubjectId());
-					dbo.setSubjectType(backup.getSubjectType());
-				}
-				dbo.setBindingType(Objects.requireNonNullElse(backup.getBindingType(), BindingType.MANUAL.name()));
-				return dbo;
-			}
-
-			@Override
-			public DBOSubjectAccessRequirementBackup createBackupFromDatabaseObject(
-					DBOSubjectAccessRequirement dbo) {
-				DBOSubjectAccessRequirementBackup backup = new DBOSubjectAccessRequirementBackup();
-				backup.setAccessRequirementId(dbo.getAccessRequirementId());
-				backup.setSubjectId(dbo.getSubjectId());
-				backup.setSubjectType(dbo.getSubjectType());
-				backup.setBindingType(dbo.getBindingType());
-				return backup;
-			}
-		};
-	}
+	public MigratableTableTranslation<DBOSubjectAccessRequirement, DBOSubjectAccessRequirement> getTranslator() { return MIGRATION_MAPPER; }
 
 	@Override
-	public Class<? extends DBOSubjectAccessRequirementBackup> getBackupClass() {
-		return DBOSubjectAccessRequirementBackup.class;
+	public Class<? extends DBOSubjectAccessRequirement> getBackupClass() {
+		return DBOSubjectAccessRequirement.class;
 	}
 
 	@Override

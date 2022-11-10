@@ -23,6 +23,7 @@ import java.util.Objects;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.util.TemporaryCode;
@@ -52,6 +53,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		new FieldColumn("concreteType", COL_ACCESS_REQUIREMENT_CONCRETE_TYPE),
 		};
 
+	private static final MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
 
 	@Override
 	public TableMapping<DBOAccessRequirement> getTableMapping() {
@@ -193,24 +195,8 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		return MigrationType.ACCESS_REQUIREMENT;
 	}
 
-	@TemporaryCode(author = "john.hill@sagebase.org", comment = "One time migration of AR names.  Can be removed after all ARs have a name.")
 	@Override
-	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> getTranslator() {
-		return new  MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement>(){
-
-			@Override
-			public DBOAccessRequirement createDatabaseObjectFromBackup(DBOAccessRequirement backup) {
-				if(backup.getName() == null) {
-					backup.setName(backup.getId().toString());
-				}
-				return backup;
-			}
-
-			@Override
-			public DBOAccessRequirement createBackupFromDatabaseObject(DBOAccessRequirement dbo) {
-				return dbo;
-			}};
-	}
+	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> getTranslator() { return MIGRATION_MAPPER; }
 
 	@Override
 	public Class<? extends DBOAccessRequirement> getBackupClass() {

@@ -212,23 +212,7 @@ public class DBOJsonSchemaBindObject
 	public static final MigratableTableTranslation<DBOJsonSchemaBindObject, DBOJsonSchemaBindObject> TRANSLATOR = new BasicMigratableTableTranslation<DBOJsonSchemaBindObject>();
 
 	@Override
-	public MigratableTableTranslation<DBOJsonSchemaBindObject, DBOJsonSchemaBindObject> getTranslator() {
-		return new MigratableTableTranslation<DBOJsonSchemaBindObject, DBOJsonSchemaBindObject>() {
-			
-			@Override
-			public DBOJsonSchemaBindObject createDatabaseObjectFromBackup(DBOJsonSchemaBindObject backup) {
-				if(backup.getEnableDerived() == null) {
-					backup.setEnableDerived(Boolean.FALSE);
-				}
-				return backup;
-			}
-			
-			@Override
-			public DBOJsonSchemaBindObject createBackupFromDatabaseObject(DBOJsonSchemaBindObject dbo) {
-				return dbo;
-			}
-		};
-	}
+	public MigratableTableTranslation<DBOJsonSchemaBindObject, DBOJsonSchemaBindObject> getTranslator() { return TRANSLATOR; }
 
 	@Override
 	public Class<? extends DBOJsonSchemaBindObject> getBackupClass() {

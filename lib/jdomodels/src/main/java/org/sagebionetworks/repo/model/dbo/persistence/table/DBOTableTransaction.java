@@ -16,7 +16,9 @@ import java.util.UUID;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 import com.google.common.collect.Lists;
@@ -29,6 +31,8 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 			new FieldColumn("startedBy", COL_TABLE_TRX_STARTED_BY),
 			new FieldColumn("startedOn", COL_TABLE_TRX_STARTED_ON),
 			new FieldColumn("etag", COL_TABLE_TRX_ETAG).withIsEtag(true)};
+
+	private static final MigratableTableTranslation<DBOTableTransaction, DBOTableTransaction> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
 
 	Long transactionId;
 	Long tableId;
@@ -123,26 +127,7 @@ public class DBOTableTransaction implements MigratableDatabaseObject<DBOTableTra
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOTableTransaction, DBOTableTransaction> getTranslator() {
-		return new MigratableTableTranslation<DBOTableTransaction, DBOTableTransaction>(){
-
-			@Override
-			public DBOTableTransaction createDatabaseObjectFromBackup(DBOTableTransaction backup) {
-				/*
-				 *  This DBO did not start out with an etag.  The etag was added to support
-				 *  linking a a transaction to a table's version.
-				 */
-				if(backup.getEtag() == null) {
-					backup.setEtag(UUID.randomUUID().toString());
-				}
-				return backup;
-			}
-
-			@Override
-			public DBOTableTransaction createBackupFromDatabaseObject(DBOTableTransaction dbo) {
-				return dbo;
-			}};
-	}
+	public MigratableTableTranslation<DBOTableTransaction, DBOTableTransaction> getTranslator() { return MIGRATION_MAPPER; }
 
 	@Override
 	public Class<? extends DBOTableTransaction> getBackupClass() {

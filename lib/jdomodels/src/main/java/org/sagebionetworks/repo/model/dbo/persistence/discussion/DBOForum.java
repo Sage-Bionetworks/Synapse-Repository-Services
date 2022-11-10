@@ -14,7 +14,9 @@ import java.util.UUID;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -33,6 +35,8 @@ public class DBOForum implements MigratableDatabaseObject<DBOForum, DBOForum>{
 	private Long id;
 	private Long projectId;
 	private String etag;
+
+	private static final MigratableTableTranslation<DBOForum, DBOForum> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
 
 	public String getEtag() {
 		return etag;
@@ -142,27 +146,7 @@ public class DBOForum implements MigratableDatabaseObject<DBOForum, DBOForum>{
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOForum, DBOForum> getTranslator() {
-		return new MigratableTableTranslation<DBOForum, DBOForum>() {
-
-			@Override
-			public DBOForum createDatabaseObjectFromBackup(DBOForum backup) {
-				if (backup.getEtag() == null) {
-					backup.setEtag(UUID.randomUUID().toString());
-				}
-				return backup;
-			}
-
-			@Override
-			public DBOForum createBackupFromDatabaseObject(DBOForum dbo) {
-				if (dbo.getEtag() == null) {
-					dbo.setEtag(UUID.randomUUID().toString());
-				}
-				return dbo;
-			}
-			
-		};
-	}
+	public MigratableTableTranslation<DBOForum, DBOForum> getTranslator() { return MIGRATION_MAPPER;	}
 
 	@Override
 	public Class<? extends DBOForum> getBackupClass() {

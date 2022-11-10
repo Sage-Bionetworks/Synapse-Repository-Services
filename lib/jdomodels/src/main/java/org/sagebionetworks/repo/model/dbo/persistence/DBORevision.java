@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -49,37 +50,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	
 	public static final Log LOG = LogFactory.getLog(DBORevision.class);
 
-	static final MigratableTableTranslation<DBORevision, DBORevision> TRANSLATOR = new MigratableTableTranslation<DBORevision, DBORevision>() {
-				
-		@Override
-		public DBORevision createBackupFromDatabaseObject(DBORevision dbo) {
-			return dbo;
-		}
-		
-		@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "To be removed after stack 426 is released")
-		@Override
-		public DBORevision createDatabaseObjectFromBackup(DBORevision backup) {
-			// Backfil for https://sagebionetworks.jira.com/browse/PLFM-7486
-			if (backup.getDescription() == null && backup.getEntityPropertyAnnotations() != null) {
-				try {
-					Annotations entityProperties = AnnotationUtils.decompressedAnnotationsV1(backup.getEntityPropertyAnnotations());
-					
-					Object descriptionValue = entityProperties.getSingleValue("description");
-					
-					if (descriptionValue != null && descriptionValue instanceof String) {
-						backup.setDescription((String) descriptionValue);
-						entityProperties.deleteAnnotation("description");
-						backup.setEntityPropertyAnnotations(AnnotationUtils.compressAnnotationsV1(entityProperties));
-					}
-					
-				} catch (IOException e) {
-					LOG.warn(e.getMessage(), e);					
-				}
-			}
-			
-			return backup;
-		}
-	};
+	static final MigratableTableTranslation<DBORevision, DBORevision> TRANSLATOR = new BasicMigratableTableTranslation<>();
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		// This is a sub-table of node, so it gets backed up with nodes using the node ids

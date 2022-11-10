@@ -14,7 +14,9 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -32,7 +34,9 @@ public class DBOBoundColumnOrdinal implements MigratableDatabaseObject<DBOBoundC
 		new FieldColumn("objectVersion", COL_BOUND_CM_ORD_OBJECT_VERSION, true),
 		new FieldColumn("ordinal", COL_BOUND_CM_ORD_ORDINAL),
 	};
-	
+
+	private static final MigratableTableTranslation<DBOBoundColumnOrdinal, DBOBoundColumnOrdinal> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
+
 	Long columnId;
 	Long objectId;
 	Long objectVersion;
@@ -103,24 +107,7 @@ public class DBOBoundColumnOrdinal implements MigratableDatabaseObject<DBOBoundC
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOBoundColumnOrdinal, DBOBoundColumnOrdinal> getTranslator() {
-		return new MigratableTableTranslation<DBOBoundColumnOrdinal, DBOBoundColumnOrdinal>(){
-
-			@Override
-			public DBOBoundColumnOrdinal createDatabaseObjectFromBackup(DBOBoundColumnOrdinal backup) {
-				if(backup.getObjectVersion() == null) {
-					backup.setObjectVersion(DEFAULT_NULL_VERSION);
-				}
-				return backup;
-			}
-
-			@Override
-			public DBOBoundColumnOrdinal createBackupFromDatabaseObject(DBOBoundColumnOrdinal dbo) {
-				return dbo;
-			}
-			
-		};
-	}
+	public MigratableTableTranslation<DBOBoundColumnOrdinal, DBOBoundColumnOrdinal> getTranslator() { return MIGRATION_MAPPER; }
 
 	@Override
 	public Class<? extends DBOBoundColumnOrdinal> getBackupClass() {

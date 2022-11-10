@@ -35,7 +35,6 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.MigrationTypeProvider;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredentialBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
@@ -137,7 +136,7 @@ public class BackupFileStreamImplTest {
 				.alias(SqlConstants.TABLE_ACCESS_CONTROL_LIST, DBOAccessControlList.class)
 				.alias(SqlConstants.TABLE_RESOURCE_ACCESS, DBOResourceAccess.class)
 				.alias(SqlConstants.TABLE_RESOURCE_ACCESS_TYPE, DBOResourceAccessType.class)
-				.alias(SqlConstants.TABLE_CREDENTIAL, DBOCredentialBackup.class).build();
+				.alias(SqlConstants.TABLE_CREDENTIAL, DBOCredential.class).build();
 		migrationTypeXStream = UnmodifiableXStream.builder().build();
 		when(mockTypeProvider.getXStream(BackupAliasType.TABLE_NAME)).thenReturn(tableNameXStream);
 		when(mockTypeProvider.getXStream(BackupAliasType.MIGRATION_TYPE_NAME)).thenReturn(migrationTypeXStream);
