@@ -38,7 +38,7 @@ public class QuerySpecificationDetails {
 				.createColumnNameToModelMap(tableAndColumnMapper.getUnionOfAllTableSchemas());
 
 		this.selectColumns = SQLTranslatorUtils.getSelectColumns(querySpecification.getSelectList(),
-				tableAndColumnMapper, querySpecification.isElementAggregate());
+				tableAndColumnMapper, querySpecification.hasAnyAggregateElements());
 		this.maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(selectColumns, columnNameToModelMap);
 	}
 	

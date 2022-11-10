@@ -121,10 +121,18 @@ public class SqlQuery {
 	 * @param columnNameToModelMap
 	 * @throws ParseException
 	 */
-	SqlQuery(QueryExpression parsedModel, SchemaProvider schemaProvider, Long overrideOffset, Long overrideLimit,
-			Long maxBytesPerPage, List<SortItem> sortList, Boolean includeEntityEtag,
-			List<FacetColumnRequest> selectedFacets, List<QueryFilter> additionalFilters, Long userId,
-			IndexDescription indexDescription, SqlContext sqlContextIn) {
+	SqlQuery(QueryExpression parsedModel,
+			SchemaProvider schemaProvider,
+			Long overrideOffset,
+			Long overrideLimit,
+			Long maxBytesPerPage,
+			List<SortItem> sortList,
+			Boolean includeEntityEtag,
+			List<FacetColumnRequest> selectedFacets,
+			List<QueryFilter> additionalFilters,
+			Long userId,
+			IndexDescription indexDescription,
+			SqlContext sqlContextIn) {
 		try {
 
 			ValidateArgument.required(schemaProvider, "schemaProvider");
@@ -145,6 +153,7 @@ public class SqlQuery {
 			this.indexDescription = indexDescription;
 			// A copy of the original model will be transformed.
 			this.transformedModel = new TableQueryParser(model.toSql()).queryExpression();
+			this.transformedModel.setSqlContext(this.sqlContext);
 
 			// only a view can include the etag
 			if (indexDescription.getTableType().isViewEntityType() && includeEntityEtag != null) {
@@ -167,6 +176,10 @@ public class SqlQuery {
 				lastDetails = details;
 				setIdsVersion.addAll(details.getTableAndColumnMapper().getTableIds());
 				columModelUnionSet.addAll(details.getTableAndColumnMapper().getUnionOfAllTableSchemas());
+			}
+			
+			if(!SqlContext.build.equals(this.sqlContext) && allDetails.size() > 1) {
+				throw new IllegalArgumentException("UNION not supported in this context");
 			}
 
 			this.allTableIds = setIdsVersion.stream().collect(Collectors.toList());
