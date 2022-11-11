@@ -241,11 +241,11 @@ public class EntityMetadataIndexProviderUnitTest {
 	}
 
 	@Test
-	public void testDefaultColumnModelExcludingFileMask() {
+	public void testDefaultColumnModelExcludingFileMaskAndDatasetCollection() {
 		Long viewTypeMask = 0L;
 
 		for (ViewTypeMask type : ViewTypeMask.values()) {
-			if (type != ViewTypeMask.File) {
+			if (type != ViewTypeMask.File && type != ViewTypeMask.DatasetCollection) {
 				viewTypeMask |= type.getMask();
 			}
 		}
