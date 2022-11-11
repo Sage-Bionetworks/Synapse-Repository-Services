@@ -59,10 +59,13 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.AmazonServiceException.ErrorType;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -564,19 +567,27 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		File tempFile = null;
 		List<String> schema;
 		try {
-			TableIndexDAO tableIndex = tableConnectionFactory.getConnection(idAndVersion);
 			tempFile = fileProvider.createTempFile("table", ".csv");
 			// Stream view data from the replication database to a local CSV file.
 			try (CSVWriter writer = new CSVWriter(fileProvider.createWriter(
-					fileProvider.createGZIPOutputStream(fileProvider.createFileOutputStream(tempFile)),
-					StandardCharsets.UTF_8))) {
+					fileProvider.createGZIPOutputStream(
+						fileProvider.createFileOutputStream(tempFile)), StandardCharsets.UTF_8)
+					)) {
 				// write the snapshot to the temp file.
+				TableIndexDAO tableIndex = tableConnectionFactory.getConnection(idAndVersion);
 				schema = tableIndex.streamTableToCSV(idAndVersion, writer::writeNext);
 			}
 			// upload the resulting CSV to S3.
 			s3Client.putObject(new PutObjectRequest(bucket, key, tempFile));
+		} catch (AmazonServiceException e) {
+			// An amazon service exception can be retried later
+			if (ErrorType.Service == e.getErrorType()) {
+				throw new RecoverableMessageException(e);
+			}
+			throw e;
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			// We can retry if something goes wrong creating or reading the temp file
+			throw new RecoverableMessageException(e);
 		} finally {
 			// unconditionally delete the temporary file.
 			if (tempFile != null) {

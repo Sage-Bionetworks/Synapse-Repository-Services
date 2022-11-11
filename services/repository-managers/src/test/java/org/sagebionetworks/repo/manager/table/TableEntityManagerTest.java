@@ -122,7 +122,6 @@ import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.google.common.collect.ImmutableMap;
@@ -2306,35 +2305,7 @@ public class TableEntityManagerTest {
 		verify(mockTableIndexDAO, never()).streamTableToCSV(any(), any());
 		verify(mockTableSnapshotDao, never()).createSnapshot(any());
 	}
-	
-	@Test
-	public void testStoreTableSnapshotWithErrorStreaming() throws Exception {
-		idAndVersion = IdAndVersion.parse("syn123.2");
 		
-		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
-		when(mockTableSnapshotDao.getSnapshot(any())).thenReturn(Optional.empty());
-		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.AVAILABLE));
-		when(mockConfig.getTableSnapshotBucketName()).thenReturn("bucket");
-		
-		RuntimeException ex = new RuntimeException("some error");
-		
-		when(mockTableManagerSupport.streamTableToS3(any(), any(), any())).thenThrow(ex);
-		
-		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
-			// Call under test
-			manager.storeTableSnapshot(idAndVersion);
-		});
-		
-		assertEquals(ex, result.getCause());
-		
-		verify(mockTableManagerSupport).getTableType(idAndVersion);
-		verify(mockTableSnapshotDao).getSnapshot(idAndVersion);
-		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
-		verify(mockTableManagerSupport).streamTableToS3(eq(idAndVersion), eq("bucket"), any());
-		verify(mockTableIndexDAO, never()).streamTableToCSV(any(), any());
-		verify(mockTableSnapshotDao, never()).createSnapshot(any());
-	}
-	
 	/**
 	 * Helper to create a list of TableRowChange for the given tableId and count.
 	 * @param tableId

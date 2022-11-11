@@ -90,7 +90,6 @@ import org.sagebionetworks.table.model.TableChange;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -1097,11 +1096,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		String bucket = config.getTableSnapshotBucketName();
 		String key = tableId + "/" + UUID.randomUUID().toString() + ".csv.gzip";
 		
-		try {
-			tableManagerSupport.streamTableToS3(tableId, bucket, key);
-		} catch (RuntimeException ex) {
-			throw new RecoverableMessageException(ex);
-		}
+		tableManagerSupport.streamTableToS3(tableId, bucket, key);
 		
 		tableSnapshotDao.createSnapshot(new TableSnapshot()
 			.withTableId(tableId.getId())

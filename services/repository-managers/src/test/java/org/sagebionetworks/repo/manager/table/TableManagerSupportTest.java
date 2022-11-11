@@ -91,8 +91,11 @@ import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.TimeoutUtils;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.AmazonServiceException.ErrorType;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -1110,7 +1113,7 @@ public class TableManagerSupportTest {
 		String bucket = "snapshot.bucket";
 		String key = "key";
 		
-		RuntimeException result = assertThrows(RuntimeException.class, () -> {			
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
 			// call under test
 			manager.streamTableToS3(idAndVersion, bucket, key);
 		});
@@ -1119,6 +1122,64 @@ public class TableManagerSupportTest {
 		
 		verify(mockFileProvider).createTempFile("table", ".csv");
 		verify(mockTableIndexDAO, never()).streamTableToCSV(any(), any());
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testStreamTableToS3WithAmazonServiceException() throws IOException {
+		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		when(mockFileProvider.createFileOutputStream(any())).thenReturn(mockOutStream);
+		when(mockFileProvider.createGZIPOutputStream(any())).thenReturn(mockGzipOutStream);
+		when(mockFileProvider.createWriter(any(), any())).thenReturn(new StringWriter());
+		when(mockTableIndexDAO.streamTableToCSV(any(), any())).thenReturn(columnIds);
+		
+		AmazonServiceException ex = new AmazonServiceException("nope");
+		ex.setErrorType(ErrorType.Service);
+		
+		when(mockS3Client.putObject(any())).thenThrow(ex);
+		
+		String bucket = "snapshot.bucket";
+		String key = "key";
+		
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
+			// call under test
+			manager.streamTableToS3(idAndVersion, bucket, key);
+		});
+		
+		assertEquals(ex, result.getCause());
+		
+		verify(mockFileProvider).createTempFile("table", ".csv");
+		verify(mockTableIndexDAO).streamTableToCSV(eq(idAndVersion), any());
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testStreamTableToS3WithAmazonClientException() throws IOException {
+		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		when(mockFileProvider.createFileOutputStream(any())).thenReturn(mockOutStream);
+		when(mockFileProvider.createGZIPOutputStream(any())).thenReturn(mockGzipOutStream);
+		when(mockFileProvider.createWriter(any(), any())).thenReturn(new StringWriter());
+		when(mockTableIndexDAO.streamTableToCSV(any(), any())).thenReturn(columnIds);
+		
+		AmazonServiceException ex = new AmazonServiceException("nope");
+		ex.setErrorType(ErrorType.Client);
+		
+		when(mockS3Client.putObject(any())).thenThrow(ex);
+		
+		String bucket = "snapshot.bucket";
+		String key = "key";
+		
+		AmazonServiceException result = assertThrows(AmazonServiceException.class, () -> {			
+			// call under test
+			manager.streamTableToS3(idAndVersion, bucket, key);
+		});
+		
+		assertEquals(ex, result);
+		
+		verify(mockFileProvider).createTempFile("table", ".csv");
+		verify(mockTableIndexDAO).streamTableToCSV(eq(idAndVersion), any());
 		verify(mockFile).delete();
 	}
 }
