@@ -76,10 +76,6 @@ public class DatasetCollectionIntegrationTest {
 	private UserInfo userInfo;
 	private Project project;
 	private ColumnModel stringColumn;
-	private ColumnModel descriptionColumn;
-	private ColumnModel datasetMD5;
-	private ColumnModel datasetSize;
-	private ColumnModel datasetCount;
 	private List<String> defaultColumnIdList = new ArrayList<>();
 
 	@BeforeEach
@@ -97,11 +93,6 @@ public class DatasetCollectionIntegrationTest {
 		stringColumn.setColumnType(ColumnType.STRING);
 		stringColumn.setMaximumSize(50L);
 		stringColumn = columnModelManager.createColumnModel(userInfo, stringColumn);
-		
-		descriptionColumn = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION, ObjectField.description).get(0);
-		datasetMD5 = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION,ObjectField.datasetMD5Hex).get(0);
-		datasetSize = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION,ObjectField.datasetSizeInBytes).get(0);
-		datasetCount = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION,ObjectField.datasetItemCount).get(0);
 
 		DefaultColumnModel defaultColumnModel = provider.getDefaultColumnModel(null);
 		List<ColumnModel> columnModels = defaultColumnMapper.map(defaultColumnModel);
@@ -168,16 +159,17 @@ public class DatasetCollectionIntegrationTest {
  		DatasetCollection collection = asyncHelper.createDatasetCollection(userInfo, new DatasetCollection()
 				.setParentId(project.getId())
 				.setName("Dataset Collection")
-				.setColumnIds(Arrays.asList(descriptionColumn.getId(), datasetMD5.getId(),
-						datasetSize.getId(), datasetCount.getId()))
+				.setColumnIds(defaultColumnIdList)
 				.setItems(List.of(
 						new EntityRef().setEntityId(datasetOne.getId()).setVersionNumber(snapshotVersion)
 				)));
 
 		List<Row> expectedRows = Arrays.asList(
 				new Row().setRowId(KeyFactory.stringToKey(datasetOne.getId())).setVersionNumber(snapshotVersion)
-						.setEtag(datasetOne.getEtag()).setValues(Arrays.asList(datasetOne.getDescription(),
-								null, null, null))
+						.setEtag(datasetOne.getEtag()).setValues(Arrays.asList(datasetOne.getId(), datasetOne.getName(),
+								datasetOne.getDescription(), Long.toString(datasetOne.getCreatedOn().getTime()), datasetOne.getCreatedBy(),
+								datasetOne.getEtag(), Long.toString(datasetOne.getModifiedOn().getTime()), datasetOne.getModifiedBy(),
+								"0", null, "0"))
 		);
 
 		// call under test
@@ -228,8 +220,7 @@ public class DatasetCollectionIntegrationTest {
 			assertEquals(1L, response.getSnapshotVersionNumber());
 		}, MAX_WAIT).getResponse().getSnapshotVersionNumber();
 
-		// we need snapshot version of dataset as dataset collection uses the oldest version of dataset.
-		// snapshot version is not present in Node table so etag is not available. to get etag, need the latest version of dataset
+		// Etag is not available for snapshot version.To get etag, need the latest version of dataset
 		Dataset datasetSnapshot = entityManager.getEntityForVersion(userInfo, dataset.getId(), dataset.getVersionNumber(), Dataset.class);
 		Dataset latestDataset = entityManager.getEntity(userInfo, dataset.getId(), Dataset.class);
 		datasetSnapshot.setEtag(latestDataset.getEtag());
