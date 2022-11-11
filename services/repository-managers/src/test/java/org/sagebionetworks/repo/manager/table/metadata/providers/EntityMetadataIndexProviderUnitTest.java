@@ -208,6 +208,17 @@ public class EntityMetadataIndexProviderUnitTest {
 	}
 
 	@Test
+	public void testDefaultColumnModelWithDatasetCollectionMask() {
+		Long viewTypeMask = ViewTypeMask.DatasetCollection.getMask();
+
+		DefaultColumnModel expected = EntityMetadataIndexProvider.DATASET_COLLECTION_DEFAULT_COLUMNS;
+		// Call under test
+		DefaultColumnModel model = provider.getDefaultColumnModel(viewTypeMask);
+
+		assertEquals(expected, model);
+	}
+
+	@Test
 	public void testDefaultColumnModelWithFileAndTableMask() {
 		Long viewTypeMask = ViewTypeMask.File.getMask() | ViewTypeMask.Table.getMask();
 

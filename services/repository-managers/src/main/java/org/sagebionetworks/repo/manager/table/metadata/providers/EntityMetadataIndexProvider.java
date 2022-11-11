@@ -48,6 +48,10 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 			.withObjectField(Constants.BASIC_DEAFULT_COLUMNS)
 			.withObjectField(Constants.FILE_SPECIFIC_COLUMNS).build();
 
+	static final DefaultColumnModel DATASET_COLLECTION_DEFAULT_COLUMNS = DefaultColumnModel.builder(OBJECT_TYPE)
+			.withObjectField(Constants.BASIC_DEAFULT_COLUMNS)
+			.withObjectField(Constants.DATASET_SPECIFIC_COLUMNS).build();
+
 	private final NodeManager nodeManager;
 	private final NodeDAO nodeDao;
 	private final ViewScopeDao viewScopeDao;
@@ -81,7 +85,10 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 		if ((viewTypeMask & ViewTypeMask.File.getMask()) > 0) {
 			// mask includes files so return file columns.
 			return FILE_VIEW_DEFAULT_COLUMNS;
-		} else {
+		}
+		else if((viewTypeMask & ViewTypeMask.DatasetCollection.getMask()) > 0){
+			return DATASET_COLLECTION_DEFAULT_COLUMNS;
+		}else {
 			// mask does not include files so return basic entity columns.
 			return BASIC_ENTITY_DEAFULT_COLUMNS;
 		}
