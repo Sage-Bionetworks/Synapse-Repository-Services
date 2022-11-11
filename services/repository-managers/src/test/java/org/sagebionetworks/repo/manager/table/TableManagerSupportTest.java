@@ -1113,7 +1113,7 @@ public class TableManagerSupportTest {
 		String bucket = "snapshot.bucket";
 		String key = "key";
 		
-		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
+		RuntimeException result = assertThrows(RuntimeException.class, () -> {			
 			// call under test
 			manager.streamTableToS3(idAndVersion, bucket, key);
 		});

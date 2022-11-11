@@ -586,8 +586,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			}
 			throw e;
 		} catch (IOException e) {
-			// We can retry if something goes wrong creating or reading the temp file
-			throw new RecoverableMessageException(e);
+			// We cannot really do much with IOExceptions on files here (e.g. if we run out of space there is not point in retrying as that could happen again on another instance)
+			throw new RuntimeException(e);
 		} finally {
 			// unconditionally delete the temporary file.
 			if (tempFile != null) {
