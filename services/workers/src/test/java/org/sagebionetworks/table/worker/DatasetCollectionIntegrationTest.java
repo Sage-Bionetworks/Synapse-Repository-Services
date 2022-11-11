@@ -2,10 +2,12 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,7 +16,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
+import org.sagebionetworks.repo.manager.table.metadata.providers.DatasetCollectionMetadataIndexProvider;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
@@ -66,6 +70,8 @@ public class DatasetCollectionIntegrationTest {
 	private DefaultColumnModelMapper defaultColumnMapper;
 	@Autowired
 	private FileHandleDao fileHandleDao;
+	@Autowired
+	private DatasetCollectionMetadataIndexProvider provider;
 	
 	private UserInfo userInfo;
 	private Project project;
@@ -74,7 +80,8 @@ public class DatasetCollectionIntegrationTest {
 	private ColumnModel datasetMD5;
 	private ColumnModel datasetSize;
 	private ColumnModel datasetCount;
-	
+	private List<String> defaultColumnIdList = new ArrayList<>();
+
 	@BeforeEach
 	public void before() throws Exception {
 
@@ -95,6 +102,10 @@ public class DatasetCollectionIntegrationTest {
 		datasetMD5 = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION,ObjectField.datasetMD5Hex).get(0);
 		datasetSize = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION,ObjectField.datasetSizeInBytes).get(0);
 		datasetCount = defaultColumnMapper.getColumnModels(ViewObjectType.DATASET_COLLECTION,ObjectField.datasetItemCount).get(0);
+
+		DefaultColumnModel defaultColumnModel = provider.getDefaultColumnModel(null);
+		List<ColumnModel> columnModels = defaultColumnMapper.map(defaultColumnModel);
+		defaultColumnIdList = columnModels.stream().map(ColumnModel::getId).collect(Collectors.toList());
 	}
 
 	@AfterEach
@@ -113,12 +124,10 @@ public class DatasetCollectionIntegrationTest {
 		Dataset datasetTwo = createDatasetAndSnapshot();
 
 		Long snapshotVersion = 1L;
-
 		DatasetCollection collection = asyncHelper.createDatasetCollection(userInfo, new DatasetCollection()
 			.setParentId(project.getId())
 			.setName("Dataset Collection")
-			.setColumnIds(Arrays.asList(stringColumn.getId(), descriptionColumn.getId(), datasetMD5.getId(),
-					datasetSize.getId(), datasetCount.getId()))
+				.setColumnIds(defaultColumnIdList)
 			.setItems(List.of(
 				new EntityRef().setEntityId(datasetOne.getId()).setVersionNumber(snapshotVersion),
 				new EntityRef().setEntityId(datasetTwo.getId()).setVersionNumber(snapshotVersion)
@@ -126,12 +135,15 @@ public class DatasetCollectionIntegrationTest {
 
 		List<Row> expectedRows = Arrays.asList(
 			new Row().setRowId(KeyFactory.stringToKey(datasetOne.getId())).setVersionNumber(snapshotVersion)
-					.setEtag(datasetOne.getEtag()).setValues(Arrays.asList(datasetOne.getId(),
-							datasetOne.getDescription(), datasetOne.getChecksum(),
-							datasetOne.getSize().toString(), datasetOne.getCount().toString())),
-			new Row().setRowId(KeyFactory.stringToKey(datasetTwo.getId())).setVersionNumber(snapshotVersion)
-					.setEtag(datasetTwo.getEtag()).setValues(Arrays.asList(datasetTwo.getId(), datasetTwo.getDescription(),
-							datasetTwo.getChecksum(), datasetTwo.getSize().toString(), datasetTwo.getCount().toString()))
+					.setEtag(datasetOne.getEtag()).setValues(Arrays.asList(datasetOne.getId(), datasetOne.getName(),
+							datasetOne.getDescription(), Long.toString(datasetOne.getCreatedOn().getTime()), datasetOne.getCreatedBy(),
+							datasetOne.getEtag(), Long.toString(datasetOne.getModifiedOn().getTime()), datasetOne.getModifiedBy(),
+							datasetOne.getSize().toString(), datasetOne.getChecksum(), datasetOne.getCount().toString())),
+				new Row().setRowId(KeyFactory.stringToKey(datasetTwo.getId())).setVersionNumber(snapshotVersion)
+						.setEtag(datasetTwo.getEtag()).setValues(Arrays.asList(datasetTwo.getId(), datasetTwo.getName(),
+								datasetTwo.getDescription(), Long.toString(datasetTwo.getCreatedOn().getTime()), datasetTwo.getCreatedBy(),
+								datasetTwo.getEtag(), Long.toString(datasetTwo.getModifiedOn().getTime()), datasetTwo.getModifiedBy(),
+								datasetTwo.getSize().toString(), datasetTwo.getChecksum(), datasetTwo.getCount().toString()))
 		);
 
 		// call under test
@@ -215,8 +227,14 @@ public class DatasetCollectionIntegrationTest {
 		asyncHelper.assertJobResponse(userInfo, transactionRequest, (TableUpdateTransactionResponse response) -> {
 			assertEquals(1L, response.getSnapshotVersionNumber());
 		}, MAX_WAIT).getResponse().getSnapshotVersionNumber();
-		
-		return entityManager.getEntity(userInfo, dataset.getId(), Dataset.class);
+
+		// we need snapshot version of dataset as dataset collection uses the oldest version of dataset.
+		// snapshot version is not present in Node table so etag is not available. to get etag, need the latest version of dataset
+		Dataset datasetSnapshot = entityManager.getEntityForVersion(userInfo, dataset.getId(), dataset.getVersionNumber(), Dataset.class);
+		Dataset latestDataset = entityManager.getEntity(userInfo, dataset.getId(), Dataset.class);
+		datasetSnapshot.setEtag(latestDataset.getEtag());
+
+		return datasetSnapshot;
 	}
 	
 	private FileEntity createFileEntityAndWaitForReplication() throws Exception {
