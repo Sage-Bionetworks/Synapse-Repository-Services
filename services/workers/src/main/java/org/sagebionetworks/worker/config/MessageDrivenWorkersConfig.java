@@ -151,7 +151,7 @@ public class MessageDrivenWorkersConfig {
 			.withSemaphoreLockKey("tableSnapshotWorker")
 			.withSemaphoreMaxLockCount(10)
 			.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
-			.withMaxThreadsPerMachine(5)
+			.withMaxThreadsPerMachine(2)
 			.withSingleton(concurrentStackManager)
 			.withCanRunInReadOnly(true)
 			.withQueueName(queueName)
