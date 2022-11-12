@@ -54,7 +54,6 @@ import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
@@ -100,7 +99,6 @@ import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
-import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -141,7 +139,7 @@ public class TableIndexManagerImplTest {
 	private ViewFilterBuilder mockFilterBuilder;
 	@Mock
 	private ViewFilter mockNewFilter;
-
+	
 	@Captor
 	ArgumentCaptor<List<ColumnChangeDetails>> changeCaptor;
 	
@@ -267,12 +265,12 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testNullSSearchProcessor() {
+	public void testNullSearchProcessor() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory, null);
 		});
 	}
-
+	
 	@Test
 	public void testApplyChangeSetToIndexHappy() {
 		setupExecuteInWriteTransaction();
@@ -2970,22 +2968,6 @@ public class TableIndexManagerImplTest {
 		
 		assertFalse(result);
 		
-	}
-	
-	@Test
-	public void testStreamTableToCSV() {
-		CSVWriterStream stream = new CSVWriterStream() {
-			
-			@Override
-			public void writeNext(String[] nextLine) {
-				// nothing
-			}
-		};
-		
-		// Call under test
-		manager.streamTableToCSV(tableId, stream);
-		
-		verify(mockIndexDao).streamTableToCSV(tableId, stream);
 	}
 	
 	@SuppressWarnings("unchecked")

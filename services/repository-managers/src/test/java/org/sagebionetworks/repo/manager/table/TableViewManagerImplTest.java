@@ -14,7 +14,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -23,12 +22,10 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -68,9 +65,9 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -89,6 +86,7 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.UndefinedViewScopeException;
@@ -832,7 +830,7 @@ public class TableViewManagerImplTest {
 	public void testPopulateViewFromSnapshot() throws IOException {
 		long snapshotId = 998L;
 		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
-		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
+		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(Optional.of(snapshot));
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		setupReader("foo,bar");
 		
@@ -847,10 +845,24 @@ public class TableViewManagerImplTest {
 	}
 	
 	@Test
+	public void testPopulateViewFromSnapshotWithNotFound() throws IOException {
+		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(Optional.empty());
+		
+		String errorMessage = assertThrows(NotFoundException.class, () -> {
+			// call under test			
+			manager.populateViewFromSnapshot(idAndVersion, mockIndexManager);
+		}).getMessage();
+		
+		assertEquals("Snapshot not found for: " + idAndVersion.toString(), errorMessage);
+		
+		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
+	}
+	
+	@Test
 	public void testPopulateViewFromSnapshotError() throws IOException {
 		long snapshotId = 998L;
 		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
-		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
+		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(Optional.of(snapshot));
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		AmazonServiceException error = new AmazonServiceException("not correct");
 		when(mockS3Client.getObject(any(GetObjectRequest.class), any(File.class))).thenThrow(error);
@@ -870,7 +882,7 @@ public class TableViewManagerImplTest {
 	public void testPopulateViewFromSnapshotFileCreateError() throws IOException {
 		long snapshotId = 998L;
 		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
-		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
+		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(Optional.of(snapshot));
 		IOException error = new IOException("some IO error");
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenThrow(error);
 		
@@ -973,7 +985,7 @@ public class TableViewManagerImplTest {
 		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 		long snapshotId = 998L;
 		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
-		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
+		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(Optional.of(snapshot));
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		setupReader("foo,bar");
@@ -1082,20 +1094,6 @@ public class TableViewManagerImplTest {
 	}
 	
 	/**
-	 * Setup the chain of file->gzip->writer.
-	 * 
-	 * @return
-	 * @throws IOException
-	 */
-	public StringWriter setupWriter() throws IOException {
-		StringWriter writer = new StringWriter();
-		when(mockFileProvider.createFileOutputStream(mockFile)).thenReturn(mockOutStream);
-		when(mockFileProvider.createGZIPOutputStream(mockOutStream)).thenReturn(mockGzipOutStream);
-		when(mockFileProvider.createWriter(mockGzipOutStream, StandardCharsets.UTF_8)).thenReturn(writer);
-		return writer;
-	}
-	
-	/**
 	 * Setup chain of file->gzip->reader
 	 * @param toRead
 	 * @return
@@ -1108,58 +1106,7 @@ public class TableViewManagerImplTest {
 		when(mockFileProvider.createReader(mockGzipInputStream, StandardCharsets.UTF_8)).thenReturn(reader);
 		return reader;
 	}
-	
-	
-	@Test
-	public void testSaveSnapshotToS3() throws IOException {
-		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
-		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		when(mockIndexManager.streamTableToCSV(any(), any())).thenReturn(schema);
-		setupWriter();
 		
-		String bucket = "snapshot.bucket";
-		String key = "key";
-		
-		// call under test
-		List<String> result = manager.saveSnapshotToS3(idAndVersion, bucket, key);
-		
-		assertEquals(schema, result);
-		
-		verify(mockFileProvider).createTempFile("ViewSnapshot",	".csv");
-		verify(mockFileProvider).createFileOutputStream(mockFile);
-		verify(mockFileProvider).createGZIPOutputStream(mockOutStream);
-		verify(mockFileProvider).createWriter(mockGzipOutStream, StandardCharsets.UTF_8);
-		verify(mockIndexManager).streamTableToCSV(eq(idAndVersion), any());
-		verify(mockS3Client).putObject(putRequestCaptor.capture());
-		PutObjectRequest putRequest = putRequestCaptor.getValue();
-		assertEquals(bucket, putRequest.getBucketName());
-		assertEquals(key, putRequest.getKey());
-		assertEquals(mockFile, putRequest.getFile());
-		verify(mockFile).delete();
-	}
-	
-	@Test
-	public void testSaveSnapshotToS3WithError() throws IOException {
-		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
-		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		FileNotFoundException exception = new FileNotFoundException("no");
-		doThrow(exception).when(mockFileProvider).createFileOutputStream(mockFile);
-	
-		String bucket = "snapshot.bucket";
-		String key = "key";
-		
-		Throwable cause = assertThrows(RuntimeException.class, ()->{
-			// call under test
-			manager.saveSnapshotToS3(idAndVersion, bucket, key);
-		}).getCause();
-		
-		assertEquals(exception, cause);
-		
-		verify(mockIndexManager, never()).streamTableToCSV(any(), any());
-		// the temp file must be deleted even if there is an error
-		verify(mockFile).delete();	
-	}
-	
 	@Test
 	public void testValidateViewForSnapshot() throws TableUnavailableException {
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.AVAILABLE));
@@ -1292,7 +1239,7 @@ public class TableViewManagerImplTest {
 		setupNonExclusiveLockWithCustomKeyToForwardToCallack();
 		
 		doNothing().when(managerSpy).validateViewForSnapshot(any());
-		doReturn(schema).when(managerSpy).saveSnapshotToS3(any(), any(), any());
+		when(mockTableManagerSupport.streamTableToS3(any(), any(), any())).thenReturn(schema);
 		
 		String bucket = "snapshot.bucket";
 		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
@@ -1311,7 +1258,7 @@ public class TableViewManagerImplTest {
 		
 		ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
 		
-		verify(managerSpy).saveSnapshotToS3(eq(idAndVersion), eq(bucket), keyCaptor.capture());
+		verify(mockTableManagerSupport).streamTableToS3(eq(idAndVersion), eq(bucket), keyCaptor.capture());
 		
 		String key = keyCaptor.getValue();
 		

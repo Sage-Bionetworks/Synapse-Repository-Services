@@ -9,6 +9,7 @@ import org.sagebionetworks.file.worker.FileHandleKeysArchiveWorker;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.ses.workers.SESNotificationWorker;
 import org.sagebionetworks.table.worker.MaterializedViewSourceUpdateWorker;
+import org.sagebionetworks.table.worker.TableSnapshotWorker;
 import org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter;
 import org.sagebionetworks.worker.utils.StackStatusGate;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
@@ -137,6 +138,29 @@ public class MessageDrivenWorkersConfig {
 			.withRepeatInterval(1000)
 			.withStartDelay(1971)
 			.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean tableSnapshotWorkerTrigger(TableSnapshotWorker tableSnapshotWorker) {
+		
+		String queueName = stackConfig.getQueueName("TABLE_SNAPSHOTS");
+		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, tableSnapshotWorker);
+		
+		return new WorkerTriggerBuilder()
+			.withStack(ConcurrentWorkerStack.builder()
+			.withSemaphoreLockKey("tableSnapshotWorker")
+			.withSemaphoreMaxLockCount(10)
+			.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
+			.withMaxThreadsPerMachine(2)
+			.withSingleton(concurrentStackManager)
+			.withCanRunInReadOnly(true)
+			.withQueueName(queueName)
+			.withWorker(worker)
+			.build()
+		)
+		.withRepeatInterval(937)
+		.withStartDelay(1045)
+		.build();
 	}
 
 }

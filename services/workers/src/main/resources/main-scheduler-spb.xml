@@ -143,6 +143,7 @@
 		<ref bean="materializedViewSourceUpdateWorkerTrigger"/>
 		<ref bean="accessRequirementToProjectWorkerTrigger"/>
 		<ref bean="missingTableStatusWorkerTrigger"/>
+		<ref bean="tableSnapshotWorkerTrigger"/>
 		
 	</util:list>
 

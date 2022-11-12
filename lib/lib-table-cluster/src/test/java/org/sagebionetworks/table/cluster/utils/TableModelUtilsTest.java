@@ -1038,6 +1038,12 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testGetTableSnapshotStreamingSemaphoreKey() {
+		IdAndVersion id = IdAndVersion.parse("syn123.2");
+		assertEquals("TABLE-LOCK-SNAPSHOT-STREAMING-syn123.2", TableModelUtils.getTableSnapshotStreamingSempahoreKey(id));
+	}
+	
+	@Test
 	public void createColumnIdToIndexMapFromFirstRow() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		List<String> names = new LinkedList<String>();

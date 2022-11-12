@@ -29,6 +29,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 /**
  * Abstraction for Table Row management.
@@ -304,5 +306,14 @@ public interface TableEntityManager {
 	 * @return An iterator over the table row changes within the given range of ids that have file references (includes the changes for which the file references are unknown)
 	 */
 	Iterator<TableRowChange> newTableRowChangeWithFileRefsIterator(IdRange idRange);
+	
+	/**
+	 * Stores a copy of the data of the table snapshot with the given id and version to S3, the table must be available. If a snapshot already exist doesn't do anything.
+	 * 
+	 * @param tableId The id and version of the snapshot to store
+	 * @throws LockUnavilableException If an exclusive lock couldn't be acquired for streaming the data (Note it will still be possible to query the table)
+	 * @throws RecoverableMessageException If the operation failed for a transient reason and can be retried
+	 */
+	void storeTableSnapshot(IdAndVersion tableId, ProgressCallback progressCallback) throws Exception;
 	
 }

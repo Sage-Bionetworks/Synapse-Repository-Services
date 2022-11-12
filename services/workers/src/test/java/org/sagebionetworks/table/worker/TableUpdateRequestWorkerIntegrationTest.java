@@ -32,6 +32,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -55,6 +57,8 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -79,6 +83,8 @@ public class TableUpdateRequestWorkerIntegrationTest {
 	ColumnModelManager columnManager;
 	@Autowired
 	AsynchronousJobWorkerHelper asyncHelper;
+	@Autowired
+	TableSnapshotDao tableSnapshotDao;
 	
 	UserInfo adminUserInfo;	
 	ColumnModel intColumn;
@@ -501,6 +507,11 @@ public class TableUpdateRequestWorkerIntegrationTest {
 			assertNotNull(response.getSnapshotVersionNumber());
 		}).getSnapshotVersionNumber();
 		
+		// Eventually a snapshot should be saved to S3
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000,
+			() -> new Pair<Boolean, Void>(tableSnapshotDao.getSnapshot(IdAndVersion.parse(tableId + "." + firstVersion)).isPresent(), null)
+		);
+		
 		// add two more rows and create another version.
 		PartialRow rowThree = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "3");
 		PartialRow rowFour = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "4");
@@ -513,6 +524,11 @@ public class TableUpdateRequestWorkerIntegrationTest {
 			assertNotNull(response);
 			assertNotNull(response.getSnapshotVersionNumber());
 		}).getSnapshotVersionNumber();
+		
+		// Eventually a snapshot should be saved to S3
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000,
+			() -> new Pair<Boolean, Void>(tableSnapshotDao.getSnapshot(IdAndVersion.parse(tableId + "." + secondVersion)).isPresent(), null)
+		);
 		
 		// Add two more rows without creating a version.
 		PartialRow rowFive = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "5");

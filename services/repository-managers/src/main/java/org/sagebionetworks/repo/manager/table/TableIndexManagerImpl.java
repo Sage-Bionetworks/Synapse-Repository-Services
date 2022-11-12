@@ -63,7 +63,6 @@ import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.PaginationProvider;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.stereotype.Service;
@@ -780,11 +779,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// set the new max version for the index
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, loadChangeData.getChangeNumber());
 	}
-
-	@Override
-	public List<String> streamTableToCSV(IdAndVersion idAndVersion, CSVWriterStream stream) {
-		return tableIndexDao.streamTableToCSV(idAndVersion, stream);
-	}
+	
 	
 	@Override
 	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
