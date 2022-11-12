@@ -1,6 +1,9 @@
 package org.sagebionetworks.table.worker;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -18,6 +21,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatusChangeEvent;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -55,7 +59,88 @@ public class TableSnapshotWorkerTest {
 		worker.run(mockCallback, mockMessage, event);
 		
 		verify(mockTableManagerSupport).getTableType(idAndVersion);
-		verify(mockTableManager).storeTableSnapshot(idAndVersion);
+		verify(mockTableManager).storeTableSnapshot(idAndVersion, mockCallback);
+	}
+	
+	@Test
+	public void testRunWithLockUnavailableException() throws RecoverableMessageException, Exception {
+		
+		LockUnavilableException ex = new LockUnavilableException("nope");
+		
+		doThrow(ex).when(mockTableManager).storeTableSnapshot(any(), any());
+		
+		IdAndVersion idAndVersion = IdAndVersion.parse("123.2");
+		
+		TableStatusChangeEvent event = new TableStatusChangeEvent()
+			.setObjectId(idAndVersion.getId().toString())
+			.setObjectVersion(idAndVersion.getVersion().get())
+			.setState(TableState.AVAILABLE);
+		
+		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
+		
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
+			// Call under test
+			worker.run(mockCallback, mockMessage, event);
+		});
+		
+		assertEquals(ex, result.getCause());
+		
+		verify(mockTableManagerSupport).getTableType(idAndVersion);
+		verify(mockTableManager).storeTableSnapshot(idAndVersion, mockCallback);
+	}
+	
+	@Test
+	public void testRunWithRecoverableMessageException() throws RecoverableMessageException, Exception {
+		
+		RecoverableMessageException ex = new RecoverableMessageException("nope");
+		
+		doThrow(ex).when(mockTableManager).storeTableSnapshot(any(), any());
+		
+		IdAndVersion idAndVersion = IdAndVersion.parse("123.2");
+		
+		TableStatusChangeEvent event = new TableStatusChangeEvent()
+			.setObjectId(idAndVersion.getId().toString())
+			.setObjectVersion(idAndVersion.getVersion().get())
+			.setState(TableState.AVAILABLE);
+		
+		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
+		
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
+			// Call under test
+			worker.run(mockCallback, mockMessage, event);
+		});
+		
+		assertEquals(ex, result);
+		
+		verify(mockTableManagerSupport).getTableType(idAndVersion);
+		verify(mockTableManager).storeTableSnapshot(idAndVersion, mockCallback);
+	}
+	
+	@Test
+	public void testRunWithOtherException() throws RecoverableMessageException, Exception {
+		
+		RuntimeException ex = new RuntimeException("nope");
+		
+		doThrow(ex).when(mockTableManager).storeTableSnapshot(any(), any());
+		
+		IdAndVersion idAndVersion = IdAndVersion.parse("123.2");
+		
+		TableStatusChangeEvent event = new TableStatusChangeEvent()
+			.setObjectId(idAndVersion.getId().toString())
+			.setObjectVersion(idAndVersion.getVersion().get())
+			.setState(TableState.AVAILABLE);
+		
+		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
+		
+		RuntimeException result = assertThrows(RuntimeException.class, () -> {			
+			// Call under test
+			worker.run(mockCallback, mockMessage, event);
+		});
+		
+		assertEquals(ex, result);
+		
+		verify(mockTableManagerSupport).getTableType(idAndVersion);
+		verify(mockTableManager).storeTableSnapshot(idAndVersion, mockCallback);
 	}
 	
 	@Test

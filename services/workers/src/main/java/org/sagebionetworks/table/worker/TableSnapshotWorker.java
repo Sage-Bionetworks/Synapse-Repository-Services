@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatusChangeEvent;
 import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -54,8 +55,10 @@ public class TableSnapshotWorker implements TypedMessageDrivenRunner<TableStatus
 		
 		try {
 			LOG.info("Attempting to store snapshot for table " + tableId +"...");
-			tableManager.storeTableSnapshot(tableId);
+			tableManager.storeTableSnapshot(tableId, progressCallback);
 			LOG.info("Attempting to store snapshot for table " + tableId +"...DONE");
+		} catch (LockUnavilableException e) {
+			throw new RecoverableMessageException(e);
 		} catch (RecoverableMessageException e) {
 			throw e;
 		} catch (Throwable e) {

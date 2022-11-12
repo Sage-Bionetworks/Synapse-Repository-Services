@@ -1073,39 +1073,49 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 
 	@Override
-	public void storeTableSnapshot(IdAndVersion tableId) {
+	public void storeTableSnapshot(IdAndVersion tableId, ProgressCallback progressCallback) throws Exception {
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.requirement(tableId.getVersion().isPresent(), "The tableId.version is required.");
 		
-		TableType tableType = tableManagerSupport.getTableType(tableId);
+		// We acquire an exclusive lock on the specific table snapshot so that we make sure no other worker is doing the same
+		// We use a key specific to this streaming operation + tableId not to interfere with other readers
+		String exclusiveLockKey = TableModelUtils.getTableSnapshotStreamingSempahoreKey(tableId);
 		
-		ValidateArgument.requirement(TableType.table.equals(tableType), "Unexpected table type for " + tableId + " (Was " + tableType + ").");
+		tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, exclusiveLockKey, (innerCallback) -> {
+			
+			TableType tableType = tableManagerSupport.getTableType(tableId);
+			
+			ValidateArgument.requirement(TableType.table.equals(tableType), "Unexpected table type for " + tableId + " (Was " + tableType + ").");
+			
+			// The snapshot is already saved, nothing to do
+			if (tableSnapshotDao.getSnapshot(tableId).isPresent()) {
+				return null;
+			}
+			
+			TableState tableState = tableManagerSupport.getTableStatusState(tableId)
+				.orElseThrow(() -> new IllegalStateException("The table " + tableId + " status does not exist."));
+			
+			if (!TableState.AVAILABLE.equals(tableState)) {
+				throw new IllegalStateException("The table " +tableId + " is not available.");
+			}
+			
+			String bucket = config.getTableSnapshotBucketName();
+			String key = tableId + "/" + UUID.randomUUID().toString() + ".csv.gzip";
+			
+			tableManagerSupport.streamTableToS3(tableId, bucket, key);
+			
+			tableSnapshotDao.createSnapshot(new TableSnapshot()
+				.withTableId(tableId.getId())
+				.withVersion(tableId.getVersion().get())
+				.withCreatedOn(new Date())
+				.withCreatedBy(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())
+				.withBucket(bucket)
+				.withKey(key)
+			);
+			return null;
+		});
 		
-		// The snapshot is already saved, nothing to do
-		if (tableSnapshotDao.getSnapshot(tableId).isPresent()) {
-			return;
-		}
 		
-		TableState tableState = tableManagerSupport.getTableStatusState(tableId)
-			.orElseThrow(() -> new IllegalStateException("The table " + tableId + " status does not exist."));
-		
-		if (!TableState.AVAILABLE.equals(tableState)) {
-			throw new IllegalStateException("The table " +tableId + " is not available.");
-		}
-		
-		String bucket = config.getTableSnapshotBucketName();
-		String key = tableId + "/" + UUID.randomUUID().toString() + ".csv.gzip";
-		
-		tableManagerSupport.streamTableToS3(tableId, bucket, key);
-		
-		tableSnapshotDao.createSnapshot(new TableSnapshot()
-			.withTableId(tableId.getId())
-			.withVersion(tableId.getVersion().get())
-			.withCreatedOn(new Date())
-			.withCreatedBy(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())
-			.withBucket(bucket)
-			.withKey(key)
-		);
 	}
 
 }

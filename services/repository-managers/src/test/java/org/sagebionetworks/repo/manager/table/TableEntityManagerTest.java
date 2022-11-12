@@ -2161,7 +2161,10 @@ public class TableEntityManagerTest {
 	@Test
 	public void testStoreTableSnapshot() throws Exception {
 		idAndVersion = IdAndVersion.parse("syn123.2");
-		
+
+		doAnswer((InvocationOnMock invocation) -> {
+			return invocation.getArgument(2, ProgressingCallable.class).call(mockProgressCallback);
+		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), anyString(), any());
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
 		when(mockTableSnapshotDao.getSnapshot(any())).thenReturn(Optional.empty());
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.AVAILABLE));
@@ -2176,8 +2179,9 @@ public class TableEntityManagerTest {
 			// key and date dynamic
 		
 		// Call under test
-		manager.storeTableSnapshot(idAndVersion);
+		manager.storeTableSnapshot(idAndVersion, mockProgressCallback);
 		
+		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq("TABLE-LOCK-SNAPSHOT-STREAMING-" + idAndVersion), any());
 		verify(mockTableManagerSupport).getTableType(idAndVersion);
 		verify(mockTableSnapshotDao).getSnapshot(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
@@ -2200,12 +2204,14 @@ public class TableEntityManagerTest {
 	public void testStoreTableSnapshotWithExisting() throws Exception {
 		idAndVersion = IdAndVersion.parse("syn123.2");
 		
+		doAnswer((InvocationOnMock invocation) -> {
+			return invocation.getArgument(2, ProgressingCallable.class).call(mockProgressCallback);
+		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), anyString(), any());
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
 		when(mockTableSnapshotDao.getSnapshot(any())).thenReturn(Optional.of(new TableSnapshot()));
 		
-		
 		// Call under test
-		manager.storeTableSnapshot(idAndVersion);
+		manager.storeTableSnapshot(idAndVersion, mockProgressCallback);
 		
 		verify(mockTableManagerSupport).getTableType(idAndVersion);
 		verify(mockTableSnapshotDao).getSnapshot(idAndVersion);
@@ -2220,13 +2226,13 @@ public class TableEntityManagerTest {
 		
 		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			manager.storeTableSnapshot(idAndVersion);
+			manager.storeTableSnapshot(idAndVersion, mockProgressCallback);
 		});
 		
 		assertEquals("tableId is required.", result.getMessage());
 		
-		verify(mockTableManagerSupport, never()).streamTableToS3(any(), any(), any());
-		verify(mockTableSnapshotDao, never()).createSnapshot(any());
+		verifyZeroInteractions(mockTableManagerSupport);
+		verifyZeroInteractions(mockTableSnapshotDao);
 	}
 	
 	@Test
@@ -2235,45 +2241,51 @@ public class TableEntityManagerTest {
 		
 		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			manager.storeTableSnapshot(idAndVersion);
+			manager.storeTableSnapshot(idAndVersion, mockProgressCallback);
 		});
 		
 		assertEquals("The tableId.version is required.", result.getMessage());
 		
-		verify(mockTableManagerSupport, never()).streamTableToS3(any(), any(), any());
-		verify(mockTableSnapshotDao, never()).createSnapshot(any());
+		verifyZeroInteractions(mockTableManagerSupport);
+		verifyZeroInteractions(mockTableSnapshotDao);
 	}
 	
 	@Test
 	public void testStoreTableSnapshotWithUnexpectedType() throws Exception {
 		idAndVersion = IdAndVersion.parse("syn123.2");
 		
+		doAnswer((InvocationOnMock invocation) -> {
+			return invocation.getArgument(2, ProgressingCallable.class).call(mockProgressCallback);
+		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), anyString(), any());
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
 		
 		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			manager.storeTableSnapshot(idAndVersion);
+			manager.storeTableSnapshot(idAndVersion, mockProgressCallback);
 		});
 		
 		assertEquals("Unexpected table type for syn123.2 (Was entityview).", result.getMessage());
 		
 		verify(mockTableManagerSupport).getTableType(idAndVersion);
 		
-		verify(mockTableManagerSupport, never()).streamTableToS3(any(), any(), any());
-		verify(mockTableSnapshotDao, never()).createSnapshot(any());
+		verifyNoMoreInteractions(mockTableManagerSupport);
+		verifyZeroInteractions(mockTableSnapshotDao);
 	}
 	
 	@Test
 	public void testStoreTableSnapshotWithNoTableStatus() throws Exception {
 		idAndVersion = IdAndVersion.parse("syn123.2");
 		
+		doAnswer((InvocationOnMock invocation) -> {
+			return invocation.getArgument(2, ProgressingCallable.class).call(mockProgressCallback);
+		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), anyString(), any());
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
 		when(mockTableSnapshotDao.getSnapshot(any())).thenReturn(Optional.empty());
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.empty());
 		
 		IllegalStateException result = assertThrows(IllegalStateException.class, () -> {			
 			// Call under test
-			manager.storeTableSnapshot(idAndVersion);
+			manager.storeTableSnapshot(idAndVersion, mockProgressCallback);
 		});
 		
 		assertEquals("The table syn123.2 status does not exist.", result.getMessage());
@@ -2288,13 +2300,16 @@ public class TableEntityManagerTest {
 	public void testStoreTableSnapshotWithTableNotAvailable() throws Exception {
 		idAndVersion = IdAndVersion.parse("syn123.2");
 		
+		doAnswer((InvocationOnMock invocation) -> {
+			return invocation.getArgument(2, ProgressingCallable.class).call(mockProgressCallback);
+		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), anyString(), any());
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
 		when(mockTableSnapshotDao.getSnapshot(any())).thenReturn(Optional.empty());
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.PROCESSING));
 		
 		IllegalStateException result = assertThrows(IllegalStateException.class, () -> {			
 			// Call under test
-			manager.storeTableSnapshot(idAndVersion);
+			manager.storeTableSnapshot(idAndVersion, mockProgressCallback);
 		});
 		
 		assertEquals("The table syn123.2 is not available.", result.getMessage());

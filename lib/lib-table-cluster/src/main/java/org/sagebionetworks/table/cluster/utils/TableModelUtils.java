@@ -70,6 +70,7 @@ import au.com.bytecode.opencsv.CSVReader;
 public class TableModelUtils {
 
 	private static final String TABLE_LOCK_PREFIX = "TABLE-LOCK-";
+	private static final String TABLE_LOCK_SNAPSHOT_STREAMING_PREFIX = "TABLE-LOCK-SNAPSHOT-STREAMING-";
 	public static final String VIEW_DELTA_KEY_PREFIX = "Increment-";
 
 	public static final String UTF_8 = "UTF-8";
@@ -952,6 +953,14 @@ public class TableModelUtils {
 			builder.append("-").append(tableId.getVersion().get());
 		}
 		return builder.toString();
+	}
+	
+	/**
+	 * @param tableId
+	 * @return The semaphore key used to acquire a lock when streaming a table snapshot to S3 
+	 */
+	public static String getTableSnapshotStreamingSempahoreKey(IdAndVersion tableId) {
+		return TABLE_LOCK_SNAPSHOT_STREAMING_PREFIX + tableId.toString();
 	}
 	
 	/**
