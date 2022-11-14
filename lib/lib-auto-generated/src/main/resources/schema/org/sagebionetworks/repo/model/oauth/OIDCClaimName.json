@@ -68,39 +68,39 @@
     },
     {
       "name": "is_certified",
-      "description": "Whether the user is certified.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#certified-users"
+      "description": "Whether the user is certified.  See https://help.synapse.org/docs/Synapse-User-Account-Types.2007072795.html#SynapseUserAccountTypes-CertifiedUser"
     },
     {
       "name": "is_validated",
-      "description": "Whether the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "Whether the user is validated.  See https://help.synapse.org/docs/Synapse-User-Account-Types.2007072795.html#SynapseUserAccountTypes-ValidatedUsers"
     },
     {
       "name": "validated_given_name",
-      "description": "The validated first name, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated first name, if the user is validated.  See https://help.synapse.org/docs/Synapse-User-Account-Types.2007072795.html#SynapseUserAccountTypes-ValidatedUsers"
     },
     {
       "name": "validated_family_name",
-      "description": "The validated last name, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated last name, if the user is validated.  See https://help.synapse.org/docs/Synapse-User-Account-Types.2007072795.html#SynapseUserAccountTypes-ValidatedUsers"
     },
     {
       "name": "validated_location",
-      "description": "The validated location, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated location, if the user is validated.  See https://help.synapse.org/docs/Synapse-User-Account-Types.2007072795.html#SynapseUserAccountTypes-ValidatedUsers"
     },
     {
       "name": "validated_email",
-      "description": "The validated email, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated email, if the user is validated.  See https://help.synapse.org/docs/Synapse-User-Account-Types.2007072795.html#SynapseUserAccountTypes-ValidatedUsers"
     },
     {
       "name": "validated_company",
-      "description": "The validated company/organization, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated company/organization, if the user is validated.  See https://help.synapse.org/docs/Synapse-User-Account-Types.2007072795.html#SynapseUserAccountTypes-ValidatedUsers"
     },
     {
       "name": "validated_orcid",
-      "description": "The validated ORCID, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated ORCID, if the user is validated.  See https://help.synapse.org/docs/Synapse-User-Account-Types.2007072795.html#SynapseUserAccountTypes-ValidatedUsers"
     },
     {
       "name": "validated_at",
-      "description": "The timestamp (seconds since the epoch) when validation occurred.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The timestamp (seconds since the epoch) when validation occurred.  See https://help.synapse.org/docs/Synapse-User-Account-Types.2007072795.html#SynapseUserAccountTypes-ValidatedUsers"
     },
     {
       "name": "refresh_token_id",

@@ -30,7 +30,7 @@
 		},
 		"verified": {
 			"type": "boolean",
-			"description": "Initially false, to verify your client please see the <a href=\"https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html\">Synapse OAuth Server Documentation</a>",
+			"description": "Initially false, to verify your client please see the <a href=\"https://help.synapse.org/docs/Using-Synapse-as-an-OAuth-Server.2048327904.html\">Synapse OAuth Server Documentation</a>",
 			"links": [
 				{
 					"rel": "describedby",
