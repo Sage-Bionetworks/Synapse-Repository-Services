@@ -56,7 +56,7 @@ public class OpenIDConnectServiceImplTest {
 		assertEquals(Collections.singletonList(OAuthResponseType.code), config.getResponse_types_supported());
 		assertEquals(OAUTH_ENDPOINT + "/oauth2/revoke", config.getRevocation_endpoint());
 		assertEquals(Arrays.asList(OAuthScope.values()), config.getScopes_supported());
-		assertEquals("https://help.synapse.org", config.getService_documentation());
+		assertEquals("https://help.synapse.org/docs/", config.getService_documentation());
 		assertEquals(Collections.singletonList(OIDCSubjectIdentifierType.pairwise), config.getSubject_types_supported());
 		assertEquals(OAUTH_ENDPOINT+"/oauth2/token", config.getToken_endpoint());
 		assertEquals(OAUTH_ENDPOINT+"/oauth2/userinfo", config.getUserinfo_endpoint());
