@@ -87,7 +87,7 @@ public class OpenIDConnectController {
 	 * Create an OAuth 2.0 client.  <br/>
 	 * Note:  The client name must be unique. <br/>
 	 * Note:  After creating the client one must also set the client secret
-	 * and have their client verified (See the <a href="https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html">Synapse OAuth Server Documentation</a>)
+	 * and have their client verified (See the <a href="https://help.synapse.org/docs/Using-Synapse-as-an-OAuth-Server.2048327904.html">Synapse OAuth Server Documentation</a>)
 	 * 
 	 * @param oauthClient the client metadata for the new client
 	 * @return

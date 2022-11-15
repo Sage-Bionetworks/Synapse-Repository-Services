@@ -1511,7 +1511,7 @@ public class EntityController {
 	 * Gets at most 200 FileEntities matching the given MD5 string which the user
 	 * has read access to. NOTE: Another option is to create a file view that
 	 * includes MD5 values. See <a href=
-	 * "https://docs.synapse.org/articles/views.html">https://docs.synapse.org/articles/views.html</a>
+	 * "https://help.synapse.org/docs/Views.2011070739.html</a>
 	 *
 	 * 
 	 * @param md5

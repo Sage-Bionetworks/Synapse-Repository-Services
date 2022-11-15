@@ -42,7 +42,7 @@ public class DrsManagerImpl implements DrsManager {
     public static final String REVERSE_DOMAIN_NOTATION = "org.sagebase.prod.repo-prod";
     public static final String SERVICE_NAME = "Sage Bionetworks Synapse DRS API";
     public static final String CONTACT_URL = "https://sagebionetworks.jira.com/servicedesk/customer/portal/9";
-    public static final String DOCUMENTATION_URL = "https://docs.synapse.org";
+    public static final String DOCUMENTATION_URL = "https://help.synapse.org/docs/";
     public static final String REGISTERED_HOSTNAME = "repo-prod.prod.sagebase.org";
     public static final String HTTPS = "https";
     public static final String DRS = "drs";

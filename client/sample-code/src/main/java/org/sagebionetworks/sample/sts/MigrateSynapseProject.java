@@ -31,7 +31,7 @@ public class MigrateSynapseProject {
 
 		// This is the entity ID of the folder in Synapse to which we migrate the S3 files. This folder must have an
 		// external S3 storage location with STS-enabled, as described in
-		// https://docs.synapse.org/articles/sts_storage_locations.html
+		// https://help.synapse.org/docs/Compute-Directly-on-Data-in-Synapse-or-S3.2048426057.html#ComputeDirectlyonDatainSynapseorS3-ExternalSTSStorageLocations
 		this.destinationFolderId = destinationFolderId;
 
 		// This is the storage location ID that is set on the Synapse folder.
