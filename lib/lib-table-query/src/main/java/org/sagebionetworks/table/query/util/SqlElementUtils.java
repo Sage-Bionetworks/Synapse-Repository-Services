@@ -457,46 +457,32 @@ public class SqlElementUtils {
 	public static SortSpecificationList createSortSpecificationList(String sql) throws ParseException {
 		return new TableQueryParser(sql).sortSpecificationList();
 	}
-	
-	/**
-	 * Convert the passed query into a count query.
-	 * 
-	 * @param model
-	 * @return
-	 * @throws ParseException
-	 */
-	public static QuerySpecification convertToPaginatedQuery(QuerySpecification model, Long offset, Long limit)  {
-		if (model == null)
-			throw new IllegalArgumentException("QuerySpecification cannot be null");
-		TableExpression currentTableExpression = model.getTableExpression();
-		if (currentTableExpression == null)
-			throw new IllegalArgumentException("TableExpression cannot be null");
-		// add pagination
-		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(),
-				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(),
-				currentTableExpression.getOrderByClause(), new Pagination(limit, offset));
-		return new QuerySpecification(model.getSetQuantifier(), model.getSelectList(), tableExpression);
-	}
+
 
 	public static TableExpression removeOrderByClause(TableExpression tableExpression) {
 		return new TableExpression(tableExpression.getFromClause(), tableExpression.getWhereClause(), tableExpression.getGroupByClause(),
 				null, tableExpression.getPagination());
 	}
 
-	public static QuerySpecification convertToSortedQuery(QuerySpecification model, List<SortItem> sortList) throws ParseException {
-		ValidateArgument.required(model, "QuerySpecification");
-		ValidateArgument.required(sortList, "sortList");
-		TableExpression currentTableExpression = model.getTableExpression();
-		ValidateArgument.required(currentTableExpression, "TableExpression");
-
+	/**
+	 * If given a nonempty sortList, create a new OrderByClause that is the the union of the currentOrderBy and the 
+	 * sortList.
+	 * @param currentOrderBy
+	 * @param sortList
+	 * @return
+	 * @throws ParseException
+	 */
+	public static OrderByClause convertToSortedQuery(final OrderByClause currentOrderBy, List<SortItem> sortList) throws ParseException {
+		if(sortList == null || sortList.isEmpty()) {
+			return currentOrderBy;
+		}
 		Map<String, SortSpecification> originalSortSpecifications;
-		OrderByClause orderByClause = currentTableExpression.getOrderByClause();
-		if (orderByClause == null) {
+		if (currentOrderBy == null) {
 			originalSortSpecifications = Collections.emptyMap();
 		} else {
 			// need to preserve order, so use linked hash map
 			originalSortSpecifications = Maps.newLinkedHashMap();
-			for (SortSpecification spec : orderByClause.getSortSpecificationList().getSortSpecifications()) {
+			for (SortSpecification spec : currentOrderBy.getSortSpecificationList().getSortSpecifications()) {
 				String columnName = spec.getSortKey().toSql();
 				originalSortSpecifications.put(columnName, spec);
 			}
@@ -512,13 +498,7 @@ public class SqlElementUtils {
 			sortSpecifications.add(new SortSpecification(createSortKey(sortItem.getColumn()), direction));
 		}
 		sortSpecifications.addAll(originalSortSpecifications.values());
-		orderByClause = new OrderByClause(new SortSpecificationList(sortSpecifications));
-
-		// add pagination
-		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(),
-				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(), orderByClause,
-				currentTableExpression.getPagination());
-		return new QuerySpecification(model.getSetQuantifier(), model.getSelectList(), tableExpression);
+		return new OrderByClause(new SortSpecificationList(sortSpecifications));
 	}
 
 	/**
@@ -529,11 +509,10 @@ public class SqlElementUtils {
 	 * @param limit
 	 * @return
 	 */
-	public static QuerySpecification overridePagination(
-			QuerySpecification model, Long offset, Long limit, Long maxRowsPerPage) {
-		if(offset == null && limit == null && maxRowsPerPage == null){
+	public static Pagination overridePagination(Pagination pagination, Long offset, Long limit) {
+		if(offset == null && limit == null){
 			// there is nothing to do.
-			return model;
+			return pagination;
 		}
 		long limitFromRequest = (limit != null) ? limit : Long.MAX_VALUE;
 		long offsetFromRequest = (offset != null) ? offset : 0L;
@@ -541,7 +520,6 @@ public class SqlElementUtils {
 		long limitFromQuery = Long.MAX_VALUE;
 		long offsetFromQuery = 0L;
 		
-		Pagination pagination = model.getTableExpression().getPagination();
 		if (pagination != null) {
 			if (pagination.getLimitLong() != null) {
 				limitFromQuery = pagination.getLimitLong();
@@ -558,12 +536,26 @@ public class SqlElementUtils {
 		
 		long paginatedLimit = Math.min(limitFromRequest, limitFromQuery);
 		
-		if(maxRowsPerPage != null){
-			if (paginatedLimit > maxRowsPerPage) {
-				paginatedLimit = maxRowsPerPage;
-			}
+		return new Pagination(paginatedLimit, paginatedOffset);
+	}
+		
+	/**
+	 * Limit pagination based on the provided maxRowsPerPage 
+	 * @param pagination
+	 * @param maxRowsPerPage
+	 * @return
+	 */
+	public static Pagination limitMaxRowsPerPage(Pagination pagination, Long maxRowsPerPage) {
+		if(maxRowsPerPage == null){
+			return pagination;
 		}
-		return convertToPaginatedQuery(model, paginatedOffset, paginatedLimit);
+		if(pagination == null) {
+			return new Pagination(maxRowsPerPage, 0L);
+		}
+		if(pagination.getLimitLong() > maxRowsPerPage) {
+			return new Pagination(maxRowsPerPage, pagination.getOffsetLong());
+		}
+		return pagination;
 	}
 	
 	/**

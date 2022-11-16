@@ -12,7 +12,9 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.Identifier;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
@@ -106,6 +108,22 @@ public class TableAndColumnMapper implements ColumnLookup {
 		}
 	}
 
+	/**
+	 * Lookup a ColumnReference using just the column name or alias
+	 * @param columnName
+	 * @return
+	 */
+	public Optional<ColumnTranslationReference> lookupColumnReference(String columnName) {
+		if(columnName == null) {
+			return Optional.empty();
+		}
+		try {
+			return lookupColumnReference(new TableQueryParser(columnName).columnReference());
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
+	
 	/**
 	 * Attempt to resolve the given ColumnReference to one of the columns one of the
 	 * referenced tables. Optional.empty() returned if no match was found.

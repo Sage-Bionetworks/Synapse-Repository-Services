@@ -53,22 +53,21 @@ public class FacetUtils {
 	 * @param facetRequestColumnModels
 	 * @throws ParseException
 	 */
-	public static QuerySpecification appendFacetSearchConditionToQuerySpecification(QuerySpecification sqlModel, List<FacetRequestColumnModel> facetRequestColumnModels) throws ParseException{
-		QuerySpecification modelCopy = new TableQueryParser(sqlModel.toSql()).querySpecification();
-		if(!facetRequestColumnModels.isEmpty()){
-			WhereClause originalWhereClause = sqlModel.getTableExpression().getWhereClause();
-			
-			String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facetRequestColumnModels, null);
-			
+	public static WhereClause appendFacetSearchConditionToQuerySpecification(WhereClause originalWhereClause,
+			List<FacetRequestColumnModel> facetRequestColumnModels) throws ParseException {
+		if (!facetRequestColumnModels.isEmpty()) {
+			String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facetRequestColumnModels,
+					null);
+
 			StringBuilder builder = new StringBuilder();
-			SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, originalWhereClause);
-			
+			SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString,
+					originalWhereClause);
+
 			// create the new where if necessary
-			if(builder.length() > 0){
-				WhereClause newWhereClause = new TableQueryParser(builder.toString()).whereClause();
-				modelCopy.getTableExpression().replaceWhere(newWhereClause);
+			if (builder.length() > 0) {
+				return new TableQueryParser(builder.toString()).whereClause();
 			}
 		}
-		return modelCopy;
+		return originalWhereClause;
 	}
 }

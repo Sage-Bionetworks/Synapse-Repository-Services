@@ -1,23 +1,19 @@
 package org.sagebionetworks.repo.manager.table;
 
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
-import org.sagebionetworks.repo.model.table.FacetColumnRequest;
-import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
-import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
-import org.sagebionetworks.table.query.util.FacetUtils;
-import org.sagebionetworks.util.ValidateArgument;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
+import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Class responsible for generating all facet related queries and transforming
@@ -28,8 +24,6 @@ import java.util.Set;
 public class FacetModel {
 	
 	private List<FacetRequestColumnModel> validatedFacets;
-	private boolean hasFilters;
-	private SqlQuery facetedQuery;
 	private List<FacetTransformer> facetTransformers;
 	
 	
@@ -40,33 +34,11 @@ public class FacetModel {
 	 * @param returnFacets whether facet information will be returned back to the user
 	 */
 	public FacetModel(List<FacetColumnRequest> selectedFacets, SqlQuery sqlQuery, boolean returnFacets) {
-		ValidateArgument.required(sqlQuery, "sqlQuery");
-	
-		//setting fields
-		this.hasFilters = selectedFacets != null && !selectedFacets.isEmpty();
-		
+		ValidateArgument.required(sqlQuery, "sqlQuery");		
 		this.validatedFacets = createValidatedFacetsList(selectedFacets, sqlQuery.getTableSchema(), returnFacets);
-		
-		//generate the faceted query and facet transformers
-		this.facetedQuery = generateFacetFilteredQuery(sqlQuery, this.validatedFacets);
 		this.facetTransformers = generateFacetQueryTransformers(sqlQuery, this.validatedFacets);
 	}
 	
-	/**
-	 * Returns whether there were facet filters selected
-	 * @return
-	 */
-	public boolean hasFiltersApplied(){
-		return hasFilters;
-	}
-	
-	/**
-	 * Returns a new SqlQuery with searchConditions derived from the facetColums list appended to the query's WhereClause
-	 * @return
-	 */
-	public SqlQuery getFacetFilteredQuery(){
-		return this.facetedQuery;
-	}
 	
 	/**
 	 * Returns a list of FacetTransformers which contains a method to get a
@@ -138,22 +110,6 @@ public class FacetModel {
 			}
 		}
 		return result;
-	}
-	
-	static SqlQuery generateFacetFilteredQuery(SqlQuery sqlQuery, List<FacetRequestColumnModel> validatedFacets){
-		ValidateArgument.required(sqlQuery, "sqlQuery");
-		ValidateArgument.required(validatedFacets, "validatedFacets");
-		try{
-			QuerySpecification modifiedQuerySpecification = FacetUtils.appendFacetSearchConditionToQuerySpecification(sqlQuery.getModel(), validatedFacets);
-
-			return new SqlQueryBuilder(modifiedQuerySpecification, sqlQuery.getSchemaProvider(), sqlQuery.getOverrideOffset(), sqlQuery.getOverrideLimit(), sqlQuery.getMaxBytesPerPage(), sqlQuery.getUserId())
-					.includeEntityEtag(sqlQuery.includeEntityEtag())
-					.indexDescription(sqlQuery.getIndexDescription())
-					.selectedFacets(sqlQuery.getSelectedFacets())
-					.build();
-		}catch (ParseException e){
-			throw new RuntimeException(e);
-		}
 	}
 	
 	static List<FacetTransformer> generateFacetQueryTransformers(SqlQuery sqlQuery, List<FacetRequestColumnModel> validatedFacets){

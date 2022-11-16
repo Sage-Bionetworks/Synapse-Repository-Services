@@ -76,32 +76,24 @@ public class TableExpression extends SQLElement implements HasAggregate, HasSing
 	 * Replace the existing pagination with the passed pagination.
 	 * @param pagination
 	 */
-	public void replacePagination(Pagination pagination) {
-		this.pagination = pagination;
-	}
-
-	/**
-	 * Replace the existing group by with the passed group by.
-	 * @param groupBy
-	 */
-	public void replaceGroupBy(GroupByClause groupBy) {
-		this.groupByClause = groupBy;
+	public void replacePagination(Pagination replacement) {
+		this.pagination = Replaceable.prepareToReplace(this.pagination, replacement, this);
 	}
 	
 	/**
 	 * Replace the existing group by with the passed group by.
 	 * @param orderBy
 	 */
-	public void replaceOrderBy(OrderByClause orderBy){
-		this.orderByClause = orderBy;
+	public void replaceOrderBy(OrderByClause replacement){
+		this.orderByClause = Replaceable.prepareToReplace(this.orderByClause, replacement, this);
 	}
 
 	/**
 	 * Replace the existing where clause.
 	 * @param where
 	 */
-	public void replaceWhere(WhereClause where) {
-		this.whereClause = where;
+	public void replaceWhere(WhereClause replacement) {
+		this.whereClause = Replaceable.prepareToReplace(this.whereClause, replacement, this);
 	}
 
 	@Override

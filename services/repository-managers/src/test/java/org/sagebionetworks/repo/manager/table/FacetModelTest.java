@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -26,7 +25,6 @@ import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
-import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 
 import com.google.common.collect.Lists;
@@ -118,36 +116,12 @@ public class FacetModelTest {
 	@Test
 	public void testConstructor(){
 		facetModel = new FacetModel(selectedFacets, query, true);
-		//just checking that we will get some result back after construction of object.
-		//the results are unit tested later.
-		assertNotNull(facetModel.getFacetFilteredQuery());
 		List<FacetTransformer> facetTransformers = facetModel.getFacetInformationQueries();
 		assertNotNull(facetTransformers);
 		for(FacetTransformer transformer : facetTransformers){
 			assertNotNull(transformer);
 		}
-		assertTrue(facetModel.hasFiltersApplied());
 	}
-	
-	
-	/////////////////////////////
-	// hasFiltersApplied tests()
-	/////////////////////////////
-	public void testHasFiltersAppliedNullSelectedFacetsInConstructor(){
-		facetModel = new FacetModel(null, query, true);
-		assertFalse(facetModel.hasFiltersApplied());
-	}
-	
-	public void testHasFiltersAppliedEmptySelectedFacetsInConstructor(){
-		facetModel = new FacetModel(new ArrayList<FacetColumnRequest>(), query, true);
-		assertFalse(facetModel.hasFiltersApplied());
-	}
-	
-	public void testHasFiltersAppliedNonEmptySelectedFacetsInConstructor(){
-		facetModel = new FacetModel(null, query, true);
-		assertTrue(facetModel.hasFiltersApplied());
-	}
-	
 	
 	
 	///////////////////////////////
@@ -284,52 +258,7 @@ public class FacetModelTest {
 		assertEquals(FacetType.range, validatedQueryFacetColumn.getFacetType());
 		assertEquals(1, supportedFacetColumns.size());
 	}
-	///////////////////////////////////////
-	// generateFacetFilteredQuery() Tests
-	///////////////////////////////////////
-	@Test
-	public void testGenerateFacetFilteredQueryNullQuery() {
-		assertThrows(IllegalArgumentException.class, ()->{
-			FacetModel.generateFacetFilteredQuery(null, validatedQueryFacetColumns);
-		});
-	}
-	@Test
-	public void testGenerateFacetFilteredQueryNullList() {
-		assertThrows(IllegalArgumentException.class, ()->{
-			FacetModel.generateFacetFilteredQuery(simpleQuery, null);
-		});
-	}
-	
-	@Test
-	public void testGenerateFacetFilteredQueryEmptyFacetColumnsList() throws ParseException {
-		assertTrue(validatedQueryFacetColumns.isEmpty());
-		SqlQuery copy = FacetModel.generateFacetFilteredQuery(simpleQuery, validatedQueryFacetColumns);
-		// not same reference, are different object instances
-		assertTrue(simpleQuery != copy);
-		// but are essentially the same
-		assertEquals(simpleQuery.getOutputSQL(), copy.getOutputSQL());
 
-	}
-
-	@Test
-	public void testGenerateFacetFilteredQueryNonEmptyFacetColumnsList() throws ParseException {
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId + " where asdf <> 'ayy' and asdf < 'taco bell'",
-				schemaProvider(facetSchema), userId).indexDescription(new TableIndexDescription(IdAndVersion.parse(tableId))).build();
-
-		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel, rangeRequest));
-
-		SqlQuery modifiedQuery = FacetModel.generateFacetFilteredQuery(query, validatedQueryFacetColumns);
-		String expectedTransformedQuery = "SELECT _C890_, _C098_, _C099_, ROW_ID, ROW_VERSION FROM T123"
-				+ " WHERE ( _C890_ <> :b0 AND _C890_ < :b1 )"
-				+ " AND ( ( ( _C890_ BETWEEN :b2 AND :b3 ) ) )";
-		assertEquals(expectedTransformedQuery, modifiedQuery.getOutputSQL());
-		//check the original where clauses' parameters
-		assertEquals("ayy", modifiedQuery.getParameters().get("b0"));
-		assertEquals("taco bell", modifiedQuery.getParameters().get("b1"));
-		//check the facet's where clauses' parameters
-		assertEquals(min, modifiedQuery.getParameters().get("b2"));
-		assertEquals(max, modifiedQuery.getParameters().get("b3"));
-	}
 	
 	///////////////////////////////////////////
 	// generateFacetQueryTransformers() tests

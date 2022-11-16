@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.SqlQuery;
@@ -69,6 +70,7 @@ import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -310,48 +312,39 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testCreateCombinedSqlSimpleQuery() {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
-		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		String sql = manager.createCombinedSql(user, query);
-		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		assertEquals("SELECT * FROM syn123", sql);
 	}
 
 	@Test
 	public void testCreateCombinedSqlSimpleQueryWithWhereClause() {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
-		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 
 		Query query = new Query();
 		query.setSql("select * from " + tableId + " where i2 = 1");
 		String sql = manager.createCombinedSql(user, query);
-		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		assertEquals("SELECT * FROM syn123 WHERE i2 = 1", sql);
 	}
 
 	@Test
 	public void testCreateCombinedSqlHavingSelectedFacet() {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
-		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 
 		Query query = new Query();
 		query.setSql("select * from " + tableId + " where i1 = 1.0");
 		query.setSelectedFacets(Collections.singletonList(facetColumnRequest));
+		// call under test
 		String sql = manager.createCombinedSql(user, query);
-		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		assertEquals("SELECT * FROM syn123 WHERE ( i1 = 1.0 ) AND ( ( ( \"i2\" <= '45' ) ) )", sql);
 	}
 
 	@Test
 	public void testCreateCombinedSqlHavingAdditionalFilter() {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
-		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+
 
 		ColumnSingleValueQueryFilter likeFilter = new ColumnSingleValueQueryFilter();
 		likeFilter.setColumnName("i0");
@@ -367,29 +360,23 @@ public class TableQueryManagerImplTest {
 		query.setSql("select * from " + tableId);
 		query.setAdditionalFilters(Arrays.asList(likeFilter, hasFilter));
 		String sql = manager.createCombinedSql(user, query);
-		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		assertEquals("SELECT * FROM syn123 WHERE ( \"i0\" LIKE 'foo%' ) AND ( \"i12\" HAS ( 'foo%', 'bar' ) )", sql);
 	}
 
 	@Test
 	public void testCreateCombinedSqlHavingAdditionalFilterTextSearch() {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
-		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		query.setAdditionalFilters(Arrays.asList(new TextMatchesQueryFilter().setSearchExpression("value")));
 		String sql = manager.createCombinedSql(user, query);
-		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		assertEquals("SELECT * FROM syn123 WHERE ( TEXT_MATCHES('value') )", sql);
 	}
 
 	@Test
 	public void testCreateCombinedSqlWithSort() {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
-		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 
 		SortItem sort1 = new SortItem();
 		sort1.setColumn("i0");
@@ -399,15 +386,12 @@ public class TableQueryManagerImplTest {
 		query.setSql("select * from " + tableId);
 		query.setSort(Lists.newArrayList(sort1));
 		String sql = manager.createCombinedSql(user, query);
-		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		assertEquals("SELECT * FROM syn123 ORDER BY \"i0\" DESC", sql);
 	}
 
 	@Test
 	public void testCreateCombinedSqlWithALLFilter() {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
-		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 
 		SortItem sort1 = new SortItem();
 		sort1.setColumn("i0");
@@ -431,7 +415,6 @@ public class TableQueryManagerImplTest {
 		query.setLimit(2L);
 		query.setOffset(3L);
 		String sql = manager.createCombinedSql(user, query);
-		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		assertEquals("SELECT * FROM syn123 WHERE ( ( i1 = 1 ) AND ( ( \"i0\" LIKE 'foo%' ) " +
 				"AND ( \"i12\" HAS ( 'foo%', 'bar' ) ) ) ) AND ( ( ( \"i2\" <= '45' ) ) ) " +
 				"ORDER BY \"i0\" DESC LIMIT 2 OFFSET 3", sql);
@@ -641,7 +624,9 @@ public class TableQueryManagerImplTest {
 		// null handler indicates not to run the main query.
 		RowHandler rowHandler = null;
 		queryOptions = new QueryOptions().withRunCount(true);
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId+" limit 11", schemaProvider, user.getId()).indexDescription(new TableIndexDescription(idAndVersion)).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId+" limit 11", schemaProvider, user.getId())
+				.indexDescription(new TableIndexDescription(idAndVersion))
+				.originalPagination(new Pagination(11L, null)).build();
 		// call under test
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
@@ -726,7 +711,12 @@ public class TableQueryManagerImplTest {
 		RowHandler rowHandler = null;
 		queryOptions = new QueryOptions().withRunCount(true).withReturnColumnModels(true).withReturnSelectColumns(true);
 		
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider, user.getId())
+		CombinedQuery combined = CombinedQuery.builder()
+				.setQuery("select * from " + tableId)
+				.setSchemaProvider(schemaProvider)
+				.setSelectedFacets(facetRequestList).build();
+		
+		SqlQuery query = new SqlQueryBuilder(combined.getCombinedSql(), schemaProvider, user.getId())
 		.selectedFacets(facetRequestList)
 		.indexDescription(new TableIndexDescription(idAndVersion)).build();
 		
@@ -1471,7 +1461,9 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunCountQueryWithLimitLessCount() throws ParseException{
-		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100", schemaProvider, user.getId()).indexDescription(new TableIndexDescription(idAndVersion)).build();
+		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100", schemaProvider, user.getId())
+				.originalPagination(new Pagination(100L, null))
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
@@ -1493,7 +1485,9 @@ public class TableQueryManagerImplTest {
 		
 	@Test
 	public void testRunCountQueryWithLimitAndOffsetLessThanCount() throws ParseException{
-		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 50", schemaProvider, user.getId()).indexDescription(new TableIndexDescription(idAndVersion)).build();
+		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 50", schemaProvider, user.getId())
+				.originalPagination(new Pagination(100L, 50L))
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
@@ -1504,7 +1498,9 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunCountQueryWithLimitAndOffsetMoreThanCount() throws ParseException{
-		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 150", schemaProvider, user.getId()).indexDescription(new TableIndexDescription(idAndVersion)).build();
+		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 150", schemaProvider, user.getId())
+				.originalPagination(new Pagination(100L, 150L))
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
@@ -1515,7 +1511,9 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunCountQueryWithCountLessThanOffset() throws ParseException{
-		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 150", schemaProvider, user.getId()).indexDescription(new TableIndexDescription(idAndVersion)).build();
+		SqlQuery query = new SqlQueryBuilder("select i0 from "+tableId+" limit 100 offset 150", schemaProvider, user.getId())
+				.originalPagination(new Pagination(100L, 150L))
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
 		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
 		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(149L);
@@ -1754,6 +1752,7 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		// there should be no query results.
 		assertNull(result.getQueryResult());
+		verify(mockTableIndexDAO).countQuery(eq("SELECT COUNT(*) FROM T123"), any());
 		assertEquals(totalCount, result.getQueryCount());
 	}
 	

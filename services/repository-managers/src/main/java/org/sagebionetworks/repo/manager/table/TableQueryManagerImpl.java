@@ -1,9 +1,16 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -28,6 +35,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
@@ -39,7 +47,6 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
@@ -49,14 +56,6 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.BadSqlGrammarException;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class TableQueryManagerImpl implements TableQueryManager {
 
@@ -148,34 +147,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 *
 	 */
 	String createCombinedSql(UserInfo user, Query query) {
-		QuerySpecification model = parserQuery(query.getSql());
-		// SqlQuery changes the selectList of query so keep the original selected list.
-		SelectList selectListFromUser = model.getSelectList();
-		// We now have the table's ID.
-		String tableId = model.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
-		SqlQuery combinedSql = new SqlQueryBuilder(model, user.getId())
-				.schemaProvider(tableManagerSupport)
-				.overrideOffset(query.getOffset())
-				.overrideLimit(query.getLimit())
-				.indexDescription(indexDescription)
-				.selectedFacets(query.getSelectedFacets())
-				.sortList(query.getSort())
-				.additionalFilters(query.getAdditionalFilters()).build();
-
-		//SqlQuery does not include facetModel, So add selected facet to query.
-		FacetModel facetModel = new FacetModel(query.getSelectedFacets(), combinedSql, query.getSelectedFacets() != null);
-
-		// determine whether to run with facet filters
-		if (facetModel.hasFiltersApplied()) {
-			combinedSql = facetModel.getFacetFilteredQuery();
-		}
-
-		// parse again the query to replace selectList with original select list.
-		QuerySpecification finalModel = parserQuery(combinedSql.getCombinedSQL());
-		finalModel.getSelectList().replaceElement(selectListFromUser);
-		return finalModel.toSql();
+		return CombinedQuery.builder()
+				.setQuery(query.getSql())
+				.setSchemaProvider(tableManagerSupport)
+				.setOverrideOffset(query.getOffset())
+				.setOverrideLimit(query.getLimit())
+				.setSelectedFacets(query.getSelectedFacets())
+				.setSortList(query.getSort())
+				.setAdditionalFilters(query.getAdditionalFilters()).build().getCombinedSql();
 	}
 
 	/**
@@ -221,12 +200,23 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// 4. Add row level filter as needed.
 		// Table views must have a row level filter applied to the query
 		model = addRowLevelFilter(user, model, indexDescription);
+		
+		CombinedQuery combined = CombinedQuery.builder()
+				.setQuery(model.toSql())
+				.setSchemaProvider(tableManagerSupport)
+				.setOverrideOffset(query.getOffset())
+				.setOverrideLimit(query.getLimit())
+				.setSelectedFacets(query.getSelectedFacets())
+				.setSortList(query.getSort())
+				.setAdditionalFilters(query.getAdditionalFilters()).build();
 		// Return the prepared query.
-		return new SqlQueryBuilder(model, user.getId()).schemaProvider(tableManagerSupport).overrideOffset(query.getOffset())
-				.overrideLimit(query.getLimit()).maxBytesPerPage(maxBytesPerPage)
+		return new SqlQueryBuilder(combined.getCombinedSql(), user.getId())
+				.schemaProvider(tableManagerSupport)
+				.maxBytesPerPage(maxBytesPerPage)
 				.includeEntityEtag(query.getIncludeEntityEtag())
-				.indexDescription(indexDescription).selectedFacets(query.getSelectedFacets())
-				.sortList(query.getSort()).additionalFilters(query.getAdditionalFilters()).build();
+				.indexDescription(indexDescription)
+				.selectedFacets(query.getSelectedFacets())
+				.originalPagination(combined.getOriginalPagination()).build();
 	}
 
 	/**
@@ -333,20 +323,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throw new IllegalArgumentException("Invalid use of " + TextMatchesPredicate.KEYWORD + ". Full text search is not enabled on table " + idAndVersion + ".");
 		}
 
-		FacetModel facetModel = new FacetModel(query.getSelectedFacets(), query, options.returnFacets());
-
-		// determine whether or not to run with facet filters
-		SqlQuery queryToRun;
-		if (facetModel.hasFiltersApplied()) {
-			queryToRun = facetModel.getFacetFilteredQuery();
-		} else {
-			queryToRun = query;
-		}
-
 		// run the actual query if needed.
 		if (rowHandler != null) {
 			// run the query
-			RowSet rowSet = runQueryAsStream(progressCallback, queryToRun, rowHandler, indexDao);
+			RowSet rowSet = runQueryAsStream(progressCallback, query, rowHandler, indexDao);
 			QueryResult queryResult = new QueryResult();
 			queryResult.setQueryResults(rowSet);
 			bundle.setQueryResult(queryResult);
@@ -355,7 +335,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// run the count query if needed.
 		if (options.runCount()) {
 			// count requested.
-			Long count = runCountQuery(queryToRun, indexDao);
+			Long count = runCountQuery(query, indexDao);
 			bundle.setQueryCount(count);
 		}
 
@@ -363,12 +343,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if (options.returnFacets()) {
 			// use original query instead of queryToRun because need the where clause that
 			// was not modified by any facets
-			List<FacetColumnResult> facetResults = runFacetQueries(facetModel, indexDao);
+			List<FacetColumnResult> facetResults = runFacetQueries(
+					new FacetModel(query.getSelectedFacets(), query, options.returnFacets()), indexDao);
 			bundle.setFacets(facetResults);
 		}
 		
 		if(options.runSumFileSizes()) {
-			SumFileSizes sumFileSizes = runSumFileSize(queryToRun, indexDao);
+			SumFileSizes sumFileSizes = runSumFileSize(query, indexDao);
 			bundle.setSumFileSizes(sumFileSizes);
 		}
 		
@@ -566,7 +547,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			 * to the one row count(*) returns. In actuality, we want to apply that limit &
 			 * offset to the count itself. We do that here manually.
 			 */
-			Pagination pagination = query.getModel().getTableExpression().getPagination();
+			Pagination pagination = query.getOriginalPagination();
 			if (pagination != null) {
 				if (pagination.getOffsetLong() != null) {
 					long offsetForCount = pagination.getOffsetLong();

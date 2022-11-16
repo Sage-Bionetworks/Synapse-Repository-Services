@@ -175,7 +175,7 @@ public class TableAndColumnMapperTest {
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
 		// call under test
-		assertEquals(Optional.empty(), mapper.lookupColumnReference(null));
+		assertEquals(Optional.empty(), mapper.lookupColumnReference((ColumnReference)null));
 	}
 
 	@Test

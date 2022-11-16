@@ -152,9 +152,11 @@ public class FacetUtilsTest {
 	/////////////////////////////////////////////////////////
 	
 	@Test
-	public void testAppendFacetSearchConditionToQuerySpecification() throws ParseException{
+	public void testAppendFacetSearchConditionToQuerySpecification() throws ParseException {
 		validatedQueryFacetColumns.add(mockFacetColumn);
-		QuerySpecification modifiedSql = FacetUtils.appendFacetSearchConditionToQuerySpecification(simpleModel, validatedQueryFacetColumns);
-		assertEquals("SELECT * FROM syn123 WHERE ( i LIKE 'trains' ) AND ( ( ( searchCondition = asdf ) ) )", modifiedSql.toSql());
+		WhereClause modifiedSql = FacetUtils.appendFacetSearchConditionToQuerySpecification(
+				simpleModel.getTableExpression().getWhereClause(), validatedQueryFacetColumns);
+		assertEquals("WHERE ( i LIKE 'trains' ) AND ( ( ( searchCondition = asdf ) ) )",
+				modifiedSql.toSql());
 	}
 }
