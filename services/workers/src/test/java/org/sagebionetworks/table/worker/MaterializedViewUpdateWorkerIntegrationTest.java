@@ -1144,7 +1144,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		List<ColumnModel> schema = Arrays.asList(
 			new ColumnModel().setName("code").setColumnType(ColumnType.STRING).setMaximumSize(50L),
 			new ColumnModel().setName("patientId").setColumnType(ColumnType.INTEGER),
-			new ColumnModel().setName("multiValue").setColumnType(ColumnType.STRING_LIST)
+			new ColumnModel().setName("multiValue").setColumnType(ColumnType.STRING_LIST).setMaximumListLength(10L).setMaximumSize(10L)
 		);
 
 		schema = columnModelManager.createColumnModels(adminUserInfo, schema);
