@@ -2,12 +2,9 @@ package org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
-import org.sagebionetworks.util.ValidateArgument;
-
-class StringValueListValidator implements AnnotationsV2ValueListValidator {
+public class StringValueListValidator implements AnnotationsV2ValueListValidator {
 	
-	static final int MAX_STRING_SIZE = 500;
+	public static final int MAX_STRING_SIZE = 500;
 	
 	@Override
 	public void validate(String key, List<String> values) {

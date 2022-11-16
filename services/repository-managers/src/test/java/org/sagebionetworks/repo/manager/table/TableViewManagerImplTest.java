@@ -19,6 +19,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -371,6 +372,58 @@ public class TableViewManagerImplTest {
 	}
 	
 	@Test
+	public void testSetViewSchemaAndScopeWithListLengthExceedsAnnotationLimit() {
+		viewSchema = List.of(
+			new ColumnModel()
+				.setName("foo")
+				.setColumnType(ColumnType.STRING_LIST)
+				.setMaximumListLength(AnnotationsV2Utils.MAX_VALUES_PER_KEY + 1L)
+				.setMaximumSize(5L)
+		);
+		when(mockColumnModelManager.bindColumnsToDefaultVersionOfObject(any(), any())).thenReturn(viewSchema);
+		
+		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+		});
+		
+		assertEquals("The maximum list length for the column `foo` should be less or equal to 100.", result.getMessage());
+		
+		// the size should be validated
+		verify(mockTableManagerSupport).validateScope(scopeType, scopeIds);
+		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), scopeType);
+		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
+		verifyZeroInteractions(mockTableManagerSupport);
+	}
+	
+	@Test
+	public void testSetViewSchemaAndScopeWithStringListExceedsCharacterAnnotationLimit() {
+		viewSchema = List.of(
+			new ColumnModel()
+				.setName("foo")
+				.setColumnType(ColumnType.STRING_LIST)
+				.setMaximumListLength((long) AnnotationsV2Utils.MAX_VALUES_PER_KEY)
+				.setMaximumSize(100L)
+		);
+		when(mockColumnModelManager.bindColumnsToDefaultVersionOfObject(any(), any())).thenReturn(viewSchema);
+		
+		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+		});
+		
+		assertEquals("The total size for the column `foo` exceeds the annotation characters limit (500)."
+			+ " Please adjust the maximum list length or the maximum size of the column accordingly (maximumListLength * maximumSize should be less or equal than 500).", 
+			result.getMessage());
+		
+		// the size should be validated
+		verify(mockTableManagerSupport).validateScope(scopeType, scopeIds);
+		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), scopeType);
+		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
+		verifyZeroInteractions(mockTableManagerSupport);
+	}
+	
+	@Test
 	public void testGetViewSchemaWithRequiredColumnsNoAdditions(){
 		List<ColumnModel> rawSchema = Lists.newArrayList(
 				objectFieldModelResolver.getColumnModel(ObjectField.benefactorId),
@@ -450,6 +503,64 @@ public class TableViewManagerImplTest {
 		}).getMessage();
 		// expected
 		assertTrue(message.contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
+	}
+	
+	@Test
+	public void testApplySchemaChangeWithListLengthExceedsAnnotationLimit() {
+		List<ColumnChange> changes = List.of(new ColumnChange()
+			.setOldColumnId(null)
+			.setNewColumnId("1")
+		);
+		List<String> newColumnIds = List.of("1");
+		List<ColumnModel> schema = List.of(
+			new ColumnModel()
+				.setName("foo")
+				.setColumnType(ColumnType.STRING_LIST)
+				.setMaximumListLength(AnnotationsV2Utils.MAX_VALUES_PER_KEY + 1L)
+				.setMaximumSize(5L)
+		);
+		
+		when(mockColumnModelManager.calculateNewSchemaIdsAndValidate(any(), any(), any())).thenReturn(newColumnIds);
+		when(mockColumnModelManager.bindColumnsToDefaultVersionOfObject(any(), any())).thenReturn(schema);
+		
+		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			manager.applySchemaChange(userInfo, viewId, changes, newColumnIds);
+		});
+		
+		assertEquals("The maximum list length for the column `foo` should be less or equal to 100.", result.getMessage());	
+		
+		verifyZeroInteractions(mockTableManagerSupport);
+	}
+	
+	@Test
+	public void testApplySchemaChangeWithStringListExceedsCharacterAnnotationLimit() {
+		List<ColumnChange> changes = List.of(new ColumnChange()
+			.setOldColumnId(null)
+			.setNewColumnId("1")
+		);
+		List<String> newColumnIds = List.of("1");
+		List<ColumnModel> schema = List.of(
+			new ColumnModel()
+				.setName("foo")
+				.setColumnType(ColumnType.STRING_LIST)
+				.setMaximumListLength((long) AnnotationsV2Utils.MAX_VALUES_PER_KEY)
+				.setMaximumSize(100L)
+		);
+		
+		when(mockColumnModelManager.calculateNewSchemaIdsAndValidate(any(), any(), any())).thenReturn(newColumnIds);
+		when(mockColumnModelManager.bindColumnsToDefaultVersionOfObject(any(), any())).thenReturn(schema);
+		
+		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			manager.applySchemaChange(userInfo, viewId, changes, newColumnIds);
+		});
+		
+		assertEquals("The total size for the column `foo` exceeds the annotation characters limit (500)."
+			+ " Please adjust the maximum list length or the maximum size of the column accordingly (maximumListLength * maximumSize should be less or equal than 500).", 
+			result.getMessage());	
+		
+		verifyZeroInteractions(mockTableManagerSupport);
 	}
 
 	@Test

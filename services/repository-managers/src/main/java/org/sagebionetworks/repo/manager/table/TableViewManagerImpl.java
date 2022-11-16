@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
+import org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator.StringValueListValidator;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
@@ -151,7 +153,8 @@ public class TableViewManagerImpl implements TableViewManager {
 		// Define the scope of this view.
 		viewScopeDao.setViewScopeAndType(viewId, scopeIds, scopeType);
 		// Define the schema of this view.
-		columModelManager.bindColumnsToDefaultVersionOfObject(schema, viewIdString);
+		List<ColumnModel> viewColumns = columModelManager.bindColumnsToDefaultVersionOfObject(schema, viewIdString);
+		validateViewColumns(viewColumns);
 		// trigger an update
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
@@ -175,6 +178,7 @@ public class TableViewManagerImpl implements TableViewManager {
 				orderedColumnIds);
 		validateViewSchemaSize(newSchemaIds);
 		List<ColumnModel> newSchema = columModelManager.bindColumnsToDefaultVersionOfObject(newSchemaIds, viewId);
+		validateViewColumns(newSchema);
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewId);
 		// trigger an update.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
@@ -193,6 +197,31 @@ public class TableViewManagerImpl implements TableViewManager {
 						+ MAX_COLUMNS_PER_VIEW + " columns or less.");
 			}
 		}
+	}
+	
+	// View specific validation for columns
+	private static void validateViewColumns(List<ColumnModel> schema) {
+		
+		if (schema == null || schema.isEmpty()) {
+			return;
+		}
+		
+		schema.stream()
+			.filter(column -> ColumnTypeListMappings.isList(column.getColumnType()))
+			.forEach(column -> {
+				// Makes sure that the list types columns reflect the annotation restrictions
+				ValidateArgument.requirement(column.getMaximumListLength() <= AnnotationsV2Utils.MAX_VALUES_PER_KEY, 
+						"The maximum list length for the column `" + column.getName() + "` should be less or equal to " + AnnotationsV2Utils.MAX_VALUES_PER_KEY + ".");
+
+				if (ColumnType.STRING_LIST == column.getColumnType()) {
+					ValidateArgument.requirement(column.getMaximumListLength() * column.getMaximumSize() <= StringValueListValidator.MAX_STRING_SIZE, 
+						"The total size for the column `" + column.getName()
+								+ "` exceeds the annotation characters limit (" + StringValueListValidator.MAX_STRING_SIZE
+								+ "). Please adjust the maximum list length or the maximum size of the column accordingly (maximumListLength * maximumSize should be less or equal than "
+								+ StringValueListValidator.MAX_STRING_SIZE + ").");
+				}
+				
+			});
 	}
 
 	/**

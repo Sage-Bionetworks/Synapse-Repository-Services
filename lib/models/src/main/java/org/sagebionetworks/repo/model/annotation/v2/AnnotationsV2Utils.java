@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 public class AnnotationsV2Utils {
 
 	static final int MAX_ANNOTATION_KEYS = 100;
-	static final int MAX_VALUES_PER_KEY = 100;
+	public static final int MAX_VALUES_PER_KEY = 100;
 	
 	// match one or more whitespace characters
 	private static final Pattern ALLOWABLE_CHARS = Pattern
