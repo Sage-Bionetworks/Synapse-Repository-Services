@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -19,7 +16,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.replication.ReplicationManager;
@@ -60,17 +56,12 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactor
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
-import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.util.csv.CSVReaderIterator;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Sets;
-
-import au.com.bytecode.opencsv.CSVReader;
 
 public class TableViewManagerImpl implements TableViewManager {
 	
@@ -102,10 +93,6 @@ public class TableViewManagerImpl implements TableViewManager {
 	private ReplicationManager replicationManager;
 	@Autowired
 	private TableIndexConnectionFactory connectionFactory;
-	@Autowired
-	private FileProvider fileProvider;
-	@Autowired
-	private SynapseS3Client s3Client;
 	@Autowired
 	private StackConfiguration config;
 	@Autowired
@@ -526,7 +513,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			
 			Long viewCRC = null;
 			if(idAndVersion.getVersion().isPresent()) {
-				viewCRC = populateViewFromSnapshot(idAndVersion, indexManager);
+				viewCRC = populateViewFromSnapshot(indexDescription, indexManager);
 			}else {
 				viewCRC = populateViewIndexFromReplication(idAndVersion, indexManager, viewSchema);
 			}
@@ -573,29 +560,20 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @param idAndVersion
 	 * @param indexManager
 	 */
-	long populateViewFromSnapshot(IdAndVersion idAndVersion, TableIndexManager indexManager) {
+	long populateViewFromSnapshot(IndexDescription indexDescription, TableIndexManager indexManager) {
+		IdAndVersion idAndVersion = indexDescription.getIdAndVersion();
+		
 		TableSnapshot snapshot = viewSnapshotDao.getSnapshot(idAndVersion)
 			.orElseThrow(() -> new NotFoundException("Snapshot not found for: " + idAndVersion.toString()));
-		File tempFile = null;
-		try {
-			tempFile = fileProvider.createTempFile("ViewSnapshotDownload", ".csv.gzip");
-			// download the snapshot file to a temp file.
-			s3Client.getObject(new GetObjectRequest(snapshot.getBucket(), snapshot.getKey()), tempFile);
-			try (CSVReaderIterator reader = new CSVReaderIterator(new CSVReader(fileProvider.createReader(
-					fileProvider.createGZIPInputStream(fileProvider.createFileInputStream(tempFile)),
-					StandardCharsets.UTF_8)))) {
-				indexManager.populateViewFromSnapshot(idAndVersion, reader);
-			}
-			// ensure the latest benefactors are used.
-			indexManager.refreshViewBenefactors(idAndVersion);
-			return snapshot.getSnapshotId();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		} finally {
-			if (tempFile != null) {
-				tempFile.delete();
-			}
-		}
+		
+		tableManagerSupport.restoreTableFromS3(idAndVersion, snapshot.getBucket(), snapshot.getKey());
+		
+		// ensure the latest benefactors are used.
+		indexManager.refreshViewBenefactors(idAndVersion);
+		indexManager.refreshSearchIndex(indexDescription);
+		
+		return snapshot.getSnapshotId();
+		
 	}
 		
 	void validateViewForSnapshot(IdAndVersion idAndVersion) throws TableUnavailableException {

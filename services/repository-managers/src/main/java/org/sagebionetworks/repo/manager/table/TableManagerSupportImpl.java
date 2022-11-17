@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -59,6 +60,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.csv.CSVReaderIterator;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,14 +68,18 @@ import org.springframework.stereotype.Service;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonServiceException.ErrorType;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 
+import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
 
 @Service
 public class TableManagerSupportImpl implements TableManagerSupport {
 
 	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000 * 60 * 10; // 10 mins
+	
+	public static final long MAX_BYTES_PER_BATCH = 1024*1024*5;// 5MB
 
 	@Autowired
 	private TableStatusDAO tableStatusDAO;
@@ -96,7 +102,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Autowired
 	private AuthorizationManager authorizationManager;
 	@Autowired
-	private TableSnapshotDao viewSnapshotDao;
+	private TableSnapshotDao tableSnapshotDao;
 	@Autowired
 	private MetadataIndexProviderFactory metadataIndexProviderFactory;
 	@Autowired
@@ -338,7 +344,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public Long getViewStateNumber(IdAndVersion idAndVersion) {
 		if (idAndVersion.getVersion().isPresent()) {
 			// The ID of the snapshot is used for this case.
-			return viewSnapshotDao.getSnapshotId(idAndVersion);
+			return tableSnapshotDao.getSnapshotId(idAndVersion);
 		} else {
 			/*
 			 * By returning the version already associated with the view index, we ensure
@@ -595,6 +601,39 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			}
 		}
 		return schema;
+	}
+	
+	@Override
+	public void restoreTableFromS3(IdAndVersion idAndVersion, String bucket, String key) {
+		File tempFile = null;
+		try {
+			tempFile = fileProvider.createTempFile("TableSnapshotDownload", ".csv.gzip");
+			// download the snapshot file to a temp file.
+			s3Client.getObject(new GetObjectRequest(bucket, key), tempFile);
+			try (CSVReaderIterator reader = new CSVReaderIterator(new CSVReader(fileProvider.createReader(
+					fileProvider.createGZIPInputStream(fileProvider.createFileInputStream(tempFile)),
+					StandardCharsets.UTF_8)))) {
+				TableIndexDAO tableIndex = tableConnectionFactory.getConnection(idAndVersion);
+				tableIndex.populateViewFromSnapshot(idAndVersion, reader, MAX_BYTES_PER_BATCH);
+			}
+		} catch (AmazonServiceException e) {
+			// An amazon service exception can be retried later
+			if (ErrorType.Service == e.getErrorType()) {
+				throw new RecoverableMessageException(e);
+			}
+			throw e;
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} finally {
+			if (tempFile != null) {
+				tempFile.delete();
+			}
+		}
+	}
+	
+	@Override
+	public Optional<TableSnapshot> getMostRecentTableSnapshot(IdAndVersion idAndVersion) {
+		return tableSnapshotDao.getMostRecentTableSnapshot(idAndVersion);
 	}
 
 }

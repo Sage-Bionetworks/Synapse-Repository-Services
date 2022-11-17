@@ -649,7 +649,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
 		}
 	}
-	
+		
 	/**
 	 * Build the table index up to the latest change.  The caller must hold the table's exclusive lock and manage
 	 * the status of the table.
@@ -780,16 +780,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, loadChangeData.getChangeNumber());
 	}
 	
-	
-	@Override
-	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
-		tableIndexDao.populateViewFromSnapshot(idAndVersion, input, MAX_BYTES_PER_BATCH);
-		
-		if (tableIndexDao.isSearchEnabled(idAndVersion)) {
-			updateSearchIndex(tableManagerSupport.getIndexDescription(idAndVersion));
-		}
-	}
-
 	@Override
 	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewFilter filter,
 			long limit) {
@@ -946,6 +936,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// re-set the expiration for all containers that were synchronized.
 		long newExpirationDateMs = System.currentTimeMillis() + SYNCHRONIZATION_FEQUENCY_MS;
 		tableIndexDao.setSynchronizationLockExpiredForObject(type, idAndVersion.getId(), newExpirationDateMs);
+	}
+	
+	@Override
+	public void refreshSearchIndex(IndexDescription index) {
+		if (tableIndexDao.isSearchEnabled(index.getIdAndVersion())) {
+			updateSearchIndex(index);
+		}
 	}
 	
 	/**

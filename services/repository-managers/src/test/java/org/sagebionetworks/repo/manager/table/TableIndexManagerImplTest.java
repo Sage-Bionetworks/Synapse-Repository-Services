@@ -2970,6 +2970,33 @@ public class TableIndexManagerImplTest {
 		
 	}
 	
+	@Test
+	public void testRefreshSearchIndex() {
+		IndexDescription index = new TableIndexDescription(tableId);
+		
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
+		doNothing().when(managerSpy).updateSearchIndex(any());
+		
+		// Call under test
+		managerSpy.refreshSearchIndex(index);
+		
+		verify(mockIndexDao).isSearchEnabled(tableId);
+		verify(managerSpy).updateSearchIndex(index);
+	}
+	
+	@Test
+	public void testRefreshSearchIndexWithSearchDisabled() {
+		IndexDescription index = new TableIndexDescription(tableId);
+		
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(false);
+		
+		// Call under test
+		managerSpy.refreshSearchIndex(index);
+		
+		verify(mockIndexDao).isSearchEnabled(tableId);
+		verify(managerSpy, never()).updateSearchIndex(any());
+	}
+	
 	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {
 		// When a write transaction callback is used, we need to call the callback.

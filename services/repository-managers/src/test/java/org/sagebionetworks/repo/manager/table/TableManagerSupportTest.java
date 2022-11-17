@@ -16,13 +16,16 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -31,6 +34,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -64,6 +68,7 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -96,6 +101,7 @@ import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonServiceException.ErrorType;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -161,6 +167,10 @@ public class TableManagerSupportTest {
 	private OutputStream mockOutStream;
 	@Mock
 	private GZIPOutputStream mockGzipOutStream;
+	@Mock
+	private InputStream mockInStream;
+	@Mock
+	private GZIPInputStream mockGzipInStream;
 	
 	String schemaMD5Hex;
 	String tableId;
@@ -1181,5 +1191,151 @@ public class TableManagerSupportTest {
 		verify(mockFileProvider).createTempFile("table", ".csv");
 		verify(mockTableIndexDAO).streamTableToCSV(eq(idAndVersion), any());
 		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testRestoreTableFromS3() throws IOException {
+		
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(mockFile);
+		when(mockFileProvider.createFileInputStream(any())).thenReturn(mockInStream);
+		when(mockFileProvider.createGZIPInputStream(any())).thenReturn(mockGzipInStream);
+		when(mockFileProvider.createReader(any(), any())).thenReturn(new StringReader("foo"));
+		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
+		
+		String bucket = "bucket";
+		String key = "key";
+		
+		// Call under test
+		manager.restoreTableFromS3(idAndVersion, bucket, key);
+		
+		verify(mockFileProvider).createTempFile("TableSnapshotDownload", ".csv.gzip");
+		
+		ArgumentCaptor<GetObjectRequest> requestCaptor = ArgumentCaptor.forClass(GetObjectRequest.class);
+		verify(mockS3Client).getObject(requestCaptor.capture(), eq(mockFile));
+		
+		GetObjectRequest s3Request = requestCaptor.getValue();
+		
+		assertEquals(bucket, s3Request.getBucketName());
+		assertEquals(key, s3Request.getKey());
+		
+		verify(mockFileProvider).createFileInputStream(mockFile);
+		verify(mockFileProvider).createGZIPInputStream(mockInStream);
+		verify(mockFileProvider).createReader(mockGzipInStream, StandardCharsets.UTF_8);
+		verify(mockTableConnectionFactory).getConnection(idAndVersion);
+		verify(mockTableIndexDAO).populateViewFromSnapshot(eq(idAndVersion), any(), eq(TableManagerSupportImpl.MAX_BYTES_PER_BATCH));
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testRestoreTableFromS3WithIOException() throws IOException {
+		
+		IOException ex = new IOException("nope");
+		
+		when(mockFileProvider.createTempFile(any(), any())).thenThrow(ex);
+		
+		String bucket = "bucket";
+		String key = "key";
+		
+		RuntimeException result = assertThrows(RuntimeException.class, () -> {
+			// Call under test
+			manager.restoreTableFromS3(idAndVersion, bucket, key);
+		});
+		
+		assertEquals(ex, result.getCause());
+		
+		verify(mockFileProvider).createTempFile("TableSnapshotDownload", ".csv.gzip");
+		verifyNoMoreInteractions(mockFileProvider);
+		verifyNoMoreInteractions(mockFile);
+		verifyZeroInteractions(mockS3Client);
+		verifyZeroInteractions(mockTableIndexDAO);
+	}
+	
+	@Test
+	public void testRestoreTableFromS3WithAmazonServiceException() throws IOException {
+		
+		AmazonServiceException ex = new AmazonServiceException("nope");
+		ex.setErrorType(ErrorType.Service);
+		
+		when(mockS3Client.getObject(any(), any(File.class))).thenThrow(ex);
+		
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(mockFile);
+		
+		String bucket = "bucket";
+		String key = "key";
+		
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
+			// Call under test
+			manager.restoreTableFromS3(idAndVersion, bucket, key);
+		});
+		
+		assertEquals(ex, result.getCause());
+		
+		verify(mockFileProvider).createTempFile("TableSnapshotDownload", ".csv.gzip");
+		
+		ArgumentCaptor<GetObjectRequest> requestCaptor = ArgumentCaptor.forClass(GetObjectRequest.class);
+		verify(mockS3Client).getObject(requestCaptor.capture(), eq(mockFile));
+		
+		GetObjectRequest s3Request = requestCaptor.getValue();
+		
+		assertEquals(bucket, s3Request.getBucketName());
+		assertEquals(key, s3Request.getKey());
+		
+		verifyNoMoreInteractions(mockFileProvider);
+		verifyZeroInteractions(mockTableIndexDAO);
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testRestoreTableFromS3WithAmazonClientException() throws IOException {
+		
+		AmazonServiceException ex = new AmazonServiceException("nope");
+		ex.setErrorType(ErrorType.Client);
+		
+		when(mockS3Client.getObject(any(), any(File.class))).thenThrow(ex);
+		
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(mockFile);
+		
+		String bucket = "bucket";
+		String key = "key";
+		
+		AmazonServiceException result = assertThrows(AmazonServiceException.class, () -> {			
+			// Call under test
+			manager.restoreTableFromS3(idAndVersion, bucket, key);
+		});
+		
+		assertEquals(ex, result);
+		
+		verify(mockFileProvider).createTempFile("TableSnapshotDownload", ".csv.gzip");
+		
+		ArgumentCaptor<GetObjectRequest> requestCaptor = ArgumentCaptor.forClass(GetObjectRequest.class);
+		verify(mockS3Client).getObject(requestCaptor.capture(), eq(mockFile));
+		
+		GetObjectRequest s3Request = requestCaptor.getValue();
+		
+		assertEquals(bucket, s3Request.getBucketName());
+		assertEquals(key, s3Request.getKey());
+		
+		verifyNoMoreInteractions(mockFileProvider);
+		verifyZeroInteractions(mockTableIndexDAO);
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testGetMostRecentTableSnapshot() {
+		idAndVersion = IdAndVersion.parse("123.3");
+		
+		TableSnapshot expected = new TableSnapshot()
+				.withSnapshotId(111L)
+				.withTableId(idAndVersion.getId())
+				.withVersion(idAndVersion.getVersion().get());
+		
+		when(mockViewSnapshotDao.getMostRecentTableSnapshot(any())).thenReturn(Optional.of(expected));
+		
+		// Call under test
+		Optional<TableSnapshot> result = manager.getMostRecentTableSnapshot(idAndVersion);
+		
+		assertEquals(expected, result.get());
+		
+		verify(mockViewSnapshotDao).getMostRecentTableSnapshot(idAndVersion);
 	}
 }
