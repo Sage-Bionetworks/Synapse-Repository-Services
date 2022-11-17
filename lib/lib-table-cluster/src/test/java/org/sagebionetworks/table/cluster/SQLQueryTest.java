@@ -951,20 +951,6 @@ public class SQLQueryTest {
 	}
 
 	@Test
-	public void testAdditionalFilter_noExistingWHEREClauseWithEqualsFilterOperator() throws ParseException {
-		sql = "select \"foo\" from syn123";
-
-		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
-		filter.setColumnName("foo");
-		filter.setOperator(ColumnSingleValueFilterOperator.EQUALS);
-		filter.setValues(Arrays.asList("myVal%"));
-
-		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(tableSchema))
-				.indexDescription(new TableIndexDescription(idAndVersion)).additionalFilters(Arrays.asList(filter)).build();
-		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE ( _C111_ = :b0 )", query.getOutputSQL());
-	}
-
-	@Test
 	public void testAdditionalFilter_hasExistingWHEREClause() throws ParseException {
 		sql = "select \"foo\" from syn123 WHERE \"bar\" = 5";
 
