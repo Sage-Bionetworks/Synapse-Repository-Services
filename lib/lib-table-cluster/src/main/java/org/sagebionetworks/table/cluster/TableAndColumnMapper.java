@@ -118,7 +118,7 @@ public class TableAndColumnMapper implements ColumnLookup {
 			return Optional.empty();
 		}
 		try {
-			return lookupColumnReference(new TableQueryParser(columnName).columnReference());
+			return lookupColumnReference(new TableQueryParser(SqlElementUtils.wrapInDoubleQuotes(columnName)).columnReference());
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
