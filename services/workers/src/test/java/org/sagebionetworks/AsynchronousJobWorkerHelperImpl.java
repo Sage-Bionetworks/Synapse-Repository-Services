@@ -437,7 +437,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	
 	@Override
 	public Dataset createDataset(UserInfo user, Dataset dataset) {
-		if((dataset.getItems() !=null) && !(dataset.getItems().isEmpty())){
+		if((dataset.getItems() !=null)){
 			FileSummary fileSummary = nodeDAO.getFileSummary(dataset.getItems());
 			dataset.setChecksum(fileSummary.getChecksum());
 			dataset.setSize(fileSummary.getSize());

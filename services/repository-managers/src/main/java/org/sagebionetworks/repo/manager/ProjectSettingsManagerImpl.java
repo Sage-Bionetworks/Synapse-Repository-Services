@@ -38,7 +38,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
-	private static final String EXTERNAL_STORAGE_HELP = "http://docs.synapse.org/articles/custom_storage_location.html for more information on how to create a new external upload destination.";
+	private static final String EXTERNAL_STORAGE_HELP = "https://help.synapse.org/docs/Custom-Storage-Locations.2048327803.html for more information on how to create a new external upload destination.";
 
 	public static final int MAX_LOCATIONS_PER_PROJECT = 10;
 

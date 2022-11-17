@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import java.util.Optional;
+
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 
 public interface TableSnapshotDao {
@@ -19,7 +21,7 @@ public interface TableSnapshotDao {
 	 * @param idAndVersion
 	 * @return
 	 */
-	TableSnapshot getSnapshot(IdAndVersion idAndVersion);
+	Optional<TableSnapshot> getSnapshot(IdAndVersion idAndVersion);
 
 	/**
 	 * Truncate all snapshots.

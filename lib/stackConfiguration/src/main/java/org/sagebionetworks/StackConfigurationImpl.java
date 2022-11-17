@@ -764,6 +764,11 @@ public class StackConfigurationImpl implements StackConfiguration {
 	public String getViewSnapshotBucketName() {
 		return String.format(StackConstants.VIEW_SNAPSHOT_BUCKET, getStack());
 	}
+	
+	@Override
+	public String getTableSnapshotBucketName() {
+		return String.format(StackConstants.TABLE_SNAPSHOT_BUCKET, getStack());
+	}
 
 	/**
 	 * 

@@ -30,9 +30,9 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.UndefinedViewScopeException;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
@@ -62,17 +63,14 @@ import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVReaderIterator;
-import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.google.common.collect.Sets;
 
 import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
 
 public class TableViewManagerImpl implements TableViewManager {
 	
@@ -576,7 +574,8 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @param indexManager
 	 */
 	long populateViewFromSnapshot(IdAndVersion idAndVersion, TableIndexManager indexManager) {
-		TableSnapshot snapshot = viewSnapshotDao.getSnapshot(idAndVersion);
+		TableSnapshot snapshot = viewSnapshotDao.getSnapshot(idAndVersion)
+			.orElseThrow(() -> new NotFoundException("Snapshot not found for: " + idAndVersion.toString()));
 		File tempFile = null;
 		try {
 			tempFile = fileProvider.createTempFile("ViewSnapshotDownload", ".csv.gzip");
@@ -598,37 +597,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			}
 		}
 	}
-	
-	List<String> saveSnapshotToS3(IdAndVersion idAndVersion, String bucket, String key) {
-		TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
 		
-		File tempFile = null;
-		List<String> schema;
-		try {
-			tempFile = fileProvider.createTempFile("ViewSnapshot", ".csv");
-			// Stream view data from the replication database to a local CSV file.
-			try (CSVWriter writer = new CSVWriter(fileProvider.createWriter(
-					fileProvider.createGZIPOutputStream(fileProvider.createFileOutputStream(tempFile)),
-					StandardCharsets.UTF_8))) {
-				CSVWriterStream writerAdapter = (String[] nextLine) -> {
-					writer.writeNext(nextLine);
-				};
-				// write the snapshot to the temp file.
-				schema = indexManager.streamTableToCSV(idAndVersion, writerAdapter);
-			}
-			// upload the resulting CSV to S3.
-			s3Client.putObject(new PutObjectRequest(bucket, key, tempFile));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		} finally {
-			// unconditionally delete the temporary file.
-			if (tempFile != null) {
-				tempFile.delete();
-			}
-		}
-		return schema;
-	}
-	
 	void validateViewForSnapshot(IdAndVersion idAndVersion) throws TableUnavailableException {
 		ValidateArgument.required(idAndVersion, "The view id");
 		
@@ -675,9 +644,9 @@ public class TableViewManagerImpl implements TableViewManager {
 
 			String key = idAndVersion.getId() + "/" + UUID.randomUUID().toString() + ".csv.gzip";
 			String bucket = config.getViewSnapshotBucketName();
-			
+						
 			// Save the table to S3
-			List<String> schemaColumnIds = saveSnapshotToS3(idAndVersion, bucket, key);
+			List<String> schemaColumnIds = tableManagerSupport.streamTableToS3(idAndVersion, bucket, key);
 			
 			// Create a new version of the node
 			long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, idAndVersion.getId().toString(), snapshotOptions);

@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_
 
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.Optional;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -59,16 +60,17 @@ public class TableSnapshotDaoImpl implements TableSnapshotDao {
 	}
 
 	@Override
-	public TableSnapshot getSnapshot(IdAndVersion idAndVersion) {
+	public Optional<TableSnapshot> getSnapshot(IdAndVersion idAndVersion) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		ValidateArgument.required(idAndVersion.getVersion().isPresent(), "version");
 		try {
-			return translate(jdbcTemplate.queryForObject(
+			TableSnapshot snapshot = translate(jdbcTemplate.queryForObject(
 					"SELECT * FROM " + TABLE_TABLE_SNAPSHOT + " WHERE " + COL_TABLE_SNAPSHOT_TABLE_ID + " = ? AND "
 							+ COL_TABLE_SNAPSHOT_VERSION + " = ?",
 					MAPPER, idAndVersion.getId(), idAndVersion.getVersion().get()));
+			return Optional.of(snapshot);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Snapshot not found for: " + idAndVersion.toString(), e);
+			return Optional.empty();
 		}
 	}
 

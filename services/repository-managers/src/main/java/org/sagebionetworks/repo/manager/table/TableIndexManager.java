@@ -19,7 +19,6 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.SparseChangeSet;
-import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**
@@ -186,15 +185,6 @@ public interface TableIndexManager {
 	 */
 	long populateViewFromEntityReplication(Long viewId, ViewScopeType scopeType, List<ColumnModel> currentSchema);
 	
-	/**
-	 * Stream the data of the table with the given id to the given stream
-	 * 
-	 * @param idAndVersion
-	 * @param stream
-	 * @return The column model ids for the table index
-	 */
-	List<String> streamTableToCSV(IdAndVersion idAndVersion, CSVWriterStream stream);
-
 	/**
 	 * Get the possible ColumnModel definitions based on annotation within a given
 	 * scope.

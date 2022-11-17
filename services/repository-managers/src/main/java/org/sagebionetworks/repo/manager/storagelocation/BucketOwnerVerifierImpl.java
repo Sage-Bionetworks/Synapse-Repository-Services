@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableSet;
 @Service
 public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
 	
-	public static final String EXTERNAL_STORAGE_HELP = "http://docs.synapse.org/articles/custom_storage_location.html for more information on how to create a new external upload destination.";
+	public static final String EXTERNAL_STORAGE_HELP = "https://help.synapse.org/docs/Custom-Storage-Locations.2048327803.html for more information on how to create a new external upload destination.";
 
 	private static final String SECURITY_EXPLANATION = "For security purposes, Synapse needs to establish that the user has permission to write to the bucket. Please create an object in bucket '%s' with key '%s' that contains a "
 			+ "line separated list of identifiers for the user. Valid identifiers are the id of the user or id of a team the user is part of. Also see "

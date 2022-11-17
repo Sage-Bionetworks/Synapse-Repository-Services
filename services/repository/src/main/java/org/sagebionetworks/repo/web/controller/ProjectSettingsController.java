@@ -49,7 +49,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * By setting a custom storage location, users can store the data in their own S3 or Google Cloud bucket. Note that when a folder or a project is configured to use a custom storage location,
  * only future uploads through Synapse are affected (e.g. changing the storage location does not automatically change the location of existing files).
- * For a guide on setting a custom storage location, see the <a href="http://docs.synapse.org/articles/custom_storage_location.html">Custom Storage Location</a> documentation
+ * For a guide on setting a custom storage location, see the <a href="https://help.synapse.org/docs/Custom-Storage-Locations.2048327803.html">Custom Storage Location</a> documentation
  * article.
  * </p>
  */
