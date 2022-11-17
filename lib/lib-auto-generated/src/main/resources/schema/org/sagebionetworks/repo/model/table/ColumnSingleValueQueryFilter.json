@@ -14,7 +14,11 @@
 			"enum": [
 				{
 					"name": "LIKE",
-					"description": "The LIKE operation. Use wildcard '%' in value sting for prefix/suffix matching."
+					"description": "The LIKE operation. Use wildcard '%' in value string for prefix/suffix matching."
+				},
+				{
+					"name": "EQUALS",
+					"description": "The EQUALS operation."
 				}
 			]
 		},
