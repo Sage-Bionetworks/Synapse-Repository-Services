@@ -958,7 +958,7 @@ public class SQLTranslatorUtils {
 				case LIKE:
 					builder.append(" LIKE ");
 					break;
-				case EQUALS:
+				case EQUAL:
 					builder.append(" = ");
 					break;
 				default:

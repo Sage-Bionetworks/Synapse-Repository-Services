@@ -1189,30 +1189,6 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		assertEquals("SELECT i2, i0 FROM syn123 WHERE ( \"i12\" HAS_LIKE ( 'foo%', 'bar' ) )", result.getModel().toSql());
 	}
-
-	@Test
-	public void testQueryPreflight_AdditionalQueryFiltersWithEquals() throws Exception {
-		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
-		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
-		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-
-		Query query = new Query();
-		query.setSql("select i2, i0 from "+tableId);
-
-		ColumnSingleValueQueryFilter equalsFilter = new ColumnSingleValueQueryFilter();
-		equalsFilter.setColumnName("i12");
-		equalsFilter.setOperator(ColumnSingleValueFilterOperator.EQUALS);
-		equalsFilter.setValues(Arrays.asList("bar"));
-		query.setAdditionalFilters(Arrays.asList(equalsFilter));
-
-		Long maxBytesPerPage = null;
-
-		// call under test
-		SqlQuery result = manager.queryPreflight(user, query, maxBytesPerPage);
-		assertNotNull(result);
-		assertEquals("SELECT i2, i0 FROM syn123 WHERE ( \"i12\" = 'bar' )", result.getModel().toSql());
-	}
 	
 	@Test
 	public void testQueryPreflight_AdditionalQueryFiltersWithHas() throws Exception {

@@ -17,8 +17,8 @@
 					"description": "The LIKE operation. Use wildcard '%' in value string for prefix/suffix matching."
 				},
 				{
-					"name": "EQUALS",
-					"description": "The EQUALS operation."
+					"name": "EQUAL",
+					"description": "The EQUAL operation."
 				}
 			]
 		},

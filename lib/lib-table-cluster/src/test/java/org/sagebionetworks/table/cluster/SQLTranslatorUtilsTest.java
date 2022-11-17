@@ -2529,7 +2529,62 @@ public class SQLTranslatorUtilsTest {
 				SQLTranslatorUtils.translateQueryFilters(builder, filter)
 		);
 	}
-	
+
+	@Test
+	public void testTranslateQueryFiltersWithSingleColumnsWithEqual() {
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.EQUAL);
+		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
+
+		// method under test
+		String searchCondition = SQLTranslatorUtils.translateQueryFilters(Arrays.asList(filter));
+		assertEquals("(\"myCol\" = 'foo%' OR \"myCol\" = '%bar' OR \"myCol\" = '%baz%')", searchCondition);
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithMultipleColumnsWithEqual(){
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.EQUAL);
+		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
+
+		ColumnSingleValueQueryFilter filter2 = new ColumnSingleValueQueryFilter();
+		filter2.setColumnName("otherCol");
+		filter2.setOperator(ColumnSingleValueFilterOperator.EQUAL);
+		filter2.setValues(Arrays.asList("%asdf"));
+
+		// method under test
+		String searchCondition = SQLTranslatorUtils.translateQueryFilters(Arrays.asList(filter, filter2));
+		assertEquals("(\"myCol\" = 'foo%' OR \"myCol\" = '%bar' OR \"myCol\" = '%baz%') AND (\"otherCol\" = '%asdf')", searchCondition);
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithEqualFilterAndsingleValues(){
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.EQUAL);
+		filter.setValues(Arrays.asList("foo%"));
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		assertEquals("(\"myCol\" = 'foo%')", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithEqualFilterAndmultipleValues(){
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.EQUAL);
+		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		assertEquals("(\"myCol\" = 'foo%' OR \"myCol\" = '%bar' OR \"myCol\" = '%baz%')", builder.toString());
+	}
+
 	@Test
 	public void testTranslateQueryFiltersWithHasFilterAndmultipleValues(){
 		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter()
