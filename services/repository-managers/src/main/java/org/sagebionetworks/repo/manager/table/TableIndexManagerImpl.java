@@ -632,6 +632,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			if(!targetChangeNumber.isPresent()) {
 				throw new NotFoundException("Snapshot for "+idAndVersion.toString()+" does not exist");
 			}
+			// Try to restore the table first from an existing snapshot
+			attemptToRestoreTableFromExistingSnapshot(idAndVersion);
 			// build the table up to the latest change.
 			String lastEtag = buildIndexToLatestChange(idAndVersion, iterator, targetChangeNumber.get(),
 					tableResetToken);
@@ -649,7 +651,54 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
 		}
 	}
+	
+	void attemptToRestoreTableFromExistingSnapshot(IdAndVersion idAndVersion) {
+		// If there are any changes that are already applied to the table we let it build as normal
+		if (tableIndexDao.getMaxCurrentCompleteVersionForTable(idAndVersion) > -1L) {
+			return;
+		}
 		
+		tableManagerSupport.getMostRecentTableSnapshot(idAndVersion).ifPresent( snapshot -> {
+			IdAndVersion snapshotId = IdAndVersion.newBuilder().setId(snapshot.getTableId()).setVersion(snapshot.getVersion()).build();
+			
+			// Keeps the change number that correspond with the snapshot
+			long snapshotChangeNumber = tableManagerSupport.getLastTableChangeNumber(snapshotId).orElseThrow(
+				() -> new IllegalStateException("Expected a change number for snapshot " + snapshotId + ", but found none.")
+			);
+			
+			log.info("Restoring table " + idAndVersion + " from snapshot " + snapshotId + "...");
+			// Clear the table and restore the snapshot including the table indices
+			deleteTableIndex(idAndVersion);
+
+			IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+			List<ColumnModel> snapshotSchema = tableManagerSupport.getTableSchema(snapshotId);
+			
+			// Setup the table with the schema of the snapshot
+			setIndexSchema(indexDescription, snapshotSchema);
+			
+			boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(snapshotId);
+			// Makes sure to sync the search flag with the version from the snapshot
+			setSearchEnabled(idAndVersion, isSearchEnabled);
+			
+			// Restore the table data from the snapshot
+			tableManagerSupport.restoreTableFromS3(idAndVersion, snapshot.getBucket(), snapshot.getKey());
+			
+			// Optimize the table
+			optimizeTableIndices(idAndVersion);
+			
+			// Makes sure to populate the multi-value indices
+			populateListColumnIndexTables(idAndVersion, snapshotSchema);
+			
+			// Re-build the search index if needed
+			refreshSearchIndex(indexDescription);
+						
+			// Now sync the change number that correspond to the snapshot
+			tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, snapshotChangeNumber);
+			
+			log.info("Restoring table " + idAndVersion + " from snapshot " + snapshotId + "...DONE");
+		});
+	}
+	
 	/**
 	 * Build the table index up to the latest change.  The caller must hold the table's exclusive lock and manage
 	 * the status of the table.
