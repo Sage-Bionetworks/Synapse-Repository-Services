@@ -22,9 +22,10 @@ import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.table.cluster.SchemaProvider;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
+import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
+import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 
 import com.google.common.collect.Lists;
@@ -33,34 +34,32 @@ import com.google.common.collect.Sets;
 public class FacetModelTest {
 	FacetModel facetModel;
 	
-	Set<String> supportedFacetColumns;
-	Set<String> requestedFacetColumns;
+	private Set<String> supportedFacetColumns;
 
-	String tableId;
-	ColumnModel facetColumnModel;
-	ColumnModel facetColumnModel2;
-	List<FacetRequestColumnModel> validatedQueryFacetColumns;
-	String facetColumnName;
-	String facetColumnName2;
-	SqlQuery simpleQuery;
-	String facetColumnId;
-	String facetColumnId2;
-	List<ColumnModel> facetSchema;
-	Long min;
-	Long max;
-	String selectedValue;
-	FacetColumnRangeRequest rangeRequest;
-	FacetColumnValuesRequest valuesRequest;
-	ArrayList<FacetColumnRequest> selectedFacets;
+	private String tableId;
+	private ColumnModel facetColumnModel;
+	private ColumnModel facetColumnModel2;
+	private List<FacetRequestColumnModel> validatedQueryFacetColumns;
+	private String facetColumnName;
+	private String facetColumnName2;
+	private String facetColumnId;
+	private String facetColumnId2;
+	private List<ColumnModel> facetSchema;
+	private Long min;
+	private Long max;
+	private String selectedValue;
+	private FacetColumnRangeRequest rangeRequest;
+	private FacetColumnValuesRequest valuesRequest;
+	private ArrayList<FacetColumnRequest> selectedFacets;
+	private TableExpression originalQuery;
+	private TranslationDependencies dependencies;
 
-	Long userId;
-	SqlQuery query;
+	private Long userId;
 	
 	@BeforeEach
 	public void setUp() throws Exception {
 		tableId = "syn123";
 		supportedFacetColumns = new HashSet<>();
-		requestedFacetColumns = new HashSet<>();
 		validatedQueryFacetColumns = new ArrayList<>();
 
 		facetColumnId = "890";
@@ -103,19 +102,21 @@ public class FacetModelTest {
 
 		userId = 1L;
 
-		simpleQuery = new SqlQueryBuilder("select * from " + tableId, schemaProvider(facetSchema), userId)
-				.indexDescription(new TableIndexDescription(IdAndVersion.parse(tableId))).build();
+
 		selectedFacets = Lists.newArrayList((FacetColumnRequest)rangeRequest, (FacetColumnRequest)valuesRequest);
 
-		query = new SqlQueryBuilder("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'",
-				schemaProvider(facetSchema), userId).indexDescription(new TableIndexDescription(IdAndVersion.parse(tableId))).build();
+		dependencies = TranslationDependencies.builder().setSchemaProvider(schemaProvider(facetSchema))
+				.setIndexDescription(new TableIndexDescription(IdAndVersion.parse(tableId))).setUserId(userId).build();
+		
+		originalQuery = new TableQueryParser("from " + tableId + " where asdf <> ayy and asdf < 'taco bell'").tableExpression();
+
 	}
 	/////////////////////
 	// Constructor tests
 	/////////////////////
 	@Test
 	public void testConstructor(){
-		facetModel = new FacetModel(selectedFacets, query, true);
+		facetModel = new FacetModel(selectedFacets, originalQuery, dependencies, true);
 		List<FacetTransformer> facetTransformers = facetModel.getFacetInformationQueries();
 		assertNotNull(facetTransformers);
 		for(FacetTransformer transformer : facetTransformers){
@@ -265,15 +266,25 @@ public class FacetModelTest {
 	///////////////////////////////////////////
 	@Test 
 	public void testGenerateFacetQueryTransformersNullQuery() {
+		originalQuery = null;
 		assertThrows(IllegalArgumentException.class, ()->{
-			FacetModel.generateFacetQueryTransformers(null, validatedQueryFacetColumns);
+			FacetModel.generateFacetQueryTransformers(originalQuery, dependencies, validatedQueryFacetColumns);
 		});
 	}
 	
-	@Test//(expected = IllegalArgumentException.class)
-	public void testGenerateFacetQueryTransformersNullList() {
+	@Test 
+	public void testGenerateFacetQueryTransformersWithNullDependencies() {
+		dependencies = null;
 		assertThrows(IllegalArgumentException.class, ()->{
-			FacetModel.generateFacetQueryTransformers(simpleQuery, null);
+			FacetModel.generateFacetQueryTransformers(originalQuery, dependencies, validatedQueryFacetColumns);
+		});
+	}
+	
+	@Test
+	public void testGenerateFacetQueryTransformersNullList() {
+		validatedQueryFacetColumns = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			FacetModel.generateFacetQueryTransformers(originalQuery, dependencies, validatedQueryFacetColumns);
 		});
 	}
 	
@@ -282,7 +293,7 @@ public class FacetModelTest {
 		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel, rangeRequest));
 		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel2, valuesRequest));
 		
-		List<FacetTransformer> result = FacetModel.generateFacetQueryTransformers(simpleQuery, validatedQueryFacetColumns);
+		List<FacetTransformer> result = FacetModel.generateFacetQueryTransformers(originalQuery, dependencies, validatedQueryFacetColumns);
 		//just check for the correct item types.  
 		//the transformers' unit tests already check that fields are set correctly
 		assertEquals(2, result.size());

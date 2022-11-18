@@ -10,14 +10,12 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlContext;
@@ -98,8 +96,6 @@ public class SqlQuery {
 	private final Long maxBytesPerPage;
 	private final Long userId;
 	
-	private final List<FacetColumnRequest> selectedFacets;
-	
 	private final boolean isIncludeSearch;
 	
 	private final TableAndColumnMapper tableAndColumnMapper;
@@ -108,8 +104,6 @@ public class SqlQuery {
 	private final IndexDescription indexDescription;
 	
 	private final SqlContext sqlContext;
-	
-	private final Pagination originalPagination;
 
 	/**
 	 * The combined sql is, basic input sql combined with requested filters.
@@ -127,11 +121,9 @@ public class SqlQuery {
 			SchemaProvider schemaProvider,
 			Long maxBytesPerPage,
 			Boolean includeEntityEtag,
-			List<FacetColumnRequest> selectedFacets,
 			Long userId,
 			IndexDescription indexDescription,
-			SqlContext sqlContextIn,
-			Pagination originalPagination
+			SqlContext sqlContextIn
 			) {
 		ValidateArgument.required(schemaProvider, "schemaProvider");
 		ValidateArgument.required(indexDescription, "indexDescription");
@@ -148,9 +140,7 @@ public class SqlQuery {
 		}
 		this.maxBytesPerPage = maxBytesPerPage;
 		this.userId = userId;
-		this.selectedFacets = selectedFacets;
 		this.indexDescription = indexDescription;
-		this.originalPagination = originalPagination;
 		
 		// only a view can include the etag
 		if(indexDescription.getTableType().isViewEntityType() && includeEntityEtag != null){
@@ -317,13 +307,6 @@ public class SqlQuery {
 	}
 
 	/**
-	 * @return the originalPagination
-	 */
-	public Pagination getOriginalPagination() {
-		return originalPagination;
-	}
-
-	/**
 	 * The maximum size of each query result row returned by this query.
 	 * @return
 	 */
@@ -365,10 +348,6 @@ public class SqlQuery {
 
 	public Long getUserId() {
 		return userId;
-	}
-	
-	public List<FacetColumnRequest> getSelectedFacets(){
-		return selectedFacets;
 	}
 	
 	public boolean isIncludeSearch() {

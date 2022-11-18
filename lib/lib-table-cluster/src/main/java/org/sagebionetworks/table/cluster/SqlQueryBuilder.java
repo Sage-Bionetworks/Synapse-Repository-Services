@@ -1,12 +1,8 @@
 package org.sagebionetworks.table.cluster;
 
-import java.util.List;
-
-import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SqlContext;
 
@@ -19,8 +15,6 @@ public class SqlQueryBuilder {
 	private Long userId;
 	private IndexDescription indexDescription;
 	private SqlContext sqlContext;
-	private Pagination originalPagination;
-	private List<FacetColumnRequest> selectedFacets;
 	
 	/**
 	 * Start with the SQL.
@@ -40,6 +34,17 @@ public class SqlQueryBuilder {
 		this.model = new TableQueryParser(sql).querySpecification();
 		this.schemaProvider = schemaProvider;
 		this.userId = userId;
+	}
+	
+	public SqlQueryBuilder(String sql, TranslationDependencies dependencies) {
+		try {
+			model = new TableQueryParser(sql).querySpecification();
+			this.userId = dependencies.getUserId();
+			this.schemaProvider = dependencies.getSchemaProvider();
+			this.indexDescription = dependencies.getIndexDescription();
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
 	}
 	
 	public SqlQueryBuilder(QuerySpecification model){
@@ -81,16 +86,6 @@ public class SqlQueryBuilder {
 		return this;
 	}
 	
-	public SqlQueryBuilder originalPagination(Pagination original) {
-		this.originalPagination = original;
-		return this;
-	}
-	
-	public SqlQueryBuilder selectedFacets(List<FacetColumnRequest> selectedFacets) {
-		this.selectedFacets = selectedFacets;
-		return this;
-	}
-	
 	/**
 	 * 
 	 * @param indexDescription
@@ -102,8 +97,8 @@ public class SqlQueryBuilder {
 	}
 
 	public SqlQuery build() {
-		return new SqlQuery(model, schemaProvider, maxBytesPerPage, includeEntityEtag, selectedFacets, userId, indexDescription,
-				sqlContext, originalPagination);
+		return new SqlQuery(model, schemaProvider, maxBytesPerPage, includeEntityEtag, userId, indexDescription,
+				sqlContext);
 	}
 
 

@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.sagebionetworks.table.query.util.FacetUtils;
@@ -26,15 +25,12 @@ public class CombinedQuery {
 
 	private final TableAndColumnMapper tableAndColumnMapper;
 	private final String combinedSql;
-	private final Pagination originalPagination;
 
 	private CombinedQuery(String query, SchemaProvider schemaProvider, Long overrideOffset, Long overrideLimit,
 			List<SortItem> sortList, List<FacetColumnRequest> selectedFacets, List<QueryFilter> additionalFilters) {
 		super();
 		try {
 			QuerySpecification querySpecification = new TableQueryParser(query).querySpecification();
-			
-			originalPagination = querySpecification.getFirstElementOfType(Pagination.class);
 			
 			this.tableAndColumnMapper = new TableAndColumnMapper(querySpecification, schemaProvider);
 
@@ -101,15 +97,6 @@ public class CombinedQuery {
 	public String getCombinedSql() {
 		return combinedSql;
 	}
-	
-	/**
-	 * The original Pagination (before overrides were applied).
-	 * @return the originalPagination
-	 */
-	public Pagination getOriginalPagination() {
-		return originalPagination;
-	}
-
 
 	public static class Builder {
 		private String query;

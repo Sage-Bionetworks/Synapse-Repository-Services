@@ -1,5 +1,11 @@
 package org.sagebionetworks.repo.manager.table;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
@@ -9,19 +15,13 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
-import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.sagebionetworks.table.query.util.FacetUtils;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
 
 public class FacetTransformerValueCounts implements FacetTransformer {
 	public static final String VALUE_ALIAS = "value";
@@ -36,14 +36,14 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	private Set<String> selectedValues;
 	
 	public FacetTransformerValueCounts(String columnName, boolean columnTypeIsList, List<FacetRequestColumnModel> facets,
-									   SqlQuery originalQuery, Set<String> selectedValues){
+			TableExpression originalQuery, TranslationDependencies dependencies, Set<String> selectedValues){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facets, "facets");
 		ValidateArgument.required(originalQuery, "originalQuery");
 		this.columnName = columnName;
 		this.facets = facets;
 		this.selectedValues = selectedValues;
-		this.generatedFacetSqlQuery = generateFacetSqlQuery(originalQuery, columnTypeIsList);
+		this.generatedFacetSqlQuery = generateFacetSqlQuery(originalQuery, dependencies, columnTypeIsList);
 	}
 	
 	
@@ -57,10 +57,9 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		return this.generatedFacetSqlQuery;
 	}
 	
-	private SqlQuery generateFacetSqlQuery(SqlQuery originalQuery, boolean columnTypeIsList) {
+	private SqlQuery generateFacetSqlQuery(TableExpression originalQuery, TranslationDependencies dependencies, boolean columnTypeIsList) {
 		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
 		
-		TableExpression tableExpressionFromModel = originalQuery.getModel().getTableExpression();
 		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);
 
 		String columnToUse = columnTypeIsList ? "UNNEST(\"" + columnName + "\")" : "\"" + columnName + "\"";
@@ -72,8 +71,8 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		builder.append(", COUNT(*) AS ");
 		builder.append(COUNT_ALIAS);
 		builder.append(" ");
-		builder.append(tableExpressionFromModel.getFromClause().toSql());
-		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
+		builder.append(originalQuery.getFromClause().toSql());
+		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, originalQuery.getWhereClause());
 		builder.append(" GROUP BY ");
 		builder.append(columnToUse);
 		builder.append(" ORDER BY ");
@@ -83,12 +82,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		builder.append(" ASC ");
 		builder.append(pagination.toSql());
 		
-		try {
-			return new SqlQueryBuilder(builder.toString(), originalQuery.getSchemaProvider(), originalQuery.getUserId())
-					.indexDescription(originalQuery.getIndexDescription()).build();
-		} catch (ParseException e) {
-			throw new RuntimeException(e);
-		}
+		return new SqlQueryBuilder(builder.toString(), dependencies).build();
 	}
 
 	@Override

@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.util.ValidateArgument;
 

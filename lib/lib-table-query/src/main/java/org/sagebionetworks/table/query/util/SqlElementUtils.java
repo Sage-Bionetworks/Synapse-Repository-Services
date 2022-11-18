@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
@@ -565,7 +566,7 @@ public class SqlElementUtils {
 	 * @return
 	 * @throws SimpleAggregateQueryException Thrown when given query is a simple aggregate query that would return one row.
 	 */
-	public static String createCountSql(QuerySpecification model) throws SimpleAggregateQueryException{
+	public static Optional<String> createCountSql(QuerySpecification model) {
 		TableExpression tableExpression = null;
 		FromClause fromClause = model.getTableExpression().getFromClause();
 		WhereClause whereClause = model.getTableExpression().getWhereClause();
@@ -588,7 +589,7 @@ public class SqlElementUtils {
 				builder.append(createSelectWithoutAs(model.getSelectList()));
 				builder.append(")");
 			}else{
-				throw new SimpleAggregateQueryException("Simple aggregate queries always return one row");
+				return Optional.empty();
 			}
 		}else{
 			// simple count *
@@ -598,7 +599,7 @@ public class SqlElementUtils {
 		tableExpression = new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination);
 		builder.append(" ");
 		builder.append(tableExpression.toSql());
-		return builder.toString();
+		return Optional.of(builder.toString());
 	}
 	
 	/**
@@ -609,7 +610,7 @@ public class SqlElementUtils {
 	 * @return
 	 * @throws SimpleAggregateQueryException
 	 */
-	public static String buildSqlSelectRowIdAndVersions(QuerySpecification model, long maxLimit) throws SimpleAggregateQueryException {
+	public static Optional<String> buildSqlSelectRowIdAndVersions(QuerySpecification model, long maxLimit) {
 		TableExpression tableExpression = null;
 		FromClause fromClause = model.getTableExpression().getFromClause();
 		WhereClause whereClause = model.getTableExpression().getWhereClause();
@@ -619,7 +620,7 @@ public class SqlElementUtils {
 
 		// There are three cases
 		if(model.hasAnyAggregateElements()){
-			throw new SimpleAggregateQueryException("Simple aggregate queries always return one row");
+			return Optional.empty();
 		}
 		
 		StringBuilder builder = new StringBuilder();
@@ -633,7 +634,7 @@ public class SqlElementUtils {
 		builder.append(tableExpression.toSql());
 		builder.append(" LIMIT ");
 		builder.append(maxLimit);
-		return builder.toString();
+		return Optional.of(builder.toString());
 	}
 	
 	/**
