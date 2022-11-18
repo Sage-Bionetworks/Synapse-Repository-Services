@@ -940,16 +940,10 @@ public class SQLTranslatorUtils {
 		ValidateArgument.requiredNotEmpty(filter.getColumnName(), "ColumnSingleValueQueryFilter.columnName");
 		ValidateArgument.requiredNotEmpty(filter.getValues(), "ColumnSingleValueQueryFilter.values");
 		ValidateArgument.required(filter.getOperator(), "ColumnSingleValueQueryFilter.operator");
-		switch (filter.getOperator()){
-			case LIKE:
-				appendLikeFilter(builder, filter);
-				break;
-			default:
-				throw new IllegalArgumentException("Unexpected operator: " + filter.getOperator());
-		}
+		appendFilter(builder, filter);
 	}
 
-	static void appendLikeFilter(StringBuilder builder, ColumnSingleValueQueryFilter filter){
+	static void appendFilter(StringBuilder builder, ColumnSingleValueQueryFilter filter){
 		builder.append("(");
 		boolean firstVal = true;
 		String columnName = filter.getColumnName();
@@ -959,15 +953,24 @@ public class SQLTranslatorUtils {
 			}
 			builder.append("\"")
 					.append(columnName)
-					.append("\"")
-					.append(" LIKE ");
+					.append("\"");
+			switch (filter.getOperator()) {
+				case LIKE:
+					builder.append(" LIKE ");
+					break;
+				case EQUAL:
+					builder.append(" = ");
+					break;
+				default:
+					throw new IllegalArgumentException("Unexpected operator: " + filter.getOperator());
+			}
 			appendSingleQuotedValueToStringBuilder(builder, likeValue);
 
 			firstVal = false;
 		}
 		builder.append(")");
 	}
-	
+
 	static void translateMultiValueFunctionFilters(StringBuilder builder, ColumnMultiValueFunctionQueryFilter filter) {
 		ValidateArgument.requiredNotEmpty(filter.getColumnName(), "ColumnMultiValueFunctionQueryFilter.columnName");
 		ValidateArgument.requiredNotEmpty(filter.getValues(), "ColumnMultiValueFunctionQueryFilter.values");
