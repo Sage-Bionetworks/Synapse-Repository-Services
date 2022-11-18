@@ -122,7 +122,7 @@ public class TableAndColumnMapperTest {
 		// call under test
 		SelectList selectList = mapper.buildSelectAllColumns();
 		assertNotNull(selectList);
-		assertEquals("\"foo\", \"has space\", \"bar\", \"foo_bar\", \"Foo\", \"datetype\", \"has\"\"quote\", \"aDouble\"",
+		assertEquals("\"foo\", \"has space\", \"bar\", \"foo_bar\", \"Foo\", \"datetype\", \"has\"\"quote\", \"aDouble\", \"year\"",
 				selectList.toSql());
 	}
 
