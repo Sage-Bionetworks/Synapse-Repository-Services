@@ -5,6 +5,8 @@ import java.util.List;
 import org.sagebionetworks.repo.manager.table.FacetModel;
 import org.sagebionetworks.repo.manager.table.FacetTransformer;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.QueryFilter;
+import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -14,10 +16,18 @@ public class FacetQueries {
 
 	private final List<FacetTransformer> transformers;
 
-	private FacetQueries(List<FacetColumnRequest> selectedFacets, String originalSql,
+	private FacetQueries(List<FacetColumnRequest> selectedFacets, List<QueryFilter> additionalFilters , String originalSql,
 			TranslationDependencies dependencies, Boolean returnFacets) {
 		try {
-			TableExpression originalQuery = new TableQueryParser(originalSql).querySpecification().getTableExpression();
+			
+			CombinedQuery combined = CombinedQuery.builder()
+					.setQuery(originalSql)
+					.setSchemaProvider(dependencies.getSchemaProvider())
+					// Note: The selected facets must be included in the combined SQL.
+					.setSelectedFacets(null)
+					.setAdditionalFilters(additionalFilters).build();
+			
+			TableExpression originalQuery = new TableQueryParser(combined.getCombinedSql()).querySpecification().getTableExpression();
 			transformers = new FacetModel(selectedFacets, originalQuery, dependencies, returnFacets)
 					.getFacetInformationQueries();
 		} catch (ParseException e) {
@@ -35,6 +45,7 @@ public class FacetQueries {
 
 	public static class Builder {
 		private List<FacetColumnRequest> selectedFacets;
+		private List<QueryFilter> additionalFilters;
 		private String originalSql;
 		private TranslationDependencies dependencies;
 		private Boolean returnFacets = Boolean.FALSE;
@@ -44,6 +55,14 @@ public class FacetQueries {
 		 */
 		public Builder setSelectedFacets(List<FacetColumnRequest> selectedFacets) {
 			this.selectedFacets = selectedFacets;
+			return this;
+		}
+
+		/**
+		 * @param additionalFilters the additionalFilters to set
+		 */
+		public Builder setAdditionalFilters(List<QueryFilter> additionalFilters) {
+			this.additionalFilters = additionalFilters;
 			return this;
 		}
 
@@ -72,7 +91,7 @@ public class FacetQueries {
 		}
 
 		public FacetQueries build() {
-			return new FacetQueries(selectedFacets, originalSql, dependencies, returnFacets);
+			return new FacetQueries(selectedFacets, additionalFilters, originalSql, dependencies, returnFacets);
 		}
 
 	}

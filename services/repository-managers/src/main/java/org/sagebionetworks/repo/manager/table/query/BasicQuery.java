@@ -3,6 +3,11 @@ package org.sagebionetworks.repo.manager.table.query;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * A basic query composed of both SQL to run and the query parameters.
+ * Note: The SQL must already be translated.
+ *
+ */
 public class BasicQuery {
 	
 	private final String sql;

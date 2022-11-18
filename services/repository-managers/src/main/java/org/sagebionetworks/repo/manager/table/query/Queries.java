@@ -25,7 +25,7 @@ public class Queries {
 				.setMaxBytesPerPage(maxBytesPerPage).setQuery(query).build();
 		if (options.returnFacets()) {
 			facetQueries = FacetQueries.builder().setOriginalSql(startingSql).setReturnFacets(true)
-					.setSelectedFacets(query.getSelectedFacets()).setDependencies(dependencies).build();
+					.setSelectedFacets(query.getSelectedFacets()).setAdditionalFilters(query.getAdditionalFilters()).setDependencies(dependencies).build();
 		} else {
 			facetQueries = null;
 		}
