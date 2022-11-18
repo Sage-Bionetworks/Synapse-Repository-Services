@@ -633,7 +633,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				throw new NotFoundException("Snapshot for "+idAndVersion.toString()+" does not exist");
 			}
 			// Try to restore the table first from an existing snapshot
-			attemptToRestoreTableFromExistingSnapshot(idAndVersion);
+			attemptToRestoreTableFromExistingSnapshot(idAndVersion, tableResetToken, targetChangeNumber.get());
 			// build the table up to the latest change.
 			String lastEtag = buildIndexToLatestChange(idAndVersion, iterator, targetChangeNumber.get(),
 					tableResetToken);
@@ -652,7 +652,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		}
 	}
 	
-	void attemptToRestoreTableFromExistingSnapshot(IdAndVersion idAndVersion) {
+	void attemptToRestoreTableFromExistingSnapshot(IdAndVersion idAndVersion, String tableResetToken, long targetChangeNumber) {
 		// If there are any changes that are already applied to the table we let it build as normal
 		if (tableIndexDao.getMaxCurrentCompleteVersionForTable(idAndVersion) > -1L) {
 			return;
@@ -667,6 +667,15 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			);
 			
 			log.info("Restoring table " + idAndVersion + " from snapshot " + snapshotId + "...");
+			
+			tableManagerSupport.attemptToUpdateTableProgress(
+				idAndVersion, 
+				tableResetToken, 
+				"Restoring table " + idAndVersion + " from snapshot " + snapshotId, 
+				snapshotChangeNumber, 
+				targetChangeNumber
+			);
+			
 			// Clear the table and restore the snapshot including the table indices
 			deleteTableIndex(idAndVersion);
 
