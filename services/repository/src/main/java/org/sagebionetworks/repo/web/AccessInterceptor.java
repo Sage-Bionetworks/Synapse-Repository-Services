@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,10 +14,12 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
+import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AccessRecorder;
+import org.sagebionetworks.repo.manager.audit.KinesisAuditRecord;
 import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -49,6 +52,8 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
+	@Autowired
+	AwsKinesisFirehoseLogger firehoseLogger;
 
 	String getOAuthClientId(HttpServletRequest request) {
 		/*
@@ -136,6 +141,12 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		data.setResponseStatus(new Long(status));
 		// Save this record
 		accessRecorder.save(data);
+
+		KinesisAuditRecord kinesisPayloadRecord = new KinesisAuditRecord()
+				.withTimestamp(data.getTimestamp()).withPayload(data)
+				.withStack(data.getStack()).withInstance(data.getInstance());
+
+		firehoseLogger.logBatch(KinesisAuditRecord.STREAM_NAME, Arrays.asList(kinesisPayloadRecord));
 		// Clear the logging thread context
 		ThreadContext.clearAll();
 	}
