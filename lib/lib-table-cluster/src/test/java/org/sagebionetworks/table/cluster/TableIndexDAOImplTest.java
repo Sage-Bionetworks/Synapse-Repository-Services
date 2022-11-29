@@ -509,12 +509,12 @@ public class TableIndexDAOImplTest {
 		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(2, results.getRows().size());
 		// test the count
-		String countSql = SqlElementUtils.createCountSql(query.getTransformedModel());
+		String countSql = SqlElementUtils.createCountSql(query.getTransformedModel()).get();
 		Long count = tableIndexDAO.countQuery(countSql, query.getParameters());
 		assertEquals(new Long(2), count);
 		// test the rowIds
 		long limit = 2;
-		String rowIdSql = SqlElementUtils.buildSqlSelectRowIdAndVersions(query.getTransformedModel(), limit);
+		String rowIdSql = SqlElementUtils.buildSqlSelectRowIdAndVersions(query.getTransformedModel(), limit).get();
 		
 		List<IdAndVersion> expectedRowIdAdVersions = Arrays.asList(
 				IdAndVersion.parse("100.3"),

@@ -212,12 +212,12 @@ public class TableSqlProcessor {
 		for(FacetColumnRequest facetRequest: selectedFacets){
 			ColumnModel columnModel = columnTypeMap.get(facetRequest.getColumnName());
 			if(columnModel == null){
-				throw new IllegalArgumentException("Schema did not contain ColumnModel infromation for column name: " + facetRequest.getColumnName());
+				throw new IllegalArgumentException("Schema did not contain ColumnModel information for column name: " + facetRequest.getColumnName());
 			}
 			facetRequestModels.add(new FacetRequestColumnModel(columnModel, facetRequest));
 		}
-		
-		return FacetUtils.appendFacetSearchConditionToQuerySpecification(model, facetRequestModels).toSql();
+		model.getTableExpression().replaceWhere(FacetUtils.appendFacetSearchConditionToQuerySpecification(model.getTableExpression().getWhereClause(), facetRequestModels));
+		return model.toSql();
 	}
 	
 

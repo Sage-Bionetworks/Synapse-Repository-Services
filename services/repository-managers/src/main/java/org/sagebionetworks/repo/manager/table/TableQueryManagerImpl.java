@@ -1,9 +1,22 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.manager.table.query.CachingSchemaProvider;
+import org.sagebionetworks.repo.manager.table.query.CountQuery;
+import org.sagebionetworks.repo.manager.table.query.FacetQueries;
+import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
+import org.sagebionetworks.repo.manager.table.query.QueryExpansion;
+import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -28,9 +41,9 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
@@ -39,24 +52,13 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.model.WhereClause;
-import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
-import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.BadSqlGrammarException;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class TableQueryManagerImpl implements TableQueryManager {
 
@@ -102,7 +104,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				combinedSql = createCombinedSql(user, query);
 			}
 			// pre-flight includes parsing and authorization
-			SqlQuery sqlQuery = queryPreflight(user, query, this.maxBytesPerRequest);
+			QueryTranslations sqlQuery = queryPreflight(user, query, this.maxBytesPerRequest, options);
 			
 			// run the query as a stream.
 			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, rowHandler, options);
@@ -110,13 +112,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			bundle.setCombinedSql(combinedSql);
 			// save the max rows per page.
 			if(options.returnMaxRowsPerPage()) {
-				bundle.setMaxRowsPerPage(sqlQuery.getMaxRowsPerPage());
+				bundle.setMaxRowsPerPage(sqlQuery.getMainQuery().getSqlQuery().getMaxRowsPerPage());
 			}
 			// add captured rows to the bundle
 			if (options.runQuery()) {
 				bundle.getQueryResult().getQueryResults().setRows(rowHandler.getRows());
 			}
-			int maxRowsPerPage = sqlQuery.getMaxRowsPerPage().intValue();
+			int maxRowsPerPage = sqlQuery.getMainQuery().getSqlQuery().getMaxRowsPerPage().intValue();
 			// add the next page token if needed
 			if (isRowCountEqualToMaxRowsPerPage(bundle, maxRowsPerPage)) {
 				long nextOffset = (query.getOffset() == null ? 0 : query.getOffset()) + maxRowsPerPage;
@@ -148,34 +150,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 *
 	 */
 	String createCombinedSql(UserInfo user, Query query) {
-		QuerySpecification model = parserQuery(query.getSql());
-		// SqlQuery changes the selectList of query so keep the original selected list.
-		SelectList selectListFromUser = model.getSelectList();
-		// We now have the table's ID.
-		String tableId = model.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
-		SqlQuery combinedSql = new SqlQueryBuilder(model, user.getId())
-				.schemaProvider(tableManagerSupport)
-				.overrideOffset(query.getOffset())
-				.overrideLimit(query.getLimit())
-				.indexDescription(indexDescription)
-				.selectedFacets(query.getSelectedFacets())
-				.sortList(query.getSort())
-				.additionalFilters(query.getAdditionalFilters()).build();
-
-		//SqlQuery does not include facetModel, So add selected facet to query.
-		FacetModel facetModel = new FacetModel(query.getSelectedFacets(), combinedSql, query.getSelectedFacets() != null);
-
-		// determine whether to run with facet filters
-		if (facetModel.hasFiltersApplied()) {
-			combinedSql = facetModel.getFacetFilteredQuery();
-		}
-
-		// parse again the query to replace selectList with original select list.
-		QuerySpecification finalModel = parserQuery(combinedSql.getCombinedSQL());
-		finalModel.getSelectList().replaceElement(selectListFromUser);
-		return finalModel.toSql();
+		return CombinedQuery.builder()
+				.setQuery(query.getSql())
+				.setSchemaProvider(tableManagerSupport)
+				.setOverrideOffset(query.getOffset())
+				.setOverrideLimit(query.getLimit())
+				.setSelectedFacets(query.getSelectedFacets())
+				.setSortList(query.getSort())
+				.setAdditionalFilters(query.getAdditionalFilters()).build().getCombinedSql();
 	}
 
 	/**
@@ -197,7 +179,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 */
-	SqlQuery queryPreflight(UserInfo user, Query query, Long maxBytesPerPage)
+	QueryTranslations queryPreflight(UserInfo user, Query query, Long maxBytesPerPage, QueryOptions options)
 			throws EmptyResultException, NotFoundException, TableUnavailableException, TableFailedException {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(query, "Query");
@@ -221,12 +203,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// 4. Add row level filter as needed.
 		// Table views must have a row level filter applied to the query
 		model = addRowLevelFilter(user, model, indexDescription);
-		// Return the prepared query.
-		return new SqlQueryBuilder(model, user.getId()).schemaProvider(tableManagerSupport).overrideOffset(query.getOffset())
-				.overrideLimit(query.getLimit()).maxBytesPerPage(maxBytesPerPage)
-				.includeEntityEtag(query.getIncludeEntityEtag())
-				.indexDescription(indexDescription).selectedFacets(query.getSelectedFacets())
-				.sortList(query.getSort()).additionalFilters(query.getAdditionalFilters()).build();
+
+		QueryExpansion expansion = QueryExpansion.builder().setStartingSql(model.toSql()).setUserId(user.getId())
+				.setSchemaProvider(tableManagerSupport).setIndexDescription(indexDescription)
+				.setMaxBytesPerPage(maxBytesPerPage).setMaxRowsPerCall(MAX_ROWS_PER_CALL)
+				.setAdditionalFilters(query.getAdditionalFilters()).setSelectedFacets(query.getSelectedFacets())
+				.setLimit(query.getLimit()).setOffset(query.getOffset()).setSort(query.getSort())
+				.setIncludeEntityEtag(query.getIncludeEntityEtag()).build();
+
+		return new QueryTranslations(expansion, options);
 	}
 
 	/**
@@ -248,12 +233,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws EmptyResultException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStream(final ProgressCallback progressCallback, final UserInfo user, final SqlQuery query,
+	QueryResultBundle queryAsStream(final ProgressCallback progressCallback, final UserInfo user, final QueryTranslations query,
 			final RowHandler rowHandler, final QueryOptions options)
 			throws DatastoreException, NotFoundException, TableUnavailableException, TableFailedException,
 			LockUnavilableException, EmptyResultException {
 		// run with a read lock on the table and include the current etag.
-		IdAndVersion idAndVersion = IdAndVersion.parse(query.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+		IdAndVersion idAndVersion = IdAndVersion.parse(query.getMainQuery().getSqlQuery().getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		return tryRunWithTableReadLock(progressCallback, idAndVersion, (ProgressCallback callback) -> {
 					// We can only run this query if the table is available.
 					final TableStatus status = validateTableIsAvailable(idAndVersion.toString());
@@ -313,40 +298,30 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback progressCallback, SqlQuery query,
+	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback progressCallback, QueryTranslations query,
 			RowHandler rowHandler, final QueryOptions options)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
 		QueryResultBundle bundle = new QueryResultBundle();
 		if(options.returnColumnModels()) {
-			bundle.setColumnModels(query.getTableSchema());
+			bundle.setColumnModels(query.getMainQuery().getSqlQuery().getTableSchema());
 		}
 		if(options.returnSelectColumns()) {
-			bundle.setSelectColumns(query.getSelectColumns());
+			bundle.setSelectColumns(query.getMainQuery().getSqlQuery().getSelectColumns());
 		}
 
 		IdAndVersion idAndVersion = IdAndVersion
-				.parse(query.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+				.parse(query.getMainQuery().getSqlQuery().getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		
-		if (query.isIncludeSearch() && !indexDao.isSearchEnabled(idAndVersion)) {
+		if (query.getMainQuery().getSqlQuery().isIncludeSearch() && !indexDao.isSearchEnabled(idAndVersion)) {
 			throw new IllegalArgumentException("Invalid use of " + TextMatchesPredicate.KEYWORD + ". Full text search is not enabled on table " + idAndVersion + ".");
-		}
-
-		FacetModel facetModel = new FacetModel(query.getSelectedFacets(), query, options.returnFacets());
-
-		// determine whether or not to run with facet filters
-		SqlQuery queryToRun;
-		if (facetModel.hasFiltersApplied()) {
-			queryToRun = facetModel.getFacetFilteredQuery();
-		} else {
-			queryToRun = query;
 		}
 
 		// run the actual query if needed.
 		if (rowHandler != null) {
 			// run the query
-			RowSet rowSet = runQueryAsStream(progressCallback, queryToRun, rowHandler, indexDao);
+			RowSet rowSet = runQueryAsStream(progressCallback, query.getMainQuery().getSqlQuery(), rowHandler, indexDao);
 			QueryResult queryResult = new QueryResult();
 			queryResult.setQueryResults(rowSet);
 			bundle.setQueryResult(queryResult);
@@ -355,7 +330,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// run the count query if needed.
 		if (options.runCount()) {
 			// count requested.
-			Long count = runCountQuery(queryToRun, indexDao);
+			Long count = runCountQuery(query.getCountQuery().orElseThrow(()-> new IllegalStateException("Expected a count query")), indexDao);
 			bundle.setQueryCount(count);
 		}
 
@@ -363,12 +338,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if (options.returnFacets()) {
 			// use original query instead of queryToRun because need the where clause that
 			// was not modified by any facets
-			List<FacetColumnResult> facetResults = runFacetQueries(facetModel, indexDao);
+			List<FacetColumnResult> facetResults = runFacetQueries(
+					query.getFacetQueries().orElseThrow(()-> new IllegalStateException("Expected facet query")), indexDao);
 			bundle.setFacets(facetResults);
 		}
 		
 		if(options.runSumFileSizes()) {
-			SumFileSizes sumFileSizes = runSumFileSize(queryToRun, indexDao);
+			SumFileSizes sumFileSizes = runSumFileSize(query.getSumFileSizesQuery()
+					.orElseThrow(() -> new IllegalStateException("Expected sum of files sizes query")), indexDao);
 			bundle.setSumFileSizes(sumFileSizes);
 		}
 		
@@ -390,12 +367,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param indexDao
 	 * @return
 	 */
-	public List<FacetColumnResult> runFacetQueries(FacetModel facetModel, TableIndexDAO indexDao) {
-		ValidateArgument.required(facetModel, "queryFacetColumns");
+	public List<FacetColumnResult> runFacetQueries(FacetQueries facetQuereis, TableIndexDAO indexDao) {
+		ValidateArgument.required(facetQuereis, "facetQuereis");
 		ValidateArgument.required(indexDao, "indexDao");
 
 		List<FacetColumnResult> facetResults = new ArrayList<>();
-		for (FacetTransformer facetQueryTransformer : facetModel.getFacetInformationQueries()) {
+		for (FacetTransformer facetQueryTransformer : facetQuereis.getFacetInformationQueries()) {
 			RowSet rowSet = indexDao.query(null, facetQueryTransformer.getFacetSqlQuery());
 			facetResults.add(facetQueryTransformer.translateToResult(rowSet));
 		}
@@ -494,28 +471,29 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws TableUnavailableException, NotFoundException, TableFailedException, LockUnavilableException {
 		// Convert to a query.
 		try {
+			// run the query.
+			QueryOptions options = new QueryOptions().withRunQuery(true).withReturnSelectColumns(true)
+					.withRunCount(false).withReturnFacets(false);
 			// ensure null values in request are set to defaults.
 			setDefaultValues(request);
 			// there is no limit to the size
 			Long maxBytes = null;
-			final SqlQuery query = queryPreflight(user, request, maxBytes);
+			final QueryTranslations query = queryPreflight(user, request, maxBytes, options);
 
 			// Do not include rowId and version if it is not provided (PLFM-2993)
-			if (!query.includesRowIdAndVersion()) {
+			if (!query.getMainQuery().getSqlQuery().includesRowIdAndVersion()) {
 				request.setIncludeRowIdAndRowVersion(false);
 				request.setIncludeEntityEtag(false);
 			}
 			// This handler will capture the row data.
-			CSVWriterRowHandler handler = new CSVWriterRowHandler(writer, query.getSelectColumns(),
-					request.getIncludeRowIdAndRowVersion(), query.includeEntityEtag());
+			CSVWriterRowHandler handler = new CSVWriterRowHandler(writer, query.getMainQuery().getSqlQuery().getSelectColumns(),
+					request.getIncludeRowIdAndRowVersion(), query.getMainQuery().getSqlQuery().includeEntityEtag());
 
 			if (request.getWriteHeader()) {
 				handler.writeHeader();
 			}
 
-			// run the query.
-			QueryOptions options = new QueryOptions().withRunQuery(true).withReturnSelectColumns(true)
-					.withRunCount(false).withReturnFacets(false);
+
 			QueryResultBundle result = queryAsStream(progressCallback, user, query, handler, options);
 			// convert the response
 			DownloadFromTableResult response = new DownloadFromTableResult();
@@ -553,12 +531,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param query
 	 * @return
 	 */
-	long runCountQuery(SqlQuery query, TableIndexDAO indexDao) {
-		try {
-			// create the count SQL from the already transformed model.
-			String countSql = SqlElementUtils.createCountSql(query.getTransformedModel());
+	long runCountQuery(CountQuery query, TableIndexDAO indexDao) {
+		return query.getCountQuery().map(countSqlQuery->{
+
 			// execute the count query
-			Long count = indexDao.countQuery(countSql, query.getParameters());
+			Long count = indexDao.countQuery(countSqlQuery.getSql(), countSqlQuery.getParameters());
 
 			/*
 			 * Post processing for count. When a limit and/or offset is specified in a
@@ -566,7 +543,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			 * to the one row count(*) returns. In actuality, we want to apply that limit &
 			 * offset to the count itself. We do that here manually.
 			 */
-			Pagination pagination = query.getModel().getTableExpression().getPagination();
+			Pagination pagination = query.getOrignialPagination();
 			if (pagination != null) {
 				if (pagination.getOffsetLong() != null) {
 					long offsetForCount = pagination.getOffsetLong();
@@ -578,10 +555,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				}
 			}
 			return count;
-		} catch (SimpleAggregateQueryException e) {
-			// simple aggregate queries always return one row.
-			return 1L;
-		}
+		}).orElse(1L);
 	}
 	
 	/**
@@ -591,28 +565,19 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param indexDao
 	 * @return
 	 */
-	SumFileSizes runSumFileSize(SqlQuery query, TableIndexDAO indexDao) {
-		SumFileSizes result = new SumFileSizes();
-		result.setGreaterThan(false);
-		result.setSumFileSizesBytes(0L);
-		if(TableType.entityview.equals(query.getTableType()) || TableType.dataset.equals(query.getTableType())){
-			// actual values are only provided for entity views.
-			try {
-				// first get the rowId and rowVersions for the given query up to the limit + 1.
-				String sqlSelectIdAndVersions = SqlElementUtils.buildSqlSelectRowIdAndVersions(query.getTransformedModel(), MAX_ROWS_PER_CALL + 1L);
-				List<IdAndVersion> rowIdAndVersions = indexDao.getRowIdAndVersions(sqlSelectIdAndVersions, query.getParameters());
-				boolean isGreaterThan = rowIdAndVersions.size() > MAX_ROWS_PER_CALL;
-				result.setGreaterThan(isGreaterThan);
-				// Use the rowIds to calculate the sum of the file sizes.
-				long sumFileSizesBytes = indexDao.getSumOfFileSizes(ViewObjectType.ENTITY.getMainType(), rowIdAndVersions);
-				result.setSumFileSizesBytes(sumFileSizesBytes);
-			} catch (SimpleAggregateQueryException e) {
-				// zero results will be returned for this case.
-				result.setGreaterThan(false);
-				result.setSumFileSizesBytes(0L);
-			}
-		}
-		return result;
+	SumFileSizes runSumFileSize(SumFileSizesQuery query, TableIndexDAO indexDao) {
+		return query.getRowIdAndVersionQuery().map(basicQuery->{
+			SumFileSizes result = new SumFileSizes();
+			result.setGreaterThan(false);
+			result.setSumFileSizesBytes(0L);
+			List<IdAndVersion> rowIdAndVersions = indexDao.getRowIdAndVersions(basicQuery.getSql(), basicQuery.getParameters());
+			boolean isGreaterThan = rowIdAndVersions.size() > MAX_ROWS_PER_CALL;
+			result.setGreaterThan(isGreaterThan);
+			// Use the rowIds to calculate the sum of the file sizes.
+			long sumFileSizesBytes = indexDao.getSumOfFileSizes(ViewObjectType.ENTITY.getMainType(), rowIdAndVersions);
+			result.setSumFileSizesBytes(sumFileSizesBytes);
+			return result;
+		}).orElse(new SumFileSizes().setGreaterThan(false).setSumFileSizesBytes(0L));
 	}
 	
 	

@@ -1,9 +1,20 @@
 package org.sagebionetworks.repo.manager.table;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -15,30 +26,23 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SchemaProvider;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
+import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class FacetTransformerValueCountsTest {
 	String selectedValue;
 	String notSelectedValue;
 	private List<ColumnModel> schema;
-	private SqlQuery originalQuery;
+	private TableExpression originalQuery;
+	private TranslationDependencies dependencies;
 	private String originalSearchCondition;
 	private List<FacetRequestColumnModel> facets;
 	private RowSet rowSet;
@@ -49,7 +53,7 @@ public class FacetTransformerValueCountsTest {
 	private Long userId;
 
 	
-	@Before
+	@BeforeEach
 	public void before() throws ParseException{
 		stringModel = new ColumnModel();
 		stringModel.setName("stringColumn");
@@ -83,7 +87,12 @@ public class FacetTransformerValueCountsTest {
 		};
 
 		originalSearchCondition = "\"stringColumn\" LIKE 'asdf%'";
-		originalQuery = new SqlQueryBuilder("SELECT * FROM syn123 WHERE " + originalSearchCondition, schemaProvider, userId).indexDescription(new TableIndexDescription(IdAndVersion.parse("syn123"))).build();
+//		originalQuery = new SqlQueryBuilder("SELECT * FROM syn123 WHERE " + originalSearchCondition, schemaProvider, userId).indexDescription(new TableIndexDescription(IdAndVersion.parse("syn123"))).build();
+		
+		dependencies = TranslationDependencies.builder().setSchemaProvider(schemaProvider)
+				.setIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn123"))).setUserId(userId).build();
+		
+		originalQuery = new TableQueryParser("FROM syn123 WHERE " + originalSearchCondition).tableExpression();
 		
 		rowSet = new RowSet();
 		
@@ -99,7 +108,7 @@ public class FacetTransformerValueCountsTest {
 	
 	@Test
 	public void testConstructor() {
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		assertEquals(stringModel.getName(), ReflectionTestUtils.getField(facetTransformer, "columnName"));
 		assertEquals(facets, ReflectionTestUtils.getField(facetTransformer, "facets"));
@@ -115,7 +124,7 @@ public class FacetTransformerValueCountsTest {
 	/////////////////////////////////
 	@Test
 	public void testGenerateFacetSqlQuery(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		//check the non-transformed sql
 		String expectedString = "SELECT \"stringColumn\" AS value, COUNT(*) AS frequency"
@@ -132,7 +141,7 @@ public class FacetTransformerValueCountsTest {
 
 	@Test
 	public void testGenerateFacetSqlQuery_ForListTypes(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), true, facets, originalQuery, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), true, facets, originalQuery, dependencies, selectedValuesSet);
 
 		//check the non-transformed sql
 		String expectedString = "SELECT UNNEST(\"stringListColumn\") AS value, COUNT(*) AS frequency"
@@ -152,23 +161,28 @@ public class FacetTransformerValueCountsTest {
 	////////////////////////////
 	// translateToResult() tests
 	////////////////////////////
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testTranslateToResultNullRowSet(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet);
-		facetTransformer.translateToResult(null);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
+		assertThrows(IllegalArgumentException.class, ()->{
+			facetTransformer.translateToResult(null);
+		});
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testTranslateToResultWrongHeaders(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		rowSet.setHeaders(Collections.emptyList());
-		facetTransformer.translateToResult(rowSet);
+
+		assertThrows(IllegalArgumentException.class, ()->{
+			facetTransformer.translateToResult(rowSet);
+		});
 	}
 	
 	@Test 
 	public void testTranslateToResultNullValueColumn(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		Long row1Count = 42L;
 		rowSet.setHeaders(correctSelectList);
@@ -194,7 +208,7 @@ public class FacetTransformerValueCountsTest {
 	
 	@Test 
 	public void testTranslateToResultCorrectHeaders(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		Long row1Count = 42L;
 		Long row2Count = 23L;

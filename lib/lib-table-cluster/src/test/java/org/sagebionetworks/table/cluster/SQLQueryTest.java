@@ -17,13 +17,10 @@ import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
-import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -755,7 +752,7 @@ public class SQLQueryTest {
 		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
 		Long maxBytesPerPage = maxSizeSchema * 2L;
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		SqlQuery translator = new SqlQueryBuilder(model, schemaProvider(tableSchema), null, null, maxBytesPerPage,
+		SqlQuery translator = new SqlQueryBuilder(model, schemaProvider(tableSchema), maxBytesPerPage,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
 		assertEquals(new Long(2L), translator.getMaxRowsPerPage());
@@ -766,7 +763,7 @@ public class SQLQueryTest {
 		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
 		Long maxBytesPerPage = 3L;
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		SqlQuery translator = new SqlQueryBuilder(model, schemaProvider(tableSchema), null, null, maxBytesPerPage,
+		SqlQuery translator = new SqlQueryBuilder(model, schemaProvider(tableSchema), maxBytesPerPage,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
 		assertEquals(new Long(1L), translator.getMaxRowsPerPage());
@@ -777,7 +774,7 @@ public class SQLQueryTest {
 		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
 		Long maxBytesPerPage = null;
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		SqlQuery translator = new SqlQueryBuilder(model, schemaProvider(tableSchema), null, null, maxBytesPerPage,
+		SqlQuery translator = new SqlQueryBuilder(model, schemaProvider(tableSchema), maxBytesPerPage,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
 		assertEquals(null, translator.getMaxRowsPerPage());
@@ -785,40 +782,31 @@ public class SQLQueryTest {
 
 	@Test
 	public void testOverrideLimitAndOffset() throws ParseException {
-		Long overideOffset = 1L;
-		Long overideLimit = 10L;
 		Long maxBytesPerPage = 10000L;
-		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
-		SqlQuery translator = new SqlQueryBuilder(model, schemaProvider(tableSchema), overideOffset, overideLimit,
+		QuerySpecification model = new TableQueryParser("select foo from syn123 limit 10 offset 1").querySpecification();
+		SqlQuery translator = new SqlQueryBuilder(model, schemaProvider(tableSchema),
 				maxBytesPerPage, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 LIMIT :b0 OFFSET :b1", translator.getOutputSQL());
-		assertEquals(overideLimit, translator.getParameters().get("b0"));
-		assertEquals(overideOffset, translator.getParameters().get("b1"));
-		// the original model should remain unchanged.
-		assertEquals("SELECT foo FROM syn123", translator.getModel().toSql());
+		assertEquals(10L, translator.getParameters().get("b0"));
+		assertEquals(1L, translator.getParameters().get("b1"));
 	}
 
 	@Test
 	public void testOverrideLimitAndOffsetNullWithMaxBytesPerPage() throws ParseException {
-		Long overideOffset = null;
-		Long overideLimit = null;
 		Long maxBytesPerPage = 1L;
 		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
-		SqlQuery translator = new SqlQueryBuilder(model, schemaProvider(tableSchema), overideOffset, overideLimit,
+		SqlQuery translator = new SqlQueryBuilder(model, schemaProvider(tableSchema),
 				maxBytesPerPage, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 LIMIT :b0 OFFSET :b1", translator.getOutputSQL());
-		assertEquals(new Long(1), translator.getParameters().get("b0"));
-		assertEquals(new Long(0), translator.getParameters().get("b1"));
+		assertEquals(1L, translator.getParameters().get("b0"));
+		assertEquals(0L, translator.getParameters().get("b1"));
 	}
 
 	@Test
 	public void testOverrideNull() throws ParseException {
-		Long overideOffset = null;
-		Long overideLimit = null;
 		Long maxBytesPerPage = null;
 		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
-		SqlQuery translator = new SqlQueryBuilder(model, schemaProvider(tableSchema), overideOffset, overideLimit,
-				maxBytesPerPage, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
+		SqlQuery translator = new SqlQueryBuilder(model, schemaProvider(tableSchema), maxBytesPerPage, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 	}
 
@@ -934,35 +922,6 @@ public class SQLQueryTest {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(tableSchema))
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals("SELECT 1, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
-	}
-
-	@Test
-	public void testAdditionalFilter_noExistingWHEREClause() throws ParseException {
-		sql = "select \"foo\" from syn123";
-
-		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
-		filter.setColumnName("foo");
-		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
-		filter.setValues(Arrays.asList("myVal%"));
-
-		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(tableSchema))
-				.indexDescription(new TableIndexDescription(idAndVersion)).additionalFilters(Arrays.asList(filter)).build();
-		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE ( _C111_ LIKE :b0 )", query.getOutputSQL());
-	}
-
-	@Test
-	public void testAdditionalFilter_hasExistingWHEREClause() throws ParseException {
-		sql = "select \"foo\" from syn123 WHERE \"bar\" = 5";
-
-		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
-		filter.setColumnName("foo");
-		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
-		filter.setValues(Arrays.asList("myVal%"));
-
-		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(tableSchema))
-				.indexDescription(new TableIndexDescription(idAndVersion)).additionalFilters(Arrays.asList(filter)).build();
-		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE ( _C333_ = :b0 ) AND ( ( _C111_ LIKE :b1 ) )",
-				query.getOutputSQL());
 	}
 
 	/**

@@ -1,23 +1,22 @@
 package org.sagebionetworks.repo.manager.table;
 
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
-import org.sagebionetworks.repo.model.table.FacetColumnRequest;
-import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
-import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
-import org.sagebionetworks.table.query.util.FacetUtils;
-import org.sagebionetworks.util.ValidateArgument;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
+import org.sagebionetworks.table.cluster.TranslationDependencies;
+import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.model.TableName;
+import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Class responsible for generating all facet related queries and transforming
@@ -28,8 +27,6 @@ import java.util.Set;
 public class FacetModel {
 	
 	private List<FacetRequestColumnModel> validatedFacets;
-	private boolean hasFilters;
-	private SqlQuery facetedQuery;
 	private List<FacetTransformer> facetTransformers;
 	
 	
@@ -39,34 +36,14 @@ public class FacetModel {
 	 * @param sqlQuery the sqlQuery on which to base the generated facet queries.
 	 * @param returnFacets whether facet information will be returned back to the user
 	 */
-	public FacetModel(List<FacetColumnRequest> selectedFacets, SqlQuery sqlQuery, boolean returnFacets) {
-		ValidateArgument.required(sqlQuery, "sqlQuery");
-	
-		//setting fields
-		this.hasFilters = selectedFacets != null && !selectedFacets.isEmpty();
-		
-		this.validatedFacets = createValidatedFacetsList(selectedFacets, sqlQuery.getTableSchema(), returnFacets);
-		
-		//generate the faceted query and facet transformers
-		this.facetedQuery = generateFacetFilteredQuery(sqlQuery, this.validatedFacets);
-		this.facetTransformers = generateFacetQueryTransformers(sqlQuery, this.validatedFacets);
+	public FacetModel(List<FacetColumnRequest> selectedFacets, TableExpression originalQuery, TranslationDependencies dependencies, boolean returnFacets) {
+		ValidateArgument.required(originalQuery, "originalQuery");
+		IdAndVersion id = IdAndVersion.parse(originalQuery.getFirstElementOfType(TableName.class).toSql());
+		List<ColumnModel> tableSchema = dependencies.getSchemaProvider().getTableSchema(id);
+		this.validatedFacets = createValidatedFacetsList(selectedFacets, tableSchema, returnFacets);
+		this.facetTransformers = generateFacetQueryTransformers(originalQuery, dependencies, this.validatedFacets);
 	}
 	
-	/**
-	 * Returns whether there were facet filters selected
-	 * @return
-	 */
-	public boolean hasFiltersApplied(){
-		return hasFilters;
-	}
-	
-	/**
-	 * Returns a new SqlQuery with searchConditions derived from the facetColums list appended to the query's WhereClause
-	 * @return
-	 */
-	public SqlQuery getFacetFilteredQuery(){
-		return this.facetedQuery;
-	}
 	
 	/**
 	 * Returns a list of FacetTransformers which contains a method to get a
@@ -140,24 +117,9 @@ public class FacetModel {
 		return result;
 	}
 	
-	static SqlQuery generateFacetFilteredQuery(SqlQuery sqlQuery, List<FacetRequestColumnModel> validatedFacets){
-		ValidateArgument.required(sqlQuery, "sqlQuery");
-		ValidateArgument.required(validatedFacets, "validatedFacets");
-		try{
-			QuerySpecification modifiedQuerySpecification = FacetUtils.appendFacetSearchConditionToQuerySpecification(sqlQuery.getModel(), validatedFacets);
-
-			return new SqlQueryBuilder(modifiedQuerySpecification, sqlQuery.getSchemaProvider(), sqlQuery.getOverrideOffset(), sqlQuery.getOverrideLimit(), sqlQuery.getMaxBytesPerPage(), sqlQuery.getUserId())
-					.includeEntityEtag(sqlQuery.includeEntityEtag())
-					.indexDescription(sqlQuery.getIndexDescription())
-					.selectedFacets(sqlQuery.getSelectedFacets())
-					.build();
-		}catch (ParseException e){
-			throw new RuntimeException(e);
-		}
-	}
-	
-	static List<FacetTransformer> generateFacetQueryTransformers(SqlQuery sqlQuery, List<FacetRequestColumnModel> validatedFacets){
-		ValidateArgument.required(sqlQuery, "sqlQuery");
+	static List<FacetTransformer> generateFacetQueryTransformers(TableExpression originalQuery, TranslationDependencies dependencies, List<FacetRequestColumnModel> validatedFacets){
+		ValidateArgument.required(originalQuery, "originalQuery");
+		ValidateArgument.required(dependencies, "dependencies");
 		ValidateArgument.required(validatedFacets, "validatedFacets");
 		
 		List<FacetTransformer> transformersList = new ArrayList<>(validatedFacets.size());
@@ -169,7 +131,7 @@ public class FacetModel {
 					if ( facetValuesRequest != null){
 						selectedValues = facetValuesRequest.getFacetValues();
 					}
-					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.isColumnTypeIsList(), validatedFacets, sqlQuery, selectedValues));
+					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.isColumnTypeIsList(), validatedFacets, originalQuery, dependencies, selectedValues));
 					break;
 				case range:
 					String selectedMin = null;
@@ -179,7 +141,7 @@ public class FacetModel {
 						selectedMin = facetRangeRequest.getMin();
 						selectedMax = facetRangeRequest.getMax();
 					}
-					transformersList.add(new FacetTransformerRange(facet.getColumnName(), validatedFacets, sqlQuery, selectedMin, selectedMax ));
+					transformersList.add(new FacetTransformerRange(facet.getColumnName(), validatedFacets, originalQuery, dependencies, selectedMin, selectedMax ));
 					break;
 				default:
 					throw new RuntimeException("Found unexpected FacetType");

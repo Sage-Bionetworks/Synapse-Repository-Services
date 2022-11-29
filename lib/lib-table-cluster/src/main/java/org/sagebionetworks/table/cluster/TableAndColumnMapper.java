@@ -107,6 +107,22 @@ public class TableAndColumnMapper implements ColumnLookup {
 	}
 
 	/**
+	 * Lookup a ColumnReference using just the column name or alias
+	 * @param columnName
+	 * @return
+	 */
+	public Optional<ColumnTranslationReference> lookupColumnReference(String columnName) {
+		if(columnName == null) {
+			return Optional.empty();
+		}
+		try {
+			return lookupColumnReference(new TableQueryParser(SqlElementUtils.wrapInDoubleQuotes(columnName)).columnReference());
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
+	
+	/**
 	 * Attempt to resolve the given ColumnReference to one of the columns one of the
 	 * referenced tables. Optional.empty() returned if no match was found.
 	 * 

@@ -16,4 +16,5 @@ public interface ColumnLookup {
 	 * @return
 	 */
 	public Optional<ColumnTranslationReference> lookupColumnReference(ColumnReference columnReference);
+
 }
