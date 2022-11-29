@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager.table.query;
 import java.util.Map;
 import java.util.Objects;
 
+import org.sagebionetworks.util.ValidateArgument;
+
 /**
  * A basic query composed of both SQL to run and the query parameters.
  * Note: The SQL must already be translated.
@@ -14,7 +16,8 @@ public class BasicQuery {
 	private final Map<String, Object> parameters;
 	
 	public BasicQuery(String sql, Map<String, Object> parameters) {
-		super();
+		ValidateArgument.required(sql, "sql");
+		ValidateArgument.required(parameters, "parameters");
 		this.sql = sql;
 		this.parameters = parameters;
 	}
@@ -48,6 +51,11 @@ public class BasicQuery {
 		}
 		BasicQuery other = (BasicQuery) obj;
 		return Objects.equals(parameters, other.parameters) && Objects.equals(sql, other.sql);
+	}
+
+	@Override
+	public String toString() {
+		return "BasicQuery [sql=" + sql + ", parameters=" + parameters + "]";
 	}
 	
 

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table.query;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.HashMap;
 import java.util.List;
@@ -22,17 +23,17 @@ import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.table.cluster.SchemaProvider;
-import org.sagebionetworks.table.cluster.TranslationDependencies;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 
 public class FacetQueriesTest {
 
 	private List<ColumnModel> schema;
 	private SchemaProvider schemaProvider;
-	private TranslationDependencies translationDependencies;
+	private IndexDescription indexDescription;
 	private IdAndVersion tableId;
 	private Long userId;
-	private FacetQueries.Builder builder;
+	private QueryExpansion.Builder builder;
 	private String startingSql;
 
 	@BeforeEach
@@ -50,13 +51,13 @@ public class FacetQueriesTest {
 		userId = 789L;
 		tableId = IdAndVersion.parse("syn123.4");
 
-		translationDependencies = TranslationDependencies.builder().setSchemaProvider(schemaProvider)
-				.setIndexDescription(new ViewIndexDescription(tableId, TableType.entityview)).setUserId(userId).build();
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 
 		// The starting sql will have an authorization filter applied.
 		startingSql = "select * from " + tableId + " where ROW_BENEFACTOR IN (11,22)";
 
-		builder = FacetQueries.builder().setDependencies(translationDependencies).setOriginalSql(startingSql);
+		builder = QueryExpansion.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
+				.setUserId(userId).setStartingSql(startingSql).setMaxRowsPerCall(100L);
 	}
 
 	@Test
@@ -69,8 +70,7 @@ public class FacetQueriesTest {
 						new FacetColumnRangeRequest().setColumnName("two").setMax("38").setMin("15")));
 
 		// call under test
-		FacetQueries facet = builder.build();
-		assertNotNull(facet);
+		FacetQueries facet = new FacetQueries(builder.build());
 		assertNotNull(facet.getFacetInformationQueries());
 		assertEquals(2, facet.getFacetInformationQueries().size());
 		// one
@@ -96,15 +96,13 @@ public class FacetQueriesTest {
 
 		// two
 		transformer = facet.getFacetInformationQueries().get(1);
-		assertEquals(
-				"SELECT MIN(_C2_) AS minimum, MAX(_C2_) AS maximum FROM T123_4 WHERE"
+		assertEquals("SELECT MIN(_C2_) AS minimum, MAX(_C2_) AS maximum FROM T123_4 WHERE"
 				// auth filter
 				+ " ( ( ROW_BENEFACTOR IN ( :b0, :b1 ) )"
 				// additional filter
 				+ " AND ( ( _C3_ = :b2 OR _C3_ = :b3 ) ) )"
 				// selected facet on other column
-				+ " AND ( ( ( _C1_ = :b4 ) ) )",
-				transformer.getFacetSqlQuery().getOutputSQL());
+				+ " AND ( ( ( _C1_ = :b4 ) ) )", transformer.getFacetSqlQuery().getOutputSQL());
 		expectedParmeters = new HashMap<>();
 		expectedParmeters.put("b0", 11L);
 		expectedParmeters.put("b1", 22L);
@@ -113,7 +111,7 @@ public class FacetQueriesTest {
 		expectedParmeters.put("b4", "cat");
 		assertEquals(expectedParmeters, transformer.getFacetSqlQuery().getParameters());
 	}
-	
+
 	@Test
 	public void testFacetQueriesWithNoSelectedAndNoAdditional() {
 		// use a query with all parts set.
@@ -121,11 +119,75 @@ public class FacetQueriesTest {
 		builder.setSelectedFacets(null);
 
 		// call under test
-		FacetQueries facet = builder.build();
-		assertNotNull(facet);
+		FacetQueries facet = new FacetQueries(builder.build());
 		assertNotNull(facet.getFacetInformationQueries());
 		assertEquals(2, facet.getFacetInformationQueries().size());
 
+		// one
+		FacetTransformer transformer = facet.getFacetInformationQueries().get(0);
+		assertEquals("SELECT _C1_ AS value, COUNT(*) AS frequency FROM T123_4 WHERE"
+				// auth filter
+				+ " ROW_BENEFACTOR IN ( :b0, :b1 )"
+				// stats group by
+				+ " GROUP BY _C1_ ORDER BY frequency DESC, value ASC LIMIT :b2",
+				transformer.getFacetSqlQuery().getOutputSQL());
+		Map<String, Object> expectedParmeters = new HashMap<>();
+		expectedParmeters.put("b0", 11L);
+		expectedParmeters.put("b1", 22L);
+		expectedParmeters.put("b2", 100L);
+		assertEquals(expectedParmeters, transformer.getFacetSqlQuery().getParameters());
+
+		// two
+		transformer = facet.getFacetInformationQueries().get(1);
+		assertEquals("SELECT MIN(_C2_) AS minimum, MAX(_C2_) AS maximum FROM T123_4 WHERE"
+				+ " ROW_BENEFACTOR IN ( :b0, :b1 )", transformer.getFacetSqlQuery().getOutputSQL());
+		expectedParmeters = new HashMap<>();
+		expectedParmeters.put("b0", 11L);
+		expectedParmeters.put("b1", 22L);
+		assertEquals(expectedParmeters, transformer.getFacetSqlQuery().getParameters());
+	}
+
+	@Test
+	public void testFacetQueriesWithCurrentUser() {
+		builder.setStartingSql("select * from " + tableId + " where two = CURRENT_USER()");
+
+		// call under test
+		FacetQueries facet = new FacetQueries(builder.build());
+		assertNotNull(facet.getFacetInformationQueries());
+		assertEquals(2, facet.getFacetInformationQueries().size());
+
+		// one
+		FacetTransformer transformer = facet.getFacetInformationQueries().get(0);
+		assertEquals(
+				"SELECT _C1_ AS value, COUNT(*) AS frequency FROM T123_4 WHERE _C2_ = :b0 GROUP BY _C1_ ORDER BY frequency DESC, value ASC LIMIT :b1",
+				transformer.getFacetSqlQuery().getOutputSQL());
+		Map<String, Object> expectedParmeters = new HashMap<>();
+		expectedParmeters.put("b0", userId);
+		expectedParmeters.put("b1", 100L);
+		assertEquals(expectedParmeters, transformer.getFacetSqlQuery().getParameters());
+	}
+
+	@Test
+	public void testFacetQueriesWithBadSql() {
+		// use a query with all parts set.
+		builder.setAdditionalFilters(null);
+		builder.setSelectedFacets(null);
+		builder.setStartingSql("this is not sql!");
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			new FacetQueries(builder.build());
+		});
+
+	}
+
+	@Test
+	public void testCountQueryWithNullExpansion() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			new FacetQueries(null);
+		}).getMessage();
+		assertEquals("expansion is required.", message);
 	}
 
 }

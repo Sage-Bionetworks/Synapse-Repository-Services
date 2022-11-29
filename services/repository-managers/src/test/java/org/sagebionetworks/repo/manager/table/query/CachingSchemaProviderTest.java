@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table.query;
 
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -53,5 +54,15 @@ public class CachingSchemaProviderTest {
 		verify(mockSchemaProvider, times(2)).getTableSchema(any());
 		verify(mockSchemaProvider, times(1)).getTableSchema(idOne);
 		verify(mockSchemaProvider, times(1)).getTableSchema(idTwo);
+	}
+	
+	@Test
+	public void testCacheWithNullProvider() {
+		
+		mockSchemaProvider = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			new CachingSchemaProvider(mockSchemaProvider);
+		}).getMessage();
+		assertEquals("toWrap is required.", message);
 	}
 }

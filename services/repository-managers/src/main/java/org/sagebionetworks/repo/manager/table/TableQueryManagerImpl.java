@@ -10,9 +10,11 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.manager.table.query.CachingSchemaProvider;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
-import org.sagebionetworks.repo.manager.table.query.Queries;
+import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
+import org.sagebionetworks.repo.manager.table.query.QueryExpansion;
 import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -102,7 +104,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				combinedSql = createCombinedSql(user, query);
 			}
 			// pre-flight includes parsing and authorization
-			Queries sqlQuery = queryPreflight(user, query, this.maxBytesPerRequest, options);
+			QueryTranslations sqlQuery = queryPreflight(user, query, this.maxBytesPerRequest, options);
 			
 			// run the query as a stream.
 			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, rowHandler, options);
@@ -177,7 +179,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 */
-	Queries queryPreflight(UserInfo user, Query query, Long maxBytesPerPage, QueryOptions options)
+	QueryTranslations queryPreflight(UserInfo user, Query query, Long maxBytesPerPage, QueryOptions options)
 			throws EmptyResultException, NotFoundException, TableUnavailableException, TableFailedException {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(query, "Query");
@@ -202,16 +204,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// Table views must have a row level filter applied to the query
 		model = addRowLevelFilter(user, model, indexDescription);
 
-		return Queries.builder()
-				.setStartingSql(model.toSql())
-				.setQuery(query)
-				.setOptions(options)
-				.setIndexDescription(indexDescription)
-				.setUserId(user.getId())
-				.setSchemaProvider(tableManagerSupport)
-				.setMaxBytesPerPage(maxBytesPerPage)
-				.setMaxRowsPerCall(maxBytesPerPage)
-				.setMaxRowsPerCall(MAX_ROWS_PER_CALL).build();
+		QueryExpansion expansion = QueryExpansion.builder().setStartingSql(model.toSql()).setUserId(user.getId())
+				.setSchemaProvider(tableManagerSupport).setIndexDescription(indexDescription)
+				.setMaxBytesPerPage(maxBytesPerPage).setMaxRowsPerCall(MAX_ROWS_PER_CALL)
+				.setAdditionalFilters(query.getAdditionalFilters()).setSelectedFacets(query.getSelectedFacets())
+				.setLimit(query.getLimit()).setOffset(query.getOffset()).setSort(query.getSort())
+				.setIncludeEntityEtag(query.getIncludeEntityEtag()).build();
+
+		return new QueryTranslations(expansion, options);
 	}
 
 	/**
@@ -233,7 +233,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws EmptyResultException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStream(final ProgressCallback progressCallback, final UserInfo user, final Queries query,
+	QueryResultBundle queryAsStream(final ProgressCallback progressCallback, final UserInfo user, final QueryTranslations query,
 			final RowHandler rowHandler, final QueryOptions options)
 			throws DatastoreException, NotFoundException, TableUnavailableException, TableFailedException,
 			LockUnavilableException, EmptyResultException {
@@ -298,7 +298,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback progressCallback, Queries query,
+	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback progressCallback, QueryTranslations query,
 			RowHandler rowHandler, final QueryOptions options)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
@@ -478,7 +478,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			setDefaultValues(request);
 			// there is no limit to the size
 			Long maxBytes = null;
-			final Queries query = queryPreflight(user, request, maxBytes, options);
+			final QueryTranslations query = queryPreflight(user, request, maxBytes, options);
 
 			// Do not include rowId and version if it is not provided (PLFM-2993)
 			if (!query.getMainQuery().getSqlQuery().includesRowIdAndVersion()) {

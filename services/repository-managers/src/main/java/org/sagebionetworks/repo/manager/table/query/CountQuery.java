@@ -1,19 +1,16 @@
 package org.sagebionetworks.repo.manager.table.query;
 
-import java.util.List;
 import java.util.Optional;
 
-import org.sagebionetworks.repo.model.table.FacetColumnRequest;
-import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
-import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * An immutable count query to be run against a table/view. The count query will
@@ -25,18 +22,21 @@ public class CountQuery {
 
 	private final BasicQuery countQuery;
 	private final Pagination originalPagination;
-
-	private CountQuery(String startingSql, TranslationDependencies dependencies,
-			List<FacetColumnRequest> selectedFacets, List<QueryFilter> additionalFilters) {
+	
+	public CountQuery(QueryExpansion expansion) {
+		ValidateArgument.required(expansion, "expansion");
 
 		try {
-			CombinedQuery combined = CombinedQuery.builder().setQuery(startingSql)
-					.setAdditionalFilters(additionalFilters).setSchemaProvider(dependencies.getSchemaProvider())
-					.setSelectedFacets(selectedFacets).build();
+			CombinedQuery combined = CombinedQuery.builder().setQuery(expansion.getStartingSql())
+					.setAdditionalFilters(expansion.getAdditionalFilters())
+					.setSchemaProvider(expansion.getSchemaProvider()).setSelectedFacets(expansion.getSelectedFacets())
+					.build();
 
 			QuerySpecification model = new TableQueryParser(combined.getCombinedSql()).querySpecification();
 			originalPagination = model.getFirstElementOfType(Pagination.class);
-			SqlQuery sqlQuery = new SqlQueryBuilder(combined.getCombinedSql(), dependencies).build();
+			SqlQuery sqlQuery = new SqlQueryBuilder(combined.getCombinedSql(), expansion.getUserId())
+					.schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription())
+					.build();
 
 			// if a count cannot be run then this will be null.
 			countQuery = SqlElementUtils.createCountSql(sqlQuery.getTransformedModel()).map(counSql -> {
@@ -61,50 +61,4 @@ public class CountQuery {
 		return originalPagination;
 	}
 
-	public static Builder builder() {
-		return new Builder();
-	}
-
-	public static class Builder {
-		private String startingSql;
-		private TranslationDependencies dependencies;
-		private List<FacetColumnRequest> selectedFacets;
-		private List<QueryFilter> additionalFilters;
-
-		/**
-		 * @param startingSql the startingSql to set
-		 */
-		public Builder setStartingSql(String startingSql) {
-			this.startingSql = startingSql;
-			return this;
-		}
-
-		/**
-		 * @param selectedFacets the selectedFacets to set
-		 */
-		public Builder setSelectedFacets(List<FacetColumnRequest> selectedFacets) {
-			this.selectedFacets = selectedFacets;
-			return this;
-		}
-
-		/**
-		 * @param additionalFilters the additionalFilters to set
-		 */
-		public Builder setAdditionalFilters(List<QueryFilter> additionalFilters) {
-			this.additionalFilters = additionalFilters;
-			return this;
-		}
-
-		/**
-		 * @param dependencies the dependencies to set
-		 */
-		public Builder setDependencies(TranslationDependencies dependencies) {
-			this.dependencies = dependencies;
-			return this;
-		}
-
-		public CountQuery build() {
-			return new CountQuery(startingSql, dependencies, selectedFacets, additionalFilters);
-		}
-	}
 }
