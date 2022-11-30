@@ -58,6 +58,7 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -1583,6 +1584,7 @@ public class TableIndexManagerImplTest {
 		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
 		// call under test
 		managerSpy.buildTableIndexWithLock(mockCallback, tableId, iterator);
+		verify(managerSpy).attemptToRestoreTableFromExistingSnapshot(tableId, resetToken, targetChangeNumber);
 		verify(mockManagerSupport).attemptToSetTableStatusToAvailable(tableId, resetToken, lastEtag);
 		verify(mockManagerSupport).getLastTableChangeNumber(tableId);
 		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
@@ -2970,6 +2972,128 @@ public class TableIndexManagerImplTest {
 		
 	}
 	
+	@Test
+	public void testRefreshSearchIndex() {
+		IndexDescription index = new TableIndexDescription(tableId);
+		
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
+		doNothing().when(managerSpy).updateSearchIndex(any());
+		
+		// Call under test
+		managerSpy.refreshSearchIndex(index);
+		
+		verify(mockIndexDao).isSearchEnabled(tableId);
+		verify(managerSpy).updateSearchIndex(index);
+	}
+	
+	@Test
+	public void testRefreshSearchIndexWithSearchDisabled() {
+		IndexDescription index = new TableIndexDescription(tableId);
+		
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(false);
+		
+		// Call under test
+		managerSpy.refreshSearchIndex(index);
+		
+		verify(mockIndexDao).isSearchEnabled(tableId);
+		verify(managerSpy, never()).updateSearchIndex(any());
+	}
+	
+	@Test
+	public void testAttemptToRestoreTableFromExistingSnapshot() {
+		
+		tableId = IdAndVersion.parse("123");
+		IdAndVersion snapshotId = IdAndVersion.parse("123.12"); 
+		IndexDescription index = new TableIndexDescription(tableId);
+		String resetToken = "restToken";
+		long snapshotChangeNumber = 456;
+		long targetChangeNumber = 789;
+		
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(-1L);
+		when(mockManagerSupport.getMostRecentTableSnapshot(any())).thenReturn(Optional.of(new TableSnapshot()
+			.withBucket("bucket")
+			.withKey("key")
+			.withTableId(snapshotId.getId())
+			.withVersion(snapshotId.getVersion().get())
+		));
+		when(mockManagerSupport.getLastTableChangeNumber(any())).thenReturn(Optional.of(snapshotChangeNumber));
+		doNothing().when(managerSpy).deleteTableIndex(any());
+		when(mockManagerSupport.getTableSchema(any())).thenReturn(schema);
+		doReturn(Collections.emptyList()).when(managerSpy).setIndexSchema(any(), any());
+		when(mockManagerSupport.isTableSearchEnabled(any())).thenReturn(true);
+		doNothing().when(managerSpy).setSearchEnabled(any(), anyBoolean());
+		doNothing().when(mockManagerSupport).restoreTableFromS3(any(), any(), any());
+		doNothing().when(managerSpy).optimizeTableIndices(any());
+		doNothing().when(managerSpy).populateListColumnIndexTables(any(), any());
+		doNothing().when(managerSpy).refreshSearchIndex(any());
+		
+		// Call under test
+		managerSpy.attemptToRestoreTableFromExistingSnapshot(tableId, resetToken, targetChangeNumber);
+		
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(tableId);
+		verify(mockManagerSupport).getMostRecentTableSnapshot(tableId);
+		verify(mockManagerSupport).getLastTableChangeNumber(snapshotId);
+		verify(mockManagerSupport).attemptToUpdateTableProgress(tableId, resetToken, "Restoring table syn123 from snapshot syn123.12", snapshotChangeNumber, targetChangeNumber);
+		verify(managerSpy).deleteTableIndex(tableId);
+		verify(mockManagerSupport).getTableSchema(snapshotId);
+		verify(managerSpy).setIndexSchema(index, schema);
+		verify(mockManagerSupport).isTableSearchEnabled(snapshotId);
+		verify(managerSpy).setSearchEnabled(tableId, true);
+		verify(mockManagerSupport).restoreTableFromS3(tableId, "bucket", "key");
+		verify(managerSpy).optimizeTableIndices(tableId);
+		verify(managerSpy).populateListColumnIndexTables(tableId, schema);
+		verify(managerSpy).refreshSearchIndex(index);
+		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, snapshotChangeNumber);
+	}
+	
+	@Test
+	public void testAttemptToRestoreTableFromExistingSnapshotWithMissingChangeNumber() {
+		
+		tableId = IdAndVersion.parse("123");
+		IdAndVersion snapshotId = IdAndVersion.parse("123.12");
+		String resetToken = "restToken";
+		long targetChangeNumber = 789;
+		
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(-1L);
+		when(mockManagerSupport.getMostRecentTableSnapshot(any())).thenReturn(Optional.of(new TableSnapshot()
+				.withBucket("bucket")
+				.withKey("key")
+				.withTableId(snapshotId.getId())
+				.withVersion(snapshotId.getVersion().get())
+				));
+		when(mockManagerSupport.getLastTableChangeNumber(any())).thenReturn(Optional.empty());
+
+		IllegalStateException result = assertThrows(IllegalStateException.class, () -> {			
+			// Call under test
+			managerSpy.attemptToRestoreTableFromExistingSnapshot(tableId, resetToken, targetChangeNumber);
+		});
+		
+		assertEquals("Expected a change number for snapshot syn123.12, but found none.", result.getMessage());
+		
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(tableId);
+		verify(mockManagerSupport).getMostRecentTableSnapshot(tableId);
+		verify(mockManagerSupport).getLastTableChangeNumber(snapshotId);
+		verifyNoMoreInteractions(mockIndexDao);
+		verifyNoMoreInteractions(mockManagerSupport);
+	}
+	
+	@Test
+	public void testAttemptToRestoreTableFromExistingSnapshotWithExistingChanges() {
+		
+		tableId = IdAndVersion.parse("123");
+		String resetToken = "restToken";
+		long targetChangeNumber = 789;
+		
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(123L);
+		
+		// Call under test
+		managerSpy.attemptToRestoreTableFromExistingSnapshot(tableId, resetToken, targetChangeNumber);
+		
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(tableId);
+		verifyNoMoreInteractions(mockIndexDao);
+		verifyZeroInteractions(mockManagerSupport);
+	}
+		
 	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {
 		// When a write transaction callback is used, we need to call the callback.

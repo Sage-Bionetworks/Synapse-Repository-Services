@@ -212,14 +212,6 @@ public interface TableIndexManager {
 			Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException;
 
 	/**
-	 * Populate a view table from a stream of snapshot CSV data.
-	 * 
-	 * @param idAndVersion
-	 * @param input
-	 */
-	void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input);
-
-	/**
 	 * Get a single page (up to the provided limit) of rowIds that are out-of-date
 	 * for the given view. A row is out-of-date if any of these conditions are true:
 	 * <ul>
@@ -312,5 +304,12 @@ public interface TableIndexManager {
 	 * @return
 	 */
 	Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, SqlQuery definingSql);
+
+	/**
+	 * If the table has FTS enabled re-builds the search index
+	 * 
+	 * @param idAndVersion
+	 */
+	void refreshSearchIndex(IndexDescription indexDescription);
 
 }

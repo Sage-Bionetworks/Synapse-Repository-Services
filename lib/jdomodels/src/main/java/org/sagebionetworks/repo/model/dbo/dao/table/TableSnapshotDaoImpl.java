@@ -3,10 +3,12 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_SNAPSHOT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_SNAPSHOT_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_SNAPSHOT_TABLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_SNAPSHOT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -109,6 +111,38 @@ public class TableSnapshotDaoImpl implements TableSnapshotDao {
 					Long.class, idAndVersion.getId(), idAndVersion.getVersion().get());
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Snapshot not found for: " + idAndVersion.toString(), e);
+		}
+	}
+	
+	@Override
+	public Optional<TableSnapshot> getMostRecentTableSnapshot(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		try {
+			List<Object> args = new ArrayList<>();
+			
+			StringBuilder sql = new StringBuilder()
+				.append("SELECT S.* FROM ").append(TABLE_TABLE_SNAPSHOT).append(" S") 
+				// Make sure to join on the table transaction version tables so that we know the version still exists
+				.append(" JOIN ").append(TABLE_TABLE_TRANSACTION).append(" T ON S.").append(COL_TABLE_SNAPSHOT_TABLE_ID).append(" = T.").append(COL_TABLE_TRX_TABLE_ID)
+				.append(" JOIN ").append(TABLE_TABLE_TRX_TO_VERSION).append(" V ON T.").append(COL_TABLE_TRX_ID).append(" = V.").append(COL_TABLE_TRX_TO_VER_TRX_ID).append(" AND S.").append(COL_TABLE_SNAPSHOT_VERSION).append(" = V.").append(COL_TABLE_TRX_TO_VER_VER_NUM)
+				.append(" WHERE S.").append(COL_TABLE_SNAPSHOT_TABLE_ID).append(" = ?");
+			
+			args.add(idAndVersion.getId());
+
+			idAndVersion.getVersion().ifPresent( version -> {
+				sql.append(" AND S.").append(COL_TABLE_SNAPSHOT_VERSION).append(" <= ?");
+				args.add(version);
+			});
+			
+			sql.append(" ORDER BY S.").append(COL_TABLE_SNAPSHOT_TABLE_ID).append(", ").append(COL_TABLE_SNAPSHOT_VERSION).append(" DESC LIMIT 1");
+			
+			TableSnapshot snapshot = translate(
+				jdbcTemplate.queryForObject(sql.toString(), MAPPER, args.toArray())
+			);
+			
+			return Optional.of(snapshot);
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
 		}
 	}
 

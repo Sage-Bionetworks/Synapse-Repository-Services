@@ -21,12 +21,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,8 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,7 +42,6 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -98,12 +90,9 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
-import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -130,10 +119,6 @@ public class TableViewManagerImplTest {
 	@Mock
 	private TableIndexManager mockIndexManager;
 	@Mock
-	private FileProvider mockFileProvider;
-	@Mock
-	private SynapseS3Client mockS3Client;
-	@Mock
 	private StackConfiguration mockConfig;
 	@Mock
 	private TableSnapshotDao mockViewSnapshotDao;
@@ -141,17 +126,6 @@ public class TableViewManagerImplTest {
 	private MetadataIndexProviderFactory mockMetadataIndexProviderFactory;
 	@Mock
 	private ObjectFieldModelResolverFactory mockObjectFieldModelResolverFactory;
-	
-	@Mock
-	private File mockFile;
-	@Mock
-	private OutputStream mockOutStream;
-	@Mock
-	private GZIPOutputStream mockGzipOutStream;
-	@Mock
-	private InputStream mockInputStream;
-	@Mock
-	private GZIPInputStream mockGzipInputStream;
 	@Mock
 	private MetadataIndexProvider mockMetadataIndexProvider;
 	@Mock
@@ -831,17 +805,14 @@ public class TableViewManagerImplTest {
 		long snapshotId = 998L;
 		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
 		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(Optional.of(snapshot));
-		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		setupReader("foo,bar");
 		
 		// call under test
-		long id = manager.populateViewFromSnapshot(idAndVersion, mockIndexManager);
+		long id = manager.populateViewFromSnapshot(indexDescription, mockIndexManager);
 		assertEquals(snapshotId, id);
 		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
-		verify(mockS3Client).getObject(new GetObjectRequest("bucket", "key"), mockFile);
-		verify(mockIndexManager).populateViewFromSnapshot(eq(idAndVersion), any());
+		verify(mockTableManagerSupport).restoreTableFromS3(idAndVersion, "bucket", "key");
 		verify(mockIndexManager).refreshViewBenefactors(idAndVersion);
-		verify(mockFile).delete();
+		verify(mockIndexManager).refreshSearchIndex(indexDescription);
 	}
 	
 	@Test
@@ -850,54 +821,14 @@ public class TableViewManagerImplTest {
 		
 		String errorMessage = assertThrows(NotFoundException.class, () -> {
 			// call under test			
-			manager.populateViewFromSnapshot(idAndVersion, mockIndexManager);
+			manager.populateViewFromSnapshot(indexDescription, mockIndexManager);
 		}).getMessage();
 		
 		assertEquals("Snapshot not found for: " + idAndVersion.toString(), errorMessage);
 		
 		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
 	}
-	
-	@Test
-	public void testPopulateViewFromSnapshotError() throws IOException {
-		long snapshotId = 998L;
-		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
-		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(Optional.of(snapshot));
-		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		AmazonServiceException error = new AmazonServiceException("not correct");
-		when(mockS3Client.getObject(any(GetObjectRequest.class), any(File.class))).thenThrow(error);
 		
-		assertThrows(AmazonServiceException.class, ()->{
-			// call under test
-			manager.populateViewFromSnapshot(idAndVersion, mockIndexManager);
-		});
-		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
-		verify(mockS3Client).getObject(new GetObjectRequest("bucket", "key"), mockFile);
-		verify(mockIndexManager, never()).populateViewFromSnapshot(any(IdAndVersion.class), any());
-		// file should still be deleted
-		verify(mockFile).delete();
-	}
-	
-	@Test
-	public void testPopulateViewFromSnapshotFileCreateError() throws IOException {
-		long snapshotId = 998L;
-		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
-		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(Optional.of(snapshot));
-		IOException error = new IOException("some IO error");
-		when(mockFileProvider.createTempFile(anyString(), anyString())).thenThrow(error);
-		
-		Throwable cause = assertThrows(RuntimeException.class, ()->{
-			// call under test
-			manager.populateViewFromSnapshot(idAndVersion, mockIndexManager);
-		}).getCause();
-		assertEquals(error, cause);
-		
-		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
-		verify(mockS3Client, never()).getObject(any(GetObjectRequest.class), any(File.class));
-		verify(mockIndexManager, never()).populateViewFromSnapshot(any(IdAndVersion.class), any());
-		verify(mockFile, never()).delete();
-	}
-	
 	@Test
 	public void testPopulateViewIndexFromReplication() {
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
@@ -956,7 +887,7 @@ public class TableViewManagerImplTest {
 		verify(mockIndexManager).setSearchEnabled(idAndVersion, false);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema);
-		verify(mockIndexManager, never()).populateViewFromSnapshot(any(IdAndVersion.class), any());
+		verify(mockTableManagerSupport, never()).restoreTableFromS3(any(), any(), any());
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
 		verify(mockIndexManager).populateListColumnIndexTables(idAndVersion, viewSchema);
 		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
@@ -965,7 +896,6 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 		verify(mockViewSnapshotDao, never()).getSnapshot(any(IdAndVersion.class));
-		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	/**
@@ -976,6 +906,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testCreateOrRebuildViewHoldingLockWorkeRequiredWithVersion() throws IOException, RecoverableMessageException {
 		idAndVersion = IdAndVersion.parse("syn123.45");
+		indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
 		String token = "the token";
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
@@ -986,9 +917,7 @@ public class TableViewManagerImplTest {
 		long snapshotId = 998L;
 		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
 		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(Optional.of(snapshot));
-		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		setupReader("foo,bar");
 		
 		// call under test
 		manager.createOrRebuildViewHoldingLock(idAndVersion);
@@ -1007,9 +936,7 @@ public class TableViewManagerImplTest {
 				1L);
 		verify(mockIndexManager, never()).populateViewFromEntityReplication(any(Long.class), any(), any());
 		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
-		verify(mockS3Client).getObject(new GetObjectRequest("bucket", "key"), mockFile);
-		verify(mockIndexManager).populateViewFromSnapshot(eq(idAndVersion), any());
-		verify(mockFile).delete();
+		verify(mockTableManagerSupport).restoreTableFromS3(idAndVersion, "bucket", "key");
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
 		verify(mockIndexManager).populateListColumnIndexTables(idAndVersion, viewSchema);
 		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, snapshotId, originalSchemaMD5Hex);
@@ -1091,20 +1018,6 @@ public class TableViewManagerImplTest {
 				TableViewManagerImpl.DEFAULT_ETAG);
 		// conflict should not set the view to failed.
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(), any());
-	}
-	
-	/**
-	 * Setup chain of file->gzip->reader
-	 * @param toRead
-	 * @return
-	 * @throws IOException
-	 */
-	public StringReader setupReader(String toRead) throws IOException {
-		StringReader reader = new StringReader(toRead);
-		when(mockFileProvider.createFileInputStream(mockFile)).thenReturn(mockInputStream);
-		when(mockFileProvider.createGZIPInputStream(mockInputStream)).thenReturn(mockGzipInputStream);
-		when(mockFileProvider.createReader(mockGzipInputStream, StandardCharsets.UTF_8)).thenReturn(reader);
-		return reader;
 	}
 		
 	@Test
