@@ -26,7 +26,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
-import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -74,9 +73,6 @@ public class AccessInterceptorTest {
 
 	@Mock
 	TestClock mockClock;
-
-	@Mock
-	AwsKinesisFirehoseLogger firehoseLogger;
 
 	@Captor
 	ArgumentCaptor<AccessRecord> recordCaptor;

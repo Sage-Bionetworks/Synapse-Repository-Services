@@ -1,5 +1,7 @@
 package org.sagebionetworks.kinesis;
 
+import java.util.Objects;
+
 public abstract class AbstractAwsKinesisLogRecord implements AwsKinesisLogRecord {
     private String stack;
     private String instance;
@@ -30,4 +32,16 @@ public abstract class AbstractAwsKinesisLogRecord implements AwsKinesisLogRecord
         return this;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AbstractAwsKinesisLogRecord that = (AbstractAwsKinesisLogRecord) o;
+        return stack.equals(that.stack) && instance.equals(that.instance);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(stack, instance);
+    }
 }
