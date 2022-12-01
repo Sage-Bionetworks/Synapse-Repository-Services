@@ -2788,11 +2788,11 @@ public class SQLUtilsTest {
 	}
 		
 	@Test
-	public void testCreateInsertViewFromSnapshot() {
+	public void testCreateInsertStatement() {
 		String[] headers = new String[] {"foo","bar"};
 		tableId = IdAndVersion.parse("syn999.23");
 		// call under test
-		String sql = SQLUtils.createInsertViewFromSnapshot(tableId, headers);
+		String sql = SQLUtils.createInsertStatement(tableId, headers);
 		assertEquals("INSERT INTO T999_23 (foo,bar) VALUES  (?,?)", sql);
 	}
 	

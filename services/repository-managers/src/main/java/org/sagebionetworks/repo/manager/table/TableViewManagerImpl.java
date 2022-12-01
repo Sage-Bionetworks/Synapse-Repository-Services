@@ -566,7 +566,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		TableSnapshot snapshot = viewSnapshotDao.getSnapshot(idAndVersion)
 			.orElseThrow(() -> new NotFoundException("Snapshot not found for: " + idAndVersion.toString()));
 		
-		tableManagerSupport.restoreTableFromS3(idAndVersion, snapshot.getBucket(), snapshot.getKey());
+		tableManagerSupport.restoreTableIndexFromS3(idAndVersion, snapshot.getBucket(), snapshot.getKey());
 		
 		// ensure the latest benefactors are used.
 		indexManager.refreshViewBenefactors(idAndVersion);
@@ -624,7 +624,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			String bucket = config.getViewSnapshotBucketName();
 						
 			// Save the table to S3
-			List<String> schemaColumnIds = tableManagerSupport.streamTableToS3(idAndVersion, bucket, key);
+			List<String> schemaColumnIds = tableManagerSupport.streamTableIndexToS3(idAndVersion, bucket, key);
 			
 			// Create a new version of the node
 			long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, idAndVersion.getId().toString(), snapshotOptions);

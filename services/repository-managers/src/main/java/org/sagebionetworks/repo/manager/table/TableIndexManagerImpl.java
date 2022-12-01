@@ -690,7 +690,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			setSearchEnabled(idAndVersion, isSearchEnabled);
 			
 			// Restore the table data from the snapshot
-			tableManagerSupport.restoreTableFromS3(idAndVersion, snapshot.getBucket(), snapshot.getKey());
+			tableManagerSupport.restoreTableIndexFromS3(idAndVersion, snapshot.getBucket(), snapshot.getKey());
 			
 			// Optimize the table
 			optimizeTableIndices(idAndVersion);

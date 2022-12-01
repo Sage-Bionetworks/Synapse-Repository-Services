@@ -810,7 +810,7 @@ public class TableViewManagerImplTest {
 		long id = manager.populateViewFromSnapshot(indexDescription, mockIndexManager);
 		assertEquals(snapshotId, id);
 		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
-		verify(mockTableManagerSupport).restoreTableFromS3(idAndVersion, "bucket", "key");
+		verify(mockTableManagerSupport).restoreTableIndexFromS3(idAndVersion, "bucket", "key");
 		verify(mockIndexManager).refreshViewBenefactors(idAndVersion);
 		verify(mockIndexManager).refreshSearchIndex(indexDescription);
 	}
@@ -887,7 +887,7 @@ public class TableViewManagerImplTest {
 		verify(mockIndexManager).setSearchEnabled(idAndVersion, false);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema);
-		verify(mockTableManagerSupport, never()).restoreTableFromS3(any(), any(), any());
+		verify(mockTableManagerSupport, never()).restoreTableIndexFromS3(any(), any(), any());
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
 		verify(mockIndexManager).populateListColumnIndexTables(idAndVersion, viewSchema);
 		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
@@ -936,7 +936,7 @@ public class TableViewManagerImplTest {
 				1L);
 		verify(mockIndexManager, never()).populateViewFromEntityReplication(any(Long.class), any(), any());
 		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
-		verify(mockTableManagerSupport).restoreTableFromS3(idAndVersion, "bucket", "key");
+		verify(mockTableManagerSupport).restoreTableIndexFromS3(idAndVersion, "bucket", "key");
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
 		verify(mockIndexManager).populateListColumnIndexTables(idAndVersion, viewSchema);
 		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, snapshotId, originalSchemaMD5Hex);
@@ -1152,7 +1152,7 @@ public class TableViewManagerImplTest {
 		setupNonExclusiveLockWithCustomKeyToForwardToCallack();
 		
 		doNothing().when(managerSpy).validateViewForSnapshot(any());
-		when(mockTableManagerSupport.streamTableToS3(any(), any(), any())).thenReturn(schema);
+		when(mockTableManagerSupport.streamTableIndexToS3(any(), any(), any())).thenReturn(schema);
 		
 		String bucket = "snapshot.bucket";
 		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
@@ -1171,7 +1171,7 @@ public class TableViewManagerImplTest {
 		
 		ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
 		
-		verify(mockTableManagerSupport).streamTableToS3(eq(idAndVersion), eq(bucket), keyCaptor.capture());
+		verify(mockTableManagerSupport).streamTableIndexToS3(eq(idAndVersion), eq(bucket), keyCaptor.capture());
 		
 		String key = keyCaptor.getValue();
 		

@@ -1911,7 +1911,7 @@ public class SQLUtils {
 	 * @param headers
 	 * @return
 	 */
-	public static String createInsertViewFromSnapshot(IdAndVersion idAndVersion, String[] headers) {
+	public static String createInsertStatement(IdAndVersion idAndVersion, String[] headers) {
 		String tableName = getTableNameForId(idAndVersion, TableIndexType.INDEX);
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");

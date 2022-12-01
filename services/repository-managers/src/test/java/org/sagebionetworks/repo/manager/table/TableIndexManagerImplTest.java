@@ -3022,7 +3022,7 @@ public class TableIndexManagerImplTest {
 		doReturn(Collections.emptyList()).when(managerSpy).setIndexSchema(any(), any());
 		when(mockManagerSupport.isTableSearchEnabled(any())).thenReturn(true);
 		doNothing().when(managerSpy).setSearchEnabled(any(), anyBoolean());
-		doNothing().when(mockManagerSupport).restoreTableFromS3(any(), any(), any());
+		doNothing().when(mockManagerSupport).restoreTableIndexFromS3(any(), any(), any());
 		doNothing().when(managerSpy).optimizeTableIndices(any());
 		doNothing().when(managerSpy).populateListColumnIndexTables(any(), any());
 		doNothing().when(managerSpy).refreshSearchIndex(any());
@@ -3039,7 +3039,7 @@ public class TableIndexManagerImplTest {
 		verify(managerSpy).setIndexSchema(index, schema);
 		verify(mockManagerSupport).isTableSearchEnabled(snapshotId);
 		verify(managerSpy).setSearchEnabled(tableId, true);
-		verify(mockManagerSupport).restoreTableFromS3(tableId, "bucket", "key");
+		verify(mockManagerSupport).restoreTableIndexFromS3(tableId, "bucket", "key");
 		verify(managerSpy).optimizeTableIndices(tableId);
 		verify(managerSpy).populateListColumnIndexTables(tableId, schema);
 		verify(managerSpy).refreshSearchIndex(index);
