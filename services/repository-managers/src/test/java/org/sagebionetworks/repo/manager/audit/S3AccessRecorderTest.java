@@ -2,46 +2,80 @@ package org.sagebionetworks.repo.manager.audit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.audit.utils.AccessRecordUtils;
+import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context-enabled.xml" })
+@ExtendWith(MockitoExtension.class)
 public class S3AccessRecorderTest {
-	
-	@Autowired
+
+	@InjectMocks
 	private S3AccessRecorder recorder;
-	
-	@Autowired
-	private AccessRecordManager accessManager;
+	@Mock
+	private AccessRecordManager mockAccessManager;
+	@Mock
+	private AwsKinesisFirehoseLogger mockAwsKinesisFirehoseLogger;
+
 	
 	@Test
 	public void testSaveAndFire() throws IOException{
+		String fileName = "testFile";
+		when(mockAccessManager.saveBatch(anyList())).thenReturn(fileName);
 		List<AccessRecord> toTest = AuditTestUtils.createList(5, 100);
-		// Shuffle to simulate a real scenario
-		Collections.shuffle(toTest);
+
+		List<KinesisJsonEntityRecord> kinesisJsonEntityRecords = toTest.stream().map( record ->
+				new KinesisJsonEntityRecord(record.getTimestamp(), record, record.getStack(), record.getInstance()))
+				.collect(Collectors.toList());
+
 		// Add each to the recorder
 		for(AccessRecord ar: toTest){
 			recorder.save(ar);
 		}
 		// Now fire the timer
-		String fileName = recorder.timerFired();
-		assertNotNull(fileName);
+		String resultFileName= recorder.timerFired();
+		assertEquals(fileName,resultFileName);
 		// Get the saved record and check it
-		List<AccessRecord> fetched = accessManager.getBatch(fileName);
-		assertNotNull(fetched);
-		// The fetched list should match the input sorted on time stamp
-		AccessRecordUtils.sortByTimestamp(toTest);
-		assertEquals(toTest, fetched);
+		verify(mockAccessManager).saveBatch(toTest);
+		verify(mockAwsKinesisFirehoseLogger).logBatch(S3AccessRecorder.ACCESS_RECORD_STREAM, kinesisJsonEntityRecords);
+	}
+
+	@Test
+	public void testAwsKinesisFirehoseThrowException() throws IOException{
+		String fileName = "testFile";
+		when(mockAccessManager.saveBatch(anyList())).thenReturn(fileName);
+		List<AccessRecord> toTest = AuditTestUtils.createList(5, 100);
+ 		doThrow(new IllegalArgumentException("test exception")).when(mockAwsKinesisFirehoseLogger).logBatch(any(),anyList());
+		List<KinesisJsonEntityRecord> kinesisJsonEntityRecords = toTest.stream().map( record ->
+						new KinesisJsonEntityRecord(record.getTimestamp(), record, record.getStack(), record.getInstance()))
+				.collect(Collectors.toList());
+
+		// Add each to the recorder
+		for(AccessRecord ar: toTest){
+			recorder.save(ar);
+		}
+		// Now fire the timer
+		String resultFileName= recorder.timerFired();
+		assertNull(resultFileName);
+		// Get the saved record and check it
+		verify(mockAccessManager).saveBatch(toTest);
+		verify(mockAwsKinesisFirehoseLogger).logBatch(S3AccessRecorder.ACCESS_RECORD_STREAM, kinesisJsonEntityRecords);
 	}
 }
