@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -777,7 +778,6 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getViewFilter(tableId.getId())).thenReturn(mockFilter);
-		when(mockIndexDao.isSearchEnabled(any())).thenReturn(false);
 		
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 
@@ -785,28 +785,6 @@ public class TableIndexManagerImplTest {
 		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
-		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
-		// the CRC should be calculated with the etag column.
-		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
-	}
-	
-	@Test
-	public void testPopulateViewFromEntityReplicationWithSearchEnabled() {
-		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
-		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
-		when(mockMetadataProvider.getViewFilter(tableId.getId())).thenReturn(mockFilter);
-		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
-		IndexDescription indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
-		when(mockManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		doNothing().when(managerSpy).updateSearchIndex(any());
-		
-		List<ColumnModel> schema = createDefaultColumnsWithIds();
-
-		// call under test
-		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
-		assertEquals(crc32, resultCrc);
-		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
-		verify(managerSpy).updateSearchIndex(indexDescription);
 		// the CRC should be calculated with the etag column.
 		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
 	}
@@ -2971,34 +2949,7 @@ public class TableIndexManagerImplTest {
 		assertFalse(result);
 		
 	}
-	
-	@Test
-	public void testRefreshSearchIndex() {
-		IndexDescription index = new TableIndexDescription(tableId);
 		
-		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
-		doNothing().when(managerSpy).updateSearchIndex(any());
-		
-		// Call under test
-		managerSpy.refreshSearchIndex(index);
-		
-		verify(mockIndexDao).isSearchEnabled(tableId);
-		verify(managerSpy).updateSearchIndex(index);
-	}
-	
-	@Test
-	public void testRefreshSearchIndexWithSearchDisabled() {
-		IndexDescription index = new TableIndexDescription(tableId);
-		
-		when(mockIndexDao.isSearchEnabled(any())).thenReturn(false);
-		
-		// Call under test
-		managerSpy.refreshSearchIndex(index);
-		
-		verify(mockIndexDao).isSearchEnabled(tableId);
-		verify(managerSpy, never()).updateSearchIndex(any());
-	}
-	
 	@Test
 	public void testAttemptToRestoreTableFromExistingSnapshot() {
 		
@@ -3017,15 +2968,13 @@ public class TableIndexManagerImplTest {
 			.withVersion(snapshotId.getVersion().get())
 		));
 		when(mockManagerSupport.getLastTableChangeNumber(any())).thenReturn(Optional.of(snapshotChangeNumber));
-		doNothing().when(managerSpy).deleteTableIndex(any());
 		when(mockManagerSupport.getTableSchema(any())).thenReturn(schema);
-		doReturn(Collections.emptyList()).when(managerSpy).setIndexSchema(any(), any());
 		when(mockManagerSupport.isTableSearchEnabled(any())).thenReturn(true);
-		doNothing().when(managerSpy).setSearchEnabled(any(), anyBoolean());
+		
+		doReturn(schema).when(managerSpy).resetTableIndex(any(), any(), anyBoolean());
 		doNothing().when(mockManagerSupport).restoreTableIndexFromS3(any(), any(), any());
-		doNothing().when(managerSpy).optimizeTableIndices(any());
-		doNothing().when(managerSpy).populateListColumnIndexTables(any(), any());
-		doNothing().when(managerSpy).refreshSearchIndex(any());
+		doNothing().when(managerSpy).buildTableIndexIndices(any(), any());
+		doNothing().when(managerSpy).setIndexVersion(any(), any());
 		
 		// Call under test
 		managerSpy.attemptToRestoreTableFromExistingSnapshot(tableId, resetToken, targetChangeNumber);
@@ -3034,16 +2983,12 @@ public class TableIndexManagerImplTest {
 		verify(mockManagerSupport).getMostRecentTableSnapshot(tableId);
 		verify(mockManagerSupport).getLastTableChangeNumber(snapshotId);
 		verify(mockManagerSupport).attemptToUpdateTableProgress(tableId, resetToken, "Restoring table syn123 from snapshot syn123.12", snapshotChangeNumber, targetChangeNumber);
-		verify(managerSpy).deleteTableIndex(tableId);
 		verify(mockManagerSupport).getTableSchema(snapshotId);
-		verify(managerSpy).setIndexSchema(index, schema);
 		verify(mockManagerSupport).isTableSearchEnabled(snapshotId);
-		verify(managerSpy).setSearchEnabled(tableId, true);
+		verify(managerSpy).resetTableIndex(index, schema, true);
 		verify(mockManagerSupport).restoreTableIndexFromS3(tableId, "bucket", "key");
-		verify(managerSpy).optimizeTableIndices(tableId);
-		verify(managerSpy).populateListColumnIndexTables(tableId, schema);
-		verify(managerSpy).refreshSearchIndex(index);
-		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, snapshotChangeNumber);
+		verify(managerSpy).buildTableIndexIndices(index, schema);
+		verify(managerSpy).setIndexVersion(tableId, snapshotChangeNumber);
 	}
 	
 	@Test
@@ -3092,6 +3037,93 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(tableId);
 		verifyNoMoreInteractions(mockIndexDao);
 		verifyZeroInteractions(mockManagerSupport);
+	}
+	
+	@Test
+	public void testResetTableIndex() {
+		
+		TableIndexDescription index = new TableIndexDescription(tableId);
+		
+		when(mockManagerSupport.getTableSchema(any())).thenReturn(schema);
+		when(mockManagerSupport.isTableSearchEnabled(any())).thenReturn(true);
+		
+		doReturn(schema).when(managerSpy).resetTableIndex(any(), any(), anyBoolean());
+		
+		// Call under test
+		managerSpy.resetTableIndex(index);
+		
+		verify(mockManagerSupport).getTableSchema(index.getIdAndVersion());
+		verify(mockManagerSupport).isTableSearchEnabled(index.getIdAndVersion());
+		verify(managerSpy).resetTableIndex(index, schema, true);
+	}
+	
+	@Test
+	public void testResetTableIndexInternal() {
+		
+		TableIndexDescription index = new TableIndexDescription(tableId);
+		
+		doNothing().when(managerSpy).deleteTableIndex(any());
+		doReturn(Collections.emptyList()).when(managerSpy).setIndexSchema(any(), any());
+		doNothing().when(managerSpy).setSearchEnabled(any(), anyBoolean());
+		
+		// Call under test
+		managerSpy.resetTableIndex(index, schema, true);
+		
+		verify(managerSpy).deleteTableIndex(tableId);
+		verify(managerSpy).setIndexSchema(index, schema);
+		verify(managerSpy).setSearchEnabled(tableId, true);
+	}
+	
+	@Test
+	public void testResetTableIndexInternalWithSearchDisabled() {
+		
+		TableIndexDescription index = new TableIndexDescription(tableId);
+		
+		doNothing().when(managerSpy).deleteTableIndex(any());
+		doReturn(Collections.emptyList()).when(managerSpy).setIndexSchema(any(), any());
+		doNothing().when(managerSpy).setSearchEnabled(any(), anyBoolean());
+		
+		// Call under test
+		managerSpy.resetTableIndex(index, schema, false);
+		
+		verify(managerSpy).deleteTableIndex(tableId);
+		verify(managerSpy).setIndexSchema(index, schema);
+		verify(managerSpy).setSearchEnabled(tableId, false);
+	}
+	
+	@Test
+	public void testBuildTableIndexIndices() {
+		TableIndexDescription index = new TableIndexDescription(tableId);
+		
+		doNothing().when(managerSpy).optimizeTableIndices(any());
+		doNothing().when(managerSpy).populateListColumnIndexTables(any(), any());
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
+		doNothing().when(managerSpy).updateSearchIndex(any());
+		
+		// Call under test
+		managerSpy.buildTableIndexIndices(index, schema);
+		
+		verify(managerSpy).optimizeTableIndices(tableId);
+		verify(managerSpy).populateListColumnIndexTables(tableId, schema);
+		verify(mockIndexDao).isSearchEnabled(tableId);
+		verify(managerSpy).updateSearchIndex(index);
+	}
+	
+	@Test
+	public void testBuildTableIndexIndicesWithSearchDisabled() {
+		TableIndexDescription index = new TableIndexDescription(tableId);
+		
+		doNothing().when(managerSpy).optimizeTableIndices(any());
+		doNothing().when(managerSpy).populateListColumnIndexTables(any(), any());
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(false);
+		
+		// Call under test
+		managerSpy.buildTableIndexIndices(index, schema);
+		
+		verify(managerSpy).optimizeTableIndices(tableId);
+		verify(managerSpy).populateListColumnIndexTables(tableId, schema);
+		verify(mockIndexDao).isSearchEnabled(tableId);
+		verify(managerSpy, never()).updateSearchIndex(any());
 	}
 		
 	@SuppressWarnings("unchecked")

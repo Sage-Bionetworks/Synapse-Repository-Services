@@ -343,39 +343,7 @@ public class TableViewManagerImplTest {
 		
 		assertEquals("The scope entity type is required.", ex.getMessage());
 	}
-	
-	@Test
-	public void testGetViewSchemaWithRequiredColumnsNoAdditions(){
-		List<ColumnModel> rawSchema = Lists.newArrayList(
-				objectFieldModelResolver.getColumnModel(ObjectField.benefactorId),
-				objectFieldModelResolver.getColumnModel(ObjectField.createdBy),
-				objectFieldModelResolver.getColumnModel(ObjectField.etag)
-				);
-		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(rawSchema);
-		// call under test
-		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
-		assertEquals(rawSchema, result);
-	}
-	
-	@Test
-	public void testGetViewSchema(){
-		List<ColumnModel> rawSchema = Lists.newArrayList(
-				objectFieldModelResolver.getColumnModel(ObjectField.benefactorId),
-				objectFieldModelResolver.getColumnModel(ObjectField.createdBy),
-				objectFieldModelResolver.getColumnModel(ObjectField.etag)
-				);
-		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(rawSchema);
-		// call under test
-		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
 		
-		List<ColumnModel> expected = Lists.newArrayList(
-				objectFieldModelResolver.getColumnModel(ObjectField.benefactorId),
-				objectFieldModelResolver.getColumnModel(ObjectField.createdBy),
-				objectFieldModelResolver.getColumnModel(ObjectField.etag)
-				);
-		assertEquals(expected, result);
-	}
-	
 	@Test
 	public void testApplySchemaChange(){
 		ColumnChange change = new ColumnChange();
@@ -812,7 +780,6 @@ public class TableViewManagerImplTest {
 		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
 		verify(mockTableManagerSupport).restoreTableIndexFromS3(idAndVersion, "bucket", "key");
 		verify(mockIndexManager).refreshViewBenefactors(idAndVersion);
-		verify(mockIndexManager).refreshSearchIndex(indexDescription);
 	}
 	
 	@Test
@@ -862,11 +829,9 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
-		String originalSchemaMD5Hex = "startMD5";
-		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
-		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(viewSchema);		
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		when(mockTableManagerSupport.isTableSearchEnabled(any())).thenReturn(false);
+		when(mockIndexManager.resetTableIndex(any())).thenReturn(viewSchema);
+		doNothing().when(mockIndexManager).buildTableIndexIndices(any(), any());
 
 		viewCRC = 987L;
 		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema)).thenReturn(viewCRC);
@@ -878,19 +843,13 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport).startTableProcessing(idAndVersion);
 		verify(mockTableManagerSupport).getViewScopeType(idAndVersion);
 		verify(mockConnectionFactory).connectToTableIndex(idAndVersion);
-		verify(mockIndexManager).deleteTableIndex(idAndVersion);
-		verify(mockTableManagerSupport).getSchemaMD5Hex(idAndVersion);
-		verify(mockTableManagerSupport).isTableSearchEnabled(idAndVersion);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
-		verify(mockColumnModelManager).getTableSchema(idAndVersion);
-		verify(mockIndexManager).setIndexSchema(indexDescription, viewSchema);
-		verify(mockIndexManager).setSearchEnabled(idAndVersion, false);
+		verify(mockIndexManager).resetTableIndex(indexDescription);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema);
 		verify(mockTableManagerSupport, never()).restoreTableIndexFromS3(any(), any(), any());
-		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
-		verify(mockIndexManager).populateListColumnIndexTables(idAndVersion, viewSchema);
-		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
+		verify(mockIndexManager).buildTableIndexIndices(indexDescription, viewSchema);
+		verify(mockIndexManager).setIndexVersion(idAndVersion, viewCRC);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
@@ -911,9 +870,8 @@ public class TableViewManagerImplTest {
 		String token = "the token";
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
-		String originalSchemaMD5Hex = "startMD5";
-		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
-		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(viewSchema);
+		when(mockIndexManager.resetTableIndex(any())).thenReturn(viewSchema);
+		doNothing().when(mockIndexManager).buildTableIndexIndices(any(), any());
 		long snapshotId = 998L;
 		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
 		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(Optional.of(snapshot));
@@ -925,21 +883,15 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport).isIndexWorkRequired(idAndVersion);
 		verify(mockTableManagerSupport).startTableProcessing(idAndVersion);
 		verify(mockConnectionFactory).connectToTableIndex(idAndVersion);
-		verify(mockIndexManager).deleteTableIndex(idAndVersion);
-		verify(mockTableManagerSupport).getSchemaMD5Hex(idAndVersion);
-		verify(mockTableManagerSupport).isTableSearchEnabled(idAndVersion);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
-		verify(mockColumnModelManager).getTableSchema(idAndVersion);
-		verify(mockIndexManager).setIndexSchema(indexDescription, viewSchema);
-		verify(mockIndexManager).setSearchEnabled(idAndVersion, false);
+		verify(mockIndexManager).resetTableIndex(indexDescription);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L,
 				1L);
 		verify(mockIndexManager, never()).populateViewFromEntityReplication(any(Long.class), any(), any());
 		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
 		verify(mockTableManagerSupport).restoreTableIndexFromS3(idAndVersion, "bucket", "key");
-		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
-		verify(mockIndexManager).populateListColumnIndexTables(idAndVersion, viewSchema);
-		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, snapshotId, originalSchemaMD5Hex);
+		verify(mockIndexManager).buildTableIndexIndices(indexDescription, viewSchema);
+		verify(mockIndexManager).setIndexVersion(idAndVersion, snapshotId);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
@@ -996,10 +948,8 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
-		String originalSchemaMD5Hex = "startMD5";
-		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
-		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(viewSchema);
-
+		when(mockIndexManager.resetTableIndex(any())).thenReturn(viewSchema);
+		doNothing().when(mockIndexManager).buildTableIndexIndices(any(), any());
 		viewCRC = 987L;
 		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema))
 				.thenReturn(viewCRC);

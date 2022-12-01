@@ -1556,7 +1556,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		ValidateArgument.required(input.hasNext(), "input is empty");
 		// The first row is the header
 		String[] headers = input.next();
-		String sql = SQLUtils.createInsertStatement(idAndVersion, headers);
+		String sql = SQLUtils.createInsertIntoTableIndex(idAndVersion, headers);
 
 		// push the data in batches
 		List<Object[]> batch = new LinkedList<>();

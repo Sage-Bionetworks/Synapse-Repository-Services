@@ -227,8 +227,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 
 	@Override
-	public void setIndexVersionAndSchemaMD5Hex(final IdAndVersion tableId, Long viewCRC, String schemaMD5Hex) {
-		tableIndexDao.setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);
+	public void setIndexVersion(final IdAndVersion tableId, Long indexVersion) {
+		tableIndexDao.setMaxCurrentCompleteVersionForTable(tableId, indexVersion);
 	}
 	
 	@Override
@@ -499,12 +499,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			determineCauseOfReplicationFailure(e, currentSchema, provider, scopeType.getTypeMask(), filter);
 		}
 		
-		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(viewId).build();
-				
-		if (tableIndexDao.isSearchEnabled(idAndVersion)) {			
-			updateSearchIndex(tableManagerSupport.getIndexDescription(idAndVersion));
-		}
-		
 		// calculate the new CRC32;
 		return tableIndexDao.calculateCRC32ofTableView(viewId);
 	}
@@ -676,33 +670,24 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				targetChangeNumber
 			);
 			
-			// Clear the table and restore the snapshot including the table indices
-			deleteTableIndex(idAndVersion);
-
-			IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+			TableIndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+			
+			// We now reset the table index with the schema of the snapshot
 			List<ColumnModel> snapshotSchema = tableManagerSupport.getTableSchema(snapshotId);
 			
-			// Setup the table with the schema of the snapshot
-			setIndexSchema(indexDescription, snapshotSchema);
-			
+			// Make sure the search flag is synched with the snapshot
 			boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(snapshotId);
-			// Makes sure to sync the search flag with the version from the snapshot
-			setSearchEnabled(idAndVersion, isSearchEnabled);
+			
+			resetTableIndex(indexDescription, snapshotSchema, isSearchEnabled);
 			
 			// Restore the table data from the snapshot
 			tableManagerSupport.restoreTableIndexFromS3(idAndVersion, snapshot.getBucket(), snapshot.getKey());
 			
-			// Optimize the table
-			optimizeTableIndices(idAndVersion);
-			
-			// Makes sure to populate the multi-value indices
-			populateListColumnIndexTables(idAndVersion, snapshotSchema);
-			
-			// Re-build the search index if needed
-			refreshSearchIndex(indexDescription);
+			// Now build the secondary indicies, using the restored snapshot schema
+			buildTableIndexIndices(indexDescription, snapshotSchema);
 						
 			// Now sync the change number that correspond to the snapshot
-			tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, snapshotChangeNumber);
+			setIndexVersion(idAndVersion, snapshotChangeNumber);
 			
 			log.info("Restoring table " + idAndVersion + " from snapshot " + snapshotId + "...DONE");
 		});
@@ -793,7 +778,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		alterListColumnIndexTableWithSchemaChange(idAndVersion, schemaChangeData.getChange().getDetails(), alterTemp);
 
 		// set the new max version for the index
-		tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, schemaChangeData.getChangeNumber());
+		setIndexVersion(idAndVersion, schemaChangeData.getChangeNumber());
 	}
 
 	private void alterListColumnIndexTableWithSchemaChange(IdAndVersion idAndVersion, List<ColumnChangeDetails> columnChangeDetails, boolean alterTemp) {
@@ -835,7 +820,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// Update the search status
 		setSearchEnabled(idAndVersion, change.isEnabled());
 		// set the new max version for the index
-		tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, loadChangeData.getChangeNumber());
+		setIndexVersion(idAndVersion, loadChangeData.getChangeNumber());
 	}
 	
 	@Override
@@ -995,9 +980,37 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		long newExpirationDateMs = System.currentTimeMillis() + SYNCHRONIZATION_FEQUENCY_MS;
 		tableIndexDao.setSynchronizationLockExpiredForObject(type, idAndVersion.getId(), newExpirationDateMs);
 	}
-	
+		
 	@Override
-	public void refreshSearchIndex(IndexDescription index) {
+	public List<ColumnModel> resetTableIndex(IndexDescription index) {
+		List<ColumnModel> schema = tableManagerSupport.getTableSchema(index.getIdAndVersion());
+		boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(index.getIdAndVersion());
+		return resetTableIndex(index, schema, isSearchEnabled);
+	}
+	
+	List<ColumnModel> resetTableIndex(IndexDescription index, List<ColumnModel> schema, boolean isSearchEnabled) {
+		// Clear the table index
+		deleteTableIndex(index.getIdAndVersion());
+		
+		// Set the schema
+		setIndexSchema(index, schema);
+
+		// Sync the search flag
+		setSearchEnabled(index.getIdAndVersion(), isSearchEnabled);
+		
+		return schema;
+	}
+
+	@Override
+	public void buildTableIndexIndices(IndexDescription index, List<ColumnModel> schema) {
+		// Optimize the table
+		optimizeTableIndices(index.getIdAndVersion());
+		
+		
+		// Makes sure to populate the multi-value indices
+		populateListColumnIndexTables(index.getIdAndVersion(), schema);
+		
+		// Re-build the search index if needed
 		if (tableIndexDao.isSearchEnabled(index.getIdAndVersion())) {
 			updateSearchIndex(index);
 		}
@@ -1118,15 +1131,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, SqlQuery definingSql) {
 		IndexDescription indexDescription = definingSql.getIndexDescription();
-		Long result = tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
+		
+		return tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
 			String insertSql = SQLTranslatorUtils.createMaterializedViewInsertSql(viewSchema, definingSql.getOutputSQL(), indexDescription);
 			tableIndexDao.update(insertSql, definingSql.getParameters());
 			return 1L;
 		});
-		if (tableIndexDao.isSearchEnabled(indexDescription.getIdAndVersion())) {
-			updateSearchIndex(indexDescription);
-		}
-		return result;
 	}
 	
 }
