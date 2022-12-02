@@ -354,23 +354,28 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// Alter the table
 		boolean wasSchemaChanged = alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 		
+		// Determine the current schema of the table
+		List<ColumnModel> currentSchema = getCurrentTableSchema(tableId);
+		
+		if(currentSchema.isEmpty()){
+			// there are no columns in the table so truncate all rows.
+			tableIndexDao.truncateTable(tableId);
+		}
+		
+		List<String> columnIds = currentSchema.stream().map(ColumnModel::getId).collect(Collectors.toList());
+
+		// Set the new schema MD5 unconditionally (See https://sagebionetworks.jira.com/browse/PLFM-7615)
+		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(columnIds);
+		
+		tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+		
 		if (wasSchemaChanged) {
-			// Determine the current schema of the table
-			List<ColumnModel> currentSchema = getCurrentTableSchema(tableId);
-			if(currentSchema.isEmpty()){
-				// there are no columns in the table so truncate all rows.
-				tableIndexDao.truncateTable(tableId);
-			}
-			// Set the new schema MD5
-			String schemaMD5Hex = TableModelUtils
-					.createSchemaMD5Hex(currentSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()));
-			tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
-			
+			// TODO move this out of here
 			if (tableIndexDao.isSearchEnabled(tableId) && isRequireSearchIndexUpdate(tableId, changes)) {
 				updateSearchIndex(indexDescription);
 			}
-			
 		}
+		
 		return wasSchemaChanged;
 	}	
 	
@@ -798,7 +803,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// Get the change set.
 		SparseChangeSet sparseChangeSet = rowChange.getChange();
 		// match the schema to the change set.
-		setIndexSchema(new TableIndexDescription(idAndVersion), sparseChangeSet.getSchema());
+		List<ColumnChangeDetails> changes = setIndexSchema(new TableIndexDescription(idAndVersion), sparseChangeSet.getSchema());
 		// attempt to apply this change set to the table.
 		applyChangeSetToIndex(idAndVersion, sparseChangeSet, rowChange.getChangeNumber());
 	}

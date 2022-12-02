@@ -647,15 +647,15 @@ public class TableIndexManagerImplTest {
 		List<ColumnChangeDetails> changes = new LinkedList<ColumnChangeDetails>();
 		boolean alterTemp = false;
 		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(false);
-		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Collections.emptyList());
 		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		// call under test
 		managerSpy.updateTableSchema(new ViewIndexDescription(tableId, TableType.entityview), changes);
 		verify(managerSpy).createTableIfDoesNotExist(new ViewIndexDescription(tableId, TableType.entityview));
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
-		verify(mockIndexDao).getDatabaseInfo(tableId);
-		verify(mockIndexDao, never()).truncateTable(tableId);
-		verify(mockIndexDao, never()).setCurrentSchemaMD5Hex(any(IdAndVersion.class), anyString());
+		verify(mockIndexDao, times(2)).getDatabaseInfo(tableId);
+		verify(mockIndexDao).truncateTable(tableId);
+		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, TableModelUtils.createSchemaMD5Hex(Collections.emptyList()));
 		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
 	}
 	
