@@ -611,7 +611,6 @@ public class TableIndexManagerImplTest {
 
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Arrays.asList(existingColumnId, newColumn.getId()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
-		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
 	}
 
 	@Test
@@ -639,7 +638,6 @@ public class TableIndexManagerImplTest {
 
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(new LinkedList<>());
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
-		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
 	}
 
 	@Test
@@ -656,86 +654,6 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, times(2)).getDatabaseInfo(tableId);
 		verify(mockIndexDao).truncateTable(tableId);
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, TableModelUtils.createSchemaMD5Hex(Collections.emptyList()));
-		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
-	}
-	
-	@Test
-	public void testUpdateTableSchemaWithSearchEnabledAndNoReindex() {
-		boolean alterTemp = false;
-		when(mockIndexDao.alterTableAsNeeded(tableId, columnChanges, alterTemp)).thenReturn(true);
-		String existingColumnId = "11";
-		DatabaseColumnInfo existingColumn = new DatabaseColumnInfo();
-		existingColumn.setColumnName("_C" + existingColumnId + "_");
-		existingColumn.setColumnType(ColumnType.BOOLEAN);
-
-		DatabaseColumnInfo createdColumn = new DatabaseColumnInfo();
-		createdColumn.setColumnName("_C12_");
-		createdColumn.setColumnType(ColumnType.STRING);
-		when(mockIndexDao.getDatabaseInfo(tableId))
-				// first time called we only have 1 existing column
-				.thenReturn(Collections.singletonList(existingColumn))
-				// on the second time, our new column has been added
-				.thenReturn(Arrays.asList(existingColumn, createdColumn));
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
-		// Simulate a table with search enabled
-		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
-		
-		// call under test
-		managerSpy.updateTableSchema(new TableIndexDescription(tableId), columnChanges);
-		
-		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
-		// The new schema is not empty so do not truncate.
-		verify(mockIndexDao, never()).truncateTable(tableId);
-		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
-
-		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Arrays.asList(existingColumnId, newColumn.getId()));
-		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
-		verify(mockIndexDao).isSearchEnabled(tableId);
-		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
-	}
-	
-	@Test
-	public void testUpdateTableSchemaWithSearchEnabledAndReindex() {
-		ColumnModel oldColumn = new ColumnModel().setId("11").setColumnType(ColumnType.INTEGER);
-		ColumnModel newColumn = new ColumnModel().setId("11").setColumnType(ColumnType.STRING);
-		
-		columnChanges = Arrays.asList(new ColumnChangeDetails(oldColumn, newColumn));
-		
-		boolean alterTemp = false;
-		when(mockIndexDao.alterTableAsNeeded(tableId, columnChanges, alterTemp)).thenReturn(true);
-		DatabaseColumnInfo existingColumn = new DatabaseColumnInfo();
-		existingColumn.setColumnName("_C11_");
-		existingColumn.setColumnType(ColumnType.INTEGER);
-
-		DatabaseColumnInfo updatedColumn = new DatabaseColumnInfo();
-		updatedColumn.setColumnName("_C11_");
-		updatedColumn.setColumnType(ColumnType.STRING);
-		
-		when(mockIndexDao.getDatabaseInfo(tableId))
-				// first time called we only have 1 existing column
-				.thenReturn(Collections.singletonList(existingColumn))
-				// on the second time, our column has been updated
-				.thenReturn(Arrays.asList(updatedColumn));
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
-		doNothing().when(managerSpy).updateSearchIndex(any());
-		// Simulate a table with search enabled
-		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
-		
-		IndexDescription indexDescription = new TableIndexDescription(tableId);
-		
-		// call under test
-		managerSpy.updateTableSchema(indexDescription, columnChanges);
-		
-		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
-		
-		// The new schema is not empty so do not truncate.
-		verify(mockIndexDao, never()).truncateTable(tableId);
-		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
-
-		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Arrays.asList("11"));
-		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
-		verify(mockIndexDao).isSearchEnabled(tableId);
-		verify(managerSpy).updateSearchIndex(indexDescription);
 	}
 
 	@Test
@@ -1192,33 +1110,40 @@ public class TableIndexManagerImplTest {
 
 	@Test
 	public void testApplyRowChangeToIndex() {
-		setupExecuteInWriteTransaction();
-		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
-
 		long changeNumber = 333l;
 		ChangeData<SparseChangeSet> change = new ChangeData<SparseChangeSet>(changeNumber, sparseChangeSet);
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
+		doReturn(columnChanges).when(managerSpy).setIndexSchema(any(), any());
+		doNothing().when(managerSpy).updateSearchIndexFromSchemaChange(any(), any());
+		doNothing().when(managerSpy).applyChangeSetToIndex(any(), any(), anyLong());
 		
 		// call under test
 		managerSpy.applyRowChangeToIndex(tableId, change);
 
-		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
-		// apply change
-		verify(mockIndexDao, times(2)).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
+		TableIndexDescription index = new TableIndexDescription(tableId);
+		
+		verify(managerSpy).setIndexSchema(index, sparseChangeSet.getSchema());
+		verify(managerSpy).updateSearchIndexFromSchemaChange(index, columnChanges);
+		verify(managerSpy).applyChangeSetToIndex(tableId, sparseChangeSet, changeNumber);
 	}
 
 	@Test
 	public void testApplySchemaChangeToIndex() {
+		TableIndexDescription index = new TableIndexDescription(tableId);
 		long changeNumber = 333l;
 		SchemaChange schemaChange = new SchemaChange(columnChanges);
 		ChangeData<SchemaChange> change = new ChangeData<SchemaChange>(changeNumber, schemaChange);
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
+		doReturn(true).when(managerSpy).updateTableSchema(any(), any());
+		doNothing().when(managerSpy).updateSearchIndexFromSchemaChange(any(), any());
+		doNothing().when(managerSpy).alterListColumnIndexTableWithSchemaChange(any(), any(), anyBoolean());
+		doNothing().when(managerSpy).setIndexVersion(tableId, changeNumber);
+		
 		// Call under test
 		managerSpy.applySchemaChangeToIndex(tableId, change);
-
-		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
-		boolean alterTemp = false;
-		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
+		
+		verify(managerSpy).updateTableSchema(index, columnChanges);
+		verify(managerSpy).updateSearchIndexFromSchemaChange(index, columnChanges);
+		verify(managerSpy).alterListColumnIndexTableWithSchemaChange(tableId, columnChanges, false);
+		verify(managerSpy).setIndexVersion(tableId, changeNumber);
 	}
 
 	@Test
@@ -3124,6 +3049,56 @@ public class TableIndexManagerImplTest {
 		verify(managerSpy).populateListColumnIndexTables(tableId, schema);
 		verify(mockIndexDao).isSearchEnabled(tableId);
 		verify(managerSpy, never()).updateSearchIndex(any());
+	}
+	
+	@Test
+	public void testUpdateSearchIndexFromSchemaChange() {
+		TableIndexDescription index = new TableIndexDescription(tableId);
+		
+		columnChanges = Arrays.asList(
+			new ColumnChangeDetails(new ColumnModel().setId("1").setColumnType(ColumnType.STRING), null)
+		);
+		
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
+		doNothing().when(managerSpy).updateSearchIndex(any());
+		
+		// Call under test
+		managerSpy.updateSearchIndexFromSchemaChange(index, columnChanges);
+		
+		verify(mockIndexDao).isSearchEnabled(tableId);
+		verify(managerSpy).updateSearchIndex(index);
+		
+	}
+	
+	@Test
+	public void testUpdateSearchIndexFromSchemaChangeWithNoEligibleChange() {
+		TableIndexDescription index = new TableIndexDescription(tableId);
+
+		columnChanges = Arrays.asList(
+			// Adding a new column does not required re-indexing as there is no data yet
+			new ColumnChangeDetails(null, new ColumnModel().setId("1").setColumnType(ColumnType.STRING))
+		);
+		
+		// Call under test
+		managerSpy.updateSearchIndexFromSchemaChange(index, columnChanges);
+		
+		verify(mockIndexDao, never()).isSearchEnabled(tableId);
+		verify(managerSpy, never()).updateSearchIndex(index);
+		
+	}
+	
+	@Test
+	public void testUpdateSearchIndexFromSchemaChangeWithNoChanges() {
+		TableIndexDescription index = new TableIndexDescription(tableId);
+		
+		columnChanges = Collections.emptyList();
+		
+		// Call under test
+		managerSpy.updateSearchIndexFromSchemaChange(index, columnChanges);
+		
+		verify(mockIndexDao, never()).isSearchEnabled(tableId);
+		verify(managerSpy, never()).updateSearchIndex(index);
+		
 	}
 		
 	@SuppressWarnings("unchecked")

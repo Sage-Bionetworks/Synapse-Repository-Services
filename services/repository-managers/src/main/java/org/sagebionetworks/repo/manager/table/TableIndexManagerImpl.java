@@ -368,14 +368,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(columnIds);
 		
 		tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
-		
-		if (wasSchemaChanged) {
-			// TODO move this out of here
-			if (tableIndexDao.isSearchEnabled(tableId) && isRequireSearchIndexUpdate(tableId, changes)) {
-				updateSearchIndex(indexDescription);
-			}
-		}
-		
+				
 		return wasSchemaChanged;
 	}	
 	
@@ -777,16 +770,21 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param schemaChangeData
 	 */
 	void applySchemaChangeToIndex(IdAndVersion idAndVersion, ChangeData<SchemaChange> schemaChangeData) {
-		updateTableSchema(new TableIndexDescription(idAndVersion), schemaChangeData.getChange().getDetails());
+		TableIndexDescription index = new TableIndexDescription(idAndVersion);
+		List<ColumnChangeDetails> changes = schemaChangeData.getChange().getDetails();
+		
+		updateTableSchema(index, changes);
+		
+		updateSearchIndexFromSchemaChange(index, changes);
 
 		boolean alterTemp = false;
-		alterListColumnIndexTableWithSchemaChange(idAndVersion, schemaChangeData.getChange().getDetails(), alterTemp);
+		alterListColumnIndexTableWithSchemaChange(idAndVersion, changes, alterTemp);
 
 		// set the new max version for the index
 		setIndexVersion(idAndVersion, schemaChangeData.getChangeNumber());
 	}
 
-	private void alterListColumnIndexTableWithSchemaChange(IdAndVersion idAndVersion, List<ColumnChangeDetails> columnChangeDetails, boolean alterTemp) {
+	void alterListColumnIndexTableWithSchemaChange(IdAndVersion idAndVersion, List<ColumnChangeDetails> columnChangeDetails, boolean alterTemp) {
 		//apply changes to multi-value column indexes
 		Set<Long> existingListColumnIndexTableNames = tableIndexDao.getMultivalueColumnIndexTableColumnIds(idAndVersion);
 		List<ListColumnIndexTableChange> listColumnIndexTableChanges = listColumnIndexTableChangesFromChangeDetails(columnChangeDetails, existingListColumnIndexTableNames);
@@ -800,10 +798,14 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param rowChange
 	 */
 	void applyRowChangeToIndex(IdAndVersion idAndVersion, ChangeData<SparseChangeSet> rowChange) {
+		TableIndexDescription index = new TableIndexDescription(idAndVersion);
 		// Get the change set.
 		SparseChangeSet sparseChangeSet = rowChange.getChange();
 		// match the schema to the change set.
-		List<ColumnChangeDetails> changes = setIndexSchema(new TableIndexDescription(idAndVersion), sparseChangeSet.getSchema());
+		List<ColumnChangeDetails> changes = setIndexSchema(index, sparseChangeSet.getSchema());
+		
+		updateSearchIndexFromSchemaChange(index, changes);
+		
 		// attempt to apply this change set to the table.
 		applyChangeSetToIndex(idAndVersion, sparseChangeSet, rowChange.getChangeNumber());
 	}
@@ -826,6 +828,19 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		setSearchEnabled(idAndVersion, change.isEnabled());
 		// set the new max version for the index
 		setIndexVersion(idAndVersion, loadChangeData.getChangeNumber());
+	}
+	
+	void updateSearchIndexFromSchemaChange(TableIndexDescription index, List<ColumnChangeDetails> changes) {
+				
+		if (!isRequireSearchIndexUpdate(index.getIdAndVersion(), changes)) {
+			return;
+		}
+		
+		if (!tableIndexDao.isSearchEnabled(index.getIdAndVersion())) {
+			return;
+		}
+		
+		updateSearchIndex(index);
 	}
 	
 	@Override
