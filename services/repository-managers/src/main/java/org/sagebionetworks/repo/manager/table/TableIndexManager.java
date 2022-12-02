@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
-import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -303,7 +303,7 @@ public interface TableIndexManager {
 	 * @param definingSql
 	 * @return
 	 */
-	Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, SqlQuery definingSql);
+	Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, QueryTranslator definingSql);
 
 	/**
 	 * If the table has FTS enabled re-builds the search index

@@ -8,8 +8,7 @@ import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
@@ -26,7 +25,7 @@ public class FacetTransformerRange implements FacetTransformer {
 	private String selectedMin;
 	private String selectedMax;
 	
-	private SqlQuery generatedFacetSqlQuery;
+	private QueryTranslator generatedFacetSqlQuery;
 	
 	public FacetTransformerRange(String columnName, List<FacetRequestColumnModel> facets, TableExpression originalQuery, TranslationDependencies dependencies, String selectedMin, String selectedMax){
 		ValidateArgument.required(columnName, "columnName");
@@ -45,7 +44,7 @@ public class FacetTransformerRange implements FacetTransformer {
 	}
 	
 	@Override
-	public SqlQuery getFacetSqlQuery(){
+	public QueryTranslator getFacetSqlQuery(){
 		return this.generatedFacetSqlQuery;
 	}
 	
@@ -53,7 +52,7 @@ public class FacetTransformerRange implements FacetTransformer {
 	 * Creates a new SQL query for finding the minimum and maximum values of a faceted column
 	 * @return the generated SQL query represented by SqlQuery
 	 */
-	private SqlQuery generateFacetSqlQuery(TableExpression originalQuery, TranslationDependencies dependencies) {
+	private QueryTranslator generateFacetSqlQuery(TableExpression originalQuery, TranslationDependencies dependencies) {
 		
 		StringBuilder builder = new StringBuilder("SELECT MIN(");
 		builder.append("\"");
@@ -72,7 +71,7 @@ public class FacetTransformerRange implements FacetTransformer {
 		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
 		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, originalQuery.getWhereClause());
 		
-		return new SqlQueryBuilder(builder.toString(), dependencies).build();
+		return QueryTranslator.builder(builder.toString(), dependencies).build();
 	}
 	
 	@Override

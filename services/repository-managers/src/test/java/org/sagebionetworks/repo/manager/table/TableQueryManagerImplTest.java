@@ -51,8 +51,8 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
+import org.sagebionetworks.repo.manager.table.query.QueryContext;
 import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
-import org.sagebionetworks.repo.manager.table.query.QueryExpansion;
 import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -94,11 +94,9 @@ import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.SchemaProvider;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
@@ -161,7 +159,7 @@ public class TableQueryManagerImplTest {
 	private HashSet<Long> benfactors;
 	private HashSet<Long> subSet;
 	
-	private QueryExpansion.Builder queriesBuilder;
+	private QueryContext.Builder queriesBuilder;
 	
 	@BeforeEach
 	public void before() throws Exception {
@@ -225,7 +223,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunQuery(true);
 		sumFilesizes = 9876L;
 		
-		queriesBuilder = QueryExpansion.builder()
+		queriesBuilder = QueryContext.builder()
 				.setSchemaProvider(schemaProvider)
 				.setIndexDescription(new TableIndexDescription(idAndVersion))
 				.setUserId(user.getId())
@@ -234,7 +232,7 @@ public class TableQueryManagerImplTest {
 	}
 
 	void setupQueryCallback() {
-		when(mockTableIndexDAO.queryAsStream(any(ProgressCallback.class),any(SqlQuery.class), any(RowHandler.class))).thenAnswer(new Answer<Boolean>() {
+		when(mockTableIndexDAO.queryAsStream(any(ProgressCallback.class),any(QueryTranslator.class), any(RowHandler.class))).thenAnswer(new Answer<Boolean>() {
 			@Override
 			public Boolean answer(InvocationOnMock invocation) throws Throwable {
 				RowHandler handler =  (RowHandler) invocation.getArguments()[2];
@@ -561,7 +559,7 @@ public class TableQueryManagerImplTest {
 		// a benefactor check must occur for FileViews
 		verify(mockTableManagerSupport).getAccessibleBenefactors(any(), any(), any());
 		// validate the benefactor filter is applied
-		assertEquals("SELECT COUNT(*) FROM T123 WHERE ROW_BENEFACTOR IN ( :b0, -:b1 )", results.getMainQuery().getSqlQuery().getOutputSQL());
+		assertEquals("SELECT COUNT(*) FROM T123 WHERE ROW_BENEFACTOR IN ( :b0, -:b1 )", results.getMainQuery().getTranslator().getOutputSQL());
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, benfactors);
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR);
 	}
@@ -736,7 +734,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListReturnFacets() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		
-		when(mockTableIndexDAO.query(isNull(), any(SqlQuery.class))).thenReturn(enumerationFacetResults, rangeFacetResults, enumerationFacetResults);
+		when(mockTableIndexDAO.query(isNull(), any(QueryTranslator.class))).thenReturn(enumerationFacetResults, rangeFacetResults, enumerationFacetResults);
 		List<FacetColumnRequest> facetRequestList = new ArrayList<>();
 		facetRequestList.add(facetColumnRequest);
 		expectedRangeResult.setSelectedMin(facetColumnRequest.getMin());
@@ -793,7 +791,7 @@ public class TableQueryManagerImplTest {
 		setupQueryCallback();
 		
 		SinglePageRowHandler rowHandler = new SinglePageRowHandler();
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider, user.getId()).indexDescription(new TableIndexDescription(idAndVersion)).build();
+		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider, user.getId()).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		// call under test
 		RowSet rowSet = manager.runQueryAsStream(mockProgressCallbackVoid, query, rowHandler, mockTableIndexDAO);
 		assertNotNull(rowSet);
@@ -1011,7 +1009,7 @@ public class TableQueryManagerImplTest {
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		
-		when(mockTableIndexDAO.query(isNull(), any(SqlQuery.class))).thenReturn(enumerationFacetResults, rangeFacetResults, enumerationFacetResults);
+		when(mockTableIndexDAO.query(isNull(), any(QueryTranslator.class))).thenReturn(enumerationFacetResults, rangeFacetResults, enumerationFacetResults);
 		
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
@@ -1108,8 +1106,10 @@ public class TableQueryManagerImplTest {
 		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 		assertNotNull(result);
 		assertEquals(
-				"SELECT \"i0\", \"i1\", \"i2\", \"i3\", \"i4\", \"i5\", \"i6\", \"i7\", \"i8\", \"i9\", \"i10\", \"i11\", \"i12\", \"i13\", \"i14\", \"i15\", \"i16\", \"i17\" FROM syn123",
-				result.getMainQuery().getSqlQuery().getModel().toSql());
+				"SELECT _C0_, CASE WHEN _DBL_C1_ IS NULL THEN _C1_ ELSE _DBL_C1_ END, "
+				+ "_C2_, _C3_, _C4_, _C5_, _C6_, _C7_, _C8_, _C9_, _C10_, _C11_,"
+				+ " _C12_, _C13_, _C14_, _C15_, _C16_, _C17_, ROW_ID, ROW_VERSION FROM T123",
+				result.getMainQuery().getTranslator().getOutputSQL());
 	}
 	
 	@Test
@@ -1130,7 +1130,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 		assertNotNull(result);
-		assertEquals("SELECT i2, i0 FROM syn123 ORDER BY \"i0\" DESC", result.getMainQuery().getSqlQuery().getModel().toSql());
+		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 ORDER BY _C0_ DESC", result.getMainQuery().getTranslator().getOutputSQL());
 	}
 
 	@Test
@@ -1154,7 +1154,8 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 		assertNotNull(result);
-		assertEquals("SELECT i2, i0 FROM syn123 WHERE ( \"i0\" LIKE 'foo%' )", result.getMainQuery().getSqlQuery().getModel().toSql());
+		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( _C0_ LIKE :b0 )", result.getMainQuery().getTranslator().getOutputSQL());		
+		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b0"));
 	}
 	
 	@Test
@@ -1178,20 +1179,23 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 		assertNotNull(result);
-		assertEquals("SELECT i2, i0 FROM syn123 WHERE ( \"i12\" HAS_LIKE ( 'foo%', 'bar' ) )",
-				result.getMainQuery().getSqlQuery().getModel().toSql());
+		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ROW_ID IN ("
+				+ " SELECT ROW_ID_REF_C12_ FROM T123_INDEX_C12_ WHERE _C12__UNNEST LIKE :b0 OR _C12__UNNEST LIKE :b1 ) )",
+				result.getMainQuery().getTranslator().getOutputSQL());
+		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b0"));
+		assertEquals("bar", result.getMainQuery().getTranslator().getParameters().get("b1"));
 	}
 	
 	@Test
 	public void testQueryPreflight_AdditionalQueryFiltersWithHas() throws Exception {
 
-		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long) models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 
 		Query query = new Query();
-		query.setSql("select i2, i0 from "+tableId);
+		query.setSql("select i2, i0 from " + tableId);
 
 		ColumnMultiValueFunctionQueryFilter likeFilter = new ColumnMultiValueFunctionQueryFilter();
 		likeFilter.setColumnName("i12");
@@ -1204,8 +1208,13 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 		assertNotNull(result);
-		assertEquals("SELECT i2, i0 FROM syn123 WHERE ( \"i12\" HAS ( 'foo%', 'bar' ) )", result.getMainQuery().getSqlQuery().getModel().toSql());
+		assertEquals(
+				"SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ROW_ID IN ( "
+				+ "SELECT ROW_ID_REF_C12_ FROM T123_INDEX_C12_ WHERE _C12__UNNEST IN ( :b0, :b1 ) ) )",
+				result.getMainQuery().getTranslator().getOutputSQL());
 		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
+		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b0"));
+		assertEquals("bar", result.getMainQuery().getTranslator().getParameters().get("b1"));
 	}
 	
 	@Test
@@ -2085,8 +2094,8 @@ public class TableQueryManagerImplTest {
 		FacetQueries mockFacetModel = Mockito.mock(FacetQueries.class);
 		FacetTransformer mockTransformer1 = Mockito.mock(FacetTransformerValueCounts.class);
 		FacetTransformer mockTransformer2 = Mockito.mock(FacetTransformerRange.class);
-		SqlQuery mockSql1 = Mockito.mock(SqlQuery.class);
-		SqlQuery mockSql2 = Mockito.mock(SqlQuery.class);
+		QueryTranslator mockSql1 = Mockito.mock(QueryTranslator.class);
+		QueryTranslator mockSql2 = Mockito.mock(QueryTranslator.class);
 		RowSet rs1 = new RowSet();
 		RowSet rs2 = new RowSet();
 		FacetColumnResultValues result1 = new FacetColumnResultValues();

@@ -1,15 +1,14 @@
 package org.sagebionetworks.repo.manager.table.query;
 
 import org.sagebionetworks.table.cluster.CombinedQuery;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class MainQuery {
 
-	private final SqlQuery sqlQuery;
+	private final QueryTranslator sqlQuery;
 	
-	public MainQuery(QueryExpansion expansion) {
+	public MainQuery(QueryContext expansion) {
 
 		ValidateArgument.required(expansion, "expansion");
 
@@ -18,13 +17,13 @@ public class MainQuery {
 				.setOverrideLimit(expansion.getLimit()).setSelectedFacets(expansion.getSelectedFacets())
 				.setSortList(expansion.getSort()).setAdditionalFilters(expansion.getAdditionalFilters()).build();
 
-		sqlQuery = new SqlQueryBuilder(combined.getCombinedSql(), expansion.getUserId())
+		sqlQuery = QueryTranslator.builder(combined.getCombinedSql(), expansion.getUserId())
 				.schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription())
 				.maxBytesPerPage(expansion.getMaxBytesPerPage()).includeEntityEtag(expansion.getIncludeEntityEtag())
 				.build();
 	}
 
-	public SqlQuery getSqlQuery() {
+	public QueryTranslator getTranslator() {
 		return sqlQuery;
 	}
 

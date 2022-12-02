@@ -25,7 +25,7 @@ import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 
 @ExtendWith(MockitoExtension.class)
-public class QueryExpansionTest {
+public class QueryContextTest {
 
 	@Mock
 	private SchemaProvider mockSchemaProvider;
@@ -36,7 +36,7 @@ public class QueryExpansionTest {
 	private Long userId;
 	private Long maxBytesPerPage;
 	private Long maxRowsPerCall;
-	private QueryExpansion.Builder builder;
+	private QueryContext.Builder builder;
 	private String startingSql;
 	private List<QueryFilter> additionalFilters;
 	private List<FacetColumnRequest> selectedFacets;
@@ -66,7 +66,7 @@ public class QueryExpansionTest {
 		
 		sort = List.of(new SortItem().setColumn("three").setDirection(SortDirection.DESC));
 
-		builder = QueryExpansion.builder().setIndexDescription(mockIndexDescription)
+		builder = QueryContext.builder().setIndexDescription(mockIndexDescription)
 				.setSchemaProvider(mockSchemaProvider).setUserId(userId).setMaxBytesPerPage(maxBytesPerPage)
 				.setStartingSql(startingSql).setMaxRowsPerCall(maxRowsPerCall).setAdditionalFilters(additionalFilters)
 				.setSelectedFacets(selectedFacets).setIncludeEntityEtag(includeEntityEtag).setLimit(limit)
@@ -77,7 +77,7 @@ public class QueryExpansionTest {
 	public void testBuildWithAllParts() {
 
 		// call under test
-		QueryExpansion expansion = builder.build();
+		QueryContext expansion = builder.build();
 
 		assertNotNull(expansion.getSchemaProvider());
 		assertTrue(expansion.getSchemaProvider() instanceof CachingSchemaProvider);

@@ -36,7 +36,7 @@ public class MainQueryTest {
 	private IdAndVersion tableId;
 	private Long userId;
 	private Long maxBytesPerPage;
-	private QueryExpansion.Builder builder;
+	private QueryContext.Builder builder;
 	private String startingSql;
 
 	@BeforeEach
@@ -60,7 +60,7 @@ public class MainQueryTest {
 		// The starting sql will have an authorization filter applied.
 		startingSql = "select * from " + tableId + " where ROW_BENEFACTOR IN (11,22)";
 
-		builder = QueryExpansion.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
+		builder = QueryContext.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
 				.setUserId(userId).setMaxBytesPerPage(maxBytesPerPage).setStartingSql(startingSql)
 				.setMaxRowsPerCall(100L);
 	}
@@ -79,7 +79,7 @@ public class MainQueryTest {
 		// call under test
 		MainQuery main = new MainQuery(builder.build());
 		assertNotNull(main);
-		assertNotNull(main.getSqlQuery());
+		assertNotNull(main.getTranslator());
 		assertEquals("SELECT _C1_, _C2_, _C3_, ROW_ID, ROW_VERSION FROM T123_4 WHERE"
 				// original authorization filter
 				+ " ( ( ROW_BENEFACTOR IN ( :b0, :b1 ) )"
@@ -90,7 +90,7 @@ public class MainQueryTest {
 				// additional sort
 				+ " ORDER BY _C3_ DESC"
 				// override pagination
-				+ " LIMIT :b5 OFFSET :b6", main.getSqlQuery().getOutputSQL());
+				+ " LIMIT :b5 OFFSET :b6", main.getTranslator().getOutputSQL());
 		Map<String, Object> expectedParmeters = new HashMap<>();
 		expectedParmeters.put("b0", 11L);
 		expectedParmeters.put("b1", 22L);
@@ -99,7 +99,7 @@ public class MainQueryTest {
 		expectedParmeters.put("b4", "cat");
 		expectedParmeters.put("b5", 12L);
 		expectedParmeters.put("b6", 3L);
-		assertEquals(expectedParmeters, main.getSqlQuery().getParameters());
+		assertEquals(expectedParmeters, main.getTranslator().getParameters());
 	}
 
 	@Test
@@ -108,16 +108,16 @@ public class MainQueryTest {
 		// call under test
 		MainQuery main = new MainQuery(builder.build());
 		assertNotNull(main);
-		assertNotNull(main.getSqlQuery());
+		assertNotNull(main.getTranslator());
 		assertEquals("SELECT _C1_, _C2_, _C3_, ROW_ID, ROW_VERSION FROM T123_4 WHERE"
-				+ " ROW_BENEFACTOR IN ( :b0, :b1 )" + " LIMIT :b2 OFFSET :b3", main.getSqlQuery().getOutputSQL());
+				+ " ROW_BENEFACTOR IN ( :b0, :b1 )" + " LIMIT :b2 OFFSET :b3", main.getTranslator().getOutputSQL());
 		Map<String, Object> expectedParmeters = new HashMap<>();
 		expectedParmeters.put("b0", 11L);
 		expectedParmeters.put("b1", 22L);
 		// with so few bytes per row only a single row can be selected.
 		expectedParmeters.put("b2", 1L);
 		expectedParmeters.put("b3", 0L);
-		assertEquals(expectedParmeters, main.getSqlQuery().getParameters());
+		assertEquals(expectedParmeters, main.getTranslator().getParameters());
 	}
 
 	@Test
@@ -128,14 +128,14 @@ public class MainQueryTest {
 		// call under test
 		MainQuery main = new MainQuery(builder.build());
 		assertNotNull(main);
-		assertNotNull(main.getSqlQuery());
+		assertNotNull(main.getTranslator());
 		assertEquals("SELECT _C2_, ROW_ID, ROW_VERSION FROM T123_4 WHERE _C2_ = :b0 LIMIT :b1 OFFSET :b2",
-				main.getSqlQuery().getOutputSQL());
+				main.getTranslator().getOutputSQL());
 		Map<String, Object> expectedParmeters = new HashMap<>();
 		expectedParmeters.put("b0", userId);
 		expectedParmeters.put("b1", 5000000L);
 		expectedParmeters.put("b2", 0L);
-		assertEquals(expectedParmeters, main.getSqlQuery().getParameters());
+		assertEquals(expectedParmeters, main.getTranslator().getParameters());
 	}
 	
 	@Test
@@ -147,13 +147,13 @@ public class MainQueryTest {
 		// call under test
 		MainQuery main = new MainQuery(builder.build());
 		assertNotNull(main);
-		assertNotNull(main.getSqlQuery());
+		assertNotNull(main.getTranslator());
 		assertEquals("SELECT _C2_, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123_4 LIMIT :b0 OFFSET :b1",
-				main.getSqlQuery().getOutputSQL());
+				main.getTranslator().getOutputSQL());
 		Map<String, Object> expectedParmeters = new HashMap<>();
 		expectedParmeters.put("b0", 5000000L);
 		expectedParmeters.put("b1", 0L);
-		assertEquals(expectedParmeters, main.getSqlQuery().getParameters());
+		assertEquals(expectedParmeters, main.getTranslator().getParameters());
 	}
 
 	@Test

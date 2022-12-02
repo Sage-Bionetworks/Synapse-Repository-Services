@@ -16,7 +16,7 @@ public class QueryTranslations {
 	private final CountQuery countQuery;
 	private final SumFileSizesQuery sumFileSizesQuery;
 
-	public QueryTranslations(QueryExpansion expansion, QueryOptions options) {
+	public QueryTranslations(QueryContext expansion, QueryOptions options) {
 		ValidateArgument.required(expansion, "expansion");
 		ValidateArgument.required(options, "options");
 		

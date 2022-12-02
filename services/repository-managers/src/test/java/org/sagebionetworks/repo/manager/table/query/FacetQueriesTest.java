@@ -33,7 +33,7 @@ public class FacetQueriesTest {
 	private IndexDescription indexDescription;
 	private IdAndVersion tableId;
 	private Long userId;
-	private QueryExpansion.Builder builder;
+	private QueryContext.Builder builder;
 	private String startingSql;
 
 	@BeforeEach
@@ -56,7 +56,7 @@ public class FacetQueriesTest {
 		// The starting sql will have an authorization filter applied.
 		startingSql = "select * from " + tableId + " where ROW_BENEFACTOR IN (11,22)";
 
-		builder = QueryExpansion.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
+		builder = QueryContext.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
 				.setUserId(userId).setStartingSql(startingSql).setMaxRowsPerCall(100L);
 	}
 

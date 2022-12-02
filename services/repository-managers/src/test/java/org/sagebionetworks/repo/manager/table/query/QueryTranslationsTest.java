@@ -31,7 +31,7 @@ public class QueryTranslationsTest {
 	private Long maxBytesPerPage;
 	private Long maxRowsPerCall;
 	private QueryOptions options;
-	private QueryExpansion.Builder builder;
+	private QueryContext.Builder builder;
 
 	private String startingSql;
 
@@ -59,7 +59,7 @@ public class QueryTranslationsTest {
 
 		startingSql = "select * from " + tableId;
 
-		builder = QueryExpansion.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
+		builder = QueryContext.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
 				.setUserId(userId).setMaxBytesPerPage(maxBytesPerPage).setStartingSql(startingSql)
 				.setMaxRowsPerCall(maxRowsPerCall);
 	}

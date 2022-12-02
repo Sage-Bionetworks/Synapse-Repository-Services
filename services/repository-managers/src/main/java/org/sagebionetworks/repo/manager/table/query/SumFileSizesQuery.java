@@ -4,8 +4,7 @@ import java.util.Optional;
 
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.table.cluster.CombinedQuery;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -17,7 +16,7 @@ public class SumFileSizesQuery {
 
 	private final BasicQuery rowIdAndVersionQuery;
 	
-	public SumFileSizesQuery(QueryExpansion expansion) {
+	public SumFileSizesQuery(QueryContext expansion) {
 		ValidateArgument.required(expansion, "expansion");
 
 		if (TableType.entityview.equals(expansion.getIndexDescription().getTableType())
@@ -27,7 +26,7 @@ public class SumFileSizesQuery {
 						.setAdditionalFilters(expansion.getAdditionalFilters()).setSelectedFacets(expansion.getSelectedFacets())
 						.setSchemaProvider(expansion.getSchemaProvider()).build();
 				QuerySpecification model = new TableQueryParser(combined.getCombinedSql()).querySpecification();
-				SqlQuery sqlQuery = new SqlQueryBuilder(model.toSql(), expansion.getUserId()).schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription()).build();
+				QueryTranslator sqlQuery = QueryTranslator.builder(model.toSql(), expansion.getUserId()).schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription()).build();
 				// first get the rowId and rowVersions for the given query up to the limit + 1.
 				rowIdAndVersionQuery = SqlElementUtils.buildSqlSelectRowIdAndVersions(sqlQuery.getTransformedModel(),expansion.getMaxRowsPerCall() + 1L)
 						.map((sql)->{

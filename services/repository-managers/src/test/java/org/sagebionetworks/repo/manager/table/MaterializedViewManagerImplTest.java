@@ -39,7 +39,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
@@ -647,7 +647,7 @@ public class MaterializedViewManagerImplTest {
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
-		doNothing().when(managerSpy).bindSchemaToView(any(), any(SqlQuery.class));
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryTranslator.class));
 		
 		IdAndVersion dependentIdAndVersion = IdAndVersion.parse("syn456");
 		
@@ -655,7 +655,7 @@ public class MaterializedViewManagerImplTest {
 		managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, idAndVersion);
 		
 		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
-		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(SqlQuery.class));
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryTranslator.class));
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersion);
 		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), any(), eq( dependentIdAndVersion));
 		verify(managerSpy).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(eq(idAndVersion), any());
@@ -705,7 +705,7 @@ public class MaterializedViewManagerImplTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
-		doNothing().when(managerSpy).bindSchemaToView(any(), any(SqlQuery.class));
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryTranslator.class));
 
 		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn456"),
 				IdAndVersion.parse("syn789") };
@@ -715,7 +715,7 @@ public class MaterializedViewManagerImplTest {
 
 		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
-		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(SqlQuery.class));
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryTranslator.class));
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[0]);
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[1]);
 		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), any(),
@@ -734,7 +734,7 @@ public class MaterializedViewManagerImplTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE),
 				new TableStatus().setState(TableState.PROCESSING));
-		doNothing().when(managerSpy).bindSchemaToView(any(), any(SqlQuery.class));
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryTranslator.class));
 
 		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn456"),
 				IdAndVersion.parse("syn789") };
@@ -744,7 +744,7 @@ public class MaterializedViewManagerImplTest {
 			managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, idAndVersion);
 		});
 		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
-		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(SqlQuery.class));
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryTranslator.class));
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[0]);
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[1]);
 		verify(mockTableManagerSupport, never()).tryRunWithTableNonExclusiveLock(any(), any(), any(IdAndVersion.class));
@@ -762,7 +762,7 @@ public class MaterializedViewManagerImplTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE),
 				new TableStatus().setState(TableState.PROCESSING_FAILED));
-		doNothing().when(managerSpy).bindSchemaToView(any(), any(SqlQuery.class));
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryTranslator.class));
 
 		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn456"),
 				IdAndVersion.parse("syn789") };
@@ -775,7 +775,7 @@ public class MaterializedViewManagerImplTest {
 		assertEquals("Cannot build materialized view syn123, the dependent table syn789 failed to build", result);
 		
 		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
-		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(SqlQuery.class));
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryTranslator.class));
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[0]);
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[1]);
 		verify(mockTableManagerSupport, never()).tryRunWithTableNonExclusiveLock(any(), any(), any(IdAndVersion.class));

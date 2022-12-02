@@ -15,7 +15,7 @@ public class FacetQueries {
 
 	private final List<FacetTransformer> transformers;
 	
-	public FacetQueries(QueryExpansion expansion) {
+	public FacetQueries(QueryContext expansion) {
 		ValidateArgument.required(expansion, "expansion");
 		try {
 

@@ -13,8 +13,7 @@ import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -32,7 +31,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	private String columnName;
 	private List<FacetRequestColumnModel> facets;
 	
-	private SqlQuery generatedFacetSqlQuery;
+	private QueryTranslator generatedFacetSqlQuery;
 	private Set<String> selectedValues;
 	
 	public FacetTransformerValueCounts(String columnName, boolean columnTypeIsList, List<FacetRequestColumnModel> facets,
@@ -53,11 +52,11 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	}
 
 	@Override
-	public SqlQuery getFacetSqlQuery(){
+	public QueryTranslator getFacetSqlQuery(){
 		return this.generatedFacetSqlQuery;
 	}
 	
-	private SqlQuery generateFacetSqlQuery(TableExpression originalQuery, TranslationDependencies dependencies, boolean columnTypeIsList) {
+	private QueryTranslator generateFacetSqlQuery(TableExpression originalQuery, TranslationDependencies dependencies, boolean columnTypeIsList) {
 		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
 		
 		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);
@@ -82,7 +81,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		builder.append(" ASC ");
 		builder.append(pagination.toSql());
 		
-		return new SqlQueryBuilder(builder.toString(), dependencies).build();
+		return QueryTranslator.builder(builder.toString(), dependencies).build();
 	}
 
 	@Override

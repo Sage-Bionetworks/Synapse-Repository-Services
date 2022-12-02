@@ -133,7 +133,7 @@ public class FacetTransformerValueCountsTest {
 				+ " GROUP BY \"stringColumn\""
 				+ " ORDER BY frequency DESC, value ASC"
 				+ " LIMIT 100";
-		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getModel().toSql());
+		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getInputSql());
 		
 		//transformed model will be correct if schema and non-transformed query are correct
 		//because it is handled by SqlQuery Constructor
@@ -150,7 +150,7 @@ public class FacetTransformerValueCountsTest {
 				+ " GROUP BY UNNEST(\"stringListColumn\")"
 				+ " ORDER BY frequency DESC, value ASC"
 				+ " LIMIT 100";
-		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getModel().toSql());
+		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getInputSql());
 
 		//transformed model will be correct if schema and non-transformed query are correct
 		//because it is handled by SqlQuery Constructor
