@@ -159,6 +159,11 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	void createOrRebuildViewHoldingExclusiveLock(ProgressCallback callback, IdAndVersion idAndVersion)
 			throws Exception {
 		try {
+
+			if (idAndVersion.getVersion().isPresent()) {
+				throw new UnsupportedOperationException("MaterializedView snapshots not currently supported");
+			}
+			
 			IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
 	
 			String definingSql = materializedViewDao.getMaterializedViewDefiningSql(idAndVersion)
@@ -206,7 +211,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		}
 	}
 
-	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(IdAndVersion idAndVersion, SqlQuery definingSql) {
+	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(IdAndVersion idAndVersion, SqlQuery definingSql) {		
 		// Is the index out-of-synch?
 		if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
 			// nothing to do
@@ -216,37 +221,19 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		// Start the worker
 		final String token = tableManagerSupport.startTableProcessing(idAndVersion);
 		TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
-		// For now, always rebuild the materialized view from scratch.
-		indexManager.deleteTableIndex(idAndVersion);
 		
-		// Need the MD5 for the original schema.
-		String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
-		List<ColumnModel> viewSchema = columModelManager.getTableSchema(idAndVersion);
-		// Record the search flag before processing to avoid race conditions
-		boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(idAndVersion);
-
-		// create the table in the index.
-		indexManager.setIndexSchema(definingSql.getIndexDescription(), viewSchema);
-		// Sync the search flag
-		indexManager.setSearchEnabled(idAndVersion, isSearchEnabled);
+		List<ColumnModel> viewSchema = indexManager.resetTableIndex(definingSql.getIndexDescription());
 	
 		tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Building MaterializedView...", 0L, 1L);
 		
-		Long viewCRC = null;
-		if(idAndVersion.getVersion().isPresent()) {
-			throw new UnsupportedOperationException("MaterializedView snapshots not currently supported");
-		}else {
-			viewCRC = indexManager.populateMaterializedViewFromDefiningSql(viewSchema, definingSql);
-		}
-		// now that table is created and populated the indices on the table can be
-		// optimized.
-		indexManager.optimizeTableIndices(idAndVersion);
-
-		//for any list columns, build separate tables that serve as an index
-		indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
+		Long viewCRC = indexManager.populateMaterializedViewFromDefiningSql(viewSchema, definingSql);
+		
+		// Now build the secondary indicies
+		indexManager.buildTableIndexIndices(definingSql.getIndexDescription(), viewSchema);
 		
 		// both the CRC and schema MD5 are used to determine if the view is up-to-date.
-		indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
+		// The schema MD5 is already set when resetting the index, we use the CRC of the view as the "version" of the index
+		indexManager.setIndexVersion(idAndVersion, viewCRC);
 		// Attempt to set the table to complete.
 		tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);		
 	}

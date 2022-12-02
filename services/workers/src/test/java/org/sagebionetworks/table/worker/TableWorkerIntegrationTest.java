@@ -193,6 +193,9 @@ public class TableWorkerIntegrationTest {
 	
 	@Autowired
 	TableRowTruthDAO tableRowTruthDAO;
+	
+	@Autowired
+	private TableIndexDAO tableIndexDao;
 
 	private UserInfo adminUserInfo;
 	private UserInfo anonymousUser;
@@ -3495,6 +3498,42 @@ public class TableWorkerIntegrationTest {
 			return 0;
 		});
 	}
+	
+	// Test to reproduce https://sagebionetworks.jira.com/browse/PLFM-7615
+	@Test
+	public void testBuildTableWithInconsistentIndex() throws Exception {
+		schema = Lists.newArrayList(
+			columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING).setName("one")),
+			columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING_LIST).setName("two"))
+		);
+		
+		headers = TableModelUtils.getIds(schema);
+		
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, true).getId();
+		
+		// Now add some data
+		List<Row> rows = Arrays.asList(
+			TableModelTestUtils.createRow(null, null, "value", "[]"),
+			TableModelTestUtils.createRow(null, null, "value", "[\"multi\", \"value\"]"),
+			TableModelTestUtils.createRow(null, null, "other", null)
+		);
+				
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		
+		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
+		
+		// Now simulate an inconsistent state of the index schema hash
+		tableIndexDao.setCurrentSchemaMD5Hex(IdAndVersion.parse(tableId), "brokenHash");
+		
+		// The table should eventually come back as AVAILABLE
+		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
+	}
+	
 	
 	/**
 	 * Create a string of the given size.

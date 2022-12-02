@@ -569,7 +569,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public List<String> streamTableToS3(IdAndVersion idAndVersion, String bucket, String key) {
+	public List<String> streamTableIndexToS3(IdAndVersion idAndVersion, String bucket, String key) {
 		File tempFile = null;
 		List<String> schema;
 		try {
@@ -581,7 +581,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 					)) {
 				// write the snapshot to the temp file.
 				TableIndexDAO tableIndex = tableConnectionFactory.getConnection(idAndVersion);
-				schema = tableIndex.streamTableToCSV(idAndVersion, writer::writeNext);
+				schema = tableIndex.streamTableIndexData(idAndVersion, writer::writeNext);
 			}
 			// upload the resulting CSV to S3.
 			s3Client.putObject(new PutObjectRequest(bucket, key, tempFile));
@@ -604,7 +604,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public void restoreTableFromS3(IdAndVersion idAndVersion, String bucket, String key) {
+	public void restoreTableIndexFromS3(IdAndVersion idAndVersion, String bucket, String key) {
 		File tempFile = null;
 		try {
 			tempFile = fileProvider.createTempFile("TableSnapshotDownload", ".csv.gzip");
@@ -614,7 +614,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 					fileProvider.createGZIPInputStream(fileProvider.createFileInputStream(tempFile)),
 					StandardCharsets.UTF_8)))) {
 				TableIndexDAO tableIndex = tableConnectionFactory.getConnection(idAndVersion);
-				tableIndex.populateViewFromSnapshot(idAndVersion, reader, MAX_BYTES_PER_BATCH);
+				tableIndex.restoreTableIndexData(idAndVersion, reader, MAX_BYTES_PER_BATCH);
 			}
 		} catch (AmazonServiceException e) {
 			// An amazon service exception can be retried later

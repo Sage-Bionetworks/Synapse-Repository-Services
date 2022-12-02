@@ -441,15 +441,6 @@ public interface TableIndexDAO {
 	 */
 	void copyObjectReplicationToView(Long viewId, ViewFilter filter, List<ColumnModel> currentSchema,
 			ObjectFieldTypeMapper fieldTypeMapper);
-	
-	/**
-	 * Stream the data of the table with the given id to the given CSV stream writer
-	 * 
-	 * @param tableId
-	 * @param stream
-	 * @return The column model ids from the table index
-	 */
-	List<String> streamTableToCSV(IdAndVersion tableId, CSVWriterStream stream);
 
 	/**
 	 * Calculate the Cyclic-Redundancy-Check (CRC) of a table view's concatenation
@@ -460,15 +451,6 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	long calculateCRC32ofTableView(Long viewId);
-
-	/**
-	 * Save both the current version and the schema MD5 for current index.
-	 * 
-	 * @param tableId
-	 * @param viewCRC
-	 * @param schemaMD5Hex
-	 */
-	void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex);
 
 	/**
 	 * Get the distinct possible ColumnModels for the given scope filter
@@ -536,19 +518,6 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	void streamSynapseStorageStats(ReplicationType mainType, Callback<SynapseStorageProjectStats> callback);
-
-	/**
-	 * Populate a view from a snapshot.
-	 * 
-	 * @param idAndVersion
-	 * @param input
-	 * @param maxBytesPerBatch Used to limit the size of each batch of data pushed
-	 *                         to the database. Only a single batch will reside in
-	 *                         memory at a time. A batch will always contain at
-	 *                         least one row even if the size of the row is larger
-	 *                         than maxBytesPerBatch.
-	 */
-	void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input, long maxBytesPerBatch);
 
 	/**
 	 * Initialize this dao by setting its database connection.
@@ -635,6 +604,28 @@ public interface TableIndexDAO {
 	 * @return A page of table row content matching the given set of columns paginated according to the given limit and offset (ordered by row id)
 	 */
 	List<TableRowData> getTableDataPage(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, long limit, long offset);
+
+	/**
+	 * Stream the data of the table with the given id to the given CSV stream writer
+	 * 
+	 * @param tableId
+	 * @param stream
+	 * @return The column model ids from the table index
+	 */
+	List<String> streamTableIndexData(IdAndVersion tableId, CSVWriterStream stream);
+	
+	/**
+	 * Restore the table index using the data from the given iterator
+	 * 
+	 * @param idAndVersion
+	 * @param input
+	 * @param maxBytesPerBatch Used to limit the size of each batch of data pushed
+	 *                         to the database. Only a single batch will reside in
+	 *                         memory at a time. A batch will always contain at
+	 *                         least one row even if the size of the row is larger
+	 *                         than maxBytesPerBatch.
+	 */
+	void restoreTableIndexData(IdAndVersion idAndVersion, Iterator<String[]> input, long maxBytesPerBatch);
 	
 	/**
 	 * Updates the search index content for the given batch of rows

@@ -144,11 +144,6 @@ public class TableViewManagerImpl implements TableViewManager {
 	}
 
 	@Override
-	public List<ColumnModel> getViewSchema(IdAndVersion idAndVersion) {
-		return columModelManager.getTableSchema(idAndVersion);
-	}
-
-	@Override
 	public List<String> getViewSchemaIds(IdAndVersion idAndVersion) {
 		return columModelManager.getColumnIdsForTable(idAndVersion);
 	}
@@ -493,22 +488,13 @@ public class TableViewManagerImpl implements TableViewManager {
 			// Start the worker
 			final String token = tableManagerSupport.startTableProcessing(idAndVersion);
 			TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
-			log.info(String.format("Deleting view index if it exists: '%s'...", idAndVersion.toString()));
-			// Since this worker re-builds the index, start by deleting it.
-			indexManager.deleteTableIndex(idAndVersion);
-			// Need the MD5 for the original schema.
-			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
-			List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
-			// Record the search flag before processing to avoid race conditions
-			boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(idAndVersion);
 			
 			IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
-			log.info(String.format("Setting view index schema: '%s'...", idAndVersion.toString()));
-			// create the table in the index
-			indexManager.setIndexSchema(indexDescription, viewSchema);
-			// Sync the search flag
-			indexManager.setSearchEnabled(idAndVersion, isSearchEnabled);
-
+			
+			log.info(String.format("Resetting view index: '%s'...", idAndVersion.toString()));
+			
+			List<ColumnModel> viewSchema = indexManager.resetTableIndex(indexDescription);
+			
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 			
 			Long viewCRC = null;
@@ -517,15 +503,13 @@ public class TableViewManagerImpl implements TableViewManager {
 			}else {
 				viewCRC = populateViewIndexFromReplication(idAndVersion, indexManager, viewSchema);
 			}
-			// now that table is created and populated the indices on the table can be
-			// optimized.
-			indexManager.optimizeTableIndices(idAndVersion);
-
-			//for any list columns, build separate tables that serve as an index
-			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
 			
-			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
-			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
+			// Now build the secondary indicies
+			indexManager.buildTableIndexIndices(indexDescription, viewSchema);
+			
+			// both the CRC and schema MD5 are used to determine if the view is up-to-date. 
+			// The schema MD5 is already set when resetting the index, we use the CRC of the view as the "version" of the index
+			indexManager.setIndexVersion(idAndVersion, viewCRC);
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
 			log.info(String.format("Set view: '%s' to AVAILABLE.", idAndVersion.toString()));
@@ -566,11 +550,10 @@ public class TableViewManagerImpl implements TableViewManager {
 		TableSnapshot snapshot = viewSnapshotDao.getSnapshot(idAndVersion)
 			.orElseThrow(() -> new NotFoundException("Snapshot not found for: " + idAndVersion.toString()));
 		
-		tableManagerSupport.restoreTableFromS3(idAndVersion, snapshot.getBucket(), snapshot.getKey());
+		tableManagerSupport.restoreTableIndexFromS3(idAndVersion, snapshot.getBucket(), snapshot.getKey());
 		
 		// ensure the latest benefactors are used.
 		indexManager.refreshViewBenefactors(idAndVersion);
-		indexManager.refreshSearchIndex(indexDescription);
 		
 		return snapshot.getSnapshotId();
 		
@@ -624,7 +607,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			String bucket = config.getViewSnapshotBucketName();
 						
 			// Save the table to S3
-			List<String> schemaColumnIds = tableManagerSupport.streamTableToS3(idAndVersion, bucket, key);
+			List<String> schemaColumnIds = tableManagerSupport.streamTableIndexToS3(idAndVersion, bucket, key);
 			
 			// Create a new version of the node
 			long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, idAndVersion.getId().toString(), snapshotOptions);

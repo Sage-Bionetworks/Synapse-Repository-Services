@@ -1080,20 +1080,20 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testStreamTableToS3() throws IOException {
+	public void testStreamTableIndexToS3() throws IOException {
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		StringWriter writer = new StringWriter();
 		when(mockFileProvider.createFileOutputStream(mockFile)).thenReturn(mockOutStream);
 		when(mockFileProvider.createGZIPOutputStream(mockOutStream)).thenReturn(mockGzipOutStream);
 		when(mockFileProvider.createWriter(mockGzipOutStream, StandardCharsets.UTF_8)).thenReturn(writer);
 		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.streamTableToCSV(any(), any())).thenReturn(columnIds);
+		when(mockTableIndexDAO.streamTableIndexData(any(), any())).thenReturn(columnIds);
 		
 		String bucket = "snapshot.bucket";
 		String key = "key";
 		
 		// call under test
-		List<String> result = manager.streamTableToS3(idAndVersion, bucket, key);
+		List<String> result = manager.streamTableIndexToS3(idAndVersion, bucket, key);
 		
 		assertEquals(columnIds, result);
 		
@@ -1102,7 +1102,7 @@ public class TableManagerSupportTest {
 		verify(mockFileProvider).createGZIPOutputStream(mockOutStream);
 		verify(mockFileProvider).createWriter(mockGzipOutStream, StandardCharsets.UTF_8);
 		verify(mockTableConnectionFactory).getConnection(idAndVersion);
-		verify(mockTableIndexDAO).streamTableToCSV(eq(idAndVersion), any());
+		verify(mockTableIndexDAO).streamTableIndexData(eq(idAndVersion), any());
 		
 		ArgumentCaptor<PutObjectRequest> putRequestCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
 		
@@ -1115,7 +1115,7 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testStreamTableToS3WithIOException() throws IOException {
+	public void testStreamTableIndexToS3WithIOException() throws IOException {
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		IOException ex = new FileNotFoundException("nope");
 		when(mockFileProvider.createFileOutputStream(mockFile)).thenThrow(ex);
@@ -1125,24 +1125,24 @@ public class TableManagerSupportTest {
 		
 		RuntimeException result = assertThrows(RuntimeException.class, () -> {			
 			// call under test
-			manager.streamTableToS3(idAndVersion, bucket, key);
+			manager.streamTableIndexToS3(idAndVersion, bucket, key);
 		});
 		
 		assertEquals(ex, result.getCause());
 		
 		verify(mockFileProvider).createTempFile("table", ".csv");
-		verify(mockTableIndexDAO, never()).streamTableToCSV(any(), any());
+		verify(mockTableIndexDAO, never()).streamTableIndexData(any(), any());
 		verify(mockFile).delete();
 	}
 	
 	@Test
-	public void testStreamTableToS3WithAmazonServiceException() throws IOException {
+	public void testStreamTableIndexToS3WithAmazonServiceException() throws IOException {
 		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		when(mockFileProvider.createFileOutputStream(any())).thenReturn(mockOutStream);
 		when(mockFileProvider.createGZIPOutputStream(any())).thenReturn(mockGzipOutStream);
 		when(mockFileProvider.createWriter(any(), any())).thenReturn(new StringWriter());
-		when(mockTableIndexDAO.streamTableToCSV(any(), any())).thenReturn(columnIds);
+		when(mockTableIndexDAO.streamTableIndexData(any(), any())).thenReturn(columnIds);
 		
 		AmazonServiceException ex = new AmazonServiceException("nope");
 		ex.setErrorType(ErrorType.Service);
@@ -1154,24 +1154,24 @@ public class TableManagerSupportTest {
 		
 		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
 			// call under test
-			manager.streamTableToS3(idAndVersion, bucket, key);
+			manager.streamTableIndexToS3(idAndVersion, bucket, key);
 		});
 		
 		assertEquals(ex, result.getCause());
 		
 		verify(mockFileProvider).createTempFile("table", ".csv");
-		verify(mockTableIndexDAO).streamTableToCSV(eq(idAndVersion), any());
+		verify(mockTableIndexDAO).streamTableIndexData(eq(idAndVersion), any());
 		verify(mockFile).delete();
 	}
 	
 	@Test
-	public void testStreamTableToS3WithAmazonClientException() throws IOException {
+	public void testStreamTableIndexToS3WithAmazonClientException() throws IOException {
 		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		when(mockFileProvider.createFileOutputStream(any())).thenReturn(mockOutStream);
 		when(mockFileProvider.createGZIPOutputStream(any())).thenReturn(mockGzipOutStream);
 		when(mockFileProvider.createWriter(any(), any())).thenReturn(new StringWriter());
-		when(mockTableIndexDAO.streamTableToCSV(any(), any())).thenReturn(columnIds);
+		when(mockTableIndexDAO.streamTableIndexData(any(), any())).thenReturn(columnIds);
 		
 		AmazonServiceException ex = new AmazonServiceException("nope");
 		ex.setErrorType(ErrorType.Client);
@@ -1183,18 +1183,18 @@ public class TableManagerSupportTest {
 		
 		AmazonServiceException result = assertThrows(AmazonServiceException.class, () -> {			
 			// call under test
-			manager.streamTableToS3(idAndVersion, bucket, key);
+			manager.streamTableIndexToS3(idAndVersion, bucket, key);
 		});
 		
 		assertEquals(ex, result);
 		
 		verify(mockFileProvider).createTempFile("table", ".csv");
-		verify(mockTableIndexDAO).streamTableToCSV(eq(idAndVersion), any());
+		verify(mockTableIndexDAO).streamTableIndexData(eq(idAndVersion), any());
 		verify(mockFile).delete();
 	}
 	
 	@Test
-	public void testRestoreTableFromS3() throws IOException {
+	public void testRestoreTableIndexFromS3() throws IOException {
 		
 		when(mockFileProvider.createTempFile(any(), any())).thenReturn(mockFile);
 		when(mockFileProvider.createFileInputStream(any())).thenReturn(mockInStream);
@@ -1206,7 +1206,7 @@ public class TableManagerSupportTest {
 		String key = "key";
 		
 		// Call under test
-		manager.restoreTableFromS3(idAndVersion, bucket, key);
+		manager.restoreTableIndexFromS3(idAndVersion, bucket, key);
 		
 		verify(mockFileProvider).createTempFile("TableSnapshotDownload", ".csv.gzip");
 		
@@ -1222,12 +1222,12 @@ public class TableManagerSupportTest {
 		verify(mockFileProvider).createGZIPInputStream(mockInStream);
 		verify(mockFileProvider).createReader(mockGzipInStream, StandardCharsets.UTF_8);
 		verify(mockTableConnectionFactory).getConnection(idAndVersion);
-		verify(mockTableIndexDAO).populateViewFromSnapshot(eq(idAndVersion), any(), eq(TableManagerSupportImpl.MAX_BYTES_PER_BATCH));
+		verify(mockTableIndexDAO).restoreTableIndexData(eq(idAndVersion), any(), eq(TableManagerSupportImpl.MAX_BYTES_PER_BATCH));
 		verify(mockFile).delete();
 	}
 	
 	@Test
-	public void testRestoreTableFromS3WithIOException() throws IOException {
+	public void testRestoreTableIndexFromS3WithIOException() throws IOException {
 		
 		IOException ex = new IOException("nope");
 		
@@ -1238,7 +1238,7 @@ public class TableManagerSupportTest {
 		
 		RuntimeException result = assertThrows(RuntimeException.class, () -> {
 			// Call under test
-			manager.restoreTableFromS3(idAndVersion, bucket, key);
+			manager.restoreTableIndexFromS3(idAndVersion, bucket, key);
 		});
 		
 		assertEquals(ex, result.getCause());
@@ -1251,7 +1251,7 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testRestoreTableFromS3WithAmazonServiceException() throws IOException {
+	public void testRestoreTableIndexFromS3WithAmazonServiceException() throws IOException {
 		
 		AmazonServiceException ex = new AmazonServiceException("nope");
 		ex.setErrorType(ErrorType.Service);
@@ -1265,7 +1265,7 @@ public class TableManagerSupportTest {
 		
 		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
 			// Call under test
-			manager.restoreTableFromS3(idAndVersion, bucket, key);
+			manager.restoreTableIndexFromS3(idAndVersion, bucket, key);
 		});
 		
 		assertEquals(ex, result.getCause());
@@ -1286,7 +1286,7 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testRestoreTableFromS3WithAmazonClientException() throws IOException {
+	public void testRestoreTableIndexFromS3WithAmazonClientException() throws IOException {
 		
 		AmazonServiceException ex = new AmazonServiceException("nope");
 		ex.setErrorType(ErrorType.Client);
@@ -1300,7 +1300,7 @@ public class TableManagerSupportTest {
 		
 		AmazonServiceException result = assertThrows(AmazonServiceException.class, () -> {			
 			// Call under test
-			manager.restoreTableFromS3(idAndVersion, bucket, key);
+			manager.restoreTableIndexFromS3(idAndVersion, bucket, key);
 		});
 		
 		assertEquals(ex, result);

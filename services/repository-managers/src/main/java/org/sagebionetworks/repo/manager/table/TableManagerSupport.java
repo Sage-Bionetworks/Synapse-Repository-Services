@@ -434,7 +434,7 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @param key
 	 * @return The schema of the table as read from the index
 	 */
-	List<String> streamTableToS3(IdAndVersion idAndVersion, String bucket, String key);
+	List<String> streamTableIndexToS3(IdAndVersion idAndVersion, String bucket, String key);
 
 	/**
 	 * Restore the table data from the given bucket and key in S3 into the table with the given id
@@ -443,7 +443,7 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @param bucket
 	 * @param key
 	 */
-	void restoreTableFromS3(IdAndVersion idAndVersion, String bucket, String key);
+	void restoreTableIndexFromS3(IdAndVersion idAndVersion, String bucket, String key);
 	
 	/**
 	 * @param idAndVersion
