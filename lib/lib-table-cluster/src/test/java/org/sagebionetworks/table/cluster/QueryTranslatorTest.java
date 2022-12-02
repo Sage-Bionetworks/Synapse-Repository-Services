@@ -102,10 +102,6 @@ public class QueryTranslatorTest {
 	public void testSelectStarEscaping() throws ParseException {
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123", schemaProvider(tableSchema), userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
-		String sql = translator.getInputSql();
-		assertEquals(
-				"SELECT \"foo\", \"has space\", \"bar\", \"foo_bar\", \"Foo\", \"datetype\", \"doubletype\", \"inttype\", \"has-hyphen\", \"has\"\"quote\" FROM syn123",
-				sql);
 		translator = QueryTranslator.builder(sql, schemaProvider(tableSchema), userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 	}
