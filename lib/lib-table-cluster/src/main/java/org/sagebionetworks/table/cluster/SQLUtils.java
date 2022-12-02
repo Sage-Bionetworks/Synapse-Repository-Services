@@ -534,24 +534,6 @@ public class SQLUtils {
 		builder.append(" ) VALUES ('1', -1, ?, FALSE) ON DUPLICATE KEY UPDATE "+STATUS_COL_SCHEMA_HASH+" = ?");
 		return builder.toString();
 	}
-	
-	public static String buildCreateOrUpdateStatusVersionAndHashSQL(IdAndVersion tableId){
-		if (tableId == null)
-			throw new IllegalArgumentException("TableID cannot be null");
-		StringBuilder builder = new StringBuilder();
-		builder.append("INSERT INTO ");
-		builder.append(getTableNameForId(tableId, TableIndexType.STATUS));
-		builder.append(" ( ");
-		builder.append(STATUS_COL_SINGLE_KEY);
-		builder.append(",");
-		builder.append(ROW_VERSION);
-		builder.append(",");
-		builder.append(STATUS_COL_SCHEMA_HASH);
-		builder.append(",");
-		builder.append(STATUS_COL_SEARCH_ENABLED);
-		builder.append(" ) VALUES ('1', ?, ?, FALSE) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ?, "+STATUS_COL_SCHEMA_HASH+" = ?");
-		return builder.toString();
-	}
 
 	/**
 	 * Build the delete statement for inserting rows into a table.
@@ -1911,7 +1893,7 @@ public class SQLUtils {
 	 * @param headers
 	 * @return
 	 */
-	public static String createInsertViewFromSnapshot(IdAndVersion idAndVersion, String[] headers) {
+	public static String createInsertIntoTableIndex(IdAndVersion idAndVersion, String[] headers) {
 		String tableName = getTableNameForId(idAndVersion, TableIndexType.INDEX);
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");

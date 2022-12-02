@@ -28,15 +28,6 @@ public interface TableViewManager {
 	void setViewSchemaAndScope(UserInfo userInfo, List<String> schema,
 			ViewScope scope, String viewId);
 
-
-	/**
-	 * Get the view schema with the required columns including id, version, and benefactorId.
-	 * 
-	 * @param tableId
-	 * @return
-	 */
-	List<ColumnModel> getViewSchema(IdAndVersion idAndVersion);
-	
 	/**
 	 * Get the column IDs for the given id and version pair.
 	 * 

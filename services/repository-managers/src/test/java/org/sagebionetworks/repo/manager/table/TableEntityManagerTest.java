@@ -2169,7 +2169,7 @@ public class TableEntityManagerTest {
 		when(mockTableSnapshotDao.getSnapshot(any())).thenReturn(Optional.empty());
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockConfig.getTableSnapshotBucketName()).thenReturn("bucket");
-		when(mockTableManagerSupport.streamTableToS3(any(), any(), any())).thenReturn(newColumnIds);
+		when(mockTableManagerSupport.streamTableIndexToS3(any(), any(), any())).thenReturn(newColumnIds);
 		
 		TableSnapshot expectedSnapshot = new TableSnapshot()
 			.withTableId(idAndVersion.getId())
@@ -2187,7 +2187,7 @@ public class TableEntityManagerTest {
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		
 		ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
-		verify(mockTableManagerSupport).streamTableToS3(eq(idAndVersion), eq("bucket"), keyCaptor.capture());
+		verify(mockTableManagerSupport).streamTableIndexToS3(eq(idAndVersion), eq("bucket"), keyCaptor.capture());
 		
 		assertTrue(keyCaptor.getValue().startsWith(idAndVersion.toString() + "/"));
 		
@@ -2216,7 +2216,7 @@ public class TableEntityManagerTest {
 		verify(mockTableManagerSupport).getTableType(idAndVersion);
 		verify(mockTableSnapshotDao).getSnapshot(idAndVersion);
 		
-		verify(mockTableManagerSupport, never()).streamTableToS3(any(), any(), any());
+		verify(mockTableManagerSupport, never()).streamTableIndexToS3(any(), any(), any());
 		verify(mockTableSnapshotDao, never()).createSnapshot(any());
 	}
 	
@@ -2292,7 +2292,7 @@ public class TableEntityManagerTest {
 		
 		verify(mockTableManagerSupport).getTableType(idAndVersion);
 		verify(mockTableSnapshotDao).getSnapshot(idAndVersion);
-		verify(mockTableManagerSupport, never()).streamTableToS3(any(), any(), any());
+		verify(mockTableManagerSupport, never()).streamTableIndexToS3(any(), any(), any());
 		verify(mockTableSnapshotDao, never()).createSnapshot(any());
 	}
 	
@@ -2317,7 +2317,7 @@ public class TableEntityManagerTest {
 		verify(mockTableManagerSupport).getTableType(idAndVersion);
 		verify(mockTableSnapshotDao).getSnapshot(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
-		verify(mockTableManagerSupport, never()).streamTableToS3(any(), any(), any());
+		verify(mockTableManagerSupport, never()).streamTableIndexToS3(any(), any(), any());
 		verify(mockTableSnapshotDao, never()).createSnapshot(any());
 	}
 		

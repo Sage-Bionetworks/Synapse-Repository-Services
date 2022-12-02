@@ -975,21 +975,7 @@ public class TableIndexDAOImplTest {
 		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5, true);
 		assertFalse(match);
 	}
-	
-	@Test
-	public void testSetIndexVersionAndSchemaMD5Hex(){
-		// ensure the secondary tables for this index exist
-		this.tableIndexDAO.createSecondaryTables(tableId);
 		
-		String md5 = "md5hex";
-		Long version = 123L;
-		// call under test.
-		this.tableIndexDAO.setIndexVersionAndSchemaMD5Hex(tableId, version, md5);
-		
-		assertEquals(Optional.of(md5), this.tableIndexDAO.getCurrentSchemaMD5Hex(tableId));
-		assertEquals(version, this.tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId));
-	}
-	
 	@Test
 	public void testIsSearchEnabledWithNoTable() {
 		// Call under test
@@ -2539,7 +2525,7 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testPopulateViewFromSnapshot(){
+	public void testRestoreTableIndexData(){
 		tableId = IdAndVersion.parse("syn123.45");
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		// delete all data
@@ -2562,7 +2548,7 @@ public class TableIndexDAOImplTest {
 		// small batch size to force multiple batches.
 		long maxBytesPerBatch = 10;
 		// call under test
-		tableIndexDAO.populateViewFromSnapshot(tableId, rows.iterator(), maxBytesPerBatch);
+		tableIndexDAO.restoreTableIndexData(tableId, rows.iterator(), maxBytesPerBatch);
 		
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(rows.size()-1, count);
@@ -4979,7 +4965,7 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testStreamTableToCSV() {
+	public void testStreamTableIndexData() {
 		tableId = IdAndVersion.parse("syn123");
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		// delete all data
@@ -5031,7 +5017,7 @@ public class TableIndexDAOImplTest {
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
 		
 		// Call under test
-		List<String> result = tableIndexDAO.streamTableToCSV(tableId, stream);
+		List<String> result = tableIndexDAO.streamTableIndexData(tableId, stream);
 		
 		assertEquals(schema.stream().map(ColumnModel::getId).collect(Collectors.toList()), result);
 		

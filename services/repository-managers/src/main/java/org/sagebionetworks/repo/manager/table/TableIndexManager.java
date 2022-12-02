@@ -107,13 +107,10 @@ public interface TableIndexManager {
 	void deleteTableIndex(IdAndVersion tableId);
 
 	/**
-	 * Set the current version of the index, the schema MD5, all of which are
-	 * used to determine if the index is up-to-date.
-	 * 
-	 * @param viewCRC
-	 * @param schemaMD5Hex
+	 * Set the current version for the table index
+	 * @param indexVersion
 	 */
-	void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex);
+	void setIndexVersion(IdAndVersion tableId, Long indexVersion);
 	
 	/**
 	 * Sets the status of the search flag for the given table
@@ -306,10 +303,18 @@ public interface TableIndexManager {
 	Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, QueryTranslator definingSql);
 
 	/**
-	 * If the table has FTS enabled re-builds the search index
+	 * Reset the state of the table index described by the given {@link IndexDescription}
 	 * 
-	 * @param idAndVersion
+	 * @param index
+	 * @return The schema of the table
 	 */
-	void refreshSearchIndex(IndexDescription indexDescription);
+	List<ColumnModel> resetTableIndex(IndexDescription index);
+	
+	/**
+	 * Build all the secondary table indices for the table
+	 * 
+	 * @param index
+	 */
+	void buildTableIndexIndices(IndexDescription index, List<ColumnModel> schema);
 
 }

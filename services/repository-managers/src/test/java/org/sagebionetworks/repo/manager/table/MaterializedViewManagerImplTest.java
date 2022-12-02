@@ -31,6 +31,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -43,6 +44,7 @@ import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
+import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -647,7 +649,9 @@ public class MaterializedViewManagerImplTest {
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryTranslator.class));
+		doNothing().when(managerSpy).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(any(), any());
 		
 		IdAndVersion dependentIdAndVersion = IdAndVersion.parse("syn456");
 		
@@ -664,29 +668,12 @@ public class MaterializedViewManagerImplTest {
 	@Test
 	public void testCreateOrRebuildViewHoldingExclusiveLockWithSnapshot() throws Exception {
 		idAndVersion = IdAndVersion.parse("syn123.1");
-		doAnswer(invocation -> {
-			ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
-			ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[1];
-			runner.call(callback);
-			return null;
-		}).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(), any(), any(IdAndVersion.class));
 		
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.of("select * from syn456"));
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
-		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema);
-		IdAndVersion dependentIdAndVersion = IdAndVersion.parse("syn456");
+		assertThrows(UnsupportedOperationException.class, () -> {			
+			// call under test
+			managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, idAndVersion);
+		});
 		
-		// call under test
-		managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, idAndVersion);
-		
-		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
-		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
-		verify(mockColumnModelManager, never()).bindColumnsToVersionOfObject(any(), any());
-		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersion);
-		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), any(), eq( dependentIdAndVersion));
-		verify(managerSpy).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(eq(idAndVersion), any());
 	}
 	
 	@Test
@@ -706,7 +693,8 @@ public class MaterializedViewManagerImplTest {
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryTranslator.class));
-
+		doNothing().when(managerSpy).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(any(), any());
+		
 		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn456"),
 				IdAndVersion.parse("syn789") };
 
@@ -762,8 +750,8 @@ public class MaterializedViewManagerImplTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE),
 				new TableStatus().setState(TableState.PROCESSING_FAILED));
+		
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryTranslator.class));
-
 		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn456"),
 				IdAndVersion.parse("syn789") };
 
@@ -784,6 +772,7 @@ public class MaterializedViewManagerImplTest {
 	
 	@Test
 	public void testCreateOrRebuildViewHoldingExclusiveLockWithNoDefiningSql() throws Exception {
+		idAndVersion = IdAndVersion.parse("syn123");
 		
 		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.empty());
 		
@@ -791,12 +780,58 @@ public class MaterializedViewManagerImplTest {
 			// call under test
 			managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, idAndVersion);
 		}).getMessage();
-		assertEquals("No defining SQL for: syn123.1", message);
+		assertEquals("No defining SQL for: syn123", message);
 		
 		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(any());
 		verify(mockColumnModelManager, never()).bindColumnsToVersionOfObject(any(), any());
 		verify(mockTableManagerSupport, never()).tryRunWithTableNonExclusiveLock(any(), any(), any(IdAndVersion.class));
 		verify(managerSpy, never()).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(eq(idAndVersion), any());
 	}
-
+		
+	@Test
+	public void testCreateOrRebuildViewHoldingWriteLockAndAllDependentReadLocks() {
+		idAndVersion = IdAndVersion.parse("syn123");
+		
+		QueryTranslator mockQuery = Mockito.mock(QueryTranslator.class);
+		IndexDescription index = new ViewIndexDescription(idAndVersion, TableType.entityview);
+		when(mockQuery.getIndexDescription()).thenReturn(index);
+		
+		when(mockTableManagerSupport.isIndexWorkRequired(any())).thenReturn(true);
+		when(mockTableManagerSupport.startTableProcessing(any())).thenReturn("token");
+		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
+		when(mockTableIndexManager.resetTableIndex(any())).thenReturn(syn123Schema);
+		doNothing().when(mockTableManagerSupport).attemptToUpdateTableProgress(any(), any(), any(), any(), any());
+		when(mockTableIndexManager.populateMaterializedViewFromDefiningSql(any(), any())).thenReturn(123L);
+		doNothing().when(mockTableIndexManager).buildTableIndexIndices(any(), any());
+		doNothing().when(mockTableIndexManager).setIndexVersion(any(), any());
+		doNothing().when(mockTableManagerSupport).attemptToSetTableStatusToAvailable(any(), any(), any());
+		
+		// Call under test
+		manager.createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(idAndVersion, mockQuery);
+		
+		verify(mockTableManagerSupport).isIndexWorkRequired(idAndVersion);
+		verify(mockTableManagerSupport).startTableProcessing(idAndVersion);
+		verify(mockTableIndexManager).resetTableIndex(index);
+		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, "token", "Building MaterializedView...", 0L, 1L);
+		verify(mockTableIndexManager).populateMaterializedViewFromDefiningSql(syn123Schema, mockQuery);
+		verify(mockTableIndexManager).buildTableIndexIndices(index, syn123Schema);
+		verify(mockTableIndexManager).setIndexVersion(idAndVersion, 123L);
+		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, "token", "DEFAULT");
+	}
+	
+	@Test
+	public void testCreateOrRebuildViewHoldingWriteLockAndAllDependentReadLocksWithNoWorkRequired() {
+		idAndVersion = IdAndVersion.parse("syn123");
+		
+		QueryTranslator mockQuery = Mockito.mock(QueryTranslator.class);
+		
+		when(mockTableManagerSupport.isIndexWorkRequired(any())).thenReturn(false);
+		
+		// Call under test
+		manager.createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(idAndVersion, mockQuery);
+		
+		verify(mockTableManagerSupport).isIndexWorkRequired(idAndVersion);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockTableIndexManager);
+	}
 }

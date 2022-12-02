@@ -1,12 +1,16 @@
 package org.sagebionetworks.repo.manager.audit;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.kinesis.AbstractAwsKinesisLogRecord;
+import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AccessRecorder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class S3AccessRecorder implements AccessRecorder {
 
 	static private Log log = LogFactory.getLog(S3AccessRecorder.class);
+	public static final String ACCESS_RECORD_STREAM = "accessRecord";
 
 	/**
 	 * At any given time, there are multiple threads creating new AccessRecords
@@ -28,12 +33,18 @@ public class S3AccessRecorder implements AccessRecorder {
 	 * processed from a separate timer thread.
 	 */
 	private ConcurrentLinkedQueue<AccessRecord> recordBatch = new ConcurrentLinkedQueue<AccessRecord>();
-	
-	@Autowired
+
 	AccessRecordManager accessRecordManager;
+
+	AwsKinesisFirehoseLogger firehoseLogger;
 
 	boolean shouldAccessRecordsBePushedToS3 = true;
 
+	@Autowired
+	public S3AccessRecorder(AccessRecordManager accessRecordManager, AwsKinesisFirehoseLogger firehoseLogger) {
+		this.accessRecordManager = accessRecordManager;
+		this.firehoseLogger = firehoseLogger;
+	}
 
 	/**
 	 * This allows us to turn off pushing access data to S3 during build and test.
@@ -73,7 +84,15 @@ public class S3AccessRecorder implements AccessRecorder {
 		}
 		try{
 			// We are now free to process the current batch with out synchronization or data loss
-			return accessRecordManager.saveBatch(currentBatch);
+			String fileName = accessRecordManager.saveBatch(currentBatch);
+			//send records to firehose delivery stream
+			List<KinesisJsonEntityRecord> kinesisJsonEntityRecords = currentBatch.stream().map( record ->
+							new KinesisJsonEntityRecord(record.getTimestamp(), record, record.getStack(), record.getInstance()))
+					.collect(Collectors.toList());
+
+			firehoseLogger.logBatch(ACCESS_RECORD_STREAM, kinesisJsonEntityRecords);
+
+			return fileName;
 		}catch(Exception e){
 			log.error("Failed to write batch", e);
 			return null;

@@ -1098,7 +1098,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			String bucket = config.getTableSnapshotBucketName();
 			String key = tableId + "/" + UUID.randomUUID().toString() + ".csv.gzip";
 			
-			tableManagerSupport.streamTableToS3(tableId, bucket, key);
+			tableManagerSupport.streamTableIndexToS3(tableId, bucket, key);
 			
 			tableSnapshotDao.createSnapshot(new TableSnapshot()
 				.withTableId(tableId.getId())
