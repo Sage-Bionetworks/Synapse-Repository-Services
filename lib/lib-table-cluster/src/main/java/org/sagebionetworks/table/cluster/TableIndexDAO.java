@@ -453,15 +453,6 @@ public interface TableIndexDAO {
 	long calculateCRC32ofTableView(Long viewId);
 
 	/**
-	 * Save both the current version and the schema MD5 for current index.
-	 * 
-	 * @param tableId
-	 * @param viewCRC
-	 * @param schemaMD5Hex
-	 */
-	void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex);
-
-	/**
 	 * Get the distinct possible ColumnModels for the given scope filter
 	 * 
 	 * @param scopeFilter

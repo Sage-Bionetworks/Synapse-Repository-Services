@@ -975,21 +975,7 @@ public class TableIndexDAOImplTest {
 		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5, true);
 		assertFalse(match);
 	}
-	
-	@Test
-	public void testSetIndexVersionAndSchemaMD5Hex(){
-		// ensure the secondary tables for this index exist
-		this.tableIndexDAO.createSecondaryTables(tableId);
 		
-		String md5 = "md5hex";
-		Long version = 123L;
-		// call under test.
-		this.tableIndexDAO.setIndexVersionAndSchemaMD5Hex(tableId, version, md5);
-		
-		assertEquals(Optional.of(md5), this.tableIndexDAO.getCurrentSchemaMD5Hex(tableId));
-		assertEquals(version, this.tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId));
-	}
-	
 	@Test
 	public void testIsSearchEnabledWithNoTable() {
 		// Call under test

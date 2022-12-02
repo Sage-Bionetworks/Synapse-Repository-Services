@@ -397,12 +397,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex) {
-		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusVersionAndHashSQL(tableId);
-		template.update(createOrUpdateStatusSql, viewCRC, schemaMD5Hex, viewCRC, schemaMD5Hex);
-	}
-	
-	@Override
 	public boolean doesIndexHashMatchSchemaHash(IdAndVersion tableId, List<ColumnModel> newSchema) {
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.required(newSchema, "newSchema");

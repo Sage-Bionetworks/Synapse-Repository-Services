@@ -3186,14 +3186,4 @@ public class SQLUtilsTest {
 				+ " VALUES ('1', -1, ?, FALSE)"
 				+ " ON DUPLICATE KEY UPDATE SCHEMA_HASH = ?", result);
 	}
-	
-	@Test
-	public void testBuildCreateOrUpdateStatusVersionAndHashSQL() {
-		String result = SQLUtils.buildCreateOrUpdateStatusVersionAndHashSQL(tableId);
-		
-		assertEquals("INSERT INTO T" + tableId.getId() + "S"
-				+ " ( SINGLE_KEY,ROW_VERSION,SCHEMA_HASH,SEARCH_ENABLED )"
-				+ " VALUES ('1', ?, ?, FALSE)"
-				+ " ON DUPLICATE KEY UPDATE ROW_VERSION = ?, SCHEMA_HASH = ?", result);
-	}
 }
