@@ -36,7 +36,7 @@ public class CountQueryTest {
 	private IdAndVersion tableId;
 	private Long userId;
 	private IndexDescription indexDescription;
-	private QueryExpansion.Builder builder;
+	private QueryContext.Builder builder;
 	private String startingSql;
 
 	@BeforeEach
@@ -59,7 +59,7 @@ public class CountQueryTest {
 		// The starting sql will have an authorization filter applied.
 		startingSql = "select * from " + tableId + " where ROW_BENEFACTOR IN (11,22)";
 
-		builder = QueryExpansion.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
+		builder = QueryContext.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
 				.setUserId(userId).setStartingSql(startingSql).setMaxRowsPerCall(100L);
 	}
 
@@ -72,7 +72,7 @@ public class CountQueryTest {
 				List.of(new FacetColumnValuesRequest().setColumnName("one").setFacetValues(Set.of("cat")),
 						new FacetColumnRangeRequest().setColumnName("two").setMax("38").setMin("15")));
 
-		QueryExpansion expantion = builder.build();
+		QueryContext expantion = builder.build();
 		// call under test
 		CountQuery count = new CountQuery(expantion);
 		assertNotNull(count);
@@ -102,7 +102,7 @@ public class CountQueryTest {
 		
 		builder.setStartingSql("select * from "+tableId+" limit 10 offset 2");
 
-		QueryExpansion expantion = builder.build();
+		QueryContext expantion = builder.build();
 		// call under test
 		CountQuery count = new CountQuery(expantion);
 		assertNotNull(count);
@@ -121,7 +121,7 @@ public class CountQueryTest {
 	public void testCountQueryWithCurrentUser() {
 		builder.setStartingSql("select * from "+tableId+" where two = CURRENT_USER()");
 
-		QueryExpansion expantion = builder.build();
+		QueryContext expantion = builder.build();
 		// call under test
 		CountQuery count = new CountQuery(expantion);
 		assertNotNull(count);
@@ -139,7 +139,7 @@ public class CountQueryTest {
 		builder.setAdditionalFilters(null);
 		builder.setSelectedFacets(null);
 
-		QueryExpansion expantion = builder.build();
+		QueryContext expantion = builder.build();
 		// call under test
 		CountQuery count = new CountQuery(expantion);
 		assertNotNull(count);
@@ -176,7 +176,7 @@ public class CountQueryTest {
 		builder.setStartingSql("select count(*) from " + tableId);
 
 		// call under test
-		QueryExpansion expantion = builder.build();
+		QueryContext expantion = builder.build();
 		// call under test
 		CountQuery count = new CountQuery(expantion);
 		assertEquals(Optional.empty(), count.getCountQuery());

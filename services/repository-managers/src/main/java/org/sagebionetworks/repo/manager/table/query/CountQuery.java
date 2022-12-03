@@ -3,8 +3,7 @@ package org.sagebionetworks.repo.manager.table.query;
 import java.util.Optional;
 
 import org.sagebionetworks.table.cluster.CombinedQuery;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.Pagination;
@@ -23,7 +22,7 @@ public class CountQuery {
 	private final BasicQuery countQuery;
 	private final Pagination originalPagination;
 	
-	public CountQuery(QueryExpansion expansion) {
+	public CountQuery(QueryContext expansion) {
 		ValidateArgument.required(expansion, "expansion");
 
 		try {
@@ -34,7 +33,7 @@ public class CountQuery {
 
 			QuerySpecification model = new TableQueryParser(combined.getCombinedSql()).querySpecification();
 			originalPagination = model.getFirstElementOfType(Pagination.class);
-			SqlQuery sqlQuery = new SqlQueryBuilder(combined.getCombinedSql(), expansion.getUserId())
+			QueryTranslator sqlQuery = QueryTranslator.builder(combined.getCombinedSql(), expansion.getUserId())
 					.schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription())
 					.build();
 

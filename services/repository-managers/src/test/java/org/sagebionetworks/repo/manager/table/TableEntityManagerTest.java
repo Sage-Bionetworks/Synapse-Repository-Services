@@ -111,7 +111,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
@@ -331,7 +331,7 @@ public class TableEntityManagerTest {
 				}
 				return true;
 			}
-		}).when(mockTableIndexDAO).queryAsStream(isNull(), any(SqlQuery.class), any(RowHandler.class));
+		}).when(mockTableIndexDAO).queryAsStream(isNull(), any(QueryTranslator.class), any(RowHandler.class));
 	}
 
 	void setUserAsFileHandleCreator() {

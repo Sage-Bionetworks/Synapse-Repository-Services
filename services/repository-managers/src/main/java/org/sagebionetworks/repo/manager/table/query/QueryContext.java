@@ -14,7 +14,7 @@ import org.sagebionetworks.util.ValidateArgument;
  * wraps table metadata providers.
  *
  */
-public class QueryExpansion {
+public class QueryContext {
 
 	private final String startingSql;
 	private final SchemaProvider schemaProvider;
@@ -29,7 +29,7 @@ public class QueryExpansion {
 	private final Long limit;
 	private final List<SortItem> sort;
 
-	public QueryExpansion(String startingSql, SchemaProvider schemaProvider, IndexDescription indexDescription,
+	public QueryContext(String startingSql, SchemaProvider schemaProvider, IndexDescription indexDescription,
 			Long userId, Long maxBytesPerPage, Long maxRowsPerCall, List<QueryFilter> additionalFilters,
 			List<FacetColumnRequest> selectedFacets, Boolean includeEntityEtag, Long offset, Long limit,
 			List<SortItem> sort) {
@@ -253,8 +253,8 @@ public class QueryExpansion {
 			return this;
 		}
 
-		public QueryExpansion build() {
-			return new QueryExpansion(startingSql, schemaProvider, indexDescription, userId, maxBytesPerPage,
+		public QueryContext build() {
+			return new QueryContext(startingSql, schemaProvider, indexDescription, userId, maxBytesPerPage,
 					maxRowsPerCall, additionalFilters, selectedFacets, includeEntityEtag, offset, limit, sort);
 		}
 

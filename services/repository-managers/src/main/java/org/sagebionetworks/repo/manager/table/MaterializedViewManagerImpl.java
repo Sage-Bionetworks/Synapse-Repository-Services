@@ -16,8 +16,7 @@ import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -105,13 +104,13 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	 */
 	void bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification definingQuery) {
 		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
-		SqlQuery sqlQuery = new SqlQueryBuilder(definingQuery).schemaProvider(columModelManager).sqlContext(SqlContext.build)
+		QueryTranslator sqlQuery = QueryTranslator.builder(definingQuery).schemaProvider(columModelManager).sqlContext(SqlContext.build)
 				.indexDescription(indexDescription)
 				.build();
 		bindSchemaToView(idAndVersion, sqlQuery);
 	}
 	
-	void bindSchemaToView(IdAndVersion idAndVersion, SqlQuery sqlQuery) {
+	void bindSchemaToView(IdAndVersion idAndVersion, QueryTranslator sqlQuery) {
 		// create each column as needed.
 		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
 				.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());
@@ -169,7 +168,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			String definingSql = materializedViewDao.getMaterializedViewDefiningSql(idAndVersion)
 					.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));
 			QuerySpecification querySpecification = getQuerySpecification(definingSql);
-			SqlQuery sqlQuery = new SqlQueryBuilder(querySpecification).schemaProvider(columModelManager).sqlContext(SqlContext.build)
+			QueryTranslator sqlQuery = QueryTranslator.builder(querySpecification).schemaProvider(columModelManager).sqlContext(SqlContext.build)
 					.indexDescription(indexDescription).build();
 	
 			// schema of the current version is dynamic, while the schema of a snapshot is
@@ -211,7 +210,8 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		}
 	}
 
-	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(IdAndVersion idAndVersion, SqlQuery definingSql) {		
+
+	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(IdAndVersion idAndVersion, QueryTranslator definingSql) {
 		// Is the index out-of-synch?
 		if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
 			// nothing to do

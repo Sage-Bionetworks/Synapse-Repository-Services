@@ -10,11 +10,10 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
-import org.sagebionetworks.repo.manager.table.query.CachingSchemaProvider;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
+import org.sagebionetworks.repo.manager.table.query.QueryContext;
 import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
-import org.sagebionetworks.repo.manager.table.query.QueryExpansion;
 import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -43,7 +42,7 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
@@ -112,13 +111,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			bundle.setCombinedSql(combinedSql);
 			// save the max rows per page.
 			if(options.returnMaxRowsPerPage()) {
-				bundle.setMaxRowsPerPage(sqlQuery.getMainQuery().getSqlQuery().getMaxRowsPerPage());
+				bundle.setMaxRowsPerPage(sqlQuery.getMainQuery().getTranslator().getMaxRowsPerPage());
 			}
 			// add captured rows to the bundle
 			if (options.runQuery()) {
 				bundle.getQueryResult().getQueryResults().setRows(rowHandler.getRows());
 			}
-			int maxRowsPerPage = sqlQuery.getMainQuery().getSqlQuery().getMaxRowsPerPage().intValue();
+			int maxRowsPerPage = sqlQuery.getMainQuery().getTranslator().getMaxRowsPerPage().intValue();
 			// add the next page token if needed
 			if (isRowCountEqualToMaxRowsPerPage(bundle, maxRowsPerPage)) {
 				long nextOffset = (query.getOffset() == null ? 0 : query.getOffset()) + maxRowsPerPage;
@@ -167,7 +166,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * <li>Authenticate that the user has read access on the table.</li>
 	 * <li>Gather table's schema information</li>
 	 * <li>Add row level filtering as needed.</li>
-	 * <li>Create processed {@link SqlQuery} that is ready for execution.</li>
+	 * <li>Create processed {@link QueryTranslator} that is ready for execution.</li>
 	 * </ol>
 	 * a
 	 * 
@@ -204,7 +203,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// Table views must have a row level filter applied to the query
 		model = addRowLevelFilter(user, model, indexDescription);
 
-		QueryExpansion expansion = QueryExpansion.builder().setStartingSql(model.toSql()).setUserId(user.getId())
+		QueryContext expansion = QueryContext.builder().setStartingSql(model.toSql()).setUserId(user.getId())
 				.setSchemaProvider(tableManagerSupport).setIndexDescription(indexDescription)
 				.setMaxBytesPerPage(maxBytesPerPage).setMaxRowsPerCall(MAX_ROWS_PER_CALL)
 				.setAdditionalFilters(query.getAdditionalFilters()).setSelectedFacets(query.getSelectedFacets())
@@ -238,7 +237,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws DatastoreException, NotFoundException, TableUnavailableException, TableFailedException,
 			LockUnavilableException, EmptyResultException {
 		// run with a read lock on the table and include the current etag.
-		IdAndVersion idAndVersion = IdAndVersion.parse(query.getMainQuery().getSqlQuery().getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+		IdAndVersion idAndVersion = IdAndVersion.parse(query.getMainQuery().getTranslator().getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		return tryRunWithTableReadLock(progressCallback, idAndVersion, (ProgressCallback callback) -> {
 					// We can only run this query if the table is available.
 					final TableStatus status = validateTableIsAvailable(idAndVersion.toString());
@@ -304,24 +303,24 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// build up the response.
 		QueryResultBundle bundle = new QueryResultBundle();
 		if(options.returnColumnModels()) {
-			bundle.setColumnModels(query.getMainQuery().getSqlQuery().getTableSchema());
+			bundle.setColumnModels(query.getMainQuery().getTranslator().getTableSchema());
 		}
 		if(options.returnSelectColumns()) {
-			bundle.setSelectColumns(query.getMainQuery().getSqlQuery().getSelectColumns());
+			bundle.setSelectColumns(query.getMainQuery().getTranslator().getSelectColumns());
 		}
 
 		IdAndVersion idAndVersion = IdAndVersion
-				.parse(query.getMainQuery().getSqlQuery().getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+				.parse(query.getMainQuery().getTranslator().getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		
-		if (query.getMainQuery().getSqlQuery().isIncludeSearch() && !indexDao.isSearchEnabled(idAndVersion)) {
+		if (query.getMainQuery().getTranslator().isIncludeSearch() && !indexDao.isSearchEnabled(idAndVersion)) {
 			throw new IllegalArgumentException("Invalid use of " + TextMatchesPredicate.KEYWORD + ". Full text search is not enabled on table " + idAndVersion + ".");
 		}
 
 		// run the actual query if needed.
 		if (rowHandler != null) {
 			// run the query
-			RowSet rowSet = runQueryAsStream(progressCallback, query.getMainQuery().getSqlQuery(), rowHandler, indexDao);
+			RowSet rowSet = runQueryAsStream(progressCallback, query.getMainQuery().getTranslator(), rowHandler, indexDao);
 			QueryResult queryResult = new QueryResult();
 			queryResult.setQueryResults(rowSet);
 			bundle.setQueryResult(queryResult);
@@ -481,13 +480,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			final QueryTranslations query = queryPreflight(user, request, maxBytes, options);
 
 			// Do not include rowId and version if it is not provided (PLFM-2993)
-			if (!query.getMainQuery().getSqlQuery().includesRowIdAndVersion()) {
+			if (!query.getMainQuery().getTranslator().includesRowIdAndVersion()) {
 				request.setIncludeRowIdAndRowVersion(false);
 				request.setIncludeEntityEtag(false);
 			}
 			// This handler will capture the row data.
-			CSVWriterRowHandler handler = new CSVWriterRowHandler(writer, query.getMainQuery().getSqlQuery().getSelectColumns(),
-					request.getIncludeRowIdAndRowVersion(), query.getMainQuery().getSqlQuery().includeEntityEtag());
+			CSVWriterRowHandler handler = new CSVWriterRowHandler(writer, query.getMainQuery().getTranslator().getSelectColumns(),
+					request.getIncludeRowIdAndRowVersion(), query.getMainQuery().getTranslator().includeEntityEtag());
 
 			if (request.getWriteHeader()) {
 				handler.writeHeader();
@@ -515,7 +514,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param rowHandler
 	 * @return
 	 */
-	RowSet runQueryAsStream(ProgressCallback callback, SqlQuery query, RowHandler rowHandler, TableIndexDAO indexDao) {
+	RowSet runQueryAsStream(ProgressCallback callback, QueryTranslator query, RowHandler rowHandler, TableIndexDAO indexDao) {
 		ValidateArgument.required(query, "query");
 		ValidateArgument.required(rowHandler, "rowHandler");
 		indexDao.queryAsStream(callback, query, rowHandler);

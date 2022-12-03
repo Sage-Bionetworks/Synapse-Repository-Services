@@ -1,6 +1,25 @@
 package org.sagebionetworks.repo.web.service.table;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyListOf;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
+
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -28,36 +47,13 @@ import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.SchemaProvider;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-
 import com.google.common.collect.Lists;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import org.junit.jupiter.api.extension.ExtendWith;
-
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyListOf;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Unit test for TableServicesImpl.
@@ -87,7 +83,7 @@ public class TableServicesImplTest {
 	RowSet selectStar;
 	QueryResult selectStarResult;
 	String tableId;
-	SqlQuery sqlQuery;
+	QueryTranslator sqlQuery;
 	RowReferenceSet fileHandlesToFind;
 	RowReference rowRef;
 	String columnId;
@@ -113,7 +109,7 @@ public class TableServicesImplTest {
 		SchemaProvider schemaProvider = (IdAndVersion tableId) -> {
 			return columns;
 		};
-		sqlQuery = new SqlQueryBuilder("select * from " + tableId, schemaProvider, userId).indexDescription(new TableIndexDescription(IdAndVersion.parse(tableId))).build();
+		sqlQuery = QueryTranslator.builder("select * from " + tableId, schemaProvider, userId).indexDescription(new TableIndexDescription(IdAndVersion.parse(tableId))).build();
 		List<ColumnModel> columns = new LinkedList<ColumnModel>();
 		fileHandlesToFind = new RowReferenceSet();
 		fileHandlesToFind.setTableId(tableId);

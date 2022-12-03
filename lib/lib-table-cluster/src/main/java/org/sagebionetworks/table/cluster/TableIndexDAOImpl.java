@@ -442,7 +442,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public RowSet query(ProgressCallback callback, final SqlQuery query) {
+	public RowSet query(ProgressCallback callback, final QueryTranslator query) {
 		if (query == null)
 			throw new IllegalArgumentException("SqlQuery cannot be null");
 		final List<Row> rows = new LinkedList<Row>();
@@ -469,7 +469,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public boolean queryAsStream(final ProgressCallback callback, final SqlQuery query, final RowHandler handler) {
+	public boolean queryAsStream(final ProgressCallback callback, final QueryTranslator query, final RowHandler handler) {
 		ValidateArgument.required(query, "Query");
 		final ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(query.getSelectColumns());
 		// We use spring to create create the prepared statement

@@ -79,7 +79,7 @@ public interface TableIndexDAO {
 	 * @param query
 	 * @return
 	 */
-	RowSet query(ProgressCallback callback, SqlQuery query);
+	RowSet query(ProgressCallback callback, QueryTranslator query);
 
 	/**
 	 * Run a simple count query.
@@ -98,7 +98,7 @@ public interface TableIndexDAO {
 	 * @param handler
 	 * @return
 	 */
-	boolean queryAsStream(ProgressCallback callback, SqlQuery query, RowHandler handler);
+	boolean queryAsStream(ProgressCallback callback, QueryTranslator query, RowHandler handler);
 
 	/**
 	 * Get the row count for this table.

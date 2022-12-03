@@ -42,7 +42,7 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
 import org.sagebionetworks.table.cluster.SQLUtils;
-import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
@@ -1149,7 +1149,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, SqlQuery definingSql) {
+	public Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, QueryTranslator definingSql) {
 		IndexDescription indexDescription = definingSql.getIndexDescription();
 		
 		return tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {

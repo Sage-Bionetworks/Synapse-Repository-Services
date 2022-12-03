@@ -1,19 +1,19 @@
 package org.sagebionetworks.repo.manager.table;
 
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 
 public class QueryHandler {
 	
-	private final SqlQuery query;
+	private final QueryTranslator query;
 	private final RowHandler handler;
 
-	public QueryHandler(SqlQuery query, RowHandler handler) {
+	public QueryHandler(QueryTranslator query, RowHandler handler) {
 		this.query = query;
 		this.handler = handler;
 	}
 
-	public SqlQuery getQuery() {
+	public QueryTranslator getQuery() {
 		return query;
 	}
 

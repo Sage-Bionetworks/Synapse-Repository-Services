@@ -36,7 +36,7 @@ public class SumFileSizesQueryTest {
 	private IndexDescription indexDescription;
 	private IdAndVersion tableId;
 	private Long userId;
-	private QueryExpansion.Builder builder;
+	private QueryContext.Builder builder;
 	private String startingSql;
 	private Long maxRowsPerCall;
 
@@ -62,7 +62,7 @@ public class SumFileSizesQueryTest {
 
 		maxRowsPerCall = 18L;
 
-		builder = QueryExpansion.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
+		builder = QueryContext.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
 				.setUserId(userId).setMaxBytesPerPage(10_000L).setStartingSql(startingSql)
 				.setMaxRowsPerCall(maxRowsPerCall);
 	}
