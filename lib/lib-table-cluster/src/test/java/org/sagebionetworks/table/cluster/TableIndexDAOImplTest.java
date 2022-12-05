@@ -86,6 +86,7 @@ import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
@@ -509,12 +510,12 @@ public class TableIndexDAOImplTest {
 		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(2, results.getRows().size());
 		// test the count
-		String countSql = SqlElementUtils.createCountSql(query.getOutputSQL()).get();
+		String countSql = SqlElementUtils.createCountSql(query.getTranslatedModel().getFirstElementOfType(QuerySpecification.class)).get();
 		Long count = tableIndexDAO.countQuery(countSql, query.getParameters());
 		assertEquals(new Long(2), count);
 		// test the rowIds
 		long limit = 2;
-		String rowIdSql = SqlElementUtils.buildSqlSelectRowIdAndVersions(query.getOutputSQL(), limit).get();
+		String rowIdSql = SqlElementUtils.buildSqlSelectRowIdAndVersions(query.getTranslatedModel().getFirstElementOfType(QuerySpecification.class), limit).get();
 		
 		List<IdAndVersion> expectedRowIdAdVersions = Arrays.asList(
 				IdAndVersion.parse("100.3"),

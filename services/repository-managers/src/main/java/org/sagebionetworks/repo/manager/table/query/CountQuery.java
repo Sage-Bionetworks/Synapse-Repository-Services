@@ -38,8 +38,10 @@ public class CountQuery {
 					.build();
 
 			// if a count cannot be run then this will be null.
-			countQuery = SqlElementUtils.createCountSql(sqlQuery.getOutputSQL()).map(counSql -> {
-				return new BasicQuery(counSql, sqlQuery.getParameters());
+			countQuery = SqlElementUtils
+					.createCountSql(sqlQuery.getTranslatedModel().getFirstElementOfType(QuerySpecification.class))
+					.map(counSql -> {
+						return new BasicQuery(counSql, sqlQuery.getParameters());
 			}).orElse(null);
 
 		} catch (ParseException e) {

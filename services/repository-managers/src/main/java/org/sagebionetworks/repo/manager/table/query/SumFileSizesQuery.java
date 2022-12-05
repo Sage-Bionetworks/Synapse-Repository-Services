@@ -28,8 +28,9 @@ public class SumFileSizesQuery {
 				QuerySpecification model = new TableQueryParser(combined.getCombinedSql()).querySpecification();
 				QueryTranslator sqlQuery = QueryTranslator.builder(model.toSql(), expansion.getUserId()).schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription()).build();
 				// first get the rowId and rowVersions for the given query up to the limit + 1.
-				rowIdAndVersionQuery = SqlElementUtils.buildSqlSelectRowIdAndVersions(sqlQuery.getOutputSQL(),expansion.getMaxRowsPerCall() + 1L)
-						.map((sql)->{
+				rowIdAndVersionQuery = SqlElementUtils.buildSqlSelectRowIdAndVersions(
+						sqlQuery.getTranslatedModel().getFirstElementOfType(QuerySpecification.class),
+						expansion.getMaxRowsPerCall() + 1L).map((sql)->{
 							return new BasicQuery(sql, sqlQuery.getParameters());
 						}).orElse(null);
 			} catch (ParseException e) {

@@ -38,6 +38,8 @@ public class QueryTranslator {
 	 *
 	 */
 	private final String inputSql;
+	
+	private final QueryExpression translated;
 
 	/**
 	 * This map will contain all of the bind variable values for the translated
@@ -108,13 +110,14 @@ public class QueryTranslator {
 		ValidateArgument.required(indexDescription, "indexDescription");
 		this.inputSql = startingSql;
 		try {
-			QueryExpression transformedModel = new TableQueryParser(startingSql).queryExpression();
-			transformedModel.setSqlContext(sqlContextIn);
+
 			if (sqlContextIn == null) {
 				this.sqlContext = SqlContext.query;
 			} else {
 				this.sqlContext = sqlContextIn;
 			}
+			QueryExpression transformedModel = new TableQueryParser(startingSql).queryExpression();
+			transformedModel.setSqlContext(this.sqlContext);
 			
 			List<QueryPart> parts = transformedModel.stream(QuerySpecification.class).map((q)-> new QueryPart(q, schemaProvider)).collect(Collectors.toList());
 			
@@ -179,7 +182,7 @@ public class QueryTranslator {
 				// translate each part
 				SQLTranslatorUtils.translateModel(p.getQuerySpecification(), parameters, userId, p.getMapper());
 			});
-			
+			this.translated = transformedModel;
 			this.outputSQL = transformedModel.toSql();
 		}catch (ParseException e) {
 			throw new IllegalArgumentException(e);
@@ -341,6 +344,10 @@ public class QueryTranslator {
 	 */
 	public Long getMaxRowsPerPage() {
 		return maxRowsPerPage;
+	}
+	
+	public QueryExpression getTranslatedModel() {
+		return this.translated;
 	}
 
 	/**

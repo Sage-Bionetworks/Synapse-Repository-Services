@@ -166,7 +166,8 @@ public class SQLTranslatorUtilsTest {
 		etag = "anEtag";
 		tableIdAndVersion = IdAndVersion.parse("syn123.456");
 		
-		singleTableMapper = new TableAndColumnMapper(new TableQueryParser("select * from syn123.456").querySpecification(), schemaProvider);
+		singleTableMapper = new TableAndColumnMapper(new TableQueryParser("select * from syn123.456").queryExpression()
+				.getFirstElementOfType(QuerySpecification.class), schemaProvider);
 	}
 
 	@Test
@@ -750,7 +751,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateTableName() throws ParseException{
-		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select * from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
@@ -764,7 +766,8 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateTableNameWithVerion() throws ParseException{
-		QuerySpecification model = new TableQueryParser("select * from syn123.456").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select * from syn123.456").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123.456"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
@@ -778,7 +781,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateTableNameWithJoin() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select * FROM syn123 r join syn456 t").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select * FROM syn123 r join syn456 t").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
@@ -794,7 +798,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateTableNameWithJoinAndVersion() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select * FROM syn123.3 r join syn456.1 t").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select * FROM syn123.3 r join syn456.1 t").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123.3"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456.1"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
@@ -904,7 +909,7 @@ public class SQLTranslatorUtilsTest {
 	public void testReplaceArrayHasPredicate_ReferencedColumn_FalseIsList() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING);//not a list type
 		singleTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123.456").querySpecification(), (IdAndVersion tableId) -> {
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class), (IdAndVersion tableId) -> {
 					return Collections.singletonList(columnFoo);
 				});
 
@@ -937,7 +942,7 @@ public class SQLTranslatorUtilsTest {
 	public void testReplaceArrayHasPredicate_Has() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		singleTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123.456").querySpecification(), (IdAndVersion tableId) -> {
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class), (IdAndVersion tableId) -> {
 					return Collections.singletonList(columnFoo);
 				});
 
@@ -957,7 +962,7 @@ public class SQLTranslatorUtilsTest {
 	public void testReplaceArrayHasPredicate_NotHas() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		singleTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123.456").querySpecification(), (IdAndVersion tableId) -> {
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class), (IdAndVersion tableId) -> {
 					return Collections.singletonList(columnFoo);
 				});
 
@@ -980,7 +985,7 @@ public class SQLTranslatorUtilsTest {
 		columnFoo.setColumnType(ColumnType.ENTITYID_LIST);
 		
 		singleTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123.456").querySpecification(), (IdAndVersion tableId) -> {
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class), (IdAndVersion tableId) -> {
 					return Collections.singletonList(columnFoo);
 				});
 
@@ -1018,7 +1023,7 @@ public class SQLTranslatorUtilsTest {
 	public void testReplaceArrayHasPredicateWithHasLike() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		singleTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123.456").querySpecification(), (IdAndVersion tableId) -> {
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class), (IdAndVersion tableId) -> {
 					return Collections.singletonList(columnFoo);
 				});;
 
@@ -1046,7 +1051,7 @@ public class SQLTranslatorUtilsTest {
 	public void testReplaceArrayHasPredicateWithHasLikeAndEscape() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		singleTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123.456").querySpecification(), (IdAndVersion tableId) -> {
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class), (IdAndVersion tableId) -> {
 					return Collections.singletonList(columnFoo);
 				});
 
@@ -1074,7 +1079,7 @@ public class SQLTranslatorUtilsTest {
 	public void testReplaceArrayHasPredicateWithHasLikeAndReferencedColumnNotMultiValue() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING);//not a list type
 		singleTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123.456").querySpecification(), (IdAndVersion tableId) -> {
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class), (IdAndVersion tableId) -> {
 					return Collections.singletonList(columnFoo);
 				});
 
@@ -1095,7 +1100,7 @@ public class SQLTranslatorUtilsTest {
 	public void testReplaceArrayHasPredicateWithHasLikeAndSingleValue() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		singleTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123.456").querySpecification(), (IdAndVersion tableId) -> {
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class), (IdAndVersion tableId) -> {
 					return Collections.singletonList(columnFoo);
 				});
 
@@ -1138,7 +1143,7 @@ public class SQLTranslatorUtilsTest {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		
 		TableAndColumnMapper multiTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123 join syn456").querySpecification(), (IdAndVersion tableId) -> {
+				new TableQueryParser("select * from syn123 join syn456").queryExpression().getFirstElementOfType(QuerySpecification.class), (IdAndVersion tableId) -> {
 					if (tableId.getId() == 123L) {
 						return Arrays.asList(columnFoo);
 					} else {
@@ -1166,7 +1171,7 @@ public class SQLTranslatorUtilsTest {
 		columnBar.setColumnType(ColumnType.STRING_LIST);
 		
 		TableAndColumnMapper multiTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123 join syn456").querySpecification(), (IdAndVersion tableId) -> {
+				new TableQueryParser("select * from syn123 join syn456").queryExpression().getFirstElementOfType(QuerySpecification.class), (IdAndVersion tableId) -> {
 					if (tableId.getId() == 123L) {
 						return Arrays.asList(columnFoo);
 					} else {
@@ -1194,7 +1199,7 @@ public class SQLTranslatorUtilsTest {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		
 		TableAndColumnMapper multiTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123 join syn456").querySpecification(), (IdAndVersion tableId) -> {
+				new TableQueryParser("select * from syn123 join syn456").queryExpression().getFirstElementOfType(QuerySpecification.class), (IdAndVersion tableId) -> {
 					// Both tables have the multi value column
 					return Arrays.asList(columnFoo);
 				});
@@ -1253,7 +1258,7 @@ public class SQLTranslatorUtilsTest {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnBar.setColumnType(ColumnType.STRING_LIST);
 		singleTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123.456").querySpecification(), (IdAndVersion tableId) -> {
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class), (IdAndVersion tableId) -> {
 					return Arrays.asList(columnFoo, columnBar);
 				});
 
@@ -1841,7 +1846,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWithKnownJoinColumn() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 a join syn123 b on (a.id = b.id)").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 a join syn123 b on (a.id = b.id)").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		// call under test
@@ -1851,7 +1857,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWithUnknownJoinColumn() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 a join syn123 b on (a.wrong = b.id)").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 a join syn123 b on (a.wrong = b.id)").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		String message = assertThrows(IllegalArgumentException.class, ()->{
@@ -1863,7 +1870,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWithUnknownJoinColumnOnRightHandSide() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 a join syn123 b on (a.id = b.wrong)").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 a join syn123 b on (a.id = b.wrong)").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		String message = assertThrows(IllegalArgumentException.class, ()->{
@@ -1877,7 +1885,8 @@ public class SQLTranslatorUtilsTest {
 	public void testTranslateModelWithJoinColumnAndUnnestFunction() throws ParseException{
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		
-		QuerySpecification element = new TableQueryParser("select unnest(a.foo) from syn123 a join syn123 b on (a.id = b.id)").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select unnest(a.foo) from syn123 a join syn123 b on (a.id = b.id)").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		// call under test
@@ -1888,7 +1897,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelSimple() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select foo from syn123").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -1897,7 +1907,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelSelectFunction() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select sum(foo) from syn123").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select sum(foo) from syn123").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -1906,7 +1917,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelSelectDouble() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select aDouble from syn123").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select aDouble from syn123").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -1915,7 +1927,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelSelectDoubleFunction() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select sum(aDouble) from syn123").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select sum(aDouble) from syn123").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -1925,7 +1938,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhere() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where id > 2").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select foo from syn123 where id > 2").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -1935,7 +1949,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhereBetween() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where id between '1' and 2").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select foo from syn123 where id between '1' and 2").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -1946,7 +1961,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhereIn() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where id in ('1',2,3)").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select foo from syn123 where id in ('1',2,3)").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -1958,7 +1974,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhereLike() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where id like '%3'").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select foo from syn123 where id like '%3'").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -1968,7 +1985,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhereNull() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where id is not null").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select foo from syn123 where id is not null").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -1977,7 +1995,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhereIsTrue() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where id is true").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select foo from syn123 where id is true").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -1986,7 +2005,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhereIsNaN() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where isNaN(aDouble)").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select foo from syn123 where isNaN(aDouble)").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -1995,7 +2015,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhereIsInfinity() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where isInfinity(aDouble)").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select foo from syn123 where isInfinity(aDouble)").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2004,7 +2025,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelGroupBy() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select bar, count(foo) from syn123 group by bar").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select bar, count(foo) from syn123 group by bar").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2013,7 +2035,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelOrderBy() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 order by bar").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select foo from syn123 order by bar").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2022,7 +2045,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelOrderByFunction() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 order by max(bar)").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select foo from syn123 order by max(bar)").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2031,7 +2055,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelOrderDouble() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 order by aDouble").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select foo from syn123 order by aDouble").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2040,7 +2065,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelOrderDoubleAs() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select aDouble as f1 from syn123 order by f1").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select aDouble as f1 from syn123 order by f1").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2049,7 +2075,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelOrderFunctionDouble() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 order by min(aDouble)").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select foo from syn123 order by min(aDouble)").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2058,7 +2085,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelSelectArithmetic() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select -(2+2)*10 FROM syn123").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select -(2+2)*10 FROM syn123").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2067,7 +2095,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelSelectArithmeticRightHandSide() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = -(2+3)*10").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 where foo = -(2+3)*10").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2079,7 +2108,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelSelectArithmeticFunction() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select sum((id+foo)/aDouble) as \"sum\" from syn123").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select sum((id+foo)/aDouble) as \"sum\" from syn123").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2092,7 +2122,8 @@ public class SQLTranslatorUtilsTest {
 	 */
 	@Test
 	public void testTranslateModelSelectArithmeticGroupByOrderBy() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo%10, count(*) from syn123 group by foo%10 order by foo%10").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select foo%10, count(*) from syn123 group by foo%10 order by foo%10").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2105,7 +2136,8 @@ public class SQLTranslatorUtilsTest {
 	 */
 	@Test
 	public void testTranslateModelRegularIdentiferRightHandSideColumnReference() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = bar").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 where foo = bar").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2120,7 +2152,8 @@ public class SQLTranslatorUtilsTest {
 	 */
 	@Test
 	public void testTranslateModelRegularIdentiferRightHandSideNotColumnReference() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = notReference").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 where foo = notReference").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		String message = assertThrows(IllegalArgumentException.class, ()->{
@@ -2135,7 +2168,8 @@ public class SQLTranslatorUtilsTest {
 	 */
 	@Test
 	public void testTranslateModelDelimitedIdentiferRightHandSideColumnReference() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = \"bar\"").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 where foo = \"bar\"").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2148,7 +2182,8 @@ public class SQLTranslatorUtilsTest {
 	 */
 	@Test
 	public void testTranslateModelDelimitedIdentiferRightHandSideMultipleColumnReference() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = \"bar\" + \"foo\"").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 where foo = \"bar\" + \"foo\"").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2157,7 +2192,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelDelemitedIdentiferRightHandSideNotColumnReference() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = \"notReference\"").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 where foo = \"notReference\"").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		String message = assertThrows(IllegalArgumentException.class, ()->{
@@ -2168,7 +2204,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelArithmeticAndColumnReferenceOnRightHandSide() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = 2*3/bar").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 where foo = 2*3/bar").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2179,7 +2216,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelArithmeticAndColumnReferenceOnRightHandSide2() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = (2+3)/bar").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 where foo = (2+3)/bar").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2188,7 +2226,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelArithmeticGroupBy() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 group by bar/456 - min(bar)").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 group by bar/456 - min(bar)").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2197,7 +2236,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateMySqlFunctionRightHandSide() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 where foo > unix_timestamp(CURRENT_TIMESTAMP - INTERVAL 1 MONTH)/1000").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 where foo > unix_timestamp(CURRENT_TIMESTAMP - INTERVAL 1 MONTH)/1000").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2212,7 +2252,8 @@ public class SQLTranslatorUtilsTest {
 	 */
 	@Test
 	public void testTranslateDoubleQuotedAliasOrder() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select bar as \"a1\", count(foo) as \"a2\" from syn123 group by \"a1\" order by \"a2\" desc").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select bar as \"a1\", count(foo) as \"a2\" from syn123 group by \"a1\" order by \"a2\" desc").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2226,7 +2267,8 @@ public class SQLTranslatorUtilsTest {
 	 */
 	@Test
 	public void testTranslateValueInDoubleQuotes() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 where foo in(\"one\",\"two\")").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 where foo in(\"one\",\"two\")").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2235,7 +2277,8 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateModel_InPredicate_ValueNoQuotes() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 where id in(1, 2)").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 where id in(1, 2)").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2246,7 +2289,8 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateModel_InPredicate_ValueSingleQuotes() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 where foo in('asdf', 'qwerty')").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select * from syn123 where foo in('asdf', 'qwerty')").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2260,7 +2304,8 @@ public class SQLTranslatorUtilsTest {
 		columnDouble.setColumnType(ColumnType.INTEGER_LIST);
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 
-		QuerySpecification element = new TableQueryParser( "select * from syn123 where aDouble has (1,2,3) and ( foo has ('yah') or bar = 'yeet')").querySpecification();
+		QueryExpression rootElement = new TableQueryParser( "select * from syn123 where aDouble has (1,2,3) and ( foo has ('yah') or bar = 'yeet')").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2277,7 +2322,8 @@ public class SQLTranslatorUtilsTest {
 		columnDouble.setColumnType(ColumnType.INTEGER_LIST);
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 
-		QuerySpecification element = new TableQueryParser( "select * from syn123 where aDouble has (1,2,3) and ( foo has_like ('yah%', 'wow') or bar = 'yeet')").querySpecification();
+		QueryExpression rootElement = new TableQueryParser( "select * from syn123 where aDouble has (1,2,3) and ( foo has_like ('yah%', 'wow') or bar = 'yeet')").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2295,7 +2341,8 @@ public class SQLTranslatorUtilsTest {
 		columnDouble.setColumnType(ColumnType.INTEGER_LIST);
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 
-		QuerySpecification element = new TableQueryParser( "select * from syn123 where aDouble has (1,2,3) and ( foo has_like ('yah%', 'wow') escape '_' or bar = 'yeet')").querySpecification();
+		QueryExpression rootElement = new TableQueryParser( "select * from syn123 where aDouble has (1,2,3) and ( foo has_like ('yah%', 'wow') escape '_' or bar = 'yeet')").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2313,7 +2360,8 @@ public class SQLTranslatorUtilsTest {
 	public void testTranslateModel_UnnestArrayColumn() throws ParseException{
 		columnFoo.setColumnType(ColumnType.STRING_LIST);//not a list type
 
-		QuerySpecification element = new TableQueryParser("select unnest(foo) , count(*) from syn123 where bar in ('asdf', 'qwerty') group by Unnest(foo)").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select unnest(foo) , count(*) from syn123 where bar in ('asdf', 'qwerty') group by Unnest(foo)").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2329,7 +2377,8 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateModel_CurrentUserFunction() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select count(*) from syn123 where bar = CURRENT_USER()").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select count(*) from syn123 where bar = CURRENT_USER()").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2340,7 +2389,8 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateModel_translateSynapseFunctions() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select bar, CURRENT_USER() from syn123 where bar = CURRENT_USER()").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select bar, CURRENT_USER() from syn123 where bar = CURRENT_USER()").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		// call under test
 		SQLTranslatorUtils.translateSynapseFunctions(element, userId);
         assertEquals("SELECT bar, 1 FROM syn123 WHERE bar = 1", element.toSql());
@@ -2350,7 +2400,8 @@ public class SQLTranslatorUtilsTest {
 	public void testTranslateModel_UnnestArrayColumn_multipleJoins() throws ParseException{
 		columnFoo.setColumnType(ColumnType.STRING_LIST);//not a list type
 		columnBar.setColumnType(ColumnType.STRING_LIST);//not a list type
-		QuerySpecification element = new TableQueryParser("select unnest(foo) , unnest(bar) from syn123").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("select unnest(foo) , unnest(bar) from syn123").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
@@ -2764,7 +2815,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWithTextMatchesPredicate() throws ParseException{
-		QuerySpecification element = new TableQueryParser("SELECT * from syn123 where TEXT_MATCHES('some text')").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("SELECT * from syn123 where TEXT_MATCHES('some text')").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		
@@ -2778,7 +2830,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWithTextMatchesPredicateMultiple() throws ParseException{
-		QuerySpecification element = new TableQueryParser("SELECT * from syn123 where TEXT_MATCHES('some text') AND (foo = 'bar' OR TEXT_MATCHES('some other text'))").querySpecification();
+		QueryExpression rootElement = new TableQueryParser("SELECT * from syn123 where TEXT_MATCHES('some text') AND (foo = 'bar' OR TEXT_MATCHES('some other text'))").queryExpression();
+		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		
@@ -2792,7 +2845,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferencedWithMultipleTablesMatchFristTable() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select t.foo from syn123 t join syn456").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select t.foo from syn123 t join syn456").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
@@ -2807,7 +2861,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferencedWithMultipleTablesMatchSecondTable() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select syn456.bar from syn123 t join syn456").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select syn456.bar from syn123 t join syn456").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
@@ -2822,7 +2877,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferencedWithSingleTable() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select t.foo from syn123 t").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select t.foo from syn123 t").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
@@ -2836,7 +2892,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferencedWithNoMatch() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select notAColumn from syn123 t").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select notAColumn from syn123 t").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
@@ -2867,7 +2924,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferenceWithDoubleInSelect() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select r.aDouble from syn123 t join syn456 r").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select r.aDouble from syn123 t join syn456 r").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
@@ -2882,8 +2940,9 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferenceWithDoubleInSelectWithBuildContext() throws ParseException {
-		QueryExpression model = new TableQueryParser("select r.aDouble from syn123 t join syn456 r").queryExpression();
-		model.setSqlContext(SqlContext.build);
+		QueryExpression rootModel = new TableQueryParser("select r.aDouble from syn123 t join syn456 r").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+		rootModel.setSqlContext(SqlContext.build);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
@@ -2898,7 +2957,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferenceWithDoubleInSelectSingleTable() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select r.aDouble from syn456 r").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select r.aDouble from syn456 r").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
@@ -2927,7 +2987,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferenceWithDoubleNotInSelect() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456 r where r.aDouble > 1.0").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select * from syn123 t join syn456 r where r.aDouble > 1.0").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
@@ -2958,7 +3019,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferenceWithDoubleInSelectAsSetFunctionParameter() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select max(r.aDouble) from syn123 t join syn456 r").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select max(r.aDouble) from syn123 t join syn456 r").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
@@ -2989,7 +3051,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferenceWithDoubleInSelectAsMySQLFunctionParameter() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select round(r.aDouble) from syn123 t join syn456 r").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select round(r.aDouble) from syn123 t join syn456 r").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
@@ -3020,7 +3083,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferenceWithDoubleInSelectAsUnestParameter() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select unnest(r.aDouble) from syn123 t join syn456 r").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select unnest(r.aDouble) from syn123 t join syn456 r").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
@@ -3035,7 +3099,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferenceWithRowIdAndMultipleTables() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select r.ROW_ID from syn123 t join syn456 r").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select r.ROW_ID from syn123 t join syn456 r").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
@@ -3050,7 +3115,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferenceWithRowIdAndSingleTable() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select ROW_ID from syn123").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select ROW_ID from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
@@ -3072,7 +3138,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSchemaOfDerivedColumnWithSimpleString() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select foo from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
@@ -3089,7 +3156,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSchemaOfDerivedColumnWithStringAlias() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select foo as bar from syn123").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select foo as bar from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
@@ -3106,7 +3174,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSchemaOfDerivedColumnWithFacetsAndDefault() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select foo from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		ColumnModel cm = new ColumnModel();
 		cm.setColumnType(ColumnType.INTEGER);
 		cm.setDefaultValue("123");
@@ -3132,7 +3201,8 @@ public class SQLTranslatorUtilsTest {
 	public void testGetSchemaOfDerivedColumnWithEachType() throws ParseException {
 		for(ColumnModel cm: TableModelTestUtils.createOneOfEachType()) {
 			cm.setName("foo");
-			QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
+			QueryExpression rootModel = new TableQueryParser("select foo from syn123").queryExpression();
+			QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 			Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 			map.put(IdAndVersion.parse("syn123"), Arrays.asList(cm));
 			TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
@@ -3153,7 +3223,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSchemaOfDerivedColumnWithDerivedAddition() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select foo + bar from syn123").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select foo + bar from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("bar")));
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
@@ -3170,7 +3241,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSchemaOfDerivedColumnWithDerivedWithCount() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select count(*) AS \"count\" from syn123").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select count(*) AS \"count\" from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("bar")));
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
@@ -3187,7 +3259,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSchemaOfDerivedColumnWithDerivedWithAverage() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select avg(id) from syn123").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select avg(id) from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("id")));
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
@@ -3204,7 +3277,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSchemaOfDerivedColumnWithDerivedWithConcat() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select concat(foo,\"-\", bar) AS \"concat\" from syn123").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select concat(foo,\"-\", bar) AS \"concat\" from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("bar")));
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
@@ -3221,7 +3295,8 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSchemaOfDerivedColumnWithUnnest() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select unnest(foo) from syn123").querySpecification();
+		QueryExpression rootModel = new TableQueryParser("select unnest(foo) from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo")));
