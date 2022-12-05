@@ -564,42 +564,51 @@ public class SqlElementUtils {
 	 * 
 	 * @param transformedModel
 	 * @return
-	 * @throws SimpleAggregateQueryException Thrown when given query is a simple aggregate query that would return one row.
+	 * @throws SimpleAggregateQueryException Thrown when given query is a simple
+	 *                                       aggregate query that would return one
+	 *                                       row.
 	 */
-	public static Optional<String> createCountSql(QuerySpecification model) {
-		TableExpression tableExpression = null;
-		FromClause fromClause = model.getTableExpression().getFromClause();
-		WhereClause whereClause = model.getTableExpression().getWhereClause();
-		GroupByClause groupByClause = null;
-		OrderByClause orderByClause = null;
-		Pagination pagination = null;
-		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT ");
-		// There are three cases
-		if(model.hasAnyAggregateElements()){
-			// does this have a group by clause?
-			if(model.getTableExpression().getGroupByClause() != null){
-				// group by query
-				builder.append("COUNT(DISTINCT ");
-				builder.append(createSelectFromGroupBy(model.getSelectList(), model.getTableExpression().getGroupByClause()));
-				builder.append(")");
-			}else if(SetQuantifier.DISTINCT.equals(model.getSetQuantifier())){
-				// distinct select
-				builder.append("COUNT(DISTINCT ");
-				builder.append(createSelectWithoutAs(model.getSelectList()));
-				builder.append(")");
-			}else{
-				return Optional.empty();
+	public static Optional<String> createCountSql(String sql) {
+		try {
+			QuerySpecification model = new TableQueryParser(sql).querySpecification();
+			TableExpression tableExpression = null;
+			FromClause fromClause = model.getTableExpression().getFromClause();
+			WhereClause whereClause = model.getTableExpression().getWhereClause();
+			GroupByClause groupByClause = null;
+			OrderByClause orderByClause = null;
+			Pagination pagination = null;
+			StringBuilder builder = new StringBuilder();
+			builder.append("SELECT ");
+			// There are three cases
+			if (model.hasAnyAggregateElements()) {
+				// does this have a group by clause?
+				if (model.getTableExpression().getGroupByClause() != null) {
+					// group by query
+					builder.append("COUNT(DISTINCT ");
+					builder.append(createSelectFromGroupBy(model.getSelectList(),
+							model.getTableExpression().getGroupByClause()));
+					builder.append(")");
+				} else if (SetQuantifier.DISTINCT.equals(model.getSetQuantifier())) {
+					// distinct select
+					builder.append("COUNT(DISTINCT ");
+					builder.append(createSelectWithoutAs(model.getSelectList()));
+					builder.append(")");
+				} else {
+					return Optional.empty();
+				}
+			} else {
+				// simple count *
+				builder.append("COUNT(*)");
 			}
-		}else{
-			// simple count *
-			builder.append("COUNT(*)");
+			// clear pagination, group by, order by
+			tableExpression = new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination);
+			builder.append(" ");
+			builder.append(tableExpression.toSql());
+			return Optional.of(builder.toString());
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
 		}
-		// clear pagination, group by, order by
-		tableExpression = new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination);
-		builder.append(" ");
-		builder.append(tableExpression.toSql());
-		return Optional.of(builder.toString());
+
 	}
 	
 	/**
@@ -610,31 +619,36 @@ public class SqlElementUtils {
 	 * @return
 	 * @throws SimpleAggregateQueryException
 	 */
-	public static Optional<String> buildSqlSelectRowIdAndVersions(QuerySpecification model, long maxLimit) {
-		TableExpression tableExpression = null;
-		FromClause fromClause = model.getTableExpression().getFromClause();
-		WhereClause whereClause = model.getTableExpression().getWhereClause();
-		GroupByClause groupByClause = null;
-		OrderByClause orderByClause = null;
-		Pagination pagination = null;
+	public static Optional<String> buildSqlSelectRowIdAndVersions(String sql, long maxLimit) {
+		try {
+			QuerySpecification model = new TableQueryParser(sql).querySpecification();
+			TableExpression tableExpression = null;
+			FromClause fromClause = model.getTableExpression().getFromClause();
+			WhereClause whereClause = model.getTableExpression().getWhereClause();
+			GroupByClause groupByClause = null;
+			OrderByClause orderByClause = null;
+			Pagination pagination = null;
 
-		// There are three cases
-		if(model.hasAnyAggregateElements()){
-			return Optional.empty();
+			// There are three cases
+			if (model.hasAnyAggregateElements()) {
+				return Optional.empty();
+			}
+
+			StringBuilder builder = new StringBuilder();
+			builder.append("SELECT ");
+			builder.append(TableConstants.ROW_ID);
+			builder.append(", ");
+			builder.append(TableConstants.ROW_VERSION);
+			// clear pagination, group by, order by
+			tableExpression = new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination);
+			builder.append(" ");
+			builder.append(tableExpression.toSql());
+			builder.append(" LIMIT ");
+			builder.append(maxLimit);
+			return Optional.of(builder.toString());
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
 		}
-		
-		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT ");
-		builder.append(TableConstants.ROW_ID);
-		builder.append(", ");
-		builder.append(TableConstants.ROW_VERSION);
-		// clear pagination, group by, order by
-		tableExpression = new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination);
-		builder.append(" ");
-		builder.append(tableExpression.toSql());
-		builder.append(" LIMIT ");
-		builder.append(maxLimit);
-		return Optional.of(builder.toString());
 	}
 	
 	/**

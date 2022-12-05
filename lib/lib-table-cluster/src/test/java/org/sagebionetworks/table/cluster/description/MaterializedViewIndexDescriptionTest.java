@@ -119,8 +119,8 @@ public class MaterializedViewIndexDescriptionTest {
 		boolean includeEtag = true;
 		boolean isAggregate = false;
 		// call under test
-		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
-		assertEquals(Arrays.asList(ROW_ID, ROW_VERSION), result);
+		List<ColumnToAdd> result = mid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
+		assertEquals(Arrays.asList(new ColumnToAdd(materializedViewId, ROW_ID), new ColumnToAdd(materializedViewId, ROW_VERSION)), result);
 	}
 	
 	@Test
@@ -133,7 +133,7 @@ public class MaterializedViewIndexDescriptionTest {
 		boolean includeEtag = true;
 		boolean isAggregate = true;
 		// call under test
-		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
+		List<ColumnToAdd> result = mid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
 		assertEquals(Collections.emptyList(), result);
 	}
 	
@@ -147,8 +147,11 @@ public class MaterializedViewIndexDescriptionTest {
 		boolean includeEtag = true;
 		boolean isAggregate = false;
 		// call under test
-		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
-		assertEquals(Arrays.asList("IFNULL( T888_3.ROW_BENEFACTOR , -1)", "IFNULL( T999.ROW_BENEFACTOR , -1)"), result);
+		List<ColumnToAdd> result = mid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
+		assertEquals(
+				Arrays.asList(new ColumnToAdd(IdAndVersion.parse("syn888.3"), "IFNULL( T888_3.ROW_BENEFACTOR , -1)"),
+						new ColumnToAdd(IdAndVersion.parse("syn999"), "IFNULL( T999.ROW_BENEFACTOR , -1)")),
+				result);
 	}
 	
 	@Test
@@ -176,7 +179,7 @@ public class MaterializedViewIndexDescriptionTest {
 		boolean includeEtag = true;
 		boolean isAggregate = true;
 		// call under test
-		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
+		List<ColumnToAdd> result = mid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
 		assertEquals(Collections.emptyList(), result);
 	}
 	

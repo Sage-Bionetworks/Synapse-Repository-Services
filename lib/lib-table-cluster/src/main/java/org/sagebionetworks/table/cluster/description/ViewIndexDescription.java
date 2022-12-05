@@ -28,7 +28,8 @@ public class ViewIndexDescription implements IndexDescription {
 		super();
 		this.idAndVersion = idAndVersion;
 		this.viewType = viewtype;
-		ObjectType benefactorType = TableType.submissionview.equals(viewtype) ? ObjectType.EVALUATION : ObjectType.ENTITY;
+		ObjectType benefactorType = TableType.submissionview.equals(viewtype) ? ObjectType.EVALUATION
+				: ObjectType.ENTITY;
 		this.description = new BenefactorDescription(ROW_BENEFACTOR, benefactorType);
 	}
 
@@ -67,7 +68,7 @@ public class ViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public List<String> getColumnNamesToAddToSelect(SqlContext type, boolean includeEtag, boolean isAggregate) {
+	public List<ColumnToAdd> getColumnNamesToAddToSelect(SqlContext type, boolean includeEtag, boolean isAggregate) {
 		if (!SqlContext.query.equals(type)) {
 			throw new IllegalArgumentException("Only 'query' is supported for views");
 		}
@@ -75,9 +76,10 @@ public class ViewIndexDescription implements IndexDescription {
 			return Collections.emptyList();
 		}
 		if (includeEtag) {
-			return Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG);
+			return Arrays.asList(new ColumnToAdd(idAndVersion, ROW_ID), new ColumnToAdd(idAndVersion, ROW_VERSION),
+					new ColumnToAdd(idAndVersion, ROW_ETAG));
 		} else {
-			return Arrays.asList(ROW_ID, ROW_VERSION);
+			return Arrays.asList(new ColumnToAdd(idAndVersion, ROW_ID), new ColumnToAdd(idAndVersion, ROW_VERSION));
 		}
 	}
 
@@ -112,7 +114,8 @@ public class ViewIndexDescription implements IndexDescription {
 
 	@Override
 	public String toString() {
-		return "ViewIndexDescription [idAndVersion=" + idAndVersion + ", viewType=" + viewType + ", description=" + description + "]";
+		return "ViewIndexDescription [idAndVersion=" + idAndVersion + ", viewType=" + viewType + ", description="
+				+ description + "]";
 	}
 
 }

@@ -31,6 +31,7 @@ import org.sagebionetworks.table.cluster.SQLUtils.TableIndexType;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
+import org.sagebionetworks.table.cluster.description.ColumnToAdd;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
@@ -234,6 +235,20 @@ public class SQLTranslatorUtils {
 		default:
 			return false;
 		}
+	}
+	
+	
+	/**
+	 * 
+	 * @param selectList
+	 * @param tableIds
+	 * @param columnsToAddToSelect
+	 */
+	public static void addMetadataColumnsToSelect(SelectList selectList, Set<IdAndVersion> tableIds, List<ColumnToAdd> columnsToAddToSelect) {
+		List<String> toAdd = columnsToAddToSelect.stream()
+				.map(a -> tableIds.contains(a.getIdAndVersion()) ? a.getSql() : "-1")
+				.collect(Collectors.toList());
+		SQLTranslatorUtils.addMetadataColumnsToSelect(selectList, toAdd);
 	}
 	
 	/**

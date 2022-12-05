@@ -75,6 +75,7 @@ import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SelectList;
@@ -2881,12 +2882,12 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferenceWithDoubleInSelectWithBuildContext() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select r.aDouble from syn123 t join syn456 r").querySpecification();
+		QueryExpression model = new TableQueryParser("select r.aDouble from syn123 t join syn456 r").queryExpression();
 		model.setSqlContext(SqlContext.build);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model.getFirstElementOfType(QuerySpecification.class), new TestSchemaProvider(map));
 		
 		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
 		// call under test
@@ -2911,11 +2912,11 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferenceWithDoubleInSelectSingleTableBuildContext() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select r.aDouble from syn456 r").querySpecification();
+		QueryExpression model = new TableQueryParser("select r.aDouble from syn456 r").queryExpression();
 		model.setSqlContext(SqlContext.build);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model.getFirstElementOfType(QuerySpecification.class), new TestSchemaProvider(map));
 		
 		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
 		// call under test
@@ -2941,12 +2942,12 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferenceWithDoubleNotInSelectWithBuildContext() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456 r where r.aDouble > 1.0").querySpecification();
+		QueryExpression model = new TableQueryParser("select * from syn123 t join syn456 r where r.aDouble > 1.0").queryExpression();
 		model.setSqlContext(SqlContext.build);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model.getFirstElementOfType(QuerySpecification.class), new TestSchemaProvider(map));
 		
 		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
 		// call under test
@@ -2972,12 +2973,12 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferenceWithDoubleInSelectAsSetFunctionParameterWithBuildContext() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select max(r.aDouble) from syn123 t join syn456 r").querySpecification();
+		QueryExpression model = new TableQueryParser("select max(r.aDouble) from syn123 t join syn456 r").queryExpression();
 		model.setSqlContext(SqlContext.build);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model.getFirstElementOfType(QuerySpecification.class), new TestSchemaProvider(map));
 		
 		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
 		// call under test
@@ -3003,12 +3004,12 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateColumnReferenceWithDoubleInSelectAsMySQLFunctionParameterWithBuildContext() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select round(r.aDouble) from syn123 t join syn456 r").querySpecification();
+		QueryExpression model = new TableQueryParser("select round(r.aDouble) from syn123 t join syn456 r").queryExpression();
 		model.setSqlContext(SqlContext.build);
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model.getFirstElementOfType(QuerySpecification.class), new TestSchemaProvider(map));
 		
 		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
 		// call under test

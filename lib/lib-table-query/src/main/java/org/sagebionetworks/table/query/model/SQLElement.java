@@ -5,6 +5,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * An element that be serialized to SQL.
@@ -44,6 +46,17 @@ public abstract class SQLElement implements Element {
 		LinkedList<T> list = new LinkedList<T>();
 		SQLElement.addRecursive(list, type, this);
 		return list;
+	}
+	
+	/**
+	 * Stream over all elements of the given type.
+	 * 
+	 * @param <T>
+	 * @param type
+	 * @return
+	 */
+	public <T extends Element>  Stream<T> stream(Class<T> type){
+		return StreamSupport.stream(createIterable(type).spliterator(), false);
 	}
 	
 	/**

@@ -24,7 +24,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 
 	private final IdAndVersion idAndVersion;
 	private final List<BenefactorDescription> benefactorDescriptions;
-	private final List<String> buildColumnsToAddToSelect;
+	private final List<ColumnToAdd> buildColumnsToAddToSelect;
 	private final List<IndexDescription> orderedDependencies;
 
 	/**
@@ -36,7 +36,8 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	public MaterializedViewIndexDescription(IdAndVersion idAndVersion, List<IndexDescription> dependencies) {
 		super();
 		this.idAndVersion = idAndVersion;
-		// The order of the provided dependencies is nondeterministic.  By ordering the generated DDL is stable.
+		// The order of the provided dependencies is nondeterministic. By ordering the
+		// generated DDL is stable.
 		this.orderedDependencies = dependencies.stream().sorted().collect(Collectors.toList());
 		this.buildColumnsToAddToSelect = new ArrayList<>();
 		this.benefactorDescriptions = new ArrayList<>();
@@ -49,11 +50,13 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	void initializeBenefactors() {
 		for (IndexDescription dependency : this.orderedDependencies) {
 			for (BenefactorDescription desc : dependency.getBenefactors()) {
-				// The SQL translator will be able to translate from this table name to the appropriate table alias.
-				String dependencyTranslatedTableName = SQLUtils.getTableNameForId(dependency.getIdAndVersion(), TableIndexType.INDEX);
+				// The SQL translator will be able to translate from this table name to the
+				// appropriate table alias.
+				String dependencyTranslatedTableName = SQLUtils.getTableNameForId(dependency.getIdAndVersion(),
+						TableIndexType.INDEX);
 				String selectColumnReference = dependencyTranslatedTableName + "." + desc.getBenefactorColumnName();
-				String ifNullCheck = String.format("IFNULL( %s , -1)",selectColumnReference);
-				buildColumnsToAddToSelect.add(ifNullCheck);
+				String ifNullCheck = String.format("IFNULL( %s , -1)", selectColumnReference);
+				buildColumnsToAddToSelect.add(new ColumnToAdd(dependency.getIdAndVersion(), ifNullCheck));
 				String newBenefactorColumnName = desc.getBenefactorColumnName() + "_" + dependencyTranslatedTableName;
 				benefactorDescriptions
 						.add(new BenefactorDescription(newBenefactorColumnName, desc.getBenefactorType()));
@@ -98,19 +101,19 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public List<String> getColumnNamesToAddToSelect(SqlContext context, boolean includeEtag, boolean isAggregate) {
+	public List<ColumnToAdd> getColumnNamesToAddToSelect(SqlContext context, boolean includeEtag, boolean isAggregate) {
 		ValidateArgument.required(context, "SqlContext");
 		switch (context) {
 		case build:
-			if(isAggregate && !buildColumnsToAddToSelect.isEmpty()) {
+			if (isAggregate && !buildColumnsToAddToSelect.isEmpty()) {
 				throw new IllegalArgumentException(TableConstants.DEFINING_SQL_WITH_GROUP_BY_ERROR);
 			}
 			return buildColumnsToAddToSelect;
 		case query:
-			if(isAggregate) {
+			if (isAggregate) {
 				return Collections.emptyList();
 			}
-			return Arrays.asList(ROW_ID, ROW_VERSION);
+			return Arrays.asList(new ColumnToAdd(idAndVersion, ROW_ID), new ColumnToAdd(idAndVersion, ROW_VERSION));
 		default:
 			throw new IllegalArgumentException("Unknown context: " + context);
 		}

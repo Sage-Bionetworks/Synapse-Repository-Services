@@ -363,6 +363,8 @@ public class TableConstants {
 	public static final String IN_PROGRESS = "in progress";
 	
 	public static final String JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE = "The JOIN keyword is not supported in this context";
+	
+	public static final String UNION_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE = "The UNION keyword is not supported in this context";
 
 	public static final Supplier<IllegalArgumentException> JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT = () -> new IllegalArgumentException(
 			JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
