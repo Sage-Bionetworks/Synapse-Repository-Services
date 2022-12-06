@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table.metadata.providers;
 
+import java.awt.*;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -20,6 +21,7 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.table.cluster.view.filter.ContainerProvider;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -131,12 +133,9 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 		if (ViewTypeMask.Project.getMask() == typeMask) {
 			return new FlatIdsFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.project), scope);
 		}else {
-			try {
-				Set<Long> allContainers = nodeDao.getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
-				return new HierarchicaFilter(ReplicationType.ENTITY, subTypes, allContainers);
-			} catch (LimitExceededException e) {
-				throw new IllegalStateException(e);
-			}
+			ContainerProvider containerProvider = () -> nodeDao.getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
+			System.out.println("Result:" + containerProvider);
+			return new HierarchicaFilter(ReplicationType.ENTITY, subTypes, containerProvider);
 		}
 	}
 

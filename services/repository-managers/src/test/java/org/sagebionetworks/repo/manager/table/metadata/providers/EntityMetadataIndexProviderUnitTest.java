@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -38,6 +39,7 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
+import org.sagebionetworks.table.cluster.view.filter.ContainerProvider;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -291,11 +293,14 @@ public class EntityMetadataIndexProviderUnitTest {
 		long viewTypeMask = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		Set<Long> fullScope = Sets.newHashSet(1L,2L,3L);
-		when(mockNodeDao.getAllContainerIds((Collection<Long>)any(), anyInt())).thenReturn(fullScope);
 		// call under test
 		ViewFilter filter = provider.getViewFilter(viewTypeMask, scope);
-		ViewFilter expected = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file), fullScope);
+		ContainerProvider containerProvider = () -> mockNodeDao.getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
+		ViewFilter expected = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file), containerProvider);
+		System.out.println(containerProvider);
+		System.out.println("Result: " + filter.hashCode() + " Expected: " + expected.hashCode());
 		assertEquals(expected, filter);
+		verify(mockNodeDao, never()).getAllContainerIds((Collection<Long>)any(), anyInt());
 	}
 	
 	@Test
@@ -303,12 +308,13 @@ public class EntityMetadataIndexProviderUnitTest {
 		long viewTypeMask = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		when(mockNodeDao.getAllContainerIds((Collection<Long>)any(), anyInt())).thenThrow(new LimitExceededException("over"));
+		HierarchicaFilter filter = (HierarchicaFilter) provider.getViewFilter(viewTypeMask, scope);
 		String message = assertThrows(IllegalStateException.class, ()->{
 			// call under test
-			provider.getViewFilter(viewTypeMask, scope);
+			filter.getParentIds();
 		}).getMessage();
 		assertEquals("org.sagebionetworks.repo.model.LimitExceededException: over", message);
-		verify(mockNodeDao).getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
+		verify(mockNodeDao, times(1)).getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test

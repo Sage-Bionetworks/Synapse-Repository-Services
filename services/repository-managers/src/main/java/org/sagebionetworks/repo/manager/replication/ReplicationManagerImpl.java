@@ -245,7 +245,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 			return metadataProvider.getViewFilter(idAndVersion.getId());
 		case ENTITY_CONTAINER:
 			return new HierarchicaFilter(ReplicationType.ENTITY,
-					Arrays.stream(SubType.values()).collect(Collectors.toSet()), Sets.newHashSet(idAndVersion.getId()));
+					Arrays.stream(SubType.values()).collect(Collectors.toSet()), () -> Sets.newHashSet(idAndVersion.getId()));
 		default:
 			throw new IllegalStateException("Unknown type: " + type);
 		}
