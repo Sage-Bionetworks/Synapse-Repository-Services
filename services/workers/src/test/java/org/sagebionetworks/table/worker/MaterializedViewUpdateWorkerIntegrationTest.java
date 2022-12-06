@@ -908,6 +908,75 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 	}
+
+	@Test
+	public void testMaterializedViewWithUnionOfMultipleViews() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> oneEntites = createProjectHierachy(numberOfFiles);
+
+		
+		Project projectOne = oneEntites.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+		List<String> fileIdsOne = oneEntites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIdsOne.size());
+		
+		List<Entity> twoEntities = createProjectHierachy(numberOfFiles);
+		Project projectTwo = twoEntities.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+		List<String> fileIdsTwo = twoEntities.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIdsTwo.size());
+		
+		
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		IdAndVersion viewOneId = createFileViewWithPatientIds(oneEntites, patientData);
+		IdAndVersion viewTwoId = createFileViewWithPatientIds(twoEntities, patientData);
+		
+		String definingSql = String.format(
+				"select v1.id as id, v1.patientId as patientId, 'one' from %s v1 union select id, patientId, 'two' from %s",
+				viewOneId.toString(), viewTwoId.toString());
+		
+		IdAndVersion materializedViewId = createMaterializedView(projectOne.getId(), definingSql);
+		
+		String materializedQuery = "select * from "+materializedViewId.toString()+" order by id asc";
+		
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsOne.get(0), "111", "one")),
+				new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsOne.get(1), "222", "one")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsOne.get(2), "111", "one")),
+				new Row().setRowId(4L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsOne.get(3), "222", "one")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsOne.get(4), "111", "one")),
+				// union
+				new Row().setRowId(6L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsTwo.get(0), "111", "two")),
+				new Row().setRowId(7L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsTwo.get(1), "222", "two")),
+				new Row().setRowId(8L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsTwo.get(2), "111", "two")),
+				new Row().setRowId(9L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsTwo.get(3), "222", "two")),
+				new Row().setRowId(10L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsTwo.get(4), "111", "two"))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		
+		// run the query again as non-admin, this user cannot see one of the folders and two of the files.
+		List<Row> expectedRowsNonAdmin = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsOne.get(0), "111", "one")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsOne.get(2), "111", "one")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsOne.get(4), "111", "one")),
+				
+				new Row().setRowId(6L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsTwo.get(0), "111", "two")),
+				new Row().setRowId(8L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsTwo.get(2), "111", "two")),
+				new Row().setRowId(10L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsTwo.get(4), "111", "two"))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(userInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRowsNonAdmin, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+	}
 	
 	/**
 	 * Create a snapshot of the passed table/view.

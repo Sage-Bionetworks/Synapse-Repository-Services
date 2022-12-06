@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -53,6 +54,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.columntranslation.RowMetadataColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
+import org.sagebionetworks.table.cluster.description.ColumnToAdd;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
@@ -650,6 +652,37 @@ public class SQLTranslatorUtilsTest {
 		for (SelectColumn select : results) {
 			assertNull(select.getId(), "This is an aggregate and one select does not match the schema so all column Ids should be null.");
 		}
+	}
+	
+	@Test
+	public void testaddMetadataColumnsToSelectWithOneMatch() throws ParseException {
+		SelectList element = new TableQueryParser("foo, 'has space'").selectList();
+		IdAndVersion one = IdAndVersion.parse("syn123.1");
+		IdAndVersion two = IdAndVersion.parse("syn123.2");
+		IdAndVersion three = IdAndVersion.parse("syn123.3");
+		List<ColumnToAdd> toAdd = List.of(new ColumnToAdd(one, "from_one"), new ColumnToAdd(two, "from_two"),
+				new ColumnToAdd(three, "from_three"));
+
+		element = new TableQueryParser("foo, 'has space'").selectList();
+		// call under test
+		SQLTranslatorUtils.addMetadataColumnsToSelect(element, Set.of(one), toAdd);
+		assertEquals("foo, 'has space', from_one, -1, -1", element.toSql());
+		
+		element = new TableQueryParser("foo, 'has space'").selectList();
+	}
+	
+	@Test
+	public void testaddMetadataColumnsToSelectWithTwoMatches() throws ParseException {
+		SelectList element = new TableQueryParser("foo, 'has space'").selectList();
+		IdAndVersion one = IdAndVersion.parse("syn123.1");
+		IdAndVersion two = IdAndVersion.parse("syn123.2");
+		IdAndVersion three = IdAndVersion.parse("syn123.3");
+		List<ColumnToAdd> toAdd = List.of(new ColumnToAdd(one, "from_one"), new ColumnToAdd(two, "from_two"),
+				new ColumnToAdd(three, "from_three"));
+
+		// call under test
+		SQLTranslatorUtils.addMetadataColumnsToSelect(element, Set.of(two, three), toAdd);
+		assertEquals("foo, 'has space', -1, from_two, from_three", element.toSql());
 	}
 	
 	@Test
