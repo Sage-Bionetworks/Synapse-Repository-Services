@@ -44,7 +44,8 @@ public class TableAndColumnMapperTest {
 				TableModelTestUtils.createColumn(555L, "Foo", ColumnType.STRING),
 				TableModelTestUtils.createColumn(666L, "datetype", ColumnType.DATE),
 				TableModelTestUtils.createColumn(777L, "has\"quote", ColumnType.STRING),
-				TableModelTestUtils.createColumn(888L, "aDouble", ColumnType.DOUBLE));
+				TableModelTestUtils.createColumn(888L, "aDouble", ColumnType.DOUBLE),
+				TableModelTestUtils.createColumn(999L, "year", ColumnType.DATE));
 		columnMap = allColumns.stream()
 			      .collect(Collectors.toMap(ColumnModel::getName, Function.identity()));
 	}
@@ -121,7 +122,7 @@ public class TableAndColumnMapperTest {
 		// call under test
 		SelectList selectList = mapper.buildSelectAllColumns();
 		assertNotNull(selectList);
-		assertEquals("\"foo\", \"has space\", \"bar\", \"foo_bar\", \"Foo\", \"datetype\", \"has\"\"quote\", \"aDouble\"",
+		assertEquals("\"foo\", \"has space\", \"bar\", \"foo_bar\", \"Foo\", \"datetype\", \"has\"\"quote\", \"aDouble\", \"year\"",
 				selectList.toSql());
 	}
 
@@ -175,7 +176,7 @@ public class TableAndColumnMapperTest {
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
 		// call under test
-		assertEquals(Optional.empty(), mapper.lookupColumnReference(null));
+		assertEquals(Optional.empty(), mapper.lookupColumnReference((ColumnReference)null));
 	}
 
 	@Test
@@ -190,6 +191,65 @@ public class TableAndColumnMapperTest {
 		// call under test
 		assertEquals(Optional.of(new SchemaColumnTranslationReference(columnMap.get("foo_bar"))),
 				mapper.lookupColumnReference(columnReference));
+	}
+	
+	@Test
+	public void testLookupColumnReferenceWithString() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		// call under test
+		assertEquals(Optional.of(new SchemaColumnTranslationReference(columnMap.get("foo"))),
+				mapper.lookupColumnReference("foo"));
+	}
+	
+	@Test
+	public void testLookupColumnReferenceWithNullString() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		// call under test
+		assertEquals(Optional.empty(),	mapper.lookupColumnReference((String)null));
+	}
+	
+	@Test
+	public void testLookupColumnReferenceWithStringSpace() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		// call under test
+		assertEquals(Optional.of(new SchemaColumnTranslationReference(columnMap.get("has space"))),
+				mapper.lookupColumnReference("has space"));
+	}
+	
+	@Test
+	public void testLookupColumnReferenceWithStringQuote() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("has\"quote"), columnMap.get("has space")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		// call under test
+		assertEquals(Optional.of(new SchemaColumnTranslationReference(columnMap.get("has\"quote"))),
+				mapper.lookupColumnReference("has\"quote"));
+	}
+	
+	@Test
+	public void testLookupColumnReferenceWithStringKeyword() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("year"), columnMap.get("has space")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		// call under test
+		assertEquals(Optional.of(new SchemaColumnTranslationReference(columnMap.get("year"))),
+				mapper.lookupColumnReference("year"));
 	}
 	
 	@Test
@@ -218,7 +278,7 @@ public class TableAndColumnMapperTest {
 		// call under test
 		assertEquals(Optional.empty(),	mapper.lookupColumnReference(columnReference));
 	}
-
+	
 	@Test
 	public void testLookupColumnReferenceWithNullLHSAndMultipleTables() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
@@ -592,4 +652,6 @@ public class TableAndColumnMapperTest {
 		// call under test
 		assertEquals(Optional.empty(), mapper.getSingleTableId());
 	}
+	
+
 }

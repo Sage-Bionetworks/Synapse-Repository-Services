@@ -1,6 +1,12 @@
 package org.sagebionetworks.repo.manager.table;
 
-import com.google.common.collect.Lists;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -15,19 +21,15 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SchemaProvider;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
+import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import com.google.common.collect.Lists;
 
 @RunWith(MockitoJUnitRunner.class)
 public class FacetTransformerRangeTest {
@@ -36,12 +38,14 @@ public class FacetTransformerRangeTest {
 	private String selectedMin;
 	private String selectedMax;
 	private List<ColumnModel> schema;
-	private SqlQuery originalQuery;
 	private String originalSearchCondition;
 	private List<FacetRequestColumnModel> facets;
 	private RowSet rowSet;
 	private List<SelectColumn> correctSelectList;
 	private Long userId;
+	private TableExpression originalQuery;
+	private TranslationDependencies dependencies;
+	
 	@Before
 	public void before() throws ParseException{
 		schema = TableModelTestUtils.createOneOfEachType(true);
@@ -60,8 +64,11 @@ public class FacetTransformerRangeTest {
 		SchemaProvider schemaProvider = (IdAndVersion tableId) -> {
 			return schema;
 		};
-		originalQuery = new SqlQueryBuilder("SELECT * FROM syn123 WHERE " + originalSearchCondition, schemaProvider, userId)
-				.indexDescription(new TableIndexDescription(IdAndVersion.parse("syn123"))).build();
+		
+		dependencies = TranslationDependencies.builder().setSchemaProvider(schemaProvider)
+				.setIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn123"))).setUserId(userId).build();
+		
+		originalQuery = new TableQueryParser("FROM syn123 WHERE " + originalSearchCondition).tableExpression();
 		
 		rowSet = new RowSet();
 		
@@ -71,7 +78,7 @@ public class FacetTransformerRangeTest {
 		col2.setName(FacetTransformerRange.MAX_ALIAS);
 		correctSelectList = Lists.newArrayList(col1, col2);
 		
-		facetTransformer = new FacetTransformerRange(columnName, facets, originalQuery, selectedMin, selectedMax);		
+		facetTransformer = new FacetTransformerRange(columnName, facets, originalQuery, dependencies, selectedMin, selectedMax);		
 
 	}
 	/////////////////////////////////
@@ -94,13 +101,9 @@ public class FacetTransformerRangeTest {
 	@Test
 	public void testGenerateFacetSqlQuery(){
 		//check the non-transformed sql
-		String expectedString = "SELECT MIN(\"i2\") AS minimum"
-				+ ", MAX(\"i2\") AS maximum"
-				+ " FROM syn123 WHERE i0 LIKE 'asdf%'";
-		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getModel().toSql());
-		
-		//transformed model will be correct if schema and non-transformed query are correct
-		//because it is handled by SqlQuery Constructor
+		String expectedString = "SELECT MIN(_C2_) AS minimum, MAX(_C2_) AS maximum FROM T123 WHERE _C0_ LIKE :b0";
+		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
+		assertEquals("asdf%", facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
 	}
 	
 	////////////////////////////

@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.util.ValidateArgument;
+
 /**
  * 
  * A replaceable element can be replaced with another instance of the same type.
@@ -30,4 +32,34 @@ public interface Replaceable<T extends Element> extends Element {
 		parent.recursiveSetParent();
 		old.recursiveClearParent();
 	};
+
+	/**
+	 * Helper method to prepare a new element to replace an old element. The parent
+	 * from the old element will be set on the new
+	 * {@link Element#recursiveSetParent()} and the parent from the old will be
+	 * cleared {@link Element#recursiveClearParent()}. This method should be used
+	 * when it is not possible to implement {@link Replaceable}, such as when more
+	 * than one child element is replaceable.
+	 * 
+	 * @param <T>
+	 * @param oldElement The old element to be replaced.
+	 * @param newElement The new replacement element.
+	 * @param parent     The parent element that will contain the new element.
+	 * @return
+	 */
+	public static <T extends Element> T prepareToReplace(T oldElement, T newElement, Element parent) {
+		ValidateArgument.required(parent, "parent");
+		if (oldElement == newElement) {
+			// nothing needs to change.
+			return newElement;
+		}
+		if (newElement != null) {
+			newElement.setParent(parent);
+			newElement.recursiveSetParent();
+		}
+		if (oldElement != null) {
+			oldElement.recursiveClearParent();
+		}
+		return newElement;
+	}
 }

@@ -2,6 +2,8 @@ package org.sagebionetworks.table.cluster.description;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -9,7 +11,6 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.model.SqlContext;
 
 public class TableIndexDescriptionTest {
@@ -36,12 +37,13 @@ public class TableIndexDescriptionTest {
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithQueryWithNonAggregate() {
-		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"));
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn999");
+		TableIndexDescription tid = new TableIndexDescription(idAndVersion);
 		boolean includeEtag = true;
 		boolean isAggregate = false;
 		// call under test
-		List<String> result = tid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
-		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION), result);
+		List<ColumnToAdd> result = tid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
+		assertEquals(Arrays.asList(new ColumnToAdd(idAndVersion, ROW_ID), new ColumnToAdd(idAndVersion, ROW_VERSION)), result);
 	}
 	
 	@Test
@@ -50,7 +52,7 @@ public class TableIndexDescriptionTest {
 		boolean includeEtag = true;
 		boolean isAggregate = true;
 		// call under test
-		List<String> result = tid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
+		List<ColumnToAdd> result = tid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
 		assertEquals(Collections.emptyList(), result);
 	}
 	

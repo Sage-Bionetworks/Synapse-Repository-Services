@@ -102,20 +102,6 @@ public class QuerySpecificationTest {
 	}
 	
 	@Test
-	public void testIsIncludeSearchWithNoTextMatches() throws ParseException {
-		QuerySpecification querySpec = new TableQueryParser("select * from syn123 where bar is not null")
-				.querySpecification();
-		assertFalse(querySpec.isIncludeSearch());
-	}
-	
-	@Test
-	public void testIsIncludeSearchWithTextMatches() throws ParseException {
-		QuerySpecification querySpec = new TableQueryParser("select * from syn123 where text_matches('some text')")
-				.querySpecification();
-		assertTrue(querySpec.isIncludeSearch());
-	}
-	
-	@Test
 	public void testWithoutTableExpression() throws ParseException {
 		String message = assertThrows(ParseException.class, () -> {			
 			new TableQueryParser("select *").querySpecification();

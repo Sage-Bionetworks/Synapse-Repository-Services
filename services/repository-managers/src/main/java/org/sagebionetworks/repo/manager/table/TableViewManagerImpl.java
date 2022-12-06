@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -19,7 +16,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.replication.ReplicationManager;
@@ -60,17 +56,12 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactor
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
-import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.util.csv.CSVReaderIterator;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Sets;
-
-import au.com.bytecode.opencsv.CSVReader;
 
 public class TableViewManagerImpl implements TableViewManager {
 	
@@ -102,10 +93,6 @@ public class TableViewManagerImpl implements TableViewManager {
 	private ReplicationManager replicationManager;
 	@Autowired
 	private TableIndexConnectionFactory connectionFactory;
-	@Autowired
-	private FileProvider fileProvider;
-	@Autowired
-	private SynapseS3Client s3Client;
 	@Autowired
 	private StackConfiguration config;
 	@Autowired
@@ -154,11 +141,6 @@ public class TableViewManagerImpl implements TableViewManager {
 		columModelManager.bindColumnsToDefaultVersionOfObject(schema, viewIdString);
 		// trigger an update
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
-	}
-
-	@Override
-	public List<ColumnModel> getViewSchema(IdAndVersion idAndVersion) {
-		return columModelManager.getTableSchema(idAndVersion);
 	}
 
 	@Override
@@ -506,39 +488,28 @@ public class TableViewManagerImpl implements TableViewManager {
 			// Start the worker
 			final String token = tableManagerSupport.startTableProcessing(idAndVersion);
 			TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
-			log.info(String.format("Deleting view index if it exists: '%s'...", idAndVersion.toString()));
-			// Since this worker re-builds the index, start by deleting it.
-			indexManager.deleteTableIndex(idAndVersion);
-			// Need the MD5 for the original schema.
-			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
-			List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
-			// Record the search flag before processing to avoid race conditions
-			boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(idAndVersion);
 			
 			IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
-			log.info(String.format("Setting view index schema: '%s'...", idAndVersion.toString()));
-			// create the table in the index
-			indexManager.setIndexSchema(indexDescription, viewSchema);
-			// Sync the search flag
-			indexManager.setSearchEnabled(idAndVersion, isSearchEnabled);
-
+			
+			log.info(String.format("Resetting view index: '%s'...", idAndVersion.toString()));
+			
+			List<ColumnModel> viewSchema = indexManager.resetTableIndex(indexDescription);
+			
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 			
 			Long viewCRC = null;
 			if(idAndVersion.getVersion().isPresent()) {
-				viewCRC = populateViewFromSnapshot(idAndVersion, indexManager);
+				viewCRC = populateViewFromSnapshot(indexDescription, indexManager);
 			}else {
 				viewCRC = populateViewIndexFromReplication(idAndVersion, indexManager, viewSchema);
 			}
-			// now that table is created and populated the indices on the table can be
-			// optimized.
-			indexManager.optimizeTableIndices(idAndVersion);
-
-			//for any list columns, build separate tables that serve as an index
-			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
 			
-			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
-			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
+			// Now build the secondary indicies
+			indexManager.buildTableIndexIndices(indexDescription, viewSchema);
+			
+			// both the CRC and schema MD5 are used to determine if the view is up-to-date. 
+			// The schema MD5 is already set when resetting the index, we use the CRC of the view as the "version" of the index
+			indexManager.setIndexVersion(idAndVersion, viewCRC);
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
 			log.info(String.format("Set view: '%s' to AVAILABLE.", idAndVersion.toString()));
@@ -573,29 +544,19 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @param idAndVersion
 	 * @param indexManager
 	 */
-	long populateViewFromSnapshot(IdAndVersion idAndVersion, TableIndexManager indexManager) {
+	long populateViewFromSnapshot(IndexDescription indexDescription, TableIndexManager indexManager) {
+		IdAndVersion idAndVersion = indexDescription.getIdAndVersion();
+		
 		TableSnapshot snapshot = viewSnapshotDao.getSnapshot(idAndVersion)
 			.orElseThrow(() -> new NotFoundException("Snapshot not found for: " + idAndVersion.toString()));
-		File tempFile = null;
-		try {
-			tempFile = fileProvider.createTempFile("ViewSnapshotDownload", ".csv.gzip");
-			// download the snapshot file to a temp file.
-			s3Client.getObject(new GetObjectRequest(snapshot.getBucket(), snapshot.getKey()), tempFile);
-			try (CSVReaderIterator reader = new CSVReaderIterator(new CSVReader(fileProvider.createReader(
-					fileProvider.createGZIPInputStream(fileProvider.createFileInputStream(tempFile)),
-					StandardCharsets.UTF_8)))) {
-				indexManager.populateViewFromSnapshot(idAndVersion, reader);
-			}
-			// ensure the latest benefactors are used.
-			indexManager.refreshViewBenefactors(idAndVersion);
-			return snapshot.getSnapshotId();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		} finally {
-			if (tempFile != null) {
-				tempFile.delete();
-			}
-		}
+		
+		tableManagerSupport.restoreTableIndexFromS3(idAndVersion, snapshot.getBucket(), snapshot.getKey());
+		
+		// ensure the latest benefactors are used.
+		indexManager.refreshViewBenefactors(idAndVersion);
+		
+		return snapshot.getSnapshotId();
+		
 	}
 		
 	void validateViewForSnapshot(IdAndVersion idAndVersion) throws TableUnavailableException {
@@ -646,7 +607,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			String bucket = config.getViewSnapshotBucketName();
 						
 			// Save the table to S3
-			List<String> schemaColumnIds = tableManagerSupport.streamTableToS3(idAndVersion, bucket, key);
+			List<String> schemaColumnIds = tableManagerSupport.streamTableIndexToS3(idAndVersion, bucket, key);
 			
 			// Create a new version of the node
 			long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, idAndVersion.getId().toString(), snapshotOptions);

@@ -5,9 +5,9 @@ import org.sagebionetworks.repo.web.query.QueryStatement;
 
 /**
  * As simple utility to translate from a web-service query to an internal query.
- * @author jmhill
  *
  */
+@Deprecated
 public class QueryTranslator {
 	
 	public static String ENTITY = "entity";

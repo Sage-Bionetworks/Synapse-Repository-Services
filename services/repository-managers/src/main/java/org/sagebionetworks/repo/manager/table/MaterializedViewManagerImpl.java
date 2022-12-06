@@ -16,12 +16,11 @@ import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.PaginationIterator;
@@ -67,9 +66,9 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	public void registerSourceTables(IdAndVersion idAndVersion, String definingSql) {
 		ValidateArgument.required(idAndVersion, "The id of the materialized view");
 		
-		QuerySpecification querySpecification = getQuerySpecification(definingSql);
+		QueryExpression query = getQuerySpecification(definingSql);
 		
-		Set<IdAndVersion> newSourceTables = getSourceTableIds(querySpecification);
+		Set<IdAndVersion> newSourceTables = getSourceTableIds(query);
 		Set<IdAndVersion> currentSourceTables = materializedViewDao.getSourceTablesIds(idAndVersion);
 		
 		if (!newSourceTables.equals(currentSourceTables)) {
@@ -81,7 +80,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			materializedViewDao.addSourceTablesIds(idAndVersion, newSourceTables);
 		}
 		
-		bindSchemaToView(idAndVersion, querySpecification);
+		bindSchemaToView(idAndVersion, query);
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
@@ -103,34 +102,34 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	 * @param idAndVersion
 	 * @param definingQuery
 	 */
-	void bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification definingQuery) {
+	void bindSchemaToView(IdAndVersion idAndVersion, QueryExpression definingQuery) {
 		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
-		SqlQuery sqlQuery = new SqlQueryBuilder(definingQuery).schemaProvider(columModelManager).sqlContext(SqlContext.build)
-				.indexDescription(indexDescription)
+		QueryTranslator sqlQuery = QueryTranslator.builder().sql(definingQuery.toSql())
+				.schemaProvider(columModelManager).sqlContext(SqlContext.build).indexDescription(indexDescription)
 				.build();
 		bindSchemaToView(idAndVersion, sqlQuery);
 	}
 	
-	void bindSchemaToView(IdAndVersion idAndVersion, SqlQuery sqlQuery) {
+	void bindSchemaToView(IdAndVersion idAndVersion, QueryTranslator sqlQuery) {
 		// create each column as needed.
 		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
 				.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());
 		columModelManager.bindColumnsToVersionOfObject(schemaIds, idAndVersion);
 	}
 	
-	static QuerySpecification getQuerySpecification(String definingSql) {
+	static QueryExpression getQuerySpecification(String definingSql) {
 		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the materialized view");
 		try {
-			return TableQueryParser.parserQuery(definingSql);
+			return new TableQueryParser(definingSql).queryExpression();
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 	}
 		
-	static Set<IdAndVersion> getSourceTableIds(QuerySpecification querySpecification) {
+	static Set<IdAndVersion> getSourceTableIds(QueryExpression query) {
 		Set<IdAndVersion> sourceTableIds = new HashSet<>();
 		
-		for (TableNameCorrelation table : querySpecification.createIterable(TableNameCorrelation.class)) {
+		for (TableNameCorrelation table : query.createIterable(TableNameCorrelation.class)) {
 			sourceTableIds.add(IdAndVersion.parse(table.getTableName().toSql()));
 		}
 		
@@ -159,12 +158,16 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	void createOrRebuildViewHoldingExclusiveLock(ProgressCallback callback, IdAndVersion idAndVersion)
 			throws Exception {
 		try {
+
+			if (idAndVersion.getVersion().isPresent()) {
+				throw new UnsupportedOperationException("MaterializedView snapshots not currently supported");
+			}
+			
 			IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
 	
 			String definingSql = materializedViewDao.getMaterializedViewDefiningSql(idAndVersion)
 					.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));
-			QuerySpecification querySpecification = getQuerySpecification(definingSql);
-			SqlQuery sqlQuery = new SqlQueryBuilder(querySpecification).schemaProvider(columModelManager).sqlContext(SqlContext.build)
+			QueryTranslator sqlQuery = QueryTranslator.builder().sql(definingSql).schemaProvider(columModelManager).sqlContext(SqlContext.build)
 					.indexDescription(indexDescription).build();
 	
 			// schema of the current version is dynamic, while the schema of a snapshot is
@@ -206,7 +209,8 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		}
 	}
 
-	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(IdAndVersion idAndVersion, SqlQuery definingSql) {
+
+	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(IdAndVersion idAndVersion, QueryTranslator definingSql) {
 		// Is the index out-of-synch?
 		if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
 			// nothing to do
@@ -216,37 +220,19 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		// Start the worker
 		final String token = tableManagerSupport.startTableProcessing(idAndVersion);
 		TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
-		// For now, always rebuild the materialized view from scratch.
-		indexManager.deleteTableIndex(idAndVersion);
 		
-		// Need the MD5 for the original schema.
-		String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
-		List<ColumnModel> viewSchema = columModelManager.getTableSchema(idAndVersion);
-		// Record the search flag before processing to avoid race conditions
-		boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(idAndVersion);
-
-		// create the table in the index.
-		indexManager.setIndexSchema(definingSql.getIndexDescription(), viewSchema);
-		// Sync the search flag
-		indexManager.setSearchEnabled(idAndVersion, isSearchEnabled);
+		List<ColumnModel> viewSchema = indexManager.resetTableIndex(definingSql.getIndexDescription());
 	
 		tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Building MaterializedView...", 0L, 1L);
 		
-		Long viewCRC = null;
-		if(idAndVersion.getVersion().isPresent()) {
-			throw new UnsupportedOperationException("MaterializedView snapshots not currently supported");
-		}else {
-			viewCRC = indexManager.populateMaterializedViewFromDefiningSql(viewSchema, definingSql);
-		}
-		// now that table is created and populated the indices on the table can be
-		// optimized.
-		indexManager.optimizeTableIndices(idAndVersion);
-
-		//for any list columns, build separate tables that serve as an index
-		indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
+		Long viewCRC = indexManager.populateMaterializedViewFromDefiningSql(viewSchema, definingSql);
+		
+		// Now build the secondary indicies
+		indexManager.buildTableIndexIndices(definingSql.getIndexDescription(), viewSchema);
 		
 		// both the CRC and schema MD5 are used to determine if the view is up-to-date.
-		indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
+		// The schema MD5 is already set when resetting the index, we use the CRC of the view as the "version" of the index
+		indexManager.setIndexVersion(idAndVersion, viewCRC);
 		// Attempt to set the table to complete.
 		tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);		
 	}

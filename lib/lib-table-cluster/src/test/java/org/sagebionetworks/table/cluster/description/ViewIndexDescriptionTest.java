@@ -3,6 +3,9 @@ package org.sagebionetworks.table.cluster.description;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -64,41 +67,46 @@ public class ViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithQueryWithEtagWithNonAggregate() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn999");
+		ViewIndexDescription vid = new ViewIndexDescription(idAndVersion, TableType.entityview);
 		boolean includeEtag = true;
 		boolean isAggregate = false;
 		// call under test
-		List<String> result = vid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
-		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION, TableConstants.ROW_ETAG), result);
+		List<ColumnToAdd> result = vid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
+		assertEquals(Arrays.asList(new ColumnToAdd(idAndVersion, ROW_ID), new ColumnToAdd(idAndVersion, ROW_VERSION),
+				new ColumnToAdd(idAndVersion, ROW_ETAG)), result);
 	}
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithQueryWithoutEtagWithNonAggregate() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn999");
+		ViewIndexDescription vid = new ViewIndexDescription(idAndVersion, TableType.entityview);
 		boolean includeEtag = false;
 		boolean isAggregate = false;
 		// call under test
-		List<String> result = vid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
-		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION), result);
+		List<ColumnToAdd> result = vid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
+		assertEquals(Arrays.asList(new ColumnToAdd(idAndVersion, ROW_ID), new ColumnToAdd(idAndVersion, ROW_VERSION)), result);
 	}
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithQueryWithEtagWithAggregate() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn999");
+		ViewIndexDescription vid = new ViewIndexDescription(idAndVersion, TableType.entityview);
 		boolean includeEtag = true;
 		boolean isAggregate = true;
 		// call under test
-		List<String> result = vid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
+		List<ColumnToAdd> result = vid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
 		assertEquals(Collections.emptyList(), result);
 	}
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithQueryWithoutEtagWithAggregate() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn999");
+		ViewIndexDescription vid = new ViewIndexDescription(idAndVersion, TableType.entityview);
 		boolean includeEtag = false;
 		boolean isAggregate = true;
 		// call under test
-		List<String> result = vid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
+		List<ColumnToAdd> result = vid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
 		assertEquals(Collections.emptyList(), result);
 	}
 	

@@ -42,7 +42,7 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
 import org.sagebionetworks.table.cluster.SQLUtils;
-import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
@@ -227,8 +227,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 
 	@Override
-	public void setIndexVersionAndSchemaMD5Hex(final IdAndVersion tableId, Long viewCRC, String schemaMD5Hex) {
-		tableIndexDao.setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);
+	public void setIndexVersion(final IdAndVersion tableId, Long indexVersion) {
+		tableIndexDao.setMaxCurrentCompleteVersionForTable(tableId, indexVersion);
 	}
 	
 	@Override
@@ -354,23 +354,21 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// Alter the table
 		boolean wasSchemaChanged = alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 		
-		if (wasSchemaChanged) {
-			// Determine the current schema of the table
-			List<ColumnModel> currentSchema = getCurrentTableSchema(tableId);
-			if(currentSchema.isEmpty()){
-				// there are no columns in the table so truncate all rows.
-				tableIndexDao.truncateTable(tableId);
-			}
-			// Set the new schema MD5
-			String schemaMD5Hex = TableModelUtils
-					.createSchemaMD5Hex(currentSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()));
-			tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
-			
-			if (tableIndexDao.isSearchEnabled(tableId) && isRequireSearchIndexUpdate(tableId, changes)) {
-				updateSearchIndex(indexDescription);
-			}
-			
+		// Determine the current schema of the table
+		List<ColumnModel> currentSchema = getCurrentTableSchema(tableId);
+		
+		if(currentSchema.isEmpty()){
+			// there are no columns in the table so truncate all rows.
+			tableIndexDao.truncateTable(tableId);
 		}
+		
+		List<String> columnIds = currentSchema.stream().map(ColumnModel::getId).collect(Collectors.toList());
+
+		// Set the new schema MD5 unconditionally (See https://sagebionetworks.jira.com/browse/PLFM-7615)
+		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(columnIds);
+		
+		tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+				
 		return wasSchemaChanged;
 	}	
 	
@@ -497,12 +495,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		} catch (Exception e) {
 			// if the copy failed. Attempt to determine the cause.
 			determineCauseOfReplicationFailure(e, currentSchema, provider, scopeType.getTypeMask(), filter);
-		}
-		
-		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(viewId).build();
-				
-		if (tableIndexDao.isSearchEnabled(idAndVersion)) {			
-			updateSearchIndex(tableManagerSupport.getIndexDescription(idAndVersion));
 		}
 		
 		// calculate the new CRC32;
@@ -632,6 +624,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			if(!targetChangeNumber.isPresent()) {
 				throw new NotFoundException("Snapshot for "+idAndVersion.toString()+" does not exist");
 			}
+			// Try to restore the table first from an existing snapshot
+			attemptToRestoreTableFromExistingSnapshot(idAndVersion, tableResetToken, targetChangeNumber.get());
 			// build the table up to the latest change.
 			String lastEtag = buildIndexToLatestChange(idAndVersion, iterator, targetChangeNumber.get(),
 					tableResetToken);
@@ -648,6 +642,53 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			// Any other error is a table failure.
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
 		}
+	}
+	
+	void attemptToRestoreTableFromExistingSnapshot(IdAndVersion idAndVersion, String tableResetToken, long targetChangeNumber) {
+		// If there are any changes that are already applied to the table we let it build as normal
+		if (tableIndexDao.getMaxCurrentCompleteVersionForTable(idAndVersion) > -1L) {
+			return;
+		}
+		
+		tableManagerSupport.getMostRecentTableSnapshot(idAndVersion).ifPresent( snapshot -> {
+			IdAndVersion snapshotId = IdAndVersion.newBuilder().setId(snapshot.getTableId()).setVersion(snapshot.getVersion()).build();
+			
+			// Keeps the change number that correspond with the snapshot
+			long snapshotChangeNumber = tableManagerSupport.getLastTableChangeNumber(snapshotId).orElseThrow(
+				() -> new IllegalStateException("Expected a change number for snapshot " + snapshotId + ", but found none.")
+			);
+			
+			log.info("Restoring table " + idAndVersion + " from snapshot " + snapshotId + "...");
+			
+			tableManagerSupport.attemptToUpdateTableProgress(
+				idAndVersion, 
+				tableResetToken, 
+				"Restoring table " + idAndVersion + " from snapshot " + snapshotId, 
+				snapshotChangeNumber, 
+				targetChangeNumber
+			);
+			
+			TableIndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+			
+			// We now reset the table index with the schema of the snapshot
+			List<ColumnModel> snapshotSchema = tableManagerSupport.getTableSchema(snapshotId);
+			
+			// Make sure the search flag is synched with the snapshot
+			boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(snapshotId);
+			
+			resetTableIndex(indexDescription, snapshotSchema, isSearchEnabled);
+			
+			// Restore the table data from the snapshot
+			tableManagerSupport.restoreTableIndexFromS3(idAndVersion, snapshot.getBucket(), snapshot.getKey());
+			
+			// Now build the secondary indicies, using the restored snapshot schema
+			buildTableIndexIndices(indexDescription, snapshotSchema);
+						
+			// Now sync the change number that correspond to the snapshot
+			setIndexVersion(idAndVersion, snapshotChangeNumber);
+			
+			log.info("Restoring table " + idAndVersion + " from snapshot " + snapshotId + "...DONE");
+		});
 	}
 	
 	/**
@@ -729,16 +770,21 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param schemaChangeData
 	 */
 	void applySchemaChangeToIndex(IdAndVersion idAndVersion, ChangeData<SchemaChange> schemaChangeData) {
-		updateTableSchema(new TableIndexDescription(idAndVersion), schemaChangeData.getChange().getDetails());
+		TableIndexDescription index = new TableIndexDescription(idAndVersion);
+		List<ColumnChangeDetails> changes = schemaChangeData.getChange().getDetails();
+		
+		updateTableSchema(index, changes);
+		
+		updateSearchIndexFromSchemaChange(index, changes);
 
 		boolean alterTemp = false;
-		alterListColumnIndexTableWithSchemaChange(idAndVersion, schemaChangeData.getChange().getDetails(), alterTemp);
+		alterListColumnIndexTableWithSchemaChange(idAndVersion, changes, alterTemp);
 
 		// set the new max version for the index
-		tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, schemaChangeData.getChangeNumber());
+		setIndexVersion(idAndVersion, schemaChangeData.getChangeNumber());
 	}
 
-	private void alterListColumnIndexTableWithSchemaChange(IdAndVersion idAndVersion, List<ColumnChangeDetails> columnChangeDetails, boolean alterTemp) {
+	void alterListColumnIndexTableWithSchemaChange(IdAndVersion idAndVersion, List<ColumnChangeDetails> columnChangeDetails, boolean alterTemp) {
 		//apply changes to multi-value column indexes
 		Set<Long> existingListColumnIndexTableNames = tableIndexDao.getMultivalueColumnIndexTableColumnIds(idAndVersion);
 		List<ListColumnIndexTableChange> listColumnIndexTableChanges = listColumnIndexTableChangesFromChangeDetails(columnChangeDetails, existingListColumnIndexTableNames);
@@ -752,10 +798,14 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param rowChange
 	 */
 	void applyRowChangeToIndex(IdAndVersion idAndVersion, ChangeData<SparseChangeSet> rowChange) {
+		TableIndexDescription index = new TableIndexDescription(idAndVersion);
 		// Get the change set.
 		SparseChangeSet sparseChangeSet = rowChange.getChange();
 		// match the schema to the change set.
-		setIndexSchema(new TableIndexDescription(idAndVersion), sparseChangeSet.getSchema());
+		List<ColumnChangeDetails> changes = setIndexSchema(index, sparseChangeSet.getSchema());
+		
+		updateSearchIndexFromSchemaChange(index, changes);
+		
 		// attempt to apply this change set to the table.
 		applyChangeSetToIndex(idAndVersion, sparseChangeSet, rowChange.getChangeNumber());
 	}
@@ -777,19 +827,22 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// Update the search status
 		setSearchEnabled(idAndVersion, change.isEnabled());
 		// set the new max version for the index
-		tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, loadChangeData.getChangeNumber());
+		setIndexVersion(idAndVersion, loadChangeData.getChangeNumber());
 	}
 	
-	
-	@Override
-	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
-		tableIndexDao.populateViewFromSnapshot(idAndVersion, input, MAX_BYTES_PER_BATCH);
-		
-		if (tableIndexDao.isSearchEnabled(idAndVersion)) {
-			updateSearchIndex(tableManagerSupport.getIndexDescription(idAndVersion));
+	void updateSearchIndexFromSchemaChange(TableIndexDescription index, List<ColumnChangeDetails> changes) {
+				
+		if (!isRequireSearchIndexUpdate(index.getIdAndVersion(), changes)) {
+			return;
 		}
+		
+		if (!tableIndexDao.isSearchEnabled(index.getIdAndVersion())) {
+			return;
+		}
+		
+		updateSearchIndex(index);
 	}
-
+	
 	@Override
 	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewFilter filter,
 			long limit) {
@@ -947,6 +1000,41 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		long newExpirationDateMs = System.currentTimeMillis() + SYNCHRONIZATION_FEQUENCY_MS;
 		tableIndexDao.setSynchronizationLockExpiredForObject(type, idAndVersion.getId(), newExpirationDateMs);
 	}
+		
+	@Override
+	public List<ColumnModel> resetTableIndex(IndexDescription index) {
+		List<ColumnModel> schema = tableManagerSupport.getTableSchema(index.getIdAndVersion());
+		boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(index.getIdAndVersion());
+		return resetTableIndex(index, schema, isSearchEnabled);
+	}
+	
+	List<ColumnModel> resetTableIndex(IndexDescription index, List<ColumnModel> schema, boolean isSearchEnabled) {
+		// Clear the table index
+		deleteTableIndex(index.getIdAndVersion());
+		
+		// Set the schema
+		setIndexSchema(index, schema);
+
+		// Sync the search flag
+		setSearchEnabled(index.getIdAndVersion(), isSearchEnabled);
+		
+		return schema;
+	}
+
+	@Override
+	public void buildTableIndexIndices(IndexDescription index, List<ColumnModel> schema) {
+		// Optimize the table
+		optimizeTableIndices(index.getIdAndVersion());
+		
+		
+		// Makes sure to populate the multi-value indices
+		populateListColumnIndexTables(index.getIdAndVersion(), schema);
+		
+		// Re-build the search index if needed
+		if (tableIndexDao.isSearchEnabled(index.getIdAndVersion())) {
+			updateSearchIndex(index);
+		}
+	}
 	
 	/**
 	 * @param tableId The id of the table
@@ -1061,17 +1149,14 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, SqlQuery definingSql) {
+	public Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, QueryTranslator definingSql) {
 		IndexDescription indexDescription = definingSql.getIndexDescription();
-		Long result = tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
+		
+		return tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
 			String insertSql = SQLTranslatorUtils.createMaterializedViewInsertSql(viewSchema, definingSql.getOutputSQL(), indexDescription);
 			tableIndexDao.update(insertSql, definingSql.getParameters());
 			return 1L;
 		});
-		if (tableIndexDao.isSearchEnabled(indexDescription.getIdAndVersion())) {
-			updateSearchIndex(indexDescription);
-		}
-		return result;
 	}
 	
 }

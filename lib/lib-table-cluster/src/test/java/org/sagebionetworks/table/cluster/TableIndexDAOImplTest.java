@@ -86,6 +86,7 @@ import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
@@ -499,7 +500,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 				
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider(allTypes), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider(allTypes), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -509,12 +510,12 @@ public class TableIndexDAOImplTest {
 		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(2, results.getRows().size());
 		// test the count
-		String countSql = SqlElementUtils.createCountSql(query.getTransformedModel());
+		String countSql = SqlElementUtils.createCountSql(query.getTranslatedModel().getFirstElementOfType(QuerySpecification.class)).get();
 		Long count = tableIndexDAO.countQuery(countSql, query.getParameters());
 		assertEquals(new Long(2), count);
 		// test the rowIds
 		long limit = 2;
-		String rowIdSql = SqlElementUtils.buildSqlSelectRowIdAndVersions(query.getTransformedModel(), limit);
+		String rowIdSql = SqlElementUtils.buildSqlSelectRowIdAndVersions(query.getTranslatedModel().getFirstElementOfType(QuerySpecification.class), limit).get();
 		
 		List<IdAndVersion> expectedRowIdAdVersions = Arrays.asList(
 				IdAndVersion.parse("100.3"),
@@ -574,7 +575,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -625,7 +626,7 @@ public class TableIndexDAOImplTest {
 			return allTypes;
 		};
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider, userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider, userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -656,7 +657,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		
 		// Now query for the results
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider(allTypes), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider(allTypes), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		System.out.println(results);
@@ -706,7 +707,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		// Now a count query
-		SqlQuery query = new SqlQueryBuilder("select count(*) from " + tableId,
+		QueryTranslator query = QueryTranslator.builder("select count(*) from " + tableId,
 				schemaProvider(allTypes), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
@@ -760,7 +761,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, schema);
 		// Now create the query
-		SqlQuery query = new SqlQueryBuilder(
+		QueryTranslator query = QueryTranslator.builder(
 				"select foo, sum(bar) from "
 						+ tableId
 						+ " where foo is not null group by foo order by sum(bar) desc limit 1 offset 0",
@@ -815,7 +816,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, schema);
 		// Now create the query
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId
+		QueryTranslator query = QueryTranslator.builder("select * from " + tableId
 				+ " where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0",
 				schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
@@ -975,21 +976,7 @@ public class TableIndexDAOImplTest {
 		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5, true);
 		assertFalse(match);
 	}
-	
-	@Test
-	public void testSetIndexVersionAndSchemaMD5Hex(){
-		// ensure the secondary tables for this index exist
-		this.tableIndexDAO.createSecondaryTables(tableId);
 		
-		String md5 = "md5hex";
-		Long version = 123L;
-		// call under test.
-		this.tableIndexDAO.setIndexVersionAndSchemaMD5Hex(tableId, version, md5);
-		
-		assertEquals(Optional.of(md5), this.tableIndexDAO.getCurrentSchemaMD5Hex(tableId));
-		assertEquals(version, this.tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId));
-	}
-	
 	@Test
 	public void testIsSearchEnabledWithNoTable() {
 		// Call under test
@@ -2483,7 +2470,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select foo from " + tableId, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select foo from " + tableId, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Query the results
 		RowSet result = tableIndexDAO.query(mockProgressCallback, query);
 		assertEquals(2, result.getRows().size());
@@ -2539,7 +2526,7 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testPopulateViewFromSnapshot(){
+	public void testRestoreTableIndexData(){
 		tableId = IdAndVersion.parse("syn123.45");
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		// delete all data
@@ -2562,7 +2549,7 @@ public class TableIndexDAOImplTest {
 		// small batch size to force multiple batches.
 		long maxBytesPerBatch = 10;
 		// call under test
-		tableIndexDAO.populateViewFromSnapshot(tableId, rows.iterator(), maxBytesPerBatch);
+		tableIndexDAO.restoreTableIndexData(tableId, rows.iterator(), maxBytesPerBatch);
 		
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(rows.size()-1, count);
@@ -3183,7 +3170,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select 2 + 2, col1/10 from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select 2 + 2, col1/10 from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -3218,7 +3205,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select col1 from " + tableId+" where col1 = -5*10", schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select col1 from " + tableId+" where col1 = -5*10", schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -3254,7 +3241,7 @@ public class TableIndexDAOImplTest {
 		long timeFilter = System.currentTimeMillis() - 1000;
 		
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select aDate from " + tableId+" where aDate > " + timeFilter, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select aDate from " + tableId+" where aDate > " + timeFilter, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -4430,7 +4417,7 @@ public class TableIndexDAOImplTest {
 		// call under test
 		tableIndexDAO.populateListColumnIndexTable(tableId, intListColumn, rowIds, false);
 
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -4616,7 +4603,7 @@ public class TableIndexDAOImplTest {
 		
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
-		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_BENEFACTOR from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select ROW_ID, ROW_BENEFACTOR from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -4681,7 +4668,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select round(col1, 2) from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select round(col1, 2) from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -4727,7 +4714,7 @@ public class TableIndexDAOImplTest {
 		// Copy the entity data to the table
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
-		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_VERSION, `key0` from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select ROW_ID, ROW_VERSION, `key0` from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -4979,7 +4966,7 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testStreamTableToCSV() {
+	public void testStreamTableIndexData() {
 		tableId = IdAndVersion.parse("syn123");
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		// delete all data
@@ -5031,7 +5018,7 @@ public class TableIndexDAOImplTest {
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
 		
 		// Call under test
-		List<String> result = tableIndexDAO.streamTableToCSV(tableId, stream);
+		List<String> result = tableIndexDAO.streamTableIndexData(tableId, stream);
 		
 		assertEquals(schema.stream().map(ColumnModel::getId).collect(Collectors.toList()), result);
 		

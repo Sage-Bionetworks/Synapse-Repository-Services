@@ -397,12 +397,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex) {
-		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusVersionAndHashSQL(tableId);
-		template.update(createOrUpdateStatusSql, viewCRC, schemaMD5Hex, viewCRC, schemaMD5Hex);
-	}
-	
-	@Override
 	public boolean doesIndexHashMatchSchemaHash(IdAndVersion tableId, List<ColumnModel> newSchema) {
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.required(newSchema, "newSchema");
@@ -448,7 +442,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public RowSet query(ProgressCallback callback, final SqlQuery query) {
+	public RowSet query(ProgressCallback callback, final QueryTranslator query) {
 		if (query == null)
 			throw new IllegalArgumentException("SqlQuery cannot be null");
 		final List<Row> rows = new LinkedList<Row>();
@@ -475,7 +469,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public boolean queryAsStream(final ProgressCallback callback, final SqlQuery query, final RowHandler handler) {
+	public boolean queryAsStream(final ProgressCallback callback, final QueryTranslator query, final RowHandler handler) {
 		ValidateArgument.required(query, "Query");
 		final ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(query.getSelectColumns());
 		// We use spring to create create the prepared statement
@@ -1166,43 +1160,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		namedTemplate.update(sql, param);
 	}
 	
-	@Override
-	public List<String> streamTableToCSV(IdAndVersion tableId, CSVWriterStream stream) {
-		List<DatabaseColumnInfo> columnList = getDatabaseInfo(tableId);
-		List<String> headers = new ArrayList<>();
-		List<String> metadataColumns = new ArrayList<>();
-		
-		columnList.forEach( column -> {
-			String columnName = column.getColumnName();
-			// We do not export the search column since it can be re-generated
-			if (TableConstants.ROW_SEARCH_CONTENT.equals(columnName)) {
-				return;
-			}
-			
-			if (column.isMetadata()) {
-				metadataColumns.add(columnName);
-			}
-			headers.add(columnName);
-		});
-
-		// Write the headers first
-		stream.writeNext(headers.toArray(String[]::new));
-		
-		List<ColumnModel> schema = SQLUtils.extractSchemaFromInfo(columnList);
-		
-		String selectSql = SQLUtils.buildSelectTableData(tableId, schema, metadataColumns.toArray(String[]::new)).toString();
-				
-		namedTemplate.query(selectSql, (ResultSet rs) -> {
-			String[] row = new String[headers.size()];
-			for (int i = 0; i < headers.size(); i++) {
-				row[i] = rs.getString(i + 1);
-			}
-			stream.writeNext(row);
-		});
-		
-		return schema.stream().map(ColumnModel::getId).collect(Collectors.toList());
-	}
-	
 	// Translates the Column Model schema into a column metadata schema, that maps to the object/annotation replication index
 	List<ColumnMetadata> translateSchema(List<ColumnModel> schema, ObjectFieldTypeMapper fieldTypeMapper) {
 		ValidateArgument.required(schema, "schema");
@@ -1411,36 +1368,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			callback.invoke(stats);
 		});
 	}
-
-	@Override
-	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input, long maxBytesPerBatch) {
-		ValidateArgument.required(idAndVersion, "idAndVersion");
-		ValidateArgument.required(idAndVersion.getVersion().isPresent(), "idAndVersion.version");
-		ValidateArgument.required(input, "input");
-		ValidateArgument.required(input.hasNext(), "input is empty");
-		// The first row is the header
-		String[] headers = input.next();
-		String sql = SQLUtils.createInsertViewFromSnapshot(idAndVersion, headers);
-
-		// push the data in batches
-		List<Object[]> batch = new LinkedList<>();
-		int batchSize = 0;
-		while (input.hasNext()) {
-			String[] row = input.next();
-			long rowSize = SQLUtils.calculateBytes(row);
-			if (batchSize + rowSize > maxBytesPerBatch) {
-				writeTransactionTemplate.executeWithoutResult(txStatus -> template.batchUpdate(sql, batch));
-				batch.clear();
-				batchSize = 0;
-			}
-			batch.add(row);
-			batchSize += rowSize;
-		}
-
-		if (!batch.isEmpty()) {
-			writeTransactionTemplate.executeWithoutResult(txStatus -> template.batchUpdate(sql, batch));
-		}
-	}
 	
 	@Override
 	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewFilter filter, long limit) {
@@ -1575,6 +1502,74 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			
 			return new TableRowData(rowId, rowData);
 		};
+	}
+	
+
+	@Override
+	public List<String> streamTableIndexData(IdAndVersion tableId, CSVWriterStream stream) {
+		List<DatabaseColumnInfo> columnList = getDatabaseInfo(tableId);
+		List<String> headers = new ArrayList<>();
+		List<String> metadataColumns = new ArrayList<>();
+		
+		columnList.forEach( column -> {
+			String columnName = column.getColumnName();
+			// We do not export the search column since it can be re-generated
+			if (TableConstants.ROW_SEARCH_CONTENT.equals(columnName)) {
+				return;
+			}
+			
+			if (column.isMetadata()) {
+				metadataColumns.add(columnName);
+			}
+			headers.add(columnName);
+		});
+
+		// Write the headers first
+		stream.writeNext(headers.toArray(String[]::new));
+		
+		List<ColumnModel> schema = SQLUtils.extractSchemaFromInfo(columnList);
+		
+		String selectSql = SQLUtils.buildSelectTableData(tableId, schema, metadataColumns.toArray(String[]::new)).toString();
+				
+		namedTemplate.query(selectSql, (ResultSet rs) -> {
+			String[] row = new String[headers.size()];
+			for (int i = 0; i < headers.size(); i++) {
+				row[i] = rs.getString(i + 1);
+			}
+			stream.writeNext(row);
+		});
+		
+		return schema.stream().map(ColumnModel::getId).collect(Collectors.toList());
+	}
+
+	@Override
+	public void restoreTableIndexData(IdAndVersion idAndVersion, Iterator<String[]> input, long maxBytesPerBatch) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.required(idAndVersion.getVersion().isPresent(), "idAndVersion.version");
+		ValidateArgument.required(input, "input");
+		ValidateArgument.required(input.hasNext(), "input is empty");
+		// The first row is the header
+		String[] headers = input.next();
+		String sql = SQLUtils.createInsertIntoTableIndex(idAndVersion, headers);
+
+		// push the data in batches
+		List<Object[]> batch = new LinkedList<>();
+		int batchSize = 0;
+		while (input.hasNext()) {
+			String[] row = input.next();
+			long rowSize = SQLUtils.calculateBytes(row);
+			if (batchSize + rowSize > maxBytesPerBatch) {
+				writeTransactionTemplate.executeWithoutResult(txStatus -> template.batchUpdate(sql, batch));
+				batch.clear();
+				batchSize = 0;
+			}
+			batch.add(row);
+			batchSize += rowSize;
+		}
+
+		if (!batch.isEmpty()) {
+			writeTransactionTemplate.executeWithoutResult(txStatus -> template.batchUpdate(sql, batch));
+		}
 	}
 	
 	@Override

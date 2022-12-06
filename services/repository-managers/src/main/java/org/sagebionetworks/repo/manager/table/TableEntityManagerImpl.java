@@ -74,10 +74,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SchemaProvider;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -87,7 +86,6 @@ import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.model.TableChange;
-import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -485,10 +483,10 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Override
 	public RowSet getCellValues(UserInfo userInfo, String tableId, List<RowReference> rows, List<ColumnModel> columns)
 			throws IOException, NotFoundException {
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);	
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
 		tableManagerSupport.validateTableReadAccess(userInfo, indexDescription);
-		if(!TableType.table.equals(indexDescription.getTableType())){
+		if (!TableType.table.equals(indexDescription.getTableType())) {
 			throw new UnauthorizedException("Can only be called for TableEntities");
 		}
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
@@ -497,29 +495,27 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			return columns;
 		};
 		final Map<Long, Row> rowMap = new HashMap<Long, Row>(rows.size());
-		try {
-			SqlQuery query = new SqlQueryBuilder(sql, schemaProvider, userInfo.getId()).indexDescription(indexDescription).build();
-			indexDao.queryAsStream(null, query, new  RowHandler() {
-				@Override
-				public void nextRow(Row row) {
-					rowMap.put(row.getRowId(), row);
-				}
-			});
-			RowSet results = new RowSet();
-			results.setTableId(tableId);
-			results.setHeaders(query.getSelectColumns());
-			List<Row> resultRows = new LinkedList<Row>();
-			results.setRows(resultRows);
-			for(RowReference ref:rows){
-				Row row = rowMap.get(ref.getRowId());
-				if(row != null){
-					resultRows.add(row);
-				}
+		QueryTranslator query = QueryTranslator.builder(sql, schemaProvider, userInfo.getId())
+				.indexDescription(indexDescription).build();
+		indexDao.queryAsStream(null, query, new RowHandler() {
+			@Override
+			public void nextRow(Row row) {
+				rowMap.put(row.getRowId(), row);
 			}
-			return results;
-		} catch (ParseException e) {
-			throw new RuntimeException(e);
+		});
+		RowSet results = new RowSet();
+		results.setTableId(tableId);
+		results.setHeaders(query.getSelectColumns());
+		List<Row> resultRows = new LinkedList<Row>();
+		results.setRows(resultRows);
+		for (RowReference ref : rows) {
+			Row row = rowMap.get(ref.getRowId());
+			if (row != null) {
+				resultRows.add(row);
+			}
 		}
+		return results;
+
 	}
 
 	public void setMaxBytesPerRequest(int maxBytesPerRequest) {
@@ -1102,7 +1098,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			String bucket = config.getTableSnapshotBucketName();
 			String key = tableId + "/" + UUID.randomUUID().toString() + ".csv.gzip";
 			
-			tableManagerSupport.streamTableToS3(tableId, bucket, key);
+			tableManagerSupport.streamTableIndexToS3(tableId, bucket, key);
 			
 			tableSnapshotDao.createSnapshot(new TableSnapshot()
 				.withTableId(tableId.getId())

@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.TableType;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableState;
@@ -433,6 +434,22 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @param key
 	 * @return The schema of the table as read from the index
 	 */
-	List<String> streamTableToS3(IdAndVersion idAndVersion, String bucket, String key);
+	List<String> streamTableIndexToS3(IdAndVersion idAndVersion, String bucket, String key);
+
+	/**
+	 * Restore the table data from the given bucket and key in S3 into the table with the given id
+	 * 
+	 * @param idAndVersion
+	 * @param bucket
+	 * @param key
+	 */
+	void restoreTableIndexFromS3(IdAndVersion idAndVersion, String bucket, String key);
+	
+	/**
+	 * @param idAndVersion
+	 * @return The most recent snapshot that exists for the table with the given id and version. A previous snapshot might be returned.
+	 */
+	Optional<TableSnapshot> getMostRecentTableSnapshot(IdAndVersion idAndVersion);
+
 
 }

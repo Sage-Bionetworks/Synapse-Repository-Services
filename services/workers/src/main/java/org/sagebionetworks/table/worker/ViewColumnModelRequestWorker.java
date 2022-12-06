@@ -77,7 +77,7 @@ public class ViewColumnModelRequestWorker implements AsyncJobRunner<ViewColumnMo
 		
 		ViewScope viewScope = request.getViewScope();
 
-		return String.format("Processing ViewColumnModelRequest job (EntiyViewType: %s, Scope Size: %s)...", viewScope.getViewEntityType(), viewScope.getScope() == null ? 0 : viewScope.getScope().size());
+		return String.format("Processing ViewColumnModelRequest job (EntityViewType: %s, Scope Size: %s)...", viewScope.getViewEntityType(), viewScope.getScope() == null ? 0 : viewScope.getScope().size());
 		
 	}
 

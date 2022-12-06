@@ -1,0 +1,184 @@
+package org.sagebionetworks.repo.manager.table.query;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.dao.table.TableType;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
+import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.table.cluster.SchemaProvider;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
+import org.sagebionetworks.table.query.ParseException;
+
+public class CountQueryTest {
+
+	private List<ColumnModel> schema;
+	private SchemaProvider schemaProvider;
+	private IdAndVersion tableId;
+	private Long userId;
+	private IndexDescription indexDescription;
+	private QueryContext.Builder builder;
+	private String startingSql;
+
+	@BeforeEach
+	public void before() {
+
+		schema = List.of(
+				TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING).setFacetType(FacetType.enumeration),
+				TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER).setFacetType(FacetType.range),
+				TableModelTestUtils.createColumn(3L, "three", ColumnType.STRING));
+
+		schemaProvider = (IdAndVersion tableId) -> {
+			return schema;
+		};
+
+		userId = 789L;
+		tableId = IdAndVersion.parse("syn123.4");
+
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+
+		// The starting sql will have an authorization filter applied.
+		startingSql = "select * from " + tableId + " where ROW_BENEFACTOR IN (11,22)";
+
+		builder = QueryContext.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
+				.setUserId(userId).setStartingSql(startingSql).setMaxRowsPerCall(100L);
+	}
+
+	@Test
+	public void testCountQueryWithAllParts() {
+		// use a query with all parts set.
+		builder.setAdditionalFilters(List.of(new ColumnSingleValueQueryFilter().setColumnName("three")
+				.setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(List.of("a", "b"))));
+		builder.setSelectedFacets(
+				List.of(new FacetColumnValuesRequest().setColumnName("one").setFacetValues(Set.of("cat")),
+						new FacetColumnRangeRequest().setColumnName("two").setMax("38").setMin("15")));
+
+		QueryContext expantion = builder.build();
+		// call under test
+		CountQuery count = new CountQuery(expantion);
+		assertNotNull(count);
+		String sql = "SELECT COUNT(*) FROM T123_4 WHERE"
+				// auth filter
+				+ " ( ( ROW_BENEFACTOR IN ( :b0, :b1 ) ) "
+				// additional
+				+ "AND ( ( _C3_ = :b2 OR _C3_ = :b3 ) ) )"
+				// facets
+				+ " AND ( ( ( _C1_ = :b4 ) AND ( _C2_ BETWEEN :b5 AND :b6 ) ) )";
+		Map<String, Object> expectedParmeters = new HashMap<>();
+		expectedParmeters.put("b0", 11L);
+		expectedParmeters.put("b1", 22L);
+		expectedParmeters.put("b2", "a");
+		expectedParmeters.put("b3", "b");
+		expectedParmeters.put("b4", "cat");
+		expectedParmeters.put("b5", 15L);
+		expectedParmeters.put("b6", 38L);
+		assertEquals(Optional.of(new BasicQuery(sql, expectedParmeters)), count.getCountQuery());
+		
+		assertNull(count.getOrignialPagination());
+
+	}
+	
+	@Test
+	public void testCountQueryWithOriginalPaginations() {
+		
+		builder.setStartingSql("select * from "+tableId+" limit 10 offset 2");
+
+		QueryContext expantion = builder.build();
+		// call under test
+		CountQuery count = new CountQuery(expantion);
+		assertNotNull(count);
+		String sql = "SELECT COUNT(*) FROM T123_4";
+		Map<String, Object> expectedParmeters = new HashMap<>();
+		expectedParmeters.put("b0", 10L);
+		expectedParmeters.put("b1", 2L);
+		assertEquals(Optional.of(new BasicQuery(sql, expectedParmeters)), count.getCountQuery());
+		
+		assertNotNull(count.getOrignialPagination());
+		assertEquals("LIMIT 10 OFFSET 2", count.getOrignialPagination().toSql());
+
+	}
+	
+	@Test
+	public void testCountQueryWithCurrentUser() {
+		builder.setStartingSql("select * from "+tableId+" where two = CURRENT_USER()");
+
+		QueryContext expantion = builder.build();
+		// call under test
+		CountQuery count = new CountQuery(expantion);
+		assertNotNull(count);
+		String sql = "SELECT COUNT(*) FROM T123_4 WHERE _C2_ = :b0";
+		Map<String, Object> expectedParmeters = new HashMap<>();
+		expectedParmeters.put("b0", userId);
+		assertEquals(Optional.of(new BasicQuery(sql, expectedParmeters)), count.getCountQuery());
+		
+		assertNull(count.getOrignialPagination());
+
+	}
+
+	@Test
+	public void testCountQueryWithNullParts() {
+		builder.setAdditionalFilters(null);
+		builder.setSelectedFacets(null);
+
+		QueryContext expantion = builder.build();
+		// call under test
+		CountQuery count = new CountQuery(expantion);
+		assertNotNull(count);
+		String sql = "SELECT COUNT(*) FROM T123_4 WHERE ROW_BENEFACTOR IN ( :b0, :b1 )";
+		Map<String, Object> expectedParmeters = new HashMap<>();
+		expectedParmeters.put("b0", 11L);
+		expectedParmeters.put("b1", 22L);
+		assertEquals(Optional.of(new BasicQuery(sql, expectedParmeters)), count.getCountQuery());
+
+	}
+
+	@Test
+	public void testCountQueryNullExpansion() {
+		builder.setStartingSql(null);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			new CountQuery(null);
+		}).getMessage();
+		assertEquals("expansion is required.", message);
+	}
+
+	@Test
+	public void testCountQueryWithInvalidSql() {
+		builder.setStartingSql("this is not sql!");
+		Throwable cause = assertThrows(IllegalArgumentException.class, () -> {
+			new CountQuery(builder.build());
+		}).getCause();
+		assertTrue(cause instanceof ParseException);
+	}
+
+	@Test
+	public void testCountQueryWithAggregateQuery() {
+		builder.setAdditionalFilters(null);
+		builder.setSelectedFacets(null);
+		builder.setStartingSql("select count(*) from " + tableId);
+
+		// call under test
+		QueryContext expantion = builder.build();
+		// call under test
+		CountQuery count = new CountQuery(expantion);
+		assertEquals(Optional.empty(), count.getCountQuery());
+	}
+}

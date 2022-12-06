@@ -44,7 +44,7 @@ public interface IndexDescription extends Comparable<IndexDescription> {
 	 * @param isAggregate true if this query includes a group by clause with aggregate functions..
 	 * @return Return an empty list if nothing should be added.
 	 */
-	List<String> getColumnNamesToAddToSelect(SqlContext context, boolean includeEtag, boolean isAggregate);
+	List<ColumnToAdd> getColumnNamesToAddToSelect(SqlContext context, boolean includeEtag, boolean isAggregate);
 	
 	/**
 	 * Get the dependencies of this Index.

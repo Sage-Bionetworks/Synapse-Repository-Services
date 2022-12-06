@@ -1,6 +1,9 @@
 package org.sagebionetworks.table.cluster;
 
-import com.google.common.collect.Lists;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,9 +13,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
+import com.google.common.collect.Lists;
 
 public class SqlQueryBuilderTest {
 	
@@ -36,7 +37,7 @@ public class SqlQueryBuilderTest {
 
 	@Test
 	public void testBuildSqlString() throws ParseException{
-		SqlQuery result = new SqlQueryBuilder("select * from syn123", userId)
+		QueryTranslator result = QueryTranslator.builder("select * from syn123", userId)
 		.schemaProvider(schemaProvider)
 		.indexDescription(new TableIndexDescription(IdAndVersion.parse("syn123")))
 		.build();

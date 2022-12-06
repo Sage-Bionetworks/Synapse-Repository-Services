@@ -2788,11 +2788,11 @@ public class SQLUtilsTest {
 	}
 		
 	@Test
-	public void testCreateInsertViewFromSnapshot() {
+	public void testCreateInsertIntoTableIndex() {
 		String[] headers = new String[] {"foo","bar"};
 		tableId = IdAndVersion.parse("syn999.23");
 		// call under test
-		String sql = SQLUtils.createInsertViewFromSnapshot(tableId, headers);
+		String sql = SQLUtils.createInsertIntoTableIndex(tableId, headers);
 		assertEquals("INSERT INTO T999_23 (foo,bar) VALUES  (?,?)", sql);
 	}
 	
@@ -3185,15 +3185,5 @@ public class SQLUtilsTest {
 				+ " ( SINGLE_KEY,ROW_VERSION,SCHEMA_HASH,SEARCH_ENABLED )"
 				+ " VALUES ('1', -1, ?, FALSE)"
 				+ " ON DUPLICATE KEY UPDATE SCHEMA_HASH = ?", result);
-	}
-	
-	@Test
-	public void testBuildCreateOrUpdateStatusVersionAndHashSQL() {
-		String result = SQLUtils.buildCreateOrUpdateStatusVersionAndHashSQL(tableId);
-		
-		assertEquals("INSERT INTO T" + tableId.getId() + "S"
-				+ " ( SINGLE_KEY,ROW_VERSION,SCHEMA_HASH,SEARCH_ENABLED )"
-				+ " VALUES ('1', ?, ?, FALSE)"
-				+ " ON DUPLICATE KEY UPDATE ROW_VERSION = ?, SCHEMA_HASH = ?", result);
 	}
 }

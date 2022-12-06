@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
-import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -107,13 +107,10 @@ public interface TableIndexManager {
 	void deleteTableIndex(IdAndVersion tableId);
 
 	/**
-	 * Set the current version of the index, the schema MD5, all of which are
-	 * used to determine if the index is up-to-date.
-	 * 
-	 * @param viewCRC
-	 * @param schemaMD5Hex
+	 * Set the current version for the table index
+	 * @param indexVersion
 	 */
-	void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex);
+	void setIndexVersion(IdAndVersion tableId, Long indexVersion);
 	
 	/**
 	 * Sets the status of the search flag for the given table
@@ -212,14 +209,6 @@ public interface TableIndexManager {
 			Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException;
 
 	/**
-	 * Populate a view table from a stream of snapshot CSV data.
-	 * 
-	 * @param idAndVersion
-	 * @param input
-	 */
-	void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input);
-
-	/**
 	 * Get a single page (up to the provided limit) of rowIds that are out-of-date
 	 * for the given view. A row is out-of-date if any of these conditions are true:
 	 * <ul>
@@ -311,6 +300,21 @@ public interface TableIndexManager {
 	 * @param definingSql
 	 * @return
 	 */
-	Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, SqlQuery definingSql);
+	Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, QueryTranslator definingSql);
+
+	/**
+	 * Reset the state of the table index described by the given {@link IndexDescription}
+	 * 
+	 * @param index
+	 * @return The schema of the table
+	 */
+	List<ColumnModel> resetTableIndex(IndexDescription index);
+	
+	/**
+	 * Build all the secondary table indices for the table
+	 * 
+	 * @param index
+	 */
+	void buildTableIndexIndices(IndexDescription index, List<ColumnModel> schema);
 
 }

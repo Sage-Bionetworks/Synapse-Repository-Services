@@ -35,5 +35,11 @@ public interface TableSnapshotDao {
 	 * @return
 	 */
 	long getSnapshotId(IdAndVersion idAndVersion);
+	
+	/**
+	 * @param idAndVersion
+	 * @return The most recent snapshot for the table with the given id and version, a previous snapshot might be returned
+	 */
+	Optional<TableSnapshot> getMostRecentTableSnapshot(IdAndVersion idAndVersion);
 
 }

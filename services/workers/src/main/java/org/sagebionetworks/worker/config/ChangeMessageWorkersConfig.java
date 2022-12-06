@@ -97,7 +97,7 @@ public class ChangeMessageWorkersConfig {
 				.withSemaphoreLockKey("tableIndexWorker")
 				.withSemaphoreMaxLockCount(10)
 				.withSemaphoreLockAndMessageVisibilityTimeoutSec(1200)
-				.withMaxThreadsPerMachine(3)
+				.withMaxThreadsPerMachine(10)
 				.withSingleton(concurrentStackManager)
 				.withCanRunInReadOnly(true)
 				.withQueueName(queueName)
