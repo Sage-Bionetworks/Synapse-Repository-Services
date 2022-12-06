@@ -82,7 +82,7 @@ public class ViewColumnModelRequestWorkerTest {
 		
 		assertEquals(expectedResponse, result);
 		
-		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntiyViewType: submissionview, Scope Size: 2)...", 0L, 100L);
+		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntityViewType: submissionview, Scope Size: 2)...", 0L, 100L);
 		verify(mockIndexManager).getPossibleColumnModelsForScope(mockViewScope, null, true);
 	}
 	
@@ -111,7 +111,7 @@ public class ViewColumnModelRequestWorkerTest {
 		
 		assertEquals(expectedResponse, result);
 		
-		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntiyViewType: submissionview, Scope Size: 2)...", 0L, 100L);
+		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntityViewType: submissionview, Scope Size: 2)...", 0L, 100L);
 		verify(mockIndexManager).getPossibleColumnModelsForScope(mockViewScope, null, false);
 	}
 	
@@ -140,7 +140,7 @@ public class ViewColumnModelRequestWorkerTest {
 		
 		assertEquals(expectedResponse, result);
 		
-		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntiyViewType: submissionview, Scope Size: 2)...", 0L, 100L);
+		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntityViewType: submissionview, Scope Size: 2)...", 0L, 100L);
 		verify(mockIndexManager).getPossibleColumnModelsForScope(mockViewScope, null, true);
 	}
 	
@@ -172,7 +172,7 @@ public class ViewColumnModelRequestWorkerTest {
 		
 		assertEquals(expectedResponse, result);
 		
-		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntiyViewType: submissionview, Scope Size: 2)...", 0L, 100L);
+		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntityViewType: submissionview, Scope Size: 2)...", 0L, 100L);
 		verify(mockIndexManager).getPossibleColumnModelsForScope(mockViewScope, nextPageToken, true);
 	}
 	
@@ -200,7 +200,7 @@ public class ViewColumnModelRequestWorkerTest {
 		
 		assertEquals(ex, result);
 		
-		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntiyViewType: submissionview, Scope Size: 2)...", 0L, 100L);
+		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntityViewType: submissionview, Scope Size: 2)...", 0L, 100L);
 		verify(mockIndexManager).getPossibleColumnModelsForScope(mockViewScope, null, true);
 	}
 	
