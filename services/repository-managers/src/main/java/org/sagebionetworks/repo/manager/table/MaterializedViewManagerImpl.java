@@ -20,7 +20,7 @@ import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.PaginationIterator;
@@ -66,9 +66,9 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	public void registerSourceTables(IdAndVersion idAndVersion, String definingSql) {
 		ValidateArgument.required(idAndVersion, "The id of the materialized view");
 		
-		QuerySpecification querySpecification = getQuerySpecification(definingSql);
+		QueryExpression query = getQuerySpecification(definingSql);
 		
-		Set<IdAndVersion> newSourceTables = getSourceTableIds(querySpecification);
+		Set<IdAndVersion> newSourceTables = getSourceTableIds(query);
 		Set<IdAndVersion> currentSourceTables = materializedViewDao.getSourceTablesIds(idAndVersion);
 		
 		if (!newSourceTables.equals(currentSourceTables)) {
@@ -80,7 +80,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			materializedViewDao.addSourceTablesIds(idAndVersion, newSourceTables);
 		}
 		
-		bindSchemaToView(idAndVersion, querySpecification);
+		bindSchemaToView(idAndVersion, query);
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
@@ -102,10 +102,10 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	 * @param idAndVersion
 	 * @param definingQuery
 	 */
-	void bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification definingQuery) {
+	void bindSchemaToView(IdAndVersion idAndVersion, QueryExpression definingQuery) {
 		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
-		QueryTranslator sqlQuery = QueryTranslator.builder(definingQuery).schemaProvider(columModelManager).sqlContext(SqlContext.build)
-				.indexDescription(indexDescription)
+		QueryTranslator sqlQuery = QueryTranslator.builder().sql(definingQuery.toSql())
+				.schemaProvider(columModelManager).sqlContext(SqlContext.build).indexDescription(indexDescription)
 				.build();
 		bindSchemaToView(idAndVersion, sqlQuery);
 	}
@@ -117,19 +117,19 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		columModelManager.bindColumnsToVersionOfObject(schemaIds, idAndVersion);
 	}
 	
-	static QuerySpecification getQuerySpecification(String definingSql) {
+	static QueryExpression getQuerySpecification(String definingSql) {
 		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the materialized view");
 		try {
-			return TableQueryParser.parserQuery(definingSql);
+			return new TableQueryParser(definingSql).queryExpression();
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 	}
 		
-	static Set<IdAndVersion> getSourceTableIds(QuerySpecification querySpecification) {
+	static Set<IdAndVersion> getSourceTableIds(QueryExpression query) {
 		Set<IdAndVersion> sourceTableIds = new HashSet<>();
 		
-		for (TableNameCorrelation table : querySpecification.createIterable(TableNameCorrelation.class)) {
+		for (TableNameCorrelation table : query.createIterable(TableNameCorrelation.class)) {
 			sourceTableIds.add(IdAndVersion.parse(table.getTableName().toSql()));
 		}
 		
@@ -167,8 +167,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	
 			String definingSql = materializedViewDao.getMaterializedViewDefiningSql(idAndVersion)
 					.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));
-			QuerySpecification querySpecification = getQuerySpecification(definingSql);
-			QueryTranslator sqlQuery = QueryTranslator.builder(querySpecification).schemaProvider(columModelManager).sqlContext(SqlContext.build)
+			QueryTranslator sqlQuery = QueryTranslator.builder().sql(definingSql).schemaProvider(columModelManager).sqlContext(SqlContext.build)
 					.indexDescription(indexDescription).build();
 	
 			// schema of the current version is dynamic, while the schema of a snapshot is

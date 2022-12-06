@@ -1417,6 +1417,148 @@ public class QueryTranslatorTest {
 		expectedParams.put("b0", 12L);
 		assertEquals(expectedParams, query.getParameters());
 	}
+	
+	@Test
+	public void testTranslateWithUnionInQueryContext() throws ParseException {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion tableId = IdAndVersion.parse("syn2");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("inttype")));
+		schemaMap.put(tableId, Arrays.asList(columnNameToModelMap.get("inttype")));
+
+		// Note: The dependencies are in a different order.
+		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(tableId),
+				new ViewIndexDescription(viewId, TableType.entityview));
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		// this query is used to build the materialized view.
+		sql = "select * from syn1 where inttype > 1 union select * from syn2 where inttype < 12";
+		String message =  assertThrows(IllegalArgumentException.class, () -> {
+			QueryTranslator.builder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+					.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
+		}).getMessage();
+		assertEquals("The UNION keyword is not supported in this context", message);
+	}
+	
+	@Test
+	public void testTranslateWithMaterializedViewWithUnionViewAndTable() throws ParseException {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion tableId = IdAndVersion.parse("syn2");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("inttype")));
+		schemaMap.put(tableId, Arrays.asList(columnNameToModelMap.get("inttype")));
+
+		// Note: The dependencies are in a different order.
+		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(tableId),
+				new ViewIndexDescription(viewId, TableType.entityview));
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		// this query is used to build the materialized view.
+		sql = "select * from syn1 where inttype > 1 union select * from syn2 where inttype < 12";
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
+		assertEquals(
+				"SELECT _C888_, IFNULL(ROW_BENEFACTOR,-1) FROM T1 WHERE _C888_ > :b0"
+				+ " UNION "
+				+ "SELECT _C888_, -1 FROM T2 WHERE _C888_ < :b1",
+				query.getOutputSQL());
+		Map<String, Object> expectedParams = new HashMap<>(4);
+		expectedParams.put("b0", 1L);
+		expectedParams.put("b1", 12L);
+		assertEquals(expectedParams, query.getParameters());
+	}
+	
+	@Test
+	public void testTranslateWithMaterializedViewWithUnionTwoViews() throws ParseException {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion view2Id = IdAndVersion.parse("syn2");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("inttype")));
+		schemaMap.put(view2Id, Arrays.asList(columnNameToModelMap.get("inttype")));
+
+		// Note: The dependencies are in a different order.
+		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(view2Id, TableType.entityview),
+				new ViewIndexDescription(viewId, TableType.entityview));
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		// this query is used to build the materialized view.
+		sql = "select * from syn1 where inttype > 1 union select * from syn2 where inttype < 12";
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
+		assertEquals(
+				"SELECT _C888_, IFNULL(ROW_BENEFACTOR,-1), -1 FROM T1 WHERE _C888_ > :b0 "
+				+ "UNION "
+				+ "SELECT _C888_, -1, IFNULL(ROW_BENEFACTOR,-1) FROM T2 WHERE _C888_ < :b1",
+				query.getOutputSQL());
+		Map<String, Object> expectedParams = new HashMap<>(4);
+		expectedParams.put("b0", 1L);
+		expectedParams.put("b1", 12L);
+		assertEquals(expectedParams, query.getParameters());
+	}
+	
+	@Test
+	public void testTranslateWithMaterializedViewWithUnionSameViewInEachSideOfUnion() throws ParseException {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("inttype")));
+
+		// Note: The dependencies are in a different order.
+		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.entityview));
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		// this query is used to build the materialized view.
+		sql = "select * from syn1 where inttype > 1 union select * from syn1 where inttype < 12";
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
+		assertEquals(
+				"SELECT _C888_, IFNULL(ROW_BENEFACTOR,-1) FROM T1 WHERE _C888_ > :b0"
+				+ " UNION "
+				+ "SELECT _C888_, IFNULL(ROW_BENEFACTOR,-1) FROM T1 WHERE _C888_ < :b1",
+				query.getOutputSQL());
+		Map<String, Object> expectedParams = new HashMap<>(4);
+		expectedParams.put("b0", 1L);
+		expectedParams.put("b1", 12L);
+		assertEquals(expectedParams, query.getParameters());
+	}
+	
+	@Test
+	public void testTranslateWithMaterializedViewWithUnionAndJoinMultipleViews() throws ParseException {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion view2Id = IdAndVersion.parse("syn2");
+		IdAndVersion view3Id = IdAndVersion.parse("syn3");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("foo")));
+		schemaMap.put(view2Id, Arrays.asList(columnNameToModelMap.get("has space")));
+		schemaMap.put(view3Id, Arrays.asList(columnNameToModelMap.get("bar")));
+
+
+		List<IndexDescription> dependencies = Arrays.asList(
+				new ViewIndexDescription(viewId, TableType.entityview),
+				new ViewIndexDescription(view2Id, TableType.entityview),
+				new ViewIndexDescription(view3Id, TableType.entityview));
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn4");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		// this query is used to build the materialized view.
+		sql = "select a.foo from syn1 a join syn2 b on (a.foo = b.`has space`) union select * from syn3 where bar is not null";
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
+		assertEquals(
+				"SELECT _A0._C111_, IFNULL(_A0.ROW_BENEFACTOR,-1), IFNULL(_A1.ROW_BENEFACTOR,-1), -1 "
+				+ "FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C111_ = _A1._C222_ )"
+				+ " UNION "
+				+ "SELECT _C333_, -1, -1, IFNULL(ROW_BENEFACTOR,-1) FROM T3 WHERE _C333_ IS NOT NULL",
+				query.getOutputSQL());
+	}
 
 	/**
 	 * Helper to create a schema provider for the given schema.

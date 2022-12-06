@@ -564,7 +564,9 @@ public class SqlElementUtils {
 	 * 
 	 * @param transformedModel
 	 * @return
-	 * @throws SimpleAggregateQueryException Thrown when given query is a simple aggregate query that would return one row.
+	 * @throws SimpleAggregateQueryException Thrown when given query is a simple
+	 *                                       aggregate query that would return one
+	 *                                       row.
 	 */
 	public static Optional<String> createCountSql(QuerySpecification model) {
 		TableExpression tableExpression = null;
@@ -576,22 +578,23 @@ public class SqlElementUtils {
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT ");
 		// There are three cases
-		if(model.hasAnyAggregateElements()){
+		if (model.hasAnyAggregateElements()) {
 			// does this have a group by clause?
-			if(model.getTableExpression().getGroupByClause() != null){
+			if (model.getTableExpression().getGroupByClause() != null) {
 				// group by query
 				builder.append("COUNT(DISTINCT ");
-				builder.append(createSelectFromGroupBy(model.getSelectList(), model.getTableExpression().getGroupByClause()));
+				builder.append(
+						createSelectFromGroupBy(model.getSelectList(), model.getTableExpression().getGroupByClause()));
 				builder.append(")");
-			}else if(SetQuantifier.DISTINCT.equals(model.getSetQuantifier())){
+			} else if (SetQuantifier.DISTINCT.equals(model.getSetQuantifier())) {
 				// distinct select
 				builder.append("COUNT(DISTINCT ");
 				builder.append(createSelectWithoutAs(model.getSelectList()));
 				builder.append(")");
-			}else{
+			} else {
 				return Optional.empty();
 			}
-		}else{
+		} else {
 			// simple count *
 			builder.append("COUNT(*)");
 		}
@@ -619,10 +622,10 @@ public class SqlElementUtils {
 		Pagination pagination = null;
 
 		// There are three cases
-		if(model.hasAnyAggregateElements()){
+		if (model.hasAnyAggregateElements()) {
 			return Optional.empty();
 		}
-		
+
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT ");
 		builder.append(TableConstants.ROW_ID);

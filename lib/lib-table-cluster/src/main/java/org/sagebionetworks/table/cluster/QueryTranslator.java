@@ -1,9 +1,12 @@
 package org.sagebionetworks.table.cluster;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -11,13 +14,16 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.cluster.description.ColumnToAdd;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlContext;
+import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -32,11 +38,8 @@ public class QueryTranslator {
 	 *
 	 */
 	private final String inputSql;
-
-	/**
-	 * The model transformed to execute against the actual table.
-	 */
-	private final QuerySpecification transformedModel;
+	
+	private final QueryExpression translated;
 
 	/**
 	 * This map will contain all of the bind variable values for the translated
@@ -85,12 +88,15 @@ public class QueryTranslator {
 
 	private final boolean isIncludeSearch;
 
-	private final TableAndColumnMapper tableAndColumnMapper;
 	private final List<ColumnModel> schemaOfSelect;
 
 	private final IndexDescription indexDescription;
 
 	private final SqlContext sqlContext;
+	
+	private final LinkedHashSet<IdAndVersion> distinctTableIds;
+	
+	private final List<ColumnModel> tableSchema;
 
 	/**
 	 * @param tableId
@@ -104,16 +110,32 @@ public class QueryTranslator {
 		ValidateArgument.required(indexDescription, "indexDescription");
 		this.inputSql = startingSql;
 		try {
-			QuerySpecification model = new TableQueryParser(startingSql).querySpecification();
+
 			if (sqlContextIn == null) {
 				this.sqlContext = SqlContext.query;
 			} else {
 				this.sqlContext = sqlContextIn;
 			}
-			this.tableAndColumnMapper = new TableAndColumnMapper(model, schemaProvider);
-			if (this.tableAndColumnMapper.getTableIds().size() > 1 && !SqlContext.build.equals(this.sqlContext)) {
-				throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
+			QueryExpression transformedModel = new TableQueryParser(startingSql).queryExpression();
+			transformedModel.setSqlContext(this.sqlContext);
+			
+			List<QueryPart> parts = transformedModel.stream(QuerySpecification.class).map((q)-> new QueryPart(q, schemaProvider)).collect(Collectors.toList());
+			
+			distinctTableIds = parts.stream().flatMap(p->p.getMapper().getTableIds().stream()).collect(Collectors.toCollection(LinkedHashSet::new));
+			
+			QueryPart firstPart = parts.get(0);
+			
+			tableSchema = firstPart.getMapper().getUnionOfAllTableSchemas();
+			
+			if(!SqlContext.build.equals(this.sqlContext)) {
+				if(parts.size() > 1) {
+					throw new IllegalArgumentException(TableConstants.UNION_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
+				}
+				if(firstPart.getMapper().getTableIds().size() > 1) {
+					throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
+				}
 			}
+
 			this.indexDescription = indexDescription;
 
 			// only a view can include the etag
@@ -125,47 +147,77 @@ public class QueryTranslator {
 			// This map will contain all of the
 			this.parameters = new HashMap<String, Object>();
 
-			List<ColumnModel> unionOfSchemas = tableAndColumnMapper.getUnionOfAllTableSchemas();
+			List<ColumnModel> unionOfSchemas = firstPart.getMapper().getUnionOfAllTableSchemas();
 
-			// SELECT * is replaced with a select including each column in the schema.
-			if (BooleanUtils.isTrue(model.getSelectList().getAsterisk())) {
-				SelectList expandedSelectList = tableAndColumnMapper.buildSelectAllColumns();
-				model.getSelectList().replaceElement(expandedSelectList);
-			}
 
-			this.schemaOfSelect = SQLTranslatorUtils.getSchemaOfSelect(model.getSelectList(), tableAndColumnMapper);
+			this.schemaOfSelect = SQLTranslatorUtils.getSchemaOfSelect(firstPart.getQuerySpecification().getSelectList(), firstPart.getMapper());
 
 			// Track if this is an aggregate query.
-			this.isAggregatedResult = model.hasAnyAggregateElements();
+			this.isAggregatedResult = transformedModel.hasAnyAggregateElements();
 			this.includesRowIdAndVersion = !this.isAggregatedResult;
 			// Build headers that describe how the client should read the results of this
 			// query.
-			this.selectColumns = SQLTranslatorUtils.getSelectColumns(model.getSelectList(), tableAndColumnMapper,
+			this.selectColumns = SQLTranslatorUtils.getSelectColumns(firstPart.getQuerySpecification().getSelectList(), firstPart.getMapper(),
 					this.isAggregatedResult);
 			// Maximum row size is a function of both the select clause and schema.
 			this.maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(selectColumns, TableModelUtils.createColumnNameToModelMap(unionOfSchemas));
 
 			if (maxBytesPerPage != null) {
 				this.maxRowsPerPage = Math.max(1, maxBytesPerPage / this.maxRowSizeBytes);
-				model.getTableExpression().replacePagination(
-						SqlElementUtils.limitMaxRowsPerPage(model.getTableExpression().getPagination(), maxRowsPerPage));
+				firstPart.getQuerySpecification().getTableExpression().replacePagination(
+						SqlElementUtils.limitMaxRowsPerPage(firstPart.getQuerySpecification().getTableExpression().getPagination(), maxRowsPerPage));
 			}
 
 			// Does the query contain any text_matches elements?
-			this.isIncludeSearch = model.isIncludeSearch();
+			this.isIncludeSearch = transformedModel.getFirstElementOfType(TextMatchesPredicate.class) != null;
 
-			transformedModel = new TableQueryParser(model.toSql()).querySpecification();
-			transformedModel.setSqlContext(this.sqlContext);
+			List<ColumnToAdd> columnsToAddToSelect = indexDescription
+					.getColumnNamesToAddToSelect(sqlContext, this.includeEntityEtag, this.isAggregatedResult);
 			
-			SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), indexDescription
-					.getColumnNamesToAddToSelect(sqlContext, this.includeEntityEtag, this.isAggregatedResult));
+			
+			parts.forEach(p -> {
+				SQLTranslatorUtils.addMetadataColumnsToSelect(p.getQuerySpecification().getSelectList(),
+						new HashSet<>(p.getMapper().getTableIds()), columnsToAddToSelect);
 
-
-			SQLTranslatorUtils.translateModel(transformedModel, parameters, userId, tableAndColumnMapper);
+				// translate each part
+				SQLTranslatorUtils.translateModel(p.getQuerySpecification(), parameters, userId, p.getMapper());
+			});
+			this.translated = transformedModel;
 			this.outputSQL = transformedModel.toSql();
 		}catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
+	}
+	
+	private static class QueryPart {
+
+		private final QuerySpecification querySpecification;
+		private final TableAndColumnMapper mapper;
+		
+		public QueryPart(QuerySpecification querySpecification, SchemaProvider provider) {
+			super();
+			this.querySpecification = querySpecification;
+			this.mapper = new TableAndColumnMapper(querySpecification, provider);
+			
+			// SELECT * is replaced with a select including each column in the schema.
+			if (BooleanUtils.isTrue(querySpecification.getSelectList().getAsterisk())) {
+				SelectList expandedSelectList = mapper.buildSelectAllColumns();
+				querySpecification.getSelectList().replaceElement(expandedSelectList);
+			}
+		}
+		/**
+		 * @return the querySpecification
+		 */
+		public QuerySpecification getQuerySpecification() {
+			return querySpecification;
+		}
+		/**
+		 * @return the mapper
+		 */
+		public TableAndColumnMapper getMapper() {
+			return mapper;
+		}
+		
 	}
 
 	/**
@@ -226,15 +278,14 @@ public class QueryTranslator {
 	}
 
 	/**
-	 * Get the single TableId from the query. Note: If the SQL includes a JOIN, this
+	 * Get the single TableId from the query. Note: If the SQL includes a JOIN or UNION, this
 	 * will return an Optional.empty();
 	 * 
 	 * @return
 	 */
 	public Optional<String> getSingleTableId() {
-		List<IdAndVersion> tableIds = tableAndColumnMapper.getTableIds();
-		if (tableIds.size() == 1) {
-			return Optional.of(tableIds.get(0).toString());
+		if (distinctTableIds.size() == 1) {
+			return Optional.of(distinctTableIds.iterator().next().toString());
 		} else {
 			return Optional.empty();
 		}
@@ -246,7 +297,7 @@ public class QueryTranslator {
 	 * @return
 	 */
 	public List<IdAndVersion> getTableIds() {
-		return tableAndColumnMapper.getTableIds();
+		return distinctTableIds.stream().collect(Collectors.toList());
 	}
 
 	/**
@@ -264,7 +315,7 @@ public class QueryTranslator {
 	 * @return
 	 */
 	public List<ColumnModel> getTableSchema() {
-		return tableAndColumnMapper.getUnionOfAllTableSchemas();
+		return tableSchema;
 	}
 
 	/**
@@ -288,21 +339,15 @@ public class QueryTranslator {
 	}
 
 	/**
-	 * The query model that has been transformed to execute against the actual table
-	 * index.
-	 * 
-	 * @return
-	 */
-	public QuerySpecification getTransformedModel() {
-		return transformedModel;
-	}
-
-	/**
 	 * 
 	 * @return
 	 */
 	public Long getMaxRowsPerPage() {
 		return maxRowsPerPage;
+	}
+	
+	public QueryExpression getTranslatedModel() {
+		return this.translated;
 	}
 
 	/**
