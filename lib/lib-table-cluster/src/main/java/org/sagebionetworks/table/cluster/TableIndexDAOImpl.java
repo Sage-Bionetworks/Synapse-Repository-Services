@@ -1502,35 +1502,26 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			
 			return new TableRowData(rowId, rowData);
 		};
-	}
-	
+	}	
 
 	@Override
 	public List<String> streamTableIndexData(IdAndVersion tableId, CSVWriterStream stream) {
 		List<DatabaseColumnInfo> columnList = getDatabaseInfo(tableId);
-		List<String> headers = new ArrayList<>();
-		List<String> metadataColumns = new ArrayList<>();
 		
-		columnList.forEach( column -> {
-			String columnName = column.getColumnName();
-			// We do not export the search column since it can be re-generated
-			if (TableConstants.ROW_SEARCH_CONTENT.equals(columnName)) {
-				return;
-			}
-			
-			if (column.isMetadata()) {
-				metadataColumns.add(columnName);
-			}
-			headers.add(columnName);
-		});
+		List<String> metadataColumns = columnList.stream()
+			.filter(column -> column.isMetadata() && !TableConstants.ROW_SEARCH_CONTENT.equalsIgnoreCase(column.getColumnName()))
+			.map(DatabaseColumnInfo::getColumnName)
+			.collect(Collectors.toList());
+		
+		List<ColumnModel> schema = SQLUtils.extractSchemaFromInfo(columnList);
+		List<String> headers = new ArrayList<>(metadataColumns);
+		headers.addAll(SQLUtils.getColumnNames(schema));
+
+		String selectSql = SQLUtils.buildSelectTableData(tableId, schema, metadataColumns.toArray(String[]::new)).toString();
 
 		// Write the headers first
 		stream.writeNext(headers.toArray(String[]::new));
 		
-		List<ColumnModel> schema = SQLUtils.extractSchemaFromInfo(columnList);
-		
-		String selectSql = SQLUtils.buildSelectTableData(tableId, schema, metadataColumns.toArray(String[]::new)).toString();
-				
 		namedTemplate.query(selectSql, (ResultSet rs) -> {
 			String[] row = new String[headers.size()];
 			for (int i = 0; i < headers.size(); i++) {
