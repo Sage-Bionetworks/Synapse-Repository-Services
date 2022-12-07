@@ -1559,6 +1559,36 @@ public class QueryTranslatorTest {
 				+ "SELECT _C333_, -1, -1, IFNULL(ROW_BENEFACTOR,-1) FROM T3 WHERE _C333_ IS NOT NULL",
 				query.getOutputSQL());
 	}
+	
+	@Test
+	public void testTranslateWithMaterializedViewNestedUnions() throws ParseException {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion view2Id = IdAndVersion.parse("syn2");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("foo")));
+		schemaMap.put(view2Id, Arrays.asList(columnNameToModelMap.get("has space")));
+
+		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.entityview),
+				new ViewIndexDescription(view2Id, TableType.entityview));
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		// this query is used to build the materialized view.
+		sql = "(select foo from syn1 union select `has space` from syn2) where foo > 12";
+
+		/*
+		 * Note: This query does not currently parse. However, if we do add support for
+		 * this type of query, then we need to ensure that the 'where foo > 12' is
+		 * properly translated.
+		 */
+		Throwable cause = assertThrows(IllegalArgumentException.class, () -> {
+			QueryTranslator.builder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+					.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
+		}).getCause();
+		assertTrue(cause instanceof ParseException);
+
+	}
 
 	/**
 	 * Helper to create a schema provider for the given schema.
