@@ -76,6 +76,9 @@ public class EntityMetadataIndexProviderUnitTest {
 	@Mock
 	private IdAndEtag mockIdAndEtag;
 
+	@Mock
+	private ContainerProvider mockContainerProvider;
+
 	@Test
 	public void testGetObjectType() {
 		// Call under test
@@ -292,15 +295,25 @@ public class EntityMetadataIndexProviderUnitTest {
 	public void testGetViewFilterWithFile() throws LimitExceededException {
 		long viewTypeMask = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
-		Set<Long> fullScope = Sets.newHashSet(1L,2L,3L);
+		ViewFilter expectedFilter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file), mockContainerProvider);
+
 		// call under test
-		ViewFilter filter = provider.getViewFilter(viewTypeMask, scope);
-		ContainerProvider containerProvider = () -> mockNodeDao.getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
-		ViewFilter expected = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file), containerProvider);
-		System.out.println(containerProvider);
-		System.out.println("Result: " + filter.hashCode() + " Expected: " + expected.hashCode());
-		assertEquals(expected, filter);
-		verify(mockNodeDao, never()).getAllContainerIds((Collection<Long>)any(), anyInt());
+		ViewFilter resultFilter = provider.getViewFilter(viewTypeMask, scope);
+		assertEquals(expectedFilter, resultFilter);
+		verify(mockContainerProvider, never()).getScope();
+	}
+
+	@Test
+	public void testGetViewFilterWithFilterGetParentIdsCalled() throws LimitExceededException {
+		long viewTypeMask = ViewTypeMask.File.getMask();
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		Set<Long> fullScope = Sets.newHashSet(1L,2L,3L);
+		when(mockNodeDao.getAllContainerIds((Collection<Long>)any(), anyInt())).thenReturn(fullScope);
+		HierarchicaFilter resultFilter = (HierarchicaFilter) provider.getViewFilter(viewTypeMask, scope);
+		// call under test
+		Set<Long> resultScope = resultFilter.getParentIds();
+		assertEquals(fullScope, resultScope);
+		verify(mockNodeDao, times(1)).getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
@@ -308,13 +321,12 @@ public class EntityMetadataIndexProviderUnitTest {
 		long viewTypeMask = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		when(mockNodeDao.getAllContainerIds((Collection<Long>)any(), anyInt())).thenThrow(new LimitExceededException("over"));
-		HierarchicaFilter filter = (HierarchicaFilter) provider.getViewFilter(viewTypeMask, scope);
+		HierarchicaFilter resultFilter = (HierarchicaFilter) provider.getViewFilter(viewTypeMask, scope);
 		String message = assertThrows(IllegalStateException.class, ()->{
 			// call under test
-			filter.getParentIds();
+			resultFilter.getParentIds();
 		}).getMessage();
 		assertEquals("org.sagebionetworks.repo.model.LimitExceededException: over", message);
-		verify(mockNodeDao, times(1)).getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
