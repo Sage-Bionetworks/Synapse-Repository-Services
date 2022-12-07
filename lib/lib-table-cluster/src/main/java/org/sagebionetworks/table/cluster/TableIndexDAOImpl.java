@@ -1508,16 +1508,17 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public List<String> streamTableIndexData(IdAndVersion tableId, CSVWriterStream stream) {
 		List<DatabaseColumnInfo> columnList = getDatabaseInfo(tableId);
 		
-		List<String> metadataColumns = columnList.stream()
+		String[] metadataColumns = columnList.stream()
 			.filter(column -> column.isMetadata() && !TableConstants.ROW_SEARCH_CONTENT.equalsIgnoreCase(column.getColumnName()))
 			.map(DatabaseColumnInfo::getColumnName)
-			.collect(Collectors.toList());
+			.collect(Collectors.toList())
+			.toArray(String[]::new);
 		
 		List<ColumnModel> schema = SQLUtils.extractSchemaFromInfo(columnList);
-		List<String> headers = new ArrayList<>(metadataColumns);
-		headers.addAll(SQLUtils.getColumnNames(schema));
+		
+		List<String> headers = SQLUtils.getSelectTableDataHeaders(schema, metadataColumns);
 
-		String selectSql = SQLUtils.buildSelectTableData(tableId, schema, metadataColumns.toArray(String[]::new)).toString();
+		String selectSql = SQLUtils.buildSelectTableData(tableId, schema, metadataColumns).toString();
 
 		// Write the headers first
 		stream.writeNext(headers.toArray(String[]::new));
