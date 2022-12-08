@@ -134,6 +134,7 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 			return new FlatIdsFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.project), scope);
 		}else {
 			ContainerProvider containerProvider = () -> nodeDao.getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
+			System.out.println("Result:" + containerProvider);
 			return new HierarchicaFilter(ReplicationType.ENTITY, subTypes, containerProvider);
 		}
 	}

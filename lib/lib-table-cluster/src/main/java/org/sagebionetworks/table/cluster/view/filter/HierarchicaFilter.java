@@ -81,6 +81,7 @@ public class HierarchicaFilter extends AbstractViewFilter {
 
 	@Override
 	public Optional<List<ChangeMessage>> getSubViews() {
+		loadParentIds();
 		if (ReplicationType.ENTITY.equals(mainType) && loadParentIds().size() > 1) {
 			return Optional.of(loadParentIds().stream().map(p -> new ChangeMessage().setObjectId(KeyFactory.keyToString(p))
 					.setObjectType(ObjectType.ENTITY_CONTAINER)).collect(Collectors.toList()));
@@ -108,7 +109,7 @@ public class HierarchicaFilter extends AbstractViewFilter {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(super.hashCode(), parentIds);
+		return Objects.hash(super.hashCode(), containerProvider);
 	}
 
 	public static class Builder extends AbstractBuilder {
