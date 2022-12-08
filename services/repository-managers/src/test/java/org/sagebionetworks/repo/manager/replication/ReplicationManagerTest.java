@@ -13,7 +13,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.times;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -268,7 +267,6 @@ public class ReplicationManagerTest {
 		verify(managerSpy, never()).pushSubviewsBackToQueue(any(), any());
 		verify(managerSpy, never()).createReconcileIterator(any());
 		verify(mockTableIndexManager, never()).resetViewSynchronizeLock(any(), any());
-		verify(mockFilter, never()).getSubViews();
 		verifyZeroInteractions(mockReplicationMessageManager);
 	}
 
@@ -295,7 +293,7 @@ public class ReplicationManagerTest {
 
 		verify(mockTableIndexManager).resetViewSynchronizeLock(ReplicationType.ENTITY, viewId);
 		verify(mockReplicationMessageManager).pushChangeMessagesToReplicationQueue(changes);
-		verify(mockFilter, times(1)).getSubViews();
+
 		verify(mockLogger).info("Finished reconcile for view: 'syn123'.");
 	}
 
@@ -411,7 +409,7 @@ public class ReplicationManagerTest {
 		Set<SubType> expectedSubTypes = Arrays.stream(SubType.values()).collect(Collectors.toSet());
 		assertEquals(SubType.values().length, expectedSubTypes.size());
 		ViewFilter expected = new HierarchicaFilter(ReplicationType.ENTITY, expectedSubTypes
-				, () -> Sets.newHashSet(viewId.getId()));
+				, Sets.newHashSet(viewId.getId()));
 		// call under test
 		ViewFilter filter = managerSpy.getFilter(viewId, type);
 		assertEquals(expected, filter);
@@ -456,7 +454,7 @@ public class ReplicationManagerTest {
 		Long salt = 123L;
 		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
 		Set<Long> scope = Sets.newHashSet(99L);
-		ViewFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, subTypes, () -> scope);
+		ViewFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, subTypes, scope);
 		// call under test
 		Iterator<IdAndChecksum> result = manager.createTruthStream(salt, filter);
 		assertEquals(result, it);

@@ -8,7 +8,6 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
-import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -20,7 +19,6 @@ import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.table.cluster.view.filter.ContainerProvider;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.ValidateArgument;
@@ -139,12 +137,13 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 
 	@Override
 	public ViewFilter getViewFilter(Long viewId) {
-		return new HierarchicaFilter(ReplicationType.SUBMISSION, getSubTypes(), () -> viewScopeDao.getViewScope(viewId));
+		Set<Long> scope = viewScopeDao.getViewScope(viewId);
+		return new HierarchicaFilter(ReplicationType.SUBMISSION, getSubTypes(), scope);
 	}
 
 	@Override
 	public ViewFilter getViewFilter(Long viewTypeMask, Set<Long> containerIds) {
-		return new HierarchicaFilter(ReplicationType.SUBMISSION, getSubTypes(), () -> containerIds);
+		return new HierarchicaFilter(ReplicationType.SUBMISSION, getSubTypes(), containerIds);
 	}
 
 	@Override

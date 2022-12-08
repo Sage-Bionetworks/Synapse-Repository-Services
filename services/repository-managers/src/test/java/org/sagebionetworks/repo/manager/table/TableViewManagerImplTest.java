@@ -1261,7 +1261,7 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
-				() -> allContainersInScope);
+				allContainersInScope);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
 
 		// call under test
@@ -1286,7 +1286,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(rowsToUpdate);
 
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
-				() -> allContainersInScope);
+				allContainersInScope);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
 		
 
@@ -1373,7 +1373,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne);
 
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
-				() -> allContainersInScope);
+				allContainersInScope);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
 		
 		// call under test
@@ -1403,7 +1403,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne);
 
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
-				() -> allContainersInScope);
+				allContainersInScope);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
 		
 		// call under test
@@ -1432,7 +1432,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne);
 
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
-				() -> allContainersInScope);
+				allContainersInScope);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
 		
 		// call under test
@@ -1463,7 +1463,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne, pageTwo);
 
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
-				() -> allContainersInScope);
+				allContainersInScope);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
 		
 		// call under test
@@ -1494,7 +1494,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne, pageTwo);
 
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
-				() -> allContainersInScope);
+				allContainersInScope);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
 		
 
@@ -1529,7 +1529,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne, pageTwo);
 		
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
-				() -> allContainersInScope);
+				allContainersInScope);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
 		
 		
@@ -1562,7 +1562,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne);
 		
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
-				() -> allContainersInScope);
+				allContainersInScope);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
 		
 		

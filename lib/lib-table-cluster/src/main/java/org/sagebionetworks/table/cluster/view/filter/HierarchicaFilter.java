@@ -1,13 +1,11 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -21,42 +19,23 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class HierarchicaFilter extends AbstractViewFilter {
 
-	private final ContainerProvider containerProvider;
-	private Set<Long> parentIds;
+	protected final Set<Long> parentIds;
 
-	public HierarchicaFilter(ReplicationType mainType, Set<SubType> subTypes, ContainerProvider containerProvider) {
-		this(mainType, subTypes, null, null, containerProvider, false);
+	public HierarchicaFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> scope) {
+		this(mainType, subTypes, null, null, scope, false);
 	}
 
 	public HierarchicaFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
-			Set<String> excludeKeys, ContainerProvider provider, boolean excludeDerivedKeys) {
+			Set<String> excludeKeys, Set<Long> scope, boolean excludeDerivedKeys) {
 		super(mainType, subTypes, limitObjectIds, excludeKeys, excludeDerivedKeys);
-		ValidateArgument.required(provider, "ContainerProvider");
-		containerProvider = provider;
+		ValidateArgument.required(scope, "scope");
+		this.parentIds = scope;
+		this.params.put("parentIds", scope);
 	}
 
-	@Override
-	public Map<String, Object> getParameters() {
-		this.params.put("parentIds", loadParentIds());
-		return params;
-	}
-
-	private Set<Long> loadParentIds() {
-		if (parentIds != null) {
-			return parentIds;
-		}
-
-		try {
-			parentIds = containerProvider.getScope();
-		} catch (LimitExceededException e){
-			throw new IllegalStateException(e);
-		}
-
-		return parentIds;
-	}
 	@Override
 	public boolean isEmpty() {
-		return this.loadParentIds().isEmpty();
+		return this.parentIds.isEmpty();
 	}
 
 	@Override
@@ -71,25 +50,46 @@ public class HierarchicaFilter extends AbstractViewFilter {
 	}
 
 	public Set<Long> getParentIds() {
-		return loadParentIds();
+		return parentIds;
 	}
 
 	@Override
 	public Builder newBuilder() {
-		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, containerProvider, excludeDerivedKeys);
+		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, parentIds, excludeDerivedKeys);
 	}
 
 	@Override
 	public Optional<List<ChangeMessage>> getSubViews() {
-		if (ReplicationType.ENTITY.equals(mainType) && loadParentIds().size() > 1) {
-			return Optional.of(loadParentIds().stream().map(p -> new ChangeMessage().setObjectId(KeyFactory.keyToString(p))
+		if (ReplicationType.ENTITY.equals(mainType) && parentIds.size() > 1) {
+			return Optional.of(parentIds.stream().map(p -> new ChangeMessage().setObjectId(KeyFactory.keyToString(p))
 					.setObjectType(ObjectType.ENTITY_CONTAINER)).collect(Collectors.toList()));
 		} else {
 			return Optional.empty();
 		}
 	}
 
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + Objects.hash(parentIds);
+		return result;
+	}
 
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!super.equals(obj)) {
+			return false;
+		}
+		if (!(obj instanceof HierarchicaFilter)) {
+			return false;
+		}
+		HierarchicaFilter other = (HierarchicaFilter) obj;
+		return Objects.equals(parentIds, other.parentIds);
+	}
 
 	@Override
 	public String toString() {
@@ -97,33 +97,19 @@ public class HierarchicaFilter extends AbstractViewFilter {
 				+ ", limitObjectIds=" + limitObjectIds + ", excludeKeys=" + excludeKeys + ", params=" + params + "]";
 	}
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
-		if (!super.equals(o)) return false;
-		HierarchicaFilter that = (HierarchicaFilter) o;
-		return Objects.equals(parentIds, that.parentIds);
-	}
-
-	@Override
-	public int hashCode() {
-		return Objects.hash(super.hashCode(), containerProvider);
-	}
-
 	public static class Builder extends AbstractBuilder {
 
-		ContainerProvider containerProvider;
+		Set<Long> scope;
 
 		public Builder(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
-				Set<String> excludeKeys, ContainerProvider containerProvider, boolean excludeDerivedKeys) {
+				Set<String> excludeKeys, Set<Long> scope, boolean excludeDerivedKeys) {
 			super(mainType, subTypes, limitObjectIds, excludeKeys, excludeDerivedKeys);
-			this.containerProvider = containerProvider;
+			this.scope = scope;
 		}
 
 		@Override
 		public ViewFilter build() {
-			return new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, containerProvider, excludeDerivedKeys);
+			return new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 		}
 
 	}
