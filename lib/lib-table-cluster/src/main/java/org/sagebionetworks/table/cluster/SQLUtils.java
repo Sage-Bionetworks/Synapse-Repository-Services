@@ -2080,6 +2080,16 @@ public class SQLUtils {
 				.append(" FROM ")
 				.append(getTableNameForId(id, TableIndexType.INDEX));
 	}
+	
+	public static List<String> getSelectTableDataHeaders(List<ColumnModel> columns, String ...metadataColumns) {
+		ValidateArgument.required(columns, "The columns");
+		List<String> headers = new ArrayList<>();
+		if (metadataColumns != null) {
+			headers.addAll(Arrays.asList(metadataColumns));
+		}
+		headers.addAll(getColumnNames(columns));
+		return headers;
+	}
 	 
 	public static String buildBatchUpdateSearchContentSql(IdAndVersion id) {
 		ValidateArgument.required(id, "The id");

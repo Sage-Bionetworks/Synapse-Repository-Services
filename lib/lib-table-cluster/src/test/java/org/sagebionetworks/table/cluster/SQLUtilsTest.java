@@ -3111,6 +3111,67 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testGetSelectTableDataHeaders() {
+		
+		List<String> expected = List.of("_C456_", "_C789_", "_C123_");
+		// Call under test
+		List<String> result = SQLUtils.getSelectTableDataHeaders(simpleSchema);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetSelectTableDataHeadersWithNullSchema() {
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			SQLUtils.getSelectTableDataHeaders(null);
+		}).getMessage();
+		
+		assertEquals("The columns is required.", result);
+		
+	}
+	
+	@Test
+	public void testGetSelectTableDataHeadersWithEmptySchema() {
+		
+		List<String> expected = Collections.emptyList();
+			// Call under test
+		List<String> result = SQLUtils.getSelectTableDataHeaders(Collections.emptyList());
+
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetSelectTableDataHeadersWithAdditionalColumns() {
+		
+		List<String> expected = List.of("ROW_ID", "ROW_VERSION", "_C456_", "_C789_", "_C123_");
+		// Call under test
+		List<String> result = SQLUtils.getSelectTableDataHeaders(simpleSchema, TableConstants.ROW_ID, TableConstants.ROW_VERSION);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetSelectTableDataHeadersWithDoubleColumn() {
+		simpleSchema = List.of(
+			new ColumnModel()
+				.setColumnType(ColumnType.DOUBLE)
+				.setId("456")
+				.setName("colOne"),
+			new ColumnModel()
+				.setColumnType(ColumnType.INTEGER)
+				.setId("789")
+				.setName("colTwo")
+		);
+		List<String> expected = List.of("_C456_", "_DBL_C456_", "_C789_");
+		// Call under test
+		List<String> result = SQLUtils.getSelectTableDataHeaders(simpleSchema);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
 	public void testBuildBatchUpdateSearchContentSql() {
 		String expected = "UPDATE T999 SET `ROW_SEARCH_CONTENT` = ? WHERE ROW_ID = ?";
 		
