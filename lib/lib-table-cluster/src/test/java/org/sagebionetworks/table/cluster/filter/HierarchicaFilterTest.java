@@ -5,14 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -29,8 +26,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
-import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.view.filter.ContainerProvider;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -47,7 +42,7 @@ public class HierarchicaFilterTest {
 	private Set<String> excludeKeys;
 	private boolean excludeDerivedKeys;
 
-	private ContainerProvider mockProvider;
+	private ContainerProvider mockContainerProvider;
 	
 	@BeforeEach
 	public void before() {
@@ -58,7 +53,7 @@ public class HierarchicaFilterTest {
 		limitObjectIds = Sets.newHashSet(1L, 3L);
 		excludeKeys = Sets.newHashSet("foo", "bar");
 		excludeDerivedKeys = true;
-		mockProvider = Mockito.mock(ContainerProvider.class);
+		mockContainerProvider = Mockito.mock(ContainerProvider.class);
 	}
 
 	@Test
@@ -104,14 +99,14 @@ public class HierarchicaFilterTest {
 
 	@Test
 	public void testBuilderWithAllFields() {
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockProvider, excludeDerivedKeys);
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockContainerProvider, excludeDerivedKeys);
 		ViewFilter clone = filter.newBuilder().build();
 		assertEquals(filter, clone);
 	}
 
 	@Test
 	public void testGetLimitedObjectIds() {
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockProvider, excludeDerivedKeys);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockContainerProvider, excludeDerivedKeys);
 		Optional<Set<Long>> optional = filter.getLimitObjectIds();
 		assertNotNull(optional);
 		assertTrue(optional.isPresent());
@@ -121,7 +116,7 @@ public class HierarchicaFilterTest {
 	@Test
 	public void testGetLimitedObjectIdswithNull() {
 		limitObjectIds = null;
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockProvider, excludeDerivedKeys);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockContainerProvider, excludeDerivedKeys);
 		Optional<Set<Long>> optional = filter.getLimitObjectIds();
 		assertNotNull(optional);
 		assertFalse(optional.isPresent());
@@ -145,7 +140,7 @@ public class HierarchicaFilterTest {
 	public void testGetSubViewsWithEntityAndSingleParent() {
 		mainType = ReplicationType.ENTITY;
 		scope = Sets.newHashSet(1L);
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockProvider, excludeDerivedKeys);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockContainerProvider, excludeDerivedKeys);
 		// call under test
 		Optional<List<ChangeMessage>> results = filter.getSubViews();
 		Optional<List<ChangeMessage>> expected = Optional.empty();
@@ -156,7 +151,7 @@ public class HierarchicaFilterTest {
 	public void testGetSubViewsWithSubmissionAndMultipleParents() {
 		mainType = ReplicationType.SUBMISSION;
 		scope = Sets.newHashSet(1L, 2L, 3L);
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockProvider, excludeDerivedKeys);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockContainerProvider, excludeDerivedKeys);
 		// call under test
 		Optional<List<ChangeMessage>> results = filter.getSubViews();
 		Optional<List<ChangeMessage>> expected = Optional.empty();
@@ -167,7 +162,7 @@ public class HierarchicaFilterTest {
 	public void testGetSubViewsWithSubmissionAndSingleParent() {
 		mainType = ReplicationType.SUBMISSION;
 		scope = Sets.newHashSet(1L);
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockProvider, excludeDerivedKeys);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockContainerProvider, excludeDerivedKeys);
 		// call under test
 		Optional<List<ChangeMessage>> results = filter.getSubViews();
 		Optional<List<ChangeMessage>> expected = Optional.empty();
@@ -175,10 +170,11 @@ public class HierarchicaFilterTest {
 	}
 
 	@Test
-	public void testGetParameters() {
+	public void testGetParameters() throws LimitExceededException {
 		mainType = ReplicationType.ENTITY;
 		scope = Sets.newHashSet(1L, 2L, 3L);
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, () -> scope, excludeDerivedKeys);
+		when(mockContainerProvider.getScope()).thenReturn(scope);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockContainerProvider, excludeDerivedKeys);
 
 		Map<String, Object> paramsHash = new HashMap<>();
 		paramsHash.put("parentIds", scope);
@@ -197,14 +193,14 @@ public class HierarchicaFilterTest {
 		Map<String, Object> params = filter.getParameters();
 
 		assertEquals(expectedResults, params);
+		verify(mockContainerProvider, times(1)).getScope();
 	}
 
 	@Test
 	public void testGetParentIdsOverLimit() throws LimitExceededException {
 		mainType = ReplicationType.ENTITY;
-		scope = Sets.newHashSet(1L, 2L, 3L);
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockProvider, excludeDerivedKeys);
-		when(mockProvider.getScope()).thenThrow(new LimitExceededException("over"));
+		when(mockContainerProvider.getScope()).thenThrow(new LimitExceededException("over"));
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockContainerProvider, excludeDerivedKeys);
 
 		String message = assertThrows(IllegalStateException.class, ()->{
 			// call under test

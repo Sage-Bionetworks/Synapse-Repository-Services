@@ -6,14 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -44,9 +40,7 @@ import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 
 import com.google.common.collect.ImmutableList;
@@ -93,6 +87,8 @@ public class SubmissionMetadataIndexProviderUnitTest {
     @Mock
     private ContainerProvider mockContainerProvider;
 
+	@Mock
+	private ViewScopeDao mockViewScopeDao;
 
 	private ViewObjectType viewObjectType = ViewObjectType.SUBMISSION;
 
@@ -304,32 +300,14 @@ public class SubmissionMetadataIndexProviderUnitTest {
 	}
 
 	@Test
-	public void testGetViewFilter() throws LimitExceededException {
-		long viewTypeMask = ViewTypeMask.SubmissionView.getMask();
+	public void testGetViewFilterWithViewId() throws LimitExceededException {
+		long viewId = 1L;
 		Set<Long> containerIds = Sets.newHashSet(1L,2L);
-		ViewFilter expectedFilter = new HierarchicaFilter(ReplicationType.SUBMISSION, Sets.newHashSet(SubType.submission), mockContainerProvider);
+		ViewFilter expectedFilter = new HierarchicaFilter(ReplicationType.SUBMISSION, Sets.newHashSet(SubType.submission), () -> mockViewScopeDao.getViewScope(viewId));
 		// call under test
-		ViewFilter resultFilter = provider.getViewFilter(viewTypeMask, containerIds);
+		ViewFilter resultFilter = provider.getViewFilter(viewId);
 		assertEquals(expectedFilter, resultFilter);
-		verify(mockContainerProvider, never()).getScope();
+		verifyZeroInteractions(mockViewScopeDao);
 	}
-
-    @Test
-    public void testGetViewFilterWithFilterGetParentIdsCalled() throws LimitExceededException {
-		long viewTypeMask = ViewTypeMask.SubmissionView.getMask();
-		Set<Long> expectedContainerIds = Sets.newHashSet(1L,2L,3L);
-
-		when(mockContainerProvider.getScope()).thenReturn(expectedContainerIds);
-		ViewFilter expectedFilter = new HierarchicaFilter(ReplicationType.SUBMISSION, Sets.newHashSet(SubType.submission), mockContainerProvider);
-		expectedFilter.getParameters();
-
-		HierarchicaFilter resultFilter = (HierarchicaFilter) provider.getViewFilter(viewTypeMask, expectedContainerIds);
-
-		// call under test
-        Set<Long> resultScope = resultFilter.getParentIds();
-        assertEquals(expectedContainerIds, resultScope);
-		assertEquals(expectedFilter, resultFilter);
-		verify(mockContainerProvider, times(1)).getScope();
-    }
 }
 

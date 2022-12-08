@@ -7,8 +7,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.times;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -292,30 +292,16 @@ public class EntityMetadataIndexProviderUnitTest {
 	}
 	
 	@Test
-	public void testGetViewFilterWithFile() throws LimitExceededException {
+	public void testGetViewFilterWithFile() {
 		long viewTypeMask = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		ViewFilter expectedFilter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file), mockContainerProvider);
-
 		// call under test
 		ViewFilter resultFilter = provider.getViewFilter(viewTypeMask, scope);
 		assertEquals(expectedFilter, resultFilter);
-		verify(mockContainerProvider, never()).getScope();
+		verifyZeroInteractions(mockNodeDao);
 	}
 
-	@Test
-	public void testGetViewFilterWithFilterGetParentIdsCalled() throws LimitExceededException {
-		long viewTypeMask = ViewTypeMask.File.getMask();
-		Set<Long> scope = Sets.newHashSet(1L,2L);
-		Set<Long> fullScope = Sets.newHashSet(1L,2L,3L);
-		when(mockNodeDao.getAllContainerIds((Collection<Long>)any(), anyInt())).thenReturn(fullScope);
-		HierarchicaFilter resultFilter = (HierarchicaFilter) provider.getViewFilter(viewTypeMask, scope);
-		// call under test
-		Set<Long> resultScope = resultFilter.getParentIds();
-		assertEquals(fullScope, resultScope);
-		verify(mockNodeDao, times(1)).getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
-	}
-	
 	@Test
 	public void testGetViewFilterWithFileOverLimit() throws LimitExceededException {
 		long viewTypeMask = ViewTypeMask.File.getMask();
@@ -327,8 +313,9 @@ public class EntityMetadataIndexProviderUnitTest {
 			resultFilter.getParentIds();
 		}).getMessage();
 		assertEquals("org.sagebionetworks.repo.model.LimitExceededException: over", message);
+		verify(mockNodeDao).getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
-	
+
 	@Test
 	public void testValidateScopeAndTypeWithProjectPlusFile() throws LimitExceededException {
 		int maxContainersPerView = 4;
