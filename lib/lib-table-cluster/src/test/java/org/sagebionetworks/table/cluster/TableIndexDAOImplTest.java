@@ -85,6 +85,7 @@ import org.sagebionetworks.table.cluster.view.filter.IdVersionPair;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
@@ -5026,6 +5027,80 @@ public class TableIndexDAOImplTest {
 		assertArrayEquals(new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR" , "_C1_", "_C2_", "_DBL_C2_"}, rows.get(0));
 		assertArrayEquals(new String[] {"2", "2", "etag2", "2", "[123, 456, 789]", null, "NaN"}, rows.get(1));
 		assertArrayEquals(new String[] {"3", "2", "etag3", "2", "[321, 654]", "1.7976931348623157E308", "Infinity"}, rows.get(2));
+	}
+	
+	// Test to reproduce https://sagebionetworks.jira.com/browse/PLFM-7622
+	@Test
+	public void testStreamTableIndexDataWithDoubleAndSchemaChange() {
+		tableId = IdAndVersion.parse("syn123");
+		indexDescription = new TableIndexDescription(tableId);
+		// delete all data
+		tableIndexDAO.deleteTable(tableId);
+		
+		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
+		
+		ColumnModel intColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER);
+		ColumnModel stringColumn = TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING);
+		
+		// Start off with an int and a string column
+		List<ColumnChangeDetails> schemaChanges = List.of(
+			new ColumnChangeDetails(null, intColumn),
+			new ColumnChangeDetails(null, stringColumn)
+		);
+		
+		tableIndexDAO.alterTableAsNeeded(tableId, schemaChanges, false);
+
+		ColumnModel doubleColumn = TableModelTestUtils.createColumn(3L, "foo", ColumnType.DOUBLE);
+		List<ColumnModel> schema = List.of(doubleColumn, stringColumn);
+
+		// Now change the int column to a double column
+		schemaChanges = List.of(
+			new ColumnChangeDetails(intColumn, doubleColumn)
+		);		
+		
+		List<DatabaseColumnInfo> currentIndexSchema = tableIndexDAO.getDatabaseInfo(tableId);
+		schemaChanges = SQLUtils.matchChangesToCurrentInfo(currentIndexSchema, schemaChanges);
+		
+		tableIndexDAO.alterTableAsNeeded(tableId, schemaChanges, false);
+		
+		currentIndexSchema = tableIndexDAO.getDatabaseInfo(tableId);
+		
+		// The _DBL column is not appended as last
+		assertEquals(
+			List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C2_", "_DBL_C3_"), 
+			currentIndexSchema.stream().map(col -> col.getColumnName()).collect(Collectors.toList())
+		);
+		
+		SparseChangeSet rowSet = new SparseChangeSet(tableId.toString(), schema);
+		
+		SparseRow rowOne = rowSet.addEmptyRow();
+		rowOne.setRowId(1L);
+		rowOne.setVersionNumber(1L);
+		rowOne.setCellValue(doubleColumn.getId(), "1.0");
+		rowOne.setCellValue(stringColumn.getId(), "a");
+		
+		SparseRow rowTow = rowSet.addEmptyRow();
+		rowTow.setRowId(2L);
+		rowTow.setVersionNumber(1L);
+		rowTow.setCellValue(doubleColumn.getId(), "NaN");
+		rowTow.setCellValue(stringColumn.getId(), "b");
+		
+		Grouping data = rowSet.groupByValidValues().iterator().next();
+		
+		tableIndexDAO.createOrUpdateOrDeleteRows(tableId, data);
+		
+		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
+		
+		// Call under test
+		List<String> result = tableIndexDAO.streamTableIndexData(tableId, stream);
+		
+		assertEquals(schema.stream().map(ColumnModel::getId).collect(Collectors.toList()), result);
+		
+		List<String[]> rows = stream.getRows();
+		
+		assertArrayEquals(new String[] {"ROW_ID", "ROW_VERSION", "_C3_", "_DBL_C3_", "_C2_"}, rows.get(0));
+		assertArrayEquals(new String[] {"1", "1", "1.0", null, "a"}, rows.get(1));
+		assertArrayEquals(new String[] {"2", "1", null, "NaN", "b"}, rows.get(2));
 	}
 	
 	@Test

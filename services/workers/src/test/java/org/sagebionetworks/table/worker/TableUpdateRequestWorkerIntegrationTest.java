@@ -16,6 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -90,6 +91,7 @@ public class TableUpdateRequestWorkerIntegrationTest {
 	ColumnModel intColumn;
 	ColumnModel stringColumn;
 	ColumnModel booleanColumn;
+	ColumnModel doubleColumn;
 	
 	List<String> toDelete;
 	
@@ -102,6 +104,11 @@ public class TableUpdateRequestWorkerIntegrationTest {
 		intColumn.setName("anInteger");
 		intColumn.setColumnType(ColumnType.INTEGER);
 		intColumn = columnManager.createColumnModel(adminUserInfo, intColumn);
+		// double column
+		doubleColumn = new ColumnModel();
+		doubleColumn.setName("aDouble");
+		doubleColumn.setColumnType(ColumnType.DOUBLE);
+		doubleColumn = columnManager.createColumnModel(adminUserInfo, doubleColumn);
 		// string column
 		stringColumn = new ColumnModel();
 		stringColumn.setName("aString");
@@ -327,7 +334,7 @@ public class TableUpdateRequestWorkerIntegrationTest {
 		toDelete.add(tableId);
 		
 		// add string column
-		TableUpdateTransactionRequest transaction = createAddColumnRequest(stringColumn, tableId);
+		TableUpdateTransactionRequest transaction = createAddColumnsRequest(tableId, stringColumn);
 		// wait for the change to complete
 		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
 			assertNotNull(response);
@@ -381,7 +388,7 @@ public class TableUpdateRequestWorkerIntegrationTest {
 		toDelete.add(tableId);
 		
 		// add boolean column
-		TableUpdateTransactionRequest transaction = createAddColumnRequest(booleanColumn, tableId);
+		TableUpdateTransactionRequest transaction = createAddColumnsRequest(tableId, booleanColumn);
 		// wait for the change to complete
 		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
 			assertNotNull(response);
@@ -434,7 +441,7 @@ public class TableUpdateRequestWorkerIntegrationTest {
 		toDelete.add(tableId);
 		
 		// add int column
-		TableUpdateTransactionRequest transaction = createAddColumnRequest(intColumn, tableId);
+		TableUpdateTransactionRequest transaction = createAddColumnsRequest(tableId, intColumn);
 		// wait for the change to complete
 		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
 			assertNotNull(response);
@@ -487,7 +494,7 @@ public class TableUpdateRequestWorkerIntegrationTest {
 		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
 		toDelete.add(tableId);
 		// add add a column to the table.
-		TableUpdateTransactionRequest addColumnRequest = createAddColumnRequest(intColumn, tableId);
+		TableUpdateTransactionRequest addColumnRequest = createAddColumnsRequest(tableId, intColumn);
 		
 		startAndWaitForJob(adminUserInfo, addColumnRequest, (TableUpdateTransactionResponse response) -> {
 			assertNotNull(response);
@@ -569,6 +576,80 @@ public class TableUpdateRequestWorkerIntegrationTest {
 		});
 	}
 	
+	// https://sagebionetworks.jira.com/browse/PLFM-7622
+	@Test
+	public void testTableSnapshotDoubleSchemaChanges() throws Exception {
+		// create a table 
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(Lists.newArrayList(intColumn.getId(), stringColumn.getId()));
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete.add(tableId);
+		// add add a column to the table.
+		TableUpdateTransactionRequest transaction = createAddColumnsRequest(tableId, intColumn, stringColumn);
+		
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// Add some data to the table and create a new version
+		PartialRow rowOne = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "1", stringColumn.getId(), "a");
+		PartialRow rowTwo = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "2", stringColumn.getId(), "b");
+		PartialRowSet rowSet = createRowSet(tableId, rowOne, rowTwo);
+		transaction = createAddDataRequest(tableId, rowSet);
+				
+		// start the transaction
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNull(response.getSnapshotVersionNumber());
+		});
+		
+		// Now change the int column to a double column
+		transaction = createColumnUpdateRequest(intColumn, doubleColumn, tableId);
+		
+		((TableSchemaChangeRequest)transaction.getChanges().get(0)).setOrderedColumnIds(List.of(doubleColumn.getId(), stringColumn.getId()));
+		
+		
+		// start the transaction
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// start a new version
+		transaction = new TableUpdateTransactionRequest().setEntityId(tableId).setCreateSnapshot(true);
+		
+		// start the transaction
+		long firstVersion = startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNotNull(response.getSnapshotVersionNumber());
+		}).getSnapshotVersionNumber();
+		
+		// Eventually the snapshot for the first version is saved to S3, this will be used to restore the second version
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000,
+			() -> new Pair<Boolean, Void>(tableSnapshotDao.getSnapshot(IdAndVersion.parse(tableId + "." + firstVersion)).isPresent(), null)
+		);
+
+		// Add some more data and create version 2
+		PartialRow rowThree = TableModelTestUtils.createPartialRow(null, doubleColumn.getId(), "3", stringColumn.getId(), "c");
+		rowSet = createRowSet(tableId, rowThree);
+		transaction = createAddDataRequest(tableId, rowSet);
+		transaction.setCreateSnapshot(true);
+				
+		// start the transaction
+		long secondVersion = startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+		}).getSnapshotVersionNumber();
+		
+		String sql = "select * from "+tableId+"."+secondVersion;
+		
+		startAndWaitForJob(adminUserInfo, createQueryRequest(sql, tableId), (QueryResultBundle response) -> {
+			List<Row> secondVersionRows = response.getQueryResult().getQueryResults().getRows();
+			assertEquals(3, secondVersionRows.size());
+		});
+		
+	}
+	
 	@Test
 	public void testTableSnapshotWithoutChanges() throws Exception {
 		// create a table 
@@ -579,7 +660,7 @@ public class TableUpdateRequestWorkerIntegrationTest {
 		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
 		toDelete.add(tableId);
 		// add add a column to the table.
-		TableUpdateTransactionRequest addColumnRequest = createAddColumnRequest(intColumn, tableId);
+		TableUpdateTransactionRequest addColumnRequest = createAddColumnsRequest(tableId, intColumn);
 		
 		startAndWaitForJob(adminUserInfo, addColumnRequest, (TableUpdateTransactionResponse response) -> {
 			assertNotNull(response);
@@ -652,7 +733,7 @@ public class TableUpdateRequestWorkerIntegrationTest {
 		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
 		toDelete.add(tableId);
 		// add add a column to the table.
-		TableUpdateTransactionRequest addColumnRequest = createAddColumnRequest(intColumn, tableId);
+		TableUpdateTransactionRequest addColumnRequest = createAddColumnsRequest(tableId, intColumn);
 		
 		startAndWaitForJob(adminUserInfo, addColumnRequest, (TableUpdateTransactionResponse response) -> {
 			assertNotNull(response);
@@ -747,15 +828,12 @@ public class TableUpdateRequestWorkerIntegrationTest {
 	 * @param entityId
 	 * @return
 	 */
-	public static TableUpdateTransactionRequest createAddColumnRequest(ColumnModel column, String entityId) {
-		ColumnChange add = new ColumnChange();
-		add.setOldColumnId(null);
-		add.setNewColumnId(column.getId());
-		List<ColumnChange> changes = Lists.newArrayList(add);
+	public static TableUpdateTransactionRequest createAddColumnsRequest(String entityId, ColumnModel... columns) {
+		List<String> orderedColumnIds = Arrays.stream(columns).map(ColumnModel::getId).collect(Collectors.toList());
+		List<ColumnChange> changes = orderedColumnIds.stream().map(id -> new ColumnChange().setNewColumnId(id)).collect(Collectors.toList());
 		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
 		request.setEntityId(entityId);
 		request.setChanges(changes);
-		List<String> orderedColumnIds = Arrays.asList(column.getId());
 		request.setOrderedColumnIds(orderedColumnIds);
 		
 		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();

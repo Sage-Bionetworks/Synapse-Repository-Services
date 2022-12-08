@@ -624,8 +624,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			if(!targetChangeNumber.isPresent()) {
 				throw new NotFoundException("Snapshot for "+idAndVersion.toString()+" does not exist");
 			}
+			
+			// Disabled for now, see https://sagebionetworks.jira.com/browse/PLFM-7622
 			// Try to restore the table first from an existing snapshot
-			attemptToRestoreTableFromExistingSnapshot(idAndVersion, tableResetToken, targetChangeNumber.get());
+			// attemptToRestoreTableFromExistingSnapshot(idAndVersion, tableResetToken, targetChangeNumber.get());
+			
 			// build the table up to the latest change.
 			String lastEtag = buildIndexToLatestChange(idAndVersion, iterator, targetChangeNumber.get(),
 					tableResetToken);
@@ -645,6 +648,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	void attemptToRestoreTableFromExistingSnapshot(IdAndVersion idAndVersion, String tableResetToken, long targetChangeNumber) {
+				
 		// If there are any changes that are already applied to the table we let it build as normal
 		if (tableIndexDao.getMaxCurrentCompleteVersionForTable(idAndVersion) > -1L) {
 			return;
