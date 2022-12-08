@@ -64,7 +64,7 @@ public class HierarchicaFilterTest {
 	@Test
 	public void testFilter() {
 		// call under test
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, () -> scope);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, mockProvider);
 		assertEquals(
 				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
 						+ " AND R.PARENT_ID IN (:parentIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
@@ -82,7 +82,7 @@ public class HierarchicaFilterTest {
 	@Test
 	public void testFilterBuilder() {
 		// call under test
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, () -> scope).newBuilder()
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, mockProvider).newBuilder()
 				.addExcludeAnnotationKeys(excludeKeys)
 				.addLimitObjectids(limitObjectIds)
 				.setExcludeDerivedKeys(excludeDerivedKeys)
@@ -131,7 +131,7 @@ public class HierarchicaFilterTest {
 	public void testGetSubViewsWithEntityAndMultipleParents() {
 		mainType = ReplicationType.ENTITY;
 		scope = Sets.newHashSet(1L, 2L, 3L);
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, () -> scope, excludeDerivedKeys);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, mockProvider, excludeDerivedKeys);
 		// call under test
 		Optional<List<ChangeMessage>> results = filter.getSubViews();
 		Optional<List<ChangeMessage>> expected = Optional
