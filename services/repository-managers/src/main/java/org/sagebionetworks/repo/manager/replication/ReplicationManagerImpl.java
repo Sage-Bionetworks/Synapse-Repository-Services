@@ -186,15 +186,17 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	public void reconcile(IdAndVersion idAndVersion, ObjectType type) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		ValidateArgument.required(type, "type");
-		
-		ViewFilter filter = getFilter(idAndVersion, type);
+
+		ReplicationType replicationType = getReplicationType(idAndVersion, type);
 		TableIndexManager indexManager = indexConnectionFactory.connectToFirstIndex();
 		
-		if (!indexManager.isViewSynchronizeLockExpired(filter.getReplicationType(), idAndVersion)) {
+		if (!indexManager.isViewSynchronizeLockExpired(replicationType, idAndVersion)) {
 			log.info(String.format("Synchronize lock for view: '%s' has not expired.  Will not synchronize.",
 					idAndVersion.toString()));
 			return;
 		}
+
+		ViewFilter filter = getFilter(idAndVersion, type);
 		
 		// Can this view be represented by sub-views?
 		Optional<List<ChangeMessage>> subViews = filter.getSubViews();
@@ -211,7 +213,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 			 */
 			reconcileView(idAndVersion, filter);
 		}
-		indexManager.resetViewSynchronizeLock(filter.getReplicationType(), idAndVersion);
+		indexManager.resetViewSynchronizeLock(replicationType, idAndVersion);
 		log.info(String.format("Finished reconcile for view: '%s'.", idAndVersion.toString()));
 	}
 	
@@ -248,6 +250,23 @@ public class ReplicationManagerImpl implements ReplicationManager {
 					Arrays.stream(SubType.values()).collect(Collectors.toSet()), Sets.newHashSet(idAndVersion.getId()));
 		default:
 			throw new IllegalStateException("Unknown type: " + type);
+		}
+	}
+
+	/**
+	 *
+	 * @param idAndVersion
+	 * @param type
+	 * @return
+	 */
+	ReplicationType getReplicationType(IdAndVersion idAndVersion, ObjectType type) {
+		switch (type) {
+			case ENTITY_VIEW:
+				return tableManagerSupport.getViewScopeType(idAndVersion).getObjectType().getMainType();
+			case ENTITY_CONTAINER:
+				return ReplicationType.ENTITY;
+			default:
+				throw new IllegalStateException("Unknown type: " + type);
 		}
 	}
 
