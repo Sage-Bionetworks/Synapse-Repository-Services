@@ -133,7 +133,8 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 		if (ViewTypeMask.Project.getMask() == typeMask) {
 			return new FlatIdsFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.project), scope);
 		}else {
-			return new HierarchicaFilter(ReplicationType.ENTITY, subTypes, () -> nodeDao.getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW));
+			ContainerProvider containerProvider = () -> nodeDao.getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
+			return new HierarchicaFilter(ReplicationType.ENTITY, subTypes, containerProvider);
 		}
 	}
 
