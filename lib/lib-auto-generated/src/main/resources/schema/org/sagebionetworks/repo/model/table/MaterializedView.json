@@ -7,7 +7,7 @@
 	],
 	"properties": {
 		"definingSQL": {
-			"description": "The synapse SQL statement that defines the data in the materialized view. The SQL may contain JOIN clauses on multiple tables.",
+			"description": "The synapse SQL statement that defines the data in the materialized view. The SQL may contain JOIN/UNION clauses on multiple tables.",
 			"type": "string"
 		},
 		"columnIds": {
