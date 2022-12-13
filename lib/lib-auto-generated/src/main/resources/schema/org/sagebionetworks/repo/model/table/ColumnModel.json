@@ -61,8 +61,12 @@
                     "description": "The LINK data type represents any URL with 1,000 characters or less.  Each LINK column counts as maxSize*4 (4 bytes per character) towards the total width of a table."
                 },
                 {
+                    "name": "MEDIUMTEXT",
+                    "description": "The MEDIUMTEXT data type represents a string that is between 1 and 2,000 characters without the need to specify a maximum size.  For smaller strings where the maximum size is known consider using the STRING column type.  For larger strings, consider using the LARGETEXT or FILEHANDLEID column types. Each MEDIUMTEXT column counts as 421 bytes towards the total width of a table."
+                },
+                {
                     "name": "LARGETEXT",
-                    "description": "The LARGETEXT data type represents a string that is greater than 250 characters but less than 524,288 characters (2 MB of UTF-8 4 byte chars).  For smaller strings consider using the STRING column type.  For larger strings, consider using the FILEHANDELID column type. Each LARGE_TEXT column counts as 2133 bytes towards the total width of a table."
+                    "description": "The LARGETEXT data type represents a string that is greater than 250 characters but less than 524,288 characters (2 MB of UTF-8 4 byte chars).  For smaller strings consider using the STRING or MEDIUMTEXT column types.  For larger strings, consider using the FILEHANDELID column type. Each LARGE_TEXT column counts as 2133 bytes towards the total width of a table."
                 },
                 {
                     "name": "USERID",

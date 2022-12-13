@@ -1,8 +1,11 @@
 package org.sagebionetworks.table.cluster;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
 
 public class MySqlColumnTypeTest {
 
@@ -35,7 +38,7 @@ public class MySqlColumnTypeTest {
 	public void testParseSizeVarChar(){
 		String typeString = "VARCHAR(255)";
 		Integer size = MySqlColumnType.parseSize(typeString);
-		assertEquals(new Integer(255), size);
+		assertEquals(Integer.valueOf(255), size);
 	}
 
 	@Test
@@ -82,6 +85,11 @@ public class MySqlColumnTypeTest {
 	@Test
 	public void testMediumTextHasSize(){
 		assertFalse(MySqlColumnType.MEDIUMTEXT.hasSize());
+	}
+	
+	@Test
+	public void testTextHasSize(){
+		assertFalse(MySqlColumnType.TEXT.hasSize());
 	}
 	
 	@Test

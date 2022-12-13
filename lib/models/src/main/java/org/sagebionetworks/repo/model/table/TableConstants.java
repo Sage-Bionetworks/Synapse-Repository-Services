@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.table;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -94,10 +95,11 @@ public class TableConstants {
 	/**
 	 * The set of column types eligible to be added to the search index
 	 */
-	public static final Set<ColumnType> SEARCH_TYPES = ImmutableSet.of(
-		ColumnType.STRING, 
+	public static final EnumSet<ColumnType> SEARCH_TYPES = EnumSet.of(
+		ColumnType.STRING,
 		ColumnType.STRING_LIST, 
-		ColumnType.LARGETEXT, 
+		ColumnType.LARGETEXT,
+		ColumnType.MEDIUMTEXT,
 		ColumnType.LINK,
 		ColumnType.ENTITYID,
 		ColumnType.ENTITYID_LIST,

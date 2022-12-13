@@ -435,6 +435,29 @@ public class TableModelUtilsTest {
 			assertEquals("Value at [0,0] was not a valid LARGETEXT. Exceeds the maximum number of characters: 524288", e.getMessage());
 		}
 	}
+
+	@Test
+	public void testValidateMediumTextColumn() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.MEDIUMTEXT);
+		assertEquals("", TableModelUtils.validateRowValue("", cm, 0, 0));
+		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 0, 0));
+		assertEquals("basic", TableModelUtils.validateRowValue("basic", cm, 0, 0));
+	}
+	
+	@Test
+	public void testValidateMediumTextColumnTooBig() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.MEDIUMTEXT);
+		String valueTooBig = createStringOfSize((int) (ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS+1));
+		// call under test
+		try {
+			TableModelUtils.validateRowValue(valueTooBig, cm, 0, 0);
+			fail("should fail");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Value at [0,0] was not a valid MEDIUMTEXT. Exceeds the maximum number of characters: 2000", e.getMessage());
+		}
+	}
 	
 	@Test
 	public void testValidateStringTooBig() {
@@ -467,12 +490,15 @@ public class TableModelUtilsTest {
 		for (ColumnType type : ColumnType.values()) {
 			ColumnModel cm = new ColumnModel();
 			// String are allowed to be empty
-			if (ColumnType.STRING.equals(type))
+			switch (type) {
+			case STRING:
+			case LINK:
+			case LARGETEXT:
+			case MEDIUMTEXT:
 				continue;
-			if (ColumnType.LINK.equals(type))
-				continue;
-			if (ColumnType.LARGETEXT.equals(type))
-				continue;
+			default:
+				break;
+			}
 			cm.setColumnType(type);
 			cm.setMaximumSize(555L);
 			cm.setDefaultValue(null);
@@ -835,6 +861,12 @@ public class TableModelUtilsTest {
 		assertEquals(ColumnConstants.SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES,
 				TableModelUtils.calculateMaxSizeForType(ColumnType.LARGETEXT, null, null));
 	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeMediumText(){
+		assertEquals(ColumnConstants.SIZE_OF_MEDIUM_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES,
+				TableModelUtils.calculateMaxSizeForType(ColumnType.MEDIUMTEXT, null, null));
+	}
 
 	@Test
 	public void testCalculateMaxSizeForTypeStringList(){
@@ -1009,7 +1041,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(16066, allBytes);
+		assertEquals(16487, allBytes);
 	}
 
 	@Test

@@ -10,6 +10,7 @@ public enum MySqlColumnType {
 	DOUBLE(false, true),
 	BOOLEAN(false, true),
 	MEDIUMTEXT(false, false),
+	TEXT(false, true),
 	TINYINT(false, true),
 	ENUM(false, true),
 	JSON(false, false);

@@ -19,7 +19,7 @@ public class CSVUtils {
 	/**
 	 * When searching for a type this setups the order we check for.  Not all types are included.
 	 */
-	private static final ColumnType[] typesToCheck = new ColumnType[]{ColumnType.BOOLEAN, ColumnType.INTEGER, ColumnType.DOUBLE, ColumnType.DATE, ColumnType.ENTITYID, ColumnType.STRING, ColumnType.LARGETEXT};
+	private static final ColumnType[] typesToCheck = new ColumnType[]{ColumnType.BOOLEAN, ColumnType.INTEGER, ColumnType.DOUBLE, ColumnType.DATE, ColumnType.ENTITYID, ColumnType.STRING, ColumnType.MEDIUMTEXT, ColumnType.LARGETEXT};
 
 	/**
 	 * Create CSVReader with the correct parameters using the provided parameters or default values.

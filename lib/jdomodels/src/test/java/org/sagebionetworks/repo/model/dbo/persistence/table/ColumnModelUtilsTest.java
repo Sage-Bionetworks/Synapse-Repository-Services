@@ -130,7 +130,7 @@ public class ColumnModelUtilsTest {
 	}
 
 	@Test
-	public void testNormalizedEntityIdListColumn_DefaultValueNotNull(){
+	public void testNormalizedEntityIdListColumnWithDefaultValueNotNull(){
 		//input
 		original.setName("name");
 		original.setEnumValues(null);
@@ -148,7 +148,7 @@ public class ColumnModelUtilsTest {
 	}
 
 	@Test
-	public void testNormalizedUserIdListColumn_DefaultValueNotNull(){
+	public void testNormalizedUserIdListColumnWithDefaultValueNotNull(){
 		//input
 		original.setName("name");
 		original.setEnumValues(null);
@@ -166,7 +166,7 @@ public class ColumnModelUtilsTest {
 	}
 
 	@Test
-	public void testNormalizedEntityIdListColumn_DefaultValueEmpty(){
+	public void testNormalizedEntityIdListColumnWithDefaultValueEmpty(){
 		//input
 		original.setName("name");
 		original.setEnumValues(null);
@@ -181,7 +181,7 @@ public class ColumnModelUtilsTest {
 	}
 
 	@Test
-	public void testNormalizedUserIdListColumn_DefaultValueEmpty(){
+	public void testNormalizedUserIdListColumnWithDefaultValueEmpty(){
 		//input
 		original.setName("name");
 		original.setEnumValues(null);
@@ -197,7 +197,7 @@ public class ColumnModelUtilsTest {
 
 
 	@Test
-	public void testNormalizedStringIdListColumn_DefaultValueIsEmptyJSONList(){
+	public void testNormalizedStringIdListColumnWithDefaultValueIsEmptyJSONList(){
 		//input
 		original.setName("name");
 		original.setEnumValues(null);
@@ -431,7 +431,7 @@ public class ColumnModelUtilsTest {
 	}
 
 	@Test
-	public void testLargeText_DisallowDefaultValue(){
+	public void testLargeTextDisallowDefaultValue(){
 		original.setName("name");
 		original.setColumnType(ColumnType.LARGETEXT);
 		original.setDefaultValue("value");
@@ -439,9 +439,19 @@ public class ColumnModelUtilsTest {
 			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 		});
 	}
+	
+	@Test
+	public void testMediumTextDisallowDefaultValue(){
+		original.setName("name");
+		original.setColumnType(ColumnType.MEDIUMTEXT);
+		original.setDefaultValue("value");
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		});
+	}
 
 	@Test
-	public void testLargeText_ListDefaultValue(){
+	public void testStringListWithBadDefaultValue(){
 		original.setName("name");
 		original.setColumnType(ColumnType.STRING_LIST);
 		original.setDefaultValue("nonArray]");
@@ -528,7 +538,7 @@ public class ColumnModelUtilsTest {
 	}
 
 	@Test
-	public void testValidateListLengthForClone_maxLengthNull(){
+	public void testValidateListLengthForCloneWithMaxLengthNull(){
 		ColumnModel columnModel = new ColumnModel();
 		columnModel.setMaximumListLength(null);
 
@@ -539,7 +549,7 @@ public class ColumnModelUtilsTest {
 
 
 	@Test
-	public void testValidateListLengthForClone_maxLengthAboveAllowedMax(){
+	public void testValidateListLengthForCloneWithMaxLengthAboveAllowedMax(){
 		ColumnModel columnModel = new ColumnModel();
 		columnModel.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH+1);
 
@@ -552,7 +562,7 @@ public class ColumnModelUtilsTest {
 
 
 	@Test
-	public void testValidateListLengthForClone_maxLengthNegative(){
+	public void testValidateListLengthForCloneWithMaxLengthNegative(){
 		ColumnModel columnModel = new ColumnModel();
 		columnModel.setMaximumListLength(1L);
 
@@ -564,7 +574,7 @@ public class ColumnModelUtilsTest {
 	}
 
 	@Test
-	public void testValidateListLengthForClone_nothingHappens(){
+	public void testValidateListLengthForCloneNothingHappens(){
 		ColumnModel columnModel = new ColumnModel();
 		columnModel.setMaximumListLength(45L);
 

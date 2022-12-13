@@ -189,7 +189,7 @@ public class TableModelUtils {
 					"ColumnModel.columnType cannot be null");
 		
 		// Only strings can have a value that is an empty string. See PLFM-2657
-		if ("".equals(value) && !(cm.getColumnType() == ColumnType.STRING || cm.getColumnType() == ColumnType.LINK || cm.getColumnType() == ColumnType.LARGETEXT)) {
+		if ("".equals(value) && !(cm.getColumnType() == ColumnType.STRING || cm.getColumnType() == ColumnType.LINK || cm.getColumnType() == ColumnType.LARGETEXT || cm.getColumnType() == ColumnType.MEDIUMTEXT)) {
 			value = null;
 		}
 		
@@ -258,6 +258,14 @@ public class TableModelUtils {
 		if (cm.getColumnType() == ColumnType.LARGETEXT) {
 			if (value.length() > ColumnConstants.MAX_LARGE_TEXT_CHARACTERS) {
 				throw new IllegalArgumentException("Exceeds the maximum number of characters: " + ColumnConstants.MAX_LARGE_TEXT_CHARACTERS);
+			}
+			checkStringEnum(value, cm);
+			return value;
+		}
+		
+		if (cm.getColumnType() == ColumnType.MEDIUMTEXT) {
+			if (value.length() > ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS) {
+				throw new IllegalArgumentException("Exceeds the maximum number of characters: " + ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS);
 			}
 			checkStringEnum(value, cm);
 			return value;
@@ -789,6 +797,8 @@ public class TableModelUtils {
 					throw new IllegalArgumentException("maxSize cannot be null for String types");
 				}
 				return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize);
+			case MEDIUMTEXT:
+				return ColumnConstants.SIZE_OF_MEDIUM_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES;
 			case LARGETEXT:
 				return ColumnConstants.SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES;
 			case BOOLEAN:
