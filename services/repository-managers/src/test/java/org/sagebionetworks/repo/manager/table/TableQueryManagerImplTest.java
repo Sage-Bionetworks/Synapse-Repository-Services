@@ -1108,7 +1108,7 @@ public class TableQueryManagerImplTest {
 		assertEquals(
 				"SELECT _C0_, CASE WHEN _DBL_C1_ IS NULL THEN _C1_ ELSE _DBL_C1_ END, "
 				+ "_C2_, _C3_, _C4_, _C5_, _C6_, _C7_, _C8_, _C9_, _C10_, _C11_,"
-				+ " _C12_, _C13_, _C14_, _C15_, _C16_, _C17_, ROW_ID, ROW_VERSION FROM T123",
+				+ " _C12_, _C13_, _C14_, _C15_, _C16_, _C17_, _C18_, ROW_ID, ROW_VERSION FROM T123",
 				result.getMainQuery().getTranslator().getOutputSQL());
 	}
 	
@@ -1169,7 +1169,7 @@ public class TableQueryManagerImplTest {
 		query.setSql("select i2, i0 from "+tableId);
 
 		ColumnMultiValueFunctionQueryFilter likeFilter = new ColumnMultiValueFunctionQueryFilter();
-		likeFilter.setColumnName("i12");
+		likeFilter.setColumnName("i13");
 		likeFilter.setFunction(ColumnMultiValueFunction.HAS_LIKE);
 		likeFilter.setValues(Arrays.asList("foo%", "bar"));
 		query.setAdditionalFilters(Arrays.asList(likeFilter));
@@ -1180,7 +1180,7 @@ public class TableQueryManagerImplTest {
 		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 		assertNotNull(result);
 		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ROW_ID IN ("
-				+ " SELECT ROW_ID_REF_C12_ FROM T123_INDEX_C12_ WHERE _C12__UNNEST LIKE :b0 OR _C12__UNNEST LIKE :b1 ) )",
+				+ " SELECT ROW_ID_REF_C13_ FROM T123_INDEX_C13_ WHERE _C13__UNNEST LIKE :b0 OR _C13__UNNEST LIKE :b1 ) )",
 				result.getMainQuery().getTranslator().getOutputSQL());
 		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b0"));
 		assertEquals("bar", result.getMainQuery().getTranslator().getParameters().get("b1"));
@@ -1198,7 +1198,7 @@ public class TableQueryManagerImplTest {
 		query.setSql("select i2, i0 from " + tableId);
 
 		ColumnMultiValueFunctionQueryFilter likeFilter = new ColumnMultiValueFunctionQueryFilter();
-		likeFilter.setColumnName("i12");
+		likeFilter.setColumnName("i13");
 		likeFilter.setFunction(ColumnMultiValueFunction.HAS);
 		likeFilter.setValues(Arrays.asList("foo%", "bar"));
 		query.setAdditionalFilters(Arrays.asList(likeFilter));
@@ -1210,7 +1210,7 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		assertEquals(
 				"SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ROW_ID IN ( "
-				+ "SELECT ROW_ID_REF_C12_ FROM T123_INDEX_C12_ WHERE _C12__UNNEST IN ( :b0, :b1 ) ) )",
+				+ "SELECT ROW_ID_REF_C13_ FROM T123_INDEX_C13_ WHERE _C13__UNNEST IN ( :b0, :b1 ) ) )",
 				result.getMainQuery().getTranslator().getOutputSQL());
 		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
 		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b0"));
