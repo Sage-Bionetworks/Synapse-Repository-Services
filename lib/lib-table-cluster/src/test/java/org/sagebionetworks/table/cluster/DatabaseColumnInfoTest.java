@@ -26,6 +26,17 @@ public class DatabaseColumnInfoTest {
 	}
 	
 	@Test
+	public void testCreateIndexDefinitionText(){
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnName("_C123_");
+		info.setIndexName("_C123_IDX");
+		info.setType(MySqlColumnType.TEXT);
+		// call under test
+		String results = info.createIndexDefinition();
+		assertEquals("_C123_IDX (_C123_(255))", results);
+	}
+	
+	@Test
 	public void testCreateIndexDefinitionVarcharUnderMax(){
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName("_C123_");
