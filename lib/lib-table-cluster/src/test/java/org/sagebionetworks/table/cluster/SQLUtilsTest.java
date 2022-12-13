@@ -1156,6 +1156,7 @@ public class SQLUtilsTest {
 			+ "COUNT(DISTINCT DOUBLE) AS DOUBLE, "
 			+ "COUNT(DISTINCT BOOLEAN) AS BOOLEAN, "
 			+ "MAX(0) AS MEDIUMTEXT, "
+			+ "COUNT(DISTINCT TEXT) AS TEXT, "
 			+ "COUNT(DISTINCT TINYINT) AS TINYINT, "
 			+ "COUNT(DISTINCT ENUM) AS ENUM, "
 			+ "MAX(0) AS JSON FROM T999", results
@@ -1740,14 +1741,15 @@ public class SQLUtilsTest {
 				+ " MAX(IF(A.ANNO_KEY ='submissionid', A.LONG_VALUE, NULL)) AS _C7_,"
 				+ " MAX(IF(A.ANNO_KEY ='evaluationid', A.LONG_VALUE, NULL)) AS _C8_,"
 				+ " MAX(IF(A.ANNO_KEY ='link', A.STRING_VALUE, NULL)) AS _C9_,"
-				+ " MAX(IF(A.ANNO_KEY ='largetext', A.STRING_VALUE, NULL)) AS _C10_,"
-				+ " MAX(IF(A.ANNO_KEY ='userid', A.LONG_VALUE, NULL)) AS _C11_,"
-				+ " MAX(IF(A.ANNO_KEY ='string_list', A.STRING_LIST_VALUE, NULL)) AS _C12_,"
-				+ " MAX(IF(A.ANNO_KEY ='integer_list', A.LONG_LIST_VALUE, NULL)) AS _C13_,"
-				+ " MAX(IF(A.ANNO_KEY ='boolean_list', A.BOOLEAN_LIST_VALUE, NULL)) AS _C14_,"
-				+ " MAX(IF(A.ANNO_KEY ='date_list', A.LONG_LIST_VALUE, NULL)) AS _C15_,"
-				+ " MAX(IF(A.ANNO_KEY ='entityid_list', A.LONG_LIST_VALUE, NULL)) AS _C16_,"
-				+ " MAX(IF(A.ANNO_KEY ='userid_list', A.LONG_LIST_VALUE, NULL)) AS _C17_"
+				+ " MAX(IF(A.ANNO_KEY ='mediumtext', A.STRING_VALUE, NULL)) AS _C10_,"
+				+ " MAX(IF(A.ANNO_KEY ='largetext', A.STRING_VALUE, NULL)) AS _C11_,"
+				+ " MAX(IF(A.ANNO_KEY ='userid', A.LONG_VALUE, NULL)) AS _C12_,"
+				+ " MAX(IF(A.ANNO_KEY ='string_list', A.STRING_LIST_VALUE, NULL)) AS _C13_,"
+				+ " MAX(IF(A.ANNO_KEY ='integer_list', A.LONG_LIST_VALUE, NULL)) AS _C14_,"
+				+ " MAX(IF(A.ANNO_KEY ='boolean_list', A.BOOLEAN_LIST_VALUE, NULL)) AS _C15_,"
+				+ " MAX(IF(A.ANNO_KEY ='date_list', A.LONG_LIST_VALUE, NULL)) AS _C16_,"
+				+ " MAX(IF(A.ANNO_KEY ='entityid_list', A.LONG_LIST_VALUE, NULL)) AS _C17_,"
+				+ " MAX(IF(A.ANNO_KEY ='userid_list', A.LONG_LIST_VALUE, NULL)) AS _C18_"
 				, builder.toString());
 	}
 
