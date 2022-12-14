@@ -1139,11 +1139,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public boolean tempTableColumnExceedsCharacterLimit(IdAndVersion tableId, String columnId, long characterLimit) {
-		String sql = "SELECT True FROM " + SQLUtils.getTemporaryTableName(tableId) 
+	public Optional<Long> tempTableColumnExceedsCharacterLimit(IdAndVersion tableId, String columnId, long characterLimit) {
+		String sql = "SELECT " + TableConstants.ROW_ID + " FROM " + SQLUtils.getTemporaryTableName(tableId) 
 			+ " WHERE CHAR_LENGTH(" + SQLUtils.getColumnNameForId(columnId) +") > ? LIMIT 1";
 		
-		return !template.queryForList(sql, Boolean.class, characterLimit).isEmpty();
+		List<Long> rowId = template.queryForList(sql, Long.class, characterLimit);
+		
+		return rowId.isEmpty() ? Optional.empty() : Optional.of(rowId.iterator().next());
 	}
 	
 	@Override

@@ -426,10 +426,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				return;
 			}
 			
-			if (tableIndexDao.tempTableColumnExceedsCharacterLimit(tableId, oldColumn.getId(), ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS)) {
+			tableIndexDao.tempTableColumnExceedsCharacterLimit(tableId, oldColumn.getId(), ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS).ifPresent( rowId -> {
 				throw new IllegalArgumentException("Cannot change column \"" + oldColumn.getName() + "\" to MEDIUMTEXT: "
-						+ "The data exceeds the MEDIUMTEXT limit of " + ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS + " characters.");
-			}
+						+ "The data at row " + rowId + " exceeds the MEDIUMTEXT limit of " + ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS + " characters.");
+			});
 			
 		});
 	}

@@ -4608,14 +4608,14 @@ public class TableIndexDAOImplTest {
 		long charLimit = 12;
 
 		// Call under test, on an empty table the limit does not exceed
-		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, largeColumn.getId(), charLimit));
-		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, smallColumn.getId(), charLimit));
+		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, largeColumn.getId(), charLimit).isPresent());
+		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, smallColumn.getId(), charLimit).isPresent());
 
 		tableIndexDAO.copyAllDataToTemporaryTable(tableId);
 
 		// Call under test
-		assertTrue(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, largeColumn.getId(), charLimit));
-		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, smallColumn.getId(), charLimit));
+		assertEquals(rows.get(0).getRowId(),tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, largeColumn.getId(), charLimit).get());
+		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, smallColumn.getId(), charLimit).isPresent());
 	}
 	
 	@Test

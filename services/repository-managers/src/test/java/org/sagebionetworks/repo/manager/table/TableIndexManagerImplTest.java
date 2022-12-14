@@ -3121,7 +3121,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testValidateSchemaChangeToMediumText() {
-		when(mockIndexDao.tempTableColumnExceedsCharacterLimit(any(), any(), anyLong())).thenReturn(false);
+		when(mockIndexDao.tempTableColumnExceedsCharacterLimit(any(), any(), anyLong())).thenReturn(Optional.empty());
 		
 		columnChanges = List.of(
 			new ColumnChangeDetails(
@@ -3138,7 +3138,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testValidateSchemaChangeToMediumTextWithOldColumnExceedsLimitTrue() {
-		when(mockIndexDao.tempTableColumnExceedsCharacterLimit(any(), any(), anyLong())).thenReturn(true);
+		when(mockIndexDao.tempTableColumnExceedsCharacterLimit(any(), any(), anyLong())).thenReturn(Optional.of(456L));
 		
 		columnChanges = List.of(
 			new ColumnChangeDetails(
@@ -3152,7 +3152,7 @@ public class TableIndexManagerImplTest {
 			manager.validateSchemaChangeToMediumText(tableId, columnChanges);
 		}).getMessage();
 		
-		assertEquals("Cannot change column \"oldColumn\" to MEDIUMTEXT: The data exceeds the MEDIUMTEXT limit of 2000 characters.", result);
+		assertEquals("Cannot change column \"oldColumn\" to MEDIUMTEXT: The data at row 456 exceeds the MEDIUMTEXT limit of 2000 characters.", result);
 		
 		verify(mockIndexDao).tempTableColumnExceedsCharacterLimit(tableId, "1", ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS);
 	}
