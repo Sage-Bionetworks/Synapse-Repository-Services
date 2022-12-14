@@ -168,7 +168,7 @@ public interface TableIndexManager {
 	 * @param changes
 	 * @return
 	 */
-	void alterTempTableSchmea(IdAndVersion tableId, List<ColumnChangeDetails> changes);
+	void alterTempTableSchema(IdAndVersion tableId, List<ColumnChangeDetails> changes);
 
 	/**
 	 * Populate a view table by coping all of the relevant data from the entity

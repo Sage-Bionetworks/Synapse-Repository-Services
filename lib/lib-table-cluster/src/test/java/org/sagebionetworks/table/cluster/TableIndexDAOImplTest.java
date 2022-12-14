@@ -4569,6 +4569,56 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
+	public void testTempTableColumnExceedsCharacterLimit(){
+		ColumnModel largeColumn = new ColumnModel();
+		largeColumn.setId("12");
+		largeColumn.setName("foo");
+		largeColumn.setColumnType(ColumnType.LARGETEXT);
+		
+		ColumnModel smallColumn = new ColumnModel();
+		smallColumn.setId("13");
+		smallColumn.setName("bar");
+		smallColumn.setMaximumSize(50L);
+		smallColumn.setColumnType(ColumnType.STRING);
+
+		List<ColumnModel> schema = List.of(largeColumn, smallColumn);
+
+		createOrUpdateTable(schema, indexDescription);
+		
+		// create five rows.
+		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
+		
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getSelectColumns(schema));
+		set.setTableId(tableId.toString());
+
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+
+		createOrUpdateOrDeleteRows(tableId, set, schema);
+		
+		tableIndexDAO.deleteTemporaryTable(tableId);
+		// Create a copy of the table
+		tableIndexDAO.createTemporaryTable(tableId);
+		
+		long charLimit = 12;
+
+		// Call under test, on an empty table the limit does not exceed
+		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, largeColumn.getId(), charLimit));
+		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, smallColumn.getId(), charLimit));
+
+		tableIndexDAO.copyAllDataToTemporaryTable(tableId);
+
+		// Call under test
+		assertTrue(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, largeColumn.getId(), charLimit));
+		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, smallColumn.getId(), charLimit));
+	}
+	
+	@Test
 	public void testRefreshViewBenefactors() throws ParseException{
 		tableId = IdAndVersion.parse("syn123");
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);

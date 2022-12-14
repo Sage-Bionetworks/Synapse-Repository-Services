@@ -1282,7 +1282,7 @@ public class TableEntityManagerTest {
 		// Call under test
 		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), schemaChangeRequest.getOrderedColumnIds());
-		verify(mockIndexManager).alterTempTableSchmea(idAndVersion, columChangedetails);
+		verify(mockIndexManager).alterTempTableSchema(idAndVersion, columChangedetails);
 	}
 	
 	@Test
@@ -1313,7 +1313,7 @@ public class TableEntityManagerTest {
 		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, request, null);
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, changes, newColumnIds);
 		// temp table should not be used.
-		verify(mockIndexManager, never()).alterTempTableSchmea(any(IdAndVersion.class), anyListOf(ColumnChangeDetails.class));
+		verify(mockIndexManager, never()).alterTempTableSchema(any(IdAndVersion.class), anyListOf(ColumnChangeDetails.class));
 	}
 		
 	@Test

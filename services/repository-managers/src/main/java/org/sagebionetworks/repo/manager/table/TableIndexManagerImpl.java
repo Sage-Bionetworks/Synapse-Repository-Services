@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -40,9 +41,9 @@ import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
 import org.sagebionetworks.table.cluster.SQLUtils;
-import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
@@ -373,9 +374,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}	
 	
 	@Override
-	public void alterTempTableSchmea(final IdAndVersion tableId, final List<ColumnChangeDetails> changes){
+	public void alterTempTableSchema(final IdAndVersion tableId, final List<ColumnChangeDetails> changes){
 		boolean alterTemp = true;
 		validateTableMaximumListLengthChanges(tableId,changes);
+		validateSchemaChangeToMediumText(tableId, changes);
 		alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 		alterListColumnIndexTableWithSchemaChange(tableId,changes, alterTemp);
 	}
@@ -402,6 +404,34 @@ public class TableIndexManagerImpl implements TableIndexManager {
 						"\" must be at least: " + maximumListLengthInTable);
 			}
 		}
+	}
+	
+	// When a schema change changes the type of an existing column to MEDIUMTEXT, we need to make sure that the soft limit
+	// on the MEDIUMTEXT is valid for existing data
+	void validateSchemaChangeToMediumText(IdAndVersion tableId, List<ColumnChangeDetails> changes) {
+		changes.forEach( change -> {
+			ColumnModel oldColumn = change.getOldColumn();
+			ColumnModel newColumn = change.getNewColumn();
+			
+			// Only applies to column updates
+			if (oldColumn == null || newColumn == null) {
+				return;
+			}
+			// Only applies if the new column is MEDIUMTEXT
+			if (!ColumnType.MEDIUMTEXT.equals(newColumn.getColumnType())) {
+				return;
+			}
+			// Only applies if the old column is LARGETEXT, all other columns fit in the MEDIUMTEXT
+			if (!ColumnType.LARGETEXT.equals(oldColumn.getColumnType())) {
+				return;
+			}
+			
+			if (tableIndexDao.tempTableColumnExceedsCharacterLimit(tableId, oldColumn.getId(), ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS)) {
+				throw new IllegalArgumentException("Cannot change column \"" + oldColumn.getName() + "\" to MEDIUMTEXT: "
+						+ "The data exceeds the MEDIUMTEXT limit of " + ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS + " characters.");
+			}
+			
+		});
 	}
 
 	/**

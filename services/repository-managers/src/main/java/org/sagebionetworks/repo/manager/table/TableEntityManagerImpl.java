@@ -763,7 +763,15 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	}
 
 	/**
-	 * Validation for a schema change request.
+	 * Validation for a schema change request. Note that this can be invoked only in the context of a background worker since
+	 * a schema change might lead to an expensive validation done on a temporary table. 
+	 * 
+	 * This is relevant only when an existing column is updated (E.g. when the type of the column is modified).
+	 * 
+	 * This type of validation cannot be invoked (nor is relevant) when the change to the schema is performed through 
+	 * an entity update (e.g. if the list of column ids is updated through the entity update, no update to existing columns can
+	 * be done in that case).
+	 * 
 	 * @param callback
 	 * @param userInfo
 	 * @param change
@@ -783,7 +791,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			List<ColumnChangeDetails> details = columModelManager.getColumnChangeDetails(changes.getChanges());
 			IdAndVersion idAndVersion = IdAndVersion.parse(changes.getEntityId());
 			// attempt to apply the schema change to the temp copy of the table.
-			indexManager.alterTempTableSchmea(idAndVersion, details);
+			indexManager.alterTempTableSchema(idAndVersion, details);
 		}
 	}
 

@@ -431,6 +431,15 @@ public interface TableIndexDAO {
 	 * @return max list value length of the column
 	 */
 	long tempTableListColumnMaxLength(IdAndVersion tableId, String columnId);
+	
+	/**
+	 * 
+	 * @param tableId
+	 * @param columnId
+	 * @param characterLimit
+	 * @return True if the any value in the column with the given id in the temporary copy of the given table exceeds the given character limit
+	 */
+	boolean tempTableColumnExceedsCharacterLimit(IdAndVersion tableId, String columnId, long characterLimit);
 
 	/**
 	 * Copy the data from the entity replication tables to the given view.
