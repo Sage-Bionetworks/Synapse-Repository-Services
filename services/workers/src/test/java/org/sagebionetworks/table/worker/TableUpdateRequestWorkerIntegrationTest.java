@@ -18,6 +18,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -804,6 +806,113 @@ public class TableUpdateRequestWorkerIntegrationTest {
 		assertNotEquals(currentEtag, table.getEtag());
 		assertTrue(table.getIsSearchEnabled());
 
+	}
+	
+	@Test
+	public void testSchemaChangeToMediumText() throws Exception {
+		ColumnModel largeTextColumn = new ColumnModel();
+		largeTextColumn.setName("column");
+		largeTextColumn.setColumnType(ColumnType.LARGETEXT);
+		largeTextColumn = columnManager.createColumnModel(largeTextColumn);
+
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(Lists.newArrayList(largeTextColumn.getId()));
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete.add(tableId);
+		// add add a column to the table.
+		TableUpdateTransactionRequest addColumnRequest = createAddColumnsRequest(tableId, largeTextColumn);
+		
+		startAndWaitForJob(adminUserInfo, addColumnRequest, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// Add some data to the table
+		PartialRow rowOne = TableModelTestUtils.createPartialRow(null, largeTextColumn.getId(), RandomStringUtils.randomAlphanumeric((int)ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS));
+		PartialRow rowTwo = TableModelTestUtils.createPartialRow(null, largeTextColumn.getId(), RandomStringUtils.randomAlphanumeric((int)ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS));
+		PartialRowSet rowSet = createRowSet(tableId, rowOne, rowTwo);
+		
+		TableUpdateTransactionRequest transaction = createAddDataRequest(tableId, rowSet);
+		// start the transaction
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNull(response.getSnapshotVersionNumber());
+		});
+				
+		startAndWaitForJob(adminUserInfo, createQueryRequest("select * from "+tableId, tableId), (QueryResultBundle response) -> {
+			assertEquals(2, response.getQueryResult().getQueryResults().getRows().size());
+		});
+		
+		// Now change the large text column to a medium text column
+		ColumnModel mediumTextColumn = new ColumnModel();
+		mediumTextColumn.setName("column");
+		mediumTextColumn.setColumnType(ColumnType.MEDIUMTEXT);
+		mediumTextColumn = columnManager.createColumnModel(mediumTextColumn);
+		
+		TableUpdateTransactionRequest changeColumnRequest = createColumnUpdateRequest(largeTextColumn, mediumTextColumn, tableId);
+		
+		startAndWaitForJob(adminUserInfo, changeColumnRequest, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+				
+		startAndWaitForJob(adminUserInfo, createQueryRequest("select * from " + tableId, tableId), (QueryResultBundle response) -> {
+			assertEquals(ColumnType.MEDIUMTEXT, response.getColumnModels().get(0).getColumnType());
+			assertEquals(2, response.getQueryResult().getQueryResults().getRows().size());
+		});
+	}
+	
+	@Test
+	public void testSchemaChangeToMediumTextWithExceedsLimit() throws Exception {
+		ColumnModel largeTextColumn = new ColumnModel();
+		largeTextColumn.setName("column");
+		largeTextColumn.setColumnType(ColumnType.LARGETEXT);
+		largeTextColumn = columnManager.createColumnModel(largeTextColumn);
+
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(Lists.newArrayList(largeTextColumn.getId()));
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete.add(tableId);
+		// add add a column to the table.
+		TableUpdateTransactionRequest addColumnRequest = createAddColumnsRequest(tableId, largeTextColumn);
+		
+		startAndWaitForJob(adminUserInfo, addColumnRequest, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// Add some data to the table
+		PartialRow rowOne = TableModelTestUtils.createPartialRow(null, largeTextColumn.getId(), RandomStringUtils.randomAlphanumeric((int)ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS));
+		PartialRow rowTwo = TableModelTestUtils.createPartialRow(null, largeTextColumn.getId(), RandomStringUtils.randomAlphanumeric((int)ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS + 1));
+		PartialRowSet rowSet = createRowSet(tableId, rowOne, rowTwo);
+		
+		TableUpdateTransactionRequest transaction = createAddDataRequest(tableId, rowSet);
+		// start the transaction
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNull(response.getSnapshotVersionNumber());
+		});
+				
+		QueryResultBundle queryResult = startAndWaitForJob(adminUserInfo, createQueryRequest("select * from "+tableId + " order by ROW_ID", tableId), (QueryResultBundle response) -> {
+			assertEquals(2, response.getQueryResult().getQueryResults().getRows().size());
+		});
+		
+		Long exceedingRowId = queryResult.getQueryResult().getQueryResults().getRows().get(1).getRowId();
+		
+		// Now try to change the large text column to a medium text column, it will fail since the data is too long
+		ColumnModel mediumTextColumn = new ColumnModel();
+		mediumTextColumn.setName("column");
+		mediumTextColumn.setColumnType(ColumnType.MEDIUMTEXT);
+		mediumTextColumn = columnManager.createColumnModel(mediumTextColumn);
+		
+		TableUpdateTransactionRequest changeColumnRequest = createColumnUpdateRequest(largeTextColumn, mediumTextColumn, tableId);
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			startAndWaitForJob(adminUserInfo, changeColumnRequest, (TableUpdateTransactionResponse response) -> {});
+		}).getMessage();
+		
+		assertEquals("Cannot change column \"column\" to MEDIUMTEXT: The data at row " + exceedingRowId + " exceeds the MEDIUMTEXT limit of 2000 characters.", result);
 	}
 	
 	/**

@@ -6,6 +6,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -124,6 +126,7 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -3532,6 +3535,46 @@ public class TableWorkerIntegrationTest {
 		
 		// The table should eventually come back as AVAILABLE
 		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
+	}
+	
+	@Test
+	public void testTableWithMediumText() throws Exception {
+		// We should be able to create the max number of available columns with medium text
+		
+		schema = IntStream.range(0, ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE).boxed()
+				.map( i -> columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.MEDIUMTEXT).setName("column_" + i)))
+				.collect(Collectors.toList());
+		
+		headers = TableModelUtils.getIds(schema);
+		
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, false).getId();
+		
+		String[] rowOneValues = IntStream.range(0, schema.size()).boxed()
+			.map( i -> RandomStringUtils.randomAlphanumeric((int) ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS))
+			.collect(Collectors.toList())
+			.toArray(String[]::new);
+		
+		String[] rowTwoValues = IntStream.range(0, schema.size()).boxed()
+				.map( i -> RandomStringUtils.randomAlphanumeric((int) ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS))
+				.collect(Collectors.toList())
+				.toArray(String[]::new);
+		
+		// Now add some data
+		List<Row> rows = Arrays.asList(
+			TableModelTestUtils.createRow(null, null, rowOneValues),
+			TableModelTestUtils.createRow(null, null, rowTwoValues)
+		);
+				
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
+			assertEquals(2, queryResult.getQueryResults().getRows().size());
+		});
 	}
 	
 	
