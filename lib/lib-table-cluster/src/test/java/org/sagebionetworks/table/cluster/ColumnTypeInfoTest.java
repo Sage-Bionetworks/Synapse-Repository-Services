@@ -1,25 +1,26 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 
 import com.google.common.collect.Sets;
-import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 
 public class ColumnTypeInfoTest {
 	
 	boolean useDepricatedUtf8ThreeBytes;
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		useDepricatedUtf8ThreeBytes = false;
 	}
@@ -27,57 +28,65 @@ public class ColumnTypeInfoTest {
 	@Test
 	public void testParseInteger(){
 		Object dbValue = ColumnTypeInfo.INTEGER.parseValueForDatabaseWrite("123");
-		assertEquals(new Long(123),dbValue);
+		assertEquals(Long.valueOf(123),dbValue);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testParseIntegerBad(){
-		ColumnTypeInfo.INTEGER.parseValueForDatabaseWrite("foo");
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnTypeInfo.INTEGER.parseValueForDatabaseWrite("foo");
+		});
 	}
 	
 	@Test
 	public void testParseFileHandleId(){
 		Object dbValue = ColumnTypeInfo.FILEHANDLEID.parseValueForDatabaseWrite("123");
-		assertEquals(new Long(123),dbValue);
+		assertEquals(Long.valueOf(123),dbValue);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testParseFileHandleBad(){
-		ColumnTypeInfo.FILEHANDLEID.parseValueForDatabaseWrite("foo");
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnTypeInfo.FILEHANDLEID.parseValueForDatabaseWrite("foo");
+		});
 	}
 	
 	@Test
 	public void testParseUserId(){
 		Object dbValue = ColumnTypeInfo.USERID.parseValueForDatabaseWrite("123");
-		assertEquals(new Long(123),dbValue);
+		assertEquals(Long.valueOf(123),dbValue);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testParseUserIdBad(){
-		ColumnTypeInfo.USERID.parseValueForDatabaseWrite("foo");
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnTypeInfo.USERID.parseValueForDatabaseWrite("foo");
+		});
 	}
 	
 	@Test
 	public void testParseDateLong(){
 		Object dbValue = ColumnTypeInfo.DATE.parseValueForDatabaseWrite("123");
-		assertEquals(new Long(123),dbValue);
+		assertEquals(Long.valueOf(123),dbValue);
 	}
 	
 	@Test
 	public void testParseDateString(){
 		Object dbValue = ColumnTypeInfo.DATE.parseValueForDatabaseWrite("1970-1-1 00:00:00.123");
-		assertEquals(new Long(123),dbValue);
+		assertEquals(Long.valueOf(123),dbValue);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testParseDateBad(){
-		ColumnTypeInfo.DATE.parseValueForDatabaseWrite("1970-1-1 00:00:00.foo");
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnTypeInfo.DATE.parseValueForDatabaseWrite("1970-1-1 00:00:00.foo");
+		});
 	}
 	
 	@Test
 	public void testParseEntityId(){
 		Object dbValue = ColumnTypeInfo.ENTITYID.parseValueForDatabaseWrite("syn123");
-		assertEquals(new Long(123),dbValue);
+		assertEquals(Long.valueOf(123),dbValue);
 	}
 	
 	@Test
@@ -95,7 +104,7 @@ public class ColumnTypeInfoTest {
 	@Test
 	public void testParseDouble(){
 		Object dbValue = ColumnTypeInfo.DOUBLE.parseValueForDatabaseWrite("123.1");
-		assertEquals(new Double(123.1), dbValue);
+		assertEquals(Double.valueOf(123.1), dbValue);
 	}
 	
 	@Test
@@ -104,10 +113,11 @@ public class ColumnTypeInfoTest {
 		assertEquals(Double.NaN, dbValue);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testParseDoubleBad(){
-		Object dbValue = ColumnTypeInfo.DOUBLE.parseValueForDatabaseWrite("123.1foo");
-		assertEquals(new Double(123.1), dbValue);
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnTypeInfo.DOUBLE.parseValueForDatabaseWrite("123.1foo");
+		});
 	}
 	
 	@Test
@@ -129,6 +139,12 @@ public class ColumnTypeInfoTest {
 	}
 	
 	@Test
+	public void testParseMediumText(){
+		Object dbValue = ColumnTypeInfo.MEDIUMTEXT.parseValueForDatabaseWrite("foo");
+		assertEquals("foo", dbValue);
+	}
+	
+	@Test
 	public void testParseAllNull(){
 		for(ColumnTypeInfo info: ColumnTypeInfo.values()){
 			String value = null;
@@ -138,12 +154,12 @@ public class ColumnTypeInfoTest {
 
 	@Test
 	public void testIsStringType(){
-		Set<ColumnTypeInfo> stringTypes = Sets.newHashSet(ColumnTypeInfo.STRING, ColumnTypeInfo.LARGETEXT, ColumnTypeInfo.LINK);
+		Set<ColumnTypeInfo> stringTypes = Sets.newHashSet(ColumnTypeInfo.STRING, ColumnTypeInfo.LARGETEXT, ColumnTypeInfo.LINK, ColumnTypeInfo.MEDIUMTEXT);
 		for(ColumnTypeInfo type: ColumnTypeInfo.values()){
 			if(stringTypes.contains(type)){
-				assertTrue("Should not be a string type: "+type.name(),type.isStringType());
+				assertTrue(type.isStringType(), "Should not be a string type: "+type.name());
 			}else{
-				assertFalse("Should be a string type: "+type.name(),type.isStringType());
+				assertFalse(type.isStringType(), "Should be a string type: "+type.name());
 			}
 		}
 	}
@@ -153,9 +169,9 @@ public class ColumnTypeInfoTest {
 		Set<ColumnTypeInfo> requiresSize = Sets.newHashSet(ColumnTypeInfo.STRING, ColumnTypeInfo.LINK);
 		for(ColumnTypeInfo type: ColumnTypeInfo.values()){
 			if(requiresSize.contains(type)){
-				assertTrue("Should not be a string type: "+type.name(), type.requiresInputMaxSize());
+				assertTrue(type.requiresInputMaxSize(), "Should not be a string type: "+type.name());
 			}else{
-				assertFalse("Should be a string type: "+type.name(),type.requiresInputMaxSize());
+				assertFalse(type.requiresInputMaxSize(), "Should be a string type: "+type.name());
 			}
 		}
 	}
@@ -240,11 +256,13 @@ public class ColumnTypeInfoTest {
 		assertEquals("BIGINT DEFAULT 123 COMMENT 'ENTITYID'", sql);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testToSqlStringSizeNull(){
 		Long inputSize = null;
 		String defaultValue = null;
-		ColumnTypeInfo.STRING.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnTypeInfo.STRING.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
+		});
 	}
 	
 	@Test
@@ -272,11 +290,13 @@ public class ColumnTypeInfoTest {
 		assertEquals("VARCHAR(123) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'foo' COMMENT 'STRING'", sql);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testToSqlLinkSizeNull(){
 		Long inputSize = null;
 		String defaultValue = null;
-		ColumnTypeInfo.LINK.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnTypeInfo.LINK.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
+		});
 	}
 	
 	@Test
@@ -359,10 +379,12 @@ public class ColumnTypeInfoTest {
 		assertEquals("BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", sql);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetInfoForTypeNull(){
 		ColumnType type = null;
-		ColumnTypeInfo.getInfoForType(type);
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnTypeInfo.getInfoForType(type);
+		});
 	}
 	
 	@Test
@@ -443,11 +465,14 @@ public class ColumnTypeInfoTest {
 		assertEquals("DEFAULT 'DROP TABLE ''T123'''", builder.toString());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testAppendDefaultIntegerBad(){
 		StringBuilder builder = new StringBuilder();
 		String defaultValue = "bar";
-		ColumnTypeInfo.INTEGER.appendDefaultValue(builder, defaultValue);
+		
+		assertThrows(IllegalArgumentException.class, () -> {			
+			ColumnTypeInfo.INTEGER.appendDefaultValue(builder, defaultValue);
+		});
 	}
 	
 }

@@ -92,9 +92,19 @@ public class ColumnConstants {
 	public static final int SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES = (int) (MY_SQL_MAX_BYTES_PER_ROW/MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE);
 	
 	/**
+	 * Budget of a medium text column given the maximum number of columns we allow and the max bytes per row in MySQL.
+	 */
+	public static final int SIZE_OF_MEDIUM_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES = (int) (MY_SQL_MAX_BYTES_PER_ROW/MY_SQL_MAX_COLUMNS_PER_TABLE);
+	
+	/**
 	 * The maximum number of characters allowed for a LARGETEXT value.
 	 */
 	public static final long MAX_LARGE_TEXT_CHARACTERS = MAX_LARGE_TEXT_BYTES/MAX_BYTES_PER_CHAR_UTF_8;
+	
+	/**
+	 * The maximum number of characters allowed for a MEDIUMTEXT value.
+	 */
+	public static final long MAX_MEDIUM_TEXT_CHARACTERS = 2000;
 	
 	public static final String CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI = "CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci";
 	

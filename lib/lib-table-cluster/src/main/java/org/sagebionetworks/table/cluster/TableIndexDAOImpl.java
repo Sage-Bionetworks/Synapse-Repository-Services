@@ -1139,6 +1139,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
+	public Optional<Long> tempTableColumnExceedsCharacterLimit(IdAndVersion tableId, String columnId, long characterLimit) {
+		String sql = "SELECT " + TableConstants.ROW_ID + " FROM " + SQLUtils.getTemporaryTableName(tableId) 
+			+ " WHERE CHAR_LENGTH(" + SQLUtils.getColumnNameForId(columnId) +") > ? LIMIT 1";
+		
+		List<Long> rowId = template.queryForList(sql, Long.class, characterLimit);
+		
+		return rowId.isEmpty() ? Optional.empty() : Optional.of(rowId.iterator().next());
+	}
+	
+	@Override
 	public void copyObjectReplicationToView(Long viewId, ViewFilter filter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper) {
 		ValidateArgument.required(filter, "filter");
 		

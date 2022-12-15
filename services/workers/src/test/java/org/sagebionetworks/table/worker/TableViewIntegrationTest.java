@@ -1973,7 +1973,6 @@ public class TableViewIntegrationTest {
 		}
 	}
 	
-	
 	@Test
 	public void testAddViewQueryToDownloadList() throws Exception {
 		when(mockProgressCallbackVoid.getLockTimeoutSeconds()).thenReturn(2L);

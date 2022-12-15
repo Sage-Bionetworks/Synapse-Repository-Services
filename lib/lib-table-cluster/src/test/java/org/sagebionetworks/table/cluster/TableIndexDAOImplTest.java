@@ -366,7 +366,7 @@ public class TableIndexDAOImplTest {
 		// We should be able to update all of the rows
 		rows.get(4).setValues(
 				Arrays.asList("update", "99.99", "3", "false", "123", "123",
-						"syn123", "456", "789", "link2", "largeText", "42"));
+						"syn123", "456", "789", "link2", "mediumText", "largeText", "42"));
 		rows.get(4).setVersionNumber(5L);
 		rows.get(0).setVersionNumber(5L);
 		// This should not fail
@@ -392,8 +392,9 @@ public class TableIndexDAOImplTest {
 		assertEquals(456L, row.get("_C7_"));
 		assertEquals(789L, row.get("_C8_"));
 		assertEquals("link2", row.get("_C9_"));
-		assertEquals("largeText", row.get("_C10_"));
-		assertEquals(42L, row.get("_C11_"));
+		assertEquals("mediumText", row.get("_C10_"));
+		assertEquals("largeText", row.get("_C11_"));
+		assertEquals(42L, row.get("_C12_"));
 	}
 
 	@Test
@@ -534,7 +535,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList("string0", "341003.12",
 				"203000", "false", "404000", "505000", "syn606000", "703000", "803000",
-				"link908000", "largeText1004000", "1103000", "[\"string1200000\", \"otherstring1200000\"]", "[1303000]", "[false]", "[1504000]", "[\"syn1606000\"]", "[1703000]");
+				"link908000", "mediumText1004000", "largeText1104000", "1203000", "[\"string1300000\", \"otherstring1300000\"]", "[1403000]", "[false]", "[1604000]", "[\"syn1706000\"]", "[1803000]");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
@@ -543,7 +544,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList("string1", "341006.53", "203001",
 				"true", "404001", "505001", "syn606001", "703001", "803001",
-				"link908001", "largeText1004001", "1103001", "[\"string1200001\", \"otherstring1200001\"]", "[1303001]", "[true]", "[1504001]", "[\"syn1606001\"]", "[1703001]");
+				"link908001", "mediumText1004001", "largeText1104001", "1203001", "[\"string1300001\", \"otherstring1300001\"]", "[1403001]", "[true]", "[1604001]", "[\"syn1706001\"]", "[1803001]");
 		assertEquals(expectedValues, row.getValues());
 		// must also be able to run the query with a null callback
 		mockProgressCallback = null;
@@ -672,7 +673,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList(null, null, null, null, null, null,
-				null, null, null, null,  null, null, null, null, null, null, null, null);
+				null, null, null, null,  null, null, null, null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
@@ -680,7 +681,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList(null, null, null, null, null, null, null, null,
-				null, null, null, null, null, null, null, null, null, null);
+				null, null, null, null, null, null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 	}
 
@@ -4565,6 +4566,56 @@ public class TableIndexDAOImplTest {
 
 		//method under test
 		assertEquals(2, tableIndexDAO.tempTableListColumnMaxLength(tableId,columnId));
+	}
+	
+	@Test
+	public void testTempTableColumnExceedsCharacterLimit(){
+		ColumnModel largeColumn = new ColumnModel();
+		largeColumn.setId("12");
+		largeColumn.setName("foo");
+		largeColumn.setColumnType(ColumnType.LARGETEXT);
+		
+		ColumnModel smallColumn = new ColumnModel();
+		smallColumn.setId("13");
+		smallColumn.setName("bar");
+		smallColumn.setMaximumSize(50L);
+		smallColumn.setColumnType(ColumnType.STRING);
+
+		List<ColumnModel> schema = List.of(largeColumn, smallColumn);
+
+		createOrUpdateTable(schema, indexDescription);
+		
+		// create five rows.
+		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
+		
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getSelectColumns(schema));
+		set.setTableId(tableId.toString());
+
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+
+		createOrUpdateOrDeleteRows(tableId, set, schema);
+		
+		tableIndexDAO.deleteTemporaryTable(tableId);
+		// Create a copy of the table
+		tableIndexDAO.createTemporaryTable(tableId);
+		
+		long charLimit = 12;
+
+		// Call under test, on an empty table the limit does not exceed
+		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, largeColumn.getId(), charLimit).isPresent());
+		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, smallColumn.getId(), charLimit).isPresent());
+
+		tableIndexDAO.copyAllDataToTemporaryTable(tableId);
+
+		// Call under test
+		assertEquals(rows.get(0).getRowId(),tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, largeColumn.getId(), charLimit).get());
+		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, smallColumn.getId(), charLimit).isPresent());
 	}
 	
 	@Test

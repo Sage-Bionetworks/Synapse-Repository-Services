@@ -103,6 +103,7 @@ public class TableModelTestUtils {
 				case SUBMISSIONID:
 				case EVALUATIONID:
 				case LARGETEXT:
+				case MEDIUMTEXT:
 					defaultValue = null;
 					break;
 				case INTEGER:
@@ -391,6 +392,8 @@ public class TableModelTestUtils {
 				return (isUpdate ? "updatelink" : "link") + (8000 + i);
 			case LARGETEXT:
 				return (isUpdate ? "updateLargeText" : "largeText") + (4000 + i);
+			case MEDIUMTEXT:
+				return (isUpdate ? "updateMediumText" : "mediumText") + (4000 + i);
 			case STRING_LIST:
 				return "[\""+(isUpdate ? "updatestring" : "string") + i+"\", \"" +(isUpdate ? "otherupdatestring" : "otherstring") + i+"\"]";
 			case INTEGER_LIST:

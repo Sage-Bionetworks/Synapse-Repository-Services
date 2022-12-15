@@ -171,6 +171,7 @@ public class ColumnModelUtils {
 			case FILEHANDLEID:
 			case USERID:
 			case LARGETEXT:
+			case MEDIUMTEXT:
 				if (StringUtils.isEmpty(defaultValue)) {
 					defaultValue = null;
 				}

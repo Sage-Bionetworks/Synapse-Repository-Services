@@ -157,7 +157,7 @@ public class CSVUtilsTest {
 		ColumnModel cm = CSVUtils.checkType(in, null);
 		assertNotNull(cm);
 		assertEquals(ColumnType.STRING, cm.getColumnType());
-		assertEquals(new Long(in.length()), cm.getMaximumSize());
+		assertEquals(Long.valueOf(in.length()), cm.getMaximumSize());
 		// Should yield the same type
 		ColumnModel back = CSVUtils.checkType(in, cm);
 		assertEquals(cm, back);
@@ -169,16 +169,25 @@ public class CSVUtilsTest {
 		ColumnModel cm = CSVUtils.checkType(stringUnderLimit, null);
 		assertNotNull(cm);
 		assertEquals(ColumnType.STRING, cm.getColumnType());
-		assertEquals(new Long(stringUnderLimit.length()), cm.getMaximumSize());
+		assertEquals(Long.valueOf(stringUnderLimit.length()), cm.getMaximumSize());
+	}
+	
+	@Test
+	public void testCheckTypeMediumText(){
+		String stringOverLimit = createStringOfSize(ColumnConstants.MAX_ALLOWED_STRING_SIZE.intValue()+1);
+		ColumnModel cm = CSVUtils.checkType(stringOverLimit, null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.MEDIUMTEXT, cm.getColumnType());
+		assertEquals(Long.valueOf(stringOverLimit.length()), cm.getMaximumSize());
 	}
 	
 	@Test
 	public void testCheckTypeLargeText(){
-		String stringOverLimit = createStringOfSize(ColumnConstants.MAX_ALLOWED_STRING_SIZE.intValue()+1);
+		String stringOverLimit = createStringOfSize((int)ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS+1);
 		ColumnModel cm = CSVUtils.checkType(stringOverLimit, null);
 		assertNotNull(cm);
 		assertEquals(ColumnType.LARGETEXT, cm.getColumnType());
-		assertEquals(new Long(stringOverLimit.length()), cm.getMaximumSize());
+		assertEquals(Long.valueOf(stringOverLimit.length()), cm.getMaximumSize());
 	}
 	
 	@Test
@@ -207,12 +216,12 @@ public class CSVUtilsTest {
 		ColumnModel cm = CSVUtils.checkType(in, null);
 		assertNotNull(cm);
 		assertEquals(ColumnType.STRING, cm.getColumnType());
-		assertEquals(new Long(in.length()), cm.getMaximumSize());
+		assertEquals(Long.valueOf(in.length()), cm.getMaximumSize());
 		// If we give it a longer string then it should grow.
 		String longer = in + "more";
 		ColumnModel back = CSVUtils.checkType(longer, cm);
 		assertEquals(ColumnType.STRING, back.getColumnType());
-		assertEquals(new Long(longer.length()), back.getMaximumSize());
+		assertEquals(Long.valueOf(longer.length()), back.getMaximumSize());
 	}
 
 	@Test
@@ -221,13 +230,13 @@ public class CSVUtilsTest {
 		ColumnModel cm = CSVUtils.checkType(in, null);
 		assertNotNull(cm);
 		assertEquals(ColumnType.STRING, cm.getColumnType());
-		assertEquals(new Long(in.length()), cm.getMaximumSize());
+		assertEquals(Long.valueOf(in.length()), cm.getMaximumSize());
 		// If we give it a longer string then it should grow.
 		String shorter = in.substring(0, in.length() - 3);
 		ColumnModel back = CSVUtils.checkType(shorter, cm);
 		assertEquals(ColumnType.STRING, back.getColumnType());
 		// this type the size should not shrink
-		assertEquals(new Long(in.length()), back.getMaximumSize());
+		assertEquals(Long.valueOf(in.length()), back.getMaximumSize());
 		assertEquals(cm, back);
 	}
 	
@@ -240,12 +249,12 @@ public class CSVUtilsTest {
 		ColumnModel cm = CSVUtils.checkType(in, null);
 		assertNotNull(cm);
 		assertEquals(ColumnType.STRING, cm.getColumnType());
-		assertEquals(new Long(in.length()), cm.getMaximumSize());
+		assertEquals(Long.valueOf(in.length()), cm.getMaximumSize());
 		// Given an integer that is longer
 		String longer = "15";
 		ColumnModel back = CSVUtils.checkType(longer, cm);
 		assertEquals(ColumnType.STRING, back.getColumnType());
-		assertEquals(new Long(2), back.getMaximumSize());
+		assertEquals(Long.valueOf(2), back.getMaximumSize());
 	}
 	
 	@Test
@@ -258,7 +267,7 @@ public class CSVUtilsTest {
 		String longer = "X";
 		ColumnModel back = CSVUtils.checkType(longer, cm);
 		assertEquals(ColumnType.STRING, back.getColumnType());
-		assertEquals(new Long(in.length()), cm.getMaximumSize());
+		assertEquals(Long.valueOf(in.length()), cm.getMaximumSize());
 	}
 	
 	@Test
@@ -271,7 +280,7 @@ public class CSVUtilsTest {
 		String longer = "X";
 		ColumnModel back = CSVUtils.checkType(longer, cm);
 		assertEquals(ColumnType.STRING, back.getColumnType());
-		assertEquals(new Long(in.length()), cm.getMaximumSize());
+		assertEquals(Long.valueOf(in.length()), cm.getMaximumSize());
 	}
 
 	@Test

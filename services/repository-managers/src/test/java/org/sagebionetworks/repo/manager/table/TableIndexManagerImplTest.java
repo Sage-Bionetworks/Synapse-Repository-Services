@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -3099,6 +3100,121 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, never()).isSearchEnabled(tableId);
 		verify(managerSpy, never()).updateSearchIndex(index);
 		
+	}
+	
+	@Test
+	public void testAlterTempTableSchema() {
+		doNothing().when(managerSpy).validateTableMaximumListLengthChanges(any(),  anyList());
+		doNothing().when(managerSpy).validateSchemaChangeToMediumText(any(), anyList());
+		doReturn(true).when(managerSpy).alterTableAsNeededWithinAutoProgress(any(), anyList(), anyBoolean());
+		doNothing().when(managerSpy).alterListColumnIndexTableWithSchemaChange(any(), anyList(), anyBoolean());
+		
+		// Call under test
+		managerSpy.alterTempTableSchema(tableId, columnChanges);
+		
+		verify(managerSpy).validateTableMaximumListLengthChanges(tableId, columnChanges);
+		verify(managerSpy).validateSchemaChangeToMediumText(tableId, columnChanges);
+		verify(managerSpy).alterTableAsNeededWithinAutoProgress(tableId, columnChanges, true);
+		verify(managerSpy).alterListColumnIndexTableWithSchemaChange(tableId, columnChanges, true);
+		
+	}
+	
+	@Test
+	public void testValidateSchemaChangeToMediumText() {
+		when(mockIndexDao.tempTableColumnExceedsCharacterLimit(any(), any(), anyLong())).thenReturn(Optional.empty());
+		
+		columnChanges = List.of(
+			new ColumnChangeDetails(
+				new ColumnModel().setId("1").setColumnType(ColumnType.LARGETEXT).setName("oldColumn"),
+				new ColumnModel().setId("2").setColumnType(ColumnType.MEDIUMTEXT).setName("newColumn")
+			)	
+		);
+		
+		// Call under test
+		manager.validateSchemaChangeToMediumText(tableId, columnChanges);
+		
+		verify(mockIndexDao).tempTableColumnExceedsCharacterLimit(tableId, "1", ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS);
+	}
+	
+	@Test
+	public void testValidateSchemaChangeToMediumTextWithOldColumnExceedsLimitTrue() {
+		when(mockIndexDao.tempTableColumnExceedsCharacterLimit(any(), any(), anyLong())).thenReturn(Optional.of(456L));
+		
+		columnChanges = List.of(
+			new ColumnChangeDetails(
+				new ColumnModel().setId("1").setColumnType(ColumnType.LARGETEXT).setName("oldColumn"),
+				new ColumnModel().setId("2").setColumnType(ColumnType.MEDIUMTEXT).setName("newColumn")
+			)	
+		);
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.validateSchemaChangeToMediumText(tableId, columnChanges);
+		}).getMessage();
+		
+		assertEquals("Cannot change column \"oldColumn\" to MEDIUMTEXT: The data at row 456 exceeds the MEDIUMTEXT limit of 2000 characters.", result);
+		
+		verify(mockIndexDao).tempTableColumnExceedsCharacterLimit(tableId, "1", ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS);
+	}
+	
+	@Test
+	public void testValidateSchemaChangeToMediumTextWithOldColumnNull() {
+		columnChanges = List.of(
+			new ColumnChangeDetails(
+				null,
+				new ColumnModel().setId("2").setColumnType(ColumnType.MEDIUMTEXT).setName("newColumn")
+			)	
+		);
+					
+		// Call under test
+		manager.validateSchemaChangeToMediumText(tableId, columnChanges);
+		
+		verifyZeroInteractions(mockIndexDao);
+	}
+	
+	@Test
+	public void testValidateSchemaChangeToMediumTextWithOldColumnNotLargeText() {
+		columnChanges = List.of(
+			new ColumnChangeDetails(
+				new ColumnModel().setId("1").setColumnType(ColumnType.STRING).setName("oldColumn"),
+				new ColumnModel().setId("2").setColumnType(ColumnType.MEDIUMTEXT).setName("newColumn")
+			)	
+		);
+					
+		// Call under test
+		manager.validateSchemaChangeToMediumText(tableId, columnChanges);
+		
+		verifyZeroInteractions(mockIndexDao);
+	}
+	
+	@Test
+	public void testValidateSchemaChangeToMediumTextWithNewColumnNull() {
+		columnChanges = List.of(
+			new ColumnChangeDetails(
+				new ColumnModel().setId("1").setColumnType(ColumnType.LARGETEXT).setName("oldColumn"),
+				null
+			)	
+		);
+					
+		// Call under test
+		manager.validateSchemaChangeToMediumText(tableId, columnChanges);
+		
+		verifyZeroInteractions(mockIndexDao);
+	}
+	
+	@Test
+	public void testValidateSchemaChangeToMediumTextWithNewColumnNotMediumText() {
+		columnChanges = List.of(
+			new ColumnChangeDetails(
+				new ColumnModel().setId("1").setColumnType(ColumnType.LARGETEXT).setName("oldColumn"),
+				new ColumnModel().setId("2").setColumnType(ColumnType.STRING).setName("newColumn")
+			)	
+		);
+					
+		// Call under test
+		manager.validateSchemaChangeToMediumText(tableId, columnChanges);
+		
+		verifyZeroInteractions(mockIndexDao);
 	}
 		
 	@SuppressWarnings("unchecked")

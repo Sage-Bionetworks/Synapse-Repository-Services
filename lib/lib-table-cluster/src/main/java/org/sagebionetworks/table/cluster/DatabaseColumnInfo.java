@@ -85,7 +85,7 @@ public class DatabaseColumnInfo {
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(type, "type");
 		Integer indexSize = null;
-		if(MySqlColumnType.MEDIUMTEXT.equals(type)){
+		if(MySqlColumnType.MEDIUMTEXT.equals(type) || MySqlColumnType.TEXT.equals(type)){
 			indexSize = ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH;
 		}else{
 			indexSize = maxSize;

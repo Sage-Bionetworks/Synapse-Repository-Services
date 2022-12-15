@@ -6,6 +6,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -124,6 +126,7 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -2067,9 +2070,9 @@ public class TableWorkerIntegrationTest {
 				assertEquals(1, enumVal.getCount().longValue());
 				//each row list column has 2 values so first 2 rows will have row 1 and row 2
 				if(i < listEnumerationValues.size() / 2) {
-					assertEquals("otherstring120000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
+					assertEquals("otherstring130000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
 				}else{
-					assertEquals("string120000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
+					assertEquals("string130000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
 				}
 			}
 		});
@@ -2136,16 +2139,16 @@ public class TableWorkerIntegrationTest {
 			// simply wrap the exact same non-list values values into a list.
 			// (e.g. column "i0" (non-list) has value "string0" and column "i10" (list) has value "[\"string0\"]")
 			assertEquals(4, enumListValues.size());
-			assertEquals("otherstring1200000", enumListValues.get(0).getValue());
+			assertEquals("otherstring1300000", enumListValues.get(0).getValue());
 			assertEquals((Long) 1L, enumListValues.get(0).getCount());
 
-			assertEquals("otherstring1200003", enumListValues.get(1).getValue());
+			assertEquals("otherstring1300003", enumListValues.get(1).getValue());
 			assertEquals((Long) 1L, enumListValues.get(1).getCount());
 
-			assertEquals("string1200000", enumListValues.get(2).getValue());
+			assertEquals("string1300000", enumListValues.get(2).getValue());
 			assertEquals((Long) 1L, enumListValues.get(2).getCount());
 
-			assertEquals("string1200003", enumListValues.get(3).getValue());
+			assertEquals("string1300003", enumListValues.get(3).getValue());
 			assertEquals((Long) 1L, enumListValues.get(3).getCount());
 		});
 	}
@@ -2158,7 +2161,7 @@ public class TableWorkerIntegrationTest {
 		facetTestSetup();
 		long expectedMin = 203000;
 		long expectedMax = 203005;
-		query.setSql("SELECT UNNEST(i12) from " + tableId);
+		query.setSql("SELECT UNNEST(i13) from " + tableId);
 		query.setLimit(25L);
 		query.setOffset(0L);
 		queryOptions.withReturnFacets(true);
@@ -2223,10 +2226,10 @@ public class TableWorkerIntegrationTest {
 		List<FacetColumnRequest> selectedFacets = new ArrayList<>();
 		FacetColumnRequest selectedColumn = new FacetColumnValuesRequest();
 		//select values on the list column
-		selectedColumn.setColumnName("i12");
+		selectedColumn.setColumnName("i13");
 		Set<String> facetValues = new HashSet<>();
-		facetValues.add("string1200000");
-		facetValues.add("otherstring1200003");
+		facetValues.add("string1300000");
+		facetValues.add("otherstring1300003");
 		((FacetColumnValuesRequest)selectedColumn).setFacetValues(facetValues);
 		selectedFacets.add(selectedColumn);
 
@@ -2277,9 +2280,9 @@ public class TableWorkerIntegrationTest {
 				assertEquals(1, enumVal.getCount().longValue());
 				//each row list column has 2 values so first 2 rows will have row 1 and row 2
 				if(i < listEnumerationValues.size() / 2) {
-					assertEquals("otherstring120000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
+					assertEquals("otherstring130000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
 				}else{
-					assertEquals("string120000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
+					assertEquals("string130000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
 				}
 			}
 		});
@@ -3532,6 +3535,46 @@ public class TableWorkerIntegrationTest {
 		
 		// The table should eventually come back as AVAILABLE
 		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
+	}
+	
+	@Test
+	public void testTableWithMediumText() throws Exception {
+		// We should be able to create the max number of available columns with medium text
+		
+		schema = IntStream.range(0, ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE).boxed()
+				.map( i -> columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.MEDIUMTEXT).setName("column_" + i)))
+				.collect(Collectors.toList());
+		
+		headers = TableModelUtils.getIds(schema);
+		
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, false).getId();
+		
+		String[] rowOneValues = IntStream.range(0, schema.size()).boxed()
+			.map( i -> RandomStringUtils.randomAlphanumeric((int) ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS))
+			.collect(Collectors.toList())
+			.toArray(String[]::new);
+		
+		String[] rowTwoValues = IntStream.range(0, schema.size()).boxed()
+				.map( i -> RandomStringUtils.randomAlphanumeric((int) ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS))
+				.collect(Collectors.toList())
+				.toArray(String[]::new);
+		
+		// Now add some data
+		List<Row> rows = Arrays.asList(
+			TableModelTestUtils.createRow(null, null, rowOneValues),
+			TableModelTestUtils.createRow(null, null, rowTwoValues)
+		);
+				
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
+			assertEquals(2, queryResult.getQueryResults().getRows().size());
+		});
 	}
 	
 	
