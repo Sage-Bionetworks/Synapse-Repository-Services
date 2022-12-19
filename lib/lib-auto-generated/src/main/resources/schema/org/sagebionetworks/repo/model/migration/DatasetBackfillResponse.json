@@ -8,7 +8,7 @@
 	"properties": {
 		"count": {
 			"description": "Total number of dataset updated.",
-			"type": "number"
+			"type": "integer"
 		}
 	}
 }
