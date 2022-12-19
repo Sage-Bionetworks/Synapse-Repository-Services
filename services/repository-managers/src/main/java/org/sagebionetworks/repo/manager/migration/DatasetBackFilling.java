@@ -1,22 +1,17 @@
 package org.sagebionetworks.repo.manager.migration;
 
-import com.google.cloud.storage.Acl;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileSummary;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.DatasetBackfillingResponse;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.TemporaryCode;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -29,7 +24,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
@@ -66,14 +60,14 @@ public class DatasetBackFilling {
     private NodeDAO nodeDAO;
     private EntityManager entityManager;
 
-    private TransactionTemplate transactionTemplate;
+    private TransactionTemplate readCommitedTransactionTemplate;
 
     @Autowired
-    public DatasetBackFilling(JdbcTemplate jdbcTemplate, NodeDAO nodeDAO, EntityManager entityManager, TransactionTemplate transactionTemplate) {
+    public DatasetBackFilling(JdbcTemplate jdbcTemplate, NodeDAO nodeDAO, EntityManager entityManager, TransactionTemplate readCommitedTransactionTemplate) {
         this.jdbcTemplate = jdbcTemplate;
         this.nodeDAO = nodeDAO;
         this.entityManager = entityManager;
-        this.transactionTemplate = transactionTemplate;
+        this.readCommitedTransactionTemplate = readCommitedTransactionTemplate;
     }
 
     public List<DatasetBackFillDTO> getAllDatasetEntity(long limit, long offset) {
@@ -105,7 +99,7 @@ public class DatasetBackFilling {
     }
 
     private void updateDatasetAnnotationInTransaction(UserInfo userInfo, DatasetBackFillDTO datasetBackFillDTO) {
-        this.transactionTemplate.execute(new TransactionCallback<Void>() {
+        this.readCommitedTransactionTemplate.execute(new TransactionCallback<Void>() {
             @Override
             public Void doInTransaction(TransactionStatus status) {
                 Dataset dataset = entityManager.getEntityForVersion(userInfo, datasetBackFillDTO.getId().getId().toString(),
