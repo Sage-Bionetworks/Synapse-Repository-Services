@@ -1,0 +1,14 @@
+{
+	"description": "Response of DatasetBackfillingRequest.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminResponse"
+		}
+	],
+	"properties": {
+		"count": {
+			"description": "Total number of dataset updated.",
+			"type": "number"
+		}
+	}
+}

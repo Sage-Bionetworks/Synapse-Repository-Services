@@ -265,4 +265,12 @@ public interface AsynchronousJobWorkerHelper {
 	 */
 	void waitForTableOrViewToBeAvailable(IdAndVersion id, long maxWaitMs) throws InterruptedException;
 
+	/**
+	 * Create a dataset without file summary columns i.e checksum, size and count.
+	 * @param user
+	 * @param dataset
+	 * @return
+	 */
+	Dataset createDatasetWithoutFileSummary(UserInfo user, Dataset dataset);
+
 }

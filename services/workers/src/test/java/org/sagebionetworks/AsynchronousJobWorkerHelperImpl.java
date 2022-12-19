@@ -459,6 +459,25 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 
 		return dataset;
 	}
+
+	@Override
+	public Dataset createDatasetWithoutFileSummary(UserInfo user, Dataset dataset) {
+		ViewEntityType entityType = ViewEntityType.dataset;
+		Long typeMask = 0L;
+		String viewId = entityManager.createEntity(user, dataset, null);
+		dataset = entityManager.getEntity(user, viewId, Dataset.class);
+
+		ViewScope viewScope = new ViewScope();
+		viewScope.setViewEntityType(entityType);
+		if (dataset.getItems() != null) {
+			viewScope.setScope(dataset.getItems().stream().map(i -> i.getEntityId()).collect(Collectors.toList()));
+		}
+		viewScope.setViewTypeMask(typeMask);
+
+		tableViewManager.setViewSchemaAndScope(user, dataset.getColumnIds(), viewScope, viewId);
+
+		return dataset;
+	}
 	
 	@Override
 	public DatasetCollection createDatasetCollection(UserInfo user, DatasetCollection dataset) {
