@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.migration;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -34,6 +36,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISI
 @TemporaryCode(author = "sandhra.sokhal@sagebase.org", comment = "This allows back filling of field checksum,size and count for dataset")
 @Service
 public class DatasetBackFillFileSummary {
+    static private Logger log = LogManager.getLogger(DatasetBackFillFileSummary.class);
     private static final long PAGE_SIZE_LIMIT = 1000;
     private static final String SELECT_ALL_DATASET = "SELECT N.ID, R.NUMBER, R.ENTITY_PROPERTY_ANNOTATIONS FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION + " R ON N."
             + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + " WHERE N." + COL_NODE_TYPE + " ='dataset' ORDER BY N.ID, R.NUMBER LIMIT ? OFFSET ?";
@@ -95,9 +98,14 @@ public class DatasetBackFillFileSummary {
                     countRows.getAndIncrement();
                 }
             });
-        } finally {
-            DatasetBackfillResponse datasetBackFillResponse = new DatasetBackfillResponse().setCount(countRows.longValue());
+
+            DatasetBackfillResponse datasetBackFillResponse = new DatasetBackfillResponse()
+                    .setCount(countRows.longValue());
             return datasetBackFillResponse;
+        }
+        catch (Exception exception){
+            log.error("Job failed:", exception);
+            throw exception;
         }
     }
 
@@ -105,6 +113,7 @@ public class DatasetBackFillFileSummary {
         this.readCommitedTransactionTemplate.execute(new TransactionCallback<Void>() {
             @Override
             public Void doInTransaction(TransactionStatus status) {
+                log.info(" updating dataset: "+ datasetBackFillDTO.getId() +"."+ datasetBackFillDTO.getVersion());
                 Dataset dataset = entityManager.getEntityForVersion(userInfo, datasetBackFillDTO.getId(),
                         datasetBackFillDTO.getVersion(), Dataset.class);
                 FileSummary fileSummary = nodeDAO.getFileSummary(dataset.getItems());
