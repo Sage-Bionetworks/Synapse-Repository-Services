@@ -7,14 +7,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -24,8 +22,6 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.repo.model.migration.DatasetBackfillRequest;
 import org.sagebionetworks.repo.model.migration.DatasetBackfillResponse;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -37,7 +33,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -59,13 +54,9 @@ public class DatasetBackFillFileSummaryJobAutowiredTest {
     @Autowired
     private TestHelper testHelper;
     @Autowired
-    private ColumnModelManager columnModelManager;
-    @Autowired
     private EntityManager entityManager;
     @Autowired
     private DaoObjectHelper<S3FileHandle> fileHandleDaoHelper;
-    @Autowired
-    private TableRowTruthDAO tableRowTruthDao;
     @Autowired
     private TableIndexDAO indexDao;
     @Autowired
@@ -76,39 +67,30 @@ public class DatasetBackFillFileSummaryJobAutowiredTest {
     private UserInfo adminUserInfo;
     private UserInfo user;
     private Project project;
-    private ColumnModel stringColumnModel;
     private List<Dataset> datasetToBeDelete = new ArrayList<>();
 
     @BeforeEach
     public void before() throws Exception {
-        tableRowTruthDao.truncateAllRowData();
         adminUserInfo = userManager.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER
                 .getPrincipalId());
         testHelper.before();
         user = testHelper.createUser();
         project = testHelper.createProject(user);
-        stringColumnModel = new ColumnModel();
-        stringColumnModel.setName("aString");
-        stringColumnModel.setColumnType(ColumnType.STRING);
-        stringColumnModel.setMaximumSize(50L);
-        stringColumnModel = columnModelManager.createColumnModel(user, stringColumnModel);
     }
 
     @AfterEach
     public void after() {
-        tableRowTruthDao.truncateAllRowData();
         testHelper.cleanup();
         datasetToBeDelete.forEach(dataset -> indexDao.deleteTable(IdAndVersion.parse(dataset.getId())));
         fileHandleDao.truncateTable();
     }
 
     @Test
-    public void testDatasetBackfillingJob() throws Exception {
+    public void testDatasetBackFillingJob() throws Exception {
         Dataset datasetWithoutItem = asyncHelper.createDataset(user, new Dataset()
                 .setParentId(project.getId())
                 .setName(UUID.randomUUID().toString())
                 .setDescription(UUID.randomUUID().toString())
-                .setColumnIds(Collections.singletonList(stringColumnModel.getId()))
                 .setItems(Collections.emptyList())
         );
         assertNull(datasetWithoutItem.getChecksum());
@@ -116,7 +98,7 @@ public class DatasetBackFillFileSummaryJobAutowiredTest {
         assertEquals(0, datasetWithoutItem.getCount());
         datasetToBeDelete.add(datasetWithoutItem);
 
-        Dataset datasetWithoutFileSummary = createDatasetWithoutFileSummary(user, project, stringColumnModel);
+        Dataset datasetWithoutFileSummary = createDatasetWithoutFileSummary(user, project);
         assertNull(datasetWithoutFileSummary.getChecksum());
         assertNull(datasetWithoutFileSummary.getSize());
         assertNull(datasetWithoutFileSummary.getCount());
@@ -124,7 +106,7 @@ public class DatasetBackFillFileSummaryJobAutowiredTest {
         String etag = datasetWithoutFileSummary.getEtag();
         datasetToBeDelete.add(datasetWithoutFileSummary);
 
-        Dataset datasetWithFileSummary = createDatasetWithFileSummary(user, project, stringColumnModel);
+        Dataset datasetWithFileSummary = createDatasetWithFileSummary(user, project);
         assertNotNull(datasetWithFileSummary.getChecksum());
         assertNotNull(datasetWithFileSummary.getSize());
         assertEquals(2, datasetWithFileSummary.getCount());
@@ -144,7 +126,7 @@ public class DatasetBackFillFileSummaryJobAutowiredTest {
         }, MAX_WAIT_MS);
     }
 
-    private Dataset createDatasetWithFileSummary(UserInfo userInfo, Project project, ColumnModel columnModel) throws Exception {
+    private Dataset createDatasetWithFileSummary(UserInfo userInfo, Project project) throws Exception {
         FileEntity fileOne = createFileEntityAndWaitForReplication(userInfo, project);
         FileEntity fileTwo = createFileEntityAndWaitForReplication(userInfo, project);
 
@@ -152,7 +134,6 @@ public class DatasetBackFillFileSummaryJobAutowiredTest {
                 .setParentId(project.getId())
                 .setName(UUID.randomUUID().toString())
                 .setDescription(UUID.randomUUID().toString())
-                .setColumnIds(Arrays.asList(columnModel.getId()))
                 .setItems(List.of(
                         new EntityRef().setEntityId(fileOne.getId()).setVersionNumber(fileOne.getVersionNumber()),
                         new EntityRef().setEntityId(fileTwo.getId()).setVersionNumber(fileTwo.getVersionNumber())
@@ -161,7 +142,7 @@ public class DatasetBackFillFileSummaryJobAutowiredTest {
         return dataset;
     }
 
-    private Dataset createDatasetWithoutFileSummary(UserInfo userInfo, Project project, ColumnModel columnModel) throws Exception {
+    private Dataset createDatasetWithoutFileSummary(UserInfo userInfo, Project project) throws Exception {
         FileEntity fileOne = createFileEntityAndWaitForReplication(userInfo, project);
         FileEntity fileTwo = createFileEntityAndWaitForReplication(userInfo, project);
 
@@ -169,7 +150,6 @@ public class DatasetBackFillFileSummaryJobAutowiredTest {
                 .setParentId(project.getId())
                 .setName(UUID.randomUUID().toString())
                 .setDescription(UUID.randomUUID().toString())
-                .setColumnIds(Arrays.asList(columnModel.getId()))
                 .setItems(List.of(
                         new EntityRef().setEntityId(fileOne.getId()).setVersionNumber(fileOne.getVersionNumber()),
                         new EntityRef().setEntityId(fileTwo.getId()).setVersionNumber(fileTwo.getVersionNumber())
