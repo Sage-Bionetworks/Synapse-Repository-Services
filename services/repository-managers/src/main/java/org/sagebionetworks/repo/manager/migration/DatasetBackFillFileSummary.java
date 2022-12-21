@@ -56,7 +56,7 @@ public class DatasetBackFillFileSummary {
         String id = rs.getString(COL_NODE_ID);
         long version = rs.getLong(COL_REVISION_NUMBER);
         org.sagebionetworks.repo.model.Annotations entityPropertyAnnotation = null;
-        List<EntityRef> items = Collections.emptyList();
+        List<EntityRef> items;
         byte[] bytes = rs.getBytes(COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB);
 
         try {
@@ -65,6 +65,9 @@ public class DatasetBackFillFileSummary {
             }
 
             items = NodeUtils.readJsonToItems(rs.getString(COL_REVISION_ITEMS));
+            if(items == null){
+                items = Collections.emptyList();
+            }
         } catch (IOException e) {
             throw new DatastoreException(e);
         }
