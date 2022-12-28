@@ -54,16 +54,13 @@ import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
-import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
-import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
-import org.sagebionetworks.table.cluster.view.filter.IdVersionPair;
+import org.sagebionetworks.table.cluster.view.filter.IdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.transaction.TransactionStatus;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class ReplicationManagerTest {
@@ -417,7 +414,7 @@ public class ReplicationManagerTest {
 		Set<SubType> expectedSubTypes = Arrays.stream(SubType.values()).collect(Collectors.toSet());
 		assertEquals(SubType.values().length, expectedSubTypes.size());
 		ViewFilter expected = new HierarchicaFilter(ReplicationType.ENTITY, expectedSubTypes
-				, Sets.newHashSet(viewId.getId()));
+				, Set.of(viewId.getId()));
 		// call under test
 		ViewFilter filter = managerSpy.getFilter(viewId, type);
 		assertEquals(expected, filter);
@@ -500,8 +497,8 @@ public class ReplicationManagerTest {
 		when(mockObjectDataProvider.streamOverIdsAndChecksumsForChildren(any(), any(), any())).thenReturn(it);
 
 		Long salt = 123L;
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<Long> scope = Sets.newHashSet(99L);
+		Set<SubType> subTypes = Set.of(SubType.file);
+		Set<Long> scope = Set.of(99L);
 		ViewFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, subTypes, scope);
 		// call under test
 		Iterator<IdAndChecksum> result = manager.createTruthStream(salt, filter);
@@ -519,15 +516,15 @@ public class ReplicationManagerTest {
 		when(mockObjectDataProvider.streamOverIdsAndChecksumsForObjects(any(), any())).thenReturn(it);
 
 		Long salt = 123L;
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<Long> scope = Sets.newHashSet(99L);
-		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		Set<SubType> subTypes = Set.of(SubType.file);
+		Set<IdAndVersion> scope = Set.of(IdAndVersion.parse("99"));
+		ViewFilter filter = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
 		// call under test
 		Iterator<IdAndChecksum> result = manager.createTruthStream(salt, filter);
 		assertEquals(result, it);
 
 		verify(mockObjectDataProviderFactory).getObjectDataProvider(ReplicationType.ENTITY);
-		verify(mockObjectDataProvider).streamOverIdsAndChecksumsForObjects(salt, scope);
+		verify(mockObjectDataProvider).streamOverIdsAndChecksumsForObjects(salt, Set.of(99L));
 	}
 
 	@Test
@@ -538,9 +535,9 @@ public class ReplicationManagerTest {
 		when(mockObjectDataProvider.streamOverIdsAndChecksumsForObjects(any(), any())).thenReturn(it);
 
 		Long salt = 123L;
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<IdVersionPair> scope = Sets.newHashSet(new IdVersionPair().setId(1L).setVersion(2L));
-		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
+		Set<SubType> subTypes = Set.of(SubType.file);
+		Set<IdAndVersion> scope = Set.of(IdAndVersion.parse("syn1.2"));
+		IdAndVersionFilter filter = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
 		// call under test
 		Iterator<IdAndChecksum> result = manager.createTruthStream(salt, filter);
 		assertEquals(result, it);
@@ -579,9 +576,9 @@ public class ReplicationManagerTest {
 	@Test
 	public void testCreateTruthStreamWithNullSalt() {
 		Long salt = null;
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<IdVersionPair> scope = Sets.newHashSet(new IdVersionPair().setId(1L).setVersion(2L));
-		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
+		Set<SubType> subTypes = Set.of(SubType.file);
+		Set<IdAndVersion> scope = Set.of(IdAndVersion.parse("syn1.2"));
+		IdAndVersionFilter filter = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test

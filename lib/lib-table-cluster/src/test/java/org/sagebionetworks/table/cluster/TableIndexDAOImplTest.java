@@ -78,10 +78,8 @@ import org.sagebionetworks.table.cluster.search.RowSearchContent;
 import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.search.TypedCellValue;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
-import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
-import org.sagebionetworks.table.cluster.view.filter.IdVersionPair;
+import org.sagebionetworks.table.cluster.view.filter.IdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -99,7 +97,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:table-cluster-spb.xml" })
@@ -171,7 +168,7 @@ public class TableIndexDAOImplTest {
 				return ColumnType.ENTITYID;
 			}
 		};
-		subTypes = Sets.newHashSet(SubType.file);
+		subTypes = Set.of(SubType.file);
 	}
 
 	@AfterEach
@@ -914,12 +911,12 @@ public class TableIndexDAOImplTest {
 	public void testBindFileHandles() {
 		// ensure the secondary tables for this index exist
 		this.tableIndexDAO.createSecondaryTables(tableId);
-		Set<Long> toBind = Sets.newHashSet(1L, 2L, 5L);
+		Set<Long> toBind = Set.of(1L, 2L, 5L);
 		// find the files
 		this.tableIndexDAO.applyFileHandleIdsToTable(tableId, toBind);
-		Set<Long> toTest = Sets.newHashSet(0L, 2L, 3L, 5L, 8L);
+		Set<Long> toTest = Set.of(0L, 2L, 3L, 5L, 8L);
 		// Expect to find the intersection of the toBound and toTest.
-		Set<Long> expected = Sets.newHashSet(2L, 5L);
+		Set<Long> expected = Set.of(2L, 5L);
 
 		Set<Long> results = this.tableIndexDAO.getFileHandleIdsAssociatedWithTable(toTest, tableId);
 		assertEquals(expected, results);
@@ -929,14 +926,14 @@ public class TableIndexDAOImplTest {
 	public void testBindFileHandlesWithOverlap() {
 		// ensure the secondary tables for this index exist
 		this.tableIndexDAO.createSecondaryTables(tableId);
-		Set<Long> toBind1 = Sets.newHashSet(1L, 2L, 3L);
+		Set<Long> toBind1 = Set.of(1L, 2L, 3L);
 		this.tableIndexDAO.applyFileHandleIdsToTable(tableId, toBind1);
-		Set<Long> toBind2 = Sets.newHashSet(2L, 3L, 4L);
+		Set<Long> toBind2 = Set.of(2L, 3L, 4L);
 		// must add 4 and ignore 2 & 3.
 		this.tableIndexDAO.applyFileHandleIdsToTable(tableId, toBind2);
-		Set<Long> toTest = Sets.newHashSet(5L,4L,3L,2L,1L,0L);
+		Set<Long> toTest = Set.of(5L,4L,3L,2L,1L,0L);
 		// Expect to find the intersection of the toBound and toTest.
-		Set<Long> expected = Sets.newHashSet(4L,3L,2L,1L);
+		Set<Long> expected = Set.of(4L,3L,2L,1L);
 		Set<Long> results = this.tableIndexDAO.getFileHandleIdsAssociatedWithTable(toTest, tableId);
 		assertEquals(expected, results);
 	}
@@ -947,7 +944,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testBindFileHandlesTableDoesNotExist() {
 		this.tableIndexDAO.deleteTable(tableId);
-		Set<Long> toTest = Sets.newHashSet(0L, 2L, 3L, 5L, 8L);
+		Set<Long> toTest = Set.of(0L, 2L, 3L, 5L, 8L);
 		Set<Long> results = this.tableIndexDAO.getFileHandleIdsAssociatedWithTable(toTest, tableId);
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
@@ -1321,7 +1318,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateOrDeleteRows(tableId, set, schema);
 		
 		Set<Long> results = tableIndexDAO.getDistinctLongValues(tableId, SQLUtils.getColumnNameForId(column.getId()));
-		Set<Long> expected = Sets.newHashSet(3000L, 3001L);
+		Set<Long> expected = Set.of(3000L, 3001L);
 		assertEquals(expected, results);
 	}
 	
@@ -2196,7 +2193,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetMaxListSizeForAnnotations_nullFilter() throws ParseException {
 
-		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
+		Set<String> annotationNames = Set.of("foo", "bar");
 		
 		ViewFilter filter = null;
 		
@@ -2214,7 +2211,7 @@ public class TableIndexDAOImplTest {
 
 		Set<Long> emptyScope = Collections.emptySet();
 
-		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
+		Set<String> annotationNames = Set.of("foo", "bar");
 		
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, emptyScope);
 	
@@ -2226,7 +2223,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetMaxListSizeForAnnotations_nullAnnotationNames() throws ParseException {
 
-		Set<Long> scope = Sets.newHashSet(222L,333L);
+		Set<Long> scope = Set.of(222L,333L);
 
 		Set<String> nullAnnotationNames = null;
 			
@@ -2244,7 +2241,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetMaxListSizeForAnnotations_emptyAnnotationNames() throws ParseException {
 
-		Set<Long> scope = Sets.newHashSet(222L,333L);
+		Set<Long> scope = Set.of(222L,333L);
 
 		Set<String> emptyAnnotationNames = Collections.emptySet();
 		
@@ -2291,12 +2288,12 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 
 		// both parents
-		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		Set<Long> scope = Set.of(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
 		createOrUpdateTable(schema, indexDescription);
-		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
+		Set<String> annotationNames = Set.of("foo", "bar");
 		
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 		
@@ -2326,14 +2323,14 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 
 		// both parents
-		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		Set<Long> scope = Set.of(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
 		createOrUpdateTable(schema, indexDescription);
 		// Copy the entity data to the table
 		// method under test
-		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
+		Set<String> annotationNames = Set.of("foo", "bar");
 		
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 	
@@ -2379,14 +2376,14 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 
 		// both parents
-		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		Set<Long> scope = Set.of(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
 		createOrUpdateTable(schema, indexDescription);
-		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
+		Set<String> annotationNames = Set.of("foo", "bar");
 
-		Set<Long> objectIdFilter = Sets.newHashSet(2L);
+		Set<Long> objectIdFilter = Set.of(2L);
 		boolean excludeDerivedKeys = false;
 		
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, objectIdFilter, null, scope, excludeDerivedKeys);
@@ -2415,7 +2412,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
 		// both parents
-		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		Set<Long> scope = Set.of(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
@@ -2459,7 +2456,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 
 		// both parents
-		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		Set<Long> scope = Set.of(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
@@ -2512,7 +2509,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
 		// both parents
-		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		Set<Long> scope = Set.of(file1.getParentId(), file2.getParentId());
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
 				.createColumn(1L, "foo", ColumnType.DOUBLE));
 		// Create the view index
@@ -2603,7 +2600,7 @@ public class TableIndexDAOImplTest {
 		
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
-		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
+		Set<Long> containerIds = Set.of(222L, 333L);
 		long limit = 5;
 		long offset = 0;
 		
@@ -2642,12 +2639,12 @@ public class TableIndexDAOImplTest {
 		
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
-		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
+		Set<Long> containerIds = Set.of(222L, 333L);
 		long limit = 5;
 		long offset = 0;
 		boolean excludeDerivedKeys = false;
 		
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, null, Sets.newHashSet("key0"), containerIds, excludeDerivedKeys);
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, null, Set.of("key0"), containerIds, excludeDerivedKeys);
 		
 		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		
@@ -2700,7 +2697,7 @@ public class TableIndexDAOImplTest {
 
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
-		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
+		Set<Long> containerIds = Set.of(222L, 333L);
 		long limit = 5;
 		long offset = 0;
 		
@@ -2793,7 +2790,7 @@ public class TableIndexDAOImplTest {
 
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 
-		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
+		Set<Long> containerIds = Set.of(222L, 333L);
 		long limit = 5;
 		long offset = 0;
 		
@@ -2906,13 +2903,13 @@ public class TableIndexDAOImplTest {
 		
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(project1, project2));
 		
-		Set<Long> containerIds = Sets.newHashSet(2L, 3L);
+		Set<IdAndVersion> containerIds = Set.of(IdAndVersion.parse("2"), IdAndVersion.parse("3"));
 		long limit = 5;
 		long offset = 0;
 		
-		subTypes = Sets.newHashSet(SubType.project);
+		subTypes = Set.of(SubType.project);
 		
-		ViewFilter filter = new FlatIdsFilter(mainType, subTypes, containerIds);
+		ViewFilter filter = new IdAndVersionFilter(mainType, subTypes, containerIds);
 	
 		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
@@ -2964,7 +2961,7 @@ public class TableIndexDAOImplTest {
 		
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
-		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
+		Set<Long> containerIds = Set.of(222L, 333L);
 		long limit = 5;
 		long offset = 0;
 		
@@ -3588,7 +3585,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testDeleteFromListColumnIndexTable_NullColumn() {
 		ColumnModel multiValue = null;
-		Set<Long> rowIdFilter = Sets.newHashSet(1L);
+		Set<Long> rowIdFilter = Set.of(1L);
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
@@ -3603,7 +3600,7 @@ public class TableIndexDAOImplTest {
 		multiValue.setColumnType(ColumnType.STRING);
 		multiValue.setName("multiValue");
 		multiValue.setMaximumSize(100L);
-		Set<Long> rowIdFilter = Sets.newHashSet(1L);
+		Set<Long> rowIdFilter = Set.of(1L);
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
@@ -3677,7 +3674,7 @@ public class TableIndexDAOImplTest {
 
 		//method under test
 		//delete 2 rows from index table
-		tableIndexDAO.deleteFromListColumnIndexTable(tableId, stringListColumn, Sets.newHashSet(rows.get(0).getRowId(), rows.get(2).getRowId()));
+		tableIndexDAO.deleteFromListColumnIndexTable(tableId, stringListColumn, Set.of(rows.get(0).getRowId(), rows.get(2).getRowId()));
 
 		//deleted 2 rows so expect 2*2=4 less rows in the index table
 		assertEquals((numRows-2) * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
@@ -3915,7 +3912,7 @@ public class TableIndexDAOImplTest {
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(results);
-		Set<Long> expected = Sets.newHashSet(dtos.get(3).getId());
+		Set<Long> expected = Set.of(dtos.get(3).getId());
 		assertEquals(expected, results);
 	}
 	
@@ -3985,14 +3982,14 @@ public class TableIndexDAOImplTest {
 		
 		long limit = 100L;
 		// File only type used to indicate the new type is files-only.
-		subTypes = Sets.newHashSet(SubType.file);
+		subTypes = Set.of(SubType.file);
 		filter = new HierarchicaFilter(mainType, subTypes, scope);
 		
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(results);
 		// the folder should be removed from the view.
-		Set<Long> expectedResults = Sets.newHashSet(folderDto.getId());
+		Set<Long> expectedResults = Set.of(folderDto.getId());
 		assertEquals(expectedResults, results);
 	}
 	
@@ -4190,7 +4187,7 @@ public class TableIndexDAOImplTest {
 		
 		Long idThatDoesNotExist = 999L;
 		// Only add the first and last row to the view and a row that does not exist
-		Set<Long> rowFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId(), idThatDoesNotExist);
+		Set<Long> rowFilter = Set.of(dtos.get(0).getId(), dtos.get(3).getId(), idThatDoesNotExist);
 		
 
 		
@@ -4201,12 +4198,12 @@ public class TableIndexDAOImplTest {
 		// call under test
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
-		Set<Long> expectedMissing = Sets.newHashSet(dtos.get(1).getId(), dtos.get(2).getId());
+		Set<Long> expectedMissing = Set.of(dtos.get(1).getId(), dtos.get(2).getId());
 		filter = new HierarchicaFilter(mainType, subTypes, scope);
 		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, filterNoAdditional, limit);
 		assertEquals(expectedMissing, deltas);
 		// Add the remaining rows
-		rowFilter = Sets.newHashSet(dtos.get(1).getId(), dtos.get(2).getId());
+		rowFilter = Set.of(dtos.get(1).getId(), dtos.get(2).getId());
 		filter = filter.newBuilder().addLimitObjectids(rowFilter).build();
 		// call under test
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
@@ -4314,7 +4311,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(2 * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
 		
 		// add the two rows back to the view
-		rowIdFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId());
+		rowIdFilter = Set.of(dtos.get(0).getId(), dtos.get(3).getId());
 		boolean excludeDerivedKeys = false;
 		
 		filter = new HierarchicaFilter(mainType, subTypes,rowIdFilter,null, scope, excludeDerivedKeys);
@@ -4459,7 +4456,7 @@ public class TableIndexDAOImplTest {
 
 		//method under test
 		Set<Long> columnIds = tableIndexDAO.getMultivalueColumnIndexTableColumnIds(tableId);
-		assertEquals(Sets.newHashSet(12L,16L), columnIds);
+		assertEquals(Set.of(12L,16L), columnIds);
 	}
 
 	@Test
@@ -4647,7 +4644,7 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 
 		// both parents
-		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		Set<Long> scope = Set.of(file1.getParentId(), file2.getParentId());
 		
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 
@@ -4755,13 +4752,13 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(v2);
 		createOrUpdateTable(schema, indexDescription);
 		
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<IdVersionPair> scope = Sets.newHashSet(
-				new IdVersionPair().setId(v1.getId()).setVersion(v1.getVersion()),
-				new IdVersionPair().setId(v2.getId()).setVersion(v2.getVersion())
+		Set<SubType> subTypes = Set.of(SubType.file);
+		Set<IdAndVersion> scope = Set.of(
+				IdAndVersion.newBuilder().setId(v1.getId()).setVersion(v1.getVersion()).build(),
+				IdAndVersion.newBuilder().setId(v2.getId()).setVersion(v2.getVersion()).build()
 		);
 		
-		ViewFilter filter = new FlatIdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
+		ViewFilter filter = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
 		
 		// Copy the entity data to the table
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
@@ -4841,14 +4838,15 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(v2);
 		createOrUpdateTable(schema, indexDescription);
 		
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<IdVersionPair> scope = Sets.newHashSet(
-				new IdVersionPair().setId(v1.getId()).setVersion(v1.getVersion()),
-				new IdVersionPair().setId(v2.getId()).setVersion(v2.getVersion()),
-				new IdVersionPair().setId(v3.getId()).setVersion(v3.getVersion())
+		Set<SubType> subTypes = Set.of(SubType.file);
+		
+		Set<IdAndVersion> scope = Set.of(
+				IdAndVersion.newBuilder().setId(v1.getId()).setVersion(v1.getVersion()).build(),
+				IdAndVersion.newBuilder().setId(v2.getId()).setVersion(v2.getVersion()).build(),
+				IdAndVersion.newBuilder().setId(v3.getId()).setVersion(v3.getVersion()).build()
 		);
 		
-		ViewFilter filter = new FlatIdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
+		ViewFilter filter = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
 		
 		Long salt = 123L;
 		Long limit = 2L;
@@ -4886,8 +4884,8 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(oneVersion.get(0));
 		createOrUpdateTable(schema, indexDescription);
 		
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<Long> parentIds = Sets.newHashSet(1L);
+		Set<SubType> subTypes = Set.of(SubType.file);
+		Set<Long> parentIds = Set.of(1L);
 		
 		ViewFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, subTypes, parentIds);
 		
@@ -4927,10 +4925,14 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(oneVersion.get(0));
 		createOrUpdateTable(schema, indexDescription);
 		
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<Long> scope = Sets.newHashSet(objectIdOne, objectIdTwo, objectIdThree);
+		Set<SubType> subTypes = Set.of(SubType.file);
+		Set<IdAndVersion> scope = Set.of(
+				IdAndVersion.newBuilder().setId(objectIdOne).build(),
+				IdAndVersion.newBuilder().setId(objectIdTwo).build(),
+				IdAndVersion.newBuilder().setId(objectIdThree).build()
+		);
 		
-		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		ViewFilter filter = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
 		
 		Long salt = 123L;
 		Long limit = 2L;
@@ -4946,10 +4948,10 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testGetIdAndChecksumsForFilterWithEmptyFilter() {
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<Long> scope = Collections.emptySet();
+		Set<SubType> subTypes = Set.of(SubType.file);
+		Set<IdAndVersion> scope = Collections.emptySet();
 		
-		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		ViewFilter filter = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
 		Long salt = 123L;
 		Long limit = 2L;
 		Long offset = 1L;
@@ -4974,9 +4976,9 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testGetIdAndChecksumsForFilterWithNullSalt() {
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<Long> scope = Sets.newHashSet(1L);
-		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		Set<SubType> subTypes = Set.of(SubType.file);
+		Set<IdAndVersion> scope = Set.of(IdAndVersion.parse("1"));
+		ViewFilter filter = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
 		Long salt = null;
 		Long limit = 2L;
 		Long offset = 1L;
@@ -4989,9 +4991,9 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testGetIdAndChecksumsForFilterWithNullLimit() {
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<Long> scope = Sets.newHashSet(1L);
-		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		Set<SubType> subTypes = Set.of(SubType.file);
+		Set<IdAndVersion> scope = Set.of(IdAndVersion.parse("1"));
+		ViewFilter filter = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
 		Long salt = 123L;
 		Long limit = null;
 		Long offset = 1L;
@@ -5004,9 +5006,9 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testGetIdAndChecksumsForFilterWithNullOffset() {
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<Long> scope = Sets.newHashSet(1L);
-		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		Set<SubType> subTypes = Set.of(SubType.file);
+		Set<IdAndVersion> scope = Set.of(IdAndVersion.parse("1"));
+		ViewFilter filter = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
 		Long salt = 123L;
 		Long limit = 2L;
 		Long offset = null;
@@ -5061,7 +5063,7 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER_LIST), TableModelTestUtils.createColumn(2L, "bar", ColumnType.DOUBLE));
 
 		// both parents
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, Sets.newHashSet(file1.getParentId(), file2.getParentId()));
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, Set.of(file1.getParentId(), file2.getParentId()));
 
 		createOrUpdateTable(schema, indexDescription);
 		

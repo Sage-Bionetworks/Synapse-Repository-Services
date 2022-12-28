@@ -29,9 +29,8 @@ import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
-import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
+import org.sagebionetworks.table.cluster.view.filter.IdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -284,12 +283,9 @@ public class ReplicationManagerImpl implements ReplicationManager {
 		if (filter instanceof HierarchicaFilter) {
 			HierarchicaFilter hierarchy = (HierarchicaFilter) filter;
 			return provider.streamOverIdsAndChecksumsForChildren(salt, hierarchy.getParentIds(), filter.getSubTypes());
-		} else if (filter instanceof FlatIdsFilter) {
-			FlatIdsFilter flat = (FlatIdsFilter) filter;
-			return provider.streamOverIdsAndChecksumsForObjects(salt, flat.getScope());
-		} else if (filter instanceof FlatIdAndVersionFilter) {
-			FlatIdAndVersionFilter flatVersion = (FlatIdAndVersionFilter) filter;
-			return provider.streamOverIdsAndChecksumsForObjects(salt, flatVersion.getObjectIds());
+		} else if (filter instanceof IdAndVersionFilter) {
+			IdAndVersionFilter flat = (IdAndVersionFilter) filter;
+			return provider.streamOverIdsAndChecksumsForObjects(salt, flat.getObjectIds());
 		} else {
 			throw new IllegalStateException("Unknown filter types: " + filter.getClass().getName());
 		}

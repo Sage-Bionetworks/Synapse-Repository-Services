@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -108,10 +107,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class TableIndexManagerImplTest {
@@ -163,7 +159,7 @@ public class TableIndexManagerImplTest {
 	Grouping groupOne;
 	Grouping groupTwo;
 
-	HashSet<Long> containerIds;
+	Set<IdAndVersion> containerIds;
 	Long limit;
 	Long offset;
 	NextPageToken nextPageToken;
@@ -213,12 +209,17 @@ public class TableIndexManagerImplTest {
 
 		crc32 = 5678L;
 
-		containerIds = Sets.newHashSet(1l, 2L, 3L);
+		containerIds = Set.of(
+			IdAndVersion.parse("1"),
+			IdAndVersion.parse("2"),
+			IdAndVersion.parse("3")
+		);
+				
 		limit = 10L;
 		offset = 0L;
 		nextPageToken = new NextPageToken(limit, offset);
 		tokenString = nextPageToken.toToken();
-		scopeSynIds = Lists.newArrayList("syn123", "syn345");
+		scopeSynIds = List.of("syn123", "syn345");
 		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scopeSynIds));
 
 		scope = new ViewScope();
@@ -229,9 +230,9 @@ public class TableIndexManagerImplTest {
 		ColumnModel oldColumn = null;
 		newColumn = new ColumnModel();
 		newColumn.setId("12");
-		columnChanges = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
+		columnChanges = List.of(new ColumnChangeDetails(oldColumn, newColumn));
 
-		rowsIdsWithChanges = Sets.newHashSet(444L, 555L);
+		rowsIdsWithChanges = Set.of(444L, 555L);
 		scopeType = new ViewScopeType(objectType, ViewTypeMask.File.getMask());
 
 		objectFieldModelResolver = new ObjectFieldModelResolverImpl(mockMetadataProvider);
@@ -287,7 +288,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).createOrUpdateOrDeleteRows(tableId, groupOne);
 		verify(mockIndexDao).createOrUpdateOrDeleteRows(tableId, groupTwo);
 		// files handles should be applied.
-		verify(mockIndexDao).applyFileHandleIdsToTable(tableId, Sets.newHashSet(2L, 6L));
+		verify(mockIndexDao).applyFileHandleIdsToTable(tableId, Set.of(2L, 6L));
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
 		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
@@ -364,7 +365,7 @@ public class TableIndexManagerImplTest {
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
 
-		Set<Long> expectedRows = Sets.newHashSet(0L, 5L);
+		Set<Long> expectedRows = Set.of(0L, 5L);
 		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(0), expectedRows);
 		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(1), expectedRows);
 		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(0), expectedRows, false);
@@ -415,7 +416,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, times(3)).createOrUpdateOrDeleteRows(eq(tableId), any(Grouping.class));
 		// there are no files
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
-		verify(mockIndexDao).getTableDataForRowIds(tableId, Arrays.asList(schema.get(0), schema.get(1)), ImmutableSet.of(0L, 5L));
+		verify(mockIndexDao).getTableDataForRowIds(tableId, Arrays.asList(schema.get(0), schema.get(1)), Set.of(0L, 5L));
 		verify(mockSearchProcessor, times(2)).process(rowData, false);
 		verify(mockIndexDao).updateSearchIndex(tableId, Arrays.asList(searchRowContent, searchRowContent));
 		// The new version should be set
@@ -468,20 +469,20 @@ public class TableIndexManagerImplTest {
 		ColumnModel column = new ColumnModel();
 		column.setId("44");
 		column.setColumnType(ColumnType.BOOLEAN);
-		schema = Lists.newArrayList(column);
+		schema = List.of(column);
 
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName("_C44_");
 		info.setColumnType(ColumnType.BOOLEAN);
 
 		when(mockIndexDao.doesIndexHashMatchSchemaHash(any(), any())).thenReturn(false);
-		when(mockIndexDao.getDatabaseInfo(any())).thenReturn(Lists.newArrayList(info));
+		when(mockIndexDao.getDatabaseInfo(any())).thenReturn(List.of(info));
 		when(mockIndexDao.alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean())).thenReturn(true);
 		when(mockIndexDao.getMultivalueColumnIndexTableColumnIds(any())).thenReturn(Collections.emptySet());
 		// call under test
 		manager.setIndexSchema(new TableIndexDescription(tableId), schema);
 		
-		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(column.getId()));
+		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(List.of(column.getId()));
 		verify(mockIndexDao).doesIndexHashMatchSchemaHash(tableId, schema);
 		verify(mockIndexDao, times(3)).getDatabaseInfo(tableId);
 		verify(mockIndexDao).getMultivalueColumnIndexTableColumnIds(tableId);
@@ -493,7 +494,7 @@ public class TableIndexManagerImplTest {
 		ColumnModel column = new ColumnModel();
 		column.setId("44");
 		column.setColumnType(ColumnType.BOOLEAN);
-		schema = Lists.newArrayList(column);
+		schema = List.of(column);
 		
 		when(mockIndexDao.doesIndexHashMatchSchemaHash(any(), any())).thenReturn(true);
 		// call under test
@@ -523,18 +524,18 @@ public class TableIndexManagerImplTest {
 		column.setId("44");
 		column.setColumnType(ColumnType.STRING_LIST);
 		column.setMaximumSize(50L);
-		schema = Lists.newArrayList(column);
+		schema = List.of(column);
 
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName("_C44_");
 		info.setColumnType(ColumnType.BOOLEAN);
 
-		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(List.of(info));
 		when(mockIndexDao.alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean())).thenReturn(true);
 		when(mockIndexDao.getMultivalueColumnIndexTableColumnIds(tableId)).thenReturn(Collections.emptySet());
 		// call under test
 		manager.setIndexSchema(new TableIndexDescription(tableId), schema);
-		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(column.getId()));
+		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(List.of(column.getId()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 		verify(mockIndexDao).getMultivalueColumnIndexTableColumnIds(tableId);
 		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, column, false);
@@ -621,12 +622,12 @@ public class TableIndexManagerImplTest {
 		ColumnModel newColumn = null;
 		boolean alterTemp = false;
 
-		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
+		List<ColumnChangeDetails> changes = List.of(new ColumnChangeDetails(oldColumn, newColumn));
 		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(true);
 		DatabaseColumnInfo current = new DatabaseColumnInfo();
 		current.setColumnName(SQLUtils.getColumnNameForId(oldColumn.getId()));
 		current.setColumnType(ColumnType.STRING);
-		List<DatabaseColumnInfo> startSchema = Lists.newArrayList(current);
+		List<DatabaseColumnInfo> startSchema = List.of(current);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(startSchema, new LinkedList<DatabaseColumnInfo>());
 		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		// call under test
@@ -671,7 +672,7 @@ public class TableIndexManagerImplTest {
 
 	@Test
 	public void testCreateTemporaryTableCopy_hasMultiValueColumnIndexTables() {
-		when(mockIndexDao.getMultivalueColumnIndexTableColumnIds(tableId)).thenReturn(Sets.newHashSet(123L, 456L));
+		when(mockIndexDao.getMultivalueColumnIndexTableColumnIds(tableId)).thenReturn(Set.of(123L, 456L));
 
 		// call under test
 		manager.createTemporaryTableCopy(tableId);
@@ -803,7 +804,7 @@ public class TableIndexManagerImplTest {
 		column.setColumnType(ColumnType.STRING);
 		column.setMaximumSize(10L);
 
-		List<ColumnModel> schema = ImmutableList.of(column);
+		List<ColumnModel> schema = List.of(column);
 
 		ColumnModel annotationModel = new ColumnModel();
 		annotationModel.setName("foo");
@@ -811,7 +812,7 @@ public class TableIndexManagerImplTest {
 		annotationModel.setMaximumSize(11L);
 
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any()))
-				.thenReturn(ImmutableList.of(annotationModel));
+				.thenReturn(List.of(annotationModel));
 
 		// setup a failure
 		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
@@ -848,7 +849,7 @@ public class TableIndexManagerImplTest {
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
-		verify(mockFilterBuilder).addExcludeAnnotationKeys(Sets.newHashSet("testKey"));
+		verify(mockFilterBuilder).addExcludeAnnotationKeys(Set.of("testKey"));
 		verify(mockFilterBuilder).build();
 		// should request one more than the limit
 		verify(mockIndexDao).getPossibleColumnModelsForContainers(mockNewFilter, limit + 1, offset);
@@ -876,7 +877,7 @@ public class TableIndexManagerImplTest {
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
-		verify(mockFilterBuilder).addExcludeAnnotationKeys(Sets.newHashSet("testKey"));
+		verify(mockFilterBuilder).addExcludeAnnotationKeys(Set.of("testKey"));
 		verify(mockFilterBuilder).setExcludeDerivedKeys(true);
 		verify(mockFilterBuilder, times(2)).build();
 		// should request one more than the limit
@@ -1008,7 +1009,7 @@ public class TableIndexManagerImplTest {
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		
-		Set<Long> expectedScope = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
+		Set<IdAndVersion> expectedScope = scope.getScope().stream().map(id -> IdAndVersion.parse(id)).collect(Collectors.toSet());
 		verify(mockMetadataProvider).getViewFilter(scopeType.getTypeMask(), expectedScope);
 		verify(mockFilter).isEmpty();
 
@@ -1049,7 +1050,7 @@ public class TableIndexManagerImplTest {
 		ColumnModel customField = new ColumnModel();
 		customField.setName("CustomField");
 
-		when(mockDefaultColumnModel.getCustomFields()).thenReturn(ImmutableList.of(customField));
+		when(mockDefaultColumnModel.getCustomFields()).thenReturn(List.of(customField));
 		boolean excludeDerivedKeys = false;
 		
 		// call under test
@@ -1083,7 +1084,7 @@ public class TableIndexManagerImplTest {
 		one.setColumnName("_C111_");
 		DatabaseColumnInfo two = new DatabaseColumnInfo();
 		two.setColumnName("_C222_");
-		List<DatabaseColumnInfo> curretIndexSchema = Lists.newArrayList(rowId, one, two);
+		List<DatabaseColumnInfo> curretIndexSchema = List.of(rowId, one, two);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(curretIndexSchema);
 
 		// the old does not exist in the current
@@ -1092,7 +1093,7 @@ public class TableIndexManagerImplTest {
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("444");
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
-		List<ColumnChangeDetails> changes = Lists.newArrayList(change);
+		List<ColumnChangeDetails> changes = List.of(change);
 
 		// call under test
 		manager.alterTableAsNeededWithinAutoProgress(tableId, changes, true);
@@ -1621,7 +1622,7 @@ public class TableIndexManagerImplTest {
 		ColumnModel listTwo = new ColumnModel();
 		listTwo.setId("333");
 		listTwo.setColumnType(ColumnType.STRING_LIST);
-		schema = Lists.newArrayList(notAList, listOne, listTwo);
+		schema = List.of(notAList, listOne, listTwo);
 
 		// call under test
 		manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
@@ -1646,7 +1647,7 @@ public class TableIndexManagerImplTest {
 		listOne.setId("222");
 		listOne.setColumnType(ColumnType.STRING_LIST);
 
-		schema = Lists.newArrayList(listOne);
+		schema = List.of(listOne);
 		// null rowID is allowed and means apply to all rows.
 		rowsIdsWithChanges = null;
 		// call under test
@@ -1785,7 +1786,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testListColumnIndexTableChangesFromExpectedSchema_nullExpectedSchema() {
 		assertThrows(IllegalArgumentException.class,
-				() -> TableIndexManagerImpl.listColumnIndexTableChangesFromExpectedSchema(null, Sets.newHashSet(123L)));
+				() -> TableIndexManagerImpl.listColumnIndexTableChangesFromExpectedSchema(null, Set.of(123L)));
 	}
 
 	@Test
@@ -1816,7 +1817,7 @@ public class TableIndexManagerImplTest {
 		unchangedListCol.setColumnType(ColumnType.STRING_LIST);
 
 		List<ColumnModel> schema = Arrays.asList(nonList1, addListCol, unchangedListCol);
-		Set<Long> existingIndexTableColumns = Sets.newHashSet(removeListColId, unchangedListColId);
+		Set<Long> existingIndexTableColumns = Set.of(removeListColId, unchangedListColId);
 
 		// method under test
 		List<ListColumnIndexTableChange> result = TableIndexManagerImpl
@@ -1833,7 +1834,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void listColumnIndexTableChangesFromChangeDetails_nullChanges() {
 		assertThrows(IllegalArgumentException.class,
-				() -> TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(null, Sets.newHashSet(123L)));
+				() -> TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(null, Set.of(123L)));
 	}
 
 	@Test
@@ -1871,7 +1872,7 @@ public class TableIndexManagerImplTest {
 		// same column model for old and new
 		ColumnChangeDetails noChange = new ColumnChangeDetails(columnModel, columnModel);
 
-		Set<Long> existingColumnChangeIds = Sets.newHashSet(Long.parseLong(columnModel.getId()));
+		Set<Long> existingColumnChangeIds = Set.of(Long.parseLong(columnModel.getId()));
 
 		// method under test
 		List<ListColumnIndexTableChange> result = TableIndexManagerImpl
@@ -1908,7 +1909,7 @@ public class TableIndexManagerImplTest {
 		// same column model for old and new
 		ColumnChangeDetails addColumn = new ColumnChangeDetails(null, columnModel);
 
-		Set<Long> existingColumnChangeIds = Sets.newHashSet(Long.parseLong(columnModel.getId()));
+		Set<Long> existingColumnChangeIds = Set.of(Long.parseLong(columnModel.getId()));
 
 		// method under test
 		List<ListColumnIndexTableChange> result = TableIndexManagerImpl
@@ -1944,7 +1945,7 @@ public class TableIndexManagerImplTest {
 		// same column model for old and new
 		ColumnChangeDetails removeColumn = new ColumnChangeDetails(columnModel, null);
 		long columnModelId = Long.parseLong(columnModel.getId());
-		Set<Long> existingColumnChangeIds = Sets.newHashSet(columnModelId);
+		Set<Long> existingColumnChangeIds = Set.of(columnModelId);
 
 		// method under test
 		List<ListColumnIndexTableChange> result = TableIndexManagerImpl
@@ -1972,7 +1973,7 @@ public class TableIndexManagerImplTest {
 		// same column model for old and new
 		ColumnChangeDetails listChange = new ColumnChangeDetails(oldList, newList);
 		// does not already exist as an index table
-		Set<Long> existingColumnChangeIds = Sets.newHashSet(oldListId, newListId);
+		Set<Long> existingColumnChangeIds = Set.of(oldListId, newListId);
 
 		// method under test
 		List<ListColumnIndexTableChange> result = TableIndexManagerImpl
@@ -2000,7 +2001,7 @@ public class TableIndexManagerImplTest {
 		// same column model for old and new
 		ColumnChangeDetails listChange = new ColumnChangeDetails(oldList, newList);
 
-		Set<Long> existingColumnChangeIds = Sets.newHashSet(oldListId);
+		Set<Long> existingColumnChangeIds = Set.of(oldListId);
 
 		// method under test
 		List<ListColumnIndexTableChange> result = TableIndexManagerImpl
@@ -2029,7 +2030,7 @@ public class TableIndexManagerImplTest {
 		// same column model for old and new
 		ColumnChangeDetails listChange = new ColumnChangeDetails(oldList, newList);
 		// does not already exist as an index table
-		Set<Long> existingColumnChangeIds = Sets.newHashSet(newListId);
+		Set<Long> existingColumnChangeIds = Set.of(newListId);
 
 		// method under test
 		List<ListColumnIndexTableChange> result = TableIndexManagerImpl
@@ -2112,7 +2113,7 @@ public class TableIndexManagerImplTest {
 		List<ColumnChangeDetails> listChanges = Arrays.asList(new ColumnChangeDetails(oldList, null),
 				new ColumnChangeDetails(null, newList));
 
-		Set<Long> existingColumnChangeIds = Sets.newHashSet(oldListId);
+		Set<Long> existingColumnChangeIds = Set.of(oldListId);
 
 		// method under test
 		List<ListColumnIndexTableChange> result = TableIndexManagerImpl
@@ -2299,9 +2300,9 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
 
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any()))
-				.thenReturn(ImmutableList.of(annotationModel));
+				.thenReturn(List.of(annotationModel));
 
-		List<ColumnModel> schema = ImmutableList.of(columnModel);
+		List<ColumnModel> schema = List.of(columnModel);
 
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
@@ -2337,9 +2338,9 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
 
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any()))
-				.thenReturn(ImmutableList.of(a1, a2));
+				.thenReturn(List.of(a1, a2));
 
-		List<ColumnModel> schema = ImmutableList.of(columnModel);
+		List<ColumnModel> schema = List.of(columnModel);
 
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
@@ -3241,7 +3242,7 @@ public class TableIndexManagerImplTest {
 		// add a row change
 		TableChangeMetaData rowChange = setupMockRowChange(0L);
 		TableChangeMetaData columnChange = setupMockColumnChange(1L);
-		return Lists.newArrayList(rowChange, columnChange);
+		return List.of(rowChange, columnChange);
 	}
 
 	/**
