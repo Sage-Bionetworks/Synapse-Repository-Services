@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -26,7 +27,11 @@ import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -35,6 +40,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -71,6 +78,9 @@ public class TestHelper {
 	
 	@Autowired
 	private CertifiedUserManager certifiedUserManager;
+
+	@Autowired
+	private DaoObjectHelper<S3FileHandle> fileHandleDaoHelper;
 	
 	private List<String> nodes;
 	private List<String> evaluations;
@@ -78,6 +88,8 @@ public class TestHelper {
 	private List<String> teams;
 	
 	private UserInfo adminUser;
+
+	private Random random;
 	
 	public void before() {
 
@@ -89,6 +101,7 @@ public class TestHelper {
 		teams = new ArrayList<>();
 		
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		random = new Random();
 	}
 	
 	private void addNodeForCleanup(String node) {
@@ -258,6 +271,62 @@ public class TestHelper {
 		acl.getResourceAccess().add(ra);
 		
 		evaluationPermissionsManager.updateAcl(evaluationOwner, acl);
+	}
+	
+	/**
+	 * Create File entity with multiple versions using the annotations for each version.
+	 *
+	 * @return
+	 */
+	public FileEntity createFileWithMultipleVersions(UserInfo userInfo, String parentId, int fileNumber, String annotationKey, int numberOfVersions) {
+		List<Annotations> annotations = new ArrayList<>(numberOfVersions);
+		for(int i=1; i <= numberOfVersions; i++) {
+			Annotations annos = new Annotations();
+			AnnotationsV2TestUtils.putAnnotations(annos, annotationKey, "v-"+i, AnnotationsValueType.STRING);
+			annotations.add(annos);
+		}
+
+		// create the entity
+		String fileEntityId = null;		
+		int version = 1;
+		
+		for(Annotations annos: annotations) {
+						
+			long fileContentSize = (long) random.nextInt(128_000);
+			
+			// Create a new file handle for each version
+			S3FileHandle fileHandle = fileHandleDaoHelper.create((f) -> {
+				f.setCreatedBy(userInfo.getId().toString());
+				f.setFileName("someFile");
+				f.setContentSize(fileContentSize);
+			});
+			
+			if (fileEntityId == null) {
+				fileEntityId = entityManager.createEntity(userInfo, new FileEntity()
+						.setName("afile-"+fileNumber)
+						.setParentId(parentId)
+						.setDataFileHandleId(fileHandle.getId()),
+						null);
+				addNodeForCleanup(fileEntityId);
+			} else {
+				// create a new version for the entity
+				FileEntity entity = entityManager.getEntity(userInfo, fileEntityId, FileEntity.class);
+				entity.setVersionComment("c-"+version);
+				entity.setVersionLabel("v-"+version);
+				entity.setDataFileHandleId(fileHandle.getId());
+				boolean newVersion = true;
+				String activityId = null;
+				entityManager.updateEntity(userInfo, entity, newVersion, activityId);
+			}
+			// get the ID and etag
+			FileEntity entity = entityManager.getEntity(userInfo, fileEntityId, FileEntity.class);
+			annos.setId(entity.getId());
+			annos.setEtag(entity.getEtag());
+			entityManager.updateAnnotations(userInfo, fileEntityId, annos);
+			version++;
+		}
+		
+		return entityManager.getEntity(userInfo, fileEntityId, FileEntity.class);
 	}
 
 }
