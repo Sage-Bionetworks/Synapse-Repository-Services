@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
@@ -960,28 +961,44 @@ public class SQLTranslatorUtils {
 
 	static void appendFilter(StringBuilder builder, ColumnSingleValueQueryFilter filter){
 		builder.append("(");
+
 		boolean firstVal = true;
 		String columnName = filter.getColumnName();
-		for (String likeValue: filter.getValues()){
-			if(!firstVal){
-				builder.append(" OR ");
-			}
+		
+		// For the IN operator each value is part of the IN clause
+		if (ColumnSingleValueFilterOperator.IN.equals(filter.getOperator())) {
 			builder.append("\"")
+				.append(columnName)
+				.append("\" IN (");			
+			for (String likeValue: filter.getValues()){
+				if(!firstVal){
+					builder.append(",");
+				}				
+				appendSingleQuotedValueToStringBuilder(builder, likeValue);	
+				firstVal = false;
+			}
+			builder.append(")");
+		} else {
+			for (String likeValue: filter.getValues()){
+				if(!firstVal){
+					builder.append(" OR ");
+				}
+				builder.append("\"")
 					.append(columnName)
 					.append("\"");
-			switch (filter.getOperator()) {
-				case LIKE:
-					builder.append(" LIKE ");
-					break;
-				case EQUAL:
-					builder.append(" = ");
-					break;
-				default:
-					throw new IllegalArgumentException("Unexpected operator: " + filter.getOperator());
+				switch (filter.getOperator()) {
+					case LIKE:
+						builder.append(" LIKE ");
+						break;
+					case EQUAL:
+						builder.append(" = ");
+						break;
+					default:
+						throw new IllegalArgumentException("Unexpected operator: " + filter.getOperator());
+				}
+				appendSingleQuotedValueToStringBuilder(builder, likeValue);	
+				firstVal = false;
 			}
-			appendSingleQuotedValueToStringBuilder(builder, likeValue);
-
-			firstVal = false;
 		}
 		builder.append(")");
 	}
