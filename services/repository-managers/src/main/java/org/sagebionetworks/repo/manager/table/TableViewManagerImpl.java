@@ -445,6 +445,9 @@ public class TableViewManagerImpl implements TableViewManager {
 					tableManagerSupport.updateChangedOnIfAvailable(viewId);
 				}
 			} while (rowsIdsWithChanges.size() >= pageSize);
+		} catch (RecoverableMessageException e) {
+			log.warn("Recoverable failure while applying changes to AVAILABLE view " + viewId, e);
+			throw e;
 		} catch (Exception e) {
 			// failed.
 			log.error("Failed to apply changes to AVAILABLE view " + viewId, e);
@@ -513,6 +516,9 @@ public class TableViewManagerImpl implements TableViewManager {
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
 			log.info(String.format("Set view: '%s' to AVAILABLE.", idAndVersion.toString()));
+		} catch (RecoverableMessageException e) {
+			log.warn("Recoverable failure while building view " + idAndVersion, e);
+			throw e;
 		} catch (InvalidStatusTokenException e) {
 			// PLFM-6069, invalid tokens should not cause the view state to be set to failed, but
 			// instead should be retried later.

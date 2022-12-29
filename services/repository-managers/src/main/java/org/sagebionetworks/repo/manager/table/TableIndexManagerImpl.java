@@ -66,6 +66,7 @@ import org.sagebionetworks.util.PaginationProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionStatus;
 
@@ -920,6 +921,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	void determineCauseOfReplicationFailure(Exception exception, List<ColumnModel> currentSchema,
 			MetadataIndexProvider provider, Long viewTypeMask, ViewFilter filter) {
+		
+		// This can be cause by concurrent modifications on the object replication index, we can retry later
+		if (exception instanceof PessimisticLockingFailureException) {
+			throw new RecoverableMessageException(exception);
+		}
+		
 		DefaultColumnModel defaultColumnModel = provider.getDefaultColumnModel(viewTypeMask);
 		
 		List<String> excludeKeys = getAnnotationKeysExcludeList(defaultColumnModel);

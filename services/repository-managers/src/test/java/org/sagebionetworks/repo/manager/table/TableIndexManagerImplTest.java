@@ -105,6 +105,7 @@ import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -2350,6 +2351,24 @@ public class TableIndexManagerImplTest {
 		assertEquals(original, ex.getCause());
 		assertEquals("The size of the column 'foo' is too small.  The column size needs to be at least 11 characters.",
 				ex.getMessage());
+	}
+	
+	@Test
+	public void testDetermineCauseOfExceptionWithPessimisticLockException() {
+		Exception original = new PessimisticLockingFailureException("Some exception");
+		
+		RecoverableMessageException ex = assertThrows(RecoverableMessageException.class, () -> {
+			// Call under test
+			manager.determineCauseOfReplicationFailure(original, schema, mockMetadataProvider, scope.getViewTypeMask(),
+					mockFilter);
+		});
+
+		assertEquals(original, ex.getCause());
+		assertEquals("org.springframework.dao.PessimisticLockingFailureException: Some exception", ex.getMessage());
+		
+		verifyZeroInteractions(mockMetadataProvider);
+		verifyZeroInteractions(mockObjectFieldModelResolver);
+		verifyZeroInteractions(mockIndexDao);
 	}
 
 	@Test
