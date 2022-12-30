@@ -276,7 +276,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		//check that the even nodes are all deleted
 		for(int i = 0; i < numNodes; i++){
 			long nodeID = nodeIDBase + i;
-			assertTrue( trashCanDao.getTrashedEntity(KeyFactory.keyToString(nodeID)) != null != (nodeID % 2 == 0)); //Only one of these conditions is true
+			assertTrue( trashCanDao.getTrashedEntity(KeyFactory.keyToString(nodeID)).isPresent() != (nodeID % 2 == 0)); //Only one of these conditions is true
 		}
 	}
 	
@@ -300,7 +300,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(1, trashCanDao.getCount());
 		
 		// Below should not include the flagged nodes
-		assertNull(trashCanDao.getTrashedEntity(stringNodeId));
+		assertTrue(trashCanDao.getTrashedEntity(stringNodeId).isEmpty());
 		assertTrue(trashCanDao.listTrashedEntities(userId, 0, limit).isEmpty());
 		
 		// We should find it through in the deleted items
@@ -331,7 +331,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(1, trashCanDao.getCount());
 		
 		// Below should include the flagged nodes
-		assertNotNull(trashCanDao.getTrashedEntity(stringNodeId));
+		assertFalse(trashCanDao.getTrashedEntity(stringNodeId).isEmpty());
 		assertFalse(trashCanDao.listTrashedEntities(userId, 0, limit).isEmpty());
 		
 		// Should not be in the trashed leaves as it has been deleted after the 30 days trehsold
@@ -346,7 +346,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(1, trashCanDao.getCount());
 		
 		// Below should not include the flagged nodes
-		assertNull(trashCanDao.getTrashedEntity(stringNodeId));
+		assertTrue(trashCanDao.getTrashedEntity(stringNodeId).isEmpty());
 		assertTrue(trashCanDao.listTrashedEntities(userId, 0, limit).isEmpty());
 		
 		// We should now find it through in the deleted items
