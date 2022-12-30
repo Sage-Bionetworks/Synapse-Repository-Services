@@ -350,7 +350,7 @@ public class TableUpdateRequestWorkerIntegrationTest {
 			assertNotNull(response);
 		});
 		
-		waitForConsistentQuery(table, adminUserInfo);
+		waitForConsistentQuery(table, adminUserInfo, 1);
 		
 		// new column model for list
 		Long maxListLength = 10L;
@@ -404,7 +404,7 @@ public class TableUpdateRequestWorkerIntegrationTest {
 			assertNotNull(response);
 		});
 		
-		waitForConsistentQuery(table, adminUserInfo);
+		waitForConsistentQuery(table, adminUserInfo, 1);
 		
 		// new column model for list
 		Long maxListLength = 10L;
@@ -457,7 +457,7 @@ public class TableUpdateRequestWorkerIntegrationTest {
 			assertNotNull(response);
 		});
 		
-		waitForConsistentQuery(table, adminUserInfo);
+		waitForConsistentQuery(table, adminUserInfo, 1);
 		
 		// new column model for list
 		Long maxListLength = 10L;
@@ -606,6 +606,9 @@ public class TableUpdateRequestWorkerIntegrationTest {
 			assertNotNull(response);
 			assertNull(response.getSnapshotVersionNumber());
 		});
+
+		// Wait for the table to be built
+		waitForConsistentQuery(table, adminUserInfo, 2);
 		
 		// Now change the int column to a double column
 		transaction = createColumnUpdateRequest(intColumn, doubleColumn, tableId);
@@ -1024,10 +1027,10 @@ public class TableUpdateRequestWorkerIntegrationTest {
 		return asyncHelper.assertJobResponse(user, body, consumer, MAX_WAIT_MS).getResponse();
 	}
 	
-	private void waitForConsistentQuery(TableEntity table, UserInfo adminUserInfo) throws Exception {
+	private void waitForConsistentQuery(TableEntity table, UserInfo adminUserInfo, int expectedRowCount) throws Exception {
 		QueryBundleRequest queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());
 		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
-			assertEquals(1, response.getQueryResult().getQueryResults().getRows().size());
+			assertEquals(expectedRowCount, response.getQueryResult().getQueryResults().getRows().size());
 		});
 	}
 	
