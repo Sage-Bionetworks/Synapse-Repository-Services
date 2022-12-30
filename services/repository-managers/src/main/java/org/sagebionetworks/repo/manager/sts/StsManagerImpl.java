@@ -80,16 +80,31 @@ public class StsManagerImpl implements StsManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(permission, "permission");
+		
+		final ACCESS_TYPE[] requiredAccessList;
+		
+		switch (permission) {
+		case read_write:
+			requiredAccessList = new ACCESS_TYPE[] { ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE };
+			break;
+		case read_only:
+			requiredAccessList = new ACCESS_TYPE[] { ACCESS_TYPE.DOWNLOAD };
+			break;
+		default:
+			throw new IllegalArgumentException("Unsupported permission type " + permission);
+		}
+		
+		// If the entity does not exist this will throw a not found (See https://sagebionetworks.jira.com/browse/PLFM-7604)
+		authManager.hasAccess(userInfo, entityId, requiredAccessList).checkAuthorizationOrElseThrow();
 
 		// Entity must have an STS-enabled storage location.
 		Optional<UploadDestinationListSetting> projectSetting = projectSettingsManager.getProjectSettingForNode(
 				userInfo, entityId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
-		if (!projectSetting.isPresent()) {
-			throw new IllegalArgumentException("Entity must have a project setting");
-		}
-		if (!projectSettingsManager.isStsStorageLocationSetting(projectSetting.get())) {
+		
+		if (!projectSetting.isPresent() || !projectSettingsManager.isStsStorageLocationSetting(projectSetting.get())) {
 			throw new IllegalArgumentException("Entity must have an STS-enabled storage location");
 		}
+		
 		// Shortcut: STS-enabled project settings can only have 1 storage location.
 		long storageLocationId = projectSetting.get().getLocations().get(0);
 		StsStorageLocationSetting storageLocationSetting = (StsStorageLocationSetting) projectSettingsManager
@@ -99,15 +114,6 @@ public class StsManagerImpl implements StsManager {
 			throw new IllegalArgumentException("STS write access is not allowed in Synapse storage");
 		}
 
-		if (permission == StsPermission.read_write) {
-			// For write permissions, we need download, update, create, and delete.
-			authManager.hasAccess(userInfo, entityId, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE)
-					.checkAuthorizationOrElseThrow();
-		}else {
-			// for read-only access we need download.
-			authManager.hasAccess(userInfo, entityId, ACCESS_TYPE.DOWNLOAD)
-					.checkAuthorizationOrElseThrow();
-		}
 
 		String bucket = MultipartUtils.getBucket(storageLocationSetting);
 
