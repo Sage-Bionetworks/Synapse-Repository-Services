@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyListOf;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -261,7 +261,7 @@ public class TrashManagerImplTest {
 
 		verify(mockTrashCanDao, times(1)).create(userInfo.getId().toString(), nodeID, nodeName, nodeParentID, priorityPurge);
 
-		verify(mockAclDAO).delete(anyListOf(Long.class), any(ObjectType.class));
+		verify(mockAclDAO).delete(anyList(), any(ObjectType.class));
 	}
 
 	@Test
@@ -281,7 +281,7 @@ public class TrashManagerImplTest {
 	@Test
 	public void testRestoreFromTrashBadNodeID() {
 		final String badNodeID = "synFAKEID";
-		when(mockTrashCanDao.getTrashedEntity(badNodeID)).thenReturn(null);
+		when(mockTrashCanDao.getTrashedEntity(badNodeID)).thenReturn(Optional.empty());
 
 		Assertions.assertThrows(NotFoundException.class, () -> {
 			trashManager.restoreFromTrash(userInfo, badNodeID, nodeParentID);
@@ -291,7 +291,7 @@ public class TrashManagerImplTest {
 	@Test
 	public void testRestoreFromTrashNotAdminAndNotDeletedByUser() {
 
-		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 
 		final String fakeDeletedByID = "synDEFINITELYNOTTHISUSER";
 		nodeTrashedEntity.setDeletedByPrincipalId(fakeDeletedByID);
@@ -314,7 +314,7 @@ public class TrashManagerImplTest {
 		final String fakeNewParentID = "synFAKEPARENTID";
 		when(mockNodeDAO.isNodeAvailable(fakeNewParentID)).thenReturn(false);
 		
-		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 
 		Assertions.assertThrows(ParentInTrashCanException.class, () -> {
 			trashManager.restoreFromTrash(userInfo, nodeID, fakeNewParentID);
@@ -326,7 +326,7 @@ public class TrashManagerImplTest {
 		when(mockAuthorizationManager.canAccess(userInfo, nodeParentID, ObjectType.ENTITY, ACCESS_TYPE.CREATE))
 				.thenReturn(AuthorizationStatus.accessDenied("I'm a teapot."));
 
-		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 
 		when(mockNodeDAO.isNodeAvailable(anyString())).thenReturn(true);
 
@@ -349,7 +349,7 @@ public class TrashManagerImplTest {
 		when(mockAuthorizationManager.canAccess(any(UserInfo.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class)))
 				.thenReturn(AuthorizationStatus.authorized());
 
-		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 
 		when(mockNodeDAO.isNodeAvailable(anyString())).thenReturn(true);
 
@@ -373,7 +373,7 @@ public class TrashManagerImplTest {
 		when(mockAuthorizationManager.canUserMoveRestrictedEntity(any(UserInfo.class), anyString(), anyString()))
 				.thenReturn(AuthorizationStatus.authorized());
 
-		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 
 		when(mockNodeDAO.isNodeAvailable(anyString())).thenReturn(true);
 
@@ -399,7 +399,7 @@ public class TrashManagerImplTest {
 		when(mockAuthorizationManager.canUserMoveRestrictedEntity(any(UserInfo.class), anyString(), anyString()))
 				.thenReturn(AuthorizationStatus.authorized());
 
-		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 
 		when(mockNodeDAO.isNodeAvailable(anyString())).thenReturn(true);
 
@@ -427,7 +427,7 @@ public class TrashManagerImplTest {
 		when(mockAuthorizationManager.canUserMoveRestrictedEntity(any(UserInfo.class), anyString(), anyString()))
 				.thenReturn(AuthorizationStatus.authorized());
 
-		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 
 		when(mockNodeDAO.isNodeAvailable(anyString())).thenReturn(true);
 
@@ -449,7 +449,7 @@ public class TrashManagerImplTest {
 		when(mockAuthorizationManager.canUserMoveRestrictedEntity(userInfo, nodeParentID, newParentID))
 				.thenReturn(AuthorizationStatus.authorized());
 
-		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 		when(mockNodeDAO.isNodeAvailable(newParentID)).thenReturn(true);
 
 		testNode.setNodeType(EntityType.file);
@@ -470,7 +470,7 @@ public class TrashManagerImplTest {
 		when(mockAuthorizationManager.canUserMoveRestrictedEntity(userInfo, nodeParentID, newParentID))
 				.thenReturn(AuthorizationStatus.authorized());
 
-		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 		when(mockNodeDAO.isNodeAvailable(newParentID)).thenReturn(true);
 
 		testNode.setNodeType(EntityType.file);
@@ -493,7 +493,7 @@ public class TrashManagerImplTest {
 		when(mockAuthorizationManager.canUserMoveRestrictedEntity(userInfo, nodeParentID, newParentID))
 				.thenReturn(AuthorizationStatus.authorized());
 
-		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 		when(mockNodeDAO.isNodeAvailable(newParentID)).thenReturn(true);
 
 		testNode.setNodeType(EntityType.file);
@@ -519,7 +519,7 @@ public class TrashManagerImplTest {
 		when(mockAuthorizationManager.canUserMoveRestrictedEntity(userInfo, nodeParentID, newParentID))
 				.thenReturn(AuthorizationStatus.authorized());
 
-		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 		when(mockNodeDAO.isNodeAvailable(newParentID)).thenReturn(true);
 
 		testNode.setNodeType(EntityType.folder);
@@ -644,7 +644,7 @@ public class TrashManagerImplTest {
 	@Test
 	public void testFlagForPurge() {
 		
-		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 		
 		trashManager.flagForPurge(userInfo, nodeID);
 		
@@ -654,7 +654,7 @@ public class TrashManagerImplTest {
 	@Test
 	public void testFlagForPurgeAsAdmin() {
 		
-		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 		
 		trashManager.flagForPurge(adminUserInfo, nodeID);
 		
@@ -664,7 +664,7 @@ public class TrashManagerImplTest {
 	@Test
 	public void testFlagForPurgeUnauthorized() {
 		
-		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 		
 		UserInfo tempUser = new UserInfo(false);
 		tempUser.setId(123L);

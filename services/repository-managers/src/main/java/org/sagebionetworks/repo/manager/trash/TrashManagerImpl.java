@@ -153,11 +153,7 @@ public class TrashManagerImpl implements TrashManager {
 		ValidateArgument.required(nodeId, "The node id");
 		
 		// Make sure the node is in the trash can
-		final TrashedEntity trash = trashCanDao.getTrashedEntity(nodeId);
-		
-		if (trash == null) {
-			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
-		}
+		TrashedEntity trash = trashCanDao.getTrashedEntity(nodeId).orElseThrow(() -> new NotFoundException("The node " + nodeId + " is not in the trash can."));
 
 		final String userId = currentUser.getId().toString();
 		final String deletedBy = trash.getDeletedByPrincipalId();
@@ -241,14 +237,14 @@ public class TrashManagerImpl implements TrashManager {
 		ValidateArgument.required(userInfo, "The user");
 		ValidateArgument.requiredNotBlank(nodeId, "The node id");
 
-		TrashedEntity entity = trashCanDao.getTrashedEntity(nodeId);
+		Optional<TrashedEntity> entity = trashCanDao.getTrashedEntity(nodeId);
 
-		if (entity == null) {
+		if (entity.isEmpty()) {
 			return;
 		}
 		
 		String userId = userInfo.getId().toString();
-		String deletedBy = entity.getDeletedByPrincipalId();
+		String deletedBy = entity.get().getDeletedByPrincipalId();
 		
 		if (!userInfo.isAdmin() && !userId.equals(deletedBy)) {
 			throw new UnauthorizedException("Insufficient permissions for user " + userId);

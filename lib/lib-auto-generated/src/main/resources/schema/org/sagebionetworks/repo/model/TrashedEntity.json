@@ -10,6 +10,9 @@
 			"description": "The name of this entity",
 			"title": "Entity Name"
 		},
+		"entityType": {
+			"$ref": "org.sagebionetworks.repo.model.EntityType"
+		},
 		"deletedByPrincipalId":{
 			"type":"string",
 			"title": "Deleted By",
