@@ -1489,7 +1489,7 @@ public class TableIndexManagerImplTest {
 		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
 		// call under test
 		managerSpy.buildTableIndexWithLock(mockCallback, tableId, iterator);
-		// verify(managerSpy).attemptToRestoreTableFromExistingSnapshot(tableId, resetToken, targetChangeNumber);
+		verify(managerSpy).attemptToRestoreTableFromExistingSnapshot(tableId, resetToken, targetChangeNumber);
 		verify(mockManagerSupport).attemptToSetTableStatusToAvailable(tableId, resetToken, lastEtag);
 		verify(mockManagerSupport).getLastTableChangeNumber(tableId);
 		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
