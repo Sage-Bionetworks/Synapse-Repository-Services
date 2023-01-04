@@ -5,9 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -92,26 +89,40 @@ public class StsManagerImplTest {
 
 	@Test
 	public void getTemporaryCredentials_noProjectSetting() {
+		when(mockAuthManager.hasAccess(any(), any(), any())).thenReturn(mockAuthStatus);
+		
 		setupFolderWithoutProjectSetting();
 
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.getTemporaryCredentials(USER_INFO,
 				PARENT_ENTITY_ID, StsPermission.read_only));
-		assertEquals("Entity must have a project setting", ex.getMessage());
+		
+		assertEquals("Entity must have an STS-enabled storage location", ex.getMessage());
+		
+		verify(mockAuthManager).hasAccess(USER_INFO, PARENT_ENTITY_ID, ACCESS_TYPE.DOWNLOAD);
+		verifyNoMoreInteractions(mockAuthManager);
+		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
 	}
 
 	@Test
 	public void getTemporaryCredentials_notSts() {
+		when(mockAuthManager.hasAccess(any(), any(), any())).thenReturn(mockAuthStatus);
+		
 		setupFolderWithProjectSetting(/*isSts*/ false, NON_STS_STORAGE_LOCATION_ID);
 
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.getTemporaryCredentials(USER_INFO,
 				PARENT_ENTITY_ID, StsPermission.read_only));
 		assertEquals("Entity must have an STS-enabled storage location", ex.getMessage());
+		
+		verify(mockAuthManager).hasAccess(USER_INFO, PARENT_ENTITY_ID, ACCESS_TYPE.DOWNLOAD);
+		verifyNoMoreInteractions(mockAuthManager);
+		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
 	}
 
 	@Test
-	public void getTemporaryCredentials_readOnly() {
+	public void getTemporaryCredentials_readOnly() {		
+		when(mockAuthManager.hasAccess(any(), any(), any())).thenReturn(mockAuthStatus);
 		// Mock dependencies.
 		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
 
@@ -120,9 +131,6 @@ public class StsManagerImplTest {
 		storageLocationSetting.setStsEnabled(true);
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
 				storageLocationSetting);
-
-		when(mockAuthManager.hasAccess(same(USER_INFO), eq(PARENT_ENTITY_ID),any()))
-				.thenReturn(mockAuthStatus);
 
 		mockSts();
 
@@ -158,6 +166,8 @@ public class StsManagerImplTest {
 
 	@Test
 	public void getTemporaryCredentials_readWrite() {
+		when(mockAuthManager.hasAccess(any(), any(), any())).thenReturn(mockAuthStatus);
+		
 		// Mock dependencies.
 		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
 
@@ -166,9 +176,6 @@ public class StsManagerImplTest {
 		storageLocationSetting.setStsEnabled(true);
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
 				storageLocationSetting);
-
-		when(mockAuthManager.hasAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), any()))
-				.thenReturn(mockAuthStatus);
 
 		mockSts();
 
@@ -200,11 +207,13 @@ public class StsManagerImplTest {
 		// Verify auth.
 		verify(mockAuthManager).hasAccess(USER_INFO, PARENT_ENTITY_ID, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE);
 		verifyNoMoreInteractions(mockAuthManager);
-		verify(mockAuthStatus, times(1)).checkAuthorizationOrElseThrow();
+		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
 	}
 
 	@Test
 	public void getTemporaryCredentials_withBaseKey() {
+		when(mockAuthManager.hasAccess(any(), any(), any())).thenReturn(mockAuthStatus);
+		
 		// Mock dependencies.
 		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
 
@@ -214,9 +223,6 @@ public class StsManagerImplTest {
 		storageLocationSetting.setStsEnabled(true);
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
 				storageLocationSetting);
-
-		when(mockAuthManager.hasAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), any()))
-				.thenReturn(mockAuthStatus);
 
 		mockSts();
 
@@ -252,6 +258,8 @@ public class StsManagerImplTest {
 
 	@Test
 	public void getTemporaryCredentials_synapseStorage() {
+		when(mockAuthManager.hasAccess(any(), any(), any())).thenReturn(mockAuthStatus);
+		
 		// Mock dependencies.
 		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
 
@@ -260,9 +268,6 @@ public class StsManagerImplTest {
 		storageLocationSetting.setStsEnabled(true);
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
 				storageLocationSetting);
-
-		when(mockAuthManager.hasAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), any()))
-				.thenReturn(mockAuthStatus);
 
 		mockSts();
 
@@ -301,6 +306,8 @@ public class StsManagerImplTest {
 
 	@Test
 	public void getTemporaryCredentials_synapseStorageCantReadWrite() {
+		when(mockAuthManager.hasAccess(any(), any(), any())).thenReturn(mockAuthStatus);
+		
 		// Mock dependencies.
 		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
 
@@ -314,6 +321,10 @@ public class StsManagerImplTest {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				() -> stsManager.getTemporaryCredentials(USER_INFO, PARENT_ENTITY_ID, StsPermission.read_write));
 		assertEquals("STS write access is not allowed in Synapse storage", ex.getMessage());
+		
+		verify(mockAuthManager).hasAccess(USER_INFO, PARENT_ENTITY_ID, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE);
+		verifyNoMoreInteractions(mockAuthManager);
+		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
 	}
 
 	private void mockSts() {
