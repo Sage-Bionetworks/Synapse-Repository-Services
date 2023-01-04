@@ -7,10 +7,14 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileSummary;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.migration.DatasetBackfillResponse;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.TemporaryCode;
@@ -81,11 +85,15 @@ public class DatasetBackFillFileSummary {
 
     private TransactionTemplate readCommitedTransactionTemplate;
 
+    private TransactionalMessenger transactionalMessenger;
+
     @Autowired
-    public DatasetBackFillFileSummary(JdbcTemplate jdbcTemplate, NodeDAO nodeDAO, TransactionTemplate readCommitedTransactionTemplate) {
+    public DatasetBackFillFileSummary(JdbcTemplate jdbcTemplate, NodeDAO nodeDAO,
+                                      TransactionTemplate readCommitedTransactionTemplate, TransactionalMessenger transactionalMessenger) {
         this.jdbcTemplate = jdbcTemplate;
         this.nodeDAO = nodeDAO;
         this.readCommitedTransactionTemplate = readCommitedTransactionTemplate;
+        this.transactionalMessenger = transactionalMessenger;
     }
 
     public List<DatasetBackFillDTO> getAllDatasetEntity(long limit, long offset) {
@@ -127,7 +135,7 @@ public class DatasetBackFillFileSummary {
                 }
 
                 if (checksum == null && size == null && count == null) {
-                    updateDatasetAnnotationInTransaction(datasetBackFillDTO);
+                    updateDatasetAnnotationInTransaction(user, datasetBackFillDTO);
                     countRows.getAndIncrement();
                 }
             });
@@ -151,7 +159,7 @@ public class DatasetBackFillFileSummary {
         if (!user.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
     }
 
-    private void updateDatasetAnnotationInTransaction(DatasetBackFillDTO datasetBackFillDTO) {
+    private void updateDatasetAnnotationInTransaction(UserInfo userInfo, DatasetBackFillDTO datasetBackFillDTO) {
         this.readCommitedTransactionTemplate.execute(new TransactionCallback<Void>() {
             @Override
             public Void doInTransaction(TransactionStatus status) {
@@ -169,6 +177,8 @@ public class DatasetBackFillFileSummary {
 
                 updateNodeEtag(newEtag, datasetBackFillDTO.getId());
                 updateAnnotation(annotations, Long.parseLong(datasetBackFillDTO.getId()), datasetBackFillDTO.getVersion());
+                transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObjectId(datasetBackFillDTO.getId())
+                        .withObjectType(ObjectType.ENTITY).withChangeType(ChangeType.UPDATE).withUserId(userInfo.getId()));
                 return null;
             }
         });
