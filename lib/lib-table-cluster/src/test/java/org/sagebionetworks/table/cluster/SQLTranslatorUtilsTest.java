@@ -2755,6 +2755,32 @@ public class SQLTranslatorUtilsTest {
 		
 		assertEquals("TextMatchesQueryFilter.searchExpression is required and must not be a blank string.", message);
 	}
+	
+	@Test
+	public void testTranslateQueryFiltersWithInFilterAndSingleValues(){
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.IN);
+		filter.setValues(Arrays.asList("foo"));
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		assertEquals("(\"myCol\" IN ('foo'))", builder.toString());
+	}
+	
+	@Test
+	public void testTranslateQueryFiltersWithInFilterAndMultipleValues(){
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.IN);
+		filter.setValues(Arrays.asList("foo", "bar", "baz'"));
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		assertEquals("(\"myCol\" IN ('foo','bar','baz'''))", builder.toString());
+	}
 
 	@Test
 	public void testTranslateQueryFiltersWithUnknownImplementation(){
