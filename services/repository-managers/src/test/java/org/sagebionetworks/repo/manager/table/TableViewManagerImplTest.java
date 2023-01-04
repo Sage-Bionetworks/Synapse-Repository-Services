@@ -969,6 +969,31 @@ public class TableViewManagerImplTest {
 		// conflict should not set the view to failed.
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(), any());
 	}
+	
+	@Test
+	public void testCreateOrRebuildViewHoldingLockWithRecoverableMessageException() throws IOException {
+		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
+		String token = "the token";
+		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockIndexManager.resetTableIndex(any())).thenReturn(viewSchema);
+		
+		RecoverableMessageException exception = new RecoverableMessageException();
+		
+		doThrow(exception).when(mockIndexManager).populateViewFromEntityReplication(any(), any(), any());
+		
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {
+			// call under test
+			manager.createOrRebuildViewHoldingLock(idAndVersion);
+		});
+		
+		assertEquals(exception, result);
+		
+		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema);
+		// conflict should not set the view to failed.
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(), any());
+	}
 		
 	@Test
 	public void testValidateViewForSnapshot() throws TableUnavailableException {
@@ -1577,6 +1602,37 @@ public class TableViewManagerImplTest {
 				filter.newBuilder().addLimitObjectids(pageOne).build());
 		// should fail and change the table status.
 		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, exception);
+		verify(mockIndexManager, times(1)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
+	}
+	
+	@Test
+	public void testApplyChangesToAvailableViewHoldingLockWithRecoverableMessageException() {
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		
+		Set<Long> pageOne = Sets.newHashSet(101L,102L);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
+		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne);
+		
+		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
+				allContainersInScope);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
+		
+		
+		// setup a failure
+		RecoverableMessageException exception = new RecoverableMessageException("Something is wrong...");
+		doThrow(exception).when(mockIndexManager).updateViewRowsInTransaction(any(), any(), anyList(), any());
+		assertThrows(RecoverableMessageException.class, ()->{
+			// call under test
+			manager.applyChangesToAvailableView(idAndVersion, pageSize);
+		});
+		verify(mockIndexManager).updateViewRowsInTransaction(indexDescription, scopeType, viewSchema,
+				filter.newBuilder().addLimitObjectids(pageOne).build());
+		// should not change the table status and will be retried later
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(), any());
 		verify(mockIndexManager, times(1)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
 	
