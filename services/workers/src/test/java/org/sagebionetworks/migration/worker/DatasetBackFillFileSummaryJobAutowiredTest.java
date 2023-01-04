@@ -124,7 +124,7 @@ public class DatasetBackFillFileSummaryJobAutowiredTest {
             assertNotNull(updateDataset.getCount());
             assertNotEquals(etag, updateDataset.getEtag());
 
-            Dataset datasetShouldNotBeUpdated = entityManager.getEntity(user, datasetWithoutFileSummary.getId(), Dataset.class);
+            Dataset datasetShouldNotBeUpdated = entityManager.getEntity(user, datasetWithFileSummary.getId(), Dataset.class);
             assertEquals(datasetWithFileSummary.getEtag(), datasetShouldNotBeUpdated.getEtag());
             assertEquals(datasetWithFileSummary.getChecksum(), datasetShouldNotBeUpdated.getChecksum());
             assertEquals(datasetWithFileSummary.getSize(), datasetShouldNotBeUpdated.getSize());
