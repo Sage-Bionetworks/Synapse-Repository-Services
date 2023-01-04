@@ -1,10 +1,7 @@
 package org.sagebionetworks.migration.worker;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +26,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -56,12 +56,12 @@ public class MigrationWorkerAutowiredTest {
 		adminUserInfo = userManager
 				.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER
 						.getPrincipalId());
-		
+
 		StackStatus status = new StackStatus();
 		status.setStatus(StatusEnum.READ_ONLY);
 		stackStatusDao.updateStatus(status);
 	}
-	
+
 	@AfterEach
 	public void after() throws Exception {
 		StackStatus status = new StackStatus();
@@ -77,7 +77,7 @@ public class MigrationWorkerAutowiredTest {
 		req.setSalt("salt");
 		req.setMigrationType(MigrationType.NODE);
 		AsyncMigrationRequest request = new AsyncMigrationRequest();
-		request.setAdminRequest(req);		
+		request.setAdminRequest(req);
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
 		status = waitForStatus(adminUserInfo, status);
 		assertNotNull(status);
@@ -98,10 +98,8 @@ public class MigrationWorkerAutowiredTest {
 			DatastoreException, NotFoundException {
 		long start = System.currentTimeMillis();
 		while (!AsynchJobState.COMPLETE.equals(status.getJobState())) {
-			assertFalse("Job Failed: " + status.getErrorDetails(),
-					AsynchJobState.FAILED.equals(status.getJobState()));
-			assertTrue("Timed out waiting for table status",
-					(System.currentTimeMillis() - start) < MAX_WAIT_MS);
+			Assertions.assertFalse(AsynchJobState.FAILED.equals(status.getJobState()), "Job Failed: " + status.getErrorDetails());
+			assertTrue((System.currentTimeMillis() - start) < MAX_WAIT_MS, "Timed out waiting for table status");
 			Thread.sleep(1000);
 			// Get the status again
 			status = this.asynchJobStatusManager.getJobStatus(user,
