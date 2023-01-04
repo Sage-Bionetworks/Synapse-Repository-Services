@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.trash;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TrashedEntity;
@@ -28,7 +29,7 @@ public interface TrashCanDao {
 	/**
 	 * Gets the trashed entity by entity ID. Returns null is the trashed entity does not exist.
 	 */
-	TrashedEntity getTrashedEntity(String nodeId) throws DatastoreException;
+	Optional<TrashedEntity> getTrashedEntity(String nodeId) throws DatastoreException;
 
 	/**
 	 * Gets the trash items deleted by the specified user. Results are paged as specified by offset (inclusive; staring from

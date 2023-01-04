@@ -13,18 +13,23 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.helper.NodeDaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import com.google.common.collect.ImmutableList;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -32,6 +37,9 @@ public class DBOTrashCanDaoImplAutowiredTest {
 
 	@Autowired
 	private TrashCanDao trashCanDao;
+	
+	@Autowired
+	private NodeDaoObjectHelper nodeDaoHelper;
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -42,11 +50,13 @@ public class DBOTrashCanDaoImplAutowiredTest {
 	public void before() throws Exception {
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		trashCanDao.truncate();
+		nodeDaoHelper.truncateAll();
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		trashCanDao.truncate();
+		nodeDaoHelper.truncateAll();
 	}
 	
 	@Test
@@ -266,7 +276,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		//check that the even nodes are all deleted
 		for(int i = 0; i < numNodes; i++){
 			long nodeID = nodeIDBase + i;
-			assertTrue( trashCanDao.getTrashedEntity(KeyFactory.keyToString(nodeID)) != null != (nodeID % 2 == 0)); //Only one of these conditions is true
+			assertTrue( trashCanDao.getTrashedEntity(KeyFactory.keyToString(nodeID)).isPresent() != (nodeID % 2 == 0)); //Only one of these conditions is true
 		}
 	}
 	
@@ -290,7 +300,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(1, trashCanDao.getCount());
 		
 		// Below should not include the flagged nodes
-		assertNull(trashCanDao.getTrashedEntity(stringNodeId));
+		assertTrue(trashCanDao.getTrashedEntity(stringNodeId).isEmpty());
 		assertTrue(trashCanDao.listTrashedEntities(userId, 0, limit).isEmpty());
 		
 		// We should find it through in the deleted items
@@ -321,7 +331,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(1, trashCanDao.getCount());
 		
 		// Below should include the flagged nodes
-		assertNotNull(trashCanDao.getTrashedEntity(stringNodeId));
+		assertFalse(trashCanDao.getTrashedEntity(stringNodeId).isEmpty());
 		assertFalse(trashCanDao.listTrashedEntities(userId, 0, limit).isEmpty());
 		
 		// Should not be in the trashed leaves as it has been deleted after the 30 days trehsold
@@ -336,7 +346,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(1, trashCanDao.getCount());
 		
 		// Below should not include the flagged nodes
-		assertNull(trashCanDao.getTrashedEntity(stringNodeId));
+		assertTrue(trashCanDao.getTrashedEntity(stringNodeId).isEmpty());
 		assertTrue(trashCanDao.listTrashedEntities(userId, 0, limit).isEmpty());
 		
 		// We should now find it through in the deleted items
@@ -347,9 +357,105 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		
 	}
 	
+	@Test
+	public void testGetTrashedEntity() {
+		String nodeId = "syn123";
+		String parentId = "syn456";
+		Timestamp deletedOn = timeDaysAgo(3);
+				
+		createTestNode(userId, nodeId, "trashed entity " + nodeId, parentId, deletedOn);
+		
+		TrashedEntity expected = new TrashedEntity()
+			.setEntityId(nodeId)
+			.setOriginalParentId(parentId)
+			.setDeletedByPrincipalId(userId)
+			.setDeletedOn(deletedOn)
+			.setEntityName("trashed entity " + nodeId)
+			.setEntityType(null);
+		
+		// Call under test
+		TrashedEntity result = trashCanDao.getTrashedEntity(nodeId).get();
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testGetTrashedEntityWithNonExisting() {
+		String nodeId = "syn123";
+		
+		// Call under test
+		assertFalse(trashCanDao.getTrashedEntity(nodeId).isPresent());
+		
+	}
+	
+	@Test
+	public void testGetTrashedEntityWithType() {
+		Node project = nodeDaoHelper.create(n -> {});
+		Node node = nodeDaoHelper.create(n -> n.setParentId(project.getId()).setNodeType(EntityType.folder));
+		
+		String nodeId = node.getId();
+		String parentId = project.getId();
+		
+		Timestamp deletedOn = timeDaysAgo(3);
+				
+		createTestNode(userId, nodeId, "trashed entity " + nodeId, parentId, deletedOn);
+		
+		TrashedEntity expected = new TrashedEntity()
+			.setEntityId(nodeId)
+			.setOriginalParentId(parentId)
+			.setDeletedByPrincipalId(userId)
+			.setDeletedOn(deletedOn)
+			.setEntityName("trashed entity " + nodeId)
+			.setEntityType(EntityType.folder);
+		
+		// Call under test
+		TrashedEntity result = trashCanDao.getTrashedEntity(nodeId).get();
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testListTrashedEntities() {
+		Node project = nodeDaoHelper.create(n -> {});
+		
+		Node nodeOne = nodeDaoHelper.create(n -> n.setParentId(project.getId()).setNodeType(EntityType.folder));
+		Node nodeTwo = nodeDaoHelper.create(n -> n.setParentId(project.getId()).setNodeType(EntityType.file));
+		
+		Timestamp nodeOneDeletedOn = timeDaysAgo(1);
+		Timestamp nodeTwoDeletedOn = timeDaysAgo(2);
+		
+		createTestNode(userId, nodeOne.getId(), "trashed entity " + nodeOne.getId(), project.getId(), nodeOneDeletedOn);
+		createTestNode(userId, nodeTwo.getId(), "trashed entity " + nodeTwo.getId(), project.getId(), nodeTwoDeletedOn);
+		
+		List<TrashedEntity> expected = List.of(
+			new TrashedEntity()
+				.setEntityId(nodeOne.getId())
+				.setOriginalParentId(project.getId())
+				.setDeletedByPrincipalId(userId)
+				.setDeletedOn(nodeOneDeletedOn)
+				.setEntityName("trashed entity " + nodeOne.getId())
+				.setEntityType(EntityType.folder),
+			new TrashedEntity()
+				.setEntityId(nodeTwo.getId())
+				.setOriginalParentId(project.getId())
+				.setDeletedByPrincipalId(userId)
+				.setDeletedOn(nodeTwoDeletedOn)
+				.setEntityName("trashed entity " + nodeTwo.getId())
+				.setEntityType(EntityType.file)
+		);
+		
+		// Call under test
+		List<TrashedEntity> result = trashCanDao.listTrashedEntities(userId, 0, 10);
+		
+		assertEquals(expected, result);
+		
+	}
+	
 	//time in milliseconds of numDays ago
-	private Timestamp timeDaysAgo(int numDays){
-		return new Timestamp(System.currentTimeMillis() - numDays * 24 * 60 * 60 * 1000);
+	private static Timestamp timeDaysAgo(int numDays){
+		return new Timestamp((System.currentTimeMillis() - numDays * 24 * 60 * 60 * 1000)/1000*1000);
 	}
 	
 	//Basically same as create() in TrashCanDao but can specify the timestamp.

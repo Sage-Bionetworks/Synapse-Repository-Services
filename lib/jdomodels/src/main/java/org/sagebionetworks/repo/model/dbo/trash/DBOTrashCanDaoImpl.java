@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.trash;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_ID;
@@ -8,13 +10,18 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_PRIORITY_PURGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -40,10 +47,14 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	private static final String SELECT_EXISTS_BY_PARENT_ID = "SELECT EXISTS (SELECT 1 FROM " + TABLE_TRASH_CAN  +
 			" WHERE " + COL_TRASH_CAN_PARENT_ID + " = ? LIMIT 1)";
 
-	private static final String SELECT_TRASH_FOR_USER = "SELECT * FROM " + TABLE_TRASH_CAN + " WHERE " + COL_TRASH_CAN_DELETED_BY + " = ?"
+	private static final String SELECT_TRASH_FOR_USER = "SELECT T.*, N. " + COL_NODE_TYPE + " FROM " + TABLE_TRASH_CAN
+			+ " T LEFT JOIN " + TABLE_NODE + " N ON T." + COL_TRASH_CAN_NODE_ID + " = N." + COL_NODE_ID
+			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = ?"
 			+ " AND " + COL_TRASH_CAN_PRIORITY_PURGE + " = FALSE ORDER BY " + COL_TRASH_CAN_DELETED_ON + " DESC LIMIT ? OFFSET ?";
 
-	private static final String SELECT_TRASH_BY_NODE_ID = "SELECT * FROM " + TABLE_TRASH_CAN + " WHERE " + COL_TRASH_CAN_NODE_ID + " = ?"
+	private static final String SELECT_TRASH_BY_NODE_ID = "SELECT T.*, N. " + COL_NODE_TYPE + " FROM " + TABLE_TRASH_CAN
+			+ " T LEFT JOIN " + TABLE_NODE + " N ON T." + COL_TRASH_CAN_NODE_ID + " = N." + COL_NODE_ID
+			+ " WHERE " + COL_TRASH_CAN_NODE_ID + " = ?"
 			+ " AND " + COL_TRASH_CAN_PRIORITY_PURGE + " = FALSE";
 
 	private static final String DELETE_TRASH_BY_IDS = "DELETE FROM " + TABLE_TRASH_CAN + " WHERE " + COL_TRASH_CAN_NODE_ID + " IN (:"
@@ -68,7 +79,32 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	private static final String SQL_FLAG_NODES_FOR_PURGE = "UPDATE " + TABLE_TRASH_CAN + " SET " + COL_TRASH_CAN_PRIORITY_PURGE + " = TRUE"
 			+ ", " + COL_TRASH_CAN_ETAG + " = UUID()" + " WHERE " + COL_TRASH_CAN_NODE_ID + " IN (:" + IDS_PARAM_NAME + ")";
 
-	private static final RowMapper<DBOTrashedEntity> ROW_MAPPER = new DBOTrashedEntity().getTableMapping();
+	private static final RowMapper<DBOTrashedEntity> DB_ROW_MAPPER = new DBOTrashedEntity().getTableMapping();
+	
+	private static final RowMapper<TrashedEntity> ROW_MAPPER = new RowMapper<TrashedEntity>() {
+
+		@Override
+		public TrashedEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOTrashedEntity dbo = DB_ROW_MAPPER.mapRow(rs, rowNum);
+			
+			TrashedEntity trash = new TrashedEntity();
+			
+			trash.setEntityId(KeyFactory.keyToString(dbo.getId()));
+			trash.setEntityName(dbo.getNodeName());
+			trash.setOriginalParentId(KeyFactory.keyToString(dbo.getParentId()));
+			trash.setDeletedByPrincipalId(dbo.getDeletedBy().toString());
+			trash.setDeletedOn(dbo.getDeletedOn());
+			
+			String entityType = rs.getString(COL_NODE_TYPE);
+			
+			if (entityType != null) {
+				trash.setEntityType(EntityType.valueOf(entityType));
+			}
+			
+			return trash;
+		}
+		
+	};
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -130,17 +166,14 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	}
 
 	@Override
-	public TrashedEntity getTrashedEntity(String nodeId) throws DatastoreException {
+	public Optional<TrashedEntity> getTrashedEntity(String nodeId) throws DatastoreException {
 		ValidateArgument.required(nodeId, "Node id");
 
-		DBOTrashedEntity trashedEntity = null;
 		try {
-			trashedEntity = jdbcTemplate.queryForObject(SELECT_TRASH_BY_NODE_ID, ROW_MAPPER, KeyFactory.stringToKey(nodeId));
+			return Optional.of(jdbcTemplate.queryForObject(SELECT_TRASH_BY_NODE_ID, ROW_MAPPER, KeyFactory.stringToKey(nodeId)));
 		} catch (EmptyResultDataAccessException e) {
-			return null;
+			return Optional.empty();
 		}
-
-		return TrashedEntityUtils.convertDboToDto(trashedEntity);
 	}
 
 	@Override
@@ -158,9 +191,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		
 		Long deletedBy = KeyFactory.stringToKey(userGroupId);
 
-		List<DBOTrashedEntity> trashList = jdbcTemplate.query(SELECT_TRASH_FOR_USER, ROW_MAPPER, deletedBy, limit, offset);
-
-		return TrashedEntityUtils.convertDboToDto(trashList);
+		return jdbcTemplate.query(SELECT_TRASH_FOR_USER, ROW_MAPPER, deletedBy, limit, offset);
 	}
 
 	@Override
