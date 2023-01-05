@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table.metadata.providers;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.evaluation.dao.SubmissionField;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -11,6 +12,7 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -24,8 +26,6 @@ import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import com.google.common.collect.Sets;
 
 @Service
 public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
@@ -64,11 +64,6 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public ViewObjectType getObjectType() {
 		return OBJECT_TYPE;
-	}
-	
-	Set<SubType> getSubTypes(){
-		// Submissions are not hierarchical
-		return Sets.newHashSet(SubType.submission);
 	}
 
 	@Override
@@ -138,12 +133,13 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public ViewFilter getViewFilter(Long viewId) {
 		Set<Long> scope = viewScopeDao.getViewScope(viewId);
-		return new HierarchicaFilter(ReplicationType.SUBMISSION, getSubTypes(), scope);
+		return new HierarchicaFilter(ReplicationType.SUBMISSION, Set.of(SubType.submission), scope);
 	}
 
 	@Override
-	public ViewFilter getViewFilter(Long viewTypeMask, Set<Long> containerIds) {
-		return new HierarchicaFilter(ReplicationType.SUBMISSION, getSubTypes(), containerIds);
+	public ViewFilter getViewFilter(Long viewTypeMask, Set<IdAndVersion> containerIds) {
+		Set<Long> scope = containerIds.stream().map(IdAndVersion::getId).collect(Collectors.toSet());
+		return new HierarchicaFilter(ReplicationType.SUBMISSION, Set.of(SubType.submission), scope);
 	}
 
 	@Override

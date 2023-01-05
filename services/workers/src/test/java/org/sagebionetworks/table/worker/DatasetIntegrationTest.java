@@ -5,11 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,9 +23,6 @@ import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.annotation.v2.Annotations;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
@@ -38,8 +33,6 @@ import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -79,8 +72,6 @@ public class DatasetIntegrationTest {
 	@Autowired
 	private TableRowTruthDAO tableRowTruthDao;
 	@Autowired
-	private DaoObjectHelper<S3FileHandle> fileHandleDaoHelper;
-	@Autowired
 	private EntityManager entityManager;
 	@Autowired
 	private ColumnModelManager columnModelManager;
@@ -93,7 +84,6 @@ public class DatasetIntegrationTest {
 	private Project project;
 	private Dataset dataset;
 	private ColumnModel stringColumn;
-	private Random random;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -110,7 +100,6 @@ public class DatasetIntegrationTest {
 		stringColumn.setColumnType(ColumnType.STRING);
 		stringColumn.setMaximumSize(50L);
 		stringColumn = columnModelManager.createColumnModel(userInfo, stringColumn);
-		random = new Random();
 	}
 
 	@AfterEach
@@ -133,9 +122,9 @@ public class DatasetIntegrationTest {
 			throws AssertionError, AsynchJobFailedException, DatastoreException, InterruptedException {
 
 		int numberOfVersions = 3;
-		FileEntity fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), numberOfVersions);
-		FileEntity fileTwo = createFileWithMultipleVersions(2, stringColumn.getName(), numberOfVersions);
-		FileEntity fileThree = createFileWithMultipleVersions(3, stringColumn.getName(), numberOfVersions);
+		FileEntity fileOne = testHelper.createFileWithMultipleVersions(userInfo, project.getId(), 1, stringColumn.getName(), numberOfVersions);
+		FileEntity fileTwo = testHelper.createFileWithMultipleVersions(userInfo, project.getId(), 2, stringColumn.getName(), numberOfVersions);
+		FileEntity fileThree = testHelper.createFileWithMultipleVersions(userInfo, project.getId(), 3, stringColumn.getName(), numberOfVersions);
 		
 		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileOne.getId()),
 				fileOne.getEtag(), MAX_WAIT);
@@ -179,8 +168,8 @@ public class DatasetIntegrationTest {
 
 		int numberOfVersions = 2;
 		
-		FileEntity fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), numberOfVersions);
-		FileEntity fileTwo = createFileWithMultipleVersions(2, stringColumn.getName(), numberOfVersions);
+		FileEntity fileOne = testHelper.createFileWithMultipleVersions(userInfo, project.getId(), 1, stringColumn.getName(), numberOfVersions);
+		FileEntity fileTwo = testHelper.createFileWithMultipleVersions(userInfo, project.getId(), 2, stringColumn.getName(), numberOfVersions);
 		
 		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileOne.getId()),
 				fileOne.getEtag(), MAX_WAIT);
@@ -223,8 +212,8 @@ public class DatasetIntegrationTest {
 	public void testAddDatasetQueryToDownloadList() throws DatastoreException, InterruptedException, AssertionError, AsynchJobFailedException {
 		int numberOfVersions = 2;
 		
-		FileEntity fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), numberOfVersions);
-		FileEntity fileTwo = createFileWithMultipleVersions(2, stringColumn.getName(), numberOfVersions);
+		FileEntity fileOne = testHelper.createFileWithMultipleVersions(userInfo, project.getId(), 1, stringColumn.getName(), numberOfVersions);
+		FileEntity fileTwo = testHelper.createFileWithMultipleVersions(userInfo, project.getId(), 2, stringColumn.getName(), numberOfVersions);
 		
 		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileOne.getId()),
 				fileOne.getEtag(), MAX_WAIT);
@@ -285,8 +274,8 @@ public class DatasetIntegrationTest {
 	public void testAddDatasetQueryToDownloadListWithoutVersions() throws DatastoreException, InterruptedException, AssertionError, AsynchJobFailedException {
 		int numberOfVersions = 2;
 		
-		FileEntity fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), numberOfVersions);
-		FileEntity fileTwo = createFileWithMultipleVersions(2, stringColumn.getName(), numberOfVersions);
+		FileEntity fileOne = testHelper.createFileWithMultipleVersions(userInfo, project.getId(), 1, stringColumn.getName(), numberOfVersions);
+		FileEntity fileTwo = testHelper.createFileWithMultipleVersions(userInfo, project.getId(), 2, stringColumn.getName(), numberOfVersions);
 		
 		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileOne.getId()),
 				fileOne.getEtag(), MAX_WAIT);
@@ -342,66 +331,10 @@ public class DatasetIntegrationTest {
 			}
 		}, MAX_WAIT);
 	}
-
-
-	/**
-	 * Create File entity with multiple versions using the annotations for each version.
-	 *
-	 * @return
-	 */
-	private FileEntity createFileWithMultipleVersions(int fileNumber, String annotationKey, int numberOfVersions) {
-		List<Annotations> annotations = new ArrayList<>(numberOfVersions);
-		for(int i=1; i <= numberOfVersions; i++) {
-			Annotations annos = new Annotations();
-			AnnotationsV2TestUtils.putAnnotations(annos, annotationKey, "v-"+i, AnnotationsValueType.STRING);
-			annotations.add(annos);
-		}
-
-		// create the entity
-		String fileEntityId = null;		
-		int version = 1;
-		
-		for(Annotations annos: annotations) {
-						
-			long fileContentSize = (long) random.nextInt(128_000);
-			
-			// Create a new file handle for each version
-			S3FileHandle fileHandle = fileHandleDaoHelper.create((f) -> {
-				f.setCreatedBy(userInfo.getId().toString());
-				f.setFileName("someFile");
-				f.setContentSize(fileContentSize);
-			});
-			
-			if (fileEntityId == null) {
-				fileEntityId = entityManager.createEntity(userInfo, new FileEntity()
-						.setName("afile-"+fileNumber)
-						.setParentId(project.getId())
-						.setDataFileHandleId(fileHandle.getId()),
-						null);
-			} else {
-				// create a new version for the entity
-				FileEntity entity = entityManager.getEntity(userInfo, fileEntityId, FileEntity.class);
-				entity.setVersionComment("c-"+version);
-				entity.setVersionLabel("v-"+version);
-				entity.setDataFileHandleId(fileHandle.getId());
-				boolean newVersion = true;
-				String activityId = null;
-				entityManager.updateEntity(userInfo, entity, newVersion, activityId);
-			}
-			// get the ID and etag
-			FileEntity entity = entityManager.getEntity(userInfo, fileEntityId, FileEntity.class);
-			annos.setId(entity.getId());
-			annos.setEtag(entity.getEtag());
-			entityManager.updateAnnotations(userInfo, fileEntityId, annos);
-			version++;
-		}
-		
-		return entityManager.getEntity(userInfo, fileEntityId, FileEntity.class);
-	}
-
+	
 	@Test
 	public void testSchemaUpdateTransaction() throws AssertionError, AsynchJobFailedException, DatastoreException, InterruptedException {
-		FileEntity fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), 1);
+		FileEntity fileOne = testHelper.createFileWithMultipleVersions(userInfo, project.getId(), 1, stringColumn.getName(), 1);
 		List<EntityRef> items = Arrays.asList(
 				new EntityRef().setEntityId(fileOne.getId()).setVersionNumber(1L)
 		);

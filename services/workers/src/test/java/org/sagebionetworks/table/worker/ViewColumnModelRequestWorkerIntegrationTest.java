@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
@@ -14,7 +15,9 @@ import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Team;
@@ -23,6 +26,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -52,6 +56,9 @@ public class ViewColumnModelRequestWorkerIntegrationTest {
 	
 	@Autowired
 	private TestHelper testHelper;
+	
+	@Autowired
+	private EntityManager entityManager;
 	
 	private UserInfo evaluationOwner;
 
@@ -169,6 +176,47 @@ public class ViewColumnModelRequestWorkerIntegrationTest {
 			assertEquals(expectedResult, results);
 			assertNull(response.getNextPageToken());
 		}, MAX_WAIT);	
+	}
+	
+	// Reproduce https://sagebionetworks.jira.com/browse/PLFM-7541. Datasets are collections of versioned files, so the request might include specific versions
+	// of file entities, the result should include the annotations for the selected versions.
+	@Test
+	public void testViewColumnModelRequestWorkerWithIdAndVersion() throws Exception {
+		FileEntity fileOne = testHelper.createFileWithMultipleVersions(submitter, submitterProject.getId(), 1, "foo", 2);
+		FileEntity fileTwo = testHelper.createFileWithMultipleVersions(submitter, submitterProject.getId(), 2, "bar", 2);
+		
+		// Remove the annotations from the current version of the second file
+		entityManager.updateAnnotations(submitter, fileTwo.getId(), AnnotationsV2Utils.emptyAnnotations().setId(fileTwo.getId()).setEtag(fileTwo.getEtag()));
+		fileTwo = entityManager.getEntity(submitter, fileTwo.getId(), FileEntity.class);
+		
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileOne.getId()), fileOne.getEtag(), MAX_WAIT);
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileTwo.getId()), fileTwo.getEtag(), MAX_WAIT);
+		
+		ViewScope viewScope = new ViewScope();
+		
+		viewScope.setViewEntityType(ViewEntityType.dataset);
+		viewScope.setScope(List.of(fileOne.getId(), fileTwo.getId()));
+		
+		ViewColumnModelRequest request = new ViewColumnModelRequest().setViewScope(viewScope);
+		
+		// Only the "foo" annotation is expected since the current version of fileTwo does not have any annotation
+		asyncHelper.assertJobResponse(submitter, request, (ViewColumnModelResponse response) -> {
+			Set<String> columnNames = response.getResults().stream().map(ColumnModel::getName).collect(Collectors.toSet());
+			assertEquals(Set.of("foo"), columnNames);
+		}, MAX_WAIT);
+		
+		// Now include specific version of the files
+		viewScope.setScope(List.of(
+			KeyFactory.idAndVersion(fileOne.getId(), 2L).toString(),
+			KeyFactory.idAndVersion(fileTwo.getId(), 1L).toString()
+		));
+				
+		// We now expect both "foo" and "bar" since version 1 of the second file had that annotation
+		asyncHelper.assertJobResponse(submitter, request, (ViewColumnModelResponse response) -> {
+			Set<String> columnNames = response.getResults().stream().map(ColumnModel::getName).collect(Collectors.toSet());
+			assertEquals(Set.of("foo", "bar"), columnNames);
+		}, MAX_WAIT);
+		
 	}
 	
 	private static ColumnModel columnModel(String name, ColumnType type) {

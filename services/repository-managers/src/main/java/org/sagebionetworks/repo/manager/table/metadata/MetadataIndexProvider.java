@@ -5,6 +5,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.HasViewObjectType;
 import org.sagebionetworks.repo.model.table.ObjectField;
@@ -90,12 +91,12 @@ public interface MetadataIndexProvider extends HasViewObjectType, ObjectFieldTyp
 	ViewFilter getViewFilter(Long viewId);
 
 	/**
-	 * Get a view filter for the given containers and type.s
+	 * Get a view filter for the given type mask and scope
 	 * @param viewScopeType
-	 * @param containerIds
+	 * @param scope
 	 * @return
 	 */
-	ViewFilter getViewFilter(Long typeMask, Set<Long> containerIds);
+	ViewFilter getViewFilter(Long typeMask, Set<IdAndVersion> scope);
 
 
 

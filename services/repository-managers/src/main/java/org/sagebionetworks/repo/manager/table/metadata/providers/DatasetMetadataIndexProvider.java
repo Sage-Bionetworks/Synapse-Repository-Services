@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -19,9 +20,7 @@ import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
-import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
-import org.sagebionetworks.table.cluster.view.filter.IdVersionPair;
+import org.sagebionetworks.table.cluster.view.filter.IdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -86,20 +85,18 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public ViewFilter getViewFilter(Long viewId) {
 		List<EntityRef> items = nodeDao.getNodeItems(viewId);
-		Set<IdVersionPair> scope = items.stream().map(i -> new IdVersionPair()
-				.setId(KeyFactory.stringToKey(i.getEntityId())).setVersion(i.getVersionNumber()))
+		
+		Set<IdAndVersion> scope = items.stream()
+				.map(ref -> KeyFactory.idAndVersion(ref.getEntityId(), ref.getVersionNumber()))
 				.collect(Collectors.toSet());
-		return new FlatIdAndVersionFilter(ReplicationType.ENTITY, getSubTypes(), scope);
+		
+		return getViewFilter(viewId, scope);
 	}
 
 	@Override
-	public ViewFilter getViewFilter(Long viewTypeMask, Set<Long> containerIds) {
-		return new FlatIdsFilter(ReplicationType.ENTITY, getSubTypes(), containerIds);
-	}
-
-	Set<SubType> getSubTypes() {
-		// currently only files are supported.
-		return Set.of(SubType.file);
+	public ViewFilter getViewFilter(Long viewTypeMask, Set<IdAndVersion> scope) {
+		return new IdAndVersionFilter(ReplicationType.ENTITY, Set.of(SubType.file), scope);
+				
 	}
 
 	@Override

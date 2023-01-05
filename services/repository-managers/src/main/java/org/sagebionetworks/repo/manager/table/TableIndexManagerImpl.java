@@ -535,7 +535,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public ColumnModelPage getPossibleColumnModelsForScope(ViewScope scope, String nextPageToken, boolean excludeDerivedKeys) {
 		ValidateArgument.required(scope, "scope");
-		ValidateArgument.required(scope.getScope(), "scope.scopeIds");
+		ValidateArgument.requiredNotEmpty(scope.getScope(), "scope.scopeIds");
 		
 		ViewEntityType viewType = scope.getViewEntityType();
 		Long viewTypeMask = scope.getViewTypeMask();
@@ -550,8 +550,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ViewObjectType objectType = ViewObjectType.map(viewType);	
 		
 		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);
+		
 		// lookup the containers for the given scope
-		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
+		Set<IdAndVersion> scopeSet = scope.getScope().stream().map(IdAndVersion::parse).collect(Collectors.toSet());
+		
 		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, scopeSet, nextPageToken, excludeDerivedKeys);
 	}
 	
@@ -563,12 +565,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param nextPageToken Optional: Controls pagination.
 	 * @return
 	 */
-	ColumnModelPage getPossibleAnnotationDefinitionsForContainerIds(ViewScopeType viewScopeType,
-			Set<Long> scope, String nextPageToken, boolean excludeDerivedKeys) {
+	ColumnModelPage getPossibleAnnotationDefinitionsForContainerIds(ViewScopeType viewScopeType, Set<IdAndVersion> scope, String nextPageToken, boolean excludeDerivedKeys) {
 		ValidateArgument.required(scope, "scope");
 		NextPageToken token =  new NextPageToken(nextPageToken);
-		ColumnModelPage results = new ColumnModelPage();
-		
+		ColumnModelPage results = new ColumnModelPage();		
 		
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(viewScopeType.getObjectType());
 		ViewFilter filter = provider.getViewFilter(viewScopeType.getTypeMask(), scope);

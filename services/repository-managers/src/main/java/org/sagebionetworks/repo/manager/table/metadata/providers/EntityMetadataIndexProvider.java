@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.table.metadata.providers;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
@@ -12,6 +13,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ReplicationType;
@@ -20,14 +22,12 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
-import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
+import org.sagebionetworks.table.cluster.view.filter.IdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import com.google.common.collect.Sets;
 
 @Service
 public class EntityMetadataIndexProvider implements MetadataIndexProvider {
@@ -122,22 +122,29 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	public ViewFilter getViewFilter(Long viewId) {
 		ViewScopeType type = viewScopeDao.getViewScopeType(viewId);
 		Set<Long> scope = viewScopeDao.getViewScope(viewId);
-		return getViewFilter(type.getTypeMask(), scope);
+		return buildViewFilter(type.getTypeMask(), scope);
 	}
 
 	@Override
-	public ViewFilter getViewFilter(Long typeMask, Set<Long> scope) {
+	public ViewFilter getViewFilter(Long typeMask, Set<IdAndVersion> scope) {
+		return buildViewFilter(typeMask, scope.stream().map(IdAndVersion::getId).collect(Collectors.toSet()));
+	}
+	
+	private ViewFilter buildViewFilter(Long typeMask, Set<Long> scope) {
 		Set<SubType> subTypes = getSubTypesForMask(typeMask);
+		
 		if (ViewTypeMask.Project.getMask() == typeMask) {
-			return new FlatIdsFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.project), scope);
-		}else {
-			try {
-				Set<Long> allContainers = nodeDao.getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
-				return new HierarchicaFilter(ReplicationType.ENTITY, subTypes, allContainers);
-			} catch (LimitExceededException e) {
-				throw new IllegalStateException(e);
-			}
+			Set<IdAndVersion> mappedScope = scope.stream().map(id -> IdAndVersion.newBuilder().setId(id).build()).collect(Collectors.toSet());
+			return new IdAndVersionFilter(ReplicationType.ENTITY, Set.of(SubType.project), mappedScope);
 		}
+		
+		try {
+			Set<Long> allContainers = nodeDao.getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
+			return new HierarchicaFilter(ReplicationType.ENTITY, subTypes, allContainers);
+		} catch (LimitExceededException e) {
+			throw new IllegalStateException(e);
+		}
+		
 	}
 
 	@Override

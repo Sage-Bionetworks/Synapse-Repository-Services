@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
@@ -38,11 +39,9 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
-import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
+import org.sagebionetworks.table.cluster.view.filter.IdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
-
-import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class EntityMetadataIndexProviderUnitTest {
@@ -116,7 +115,7 @@ public class EntityMetadataIndexProviderUnitTest {
 	public void testGetSubTypesForMaskWithFile() {
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 
-		Set<SubType> expected = Sets.newHashSet(SubType.file);
+		Set<SubType> expected = Set.of(SubType.file);
 
 		// Call under test
 		Set<SubType> result = provider.getSubTypesForMask(viewTypeMask);
@@ -128,7 +127,7 @@ public class EntityMetadataIndexProviderUnitTest {
 	public void testGetSubTypesForMaskWithMixed() {
 		Long viewTypeMask = ViewTypeMask.File.getMask() | ViewTypeMask.Project.getMask();
 
-		Set<SubType> expected = Sets.newHashSet(SubType.file, SubType.project);
+		Set<SubType> expected = Set.of(SubType.file, SubType.project);
 
 		// Call under test
 		Set<SubType> result = provider.getSubTypesForMask(viewTypeMask);
@@ -265,12 +264,15 @@ public class EntityMetadataIndexProviderUnitTest {
 	public void testGetViewFilter() {
 		long viewId = 123L;
 		long viewTypeMask = ViewTypeMask.Project.getMask();
-		Set<Long> scope = Sets.newHashSet(1L,2L);
-		when(mockViewScopDao.getViewScope(viewId)).thenReturn(scope);
+		Set<IdAndVersion> scope = Set.of(
+			IdAndVersion.parse("1"),
+			IdAndVersion.parse("2")
+		);
+		when(mockViewScopDao.getViewScope(viewId)).thenReturn(Set.of(1L, 2L));
 		when(mockViewScopDao.getViewScopeType(viewId)).thenReturn(new ViewScopeType(ViewObjectType.ENTITY, viewTypeMask));
 		// call under test
 		ViewFilter filter= provider.getViewFilter(viewId);
-		ViewFilter expected = new FlatIdsFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.project), scope);
+		ViewFilter expected = new IdAndVersionFilter(ReplicationType.ENTITY, Set.of(SubType.project), scope);
 		assertEquals(expected, filter);
 		verify(mockViewScopDao).getViewScope(viewId);
 		verify(mockViewScopDao).getViewScopeType(viewId);
@@ -279,43 +281,52 @@ public class EntityMetadataIndexProviderUnitTest {
 	@Test
 	public void testGetViewFilterWithProject() {
 		long viewTypeMask = ViewTypeMask.Project.getMask();
-		Set<Long> scope = Sets.newHashSet(1L,2L);
+		Set<IdAndVersion> scope = Set.of(
+			IdAndVersion.parse("1"),
+			IdAndVersion.parse("2")
+		);
 		// call under test
 		ViewFilter filter = provider.getViewFilter(viewTypeMask, scope);
-		ViewFilter expected = new FlatIdsFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.project), scope);
+		ViewFilter expected = new IdAndVersionFilter(ReplicationType.ENTITY, Set.of(SubType.project), scope);
 		assertEquals(expected, filter);
 	}
 	
 	@Test
 	public void testGetViewFilterWithFile() throws LimitExceededException {
 		long viewTypeMask = ViewTypeMask.File.getMask();
-		Set<Long> scope = Sets.newHashSet(1L,2L);
-		Set<Long> fullScope = Sets.newHashSet(1L,2L,3L);
+		Set<IdAndVersion> scope = Set.of(
+			IdAndVersion.parse("1"),
+			IdAndVersion.parse("2")
+		);
+		Set<Long> fullScope = Set.of(1L,2L,3L);
 		when(mockNodeDao.getAllContainerIds((Collection<Long>)any(), anyInt())).thenReturn(fullScope);
 		// call under test
 		ViewFilter filter = provider.getViewFilter(viewTypeMask, scope);
-		ViewFilter expected = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file), fullScope);
+		ViewFilter expected = new HierarchicaFilter(ReplicationType.ENTITY, Set.of(SubType.file), fullScope);
 		assertEquals(expected, filter);
 	}
 	
 	@Test
 	public void testGetViewFilterWithFileOverLimit() throws LimitExceededException {
 		long viewTypeMask = ViewTypeMask.File.getMask();
-		Set<Long> scope = Sets.newHashSet(1L,2L);
+		Set<IdAndVersion> scope = Set.of(
+			IdAndVersion.parse("1"),
+			IdAndVersion.parse("2")
+		);
 		when(mockNodeDao.getAllContainerIds((Collection<Long>)any(), anyInt())).thenThrow(new LimitExceededException("over"));
 		String message = assertThrows(IllegalStateException.class, ()->{
 			// call under test
 			provider.getViewFilter(viewTypeMask, scope);
 		}).getMessage();
 		assertEquals("org.sagebionetworks.repo.model.LimitExceededException: over", message);
-		verify(mockNodeDao).getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
+		verify(mockNodeDao).getAllContainerIds(Set.of(1L, 2L), TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
 	public void testValidateScopeAndTypeWithProjectPlusFile() throws LimitExceededException {
 		int maxContainersPerView = 4;
 		long viewTypeMask = ViewTypeMask.Project.getMask() | ViewTypeMask.File.getMask();
-		Set<Long> scope = Sets.newHashSet(1L,2L);
+		Set<Long> scope = Set.of(1L,2L);
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			provider.validateScopeAndType(viewTypeMask, scope, maxContainersPerView);
@@ -329,7 +340,7 @@ public class EntityMetadataIndexProviderUnitTest {
 	public void testValidateScopeAndTypeWithProjectUnderLimit() throws LimitExceededException {
 		int maxContainersPerView = 4;
 		long viewTypeMask = ViewTypeMask.Project.getMask();
-		Set<Long> scope = Sets.newHashSet(1L,2L);
+		Set<Long> scope = Set.of(1L,2L);
 		// call under test
 		provider.validateScopeAndType(viewTypeMask, scope, maxContainersPerView);
 		verify(mockNodeDao, never()).getAllContainerIds((Collection<Long>)any(), anyInt());
@@ -349,7 +360,7 @@ public class EntityMetadataIndexProviderUnitTest {
 	public void testValidateScopeAndTypeWithProjectOverLimit() throws LimitExceededException {
 		int maxContainersPerView = 1;
 		long viewTypeMask = ViewTypeMask.Project.getMask();
-		Set<Long> scope = Sets.newHashSet(1L,2L);
+		Set<Long> scope = Set.of(1L,2L);
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			provider.validateScopeAndType(viewTypeMask, scope, maxContainersPerView);
@@ -362,7 +373,7 @@ public class EntityMetadataIndexProviderUnitTest {
 	public void testValidateScopeAndTypeWithFileUnderLimit() throws LimitExceededException {
 		int maxContainersPerView = 4;
 		long viewTypeMask = ViewTypeMask.File.getMask();
-		Set<Long> scope = Sets.newHashSet(1L,2L);
+		Set<Long> scope = Set.of(1L,2L);
 		// call under test
 		provider.validateScopeAndType(viewTypeMask, scope, maxContainersPerView);
 		verify(mockNodeDao).getAllContainerIds(scope, maxContainersPerView);
@@ -382,7 +393,7 @@ public class EntityMetadataIndexProviderUnitTest {
 	public void testValidateScopeAndTypeWithFileOverLimit() throws LimitExceededException {
 		int maxContainersPerView = 4;
 		long viewTypeMask = ViewTypeMask.File.getMask();
-		Set<Long> scope = Sets.newHashSet(1L,2L);
+		Set<Long> scope = Set.of(1L,2L);
 		when(mockNodeDao.getAllContainerIds((Collection<Long>)any(), anyInt())).thenThrow(new LimitExceededException("over"));
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
