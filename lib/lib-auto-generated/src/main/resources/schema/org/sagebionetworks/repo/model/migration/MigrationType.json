@@ -431,6 +431,10 @@
 			"description": "Table that maps a user to a bound OIDC provider identity"
 		},
 		{
+			"name": "OTP_SECRET",
+			"description": "Table that stores otp user secrets"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}

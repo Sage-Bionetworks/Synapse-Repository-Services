@@ -1229,8 +1229,8 @@ public class SqlConstants {
 	public static final String COL_MV_ID_ETAG = 										"ETAG";
 	public static final String DDL_MV_SOURCE_TABLES = 									"schema/MaterializedViewSourceTables-ddl.sql";
 	public static final String TABLE_MV_TABLES = 										"MATERIALIZED_VIEW_SOURCE_TABLES";
-	public static final String COL_MV_TABLES_MV_ID = 										"MATERIALIZED_VIEW_ID";
-	public static final String COL_MV_TABLES_MV_VERSION = 									"MATERIALIZED_VIEW_VERSION";
+	public static final String COL_MV_TABLES_MV_ID = 									"MATERIALIZED_VIEW_ID";
+	public static final String COL_MV_TABLES_MV_VERSION = 								"MATERIALIZED_VIEW_VERSION";
 	public static final String COL_MV_TABLES_SOURCE_TABLE_ID =							"SOURCE_TABLE_ID";
 	public static final String COL_MV_TABLES_SOURCE_TABLE_VERSION =						"SOURCE_TABLE_VERSION";
 	
@@ -1242,6 +1242,16 @@ public class SqlConstants {
 	public static final String COL_PRINCIPAL_OIDC_BINDING_PRINCIPAL_ID = 				"PRINCIPAL_ID";
 	public static final String COL_PRINCIPAL_OIDC_BINDING_PROVIDER = 					"PROVIDER";
 	public static final String COL_PRINCIPAL_OIDC_BINDING_SUBJECT = 					"SUBJECT";
+	
+	// The user OTP secrets mapping table
+	public static final String DDL_OTP_SECRET = 										"schema/OtpSecret-ddl.sql";
+	public static final String TABLE_OTP_SECRET =	 									"OTP_SECRET";
+	public static final String COL_OTP_SECRET_ID = 										"ID";
+	public static final String COL_OTP_SECRET_ETAG = 									"ETAG";
+	public static final String COL_OTP_SECRET_CREATED_ON = 								"CREATED_ON";
+	public static final String COL_OTP_SECRET_PRINCIPAL_ID = 							"PRINCIPAL_ID";
+	public static final String COL_OTP_SECRET_SECRET = 									"SECRET";
+	public static final String COL_OTP_SECRET_ACTIVE = 									"ACTIVE";
 	
 
 	// This seems to be the name of the id column for all tables.
