@@ -171,8 +171,8 @@
 				<!-- Materialized view tables -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOMaterializedViewId" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOMaterializedViewSourceTable" />
-				
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalOIDCBinding"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.otp.DBOOtpSecret"/>
 				
 			</list>
 		</property>
@@ -299,6 +299,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOMaterializedViewId" />
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalOIDCBinding"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.otp.DBOOtpSecret"/>
 						
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>
