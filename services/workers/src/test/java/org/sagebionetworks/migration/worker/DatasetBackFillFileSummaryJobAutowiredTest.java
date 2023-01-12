@@ -132,6 +132,38 @@ public class DatasetBackFillFileSummaryJobAutowiredTest {
         }, MAX_WAIT_MS);
     }
 
+    @Test
+    public void testDatasetBackFillingJobForPLFM7659() throws Exception {
+        Dataset datasetWithoutItemWithFileSummary = asyncHelper.createDataset(user, new Dataset()
+                .setParentId(project.getId())
+                .setName(UUID.randomUUID().toString())
+                .setDescription(UUID.randomUUID().toString())
+                .setItems(Collections.emptyList())
+        );
+        assertNull(datasetWithoutItemWithFileSummary.getChecksum());
+        assertEquals(0, datasetWithoutItemWithFileSummary.getSize());
+        assertEquals(0, datasetWithoutItemWithFileSummary.getCount());
+        datasetToBeDelete.add(datasetWithoutItemWithFileSummary);
+
+        Dataset datasetWithoutItemWithOutFileSummary = createDatasetWithoutFileSummaryHavingNoItems(user, project);
+        assertNull(datasetWithoutItemWithOutFileSummary.getChecksum());
+        assertNull(datasetWithoutItemWithOutFileSummary.getSize());
+        assertNull(datasetWithoutItemWithOutFileSummary.getCount());
+        datasetToBeDelete.add(datasetWithoutItemWithOutFileSummary);
+
+        DatasetBackfillRequest req = new DatasetBackfillRequest();
+        AsyncMigrationRequest request = new AsyncMigrationRequest();
+        request.setAdminRequest(req);
+        asyncHelper.assertJobResponse(adminUserInfo, request, (AsyncMigrationResponse responseBody) -> {
+            DatasetBackfillResponse response = (DatasetBackfillResponse) responseBody.getAdminResponse();
+            assertEquals(1L, response.getCount());
+            Dataset updateDataset = entityManager.getEntity(user, datasetWithoutItemWithOutFileSummary.getId(), Dataset.class);
+            assertNull(updateDataset.getChecksum());
+            assertEquals(0, updateDataset.getSize());
+            assertEquals(0, updateDataset.getCount());
+        }, MAX_WAIT_MS);
+    }
+
     private Dataset createDatasetWithFileSummary(UserInfo userInfo, Project project) throws Exception {
         FileEntity fileOne = createFileEntityAndWaitForReplication(userInfo, project);
         FileEntity fileTwo = createFileEntityAndWaitForReplication(userInfo, project);
@@ -161,6 +193,14 @@ public class DatasetBackFillFileSummaryJobAutowiredTest {
                         new EntityRef().setEntityId(fileTwo.getId()).setVersionNumber(fileTwo.getVersionNumber())
                 ))
         );
+        return dataset;
+    }
+    private Dataset createDatasetWithoutFileSummaryHavingNoItems(UserInfo userInfo, Project project) {
+        Dataset dataset = createDatasetWithoutFileSummary(userInfo, new Dataset()
+                .setParentId(project.getId())
+                .setName(UUID.randomUUID().toString())
+                .setDescription(UUID.randomUUID().toString())
+                .setItems(Collections.emptyList()));
         return dataset;
     }
 
