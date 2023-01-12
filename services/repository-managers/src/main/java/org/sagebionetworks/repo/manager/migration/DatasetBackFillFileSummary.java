@@ -170,7 +170,10 @@ public class DatasetBackFillFileSummary {
                 if (datasetBackFillDTO.getEntityPropertyAnnotations() != null) {
                     annotations = datasetBackFillDTO.getEntityPropertyAnnotations();
                 }
-                annotations.addAnnotation(CHECKSUM, fileSummary.getChecksum());
+                //checksum is null in case of dataset having no items in it
+                if(fileSummary.getChecksum() != null){
+                    annotations.addAnnotation(CHECKSUM, fileSummary.getChecksum());
+                }
                 annotations.addAnnotation(SIZE, fileSummary.getSize());
                 annotations.addAnnotation(COUNT, fileSummary.getCount());
                 annotations.setEtag(newEtag);
