@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.AfterEach;
@@ -12,7 +13,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -23,10 +23,7 @@ public class OtpSecretDaoImplTest {
 	
 	@Autowired
 	private OtpSecretDao dao;
-	
-	@Autowired
-	private DBOBasicDao basicDao;
-	
+		
 	private Long userId;
 
 	@BeforeEach
@@ -68,17 +65,14 @@ public class OtpSecretDaoImplTest {
 		String secret = "my secret";
 		
 		// First store and activate
-		DBOOtpSecret existing = dao.storeSecret(userId, secret);
-
-		dao.activateSecret(userId, existing.getId());
+		DBOOtpSecret existing = dao.activateSecret(userId, dao.storeSecret(userId, secret).getId());
 		
 		// Call under test
 		DBOOtpSecret result = dao.storeSecret(userId, secret);
 		
-		assertNotEquals(existing.getId(), result.getId());
+		assertNotEquals(existing, result);
 		assertFalse(result.getActive());
-		
-		assertEquals(2, basicDao.getCount(DBOOtpSecret.class));
+		assertTrue(dao.getSecret(userId, existing.getId()).get().getActive());
 	}
 	
 	@Test
@@ -89,13 +83,11 @@ public class OtpSecretDaoImplTest {
 		DBOOtpSecret existing = dao.storeSecret(userId, secret);
 		
 		// Call under test
-		DBOOtpSecret result = dao.storeSecret(userId, secret);
+		DBOOtpSecret result = dao.storeSecret(userId, "new secret");
 		
-		assertNotEquals(existing.getId(), result.getId());
-		
+		assertNotEquals(existing, result);
 		assertFalse(result.getActive());
-		
-		assertEquals(1, basicDao.getCount(DBOOtpSecret.class));
+		assertTrue(dao.getSecret(userId, existing.getId()).isEmpty());
 	}
 	
 	@Test
@@ -109,8 +101,6 @@ public class OtpSecretDaoImplTest {
 		// Call under test
 		DBOOtpSecret updated = dao.activateSecret(userId, existing1.getId());
 		
-		assertEquals(2, basicDao.getCount(DBOOtpSecret.class));
-		
 		assertEquals(existing2, dao.getSecret(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), existing2.getId()).get());
 				
 		assertEquals(existing1.getUserId(), updated.getUserId());
@@ -119,17 +109,51 @@ public class OtpSecretDaoImplTest {
 		
 		assertNotEquals(existing1.getEtag(), updated.getEtag());
 		assertNotEquals(existing1.getActive(), updated.getActive());
+	}
+	
+	@Test
+	public void testActivateSecretWithExistingActive() {
+		String secret = "my secret";
 		
-		// Now store another secret and activate that one instead
+		dao.activateSecret(userId, dao.storeSecret(userId, secret).getId());
 		DBOOtpSecret newSecret = dao.storeSecret(userId, "new secret");
 		
-		assertEquals(3, basicDao.getCount(DBOOtpSecret.class));
+		String result = assertThrows(IllegalStateException.class, () -> {
+			// Call under test
+			dao.activateSecret(userId, newSecret.getId());
+		}).getMessage();
 		
-		// Call under test
-		dao.activateSecret(userId, newSecret.getId());
+		assertEquals("An active secret already exists", result);
+	}
+	
+	@Test
+	public void testActivateSecretWithInvalidSecretId() {
+		String secret = "my secret";
 		
-		assertTrue(dao.getSecret(userId, existing1.getId()).isEmpty());
-		assertEquals(2, basicDao.getCount(DBOOtpSecret.class));
+		// First store one secret inactive
+		dao.storeSecret(userId, secret);
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			dao.activateSecret(userId, -1L);
+		}).getMessage();
+		
+		assertEquals("Invalid secret id", result);
+	}
+	
+	@Test
+	public void testActivateSecretWithInvalidUserId() {
+		String secret = "my secret";
+		
+		// First store one secret inactive
+		DBOOtpSecret existing = dao.storeSecret(userId, secret);
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			dao.activateSecret(123L, existing.getId());
+		}).getMessage();
+		
+		assertEquals("Invalid secret id", result);
 	}
 	
 	@Test
@@ -173,9 +197,7 @@ public class OtpSecretDaoImplTest {
 		
 		// First store one secret inactive
 		DBOOtpSecret existing = dao.storeSecret(userId, secret);
-		
-		dao.storeSecret(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), "another secret");
-		
+				
 		// Call under test
 		assertFalse(dao.hasActiveSecret(userId));
 		
@@ -187,19 +209,59 @@ public class OtpSecretDaoImplTest {
 	}
 	
 	@Test
-	public void testDeleteSecrets() {
+	public void testDeleteSecret() {
+		String secret = "my secret";
+		
+		DBOOtpSecret existing1 = dao.storeSecret(userId, secret);
+		DBOOtpSecret existing2 = dao.storeSecret(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), "another secret");
+		
+		// Call under test
+		dao.deleteSecret(userId, existing1.getId());
+		
+		assertTrue(dao.getSecret(userId, existing1.getId()).isEmpty());
+		assertEquals(existing2, dao.getSecret(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), existing2.getId()).get());
+	}
+	
+	@Test
+	public void testDeleteSecretWithInvalidUserId() {
+		String secret = "my secret";
+		
+		DBOOtpSecret existing1 = dao.storeSecret(userId, secret);
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			dao.deleteSecret(123L, existing1.getId());
+		}).getMessage();
+		
+		assertEquals("Invalid secret id", result);
+	}
+	
+	@Test
+	public void testDeleteSecretWithInvalidSecretId() {
 		String secret = "my secret";
 		
 		dao.storeSecret(userId, secret);
-		dao.storeSecret(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), "another secret");
 		
-		assertEquals(2, basicDao.getCount(DBOOtpSecret.class));
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			dao.deleteSecret(userId, -1L);
+		}).getMessage();
 		
+		assertEquals("Invalid secret id", result);
+	}
+	
+	@Test
+	public void testDeleteSecrets() {
+		String secret = "my secret";
+		
+		DBOOtpSecret existing1 = dao.storeSecret(userId, secret);
+		DBOOtpSecret existing2 = dao.storeSecret(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), "another secret");
+				
 		// Call under test
 		dao.deleteSecrets(userId);
 		
-		assertTrue(dao.getActiveSecret(userId).isEmpty());
-		assertEquals(1, basicDao.getCount(DBOOtpSecret.class));		
+		assertTrue(dao.getSecret(userId, existing1.getId()).isEmpty());
+		assertEquals(existing2, dao.getSecret(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), existing2.getId()).get());
 	}
 
 }

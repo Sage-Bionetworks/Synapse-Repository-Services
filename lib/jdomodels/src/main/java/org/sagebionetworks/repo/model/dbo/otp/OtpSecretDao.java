@@ -33,11 +33,20 @@ public interface OtpSecretDao {
 	boolean hasActiveSecret(Long userId);
 	
 	/**
-	 * Enables the secret with the given id, any other secret will be deleted
+	 * Activates the given secret
+	 * 
 	 * @param id
 	 */
 	DBOOtpSecret activateSecret(Long userId, Long secretId);
 	
+	/**
+	 * Deletes the given user secret
+	 * 
+	 * @param userId
+	 * @param secretId
+	 */
+	void deleteSecret(Long userId, Long secretId);
+		
 	/**
 	 * Deletes all the user secrets
 	 * @param userId
