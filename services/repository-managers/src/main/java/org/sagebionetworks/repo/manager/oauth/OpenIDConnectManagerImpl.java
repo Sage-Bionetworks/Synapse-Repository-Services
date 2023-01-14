@@ -45,7 +45,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
-import org.sagebionetworks.securitytools.EncryptionUtils;
+import org.sagebionetworks.securitytools.AESEncryptionUtils;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.EnumKeyedJsonMapUtil;
 import org.sagebionetworks.util.ValidateArgument;
@@ -273,7 +273,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			return userId;
 		}
 		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
-		return EncryptionUtils.encrypt(userId, sectorIdentifierSecret);
+		return AESEncryptionUtils.encryptDeterministic(userId, sectorIdentifierSecret);
 	}
 
 	public String getUserIdFromPPID(String ppid, String clientId) {
@@ -285,7 +285,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			return ppid;
 		}
 		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
-		return EncryptionUtils.decrypt(ppid, sectorIdentifierSecret);
+		return AESEncryptionUtils.decryptDeterministic(ppid, sectorIdentifierSecret);
 	}
 	
 	@Override

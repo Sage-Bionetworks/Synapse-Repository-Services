@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
-import org.sagebionetworks.securitytools.EncryptionUtils;
+import org.sagebionetworks.securitytools.AESEncryptionUtils;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
@@ -134,7 +134,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		SectorIdentifier sectorIdentifier = new SectorIdentifier();
 		sectorIdentifier.setCreatedBy(createdBy);
 		sectorIdentifier.setCreatedOn(System.currentTimeMillis());
-		String sectorIdentifierSecret = EncryptionUtils.newSecretKey();
+		String sectorIdentifierSecret = AESEncryptionUtils.newSecretKey();
 		sectorIdentifier.setSecret(sectorIdentifierSecret);
 		sectorIdentifier.setSectorIdentifierUri(sectorIdentiferHostName);
 		oauthClientDao.createSectorIdentifier(sectorIdentifier);

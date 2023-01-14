@@ -85,7 +85,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
-import org.sagebionetworks.securitytools.EncryptionUtils;
+import org.sagebionetworks.securitytools.AESEncryptionUtils;
 import org.sagebionetworks.util.Clock;
 
 import com.google.common.collect.ImmutableList;
@@ -230,8 +230,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		oauthClient.setRedirect_uris(REDIRCT_URIS);
 		oauthClient.setUserinfo_signed_response_alg(OIDCSigningAlgorithm.RS256);
 
-		clientSpecificEncodingSecret = EncryptionUtils.newSecretKey();
-		this.ppid = EncryptionUtils.encrypt(USER_ID, clientSpecificEncodingSecret);
+		clientSpecificEncodingSecret = AESEncryptionUtils.newSecretKey();
+		this.ppid = AESEncryptionUtils.encryptDeterministic(USER_ID, clientSpecificEncodingSecret);
 		
 		now = new Date();
 
@@ -635,7 +635,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		// method under test
 		String ppid = openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID);
-		assertEquals(USER_ID, EncryptionUtils.decrypt(ppid, clientSpecificEncodingSecret));
+		assertEquals(USER_ID, AESEncryptionUtils.decryptDeterministic(ppid, clientSpecificEncodingSecret));
 	}
 
 	@Test
@@ -1254,7 +1254,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		if (AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID.equals(oAuthClientId)) {
 			ppid = USER_ID;
 		} else {
-			ppid = EncryptionUtils.encrypt(USER_ID, clientSpecificEncodingSecret);
+			ppid = AESEncryptionUtils.encryptDeterministic(USER_ID, clientSpecificEncodingSecret);
 		
 		}
 		claims.setSubject(ppid);
