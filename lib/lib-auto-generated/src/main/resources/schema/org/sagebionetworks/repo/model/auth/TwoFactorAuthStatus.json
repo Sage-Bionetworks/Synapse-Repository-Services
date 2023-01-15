@@ -1,0 +1,18 @@
+{
+	"title": "TwoFactorAuthStatus",
+	"description": "Starts the user enrollment into two factor authentication. Currently supports only TOTP as the second factor.",
+	"properties": {
+		"status": {
+			"type": "string",
+			"name": "TwoFactorState",
+			"enum": [
+				{
+					"name": "ENABLED"
+				},
+				{
+					"name": "DISABLED"
+				}
+			]
+		}
+	}
+}
