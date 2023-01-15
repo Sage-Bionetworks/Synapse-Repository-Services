@@ -1257,4 +1257,9 @@ public class StackConfigurationImpl implements StackConfiguration {
 	public String getDrsServiceEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.drsservice.endpoint");
 	}
+	
+	@Override
+	public String getOtpSecretsPassword() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.otp.secrets.encryption.password");
+	}
 }

@@ -853,4 +853,9 @@ public interface StackConfiguration {
 	 */
 	String getDrsServiceEndpoint();
 	
+	/**
+	 * @return The password used to derive an encryption key for OTP user secrets
+	 */
+	String getOtpSecretsPassword();
+	
 }
