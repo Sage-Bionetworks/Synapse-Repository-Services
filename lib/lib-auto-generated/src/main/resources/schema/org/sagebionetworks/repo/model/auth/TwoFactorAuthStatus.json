@@ -1,0 +1,20 @@
+{
+	"title": "TwoFactorAuthStatus",
+	"description": "Status of 2FA for the user",
+	"properties": {
+		"status": {
+			"type": "string",
+			"name": "TwoFactorState",
+			"enum": [
+				{
+					"name": "ENABLED",
+					"description": "2FA is enabled"
+				},
+				{
+					"name": "DISABLED",
+					"description": "2FA is not enabled"
+				}
+			]
+		}
+	}
+}

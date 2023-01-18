@@ -14,6 +14,7 @@ import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.apache.velocity.runtime.resource.loader.FileResourceLoader;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO;
+import org.sagebionetworks.repo.manager.authentication.TotpManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
 import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
@@ -49,6 +50,15 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import dev.samstevens.totp.code.CodeGenerator;
+import dev.samstevens.totp.code.CodeVerifier;
+import dev.samstevens.totp.code.DefaultCodeGenerator;
+import dev.samstevens.totp.code.DefaultCodeVerifier;
+import dev.samstevens.totp.secret.DefaultSecretGenerator;
+import dev.samstevens.totp.secret.SecretGenerator;
+import dev.samstevens.totp.time.SystemTimeProvider;
+import dev.samstevens.totp.time.TimeProvider;
 
 @Configuration
 public class RepositoryConfiguration {
@@ -200,6 +210,20 @@ public class RepositoryConfiguration {
 	@Bean
 	public OrcidOAuth2Provider orcidOAuthProvider(StackConfiguration config, SimpleHttpClient client) {
 		return new OrcidOAuth2Provider(config.getOAuth2ORCIDClientId(), config.getOAuth2ORCIDClientSecret(), new OIDCConfig(client, config.getOAuth2ORCIDDiscoveryDocument()));
+	}
+	
+	@Bean
+	public TotpManager totpManager() {
+		SecretGenerator secretGenerator = new DefaultSecretGenerator(TotpManager.SECRET_LENGHT);
+		
+		TimeProvider timeProvider = new SystemTimeProvider();
+		
+		CodeGenerator codeGenerator = new DefaultCodeGenerator(TotpManager.HASH_ALG, TotpManager.DIGITS_COUNT);
+		
+		DefaultCodeVerifier codeVerifier = new DefaultCodeVerifier(codeGenerator, timeProvider);
+		codeVerifier.setTimePeriod(TotpManager.PERIOD);
+		
+		return new TotpManager(secretGenerator, codeVerifier);
 	}
 	
 }

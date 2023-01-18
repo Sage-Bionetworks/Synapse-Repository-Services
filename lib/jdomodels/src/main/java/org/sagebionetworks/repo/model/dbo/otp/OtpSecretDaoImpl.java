@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -90,20 +91,33 @@ public class OtpSecretDaoImpl implements OtpSecretDao {
 	@Override
 	@WriteTransaction
 	public DBOOtpSecret activateSecret(Long userId, Long secretId) {
-		String deleteSql = "DELETE FROM " + TABLE_OTP_SECRET + " WHERE " 
-			+ COL_OTP_SECRET_PRINCIPAL_ID + "=? AND "
-			+ COL_OTP_SECRET_ID + "<>?";
-		
-		jdbcTemplate.update(deleteSql, userId, secretId);
-		
 		String updateSql = "UPDATE " + TABLE_OTP_SECRET + " SET " 
 			+ COL_OTP_SECRET_ACTIVE + "=TRUE,"
-			+ COL_OTP_SECRET_ETAG + "=UUID()"
-			+ " WHERE " + COL_OTP_SECRET_ID + "=?";
+			+ COL_OTP_SECRET_ETAG + "=UUID() WHERE "
+			+ COL_OTP_SECRET_PRINCIPAL_ID + "=? AND " 
+			+ COL_OTP_SECRET_ACTIVE + "=FALSE AND "
+			+ COL_OTP_SECRET_ID + "=?";
 
-		jdbcTemplate.update(updateSql, secretId);
+		try {
+			jdbcTemplate.update(updateSql, userId, secretId);
+		} catch (DuplicateKeyException e) {
+			throw new IllegalStateException("An active secret already exists", e);
+		}
 		
-		return getSecret(userId, secretId).get();
+		return getSecret(userId, secretId).orElseThrow(() -> new IllegalArgumentException("Invalid secret id"));
+	}
+	
+	@Override
+	@WriteTransaction
+	public void deleteSecret(Long userId, Long secretId) {
+		String deleteSql = "DELETE FROM " + TABLE_OTP_SECRET + " WHERE " 
+			+ COL_OTP_SECRET_PRINCIPAL_ID + "=? AND "
+			+ COL_OTP_SECRET_ID + "=?";
+		
+		if (jdbcTemplate.update(deleteSql, userId, secretId) == 0) {
+			throw new IllegalArgumentException("Invalid secret id");
+		};
+		
 	}
 
 	@Override
