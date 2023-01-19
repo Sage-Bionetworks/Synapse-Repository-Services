@@ -134,7 +134,7 @@ public class AESEncryptionUtils {
 		try {
 			byte[] cipherMessage = Base64.decodeBase64(encrypted);
 			
-			Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+			Cipher cipher = Cipher.getInstance(AES_GCM_NOPADDING_ALG);
 			// Uses the first 12 bytes for iv
 			AlgorithmParameterSpec gcmIv = new GCMParameterSpec(GCM_AUTH_TAG_LENGTH, cipherMessage, 0, GCM_IV_BYTES_COUNT);
 			cipher.init(Cipher.DECRYPT_MODE, decodeSecretKeyFromString(key), gcmIv);

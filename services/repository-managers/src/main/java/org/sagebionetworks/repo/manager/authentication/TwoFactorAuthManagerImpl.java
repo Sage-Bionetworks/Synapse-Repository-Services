@@ -65,7 +65,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 			.orElseThrow(() -> new UnauthorizedException("Invalid secret id"));
 		
 		if (secret.getActive()) {
-			throw new IllegalArgumentException("2FA is already enabled with this secret");
+			throw new IllegalArgumentException("Two factor authentication is already enabled with this secret");
 		}
 		
 		String encryptedSecret = secret.getSecret();
@@ -98,7 +98,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		assertValidUser(user);
 		
 		if (!otpDao.hasActiveSecret(user.getId())) {
-			throw new IllegalArgumentException("2FA is not enabled");
+			throw new IllegalArgumentException("Two factor authentication is not enabled");
 		}
 		
 		otpDao.deleteSecrets(user.getId());

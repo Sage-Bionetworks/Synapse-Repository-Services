@@ -1202,7 +1202,10 @@ public class UrlHelpers {
 	public static final String OAUTH_2_AUDIT_CLIENTS = OAUTH_2_AUDIT + "/grantedClients";
 	public static final String OAUTH_2_AUDIT_CLIENT_TOKENS = OAUTH_2_AUDIT_CLIENTS + "/{clientId}/tokens";
 	public static final String OAUTH_2_AUDIT_CLIENT_REVOKE = OAUTH_2_AUDIT_CLIENTS + "/{clientId}/revoke";
-
+	
+	// Endpoint for two factor authentication
+	public static final String TWO_FA = "/2fa";
+	public static final String TWO_FA_ENROLL = TWO_FA + "/enroll";
 
 	public static final String AUTH_LOGIN = "/login";
 	public static final String AUTH_LOGIN_2 = "/login2";

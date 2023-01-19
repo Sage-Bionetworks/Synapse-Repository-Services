@@ -200,7 +200,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 			manager.enable2Fa(user, request);
 		}).getMessage();
 		
-		assertEquals("2FA is already enabled with this secret", result);
+		assertEquals("Two factor authentication is already enabled with this secret", result);
 		
 		verify(mockOtpSecretDao).getSecret(user.getId(), 789L);
 		
@@ -345,7 +345,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 			manager.disable2Fa(user);
 		}).getMessage();
 		
-		assertEquals("2FA is not enabled", result);
+		assertEquals("Two factor authentication is not enabled", result);
 		
 		verify(mockOtpSecretDao).hasActiveSecret(user.getId());
 		verifyNoMoreInteractions(mockOtpSecretDao);

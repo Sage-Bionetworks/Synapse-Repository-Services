@@ -9,6 +9,9 @@ import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
+import org.sagebionetworks.repo.model.auth.TotpSecret;
+import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
@@ -124,5 +127,38 @@ public interface AuthenticationService {
 	 * @param tokenId
 	 */
 	public void revokePersonalAccessToken(Long userId, Long tokenId);
+	
+	/**
+	 * Enroll the user into 2FA. Generates a new inactive secret.
+	 * 
+	 * @param userId
+	 * @return A new totp secret
+	 */
+	TotpSecret enroll2Fa(Long userId);
+	
+	/**
+	 * Activates the secret specified in the request for 2FA
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return The 2FA status
+	 */
+	TwoFactorAuthStatus enable2Fa(Long userId, TotpSecretActivationRequest request);
+
+	/**
+	 * Fetch the 2FA status for the user
+	 * 
+	 * @param userId
+	 * @return The 2FA status
+	 */
+	TwoFactorAuthStatus get2FaStatus(Long userId);
+	
+	/**
+	 * Disables 2FA for the user
+	 * 
+	 * @param userId
+	 * @return The 2FA status
+	 */
+	void disable2Fa(Long userId);
 
 }

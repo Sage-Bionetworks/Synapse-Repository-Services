@@ -127,6 +127,8 @@
 		<url-pattern>/auth/v1/oauth2/consentcheck</url-pattern>
 		<url-pattern>/auth/v1/oauth2/userinfo</url-pattern>
 		<url-pattern>/auth/v1/oauth2/audit/*</url-pattern>
+		<url-pattern>/auth/v1/2fa</url-pattern>
+		<url-pattern>/auth/v1/2fa/*</url-pattern>
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>
 		<url-pattern>/ga4gh/drs/v1/*</url-pattern>

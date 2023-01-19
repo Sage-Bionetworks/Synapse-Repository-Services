@@ -99,6 +99,9 @@ import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
+import org.sagebionetworks.repo.model.auth.TotpSecret;
+import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -6148,5 +6151,25 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public AccessUrl getAccessUrl(final String objectId, final String accessId) throws SynapseException {
 		final String relativeURL = "/objects/" + objectId + "/access/" + accessId;
 		return getJSONEntity(getDrsEndpoint(), relativeURL, AccessUrl.class);
+	}
+
+	@Override
+	public TotpSecret init2Fa() throws SynapseException {
+		return postJSONEntity(getAuthEndpoint(), "/2fa/enroll", null, TotpSecret.class);
+	}
+
+	@Override
+	public TwoFactorAuthStatus enable2Fa(TotpSecretActivationRequest request) throws SynapseException {
+		return postJSONEntity(getAuthEndpoint(), "/2fa", request, TwoFactorAuthStatus.class);
+	}
+
+	@Override
+	public TwoFactorAuthStatus get2faStatus() throws SynapseException {
+		return getJSONEntity(getAuthEndpoint(), "/2fa", TwoFactorAuthStatus.class);
+	}
+
+	@Override
+	public void disable2fa() throws SynapseException {
+		deleteUri(getAuthEndpoint(), "/2fa");
 	}
 }

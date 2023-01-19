@@ -262,6 +262,11 @@
 			<artifactId>gwt-syncproxy</artifactId>
 			<version>0.3.1.sage</version>
 		</dependency>
+		
+		<dependency>
+		  <groupId>dev.samstevens.totp</groupId>
+		  <artifactId>totp</artifactId>
+		</dependency>
 
 	</dependencies>
 
