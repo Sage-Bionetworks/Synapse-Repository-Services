@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * APIs to manage two factor authentication (2FA) in Synapse.
  * </p
  * <p>
- * Synapse currently supports using authenticator applications that can generate a TOTP (https://en.wikipedia.org/wiki/Time-based_one-time_password) that is used as a second factor. 
+ * Synapse currently supports using authenticator applications that can generate a <a href="https://en.wikipedia.org/wiki/Time-based_one-time_password">TOTP</a> that is used as a second factor. 
  * </p>
  * <p>
  * To enable 2FA two requests are involved:
@@ -53,7 +53,7 @@ public class TwoFactorAuthController {
 	 * <p>
 	 * The response includes the base32 encoded secret that can be directly used in the authenticator application.
 	 * The client can generate a QR code for convenience so that the user can scan the secret instead.
-	 * The URL to embed in the QR code can follow this format: https://github.com/google/google-authenticator/wiki/Key-Uri-Format.
+	 * The URL to embed in the QR code can follow this format: <a href="https://github.com/google/google-authenticator/wiki/Key-Uri-Format">https://github.com/google/google-authenticator/wiki/Key-Uri-Format</a>.
 	 * </p>
 	 * <p>
 	 * For example: otpauth://totp/Synapse:alice@google.com?secret=secret&issuer=Synapse%20Prod&algorithm=SHA1&digits=6&period=30.
