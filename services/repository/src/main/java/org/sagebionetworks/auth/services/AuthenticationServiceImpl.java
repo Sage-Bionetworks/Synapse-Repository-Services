@@ -4,6 +4,7 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
+import org.sagebionetworks.repo.manager.authentication.TwoFactorAuthManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
@@ -21,6 +22,9 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
+import org.sagebionetworks.repo.model.auth.TotpSecret;
+import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
@@ -57,6 +61,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Autowired
 	private PersonalAccessTokenManager personalAccessTokenManager;
+	
+	@Autowired
+	private TwoFactorAuthManager twoFaManager;
 	
 	@WriteTransaction
 	@Override
@@ -226,6 +233,31 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	public void revokePersonalAccessToken(Long userId, Long tokenId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		personalAccessTokenManager.revokeToken(userInfo, tokenId.toString());
+	}
+
+	@Override
+	public TotpSecret enroll2Fa(Long userId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return twoFaManager.init2Fa(user);
+	}
+
+	@Override
+	public TwoFactorAuthStatus enable2Fa(Long userId, TotpSecretActivationRequest request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		twoFaManager.enable2Fa(user, request);
+		return twoFaManager.get2FaStatus(user);
+	}
+
+	@Override
+	public void disable2Fa(Long userId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		twoFaManager.disable2Fa(user);
+	}
+
+	@Override
+	public TwoFactorAuthStatus get2FaStatus(Long userId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return twoFaManager.get2FaStatus(user);
 	}
 
 }
