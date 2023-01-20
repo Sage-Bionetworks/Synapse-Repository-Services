@@ -36,6 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
 import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -59,6 +60,7 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
+import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -1827,6 +1829,60 @@ public class NodeManagerImplUnitTest {
 		verifyNoMoreInteractions(mockNodeDao);
 		verifyNoMoreInteractions(mockFileHandleDao);
 		verifyNoMoreInteractions(mockStsManager);
+	}
+	
+	@Test
+	public void testGetNodePathWithUserHasPermission() {
+		when(mockAuthManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.batchHasAccess(any(), any(), any())).thenReturn(List.of(new UsersEntityAccessInfo().withEntityId(123L).withAuthorizationStatus(AuthorizationStatus.authorized()),
+																					 new UsersEntityAccessInfo().withEntityId(124L).withAuthorizationStatus(AuthorizationStatus.authorized()),
+																					 new UsersEntityAccessInfo().withEntityId(125L).withAuthorizationStatus(AuthorizationStatus.authorized())));
+		when(mockNodeDao.getEntityPath(any())).thenReturn(List.of(new NameIdType().withName("root").withId("123").withType("foo"), 
+																  new NameIdType().withName("parent").withId("124").withType("bar"),
+																  new NameIdType().withName("child").withId("125").withType("baz")));
+		// Call under test
+		List<EntityHeader> entityHeaders = nodeManager.getNodePath(mockUserInfo, nodeId);
+		List<EntityHeader> expectedEntityHeaders = List.of(new EntityHeader().setName("root").setId("123").setType("foo"),
+														   new EntityHeader().setName("parent").setId("124").setType("bar"),
+														   new EntityHeader().setName("child").setId("125").setType("baz"));
+		
+		assertEquals(entityHeaders, expectedEntityHeaders);
+		verify(mockAuthManager).hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.READ);
+		verify(mockNodeDao).getEntityPath(nodeId);
+	}
+
+	@Test
+	public void testGetNodePathWithUserLacksPermission() {
+		when(mockAuthManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("ACCESS_DENIED"));
+
+		// Call under test
+		assertThrows(UnauthorizedException.class, () -> nodeManager.getNodePath(mockUserInfo, nodeId));
+		verify(mockAuthManager).hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.READ);
+		verify(mockNodeDao, never()).getEntityPath(nodeId);
+		verify(mockAuthManager, never()).batchHasAccess(any(), any(), any());
+	}
+
+	@Test
+	public void testGetNodePathWithUserLacksSomePermission() {
+		when(mockAuthManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.batchHasAccess(any(), any(), any())).thenReturn(List.of(new UsersEntityAccessInfo().withEntityId(123L).withAuthorizationStatus(AuthorizationStatus.authorized()),
+																					 new UsersEntityAccessInfo().withEntityId(124L).withAuthorizationStatus(AuthorizationStatus.accessDenied("ACCESS_DENIED")),
+																					 new UsersEntityAccessInfo().withEntityId(125L).withAuthorizationStatus(AuthorizationStatus.accessDenied("ACCESS_DENIED")),
+																					 new UsersEntityAccessInfo().withEntityId(126L).withAuthorizationStatus(AuthorizationStatus.authorized())));
+		when(mockNodeDao.getEntityPath(any())).thenReturn(List.of(new NameIdType().withName("root").withId("123").withType("foo"),
+																  new NameIdType().withName("grandparent").withId("124").withType("bar"),
+																  new NameIdType().withName("parent").withId("125").withType("baz"),
+																  new NameIdType().withName("child").withId("126").withType("qux")));
+		// Call under test
+		List<EntityHeader> entityHeaders = nodeManager.getNodePath(mockUserInfo, nodeId);
+		List<EntityHeader> expectedEntityHeaders = List.of(new EntityHeader().setName("root").setId("123").setType("foo"),
+														   new EntityHeader().setName(NodeManagerImpl.ENTITY_NAME_PERMISSION_DENIED).setId("124").setType("bar"),
+														   new EntityHeader().setName(NodeManagerImpl.ENTITY_NAME_PERMISSION_DENIED).setId("125").setType("baz"),
+														   new EntityHeader().setName("child").setId("126").setType("qux"));
+		
+		assertEquals(entityHeaders, expectedEntityHeaders);
+		verify(mockAuthManager).hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.READ);
+		verify(mockNodeDao).getEntityPath(nodeId);
 	}
 	
 }

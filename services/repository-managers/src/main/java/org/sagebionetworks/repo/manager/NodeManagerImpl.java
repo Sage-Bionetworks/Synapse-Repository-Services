@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -14,6 +15,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
 import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -69,9 +71,11 @@ public class NodeManagerImpl implements NodeManager {
 	static private Log log = LogFactory.getLog(NodeManagerImpl.class);	
 	
 	private static final Pattern INVALID_ALIAS_CHARACTERS = Pattern.compile("[^a-zA-Z0-9_]");
-	
+
 	public static final Long ROOT_ID = KeyFactory.stringToKey(StackConfigurationSingleton.singleton().getRootFolderEntityId());
 	public static final Long TRASH_ID = KeyFactory.stringToKey(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
+
+	public static final String ENTITY_NAME_PERMISSION_DENIED = "Redacted";
 
 	@Autowired
 	private NodeDAO nodeDao;
@@ -586,7 +590,20 @@ public class NodeManagerImpl implements NodeManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
 		authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return NameIdType.toEntityHeader(nodeDao.getEntityPath(nodeId));
+
+		List<EntityHeader> entityHeaders = NameIdType.toEntityHeader(nodeDao.getEntityPath(nodeId));
+		List<UsersEntityAccessInfo> userEntitysAccessInfo = authorizationManager.batchHasAccess(userInfo,
+				entityHeaders.stream().map((h) -> KeyFactory.stringToKey(h.getId())).collect(Collectors.toList()),
+				ACCESS_TYPE.READ);
+
+		for (EntityHeader entityHeader : entityHeaders) {
+			Optional<UsersEntityAccessInfo> entityAccessInfo = userEntitysAccessInfo.stream()
+					.filter(e -> e.getEntityId().equals(KeyFactory.stringToKey(entityHeader.getId()))).findAny();
+			if (entityAccessInfo.isPresent() && !entityAccessInfo.get().getAuthorizationStatus().isAuthorized()) {
+				entityHeader.setName(ENTITY_NAME_PERMISSION_DENIED);
+			}
+		}
+		return entityHeaders;
 	}
 
 	@Override
