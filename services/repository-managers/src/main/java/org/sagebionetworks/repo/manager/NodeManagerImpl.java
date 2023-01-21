@@ -599,7 +599,7 @@ public class NodeManagerImpl implements NodeManager {
 		for (EntityHeader entityHeader : entityHeaders) {
 			Optional<UsersEntityAccessInfo> entityAccessInfo = userEntitysAccessInfo.stream()
 					.filter(e -> e.getEntityId().equals(KeyFactory.stringToKey(entityHeader.getId()))).findAny();
-			if (entityAccessInfo.isPresent() && !entityAccessInfo.get().getAuthorizationStatus().isAuthorized()) {
+			if (!entityAccessInfo.isPresent() || !entityAccessInfo.get().getAuthorizationStatus().isAuthorized()) {
 				entityHeader.setName(ENTITY_NAME_PERMISSION_DENIED);
 			}
 		}
