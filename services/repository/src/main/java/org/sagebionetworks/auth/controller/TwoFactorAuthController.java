@@ -2,8 +2,10 @@ package org.sagebionetworks.auth.controller;
 
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.web.RequiredScope;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * <p>
@@ -106,6 +109,21 @@ public class TwoFactorAuthController {
 	@RequestMapping(value = UrlHelpers.TWO_FA, method = RequestMethod.DELETE)
 	public void disable(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
 		service.disable2Fa(userId);
+	}
+	
+	/**
+	 * Performs authentication using 2FA, the body of the request needs to include the twoFactorToken received as part of the error when authenticating 
+	 * and the totp code shown by the authenticator application.
+	 * 
+	 * @param request
+	 * @param uriComponentsBuilder
+	 * @return
+	 */
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TWO_FA_TOKEN, method = RequestMethod.POST)
+	public @ResponseBody LoginResponse login(@RequestBody TwoFactorAuthLoginRequest request, UriComponentsBuilder uriComponentsBuilder) {
+		return service.loginWith2Fa(request, EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 
 }
