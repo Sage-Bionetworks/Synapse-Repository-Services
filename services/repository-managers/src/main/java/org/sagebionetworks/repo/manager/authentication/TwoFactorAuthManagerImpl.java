@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.dbo.otp.DBOOtpSecret;
@@ -68,13 +69,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 			throw new IllegalArgumentException("Two factor authentication is already enabled with this secret");
 		}
 		
-		String encryptedSecret = secret.getSecret();
-		
-		String userEncryptionKey = getUserEncryptionKey(user); 
-		
-		String unencryptedSecret = AESEncryptionUtils.decryptWithAESGCM(encryptedSecret, userEncryptionKey);
-		
-		if (!totpMananger.isTotpValid(unencryptedSecret, request.getTotp())) {
+		if (!isTotpValid(user, secret, request.getTotp())) {
 			throw new IllegalArgumentException("Invalid totp code");
 		}
 		
@@ -104,9 +99,37 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		otpDao.deleteSecrets(user.getId());
 	}
 	
+	@Override
+	public boolean is2FaCodeValid(UserInfo user, TwoFactorAuthOtpType otpType, String otpCode) {
+		assertValidUser(user);
+		
+		ValidateArgument.required(otpType, "The otpType");
+		ValidateArgument.requiredNotBlank(otpCode, "The otpCode");
+		
+		DBOOtpSecret secret = otpDao.getActiveSecret(user.getId()).orElseThrow(() -> new IllegalArgumentException("Two factor authentication is not enabled"));
+		
+		switch (otpType) {
+		case TOTP:
+			return isTotpValid(user, secret, otpCode);
+		default:
+			throw new UnsupportedOperationException("2FA code type " + otpType + " not supported yet.");
+		}
+		
+	}
+	
+	boolean isTotpValid(UserInfo user, DBOOtpSecret secret, String otpCode) {
+		String encryptedSecret = secret.getSecret();
+		
+		String userEncryptionKey = getUserEncryptionKey(user); 
+		
+		String unencryptedSecret = AESEncryptionUtils.decryptWithAESGCM(encryptedSecret, userEncryptionKey);
+		
+		return totpMananger.isTotpValid(unencryptedSecret, otpCode);
+	}
+	
 	/**
 	 * @param user
-	 * @return User encription key derived from a password. Uses the user id as the salt. 
+	 * @return User encryption key derived from a password. Uses the user id as the salt. 
 	 */
 	String getUserEncryptionKey(UserInfo user) {
 		return AESEncryptionUtils.newSecretKeyFromPassword(config.getOtpSecretsPassword(), user.getId().toString());

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.authentication;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 
 public interface TwoFactorAuthManager {
@@ -29,11 +30,17 @@ public interface TwoFactorAuthManager {
 	 */
 	TwoFactorAuthStatus get2FaStatus(UserInfo user);
 	
-	
 	/**
 	 * Disables 2FA for the user
 	 * @param user
 	 */
 	void disable2Fa(UserInfo user);
+	
+	/**
+	 * @param user
+	 * @param otpCode
+	 * @return True if the given otp code is valid for the given user
+	 */
+	boolean is2FaCodeValid(UserInfo user, TwoFactorAuthOtpType otpType, String otpCode);
 	
 }
