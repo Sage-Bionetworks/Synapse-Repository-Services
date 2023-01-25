@@ -84,6 +84,7 @@ import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -4188,4 +4189,13 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void disable2fa() throws SynapseException;
+	
+	/**
+	 * Authenticates the user through 2FA
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request) throws SynapseException;
 }
