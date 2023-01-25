@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthErrorResponse;
 import org.sagebionetworks.repo.model.drs.DrsErrorResponse;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -44,6 +45,7 @@ import org.sagebionetworks.repo.web.OAuthForbiddenException;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.filter.ByteLimitExceededException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -123,7 +125,7 @@ public class BaseControllerExceptionHandlerAdvice {
 
 	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavailable, please try again later.";
 	private static Logger log = LogManager.getLogger(BaseControllerExceptionHandlerAdvice.class);
-
+	
 	/**
 	 * @param ex
 	 * @param request
@@ -1056,6 +1058,22 @@ public class BaseControllerExceptionHandlerAdvice {
 	BaseError handleOAuthClientNotVerifiedException(OAuthClientNotVerifiedException ex,
 														HttpServletRequest request){
 		return handleException(ex, request, true, ErrorResponseCode.OAUTH_CLIENT_NOT_VERIFIED);
+	}
+	
+	@ExceptionHandler(TwoFactorAuthRequiredException.class)
+	@ResponseStatus(HttpStatus.UNAUTHORIZED)
+	public @ResponseBody TwoFactorAuthErrorResponse handleTwoFactorAuthRequiredException(TwoFactorAuthRequiredException ex, HttpServletRequest request) {
+		// Let the existing exception handler deal with logging
+		handleException(ex, request, ex.getMessage(), false, ErrorResponseCode.TWO_FA_REQUIRED);
+		
+		TwoFactorAuthErrorResponse errorResponse = new TwoFactorAuthErrorResponse();
+		
+		errorResponse.setUserId(ex.getUserId());
+		errorResponse.setTwoFaToken(ex.getTwoFaToken());
+		errorResponse.setErrorCode(ErrorResponseCode.TWO_FA_REQUIRED);
+		errorResponse.setReason(ex.getMessage());
+		
+		return errorResponse;
 	}
 
 }

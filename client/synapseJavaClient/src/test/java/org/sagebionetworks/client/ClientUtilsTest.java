@@ -1,10 +1,31 @@
 package org.sagebionetworks.client;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.client.ClientUtils.CONCRETE_TYPE;
+import static org.sagebionetworks.client.ClientUtils.ERROR_REASON_TAG;
+import static org.sagebionetworks.client.Method.DELETE;
+import static org.sagebionetworks.client.Method.GET;
+import static org.sagebionetworks.client.Method.POST;
+import static org.sagebionetworks.client.Method.PUT;
+
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.apache.http.HttpHeaders;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
@@ -17,32 +38,13 @@ import org.sagebionetworks.client.exceptions.SynapseLockedException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
+import org.sagebionetworks.client.exceptions.SynapseTwoFactorAuthRequiredException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.ErrorResponseCode;
 import org.sagebionetworks.simpleHttpClient.Header;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
-
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.sagebionetworks.client.ClientUtils.CONCRETE_TYPE;
-import static org.sagebionetworks.client.ClientUtils.ERROR_REASON_TAG;
-import static org.sagebionetworks.client.Method.DELETE;
-import static org.sagebionetworks.client.Method.GET;
-import static org.sagebionetworks.client.Method.POST;
-import static org.sagebionetworks.client.Method.PUT;
 
 public class ClientUtilsTest {
 	@Mock
@@ -52,8 +54,8 @@ public class ClientUtilsTest {
 	@Mock
 	SimpleHttpClient mockClient;
 
-	@Before
-	public void before(){
+	@BeforeEach
+	public void before() {
 		MockitoAnnotations.initMocks(this);
 	}
 
@@ -66,14 +68,14 @@ public class ClientUtilsTest {
 	public void test100StatusCode() {
 		assertFalse(ClientUtils.is200sStatusCode(100));
 	}
-	
+
 	@Test
 	public void test300StatusCode() {
 		assertFalse(ClientUtils.is200sStatusCode(300));
 	}
 
 	@Test
-	public void testconvertResponseBodyToJSONAndThrowException_WithJSONResponse() throws Exception{
+	public void testconvertResponseBodyToJSONAndThrowExceptionWithJSONResponse() throws Exception {
 		JSONObject response = new JSONObject();
 		response.put(ERROR_REASON_TAG, "test");
 		response.put(CONCRETE_TYPE, "org.sagebionetworks.repo.model.ErrorResponse");
@@ -84,14 +86,14 @@ public class ClientUtilsTest {
 		try {
 			ClientUtils.convertResponseBodyToJSONAndThrowException(mockResponse);
 			fail();
-		}catch (SynapseUnauthorizedException e){
+		} catch (SynapseUnauthorizedException e) {
 			assertEquals("test", e.getMessage());
 			assertEquals(null, e.getErrorResponseCode());
 		}
 	}
 
 	@Test
-	public void testconvertResponseBodyToJSONAndThrowException_WithJSONResponseAndErrorCode() throws Exception{
+	public void testconvertResponseBodyToJSONAndThrowExceptionWithJSONResponseAndErrorCode() throws Exception {
 		JSONObject response = new JSONObject();
 		response.put(ERROR_REASON_TAG, "test");
 		response.put(CONCRETE_TYPE, "org.sagebionetworks.repo.model.ErrorResponse");
@@ -103,54 +105,70 @@ public class ClientUtilsTest {
 		try {
 			ClientUtils.convertResponseBodyToJSONAndThrowException(mockResponse);
 			fail();
-		}catch (SynapseUnauthorizedException e){
+		} catch (SynapseUnauthorizedException e) {
 			assertEquals("test", e.getMessage());
 			assertEquals(ErrorResponseCode.PASSWORD_RESET_VIA_EMAIL_REQUIRED, e.getErrorResponseCode());
 		}
 	}
 
-	@Test (expected = SynapseUnauthorizedException.class)
-	public void testThrowUnauthorizedException() throws Exception{
-		ClientUtils.throwException(401, "test");
-	}
-
-	@Test (expected = SynapseForbiddenException.class)
-	public void testThrowForbiddenException() throws Exception{
-		ClientUtils.throwException(403, "test");
-	}
-
-	@Test (expected = SynapseNotFoundException.class)
-	public void testThrowNotFoundException() throws Exception{
-		ClientUtils.throwException(404, "test");
-	}
-
-	@Test (expected = SynapseBadRequestException.class)
-	public void testThrowBadRequestException() throws Exception{
-		ClientUtils.throwException(400, "test");
-	}
-
-	@Test (expected = SynapseLockedException.class)
-	public void testThrowLockedException() throws Exception{
-		ClientUtils.throwException(423, "test");
-	}
-
-	@Test (expected = SynapseConflictingUpdateException.class)
-	public void testThrowConflictingUpdateException() throws Exception{
-		ClientUtils.throwException(412, "test");
-	}
-
-	@Test (expected = SynapseDeprecatedServiceException.class)
-	public void testThrowDeprecatedServiceException() throws Exception{
-		ClientUtils.throwException(410, "test");
-	}
-
-	@Test (expected = SynapseTooManyRequestsException.class)
-	public void testThrowTooManyRequestException() throws Exception{
-		ClientUtils.throwException(429, "test");
+	@Test
+	public void testThrowUnauthorizedException() throws Exception {
+		assertThrows(SynapseUnauthorizedException.class, () -> {
+			ClientUtils.throwException(401, "test");
+		});
 	}
 
 	@Test
-	public void testThrowServerException() throws Exception{
+	public void testThrowForbiddenException() throws Exception {
+		assertThrows(SynapseForbiddenException.class, () -> {
+			ClientUtils.throwException(403, "test");
+		});
+	}
+
+	@Test
+	public void testThrowNotFoundException() throws Exception {
+		assertThrows(SynapseNotFoundException.class, () -> {
+			ClientUtils.throwException(404, "test");
+		});
+	}
+
+	@Test
+	public void testThrowBadRequestException() throws Exception {
+		assertThrows(SynapseBadRequestException.class, () -> {
+			ClientUtils.throwException(400, "test");
+		});
+	}
+
+	@Test
+	public void testThrowLockedException() throws Exception {
+		assertThrows(SynapseLockedException.class, () -> {
+			ClientUtils.throwException(423, "test");
+		});
+	}
+
+	@Test
+	public void testThrowConflictingUpdateException() throws Exception {
+		assertThrows(SynapseConflictingUpdateException.class, () -> {
+			ClientUtils.throwException(412, "test");
+		});
+	}
+
+	@Test
+	public void testThrowDeprecatedServiceException() throws Exception {
+		assertThrows(SynapseDeprecatedServiceException.class, () -> {
+			ClientUtils.throwException(410, "test");
+		});
+	}
+
+	@Test
+	public void testThrowTooManyRequestException() throws Exception {
+		assertThrows(SynapseTooManyRequestsException.class, () -> {
+			ClientUtils.throwException(429, "test");
+		});
+	}
+
+	@Test
+	public void testThrowServerException() throws Exception {
 		try {
 			ClientUtils.throwException(500, "test");
 			fail("expect exception");
@@ -160,14 +178,13 @@ public class ClientUtilsTest {
 	}
 
 	@Test
-	public void testCheckStatusCodeAndThrowExceptionFor200() throws Exception{
+	public void testCheckStatusCodeAndThrowExceptionFor200() throws Exception {
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		ClientUtils.checkStatusCodeAndThrowException(mockResponse);
 	}
 
-
 	@Test
-	public void testCheckStatusCodeAndThrowExceptionFor400() throws Exception{
+	public void testCheckStatusCodeAndThrowExceptionFor400() throws Exception {
 		when(mockResponse.getStatusCode()).thenReturn(400);
 		when(mockResponse.getContent()).thenReturn("some reason");
 		try {
@@ -178,7 +195,7 @@ public class ClientUtilsTest {
 	}
 
 	@Test
-	public void testCheckStatusCodeAndThrowExceptionForTomcat404() throws Exception{
+	public void testCheckStatusCodeAndThrowExceptionForTomcat404() throws Exception {
 		when(mockResponse.getStatusCode()).thenReturn(404);
 		when(mockResponse.getContent()).thenReturn("some reason");
 		try {
@@ -189,7 +206,7 @@ public class ClientUtilsTest {
 	}
 
 	@Test
-	public void testCheckStatusCodeAndThrowException_JSONResponseContent() throws Exception{
+	public void testCheckStatusCodeAndThrowException() throws Exception {
 		final String content = "{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"some reason\",\"errorCode\":\"PASSWORD_RESET_VIA_EMAIL_REQUIRED\"}";
 		when(mockResponse.getStatusCode()).thenReturn(400);
 		when(mockResponse.getContent()).thenReturn(content);
@@ -202,18 +219,36 @@ public class ClientUtilsTest {
 	}
 
 	@Test
-	public void testCheckDrsErrorResponseAndThrowException_JSONResponseContent() {
-		final int httpStatus = 400;
-		final String reasonStr = "{\"concreteType\":\"org.sagebionetworks.repo.model.drs.DrsErrorResponse\",\"msg\":\"some msg\",\"status_code\":404}";
+	public void testCheckStatusCodeAndThrowExceptionWithTwoFactorAuthErrorResponse() throws Exception {
+		final String content = "{\"concreteType\":\"org.sagebionetworks.repo.model.auth.TwoFactorAuthErrorResponse\",\"reason\":\"some reason\",\"errorCode\":\"TWO_FA_REQUIRED\",\"userId\":\"123\",\"twoFaToken\":\"token\"}";
+
+		when(mockResponse.getStatusCode()).thenReturn(401);
+		when(mockResponse.getContent()).thenReturn(content);
+
 		try {
-			ClientUtils.throwException(httpStatus, reasonStr);
+			ClientUtils.checkStatusCodeAndThrowException(mockResponse);
+		} catch (SynapseTwoFactorAuthRequiredException e) {
+			assertEquals("some reason", e.getMessage());
+			assertEquals(ErrorResponseCode.TWO_FA_REQUIRED, e.getErrorResponseCode());
+			assertEquals(123L, e.getUserId());
+			assertEquals("token", e.getTwoFaToken());
+		}
+	}
+
+	@Test
+	public void testCheckStatusCodeAndThrowExceptionWithDrsErrorResponse() {
+		final String content = "{\"concreteType\":\"org.sagebionetworks.repo.model.drs.DrsErrorResponse\",\"msg\":\"some msg\",\"status_code\":404}";
+		when(mockResponse.getStatusCode()).thenReturn(401);
+		when(mockResponse.getContent()).thenReturn(content);
+		try {
+			ClientUtils.checkStatusCodeAndThrowException(mockResponse);
 		} catch (SynapseException e) {
 			assertEquals("some msg", e.getMessage());
 		}
 	}
 
 	@Test
-	public void testConvertResponseBodyToJSONAndThrowExceptionFor200() throws Exception{
+	public void testConvertResponseBodyToJSONAndThrowExceptionFor200() throws Exception {
 		when(mockResponse.getContent()).thenReturn("{\"reason\":\"some reason\"}");
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		JSONObject actual = ClientUtils.convertResponseBodyToJSONAndThrowException(mockResponse);
@@ -221,9 +256,8 @@ public class ClientUtilsTest {
 		assertEquals("some reason", actual.get("reason"));
 	}
 
-
 	@Test
-	public void testConvertResponseBodyToJSONAndThrowExceptionFor400() throws Exception{
+	public void testConvertResponseBodyToJSONAndThrowExceptionFor400() throws Exception {
 		final String content = "{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"some reason\"}";
 		when(mockResponse.getContent()).thenReturn(content);
 		when(mockResponse.getStatusCode()).thenReturn(400);
@@ -235,7 +269,7 @@ public class ClientUtilsTest {
 	}
 
 	@Test
-	public void testConvertResponseBodyToJSONAndThrowExceptionForNonJSONResponse() throws Exception{
+	public void testConvertResponseBodyToJSONAndThrowExceptionForNonJSONResponse() throws Exception {
 		when(mockResponse.getContent()).thenReturn("some reason");
 		when(mockResponse.getStatusCode()).thenReturn(404);
 		try {
@@ -245,11 +279,13 @@ public class ClientUtilsTest {
 		}
 	}
 
-	@Test (expected = SynapseClientException.class)
-	public void testConvertResponseBodyToJSONAndThrowExceptionForNonJSONResponse200() throws Exception{
+	@Test
+	public void testConvertResponseBodyToJSONAndThrowExceptionForNonJSONResponse200() throws Exception {
 		when(mockResponse.getContent()).thenReturn("some reason");
 		when(mockResponse.getStatusCode()).thenReturn(200);
-		ClientUtils.convertResponseBodyToJSONAndThrowException(mockResponse);
+		assertThrows(SynapseClientException.class, () -> {
+			ClientUtils.convertResponseBodyToJSONAndThrowException(mockResponse);
+		});
 	}
 
 	@Test
@@ -257,9 +293,11 @@ public class ClientUtilsTest {
 		assertNull(ClientUtils.convertStringToJSONObject(null));
 	}
 
-	@Test (expected = JSONException.class)
+	@Test
 	public void testConvertStringToJSONObjectWithWrongJSONFormat() throws Exception {
-		ClientUtils.convertStringToJSONObject("abc");
+		assertThrows(JSONException.class, () -> {
+			ClientUtils.convertStringToJSONObject("abc");
+		});
 	}
 
 	@Test
@@ -271,55 +309,61 @@ public class ClientUtilsTest {
 
 	@Test
 	public void testGetCharacterSetFromResponse() {
-		when(mockResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE))
-				.thenReturn(mockHeader);
+		when(mockResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE)).thenReturn(mockHeader);
 		when(mockHeader.getValue()).thenReturn("text/plain; charset=UTF-8");
-		assertEquals(Charset.forName("UTF-8"),
-				ClientUtils.getCharacterSetFromResponse(mockResponse));
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateRequestUrlWithNullEndpoint() throws Exception{
-		ClientUtils.createRequestUrl(null, "uri", null);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateRequestUrlWithNullURI() throws Exception{
-		ClientUtils.createRequestUrl("endpoint", null, null);
+		assertEquals(Charset.forName("UTF-8"), ClientUtils.getCharacterSetFromResponse(mockResponse));
 	}
 
 	@Test
-	public void testCreateRequestUrlWithNullParams() throws Exception{
-		assertEquals("http://synapse.org/uri",
-				ClientUtils.createRequestUrl("http://synapse.org", "/uri", null));
+	public void testCreateRequestUrlWithNullEndpoint() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			ClientUtils.createRequestUrl(null, "uri", null);
+		});
 	}
 
 	@Test
-	public void testCreateRequestUrlWithParams() throws Exception{
+	public void testCreateRequestUrlWithNullURI() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			ClientUtils.createRequestUrl("endpoint", null, null);
+		});
+	}
+
+	@Test
+	public void testCreateRequestUrlWithNullParams() throws Exception {
+		assertEquals("http://synapse.org/uri", ClientUtils.createRequestUrl("http://synapse.org", "/uri", null));
+	}
+
+	@Test
+	public void testCreateRequestUrlWithParams() throws Exception {
 		Map<String, String> params = new LinkedHashMap<String, String>();
 		params.put("limit", "1");
 		params.put("offset", "0");
-		assertEquals("http://synapse.org/uri?limit=1&offset=0",
-				ClientUtils.createRequestUrl("http://synapse.org", "/uri", params));
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testPerformRequestWithNullClient() throws Exception{
-		ClientUtils.performRequest(null, "requestUrl", GET, null, null);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testPerformRequestWithNullURL() throws Exception{
-		ClientUtils.performRequest(mockClient, null, GET, null, null);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testPerformRequestWithNullMethod() throws Exception{
-		ClientUtils.performRequest(mockClient, "requestUrl", null, null, null);
+		assertEquals("http://synapse.org/uri?limit=1&offset=0", ClientUtils.createRequestUrl("http://synapse.org", "/uri", params));
 	}
 
 	@Test
-	public void testPerformGETRequest() throws Exception{
+	public void testPerformRequestWithNullClient() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			ClientUtils.performRequest(null, "requestUrl", GET, null, null);
+		});
+	}
+
+	@Test
+	public void testPerformRequestWithNullURL() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			ClientUtils.performRequest(mockClient, null, GET, null, null);
+		});
+	}
+
+	@Test
+	public void testPerformRequestWithNullMethod() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			ClientUtils.performRequest(mockClient, "requestUrl", null, null, null);
+		});
+	}
+
+	@Test
+	public void testPerformGETRequest() throws Exception {
 		ClientUtils.performRequest(mockClient, "requestUrl", GET, null, null);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri("requestUrl");
@@ -327,10 +371,10 @@ public class ClientUtilsTest {
 	}
 
 	@Test
-	public void testPerformGETRequestWithHeaders() throws Exception{
+	public void testPerformGETRequestWithHeaders() throws Exception {
 		Map<String, String> headers = new HashMap<String, String>();
 		headers.put("Content-Type", "text/plain");
-		ClientUtils.performRequest(mockClient, "requestUrl", GET, null, headers );
+		ClientUtils.performRequest(mockClient, "requestUrl", GET, null, headers);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri("requestUrl");
 		request.setHeaders(headers);
@@ -338,7 +382,7 @@ public class ClientUtilsTest {
 	}
 
 	@Test
-	public void testPerformPOSTRequest() throws Exception{
+	public void testPerformPOSTRequest() throws Exception {
 		ClientUtils.performRequest(mockClient, "requestUrl", POST, null, null);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri("requestUrl");
@@ -346,7 +390,7 @@ public class ClientUtilsTest {
 	}
 
 	@Test
-	public void testPerformPOSTRequestWithRequestBody() throws Exception{
+	public void testPerformPOSTRequestWithRequestBody() throws Exception {
 		ClientUtils.performRequest(mockClient, "requestUrl", POST, "body", null);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri("requestUrl");
@@ -354,7 +398,7 @@ public class ClientUtilsTest {
 	}
 
 	@Test
-	public void testPerformPUTRequest() throws Exception{
+	public void testPerformPUTRequest() throws Exception {
 		ClientUtils.performRequest(mockClient, "requestUrl", PUT, null, null);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri("requestUrl");
@@ -362,7 +406,7 @@ public class ClientUtilsTest {
 	}
 
 	@Test
-	public void testPerformPUTRequestWithRequestBody() throws Exception{
+	public void testPerformPUTRequestWithRequestBody() throws Exception {
 		ClientUtils.performRequest(mockClient, "requestUrl", PUT, "body", null);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri("requestUrl");
@@ -370,7 +414,7 @@ public class ClientUtilsTest {
 	}
 
 	@Test
-	public void testPerformDELETERequest() throws Exception{
+	public void testPerformDELETERequest() throws Exception {
 		ClientUtils.performRequest(mockClient, "requestUrl", DELETE, null, null);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri("requestUrl");

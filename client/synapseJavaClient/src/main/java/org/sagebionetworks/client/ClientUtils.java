@@ -17,12 +17,14 @@ import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseLockedException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
+import org.sagebionetworks.client.exceptions.SynapseTwoFactorAuthRequiredException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BaseError;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.ErrorResponseCode;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthErrorResponse;
 import org.sagebionetworks.repo.model.drs.DrsErrorResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -81,7 +83,14 @@ public class ClientUtils {
 
 		try {
 			final BaseError baseError = EntityFactory.createEntityFromJSONString(reasonStr, BaseError.class);
-			if (baseError instanceof ErrorResponse) {
+			if (baseError instanceof TwoFactorAuthErrorResponse) {
+				final TwoFactorAuthErrorResponse errorResponse = (TwoFactorAuthErrorResponse) baseError;
+				errorMessage = errorResponse.getReason();
+				errorResponseCode = errorResponse.getErrorCode();
+				if (ErrorResponseCode.TWO_FA_REQUIRED == errorResponseCode) {
+					throw new SynapseTwoFactorAuthRequiredException(errorResponse);
+				}
+			} else if (baseError instanceof ErrorResponse) {
 				final ErrorResponse errorResponse =  (ErrorResponse) baseError;
 				errorMessage = errorResponse.getReason();
 				errorResponseCode = errorResponse.getErrorCode();
