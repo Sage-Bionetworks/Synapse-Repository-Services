@@ -53,15 +53,10 @@ public class AuthenticationReceiptTokenGeneratorImpl implements AuthenticationRe
 
 	@Override
 	public String createNewAuthenticationReciept(long principalId) {
-		return createNewAuthenticationReciept(principalId, TOKEN_EXPIRATION_MILLIS);
-	}
-	
-	@Override
-	public String createNewAuthenticationReciept(long principalId, long tokenExpirationMs) {
 		final long now = clock.currentTimeMillis();
 		AuthenticationReceiptToken token = new AuthenticationReceiptToken();
 		token.setUserId(principalId);
-		token.setExpiresOn(new Date(now + tokenExpirationMs));
+		token.setExpiresOn(new Date(now + TOKEN_EXPIRATION_MILLIS));
 		tokenGenerator.signToken(token);
 		try {
 			String tokenJson = EntityFactory.createJSONStringForEntity(token);

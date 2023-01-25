@@ -8,12 +8,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.util.Base64;
+import java.util.Date;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +30,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -33,10 +38,14 @@ import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.dbo.otp.DBOOtpSecret;
 import org.sagebionetworks.repo.model.dbo.otp.OtpSecretDao;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.AESEncryptionUtils;
+import org.sagebionetworks.util.Clock;
 
 @ExtendWith(MockitoExtension.class)
 public class TwoFactorAuthManagerImplUnitTest {
@@ -48,7 +57,13 @@ public class TwoFactorAuthManagerImplUnitTest {
 	private OtpSecretDao mockOtpSecretDao;
 	
 	@Mock
+	private TokenGenerator mockTokenGenerator;
+	
+	@Mock
 	private StackConfiguration mockConfig;
+	
+	@Mock
+	private Clock mockClock;
 	
 	@InjectMocks
 	@Spy
@@ -496,6 +511,124 @@ public class TwoFactorAuthManagerImplUnitTest {
 		
 		verify(manager).assertValidUser(user);
 		verifyZeroInteractions(mockOtpSecretDao);
+	}
+	
+	@Test
+	public void testGenerate2FaLoginToken() {
+		doNothing().when(manager).assertValidUser(any());
+		when(mockClock.now()).thenReturn(new Date(12345));
+		doNothing().when(mockTokenGenerator).signToken(any());
+		
+		TwoFactorAuthToken expected = new TwoFactorAuthToken()
+			.setUserId(user.getId())
+			.setCreatedOn(new Date(12345))
+			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
+				
+		// Call under test
+		String result = manager.generate2FaLoginToken(user);
+		
+		assertEquals(expected, decodeLoginToken(result));
+		
+		verify(mockClock).now();
+		verify(mockTokenGenerator).signToken(expected);
+	}
+	
+	@Test
+	public void testIs2FaLoginTokenValid() {
+		doNothing().when(manager).assertValidUser(any());
+		doNothing().when(mockTokenGenerator).validateToken(any());
+		
+		TwoFactorAuthToken token = new TwoFactorAuthToken()
+			.setUserId(user.getId())
+			.setCreatedOn(new Date(12345))
+			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
+		
+		boolean result = manager.is2FaLoginTokenValid(user, encodeToken(token));
+		
+		assertTrue(result);
+		
+		verify(mockTokenGenerator).validateToken(token);
+	}
+	
+	@Test
+	public void testIs2FaLoginTokenValidWithDifferentUser() {
+		doNothing().when(manager).assertValidUser(any());
+		
+		TwoFactorAuthToken token = new TwoFactorAuthToken()
+			.setUserId(4567L)
+			.setCreatedOn(new Date(12345))
+			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
+		
+		boolean result = manager.is2FaLoginTokenValid(user, encodeToken(token));
+		
+		assertFalse(result);
+		
+		verifyZeroInteractions(mockTokenGenerator);
+	}
+	
+	@Test
+	public void testIs2FaLoginTokenValidWithNoToken() {
+		doNothing().when(manager).assertValidUser(any());
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			manager.is2FaLoginTokenValid(user, null);
+		}).getMessage();
+
+		assertEquals("The token is required and must not be the empty string.", result);
+		
+		verifyZeroInteractions(mockTokenGenerator);
+	}
+	
+	@Test
+	public void testIs2FaLoginTokenValidWithUnauthorizedException() {
+		doNothing().when(manager).assertValidUser(any());
+		doThrow(UnauthorizedException.class).when(mockTokenGenerator).validateToken(any());
+		
+		TwoFactorAuthToken token = new TwoFactorAuthToken()
+			.setUserId(user.getId())
+			.setCreatedOn(new Date(12345))
+			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
+		
+		boolean result = manager.is2FaLoginTokenValid(user, encodeToken(token));
+		
+		assertFalse(result);
+		
+		verify(mockTokenGenerator).validateToken(token);
+	}
+	
+	@Test
+	public void testIs2FaLoginTokenValidWithIllegalArgException() {
+		doNothing().when(manager).assertValidUser(any());
+		doThrow(IllegalArgumentException.class).when(mockTokenGenerator).validateToken(any());
+		
+		TwoFactorAuthToken token = new TwoFactorAuthToken()
+			.setUserId(user.getId())
+			.setCreatedOn(new Date(12345))
+			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
+		
+		boolean result = manager.is2FaLoginTokenValid(user, encodeToken(token));
+		
+		assertFalse(result);
+		
+		verify(mockTokenGenerator).validateToken(token);
+	}
+	
+	private String encodeToken(TwoFactorAuthToken token) {
+		try {
+			String tokenJson = EntityFactory.createJSONStringForEntity(token);
+			return new String(Base64.getEncoder().encode(tokenJson.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+	
+	private TwoFactorAuthToken decodeLoginToken(String encodedToken) {
+		String decodedToken = new String(Base64.getDecoder().decode(encodedToken.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+		try {
+			return EntityFactory.createEntityFromJSONString(decodedToken, TwoFactorAuthToken.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalStateException(e);
+		}
 	}
 	
 }

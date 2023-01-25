@@ -38,8 +38,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	public static final long LOCK_TIMOUTE_SEC = 5*60;
 
 	public static final int MAX_CONCURRENT_LOCKS = 10;
-	
-	public static final long TWO_FA_TOKEN_EXPIRATION = 10 * 60 * 1000; // 10 minutes
 
 	public static final String ACCOUNT_LOCKED_MESSAGE = "This account has been locked. Reason: too many requests. Please try again in five minutes.";
 
@@ -221,9 +219,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	LoginResponse getLoginResponseAfterSuccessfulPasswordAuthentication(long principalId, String issuer, boolean verify2fa) {
 		
-		if (verify2fa && TwoFactorState.ENABLED.equals(twoFaManager.get2FaStatus(userManager.getUserInfo(principalId)).getStatus())) {
-			String twoFaToken = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId, TWO_FA_TOKEN_EXPIRATION);
-			throw new TwoFactorAuthRequiredException(principalId, twoFaToken);
+		if (verify2fa) {
+			UserInfo user = userManager.getUserInfo(principalId);
+			if (TwoFactorState.ENABLED.equals(twoFaManager.get2FaStatus(user).getStatus())) {
+				throw new TwoFactorAuthRequiredException(principalId, twoFaManager.generate2FaLoginToken(user));
+			}
 		}
 		
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
@@ -240,14 +240,15 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		ValidateArgument.required(request.getTwoFaToken(), "The twoFaToken");
 		ValidateArgument.required(request.getOtpCode(), "The otpCode");
 		
-		if (!authenticationReceiptTokenGenerator.isReceiptValid(request.getUserId(), request.getTwoFaToken())) {
+		UserInfo user = userManager.getUserInfo(request.getUserId());
+		
+		if (!twoFaManager.is2FaLoginTokenValid(user, request.getTwoFaToken())) {
 			throw new UnauthenticatedException("The provided 2fa token is invalid.");
 		}
 		
-
 		TwoFactorAuthOtpType otpType = request.getOtpType() == null ? TwoFactorAuthOtpType.TOTP : request.getOtpType();
 				
-		if (!twoFaManager.is2FaCodeValid(userManager.getUserInfo(request.getUserId()), otpType, request.getOtpCode())) {
+		if (!twoFaManager.is2FaCodeValid(user, otpType, request.getOtpCode())) {
 			throw new UnauthenticatedException("The provided code is invalid.");
 		}
 		

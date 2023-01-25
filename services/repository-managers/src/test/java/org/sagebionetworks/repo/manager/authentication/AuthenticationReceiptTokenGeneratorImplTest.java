@@ -73,25 +73,6 @@ public class AuthenticationReceiptTokenGeneratorImplTest {
 		assertEquals(token, decoded);
 		verify(mockTokenGenerator).signToken(token);
 	}
-	
-	@Test
-	public void testCreateNewAuthenticationRecieptWithCustomExpiration() {
-		when(mockClock.currentTimeMillis()).thenReturn(1L, 2L);
-		setupSignToken();
-		long principalId = 54321L;
-		long expirationMs = 10 * 1000;
-		token.setExpiresOn(new Date(1 + expirationMs));
-		
-		// call under test
-		String tokenString = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId, expirationMs);
-		
-		assertNotNull(tokenString);
-
-		AuthenticationReceiptToken decoded = decodeToken(tokenString);
-		
-		assertEquals(token, decoded);
-		verify(mockTokenGenerator).signToken(token);
-	}
 
 	@Test
 	public void testIsReceiptValid() {

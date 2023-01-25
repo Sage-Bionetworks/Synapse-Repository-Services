@@ -15,7 +15,5 @@ public interface AuthenticationReceiptTokenGenerator {
 	 * @return
 	 */
 	String createNewAuthenticationReciept(long principalId);
-	
-	String createNewAuthenticationReciept(long principalId, long tokenExpirationMs);
 
 }
