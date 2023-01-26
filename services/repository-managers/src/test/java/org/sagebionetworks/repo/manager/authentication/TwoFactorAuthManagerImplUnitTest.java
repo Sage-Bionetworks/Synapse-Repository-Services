@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.Base64;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -36,7 +37,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
-import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
@@ -45,6 +46,7 @@ import org.sagebionetworks.repo.model.dbo.otp.OtpSecretDao;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.AESEncryptionUtils;
+import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.Clock;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,6 +70,9 @@ public class TwoFactorAuthManagerImplUnitTest {
 	@InjectMocks
 	@Spy
 	private TwoFactorAuthManagerImpl manager;
+	
+	@Captor
+	private ArgumentCaptor<List<String>> stringListCaptor;
 	
 	private UserInfo user;
 	
@@ -435,76 +440,44 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 
 	@Test
-	public void testIs2FaOtpCodeValid() {
+	public void testValidate2FaTotpCode() {
 		doNothing().when(manager).assertValidUser(any());
-		when(mockOtpSecretDao.getActiveSecret(any())).thenReturn(Optional.of(dbSecret));
+		doReturn(dbSecret).when(manager).getActiveSecretOrThrow(any());
 		doReturn(true).when(manager).isTotpValid(any(), any(), any());
 		
 		// Call under test
-		boolean result = manager.is2FaCodeValid(user, TwoFactorAuthOtpType.TOTP, "12345");
+		boolean result = manager.validate2FaTotpCode(user, "12345");
 		
 		assertTrue(result);
 		
 		verify(manager).assertValidUser(user);
-		verify(mockOtpSecretDao).getActiveSecret(user.getId());
+		verify(manager).getActiveSecretOrThrow(user);
 		verify(manager).isTotpValid(user, dbSecret, "12345");
 	}
 	
 	@Test
-	public void testIs2FaOtpCodeWithUnsupportedOtpType() {
+	public void testValidate2FaTotpCodeWithInvalid() {
 		doNothing().when(manager).assertValidUser(any());
-		when(mockOtpSecretDao.getActiveSecret(any())).thenReturn(Optional.of(dbSecret));
-		
-		String result = assertThrows(UnsupportedOperationException.class, () -> {			
-			// Call under test
-			manager.is2FaCodeValid(user, TwoFactorAuthOtpType.RECOVERY_CODE, "12345");
-		}).getMessage();
-		
-		assertEquals("2FA code type RECOVERY_CODE not supported yet.", result);
-		
-		verify(manager).assertValidUser(user);
-		verify(mockOtpSecretDao).getActiveSecret(user.getId());
-	}
-	
-	@Test
-	public void testIs2FaOtpCodeValidWithInvalid() {
-		doNothing().when(manager).assertValidUser(any());
-		when(mockOtpSecretDao.getActiveSecret(any())).thenReturn(Optional.of(dbSecret));
+		doReturn(dbSecret).when(manager).getActiveSecretOrThrow(any());
 		doReturn(false).when(manager).isTotpValid(any(), any(), any());
 		
 		// Call under test
-		boolean result = manager.is2FaCodeValid(user, TwoFactorAuthOtpType.TOTP, "12345");
+		boolean result = manager.validate2FaTotpCode(user, "12345");
 		
 		assertFalse(result);
 		
 		verify(manager).assertValidUser(user);
-		verify(mockOtpSecretDao).getActiveSecret(user.getId());
+		verify(manager).getActiveSecretOrThrow(user);
 		verify(manager).isTotpValid(user, dbSecret, "12345");
 	}
 	
 	@Test
-	public void testIs2FaOtpCodeValidWith2FaDisabled() {
-		doNothing().when(manager).assertValidUser(any());
-		when(mockOtpSecretDao.getActiveSecret(any())).thenReturn(Optional.empty());
-		
-		String result = assertThrows(IllegalArgumentException.class, () -> { 			
-			// Call under test
-			manager.is2FaCodeValid(user, TwoFactorAuthOtpType.TOTP, "12345");
-		}).getMessage();
-		
-		assertEquals("Two factor authentication is not enabled", result);
-		
-		verify(manager).assertValidUser(user);
-		verify(mockOtpSecretDao).getActiveSecret(user.getId());
-	}
-	
-	@Test
-	public void testIs2FaOtpCodeValidWithNoCode() {
+	public void testValidate2FaTotpCodeWithNoCode() {
 		doNothing().when(manager).assertValidUser(any());
 		
 		String result = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			manager.is2FaCodeValid(user, TwoFactorAuthOtpType.TOTP, null);
+			manager.validate2FaTotpCode(user, null);
 		}).getMessage();
 
 		assertEquals("The otpCode is required and must not be the empty string.", result);
@@ -534,7 +507,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testIs2FaLoginTokenValid() {
+	public void testValidate2FaLoginToken() {
 		doNothing().when(manager).assertValidUser(any());
 		doNothing().when(mockTokenGenerator).validateToken(any());
 		
@@ -543,7 +516,8 @@ public class TwoFactorAuthManagerImplUnitTest {
 			.setCreatedOn(new Date(12345))
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 		
-		boolean result = manager.is2FaLoginTokenValid(user, encodeToken(token));
+		// Call under test
+		boolean result = manager.validate2FaLoginToken(user, encodeToken(token));
 		
 		assertTrue(result);
 		
@@ -551,7 +525,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testIs2FaLoginTokenValidWithDifferentUser() {
+	public void testValidate2FaLoginTokenWithDifferentUser() {
 		doNothing().when(manager).assertValidUser(any());
 		
 		TwoFactorAuthToken token = new TwoFactorAuthToken()
@@ -559,7 +533,8 @@ public class TwoFactorAuthManagerImplUnitTest {
 			.setCreatedOn(new Date(12345))
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 		
-		boolean result = manager.is2FaLoginTokenValid(user, encodeToken(token));
+		// Call under test
+		boolean result = manager.validate2FaLoginToken(user, encodeToken(token));
 		
 		assertFalse(result);
 		
@@ -567,11 +542,12 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testIs2FaLoginTokenValidWithNoToken() {
+	public void testValidate2FaLoginTokenWithNoToken() {
 		doNothing().when(manager).assertValidUser(any());
 		
-		String result = assertThrows(IllegalArgumentException.class, () -> {			
-			manager.is2FaLoginTokenValid(user, null);
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.validate2FaLoginToken(user, null);
 		}).getMessage();
 
 		assertEquals("The token is required and must not be the empty string.", result);
@@ -580,7 +556,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testIs2FaLoginTokenValidWithUnauthorizedException() {
+	public void testValidate2FaLoginTokenWithUnauthorizedException() {
 		doNothing().when(manager).assertValidUser(any());
 		doThrow(UnauthorizedException.class).when(mockTokenGenerator).validateToken(any());
 		
@@ -589,15 +565,16 @@ public class TwoFactorAuthManagerImplUnitTest {
 			.setCreatedOn(new Date(12345))
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 		
-		boolean result = manager.is2FaLoginTokenValid(user, encodeToken(token));
+		// Call under test
+		boolean result = manager.validate2FaLoginToken(user, encodeToken(token));
 		
 		assertFalse(result);
 		
 		verify(mockTokenGenerator).validateToken(token);
 	}
-	
+
 	@Test
-	public void testIs2FaLoginTokenValidWithIllegalArgException() {
+	public void testValidate2FaLoginTokenWithIllegalArgException() {
 		doNothing().when(manager).assertValidUser(any());
 		doThrow(IllegalArgumentException.class).when(mockTokenGenerator).validateToken(any());
 		
@@ -606,11 +583,137 @@ public class TwoFactorAuthManagerImplUnitTest {
 			.setCreatedOn(new Date(12345))
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 		
-		boolean result = manager.is2FaLoginTokenValid(user, encodeToken(token));
+		// Call under test
+		boolean result = manager.validate2FaLoginToken(user, encodeToken(token));
 		
 		assertFalse(result);
 		
 		verify(mockTokenGenerator).validateToken(token);
+	}
+	
+	@Test
+	public void testGetActiveSecretOrThrow() {
+		when(mockOtpSecretDao.getActiveSecret(any())).thenReturn(Optional.of(dbSecret));
+		
+		// Call under test
+		DBOOtpSecret result = manager.getActiveSecretOrThrow(user);
+		
+		assertEquals(dbSecret, result);
+		
+		verify(mockOtpSecretDao).getActiveSecret(user.getId());
+	}
+	
+	@Test
+	public void testGetActiveSecretOrThrowWith2FaDisabled() {
+		when(mockOtpSecretDao.getActiveSecret(any())).thenReturn(Optional.empty());
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.getActiveSecretOrThrow(user);
+		}).getMessage();
+		
+		assertEquals("Two factor authentication is not enabled", result);
+		
+		verify(mockOtpSecretDao).getActiveSecret(user.getId());
+	}
+	
+	@Test
+	public void testGenerateRecoveryCodes() {
+		doNothing().when(manager).assertValidUser(any());
+		doReturn(dbSecret).when(manager).getActiveSecretOrThrow(any());
+		
+		List<String> recoveryCodes = List.of("one", "two");
+		
+		when(mockTotpManager.generateRecoveryCodes()).thenReturn(recoveryCodes);
+		
+		TwoFactorAuthRecoveryCodes expected = new TwoFactorAuthRecoveryCodes().setCodes(recoveryCodes);
+		
+		// Call under test
+		TwoFactorAuthRecoveryCodes result = manager.generate2FaRecoveryCodes(user);
+		
+		assertEquals(expected, result);
+		
+		verify(manager).assertValidUser(user);
+		verify(manager).getActiveSecretOrThrow(user);
+		verify(mockTotpManager).generateRecoveryCodes();
+		verify(mockOtpSecretDao).deleteRecoveryCodes(dbSecret.getId());
+		verify(mockOtpSecretDao).storeRecoveryCodes(eq(dbSecret.getId()), stringListCaptor.capture());
+		
+		List<String> storedCodes = stringListCaptor.getValue();
+		
+		for (int i=0; i<recoveryCodes.size(); i++) {
+			String storedCode = storedCodes.get(i);
+			String actualCode = recoveryCodes.get(i);
+			byte[] salt = PBKDF2Utils.extractSalt(storedCode);
+			assertEquals(PBKDF2Utils.hashPassword(actualCode, salt), storedCode);
+		}
+		
+		verify(mockOtpSecretDao).touchSecret(dbSecret.getId());
+	}
+	
+	@Test
+	public void testValidate2FaRecoveryCode() {
+		String recoveryCode = "someCode";
+		String recoveryCodeHash = PBKDF2Utils.hashPassword(recoveryCode, null);
+		
+		doNothing().when(manager).assertValidUser(any());
+		doReturn(dbSecret).when(manager).getActiveSecretOrThrow(any());
+		when(mockOtpSecretDao.getRecoveryCodes(any())).thenReturn(List.of(PBKDF2Utils.hashPassword("anotherCode", null), recoveryCodeHash));
+		when(mockOtpSecretDao.deleteRecoveryCode(any(), any())).thenReturn(true);
+		
+		// Call under test
+		boolean result = manager.validate2FaRecoveryCode(user, recoveryCode);
+		
+		assertTrue(result);
+		
+		verify(manager).assertValidUser(user);
+		verify(manager).getActiveSecretOrThrow(user);
+		verify(mockOtpSecretDao).getRecoveryCodes(dbSecret.getId());
+		verify(mockOtpSecretDao).deleteRecoveryCode(dbSecret.getId(), recoveryCodeHash);
+		verify(mockOtpSecretDao).touchSecret(dbSecret.getId());
+		verifyNoMoreInteractions(mockOtpSecretDao);
+	}
+	
+	@Test
+	public void testValidate2FaRecoveryCodeWithNoMatch() {
+		String recoveryCode = "someCode";
+
+		doNothing().when(manager).assertValidUser(any());
+		doReturn(dbSecret).when(manager).getActiveSecretOrThrow(any());
+		when(mockOtpSecretDao.getRecoveryCodes(any())).thenReturn(List.of(PBKDF2Utils.hashPassword("anotherCode", null), PBKDF2Utils.hashPassword("yetAnother", null)));
+				
+		// Call under test
+		boolean result = manager.validate2FaRecoveryCode(user, recoveryCode);
+		
+		assertFalse(result);
+		
+		verify(manager).assertValidUser(user);
+		verify(manager).getActiveSecretOrThrow(user);
+		verify(mockOtpSecretDao).getRecoveryCodes(dbSecret.getId());
+		verifyNoMoreInteractions(mockOtpSecretDao);
+	}
+	
+	@Test
+	public void testValidate2FaRecoveryCodeWithMatchAndDeleted() {
+		String recoveryCode = "someCode";
+		String recoveryCodeHash = PBKDF2Utils.hashPassword(recoveryCode, null);
+		
+		doNothing().when(manager).assertValidUser(any());
+		doReturn(dbSecret).when(manager).getActiveSecretOrThrow(any());
+		when(mockOtpSecretDao.getRecoveryCodes(any())).thenReturn(List.of(PBKDF2Utils.hashPassword("anotherCode", null), recoveryCodeHash));
+		// Race condition, might have been consumed already
+		when(mockOtpSecretDao.deleteRecoveryCode(any(), any())).thenReturn(false);
+				
+		// Call under test
+		boolean result = manager.validate2FaRecoveryCode(user, recoveryCode);
+		
+		assertFalse(result);
+		
+		verify(manager).assertValidUser(user);
+		verify(manager).getActiveSecretOrThrow(user);
+		verify(mockOtpSecretDao).getRecoveryCodes(dbSecret.getId());
+		verify(mockOtpSecretDao).deleteRecoveryCode(dbSecret.getId(), recoveryCodeHash);
+		verifyNoMoreInteractions(mockOtpSecretDao);
 	}
 	
 	private String encodeToken(TwoFactorAuthToken token) {

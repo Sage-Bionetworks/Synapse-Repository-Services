@@ -1,0 +1,11 @@
+{
+	"description": "A list of recovery codes that can be used as a backup in place of TOTPs when performing two factor authentication",
+	"properties": {
+		"codes": {
+			"type": "array",
+			"items":{
+				"type":"string"
+			}
+		}
+	}
+}

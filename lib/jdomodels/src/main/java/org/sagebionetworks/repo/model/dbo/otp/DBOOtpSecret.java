@@ -156,7 +156,7 @@ public class DBOOtpSecret implements MigratableDatabaseObject<DBOOtpSecret, DBOO
 
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
-		return null;
+		return List.of(new DBOOtpRecoveryCode());
 	}
 
 	@Override

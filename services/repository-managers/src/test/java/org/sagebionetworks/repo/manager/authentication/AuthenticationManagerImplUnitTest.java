@@ -612,10 +612,10 @@ public class AuthenticationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testLoginWith2Fa() {
+	public void testLoginWith2FaWithTotpCode() {
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
-		when(mock2FaManager.is2FaLoginTokenValid(any(), any())).thenReturn(true);
-		when(mock2FaManager.is2FaCodeValid(any(), any(), any())).thenReturn(true);
+		when(mock2FaManager.validate2FaLoginToken(any(), any())).thenReturn(true);
+		when(mock2FaManager.validate2FaTotpCode(any(), any())).thenReturn(true);
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(anyLong())).thenReturn("authReceipt");
 		when(mockOIDCTokenHelper.createClientTotalAccessToken(any(), any())).thenReturn(synapseAccessToken);
 		when(mockAuthDAO.hasUserAcceptedToU(anyLong())).thenReturn(true);
@@ -639,8 +639,44 @@ public class AuthenticationManagerImplUnitTest {
 		assertEquals(expected, result);
 		
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mock2FaManager).is2FaLoginTokenValid(userInfo, "2faToken");
-		verify(mock2FaManager).is2FaCodeValid(userInfo, TwoFactorAuthOtpType.TOTP, "123456");
+		verify(mock2FaManager).validate2FaLoginToken(userInfo, "2faToken");
+		verify(mock2FaManager).validate2FaTotpCode(userInfo, "123456");
+		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
+		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer);
+		verify(mockAuthDAO).hasUserAcceptedToU(userId);
+		verifyNoMoreInteractions(mock2FaManager);
+	}
+	
+	@Test
+	public void testLoginWith2FaWithRecoveryCode() {
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mock2FaManager.validate2FaLoginToken(any(), any())).thenReturn(true);
+		when(mock2FaManager.validate2FaRecoveryCode(any(), any())).thenReturn(true);
+		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(anyLong())).thenReturn("authReceipt");
+		when(mockOIDCTokenHelper.createClientTotalAccessToken(any(), any())).thenReturn(synapseAccessToken);
+		when(mockAuthDAO.hasUserAcceptedToU(anyLong())).thenReturn(true);
+		when(mockClock.now()).thenReturn(new Date(12345L));
+		
+		LoginResponse expected = new LoginResponse();
+		
+		expected.setAcceptsTermsOfUse(true);
+		expected.setAccessToken(synapseAccessToken);
+		expected.setAuthenticationReceipt("authReceipt");
+		
+		TwoFactorAuthLoginRequest loginRequest = new TwoFactorAuthLoginRequest()
+			.setUserId(userId)
+			.setOtpType(TwoFactorAuthOtpType.RECOVERY_CODE)
+			.setOtpCode("123456")
+			.setTwoFaToken("2faToken");
+		
+		// Call under test
+		LoginResponse result = authManager.loginWith2Fa(loginRequest, issuer);
+		
+		assertEquals(expected, result);
+		
+		verify(mockUserManager).getUserInfo(userId);
+		verify(mock2FaManager).validate2FaLoginToken(userInfo, "2faToken");
+		verify(mock2FaManager).validate2FaRecoveryCode(userInfo, "123456");
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
 		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer);
 		verify(mockAuthDAO).hasUserAcceptedToU(userId);
@@ -650,8 +686,8 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testLoginWith2FaWithNoOtpType() {
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
-		when(mock2FaManager.is2FaLoginTokenValid(any(), any())).thenReturn(true);
-		when(mock2FaManager.is2FaCodeValid(any(), any(), any())).thenReturn(true);
+		when(mock2FaManager.validate2FaLoginToken(any(), any())).thenReturn(true);
+		when(mock2FaManager.validate2FaTotpCode(any(), any())).thenReturn(true);
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(anyLong())).thenReturn("authReceipt");
 		when(mockOIDCTokenHelper.createClientTotalAccessToken(any(), any())).thenReturn(synapseAccessToken);
 		when(mockAuthDAO.hasUserAcceptedToU(anyLong())).thenReturn(true);
@@ -675,8 +711,8 @@ public class AuthenticationManagerImplUnitTest {
 		assertEquals(expected, result);
 		
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mock2FaManager).is2FaLoginTokenValid(userInfo, "2faToken");
-		verify(mock2FaManager).is2FaCodeValid(userInfo, TwoFactorAuthOtpType.TOTP, "123456");
+		verify(mock2FaManager).validate2FaLoginToken(userInfo, "2faToken");
+		verify(mock2FaManager).validate2FaTotpCode(userInfo, "123456");
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
 		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer);
 		verify(mockAuthDAO).hasUserAcceptedToU(userId);
@@ -686,7 +722,7 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testLoginWith2FaWithInvalidToken() {
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
-		when(mock2FaManager.is2FaLoginTokenValid(any(), any())).thenReturn(false);
+		when(mock2FaManager.validate2FaLoginToken(any(), any())).thenReturn(false);
 				
 		TwoFactorAuthLoginRequest loginRequest = new TwoFactorAuthLoginRequest()
 			.setUserId(userId)
@@ -701,15 +737,15 @@ public class AuthenticationManagerImplUnitTest {
 		assertEquals("The provided 2fa token is invalid.", result);
 		
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mock2FaManager).is2FaLoginTokenValid(userInfo, "2faToken");
+		verify(mock2FaManager).validate2FaLoginToken(userInfo, "2faToken");
 		verifyNoMoreInteractions(mockUserManager, mock2FaManager, mockReceiptTokenGenerator, mockOIDCTokenHelper, mockAuthDAO);
 	}
 	
 	@Test
 	public void testLoginWith2FaWithInvalidCode() {
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
-		when(mock2FaManager.is2FaLoginTokenValid(any(), any())).thenReturn(true);
-		when(mock2FaManager.is2FaCodeValid(any(), any(), any())).thenReturn(false);
+		when(mock2FaManager.validate2FaLoginToken(any(), any())).thenReturn(true);
+		when(mock2FaManager.validate2FaTotpCode(any(), any())).thenReturn(false);
 		
 		TwoFactorAuthLoginRequest loginRequest = new TwoFactorAuthLoginRequest()
 			.setUserId(userId)
@@ -725,8 +761,8 @@ public class AuthenticationManagerImplUnitTest {
 		assertEquals("The provided code is invalid.", result);
 		
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mock2FaManager).is2FaLoginTokenValid(userInfo, "2faToken");
-		verify(mock2FaManager).is2FaCodeValid(userInfo, TwoFactorAuthOtpType.TOTP, "123456");
+		verify(mock2FaManager).validate2FaLoginToken(userInfo, "2faToken");
+		verify(mock2FaManager).validate2FaTotpCode(userInfo, "123456");
 		verifyNoMoreInteractions(mockUserManager, mock2FaManager, mockReceiptTokenGenerator, mockOIDCTokenHelper, mockAuthDAO);
 	}
 	

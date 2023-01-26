@@ -172,8 +172,9 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOMaterializedViewId" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOMaterializedViewSourceTable" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalOIDCBinding"/>
+				<!-- 2FA tables -->
 				<bean class="org.sagebionetworks.repo.model.dbo.otp.DBOOtpSecret"/>
-				
+				<bean class="org.sagebionetworks.repo.model.dbo.otp.DBOOtpRecoveryCode"/>				
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -299,6 +300,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOMaterializedViewId" />
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalOIDCBinding"/>
+				
+				<!-- 2FA tables -->
 				<bean class="org.sagebionetworks.repo.model.dbo.otp.DBOOtpSecret"/>
 						
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->

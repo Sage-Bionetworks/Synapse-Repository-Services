@@ -52,9 +52,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import dev.samstevens.totp.code.CodeGenerator;
-import dev.samstevens.totp.code.CodeVerifier;
 import dev.samstevens.totp.code.DefaultCodeGenerator;
 import dev.samstevens.totp.code.DefaultCodeVerifier;
+import dev.samstevens.totp.recovery.RecoveryCodeGenerator;
 import dev.samstevens.totp.secret.DefaultSecretGenerator;
 import dev.samstevens.totp.secret.SecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
@@ -223,7 +223,9 @@ public class RepositoryConfiguration {
 		DefaultCodeVerifier codeVerifier = new DefaultCodeVerifier(codeGenerator, timeProvider);
 		codeVerifier.setTimePeriod(TotpManager.PERIOD);
 		
-		return new TotpManager(secretGenerator, codeVerifier);
+		RecoveryCodeGenerator recoveryCodesGenerator = new RecoveryCodeGenerator();
+		
+		return new TotpManager(secretGenerator, codeVerifier, recoveryCodesGenerator);
 	}
 	
 }
