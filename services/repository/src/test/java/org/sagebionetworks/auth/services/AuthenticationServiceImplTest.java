@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
@@ -160,7 +159,7 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 		
-		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any(), anyBoolean())).thenReturn(authMgrLoginResponse);
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
 		
 		//call under test
 		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
@@ -170,7 +169,7 @@ public class AuthenticationServiceImplTest {
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
 		verify(mockUserManager).lookupUserIdByOIDCSubject(request.getProvider(), info.getSubject());
 		verifyNoMoreInteractions(mockUserManager);
-		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER, true);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
 	}
 	
 	@Test
@@ -193,7 +192,7 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 
-		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any(), anyBoolean())).thenReturn(authMgrLoginResponse);
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
 		
 		//call under test
 		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
@@ -204,7 +203,7 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).lookupUserIdByOIDCSubject(request.getProvider(), info.getSubject());
 		verify(mockUserManager).lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail());
 		verify(mockUserManager).bindUserToOIDCSubject(alias.getPrincipalId(), request.getProvider(), info.getSubject());
-		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER, true);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
 	}
 	
 	@Test
@@ -227,7 +226,7 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 		
-		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any(), anyBoolean())).thenReturn(authMgrLoginResponse);
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
 		
 		//call under test
 		LoginResponse result = service.createAccountViaOauth(request, ISSUER);
@@ -243,7 +242,7 @@ public class AuthenticationServiceImplTest {
 		
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
 		verify(mockUserManager).createUser(expectedUser);
-		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER, false);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
 	}
 	
 	@Test

@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
 
 
 public interface AuthenticationManager {	
@@ -48,40 +49,40 @@ public interface AuthenticationManager {
 	void setTermsOfUseAcceptance(Long principalId, Boolean acceptance);
 
 	/**
-	 * Log user in using information from the LoginRequest
-	 * 
-	 * @param request
-	 * @param tokenIssuer
-	 * @return
-	 */
-	LoginResponse login(LoginRequest request, String tokenIssuer);
-	
-	/**
 	 * Get the date/time the user was last logged in
 	 * 
 	 * @param userInfo
 	 * @return
 	 */
 	AuthenticatedOn getAuthenticatedOn(UserInfo userInfo);
+
+	/**
+	 * Log user in using information from the LoginRequest, if the user has 2FA enabled TwoFactorAuthRequiredException is thrown.
+	 * 
+	 * @param request
+	 * @param tokenIssuer
+	 * @return
+	 * @throws TwoFactorAuthRequiredException If the user has 2FA enabled
+	 */
+	LoginResponse login(LoginRequest request, String tokenIssuer);
 	
 	/**
-	 * Bypass password check and just create a login response for the user.
+	 * Bypass password check and just create a login response for the user, if the user has 2FA enabled TwoFactorAuthRequiredException is thrown.
 	 * 
 	 * @param principalId
 	 * @param tokenIssuer
-	 * @param verify2fa True if it should check for the 2fa requirement
 	 * @return
+	 * @throws TwoFactorAuthRequiredException If the user has 2FA enabled
 	 */
-	LoginResponse loginWithNoPasswordCheck(long principalId, String tokenIssuer, boolean verify2fa);
+	LoginResponse loginWithNoPasswordCheck(long principalId, String tokenIssuer);
 	
 	/**
-	 * Performs the login through 2FA
+	 * Performs the login through 2FA, the request can be built out of the TwoFactorAuthRequiredException and an otp code
 	 * 
 	 * @param request
 	 * @param issuer
 	 * @return
 	 */
 	LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request, String issuer);
-	
 	
 }

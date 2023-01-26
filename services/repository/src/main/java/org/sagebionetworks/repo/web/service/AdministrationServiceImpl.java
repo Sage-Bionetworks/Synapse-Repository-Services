@@ -189,9 +189,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 					.setState(VerificationStateEnum.APPROVED));
 		}
 		
-		boolean verify2Fa = false;
-		
-		return authManager.loginWithNoPasswordCheck(createdUser.getId(), null, verify2Fa);
+		return authManager.loginWithNoPasswordCheck(createdUser.getId(), null);
 	}
 	
 	@Override
@@ -248,10 +246,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	public LoginResponse getUserAccessToken(Long userId, Long targetUserId) {
 		ValidateArgument.required(targetUserId, "The targetUserId");
 		adminCheck(userId);
-		
-		boolean verify2Fa = false;
-		
-		return authManager.loginWithNoPasswordCheck(targetUserId, null, verify2Fa);
+		return authManager.loginWithNoPasswordCheck(targetUserId, null);
 	}
 
 }

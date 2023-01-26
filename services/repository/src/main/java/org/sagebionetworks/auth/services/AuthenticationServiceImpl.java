@@ -144,9 +144,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			return alias.getPrincipalId();
 		});
 		
-		boolean verify2Fa = true;
 		// Return the user's access token
-		return authManager.loginWithNoPasswordCheck(principalId, tokenIssuer, verify2Fa);
+		return authManager.loginWithNoPasswordCheck(principalId, tokenIssuer);
 	}
 	
 	@WriteTransaction
@@ -175,8 +174,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		long newPrincipalId = userManager.createUser(newUser);
 
-		boolean verify2Fa = false;
-		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer, verify2Fa);
+		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer);
 
 	}
 	

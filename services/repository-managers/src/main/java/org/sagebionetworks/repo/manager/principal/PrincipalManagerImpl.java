@@ -142,8 +142,7 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 		long newPrincipalId = userManager.createUser(newUser);
 		
 		authManager.setPassword(newPrincipalId, accountSetupInfo.getPassword());
-		boolean verify2Fa = false;
-		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer, verify2Fa);
+		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer);
 	}
 
 	@Override

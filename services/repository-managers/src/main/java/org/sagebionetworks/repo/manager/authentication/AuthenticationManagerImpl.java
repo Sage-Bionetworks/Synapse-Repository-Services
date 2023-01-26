@@ -170,10 +170,41 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		final String authenticationReceipt = request.getAuthenticationReceipt();
 
 		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
-
-		boolean verify2fa = true;
 		
-		return getLoginResponseAfterSuccessfulPasswordAuthentication(userId, tokenIssuer, verify2fa);
+		return loginWithNoPasswordCheck(userId, tokenIssuer);
+	}
+
+	@Override
+	public LoginResponse loginWithNoPasswordCheck(long principalId, String issuer) {
+		UserInfo user = userManager.getUserInfo(principalId);
+		
+		if (TwoFactorState.ENABLED.equals(twoFaManager.get2FaStatus(user).getStatus())) {
+			throw new TwoFactorAuthRequiredException(principalId, twoFaManager.generate2FaLoginToken(user));
+		}
+		
+		return getLoginResponseAfterSuccessfulAuthentication(principalId, issuer);
+	}
+	
+	@Override
+	public LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request, String issuer) {
+		ValidateArgument.required(request, "The loginRequest");
+		ValidateArgument.required(request.getUserId(), "The userId");
+		ValidateArgument.required(request.getTwoFaToken(), "The twoFaToken");
+		ValidateArgument.required(request.getOtpCode(), "The otpCode");
+		
+		UserInfo user = userManager.getUserInfo(request.getUserId());
+		
+		if (!twoFaManager.is2FaLoginTokenValid(user, request.getTwoFaToken())) {
+			throw new UnauthenticatedException("The provided 2fa token is invalid.");
+		}
+		
+		TwoFactorAuthOtpType otpType = request.getOtpType() == null ? TwoFactorAuthOtpType.TOTP : request.getOtpType();
+				
+		if (!twoFaManager.is2FaCodeValid(user, otpType, request.getOtpCode())) {
+			throw new UnauthenticatedException("The provided code is invalid.");
+		}
+				
+		return getLoginResponseAfterSuccessfulAuthentication(request.getUserId(), issuer);
 	}
 	
 	public AuthenticatedOn getAuthenticatedOn(UserInfo userInfo) {
@@ -212,49 +243,12 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 	}
 
-	@Override
-	public LoginResponse loginWithNoPasswordCheck(long principalId, String issuer, boolean verify2fa) {
-		return getLoginResponseAfterSuccessfulPasswordAuthentication(principalId, issuer, verify2fa);
-	}
-
-	LoginResponse getLoginResponseAfterSuccessfulPasswordAuthentication(long principalId, String issuer, boolean verify2fa) {
-		
-		if (verify2fa) {
-			UserInfo user = userManager.getUserInfo(principalId);
-			if (TwoFactorState.ENABLED.equals(twoFaManager.get2FaStatus(user).getStatus())) {
-				throw new TwoFactorAuthRequiredException(principalId, twoFaManager.generate2FaLoginToken(user));
-			}
-		}
-		
+	LoginResponse getLoginResponseAfterSuccessfulAuthentication(long principalId, String issuer) {		
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
 		String accessToken = oidcTokenHelper.createClientTotalAccessToken(principalId, issuer);
 		boolean acceptsTermsOfUse = authDAO.hasUserAcceptedToU(principalId);
 		authDAO.setAuthenticatedOn(principalId, clock.now());
 		return createLoginResponse(accessToken, acceptsTermsOfUse, newAuthenticationReceipt);
-	}
-	
-	@Override
-	public LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request, String issuer) {
-		ValidateArgument.required(request, "The loginRequest");
-		ValidateArgument.required(request.getUserId(), "The userId");
-		ValidateArgument.required(request.getTwoFaToken(), "The twoFaToken");
-		ValidateArgument.required(request.getOtpCode(), "The otpCode");
-		
-		UserInfo user = userManager.getUserInfo(request.getUserId());
-		
-		if (!twoFaManager.is2FaLoginTokenValid(user, request.getTwoFaToken())) {
-			throw new UnauthenticatedException("The provided 2fa token is invalid.");
-		}
-		
-		TwoFactorAuthOtpType otpType = request.getOtpType() == null ? TwoFactorAuthOtpType.TOTP : request.getOtpType();
-				
-		if (!twoFaManager.is2FaCodeValid(user, otpType, request.getOtpCode())) {
-			throw new UnauthenticatedException("The provided code is invalid.");
-		}
-		
-		boolean verify2Fa = false;
-		
-		return getLoginResponseAfterSuccessfulPasswordAuthentication(request.getUserId(), issuer, verify2Fa);
 	}
 	
 	private static LoginResponse createLoginResponse(String accessToken, boolean acceptsTermsOfUse, String newReceipt) {

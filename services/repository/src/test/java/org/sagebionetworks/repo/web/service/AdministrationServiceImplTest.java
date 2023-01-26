@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -197,7 +196,7 @@ public class AdministrationServiceImplTest {
 		LoginResponse expected = new LoginResponse().setAccessToken("token");
 		
 		when(mockUserManager.getUserInfo(any())).thenReturn(admin);
-		when(mockAuthManager.loginWithNoPasswordCheck(anyLong(), any(), anyBoolean())).thenReturn(expected);
+		when(mockAuthManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(expected);
 		
 		// Call under test
 		LoginResponse result = adminService.getUserAccessToken(adminUserId, nonAdminUserId);
@@ -205,7 +204,7 @@ public class AdministrationServiceImplTest {
 		assertEquals(expected, result);
 		
 		verify(mockUserManager).getUserInfo(adminUserId);
-		verify(mockAuthManager).loginWithNoPasswordCheck(nonAdminUserId, null, false);
+		verify(mockAuthManager).loginWithNoPasswordCheck(nonAdminUserId, null);
 	}
 	
 	@Test
