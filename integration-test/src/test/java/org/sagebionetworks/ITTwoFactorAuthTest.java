@@ -1,16 +1,27 @@
 package org.sagebionetworks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseTwoFactorAuthRequiredException;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import dev.samstevens.totp.code.CodeGenerator;
 import dev.samstevens.totp.code.DefaultCodeGenerator;
@@ -71,6 +82,61 @@ public class ITTwoFactorAuthTest {
 		synapseClient.disable2fa();
 		
 		assertEquals(TwoFactorState.DISABLED, synapseClient.get2faStatus().getStatus());
+	}
+	
+	@Test
+	public void testLoginWith2Fa(SynapseAdminClient adminClient) throws SynapseException, CodeGenerationException, JSONObjectAdapterException {
+		// Creates a new user so that we retain user/password
+		SynapseClient newSynapseClient = new SynapseClientImpl();
+		
+		String username = UUID.randomUUID().toString();
+		String password = UUID.randomUUID().toString();
+		
+		Long userId = SynapseClientHelper.createUser(adminClient, newSynapseClient, username, password, true, false);
+		
+		// First enabled 2FA
+		
+		TotpSecret secret = newSynapseClient.init2Fa();
+		
+		TwoFactorAuthStatus status = newSynapseClient.enable2Fa(new TotpSecretActivationRequest()
+			.setSecretId(secret.getSecretId())
+			.setTotp(generateTotpCode(secret.getSecret()))
+		);
+		
+		assertEquals(TwoFactorState.ENABLED, status.getStatus());
+		
+		// Try the normal login
+		LoginRequest loginRequest = new LoginRequest().setUsername(username).setPassword(password);
+		
+		SynapseTwoFactorAuthRequiredException twoFaResponse = assertThrows(SynapseTwoFactorAuthRequiredException.class, () -> {
+			newSynapseClient.loginForAccessToken(loginRequest);
+		});
+		
+		// Now authenticate through 2fa
+		String totp = generateTotpCode(secret.getSecret());
+		
+		TwoFactorAuthLoginRequest twoFaLoginRequest = new TwoFactorAuthLoginRequest()
+			.setUserId(twoFaResponse.getUserId())
+			.setTwoFaToken(twoFaResponse.getTwoFaToken())
+			.setOtpType(TwoFactorAuthOtpType.TOTP)
+			.setOtpCode(totp);
+		
+		LoginResponse loginResponse = newSynapseClient.loginWith2Fa(twoFaLoginRequest);
+		
+		assertNotNull(loginResponse.getAccessToken());
+		
+		// The user should still be able to perform actions
+		assertEquals(TwoFactorState.ENABLED, newSynapseClient.get2faStatus().getStatus());
+		
+		newSynapseClient.disable2fa();
+		
+		assertEquals(TwoFactorState.DISABLED, newSynapseClient.get2faStatus().getStatus());
+		
+		try {
+			adminClient.deleteUser(userId);
+		} catch (SynapseException e) {
+			
+		}
 	}
 	
 	private String generateTotpCode(String secret) throws TimeProviderException, CodeGenerationException {

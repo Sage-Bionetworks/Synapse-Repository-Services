@@ -1,0 +1,19 @@
+{
+    "description":"JSON schema for an errors related to two factor authentication",
+    "extends": {
+        "$ref": "org.sagebionetworks.repo.model.ErrorResponse"
+    },
+    "properties":{
+    	"concreteType": {
+    		"type": "string"
+    	},
+    	"userId": {
+    		"type": "integer",
+    		"description": "The id of the user that attempted to authenticate."
+    	},
+        "twoFaToken": {
+            "type":"string",
+            "description":"Token included when two factor authentication is required. If present the client will need to include this token as part of the TwoFactorAuthLoginRequest."
+        }
+    }
+}

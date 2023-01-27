@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.EOFException;
 
+import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
+
 
 /**
  * list of exception handlers to test. One on one relationship with BaseController, and BaseControllerTest makes sure
@@ -108,7 +110,9 @@ public class ExceptionHandlers {
 		new TestEntry(403,
 				new ExceptionType("org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException", true)),
 		new TestEntry(409,
-				new ExceptionType("org.sagebionetworks.repo.web.FileHandleLinkedException", true))
+				new ExceptionType("org.sagebionetworks.repo.web.FileHandleLinkedException", true)),
+		new TestEntry(401,
+				new ExceptionType("org.sagebionetworks.repo.web.TwoFactorAuthRequiredException", true))
 
 	};
 }

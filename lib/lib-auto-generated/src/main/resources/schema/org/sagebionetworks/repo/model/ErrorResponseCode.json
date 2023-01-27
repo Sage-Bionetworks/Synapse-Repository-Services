@@ -17,6 +17,10 @@
 		{
 			"name": "OAUTH_CLIENT_NOT_VERIFIED",
 			"description": "The OAuth Client is not verified."
+		},
+		{
+			"name": "TWO_FA_REQUIRED",
+			"description": "Two factor authentication is required."
 		}
 	]
 }

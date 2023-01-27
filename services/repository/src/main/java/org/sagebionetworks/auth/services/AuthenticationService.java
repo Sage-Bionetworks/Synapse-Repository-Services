@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -160,5 +161,15 @@ public interface AuthenticationService {
 	 * @return The 2FA status
 	 */
 	void disable2Fa(Long userId);
+	
+	/**
+	 * Authenticates the user through 2FA
+	 * 
+	 * @param request
+	 * @param issuer
+	 * @return
+	 * @throws org.sagebionetworks.repo.model.UnauthenticatedException If the token and/or code are invalid
+	 */
+	LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request, String issuer);
 
 }

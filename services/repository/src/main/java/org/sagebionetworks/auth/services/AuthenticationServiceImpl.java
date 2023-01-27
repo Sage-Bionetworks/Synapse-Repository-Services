@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -142,7 +143,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			userManager.bindUserToOIDCSubject(alias.getPrincipalId(), request.getProvider(), providedInfo.getSubject());
 			return alias.getPrincipalId();
 		});
-				
+		
 		// Return the user's access token
 		return authManager.loginWithNoPasswordCheck(principalId, tokenIssuer);
 	}
@@ -258,6 +259,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	public TwoFactorAuthStatus get2FaStatus(Long userId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return twoFaManager.get2FaStatus(user);
+	}
+	
+	@Override
+	public LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request, String issuer) {
+		return authManager.loginWith2Fa(request, issuer);
 	}
 
 }

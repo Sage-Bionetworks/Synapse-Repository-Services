@@ -1,0 +1,14 @@
+{
+	"description": "A token returned to the client when two factor authentication is required.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.SignedTokenInterface"
+		}
+	],
+	"properties": {
+		"userId": {
+			"type": "integer",
+			"description": "The id of the user."
+		}
+	}
+}

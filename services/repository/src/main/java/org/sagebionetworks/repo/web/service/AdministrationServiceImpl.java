@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.manager.stack.StackStatusManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
@@ -34,7 +33,6 @@ import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
-import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.verification.VerificationState;
@@ -85,16 +83,10 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	private IdGenerator idGenerator;
 
 	@Autowired
-	private TransactionSynchronizationProxy transactionSynchronizationManager;
-
-	@Autowired
 	private PasswordValidator passwordValidator;
 	
 	@Autowired
 	private FeatureManager featureManager;
-	
-	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
 
 	@Autowired
 	private VerificationDAO verificationDao;

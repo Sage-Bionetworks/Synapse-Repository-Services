@@ -158,7 +158,8 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAcceptsTermsOfUse(true);
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
-		when(mockAuthenticationManager.loginWithNoPasswordCheck(userId, ISSUER)).thenReturn(authMgrLoginResponse);
+		
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
 		
 		//call under test
 		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
@@ -190,7 +191,8 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAcceptsTermsOfUse(true);
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
-		when(mockAuthenticationManager.loginWithNoPasswordCheck(userId, ISSUER)).thenReturn(authMgrLoginResponse);
+
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
 		
 		//call under test
 		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
@@ -224,7 +226,7 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 		
-		when(mockAuthenticationManager.loginWithNoPasswordCheck(userId, ISSUER)).thenReturn(authMgrLoginResponse);
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
 		
 		//call under test
 		LoginResponse result = service.createAccountViaOauth(request, ISSUER);

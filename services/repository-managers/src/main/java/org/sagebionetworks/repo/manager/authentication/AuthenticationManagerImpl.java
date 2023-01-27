@@ -4,6 +4,7 @@ import java.util.Date;
 
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserCredentialValidator;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
@@ -18,11 +19,15 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
+import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
@@ -38,6 +43,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	@Autowired
 	private AuthenticationDAO authDAO;
+	
 	@Autowired
 	private AuthenticationReceiptTokenGenerator authenticationReceiptTokenGenerator;
 
@@ -58,6 +64,12 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Autowired
 	private Clock clock;
+	
+	@Autowired
+	private UserManager userManager;
+	
+	@Autowired
+	private TwoFactorAuthManager twoFaManager;
 
 	@Override
 	@WriteTransaction
@@ -158,8 +170,41 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		final String authenticationReceipt = request.getAuthenticationReceipt();
 
 		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
+		
+		return loginWithNoPasswordCheck(userId, tokenIssuer);
+	}
 
-		return getLoginResponseAfterSuccessfulPasswordAuthentication(userId, tokenIssuer);
+	@Override
+	public LoginResponse loginWithNoPasswordCheck(long principalId, String issuer) {
+		UserInfo user = userManager.getUserInfo(principalId);
+		
+		if (TwoFactorState.ENABLED.equals(twoFaManager.get2FaStatus(user).getStatus())) {
+			throw new TwoFactorAuthRequiredException(principalId, twoFaManager.generate2FaLoginToken(user));
+		}
+		
+		return getLoginResponseAfterSuccessfulAuthentication(principalId, issuer);
+	}
+	
+	@Override
+	public LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request, String issuer) {
+		ValidateArgument.required(request, "The loginRequest");
+		ValidateArgument.required(request.getUserId(), "The userId");
+		ValidateArgument.required(request.getTwoFaToken(), "The twoFaToken");
+		ValidateArgument.required(request.getOtpCode(), "The otpCode");
+		
+		UserInfo user = userManager.getUserInfo(request.getUserId());
+		
+		if (!twoFaManager.is2FaLoginTokenValid(user, request.getTwoFaToken())) {
+			throw new UnauthenticatedException("The provided 2fa token is invalid.");
+		}
+		
+		TwoFactorAuthOtpType otpType = request.getOtpType() == null ? TwoFactorAuthOtpType.TOTP : request.getOtpType();
+				
+		if (!twoFaManager.is2FaCodeValid(user, otpType, request.getOtpCode())) {
+			throw new UnauthenticatedException("The provided code is invalid.");
+		}
+				
+		return getLoginResponseAfterSuccessfulAuthentication(request.getUserId(), issuer);
 	}
 	
 	public AuthenticatedOn getAuthenticatedOn(UserInfo userInfo) {
@@ -198,12 +243,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 	}
 
-	@Override
-	public LoginResponse loginWithNoPasswordCheck(long principalId, String issuer){
-		return getLoginResponseAfterSuccessfulPasswordAuthentication(principalId, issuer);
-	}
-
-	LoginResponse getLoginResponseAfterSuccessfulPasswordAuthentication(long principalId, String issuer) {
+	LoginResponse getLoginResponseAfterSuccessfulAuthentication(long principalId, String issuer) {		
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
 		String accessToken = oidcTokenHelper.createClientTotalAccessToken(principalId, issuer);
 		boolean acceptsTermsOfUse = authDAO.hasUserAcceptedToU(principalId);

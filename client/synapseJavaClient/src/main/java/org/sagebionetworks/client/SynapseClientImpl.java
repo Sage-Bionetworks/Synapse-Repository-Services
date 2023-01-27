@@ -1,9 +1,26 @@
 package org.sagebionetworks.client;
 
-import com.google.common.base.Joiner;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Jwt;
+import static org.sagebionetworks.client.Method.GET;
+
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.ClientProtocolException;
@@ -101,6 +118,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -349,26 +367,11 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.sagebionetworks.util.FileProviderImpl;
 import org.sagebionetworks.util.ValidateArgument;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import com.google.common.base.Joiner;
 
-import static org.sagebionetworks.client.Method.GET;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -6171,5 +6174,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void disable2fa() throws SynapseException {
 		deleteUri(getAuthEndpoint(), "/2fa");
+	}
+	
+	@Override
+	public LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request) throws SynapseException {
+		LoginResponse response = postJSONEntity(getAuthEndpoint(), "/2fa/token", request, LoginResponse.class);
+		setBearerAuthorizationToken(response.getAccessToken());
+		setAcceptsTermsOfUse(response.getAcceptsTermsOfUse());
+		return response;
 	}
 }
