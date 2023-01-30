@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -60,6 +61,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,6 +96,7 @@ public class TableUpdateRequestWorkerIntegrationTest {
 	ColumnModel stringColumn;
 	ColumnModel booleanColumn;
 	ColumnModel doubleColumn;
+	ColumnModel fileHandleColumn;
 	
 	List<String> toDelete;
 	
@@ -122,6 +125,11 @@ public class TableUpdateRequestWorkerIntegrationTest {
 		booleanColumn.setName("aBoolean");
 		booleanColumn.setColumnType(ColumnType.BOOLEAN);
 		booleanColumn = columnManager.createColumnModel(adminUserInfo, booleanColumn);
+		
+		fileHandleColumn = new ColumnModel();
+		fileHandleColumn.setName("aFile");
+		fileHandleColumn.setColumnType(ColumnType.FILEHANDLEID);
+		fileHandleColumn = columnManager.createColumnModel(adminUserInfo, fileHandleColumn);
 		
 		toDelete = new LinkedList<>();
 	}
@@ -653,6 +661,102 @@ public class TableUpdateRequestWorkerIntegrationTest {
 			assertEquals(3, secondVersionRows.size());
 		});
 		
+	}
+	
+	@Test
+	public void testTableSnapshotWithFileHandles() throws Exception {
+		// create a table 
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(Lists.newArrayList(intColumn.getId(), fileHandleColumn.getId()));
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete.add(tableId);
+		// add add a column to the table.
+		TableUpdateTransactionRequest addColumnRequest = createAddColumnsRequest(tableId, intColumn, fileHandleColumn);
+		
+		startAndWaitForJob(adminUserInfo, addColumnRequest, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// Add some data to the table and create a new version
+		PartialRow rowOne = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "1", fileHandleColumn.getId(), "123");
+		PartialRow rowTwo = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "2");
+		PartialRowSet rowSet = createRowSet(tableId, rowOne, rowTwo);
+		TableUpdateTransactionRequest transaction = createAddDataRequest(tableId, rowSet);
+		// start a new version
+		transaction.setCreateSnapshot(true);
+		
+		// start the transaction
+		long firstVersion = startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNotNull(response.getSnapshotVersionNumber());
+		}).getSnapshotVersionNumber();
+		
+		// add two more rows and create another version.
+		PartialRow rowThree = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "3", fileHandleColumn.getId(), "456");
+		PartialRow rowFour = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "4", fileHandleColumn.getId(), "789");
+		rowSet = createRowSet(tableId, rowThree, rowFour);
+		transaction = createAddDataRequest(tableId, rowSet);
+		// start a new version
+		transaction.setCreateSnapshot(true);
+		// start the transaction
+		long secondVersion = startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNotNull(response.getSnapshotVersionNumber());
+		}).getSnapshotVersionNumber();
+		
+		// Eventually a snapshot should be saved to S3
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000,
+			() -> new Pair<Boolean, Void>(tableSnapshotDao.getSnapshot(IdAndVersion.parse(tableId + "." + secondVersion)).isPresent(), null)
+		);
+		
+		// Add two more rows without creating a version.
+		PartialRow rowFive = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "5");
+		PartialRow rowSix = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "6", fileHandleColumn.getId(), "101112");
+		rowSet = createRowSet(tableId, rowFive, rowSix);
+		transaction = createAddDataRequest(tableId, rowSet);
+		// start the transaction
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNull(response.getSnapshotVersionNumber());
+		});
+		
+		// query first version
+		String sql = "select * from " + tableId + "." + firstVersion;
+		QueryBundleRequest queryRequest = createQueryRequest(sql, tableId);
+		
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {			
+			List<Row> firstVersionRows = response.getQueryResult().getQueryResults().getRows();
+			assertEquals(2, firstVersionRows.size());
+		});
+		
+		// query second version
+		sql = "select * from "+tableId+"."+secondVersion;
+		queryRequest = createQueryRequest(sql, tableId);
+		
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
+			List<Row> secondVersionRows = response.getQueryResult().getQueryResults().getRows();
+			assertEquals(4, secondVersionRows.size());
+		});
+		
+		// query latest without a version
+		sql = "select * from "+tableId;
+		
+		queryRequest = createQueryRequest(sql, tableId);
+		
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {			
+			List<Row> latestVersion = response.getQueryResult().getQueryResults().getRows();
+			assertEquals(6, latestVersion.size());
+		});
+		
+		TableIndexDAO indexDao = tableConnectionFactory.getFirstConnection();
+		
+		Set<Long> allFileIds = Set.of(123L, 456L, 789L, 101112L);
+		
+		assertEquals(Set.of(123L), indexDao.getFileHandleIdsAssociatedWithTable(allFileIds, IdAndVersion.parse(tableId + "." + firstVersion)));
+		assertEquals(Set.of(123L, 456L, 789L), indexDao.getFileHandleIdsAssociatedWithTable(allFileIds, IdAndVersion.parse(tableId + "." + secondVersion)));
+		assertEquals(allFileIds, indexDao.getFileHandleIdsAssociatedWithTable(allFileIds, IdAndVersion.parse(tableId)));
 	}
 	
 	@Test
