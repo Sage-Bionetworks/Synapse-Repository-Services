@@ -1086,6 +1086,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// Only consider the columns that points to file handles
 		List<ColumnModel> filesSchema = schema.stream().filter(column -> ColumnType.FILEHANDLEID.equals(column.getColumnType())).collect(Collectors.toList());
 		
+		if (filesSchema.isEmpty()) {
+			return;
+		}
+		
 		Iterator<TableRowData> filesDataIterator = new PaginationIterator<>((limit, offset) -> {
 			return tableIndexDao.getTableDataPage(index.getIdAndVersion(), filesSchema, limit, offset);
 		}, BATCH_SIZE);

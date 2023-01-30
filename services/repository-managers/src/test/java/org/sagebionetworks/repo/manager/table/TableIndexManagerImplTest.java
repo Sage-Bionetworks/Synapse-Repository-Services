@@ -3138,6 +3138,21 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
+	public void testPopulateFileHandleIndexWithNoFileColumns() {
+		TableIndexDescription index = new TableIndexDescription(tableId);
+		
+		schema = List.of(
+			TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
+			TableModelTestUtils.createColumn(101L, "aNumber", ColumnType.INTEGER)
+		);
+		
+		// Call under test
+		manager.populateFileHandleIndex(index, schema);
+
+		verifyZeroInteractions(mockIndexDao);
+	}
+	
+	@Test
 	public void testUpdateSearchIndexFromSchemaChange() {
 		TableIndexDescription index = new TableIndexDescription(tableId);
 		
