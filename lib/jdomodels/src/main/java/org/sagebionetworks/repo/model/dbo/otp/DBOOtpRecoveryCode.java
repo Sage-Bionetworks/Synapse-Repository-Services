@@ -32,7 +32,11 @@ public class DBOOtpRecoveryCode implements MigratableDatabaseObject<DBOOtpRecove
 		@Override
 		public DBOOtpRecoveryCode mapRow(ResultSet rs, int rowNum) throws SQLException {
 			DBOOtpRecoveryCode recoveryCode = new DBOOtpRecoveryCode();
-
+			
+			recoveryCode.setSecretId(rs.getLong(COL_OTP_RECOVERY_CODE_SECRET_ID));
+			recoveryCode.setCodeHash(rs.getString(COL_OTP_RECOVERY_CODE_CODE_HASH));
+			recoveryCode.setCreatedOn(rs.getTimestamp(COL_OTP_RECOVERY_CODE_CREATED_ON));
+			
 			return recoveryCode;
 		}
 
