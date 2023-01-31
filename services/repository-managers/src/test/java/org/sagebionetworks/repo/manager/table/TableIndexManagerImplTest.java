@@ -83,6 +83,7 @@ import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
@@ -3045,6 +3046,7 @@ public class TableIndexManagerImplTest {
 		doNothing().when(managerSpy).populateListColumnIndexTables(any(), any());
 		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
 		doNothing().when(managerSpy).updateSearchIndex(any());
+		doNothing().when(managerSpy).populateFileHandleIndex(any(), any());
 		
 		// Call under test
 		managerSpy.buildTableIndexIndices(index, schema);
@@ -3053,6 +3055,45 @@ public class TableIndexManagerImplTest {
 		verify(managerSpy).populateListColumnIndexTables(tableId, schema);
 		verify(mockIndexDao).isSearchEnabled(tableId);
 		verify(managerSpy).updateSearchIndex(index);
+		verify(managerSpy).populateFileHandleIndex(index, schema);
+	}
+	
+	@Test
+	public void testBuildTableIndexIndicesWithView() {
+		ViewIndexDescription index = new ViewIndexDescription(tableId, TableType.entityview);
+		
+		doNothing().when(managerSpy).optimizeTableIndices(any());
+		doNothing().when(managerSpy).populateListColumnIndexTables(any(), any());
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
+		doNothing().when(managerSpy).updateSearchIndex(any());
+		
+		// Call under test
+		managerSpy.buildTableIndexIndices(index, schema);
+		
+		verify(managerSpy).optimizeTableIndices(tableId);
+		verify(managerSpy).populateListColumnIndexTables(tableId, schema);
+		verify(mockIndexDao).isSearchEnabled(tableId);
+		verify(managerSpy).updateSearchIndex(index);
+		verify(managerSpy, never()).populateFileHandleIndex(index, schema);
+	}
+	
+	@Test
+	public void testBuildTableIndexIndicesWithMaterializedView() {
+		MaterializedViewIndexDescription index = new MaterializedViewIndexDescription(tableId, Collections.emptyList());
+		
+		doNothing().when(managerSpy).optimizeTableIndices(any());
+		doNothing().when(managerSpy).populateListColumnIndexTables(any(), any());
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
+		doNothing().when(managerSpy).updateSearchIndex(any());
+		
+		// Call under test
+		managerSpy.buildTableIndexIndices(index, schema);
+		
+		verify(managerSpy).optimizeTableIndices(tableId);
+		verify(managerSpy).populateListColumnIndexTables(tableId, schema);
+		verify(mockIndexDao).isSearchEnabled(tableId);
+		verify(managerSpy).updateSearchIndex(index);
+		verify(managerSpy, never()).populateFileHandleIndex(index, schema);
 	}
 	
 	@Test
@@ -3062,6 +3103,7 @@ public class TableIndexManagerImplTest {
 		doNothing().when(managerSpy).optimizeTableIndices(any());
 		doNothing().when(managerSpy).populateListColumnIndexTables(any(), any());
 		when(mockIndexDao.isSearchEnabled(any())).thenReturn(false);
+		doNothing().when(managerSpy).populateFileHandleIndex(any(), any());
 		
 		// Call under test
 		managerSpy.buildTableIndexIndices(index, schema);
@@ -3070,6 +3112,44 @@ public class TableIndexManagerImplTest {
 		verify(managerSpy).populateListColumnIndexTables(tableId, schema);
 		verify(mockIndexDao).isSearchEnabled(tableId);
 		verify(managerSpy, never()).updateSearchIndex(any());
+		verify(managerSpy).populateFileHandleIndex(index, schema);
+	}
+	
+	@Test
+	public void testPopulateFileHandleIndex() {
+		TableIndexDescription index = new TableIndexDescription(tableId);
+		
+		List<TableRowData> batch = List.of(
+			new TableRowData(1L, List.of(new TypedCellValue(ColumnType.FILEHANDLEID, "123"), new TypedCellValue(ColumnType.FILEHANDLEID, null), new TypedCellValue(ColumnType.FILEHANDLEID, "456"))),
+			new TableRowData(2L, List.of(new TypedCellValue(ColumnType.FILEHANDLEID, "789"), new TypedCellValue(ColumnType.FILEHANDLEID, ""))),
+			new TableRowData(3L, List.of(new TypedCellValue(ColumnType.FILEHANDLEID, "123"), new TypedCellValue(ColumnType.FILEHANDLEID, "789")))
+		);
+		
+		when(mockIndexDao.getTableDataPage(any(), any(), anyLong(), anyLong())).thenReturn(batch, Collections.emptyList());
+		
+		List<ColumnModel> expectedSchema = schema.stream().filter(column -> ColumnType.FILEHANDLEID.equals(column.getColumnType())).collect(Collectors.toList());
+		Set<Long> expectedFileIds = Set.of(123L, 456L, 789L);
+		
+		// Call under test
+		manager.populateFileHandleIndex(index, schema);
+		
+		verify(mockIndexDao).getTableDataPage(tableId, expectedSchema, TableIndexManagerImpl.BATCH_SIZE, 0);
+		verify(mockIndexDao).applyFileHandleIdsToTable(tableId, expectedFileIds);
+	}
+	
+	@Test
+	public void testPopulateFileHandleIndexWithNoFileColumns() {
+		TableIndexDescription index = new TableIndexDescription(tableId);
+		
+		schema = List.of(
+			TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
+			TableModelTestUtils.createColumn(101L, "aNumber", ColumnType.INTEGER)
+		);
+		
+		// Call under test
+		manager.populateFileHandleIndex(index, schema);
+
+		verifyZeroInteractions(mockIndexDao);
 	}
 	
 	@Test
