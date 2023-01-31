@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -22,9 +23,9 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
@@ -1074,6 +1075,34 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		if (tableIndexDao.isSearchEnabled(index.getIdAndVersion())) {
 			updateSearchIndex(index);
 		}
+		
+		// For tables we also need to populate the file handle index (See https://sagebionetworks.jira.com/browse/PLFM-7678)
+		if (TableType.table.equals(index.getTableType())) {
+			populateFileHandleIndex(index, schema);
+		}
+	}
+	
+	void populateFileHandleIndex(IndexDescription index, List<ColumnModel> schema) {
+		// Only consider the columns that points to file handles
+		List<ColumnModel> filesSchema = schema.stream().filter(column -> ColumnType.FILEHANDLEID.equals(column.getColumnType())).collect(Collectors.toList());
+		
+		if (filesSchema.isEmpty()) {
+			return;
+		}
+		
+		Iterator<TableRowData> filesDataIterator = new PaginationIterator<>((limit, offset) -> {
+			return tableIndexDao.getTableDataPage(index.getIdAndVersion(), filesSchema, limit, offset);
+		}, BATCH_SIZE);
+	
+		Iterators.partition(filesDataIterator, BATCH_SIZE).forEachRemaining(batch -> {
+			Set<Long> fileHandleIdBatch = batch.stream()
+				.flatMap(rowData -> rowData.getRowValues().stream())
+				.filter(cellValue -> cellValue != null && !StringUtils.isEmpty(cellValue.getRawValue()))
+				.map(cellValue -> Long.valueOf(cellValue.getRawValue()))
+				.collect(Collectors.toSet());
+			
+			tableIndexDao.applyFileHandleIdsToTable(index.getIdAndVersion(), fileHandleIdBatch);
+		});
 	}
 	
 	/**
