@@ -693,6 +693,11 @@ public class TableUpdateRequestWorkerIntegrationTest {
 			assertNotNull(response.getSnapshotVersionNumber());
 		}).getSnapshotVersionNumber();
 		
+		// Eventually a snapshot should be saved to S3
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000,
+			() -> new Pair<Boolean, Void>(tableSnapshotDao.getSnapshot(IdAndVersion.parse(tableId + "." + firstVersion)).isPresent(), null)
+		);
+		
 		// add two more rows and create another version.
 		PartialRow rowThree = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "3", fileHandleColumn.getId(), "456");
 		PartialRow rowFour = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "4", fileHandleColumn.getId(), "789");
