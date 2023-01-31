@@ -85,6 +85,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -4182,13 +4183,21 @@ public interface SynapseClient extends BaseClient {
 	 * 
 	 * @throws SynapseException
 	 */
-	TwoFactorAuthStatus get2faStatus() throws SynapseException;
+	TwoFactorAuthStatus get2FaStatus() throws SynapseException;
 	
 	/**
 	 * Disable 2FA for the user
 	 * @throws SynapseException
 	 */
-	void disable2fa() throws SynapseException;
+	void disable2Fa() throws SynapseException;
+	
+	/**
+	 * Generates a new set of single-use recovery codes to be used in place of a TOTP when performing authentication through 2FA.
+	 * 
+	 * @return
+	 * @throws SynapseException
+	 */
+	TwoFactorAuthRecoveryCodes generate2FaRecoveryCodes() throws SynapseException;
 	
 	/**
 	 * Authenticates the user through 2FA

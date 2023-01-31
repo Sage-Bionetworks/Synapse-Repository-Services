@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -145,7 +146,7 @@ public interface AuthenticationService {
 	 * @return The 2FA status
 	 */
 	TwoFactorAuthStatus enable2Fa(Long userId, TotpSecretActivationRequest request);
-
+	
 	/**
 	 * Fetch the 2FA status for the user
 	 * 
@@ -161,6 +162,14 @@ public interface AuthenticationService {
 	 * @return The 2FA status
 	 */
 	void disable2Fa(Long userId);
+
+	/**
+	 * Generates a new set of single use recovery codes that can be used in place of a one time password
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	TwoFactorAuthRecoveryCodes generate2faRecoveryCodes(Long userId);
 	
 	/**
 	 * Authenticates the user through 2FA
