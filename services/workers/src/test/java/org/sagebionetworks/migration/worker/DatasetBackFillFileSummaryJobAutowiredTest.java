@@ -11,6 +11,8 @@ import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.FileSummary;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
@@ -63,6 +65,8 @@ public class DatasetBackFillFileSummaryJobAutowiredTest {
     private FileHandleDao fileHandleDao;
     @Autowired
     private TableViewManager tableViewManager;
+    @Autowired
+    private NodeDAO nodeDAO;
 
     private UserInfo adminUserInfo;
     private UserInfo user;
@@ -164,6 +168,38 @@ public class DatasetBackFillFileSummaryJobAutowiredTest {
         }, MAX_WAIT_MS);
     }
 
+    @Test
+    public void testDatasetBackFillingJobForCountAndSizeField() throws Exception {
+        Dataset datasetWithoutItemWithChecksumAndSize = createDatasetWithCustomField(user, project,true, true, false);
+        assertNotNull(datasetWithoutItemWithChecksumAndSize.getChecksum());
+        assertNotNull(datasetWithoutItemWithChecksumAndSize.getSize());
+        assertNull(datasetWithoutItemWithChecksumAndSize.getCount());
+        datasetToBeDelete.add(datasetWithoutItemWithChecksumAndSize);
+
+        Dataset datasetWithoutItemWithChecksumAndCount = createDatasetWithCustomField(user, project, true, false, true);
+        assertNotNull(datasetWithoutItemWithChecksumAndCount.getChecksum());
+        assertNull(datasetWithoutItemWithChecksumAndCount.getSize());
+        assertNotNull(datasetWithoutItemWithChecksumAndCount.getCount());
+        datasetToBeDelete.add(datasetWithoutItemWithChecksumAndCount);
+
+        DatasetBackfillRequest req = new DatasetBackfillRequest();
+        AsyncMigrationRequest request = new AsyncMigrationRequest();
+        request.setAdminRequest(req);
+        asyncHelper.assertJobResponse(adminUserInfo, request, (AsyncMigrationResponse responseBody) -> {
+            DatasetBackfillResponse response = (DatasetBackfillResponse) responseBody.getAdminResponse();
+            assertEquals(2L, response.getCount());
+            Dataset updatedCountForDataset = entityManager.getEntity(user, datasetWithoutItemWithChecksumAndSize.getId(), Dataset.class);
+            assertNotNull(updatedCountForDataset.getChecksum());
+            assertNotNull(updatedCountForDataset.getSize());
+            assertNotNull( updatedCountForDataset.getCount());
+
+            Dataset updatedSizeForDataset = entityManager.getEntity(user, datasetWithoutItemWithChecksumAndCount.getId(), Dataset.class);
+            assertNotNull(updatedSizeForDataset.getChecksum());
+            assertNotNull(updatedSizeForDataset.getSize());
+            assertNotNull(updatedSizeForDataset.getCount());
+        }, MAX_WAIT_MS);
+    }
+
     private Dataset createDatasetWithFileSummary(UserInfo userInfo, Project project) throws Exception {
         FileEntity fileOne = createFileEntityAndWaitForReplication(userInfo, project);
         FileEntity fileTwo = createFileEntityAndWaitForReplication(userInfo, project);
@@ -177,6 +213,46 @@ public class DatasetBackFillFileSummaryJobAutowiredTest {
                         new EntityRef().setEntityId(fileTwo.getId()).setVersionNumber(fileTwo.getVersionNumber())
                 ))
         );
+        return dataset;
+    }
+
+    public Dataset createDatasetWithCustomField(UserInfo userInfo, Project project, boolean hasChecksum,
+                                                boolean haseSize, boolean hasCount) throws Exception {
+        FileEntity fileOne = createFileEntityAndWaitForReplication(userInfo, project);
+        FileEntity fileTwo = createFileEntityAndWaitForReplication(userInfo, project);
+
+        Dataset dataset = new Dataset().setParentId(project.getId()).setName(UUID.randomUUID().toString())
+                .setDescription(UUID.randomUUID().toString()).setItems(List.of(
+                        new EntityRef().setEntityId(fileOne.getId()).setVersionNumber(fileOne.getVersionNumber()),
+                        new EntityRef().setEntityId(fileTwo.getId()).setVersionNumber(fileTwo.getVersionNumber())
+                ));
+
+        if((dataset.getItems() !=null)){
+            FileSummary fileSummary = nodeDAO.getFileSummary(dataset.getItems());
+            if(hasChecksum){
+                dataset.setChecksum(fileSummary.getChecksum());
+            }
+            if(haseSize){
+                dataset.setSize(fileSummary.getSize());
+            }
+            if(hasCount){
+                dataset.setCount(fileSummary.getCount());
+            }
+        }
+        ViewEntityType entityType = ViewEntityType.dataset;
+        Long typeMask = 0L;
+        String viewId = entityManager.createEntity(user, dataset, null);
+        dataset = entityManager.getEntity(user, viewId, Dataset.class);
+
+        ViewScope viewScope = new ViewScope();
+        viewScope.setViewEntityType(entityType);
+        if (dataset.getItems() != null) {
+            viewScope.setScope(dataset.getItems().stream().map(i->i.getEntityId()).collect(Collectors.toList()));
+        }
+        viewScope.setViewTypeMask(typeMask);
+
+        tableViewManager.setViewSchemaAndScope(user, dataset.getColumnIds(), viewScope, viewId);
+
         return dataset;
     }
 

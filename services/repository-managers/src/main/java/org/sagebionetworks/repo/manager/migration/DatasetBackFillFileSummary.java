@@ -134,7 +134,7 @@ public class DatasetBackFillFileSummary {
                     count = annotation.getSingleValue(COUNT);
                 }
 
-                if (checksum == null && size == null && count == null) {
+                if (checksum == null ||size == null || count == null) {
                     updateDatasetAnnotationInTransaction(user, datasetBackFillDTO);
                     countRows.getAndIncrement();
                 }
@@ -171,11 +171,12 @@ public class DatasetBackFillFileSummary {
                     annotations = datasetBackFillDTO.getEntityPropertyAnnotations();
                 }
                 //checksum is null in case of dataset having no items in it
-                if(fileSummary.getChecksum() != null){
-                    annotations.addAnnotation(CHECKSUM, fileSummary.getChecksum());
+                if (fileSummary.getChecksum() != null) {
+                    annotations.replaceAnnotation(CHECKSUM, fileSummary.getChecksum());
                 }
-                annotations.addAnnotation(SIZE, fileSummary.getSize());
-                annotations.addAnnotation(COUNT, fileSummary.getCount());
+
+                annotations.replaceAnnotation(SIZE, fileSummary.getSize());
+                annotations.replaceAnnotation(COUNT, fileSummary.getCount());
                 annotations.setEtag(newEtag);
 
                 updateNodeEtag(newEtag, datasetBackFillDTO.getId());
