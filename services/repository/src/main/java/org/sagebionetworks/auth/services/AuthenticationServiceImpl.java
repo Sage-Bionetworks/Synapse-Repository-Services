@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -259,6 +260,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	public TwoFactorAuthStatus get2FaStatus(Long userId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return twoFaManager.get2FaStatus(user);
+	}
+	
+	@Override
+	public TwoFactorAuthRecoveryCodes generate2faRecoveryCodes(Long userId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return twoFaManager.generate2FaRecoveryCodes(user);
 	}
 	
 	@Override

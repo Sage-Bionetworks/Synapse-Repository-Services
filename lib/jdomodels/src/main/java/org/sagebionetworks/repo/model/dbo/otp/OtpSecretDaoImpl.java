@@ -1,14 +1,20 @@
 package org.sagebionetworks.repo.model.dbo.otp;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OTP_SECRET_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OTP_RECOVERY_CODE_CODE_HASH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OTP_RECOVERY_CODE_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OTP_RECOVERY_CODE_SECRET_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OTP_SECRET_ACTIVE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OTP_SECRET_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OTP_SECRET_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OTP_SECRET_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OTP_SECRET_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OTP_SECRET_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OTP_SECRET_SECRET;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OTP_RECOVERY_CODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OTP_SECRET;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -126,6 +132,56 @@ public class OtpSecretDaoImpl implements OtpSecretDao {
 		String deleteSql = "DELETE FROM " + TABLE_OTP_SECRET + " WHERE " + COL_OTP_SECRET_PRINCIPAL_ID + "=?";
 		
 		jdbcTemplate.update(deleteSql, userId);
+	}
+
+	@Override
+	@WriteTransaction
+	public void touchSecret(Long secretId) {
+		String updateSql = "UPDATE " + TABLE_OTP_SECRET + " SET " + COL_OTP_SECRET_ETAG + "=UUID() WHERE "
+			+ COL_OTP_SECRET_ID + "=?";
+		
+		jdbcTemplate.update(updateSql, secretId);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void storeRecoveryCodes(Long secretId, List<String> recoveryCodes) {
+		String createSql = "INSERT INTO " + TABLE_OTP_RECOVERY_CODE + "("
+			+ COL_OTP_RECOVERY_CODE_SECRET_ID + ","
+			+ COL_OTP_RECOVERY_CODE_CODE_HASH + ","
+			+ COL_OTP_RECOVERY_CODE_CREATED_ON
+			+ ") VALUES (?, ?, NOW())";
+
+		List<Object[]> batchArgs = recoveryCodes.stream().map(code -> new Object[] { secretId, code }).collect(Collectors.toList());
+
+		jdbcTemplate.batchUpdate(createSql, batchArgs);
+	}
+	
+	@Override
+	@WriteTransaction
+	public boolean deleteRecoveryCode(Long secretId, String recoveryCode) {
+		String deleteSql = "DELETE FROM " + TABLE_OTP_RECOVERY_CODE + " WHERE " 
+			+ COL_OTP_RECOVERY_CODE_SECRET_ID + "=? AND "
+			+ COL_OTP_RECOVERY_CODE_CODE_HASH + "=?";
+		
+		return jdbcTemplate.update(deleteSql, secretId, recoveryCode) > 0;
+	}
+	
+	@Override
+	@WriteTransaction
+	public void deleteRecoveryCodes(Long secretId) {
+		String deleteSql = "DELETE FROM " + TABLE_OTP_RECOVERY_CODE + " WHERE " 
+			+ COL_OTP_RECOVERY_CODE_SECRET_ID + "=?";
+		
+		jdbcTemplate.update(deleteSql, secretId);
+	}
+	
+	@Override
+	public List<String> getRecoveryCodes(Long secretId) {
+		String selectSql = "SELECT " + COL_OTP_RECOVERY_CODE_CODE_HASH + " FROM " + TABLE_OTP_RECOVERY_CODE
+			+ " WHERE " + COL_OTP_RECOVERY_CODE_SECRET_ID + "=?";
+		
+		return jdbcTemplate.queryForList(selectSql, String.class, secretId);
 	}
 
 	@Override

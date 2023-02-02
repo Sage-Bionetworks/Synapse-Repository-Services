@@ -435,6 +435,10 @@
 			"description": "Table that stores otp user secrets"
 		},
 		{
+			"name": "OTP_RECOVERY_CODE",
+			"description": "Table that stores recovery codes for active otp secrets"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}

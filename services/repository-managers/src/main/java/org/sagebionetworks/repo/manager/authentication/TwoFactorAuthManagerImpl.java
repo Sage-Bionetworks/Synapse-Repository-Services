@@ -4,6 +4,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
@@ -12,7 +14,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
-import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
@@ -22,6 +24,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.AESEncryptionUtils;
+import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
@@ -116,20 +119,15 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	}
 	
 	@Override
-	public boolean is2FaCodeValid(UserInfo user, TwoFactorAuthOtpType otpType, String otpCode) {
+	@WriteTransaction
+	public boolean validate2FaTotpCode(UserInfo user, String otpCode) {
 		assertValidUser(user);
 		
-		ValidateArgument.required(otpType, "The otpType");
 		ValidateArgument.requiredNotBlank(otpCode, "The otpCode");
 		
-		DBOOtpSecret secret = otpDao.getActiveSecret(user.getId()).orElseThrow(() -> new IllegalArgumentException("Two factor authentication is not enabled"));
+		DBOOtpSecret secret = getActiveSecretOrThrow(user);
 		
-		switch (otpType) {
-		case TOTP:
-			return isTotpValid(user, secret, otpCode);
-		default:
-			throw new UnsupportedOperationException("2FA code type " + otpType + " not supported yet.");
-		}
+		return isTotpValid(user, secret, otpCode);
 		
 	}
 	
@@ -156,7 +154,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	}
 	
 	@Override
-	public boolean is2FaLoginTokenValid(UserInfo user, String encodedToken) {
+	public boolean validate2FaLoginToken(UserInfo user, String encodedToken) {
 		assertValidUser(user);
 		
 		ValidateArgument.requiredNotBlank(encodedToken, "The token");
@@ -176,6 +174,55 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		return true;
 	}
 	
+	@Override
+	@WriteTransaction
+	public TwoFactorAuthRecoveryCodes generate2FaRecoveryCodes(UserInfo user) {
+		assertValidUser(user);
+		
+		DBOOtpSecret secret = getActiveSecretOrThrow(user);
+		
+		// Remove old codes
+		otpDao.deleteRecoveryCodes(secret.getId());
+		
+		List<String> recoveryCodes = totpMananger.generateRecoveryCodes();
+		List<String> recoveryCodesHashed = recoveryCodes.stream()
+			.map(recoveryCode -> PBKDF2Utils.hashPassword(recoveryCode, null))
+			.collect(Collectors.toList());
+		
+		otpDao.storeRecoveryCodes(secret.getId(), recoveryCodesHashed);
+		
+		// For proper migration
+		otpDao.touchSecret(secret.getId());
+		
+		return new TwoFactorAuthRecoveryCodes().setCodes(recoveryCodes);
+	}
+	
+	@Override
+	@WriteTransaction
+	public boolean validate2FaRecoveryCode(UserInfo user, String recoveryCode) {
+		assertValidUser(user);
+		
+		ValidateArgument.requiredNotBlank(recoveryCode, "The recoveryCode");
+		
+		DBOOtpSecret secret = getActiveSecretOrThrow(user);
+		
+		// Each code has a different random salt
+		List<String> recoveryCodes = otpDao.getRecoveryCodes(secret.getId());
+		
+		for (String candidate : recoveryCodes) {
+			byte[] salt = PBKDF2Utils.extractSalt(candidate);
+			String recoveryCodeHash = PBKDF2Utils.hashPassword(recoveryCode, salt);
+			
+			// Found the match
+			if (candidate.equals(recoveryCodeHash) && otpDao.deleteRecoveryCode(secret.getId(), recoveryCodeHash)) {
+				otpDao.touchSecret(secret.getId());
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
 	boolean isTotpValid(UserInfo user, DBOOtpSecret secret, String otpCode) {
 		String encryptedSecret = secret.getSecret();
 		
@@ -184,6 +231,10 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		String unencryptedSecret = AESEncryptionUtils.decryptWithAESGCM(encryptedSecret, userEncryptionKey);
 		
 		return totpMananger.isTotpValid(unencryptedSecret, otpCode);
+	}
+	
+	DBOOtpSecret getActiveSecretOrThrow(UserInfo user) {
+		return otpDao.getActiveSecret(user.getId()).orElseThrow(() -> new IllegalArgumentException("Two factor authentication is not enabled"));
 	}
 	
 	/**

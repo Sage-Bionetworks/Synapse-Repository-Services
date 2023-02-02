@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,14 +24,16 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class OtpSecretDaoImplTest {
 	
 	@Autowired
-	private OtpSecretDao dao;
+	private OtpSecretDaoImpl dao;
 		
 	private Long userId;
+	private Long otherUserId;
 
 	@BeforeEach
 	public void before() {
 		dao.truncateAll();
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		otherUserId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 	}
 	
 	@AfterEach
@@ -96,12 +100,12 @@ public class OtpSecretDaoImplTest {
 		
 		// First store one secret inactive
 		DBOOtpSecret existing1 = dao.storeSecret(userId, secret);
-		DBOOtpSecret existing2 = dao.storeSecret(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), "another secret");
+		DBOOtpSecret existing2 = dao.storeSecret(otherUserId, "another secret");
 		
 		// Call under test
 		DBOOtpSecret updated = dao.activateSecret(userId, existing1.getId());
 		
-		assertEquals(existing2, dao.getSecret(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), existing2.getId()).get());
+		assertEquals(existing2, dao.getSecret(otherUserId, existing2.getId()).get());
 				
 		assertEquals(existing1.getUserId(), updated.getUserId());
 		assertEquals(existing1.getCreatedOn(), updated.getCreatedOn());
@@ -164,7 +168,7 @@ public class OtpSecretDaoImplTest {
 		assertTrue(dao.getSecret(userId, 123L).isEmpty());
 		
 		DBOOtpSecret existing1 = dao.storeSecret(userId, secret);
-		DBOOtpSecret existing2 = dao.storeSecret(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), "another secret");
+		DBOOtpSecret existing2 = dao.storeSecret(otherUserId, "another secret");
 		
 		// Call under test
 		assertEquals(existing1, dao.getSecret(userId, existing1.getId()).get());
@@ -213,13 +217,13 @@ public class OtpSecretDaoImplTest {
 		String secret = "my secret";
 		
 		DBOOtpSecret existing1 = dao.storeSecret(userId, secret);
-		DBOOtpSecret existing2 = dao.storeSecret(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), "another secret");
+		DBOOtpSecret existing2 = dao.storeSecret(otherUserId, "another secret");
 		
 		// Call under test
 		dao.deleteSecret(userId, existing1.getId());
 		
 		assertTrue(dao.getSecret(userId, existing1.getId()).isEmpty());
-		assertEquals(existing2, dao.getSecret(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), existing2.getId()).get());
+		assertEquals(existing2, dao.getSecret(otherUserId, existing2.getId()).get());
 	}
 	
 	@Test
@@ -255,13 +259,124 @@ public class OtpSecretDaoImplTest {
 		String secret = "my secret";
 		
 		DBOOtpSecret existing1 = dao.storeSecret(userId, secret);
-		DBOOtpSecret existing2 = dao.storeSecret(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), "another secret");
+		DBOOtpSecret existing2 = dao.storeSecret(otherUserId, "another secret");
 				
 		// Call under test
 		dao.deleteSecrets(userId);
 		
 		assertTrue(dao.getSecret(userId, existing1.getId()).isEmpty());
-		assertEquals(existing2, dao.getSecret(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), existing2.getId()).get());
+		assertEquals(existing2, dao.getSecret(otherUserId, existing2.getId()).get());
 	}
+	
+	@Test
+	public void touchSecret() {
+		DBOOtpSecret existing1 = dao.storeSecret(userId, "secret");
+		DBOOtpSecret existing2 = dao.storeSecret(otherUserId, "another secret");
+		
+		// Call under test
+		dao.touchSecret(existing1.getId());
+		
+		DBOOtpSecret modified = dao.getSecret(userId, existing1.getId()).get();
+		
+		assertNotEquals(existing1, modified);
+		
+		existing1.setEtag(modified.getEtag());
+		
+		assertEquals(existing1, modified);
+		assertEquals(existing2, dao.getSecret(otherUserId, existing2.getId()).get());
+	}
+	
+	@Test
+	public void testStoreRecoveryCodes() {
+		DBOOtpSecret existing1 = dao.storeSecret(userId, "secret");
+		DBOOtpSecret existing2 = dao.storeSecret(otherUserId, "another secret");
+		
+		List<String> codes = List.of(
+			"codeOne",
+			"codeTwo"
+		);
+		
+		// Call under test
+		dao.storeRecoveryCodes(existing1.getId(), codes);
+		
+		assertEquals(codes, dao.getRecoveryCodes(existing1.getId()));
+		assertTrue(dao.getRecoveryCodes(existing2.getId()).isEmpty());
+	}
+	
+	@Test
+	public void testDeleteRecoveryCode() {
+		// Call under test
+		assertFalse(dao.deleteRecoveryCode(123L, "codeOne"));
+		
+		DBOOtpSecret existing1 = dao.storeSecret(userId, "secret");
+		DBOOtpSecret existing2 = dao.storeSecret(otherUserId, "another secret");
+		
+		// Call under test
+		assertFalse(dao.deleteRecoveryCode(existing1.getId(), "codeOne"));
+		
+		List<String> codes = List.of(
+			"codeOne",
+			"codeTwo"
+		);
+		
+		dao.storeRecoveryCodes(existing1.getId(), codes);
+		dao.storeRecoveryCodes(existing2.getId(), codes);
+		
+		// Call under test
+		assertFalse(dao.deleteRecoveryCode(existing1.getId(), "codeThree"));
+		assertFalse(dao.deleteRecoveryCode(-1L, "codeOne"));
+		
+		// Call under test
+		assertTrue(dao.deleteRecoveryCode(existing1.getId(), "codeOne"));
 
+		assertEquals(List.of("codeTwo"), dao.getRecoveryCodes(existing1.getId()));
+		
+		assertEquals(codes, dao.getRecoveryCodes(existing2.getId()));
+	}
+	
+	@Test
+	public void testDeleteRecoveryCodes() {
+		DBOOtpSecret existing1 = dao.storeSecret(userId, "secret");
+		DBOOtpSecret existing2 = dao.storeSecret(otherUserId, "another secret");
+				
+		List<String> codes = List.of(
+			"codeOne",
+			"codeTwo"
+		);
+		
+		dao.storeRecoveryCodes(existing1.getId(), codes);
+		dao.storeRecoveryCodes(existing2.getId(), codes);
+
+		// Call under test
+		dao.deleteRecoveryCodes(existing1.getId());
+		
+		assertTrue(dao.getRecoveryCodes(existing1.getId()).isEmpty());
+		assertEquals(codes, dao.getRecoveryCodes(existing2.getId()));
+	}
+	
+	@Test
+	public void testGetRecoveryCodes() {
+		DBOOtpSecret existing1 = dao.storeSecret(userId, "secret");
+		DBOOtpSecret existing2 = dao.storeSecret(otherUserId, "another secret");
+		
+		assertTrue(dao.getRecoveryCodes(existing1.getId()).isEmpty());
+				
+		List<String> codes1 = List.of(
+			"codeA",
+			"codeB"
+		);
+		
+		List<String> codes2 = List.of(
+			"codeC",
+			"codeD"
+		);
+		
+		dao.storeRecoveryCodes(existing1.getId(), codes1);
+		dao.storeRecoveryCodes(existing2.getId(), codes2);
+		
+		assertTrue(dao.getRecoveryCodes(-1L).isEmpty());
+		assertEquals(codes1, dao.getRecoveryCodes(existing1.getId()));
+		assertEquals(codes2, dao.getRecoveryCodes(existing2.getId()));
+	}
+	
 }

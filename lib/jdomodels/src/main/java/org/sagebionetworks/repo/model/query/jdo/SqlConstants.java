@@ -1253,6 +1253,11 @@ public class SqlConstants {
 	public static final String COL_OTP_SECRET_SECRET = 									"SECRET";
 	public static final String COL_OTP_SECRET_ACTIVE = 									"ACTIVE";
 	
+	public static final String DDL_OTP_RECOVERY_CODE =									"schema/OtpRecoveryCode-ddl.sql";
+	public static final String TABLE_OTP_RECOVERY_CODE =	 							"OTP_RECOVERY_CODE";
+	public static final String COL_OTP_RECOVERY_CODE_SECRET_ID =						"SECRET_ID";
+	public static final String COL_OTP_RECOVERY_CODE_CODE_HASH =						"CODE_HASH";
+	public static final String COL_OTP_RECOVERY_CODE_CREATED_ON = 						"CREATED_ON";	
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

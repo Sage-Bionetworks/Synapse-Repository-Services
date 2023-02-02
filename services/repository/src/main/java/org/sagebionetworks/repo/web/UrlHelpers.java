@@ -1207,6 +1207,7 @@ public class UrlHelpers {
 	public static final String TWO_FA = "/2fa";
 	public static final String TWO_FA_ENROLL = TWO_FA + "/enroll";
 	public static final String TWO_FA_TOKEN = TWO_FA + "/token";
+	public static final String TWO_FA_RECOVERY_CODES = TWO_FA + "/recoveryCodes";
 
 	public static final String AUTH_LOGIN = "/login";
 	public static final String AUTH_LOGIN_2 = "/login2";

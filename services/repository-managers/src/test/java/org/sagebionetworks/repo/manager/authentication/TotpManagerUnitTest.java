@@ -4,8 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import dev.samstevens.totp.code.CodeVerifier;
+import dev.samstevens.totp.recovery.RecoveryCodeGenerator;
 import dev.samstevens.totp.secret.SecretGenerator;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,6 +29,9 @@ public class TotpManagerUnitTest {
 	
 	@Mock
 	private CodeVerifier mockCodeVerifier;
+	
+	@Mock
+	private RecoveryCodeGenerator mockRecoveryCodesGen;
 	
 	@InjectMocks
 	private TotpManager manager;
@@ -69,5 +77,19 @@ public class TotpManagerUnitTest {
 		assertFalse(result);
 		
 		verify(mockCodeVerifier).isValidCode(secret, code);
+	}
+	
+	@Test
+	public void testGenerateRecoveryCodes() {
+		String[] codes = new String[] {"codeOne", "codeTwo"};
+		
+		when(mockRecoveryCodesGen.generateCodes(anyInt())).thenReturn(codes);
+		
+		// Call under test
+		List<String> result = manager.generateRecoveryCodes();
+		
+		assertEquals(Arrays.asList(codes), result);
+		
+		verify(mockRecoveryCodesGen).generateCodes(TotpManager.RECOVERY_CODES_COUNT);		
 	}
 }

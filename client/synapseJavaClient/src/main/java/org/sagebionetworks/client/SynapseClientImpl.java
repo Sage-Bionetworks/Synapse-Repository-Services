@@ -119,6 +119,7 @@ import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -6167,13 +6168,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public TwoFactorAuthStatus get2faStatus() throws SynapseException {
+	public TwoFactorAuthStatus get2FaStatus() throws SynapseException {
 		return getJSONEntity(getAuthEndpoint(), "/2fa", TwoFactorAuthStatus.class);
 	}
 
 	@Override
-	public void disable2fa() throws SynapseException {
+	public void disable2Fa() throws SynapseException {
 		deleteUri(getAuthEndpoint(), "/2fa");
+	}
+	
+	@Override
+	public TwoFactorAuthRecoveryCodes generate2FaRecoveryCodes() throws SynapseException {
+		return postJSONEntity(getAuthEndpoint(), "/2fa/recoveryCodes", null, TwoFactorAuthRecoveryCodes.class);
 	}
 	
 	@Override

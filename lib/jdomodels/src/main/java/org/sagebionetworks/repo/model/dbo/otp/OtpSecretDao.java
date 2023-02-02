@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.otp;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface OtpSecretDao {
@@ -52,6 +53,43 @@ public interface OtpSecretDao {
 	 * @param userId
 	 */
 	void deleteSecrets(Long userId);
+	
+	/**
+	 * Updates the etag of the secret with the given id
+	 * 
+	 * @param secretId
+	 */
+	void touchSecret(Long secretId);
+	
+	/**
+	 * Stores the give list of recovery codes for the given secret, just store an hash of each recovery code
+	 * 
+	 * @param secretId
+	 * @param recoveryCodes
+	 */
+	void storeRecoveryCodes(Long secretId, List<String> recoveryCodes);
+	
+	/**
+	 * Deletes the recovery code associated with the given secret id
+	 * 
+	 * @param secretId
+	 * @param recoveryCode
+	 * @return True if a recoveryCode associated with the given secret was deleted, false otherwise
+	 */
+	boolean deleteRecoveryCode(Long secretId, String recoveryCode);
+	
+	/**
+	 * Deletes all the recovery codes associated with the given secret id
+	 * 
+	 * @param secretId
+	 */
+	void deleteRecoveryCodes(Long secretId);
+	
+	/**
+	 * @param secretId
+	 * @return The list of recovery codes for the given secret id
+	 */
+	List<String> getRecoveryCodes(Long secretId);
 	
 	// For testing
 	

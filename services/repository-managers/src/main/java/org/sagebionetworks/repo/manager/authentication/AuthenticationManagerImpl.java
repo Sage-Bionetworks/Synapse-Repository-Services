@@ -194,13 +194,26 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		
 		UserInfo user = userManager.getUserInfo(request.getUserId());
 		
-		if (!twoFaManager.is2FaLoginTokenValid(user, request.getTwoFaToken())) {
+		if (!twoFaManager.validate2FaLoginToken(user, request.getTwoFaToken())) {
 			throw new UnauthenticatedException("The provided 2fa token is invalid.");
 		}
 		
 		TwoFactorAuthOtpType otpType = request.getOtpType() == null ? TwoFactorAuthOtpType.TOTP : request.getOtpType();
+		
+		boolean validCode = false;
+		
+		switch (otpType) {
+		case TOTP:
+			validCode = twoFaManager.validate2FaTotpCode(user, request.getOtpCode());
+			break;
+		case RECOVERY_CODE:
+			validCode = twoFaManager.validate2FaRecoveryCode(user, request.getOtpCode());
+			break;
+		default:
+			throw new UnsupportedOperationException("Code type " + otpType + " not supported yet.");
+		}
 				
-		if (!twoFaManager.is2FaCodeValid(user, otpType, request.getOtpCode())) {
+		if (!validCode) {
 			throw new UnauthenticatedException("The provided code is invalid.");
 		}
 				

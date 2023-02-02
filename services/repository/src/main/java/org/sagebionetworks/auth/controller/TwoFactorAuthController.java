@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.web.RequiredScope;
@@ -40,6 +41,11 @@ import org.springframework.web.util.UriComponentsBuilder;
  * <p>
  * In order to login through 2FA an additional request needs to be performed after the user attempts to authenticate (e.g. through the <a href="${POST.login2}">POST /login2</a> API). 
  * If the user has 2FA enabled, they will receive a 401 and the body of the response will contain a twoFaToken that can be used in the <a href="${POST.2fa.token}">POST /2fa/token</a> API to obtain an access token.
+ * </p>
+ * 
+ * <p>
+ * The user can additionally generate a set of recovery codes using the <a href="${POST.2fa.recoveryCodes}">POST /2fa/recoveryCodes</a> API. The codes are one time use and can be used in place of a TOTP code when
+ * performing 2FA authentication. The body of the <a href="${POST.2fa.token}">POST /2fa/token</a> request should specify as otpType RECOVERY_CODE and the value of the otpCode should match one of the generated codes.
  * </p>
  */
 @ControllerInfo(displayName = "Authentication Services (2FA)", path = "auth/v1")
@@ -129,6 +135,24 @@ public class TwoFactorAuthController {
 	@RequestMapping(value = UrlHelpers.TWO_FA_TOKEN, method = RequestMethod.POST)
 	public @ResponseBody LoginResponse login(@RequestBody TwoFactorAuthLoginRequest request, UriComponentsBuilder uriComponentsBuilder) {
 		return service.loginWith2Fa(request, EndpointHelper.getEndpoint(uriComponentsBuilder));
+	}
+	
+	/**
+	 * Generates a new set of single use recovery codes that are associated with the two factor authentication of the user. The recovery codes are single use and can
+	 * be used to login with 2FA in place of an TOTP. In order to use a recovery code the body of the <a href="${POST.2fa.token}">login</a> request should specify as the
+	 * otpType RECOVERY_CODE and the otpCode should match one of the generated recovery codes.
+	 * <p>
+	 * Note that invoking this endpoint will replace existing recovery codes.
+	 * </p> 
+	 *  
+	 * @param userId
+	 * @return
+	 */
+	@RequiredScope({OAuthScope.modify})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TWO_FA_RECOVERY_CODES, method = RequestMethod.POST)
+	public @ResponseBody TwoFactorAuthRecoveryCodes generateRecoveryCodes(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
+		return service.generate2faRecoveryCodes(userId);
 	}
 
 }
