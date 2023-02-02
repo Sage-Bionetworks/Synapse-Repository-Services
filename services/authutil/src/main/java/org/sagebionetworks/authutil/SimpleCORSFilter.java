@@ -61,8 +61,6 @@ public class SimpleCORSFilter implements Filter {
 			response.addHeader(ACCESS_CONTROL_ALLOW_HEADERS, HEADERS);
 			// header indicates the methods that can be used in the actual request.
 			response.addHeader(ACCESS_CONTROL_ALLOW_METHODS, METHODS);
-			// header indicates that the actual request can include user credentials (send cookies from another domain).
-			response.addHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, Boolean.TRUE.toString());
 		} else {
 			// pass along all non-pre-flight requests.
 			chain.doFilter(request, response);
