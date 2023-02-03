@@ -34,7 +34,6 @@ public class SimpleCORSFilter implements Filter {
 			AuthorizationConstants.SESSION_TOKEN_PARAM +
 		", "+AuthorizationConstants.AUTHORIZATION_HEADER_NAME;
 	public static final String MAX_AGE = "600";
-	public static final String ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials";
 	public static final String ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";
 	public static final String ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers";
 	public static final String ACCESS_CONTROL_MAX_AGE = "Access-Control-Max-Age";
@@ -61,8 +60,6 @@ public class SimpleCORSFilter implements Filter {
 			response.addHeader(ACCESS_CONTROL_ALLOW_HEADERS, HEADERS);
 			// header indicates the methods that can be used in the actual request.
 			response.addHeader(ACCESS_CONTROL_ALLOW_METHODS, METHODS);
-			// header indicates that the actual request can include user credentials (send cookies from another domain).
-			response.addHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, Boolean.TRUE.toString());
 		} else {
 			// pass along all non-pre-flight requests.
 			chain.doFilter(request, response);

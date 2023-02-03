@@ -57,8 +57,7 @@ public class SimpleCORSFilterTest {
 		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_MAX_AGE, SimpleCORSFilter.MAX_AGE);
 		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_HEADERS, SimpleCORSFilter.HEADERS);
 		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_METHODS, SimpleCORSFilter.METHODS);
-		verify(mockResponse).addHeader(SimpleCORSFilter.ACCESS_CONTROL_ALLOW_CREDENTIALS, Boolean.TRUE.toString());
-		
+
 		verify(mockChain, never()).doFilter(mockRequest, mockResponse);
 	}
 	
