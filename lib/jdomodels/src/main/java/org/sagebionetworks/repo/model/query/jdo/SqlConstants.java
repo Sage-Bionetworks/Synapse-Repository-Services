@@ -217,6 +217,7 @@ public class SqlConstants {
 	public static final String COL_ACCESS_REQUIREMENT_CREATED_BY				= "CREATED_BY";
 	public static final String COL_ACCESS_REQUIREMENT_CREATED_ON				= "CREATED_ON";
 	public static final String COL_ACCESS_REQUIREMENT_ACCESS_TYPE				= "ACCESS_TYPE";
+	public static final String COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED		= "IS_TWO_FA_REQUIRED";
 	public static final String COL_ACCESS_REQUIREMENT_CONCRETE_TYPE				= "CONCRETE_TYPE";
 	public static final String DDL_FILE_ACCESS_REQUIREMENT						= "schema/AccessRequirement-ddl.sql";
 	

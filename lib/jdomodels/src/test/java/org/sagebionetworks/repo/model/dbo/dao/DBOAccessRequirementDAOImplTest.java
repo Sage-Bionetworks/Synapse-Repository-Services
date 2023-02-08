@@ -327,6 +327,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement2.setEtag("etag");
 		accessRequirement2.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		accessRequirement2.setSubjectIds(Arrays.asList(rod));
+		accessRequirement2.setIsTwoFaRequired(false);
 		accessRequirement2 = accessRequirementDAO.create(accessRequirement2);
 
 		stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY);

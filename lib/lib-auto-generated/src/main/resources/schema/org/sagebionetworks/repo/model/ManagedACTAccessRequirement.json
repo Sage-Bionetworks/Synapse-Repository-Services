@@ -37,6 +37,10 @@
 		"isIDURequired": {
 			"type": "boolean",
 			"description": "If true (default), the Intended Data Use Statement for a research project is required."
+		},
+		"isTwoFaRequired": {
+			"type": "boolean",
+			"description": "If true, then accessor needs to enable two factor authentication before gaining access to the data."
 		}
 	}
 }

@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
@@ -26,7 +27,6 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * @author brucehoff
@@ -41,6 +41,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	private String accessType;
 	private String concreteType;
 	private Long currentRevNumber;
+	private Boolean isTwoFaRequired;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACCESS_REQUIREMENT_ID, true).withIsBackupId(true),
@@ -51,9 +52,19 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		new FieldColumn("createdOn", COL_ACCESS_REQUIREMENT_CREATED_ON),
 		new FieldColumn("accessType", COL_ACCESS_REQUIREMENT_ACCESS_TYPE),
 		new FieldColumn("concreteType", COL_ACCESS_REQUIREMENT_CONCRETE_TYPE),
-		};
+		new FieldColumn("isTwoFaRequired", COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED)
+	};
 
-	private static final MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
+	private static final MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>() {
+		
+		@Override
+		public DBOAccessRequirement createDatabaseObjectFromBackup(DBOAccessRequirement backup) {
+			if (backup.getIsTwoFaRequired() == null) {
+				backup.setIsTwoFaRequired(false);
+			}
+			return backup;
+		}
+	};
 
 	@Override
 	public TableMapping<DBOAccessRequirement> getTableMapping() {
@@ -70,6 +81,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 				ar.setCreatedOn(rs.getLong(COL_ACCESS_REQUIREMENT_CREATED_ON));
 				ar.setAccessType(rs.getString(COL_ACCESS_REQUIREMENT_ACCESS_TYPE));
 				ar.setConcreteType(rs.getString(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE));
+				ar.setIsTwoFaRequired(rs.getBoolean(COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED));
 				return ar;
 			}
 
@@ -169,10 +181,18 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	public void setConcreteType(String concreteType) {
 		this.concreteType = concreteType;
 	}
+	
+	public Boolean getIsTwoFaRequired() {
+		return isTwoFaRequired;
+	}
+	
+	public void setIsTwoFaRequired(Boolean isTwoFaRequired) {
+		this.isTwoFaRequired = isTwoFaRequired;
+	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(accessType, concreteType, createdBy, createdOn, currentRevNumber, eTag, id, name);
+		return Objects.hash(accessType, concreteType, createdBy, createdOn, currentRevNumber, eTag, id, isTwoFaRequired, name);
 	}
 
 	@Override
@@ -187,7 +207,8 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		return Objects.equals(accessType, other.accessType) && Objects.equals(concreteType, other.concreteType)
 				&& Objects.equals(createdBy, other.createdBy) && createdOn == other.createdOn
 				&& Objects.equals(currentRevNumber, other.currentRevNumber) && Objects.equals(eTag, other.eTag)
-				&& Objects.equals(id, other.id) && Objects.equals(name, other.name);
+				&& Objects.equals(id, other.id) && Objects.equals(isTwoFaRequired, other.isTwoFaRequired)
+				&& Objects.equals(name, other.name);
 	}
 
 	@Override

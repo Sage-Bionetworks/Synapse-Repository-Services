@@ -418,6 +418,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (ar.getIsIDURequired() == null) {
 			ar.setIsIDURequired(true);
 		}
+		if (ar.getIsTwoFaRequired() == null) {
+			ar.setIsTwoFaRequired(false);
+		}
 		return ar;
 	}
 
