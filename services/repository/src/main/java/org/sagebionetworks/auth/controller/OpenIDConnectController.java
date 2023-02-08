@@ -174,6 +174,28 @@ public class OpenIDConnectController {
 	}
 	
 	/**
+	 * Check whether the proposed change to an OAuth Client
+	 * will cause the client to enter the 'unverified' state.
+	 * 
+	 * @param oauthClient the proposed changes to the client metadata
+	 * @return
+	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException 
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID_VERIFICATION_PRECHECK, method = RequestMethod.PUT)
+	public @ResponseBody
+	OAuthClientVerificationPrecheckResult updateOAuthClientVerificationPrecheck(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody OAuthClient oauthClient
+			) throws NotFoundException, ServiceUnavailableException {
+		return serviceProvider.getOpenIDConnectService().
+				reverificationRequiredForUpdatedOpenIDConnectClient(userId, oauthClient);
+	}
+	
+	
+	/**
 	 * Update the metadata for an existing OAuth 2.0 client.
 	 * <br/>
 	 * Note:  Only the creator of a client can update it.

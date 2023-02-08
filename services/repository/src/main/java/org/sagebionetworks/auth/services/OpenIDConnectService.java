@@ -1,5 +1,6 @@
 package org.sagebionetworks.auth.services;
 
+import org.sagebionetworks.auth.controller.OAuthClientVerificationPrecheckResult;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -51,6 +52,14 @@ public interface OpenIDConnectService {
 	 * @return
 	 */
 	public OAuthClientList listOpenIDConnectClients(Long userId, String nextPageToken);
+	
+	/**
+	 * 
+	 * @param userId
+	 * @param oauthClient
+	 * @return
+	 */
+	public OAuthClientVerificationPrecheckResult reverificationRequiredForUpdatedOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException;
 	
 	/**
 	 * 

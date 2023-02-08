@@ -1183,6 +1183,7 @@ public class UrlHelpers {
 	 */
 	public static final String OAUTH_2_CLIENT = AUTH_OAUTH_2+"/client";
 	public static final String OAUTH_2_CLIENT_ID = OAUTH_2_CLIENT+ID;
+	public static final String OAUTH_2_CLIENT_ID_VERIFICATION_PRECHECK = OAUTH_2_CLIENT+ID+"/verificationPrecheck";
 	public static final String OAUTH_2_CLIENT_SECRET = OAUTH_2_CLIENT+"/secret"+ID;
 	public static final String OAUTH_2_CONSENT = AUTH_OAUTH_2+"/consent";
 	public static final String OAUTH_2_CONSENT_CHECK = AUTH_OAUTH_2+"/consentcheck";

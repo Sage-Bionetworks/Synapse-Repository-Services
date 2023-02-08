@@ -1,0 +1,9 @@
+{
+	"description": "boolean value indicating whether proposed changes to the OAuth client will require reverification",
+ 	"properties": {
+		"reverificationRequired": {
+			"type": "boolean",
+			"description": "True iff the proposed changes to the OAuth client will require reverification"
+		}
+	}
+}

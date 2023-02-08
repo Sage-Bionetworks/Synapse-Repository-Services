@@ -37,6 +37,16 @@ public interface OAuthClientManager {
 	 * @return
 	 */
 	OAuthClientList listOpenIDConnectClients(UserInfo userInfo, String nextPageToken);
+	
+	/**
+	 * Returns true iff the proposed update to the OAuth Client would require reverification of the client.
+	 * 
+	 * @param userInfo the user making the request
+	 * @param oauthClient the proposed client update
+	 * @throws ServiceUnavailableException
+	 * @throws ConflictingUpdateException if the etag in the proposed update is incorrect
+	 */
+	boolean reverificationRequiredForUpdatedOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) throws ServiceUnavailableException;
 
 	/**
 	 * Update the metadata for an Open ID Connect client.  userInfo param must be the

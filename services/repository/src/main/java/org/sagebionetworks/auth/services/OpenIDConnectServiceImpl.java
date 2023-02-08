@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.auth.controller.OAuthClientVerificationPrecheckResult;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.manager.oauth.OAuthRefreshTokenManager;
@@ -85,6 +86,15 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		return oauthClientManager.listOpenIDConnectClients(userInfo, nextPageToken);
 	}
 
+	@Override
+	public OAuthClientVerificationPrecheckResult reverificationRequiredForUpdatedOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		boolean reverificationRequired = oauthClientManager.reverificationRequiredForUpdatedOpenIDConnectClient(userInfo, oauthClient);
+		OAuthClientVerificationPrecheckResult result = new OAuthClientVerificationPrecheckResult();
+		result.setReverificationRequired(reverificationRequired);
+		return result;
+	}
+	
 	@Override
 	public OAuthClient updateOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
