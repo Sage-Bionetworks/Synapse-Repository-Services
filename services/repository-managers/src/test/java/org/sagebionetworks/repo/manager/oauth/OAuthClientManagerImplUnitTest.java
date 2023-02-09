@@ -62,8 +62,11 @@ public class OAuthClientManagerImplUnitTest {
 	private static final String CLIENT_URI = "https://client.uri.com/index.html";
 	private static final String POLICY_URI = "https://client.uri.com/policy.html";
 	private static final String TOS_URI = "https://client.uri.com/termsOfService.html";
-	private static final List<String> REDIRCT_URIS = Collections.singletonList("https://client.com/redir");
-	private static final String SECTOR_IDENTIFIER_URI_STRING = "https://client.uri.com/path/to/json/file";
+	private static final String REDIRCT_URIS_HOST = "client.com";
+	private static final List<String> REDIRCT_URIS = Collections.singletonList("https://"+REDIRCT_URIS_HOST+"/redir");
+	private static final List<String> REDIRCT_URIS_ALT_SUFFIX = Collections.singletonList("https://"+REDIRCT_URIS_HOST+"/new_redir");
+	private static final String SECTOR_IDENTIFIER_URI_HOST = "client.uri.com";
+	private static final String SECTOR_IDENTIFIER_URI_JSON_FILE_URL = "https://"+SECTOR_IDENTIFIER_URI_HOST+"/path/to/json/file";
 	private static final List<String> REDIR_URI_LIST = ImmutableList.of("https://host1.com/redir1", "https://host2.com/redir2");
 	private static final String OAUTH_CLIENT_ID = "123";
 	private static final String OAUTH_CLIENT_ETAG = UUID.randomUUID().toString();
@@ -104,13 +107,13 @@ public class OAuthClientManagerImplUnitTest {
 		anonymousUserInfo = new UserInfo(false);
 		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
-		sector_identifier_uri = new URI(SECTOR_IDENTIFIER_URI_STRING);		
+		sector_identifier_uri = new URI(SECTOR_IDENTIFIER_URI_JSON_FILE_URL);		
 	}
 	
 	@Test
 	public void testGetURIInvalid() throws Exception {
 		// method under test
-		OAuthClientManagerImpl.getUri(SECTOR_IDENTIFIER_URI_STRING);
+		OAuthClientManagerImpl.getUri(SECTOR_IDENTIFIER_URI_JSON_FILE_URL);
 		
 		String uri = "not #$%^ valid";
 		
@@ -132,7 +135,7 @@ public class OAuthClientManagerImplUnitTest {
 			OAuthClientManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
 			
 			// sector identifier uri is not required but can be set
-			oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_STRING);
+			oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_JSON_FILE_URL);
 			OAuthClientManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
 		}
 
@@ -196,7 +199,7 @@ public class OAuthClientManagerImplUnitTest {
 		List<String> result = oauthClientManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
 		
 		verify(mockHttpClient).get(simpleHttpRequestCaptor.capture());
-		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequestCaptor.getValue().getUri());
+		assertEquals(SECTOR_IDENTIFIER_URI_JSON_FILE_URL, simpleHttpRequestCaptor.getValue().getUri());
 		
 		assertEquals(REDIR_URI_LIST, result);
 	}
@@ -212,7 +215,7 @@ public class OAuthClientManagerImplUnitTest {
 		});
 		
 		verify(mockHttpClient).get(simpleHttpRequestCaptor.capture());
-		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequestCaptor.getValue().getUri());
+		assertEquals(SECTOR_IDENTIFIER_URI_JSON_FILE_URL, simpleHttpRequestCaptor.getValue().getUri());
 		
 		// try throwing IOException
 		when(mockHttpClient.get((SimpleHttpRequest)any())).thenThrow(new IOException());
@@ -223,7 +226,7 @@ public class OAuthClientManagerImplUnitTest {
 		});
 		
 		verify(mockHttpClient, times(2)).get(simpleHttpRequestCaptor.capture());
-		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequestCaptor.getValue().getUri());
+		assertEquals(SECTOR_IDENTIFIER_URI_JSON_FILE_URL, simpleHttpRequestCaptor.getValue().getUri());
 		
 	}
 
@@ -240,7 +243,7 @@ public class OAuthClientManagerImplUnitTest {
 		});
 		
 		verify(mockHttpClient).get(simpleHttpRequestCaptor.capture());
-		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequestCaptor.getValue().getUri());
+		assertEquals(SECTOR_IDENTIFIER_URI_JSON_FILE_URL, simpleHttpRequestCaptor.getValue().getUri());
 	}
 	
 	@Test
@@ -303,7 +306,7 @@ public class OAuthClientManagerImplUnitTest {
 		
 		// method under test
 		String sectorIdentifier = oauthClientManagerImpl.resolveSectorIdentifier(
-				SECTOR_IDENTIFIER_URI_STRING, REDIR_URI_LIST);
+				SECTOR_IDENTIFIER_URI_JSON_FILE_URL, REDIR_URI_LIST);
 		
 		// the redir's are a subset of those in the file; the Sector Identifer is the host part of the URL pointing to the file
 		assertEquals("client.uri.com", sectorIdentifier);
@@ -311,7 +314,7 @@ public class OAuthClientManagerImplUnitTest {
 		
 		// the registered URIs must be a *subset* of those listed in the files.  So this is OK too:
 		// method under test
-		sectorIdentifier = oauthClientManagerImpl.resolveSectorIdentifier(SECTOR_IDENTIFIER_URI_STRING, 
+		sectorIdentifier = oauthClientManagerImpl.resolveSectorIdentifier(SECTOR_IDENTIFIER_URI_JSON_FILE_URL, 
 				Collections.singletonList("https://host1.com/redir1"));
 		assertEquals("client.uri.com", sectorIdentifier);
 	}
@@ -340,7 +343,7 @@ public class OAuthClientManagerImplUnitTest {
 		// trying to use a redirect uri that's not in the file
 		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
-			oauthClientManagerImpl.resolveSectorIdentifier(SECTOR_IDENTIFIER_URI_STRING, 
+			oauthClientManagerImpl.resolveSectorIdentifier(SECTOR_IDENTIFIER_URI_JSON_FILE_URL, 
 					Collections.singletonList("https://SomeOtherHost/redir1"));
 		});
 	}
@@ -408,7 +411,7 @@ public class OAuthClientManagerImplUnitTest {
 	public void testCreateOpenIDConnectClient_WithSectorIdentifierURI() throws Exception {
 		OAuthClient oauthClient = createOAuthClient(USER_ID);
 		oauthClient.setRedirect_uris(Collections.singletonList("https://host1.com/redir1"));
-		oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_STRING);
+		oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_JSON_FILE_URL);
 		
 
 		when(mockHttpResponse.getStatusCode()).thenReturn(200);
@@ -511,6 +514,107 @@ public class OAuthClientManagerImplUnitTest {
 		verify(mockOauthClientDao).listOAuthClients(nextPageToken, USER_ID_LONG);
 	}
 	
+	@Test
+	public void testReverificationRequiredForUpdatedOpenIDConnectClient_SameUriHost() throws Exception {
+		// 'created' simulates what's in the database already
+		OAuthClient created = createOAuthClient(USER_ID);
+		created.setClient_id(OAUTH_CLIENT_ID);
+		created.setEtag(OAUTH_CLIENT_ETAG);
+		created.setSector_identifier(REDIRCT_URIS_HOST);
+		
+		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClient_id())).thenReturn(created);
+		
+		// 'toUpdate' is the object as retrieved and modified by the client
+		OAuthClient toUpdate = createOAuthClient(USER_ID);
+		toUpdate.setClient_id(OAUTH_CLIENT_ID);
+		toUpdate.setEtag(OAUTH_CLIENT_ETAG);
+		// if we just change the suffix of the REDIR URI then no reverification is needed
+		toUpdate.setRedirect_uris(REDIRCT_URIS_ALT_SUFFIX);
+		
+		// method under test
+		boolean reverificationRequired = oauthClientManagerImpl.reverificationRequiredForUpdatedOpenIDConnectClient(userInfo, toUpdate);
+
+		assertFalse(reverificationRequired);
+	}	
+	
+	@Test
+	public void testReverificationRequiredForUpdatedOpenIDConnectClient_UriHostChanged() throws Exception {
+		// 'created' simulates what's in the database already
+		OAuthClient created = createOAuthClient(USER_ID);
+		created.setClient_id(OAUTH_CLIENT_ID);
+		created.setEtag(OAUTH_CLIENT_ETAG);
+		created.setSector_identifier(REDIRCT_URIS_HOST);
+		
+		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClient_id())).thenReturn(created);
+		
+		// 'toUpdate' is the object as retrieved and modified by the client
+		OAuthClient toUpdate = createOAuthClient(USER_ID);
+		toUpdate.setClient_id(OAUTH_CLIENT_ID);
+		toUpdate.setEtag(OAUTH_CLIENT_ETAG);
+		// if we change the host of the REDIR URI then reverification IS needed
+		toUpdate.setRedirect_uris(Collections.singletonList("https://new.client.com/redir"));
+		
+		// method under test
+		boolean reverificationRequired = oauthClientManagerImpl.reverificationRequiredForUpdatedOpenIDConnectClient(userInfo, toUpdate);
+
+		assertTrue(reverificationRequired);
+	}
+	
+	@Test
+	public void testReverificationRequiredForUpdatedOpenIDConnectClient_NoClientID() throws Exception {
+		// 'toUpdate' is the object as retrieved and modified by the client
+		OAuthClient toUpdate = createOAuthClient(USER_ID);
+		toUpdate.setClient_id(null);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			oauthClientManagerImpl.reverificationRequiredForUpdatedOpenIDConnectClient(userInfo, toUpdate);
+		});
+	}	
+	
+	@Test
+	public void testReverificationRequiredForUpdatedOpenIDConnectClient_NoRedirUris() throws Exception {
+		// 'created' simulates what's in the database already
+		OAuthClient created = createOAuthClient(USER_ID);
+		created.setClient_id(OAUTH_CLIENT_ID);
+		created.setEtag(OAUTH_CLIENT_ETAG);
+		created.setSector_identifier(REDIRCT_URIS_HOST);
+		
+		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClient_id())).thenReturn(created);
+		
+		// 'toUpdate' is the object as retrieved and modified by the client
+		OAuthClient toUpdate = createOAuthClient(USER_ID);
+		toUpdate.setClient_id(OAUTH_CLIENT_ID);
+		toUpdate.setEtag(OAUTH_CLIENT_ETAG);
+		toUpdate.setRedirect_uris(Collections.EMPTY_LIST);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			oauthClientManagerImpl.reverificationRequiredForUpdatedOpenIDConnectClient(userInfo, toUpdate);
+		});
+	}
+	
+	@Test
+	public void testReverificationRequiredForUpdatedOpenIDConnectClient_MismatchedEtag() throws Exception {
+		// 'created' simulates what's in the database already
+		OAuthClient created = createOAuthClient(USER_ID);
+		created.setClient_id(OAUTH_CLIENT_ID);
+		created.setEtag(OAUTH_CLIENT_ETAG);
+		created.setSector_identifier(REDIRCT_URIS_HOST);
+		
+		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClient_id())).thenReturn(created);
+		
+		// 'toUpdate' is the object as retrieved and modified by the client
+		OAuthClient toUpdate = createOAuthClient(USER_ID);
+		toUpdate.setClient_id(OAUTH_CLIENT_ID);
+		toUpdate.setEtag("some-other-etag");
+		toUpdate.setRedirect_uris(Collections.EMPTY_LIST);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			oauthClientManagerImpl.reverificationRequiredForUpdatedOpenIDConnectClient(userInfo, toUpdate);
+		});
+	}
 	
 	@Test
 	public void testUpdateOpenIDConnectClient_HappyCase() throws Exception {
@@ -878,9 +982,8 @@ public class OAuthClientManagerImplUnitTest {
 		oauthClient.setClient_id(OAUTH_CLIENT_ID);
 		oauthClient.setCreatedBy(USER_ID);
 		oauthClient.setEtag(OAUTH_CLIENT_ETAG);
-		String sector_identifier = "hostname.com";
-		oauthClient.setSector_identifier(sector_identifier);
-		oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_STRING);
+		oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_JSON_FILE_URL);
+		oauthClient.setSector_identifier(SECTOR_IDENTIFIER_URI_HOST);
 		oauthClient.setVerified(true);
 		return oauthClient;
 	}

@@ -40,6 +40,8 @@ public interface OAuthClientManager {
 	
 	/**
 	 * Returns true iff the proposed update to the OAuth Client would require reverification of the client.
+	 * In performing the check this method validates the submitted client information, including
+	 * redirect URIs, and will throw an exception if the information is invalid.
 	 * 
 	 * @param userInfo the user making the request
 	 * @param oauthClient the proposed client update

@@ -177,6 +177,8 @@ public class OpenIDConnectController {
 	/**
 	 * Check whether the proposed change to an OAuth Client
 	 * will cause the client to enter the 'unverified' state.
+	 * This service also validates the submitted client information
+	 * and will return a 400 Bad Request status for invalid information.
 	 * 
 	 * @param oauthClient the proposed changes to the client metadata
 	 * @return
@@ -201,8 +203,9 @@ public class OpenIDConnectController {
 	 * <br/>
 	 * Note:  Only the creator of a client can update it.
 	 * <br/>
-	 * Note: Changing the redirect URIs will revert the 'verified' status of the client,
-	 * necessitating re-verification.
+	 * Note: Changing the redirect URIs and/or the sector identifier
+	 * may revert the 'verified' status of the client, necessitating re-verification.
+	 * Use the service TODO to determine whether verified status 
 	 * 
 	 * @param oauthClient the client metadata to update
 	 * @return
