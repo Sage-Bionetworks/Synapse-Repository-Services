@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -81,6 +82,7 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 			if(requirementTypeString != null) {
 				requirementType = AccessRequirementType.lookupClassName(requirementTypeString);
 			}
+			Boolean isTwoFaRequired = rs.getBoolean(SqlConstants.COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED);
 			// The user is automatically approved for any requirement on files they create.
 			if (EntityType.file.equals(entityType) && userId.equals(createdBy)) {
 				approved = true;
@@ -88,10 +90,10 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 			UsersRestrictionStatus status = statusMap.get(entityId);
 			if (approved != null && !approved) {
 				status.setHasUnmet(true);
-			}
+			}			
 			if (requirementId != null) {
 				status.addRestrictionStatus(new UsersRequirementStatus().withRequirementId(requirementId)
-						.withRequirementType(requirementType).withIsUnmet(!approved));
+						.withRequirementType(requirementType).withIsUnmet(!approved).withIsTwoFaRequired(isTwoFaRequired));
 			}
 		});
 		return statusMap;

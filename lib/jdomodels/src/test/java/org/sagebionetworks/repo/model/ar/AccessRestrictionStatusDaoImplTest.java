@@ -184,7 +184,7 @@ public class AccessRestrictionStatusDaoImplTest {
 	}
 	
 	@Test
-	public void testGeEntityStatusWithNoRequirementsNotCreator() {
+	public void testGetEntityStatusWithNoRequirementsNotCreator() {
 		setupNodeHierarchy(userTwoId);
 		List<Long> subjectIds = KeyFactory.stringToKey(Arrays.asList(file.getId(), fileTwo.getId()));
 		// call under test
@@ -570,6 +570,63 @@ public class AccessRestrictionStatusDaoImplTest {
 		assertFalse(result.hasUnmet());
 		assertEquals(expected, result.getAccessRestrictions());
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, result.getMostRestrictiveLevel());
+	}
+	
+	@Test
+	public void testGeEntityStatusWithApprovedRestrictionAnd2FaRequired() {
+		setupNodeHierarchy(userTwoId);
+		
+		ManagedACTAccessRequirement managedAr = managedHelper.create(ar -> {
+			ar.setCreatedBy(userThreeId.toString());
+			ar.getSubjectIds().get(0).setId(project.getId());
+			ar.setIsTwoFaRequired(true);
+		});
+		
+		accessApprovalHelper.create(a -> {
+			a.setCreatedBy(userThreeId.toString());
+			a.setSubmitterId(userTwoId.toString());
+			a.setRequirementId(managedAr.getId());
+			a.setRequirementVersion(managedAr.getVersionNumber());
+			a.setState(ApprovalState.APPROVED);
+			a.setAccessorId(userOneId.toString());
+		});
+
+		Long subjectId = KeyFactory.stringToKey(project.getId());
+		
+		UsersRestrictionStatus expectedStatus = new UsersRestrictionStatus(subjectId, userOneId);
+		
+		expectedStatus.setHasUnmet(false);
+		expectedStatus.addRestrictionStatus(new UsersRequirementStatus().withRequirementId(managedAr.getId())
+				.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(false).withIsTwoFaRequired(true));
+		
+		// call under test
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId), userOneId);
+		
+		assertEquals(List.of(expectedStatus), results);
+	}
+	
+	@Test
+	public void testGeEntityStatusWithUnmetRestrictionAnd2FaRequired() {
+		setupNodeHierarchy(userTwoId);
+		
+		ManagedACTAccessRequirement managedAr = managedHelper.create(ar -> {
+			ar.setCreatedBy(userThreeId.toString());
+			ar.getSubjectIds().get(0).setId(project.getId());
+			ar.setIsTwoFaRequired(true);
+		});
+
+		Long subjectId = KeyFactory.stringToKey(project.getId());
+		
+		UsersRestrictionStatus expectedStatus = new UsersRestrictionStatus(subjectId, userOneId);
+		
+		expectedStatus.setHasUnmet(true);
+		expectedStatus.addRestrictionStatus(new UsersRequirementStatus().withRequirementId(managedAr.getId())
+				.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(true).withIsTwoFaRequired(true));
+		
+		// call under test
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId), userOneId);
+		
+		assertEquals(List.of(expectedStatus), results);
 	}
 
 	@Test

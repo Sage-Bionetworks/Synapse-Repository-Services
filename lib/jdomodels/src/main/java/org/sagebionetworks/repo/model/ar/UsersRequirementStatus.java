@@ -10,7 +10,8 @@ public class UsersRequirementStatus {
 
 	private Long requirementId;
 	private AccessRequirementType requirementType;
-	private boolean isUnmet;	
+	private boolean isUnmet;
+	private boolean isTwoFaRequired;
 
 	/**
 	 * 
@@ -63,10 +64,19 @@ public class UsersRequirementStatus {
 	public boolean isUnmet() {
 		return isUnmet;
 	}
+	
+	public boolean isTwoFaRequired() {
+		return isTwoFaRequired;
+	}
+	
+	public UsersRequirementStatus withIsTwoFaRequired(boolean isTwoFaRequired) {
+		this.isTwoFaRequired = isTwoFaRequired;
+		return this;
+	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(isUnmet, requirementId, requirementType);
+		return Objects.hash(isTwoFaRequired, isUnmet, requirementId, requirementType);
 	}
 
 	@Override
@@ -78,14 +88,14 @@ public class UsersRequirementStatus {
 			return false;
 		}
 		UsersRequirementStatus other = (UsersRequirementStatus) obj;
-		return isUnmet == other.isUnmet && Objects.equals(requirementId, other.requirementId)
-				&& Objects.equals(requirementType, other.requirementType);
+		return isTwoFaRequired == other.isTwoFaRequired && isUnmet == other.isUnmet && Objects.equals(requirementId, other.requirementId)
+				&& requirementType == other.requirementType;
 	}
 
 	@Override
 	public String toString() {
-		return "RequirementStatus [requirementId=" + requirementId + ", requirementType=" + requirementType
-				+ ", isUnmet=" + isUnmet + "]";
+		return "UsersRequirementStatus [requirementId=" + requirementId + ", requirementType=" + requirementType + ", isUnmet=" + isUnmet
+				+ ", isTwoFaRequired=" + isTwoFaRequired + "]";
 	}
 	
 }
