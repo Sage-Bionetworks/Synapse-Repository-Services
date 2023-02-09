@@ -246,6 +246,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
+import org.sagebionetworks.repo.model.oauth.OAuthClientVerificationPrecheckResult;
 import org.sagebionetworks.repo.model.oauth.OAuthConsentGrantedResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -4596,6 +4597,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public OAuthClient updateOAuthClient(OAuthClient oauthClient) throws SynapseException {
 		return putJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT+"/"+oauthClient.getClient_id(), oauthClient, OAuthClient.class);
 	}
+	
+	@Override
+	public boolean reverificationRequiredCheck(OAuthClient updatedOAuthClient) throws SynapseException {
+		OAuthClientVerificationPrecheckResult result = 
+				putJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT+"/"+updatedOAuthClient.getClient_id()+"/verificationPrecheck", 
+						updatedOAuthClient, OAuthClientVerificationPrecheckResult.class);
+		return result.getReverificationRequired();
+	}
+	
+
 
 	@Override
 	public void deleteOAuthClient(String clientId) throws SynapseException {

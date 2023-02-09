@@ -366,6 +366,12 @@ public class ITOpenIDConnectTest {
 		}
 		
 		OAuthClient retrieved = synapse.getOAuthClient(client.getClient_id());
+		
+		// would updating the client require re-verification?
+		// since nothing's changed the answer should be 'no'
+		assertFalse(synapse.reverificationRequiredCheck(retrieved));
+		
+		// update the client
 		retrieved.setUserinfo_signed_response_alg(OIDCSigningAlgorithm.RS256);
 		OAuthClient updated = synapse.updateOAuthClient(retrieved);
 		assertEquals(retrieved.getClient_name(), updated.getClient_name());

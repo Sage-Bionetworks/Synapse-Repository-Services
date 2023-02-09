@@ -2073,6 +2073,15 @@ public interface SynapseClient extends BaseClient {
 	OAuthClient updateOAuthClient(OAuthClient oauthClient) throws SynapseException;
 	
 	/**
+	 * Checks whether the proposed update to an OAuth Client would require reverification.
+	 * 
+	 * @param updatedOAuthClient
+	 * @return
+	 * @throws SynapseException
+	 */
+	boolean reverificationRequiredCheck(OAuthClient updatedOAuthClient) throws SynapseException;
+	
+	/**
 	 * Delete OAuth 2.0 client
 	 * 
 	 * @param id

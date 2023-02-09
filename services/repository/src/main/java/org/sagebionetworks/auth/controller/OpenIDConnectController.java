@@ -205,7 +205,9 @@ public class OpenIDConnectController {
 	 * <br/>
 	 * Note: Changing the redirect URIs and/or the sector identifier
 	 * may revert the 'verified' status of the client, necessitating re-verification.
-	 * Use the service TODO to determine whether verified status 
+	 * Use the service <a href="${PUT.oauth2.client.id.verificationPrecheck}">
+	 * PUT /oauth2/client/{id}/verificationPrecheck</a> 
+	 * to determine whether re-verification will be required.
 	 * 
 	 * @param oauthClient the client metadata to update
 	 * @return
