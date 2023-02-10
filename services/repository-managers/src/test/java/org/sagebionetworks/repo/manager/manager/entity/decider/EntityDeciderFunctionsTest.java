@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTI
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_NEED_TWO_FA;
 
 import java.util.Optional;
 
@@ -28,8 +29,10 @@ import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -636,5 +639,52 @@ public class EntityDeciderFunctionsTest {
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.GRANT_IF_USER_IS_CREATOR
 				.determineAccess(context);
 		assertFalse(resultOptional.isPresent());
+	}
+	
+	@Test
+	public void testDenyIfTwoFactorRequiredAndTwoFactorDisabled() {
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsTwoFaRequired(false));
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsTwoFaRequired(true));
+		context.withTwoFactorAuthState(TwoFactorState.DISABLED);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_TWO_FA_REQUIREMENT_NOT_MET
+				.determineAccess(context);
+		
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
+				AuthorizationStatus.accessDenied(ERR_MSG_YOU_NEED_TWO_FA));
+		
+		assertEquals(expected, resultOptional.get());
+	}
+	
+	@Test
+	public void testGrantIfTwoFactorRequiredAndTwoFactorEnabled() {
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsTwoFaRequired(false));
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsTwoFaRequired(true));
+		context.withTwoFactorAuthState(TwoFactorState.ENABLED);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_TWO_FA_REQUIREMENT_NOT_MET
+				.determineAccess(context);
+				
+		assertTrue(resultOptional.isEmpty());
+	}
+	
+	@Test
+	public void testGrantIfTwoFactorNotRequiredAndTwoFactorDisabled() {
+		context.withTwoFactorAuthState(TwoFactorState.DISABLED);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_TWO_FA_REQUIREMENT_NOT_MET
+				.determineAccess(context);
+				
+		assertTrue(resultOptional.isEmpty());
+	}
+	
+	@Test
+	public void testGrantIfTwoFactorNotRequiredAndTwoFactorEnabled() {
+		context.withTwoFactorAuthState(TwoFactorState.ENABLED);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_TWO_FA_REQUIREMENT_NOT_MET
+				.determineAccess(context);
+				
+		assertTrue(resultOptional.isEmpty());
 	}
 }

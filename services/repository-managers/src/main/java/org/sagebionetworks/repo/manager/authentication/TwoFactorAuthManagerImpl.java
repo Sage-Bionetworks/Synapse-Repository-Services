@@ -99,7 +99,11 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 
 	@Override
 	public TwoFactorAuthStatus get2FaStatus(UserInfo user) {
-		assertValidUser(user);
+		ValidateArgument.required(user, "The user");
+		
+		if (AuthorizationUtils.isUserAnonymous(user)) {
+			return new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED);
+		}
 		
 		TwoFactorState state = otpDao.hasActiveSecret(user.getId()) ? TwoFactorState.ENABLED : TwoFactorState.DISABLED;
 		

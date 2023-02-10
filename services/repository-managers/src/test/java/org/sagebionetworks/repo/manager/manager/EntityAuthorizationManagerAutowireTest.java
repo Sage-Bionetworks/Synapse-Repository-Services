@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTI
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_NEED_TWO_FA;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 import java.util.Arrays;
@@ -43,8 +44,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
+import org.sagebionetworks.repo.model.dbo.otp.OtpSecretDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
@@ -86,7 +87,9 @@ public class EntityAuthorizationManagerAutowireTest {
 	private DaoObjectHelper<AccessApproval> accessApprovalHelper;
 	@Autowired
 	private EntityAuthorizationManager entityAuthManager;
-
+	@Autowired
+	private OtpSecretDao otpSecretDao;
+	
 	private UserInfo adminUserInfo;
 	private UserInfo anonymousUser;
 	private UserInfo userOne;
@@ -94,6 +97,8 @@ public class EntityAuthorizationManagerAutowireTest {
 
 	@BeforeEach
 	public void before() {
+		otpSecretDao.truncateAll();
+		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
@@ -121,6 +126,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		aclDao.truncateAll();
 		dataTypeDao.truncateAllData();
 		nodeDao.truncateAll();
+		otpSecretDao.truncateAll();
 		if (userOne != null) {
 			userManager.deletePrincipal(adminUserInfo, userOne.getId());
 		}
@@ -377,6 +383,81 @@ public class EntityAuthorizationManagerAutowireTest {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS, newMessage);
+	}
+	
+	@Test
+	public void testHasAccessDownloadWithUnmetTwoFaRequirement() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.DOWNLOAD));
+		});
+		ManagedACTAccessRequirement managedRequirement = managedHelper.create(a -> {
+			a.setCreatedBy(userOne.getId().toString());
+			a.getSubjectIds().get(0).setId(project.getId());
+			a.setIsTwoFaRequired(true);
+		});
+		accessApprovalHelper.create(a -> {
+			a.setCreatedBy(userOne.getId().toString());
+			a.setSubmitterId(userOne.getId().toString());
+			a.setRequirementId(managedRequirement.getId());
+			a.setRequirementVersion(managedRequirement.getVersionNumber());
+			a.setState(ApprovalState.APPROVED);
+			a.setAccessorId(userTwo.getId().toString());
+		});
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
+		
+		// new call under test
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(ERR_MSG_YOU_NEED_TWO_FA, newMessage);
+	}
+	
+	@Test
+	public void testHasAccessDownloadWithMetTwoFaRequirement() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.DOWNLOAD));
+		});
+		
+		ManagedACTAccessRequirement managedRequirement = managedHelper.create(a -> {
+			a.setCreatedBy(userOne.getId().toString());
+			a.getSubjectIds().get(0).setId(project.getId());
+			a.setIsTwoFaRequired(true);
+		});
+		
+		accessApprovalHelper.create(a -> {
+			a.setCreatedBy(userOne.getId().toString());
+			a.setSubmitterId(userOne.getId().toString());
+			a.setRequirementId(managedRequirement.getId());
+			a.setRequirementVersion(managedRequirement.getVersionNumber());
+			a.setState(ApprovalState.APPROVED);
+			a.setAccessorId(userTwo.getId().toString());
+		});
+		
+		// Enable 2FA for the user
+		otpSecretDao.activateSecret(userTwo.getId(), otpSecretDao.storeSecret(userTwo.getId(), "secret").getId());
+
+		String entityId = project.getId();
+		UserInfo user = userTwo;
+		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
+		
+		// new call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
 	}
 
 	@Test

@@ -311,8 +311,6 @@ public class TwoFactorAuthManagerImplUnitTest {
 	
 	@Test
 	public void testGet2FAStatus() {
-		doNothing().when(manager).assertValidUser(any());
-		
 		when(mockOtpSecretDao.hasActiveSecret(any())).thenReturn(false);
 		
 		TwoFactorAuthStatus expected = new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED);
@@ -326,9 +324,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testGet2FAStatusWithActiveSecret() {
-		doNothing().when(manager).assertValidUser(any());
-		
+	public void testGet2FAStatusWithActiveSecret() {	
 		when(mockOtpSecretDao.hasActiveSecret(any())).thenReturn(true);
 		
 		TwoFactorAuthStatus expected = new TwoFactorAuthStatus().setStatus(TwoFactorState.ENABLED);
@@ -339,6 +335,21 @@ public class TwoFactorAuthManagerImplUnitTest {
 		assertEquals(expected, result);
 		
 		verify(mockOtpSecretDao).hasActiveSecret(user.getId());
+	}
+	
+	@Test
+	public void testGet2FAStatusWithAnonymousUser() {
+		
+		user = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		
+		TwoFactorAuthStatus expected = new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED);
+		
+		// Call under test
+		TwoFactorAuthStatus result = manager.get2FaStatus(user);
+		
+		assertEquals(expected, result);
+		
+		verifyZeroInteractions(mockOtpSecretDao);
 	}
 	
 	@Test
