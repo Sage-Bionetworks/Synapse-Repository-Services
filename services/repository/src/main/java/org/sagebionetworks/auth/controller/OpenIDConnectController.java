@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
+import org.sagebionetworks.repo.model.oauth.OAuthClientVerificationPrecheckResult;
 import org.sagebionetworks.repo.model.oauth.OAuthConsentGrantedResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
@@ -174,12 +175,39 @@ public class OpenIDConnectController {
 	}
 	
 	/**
+	 * Check whether the proposed change to an OAuth Client
+	 * will cause the client to enter the 'unverified' state.
+	 * This service also validates the submitted client information
+	 * and will return a 400 Bad Request status for invalid information.
+	 * 
+	 * @param oauthClient the proposed changes to the client metadata
+	 * @return
+	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException 
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID_VERIFICATION_PRECHECK, method = RequestMethod.PUT)
+	public @ResponseBody
+	OAuthClientVerificationPrecheckResult updateOAuthClientVerificationPrecheck(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody OAuthClient oauthClient
+			) throws NotFoundException, ServiceUnavailableException {
+		return serviceProvider.getOpenIDConnectService().
+				reverificationRequiredForUpdatedOpenIDConnectClient(userId, oauthClient);
+	}
+	
+	
+	/**
 	 * Update the metadata for an existing OAuth 2.0 client.
 	 * <br/>
 	 * Note:  Only the creator of a client can update it.
 	 * <br/>
-	 * Note: Changing the redirect URIs will revert the 'verified' status of the client,
-	 * necessitating re-verification.
+	 * Note: Changing the redirect URIs and/or the sector identifier
+	 * may revert the 'verified' status of the client, necessitating re-verification.
+	 * Use the service <a href="${PUT.oauth2.client.id.verificationPrecheck}">
+	 * PUT /oauth2/client/{id}/verificationPrecheck</a> 
+	 * to determine whether re-verification will be required.
 	 * 
 	 * @param oauthClient the client metadata to update
 	 * @return

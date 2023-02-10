@@ -184,6 +184,24 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 
 	@WriteTransaction
 	@Override
+	public boolean reverificationRequiredForUpdatedOpenIDConnectClient(UserInfo userInfo, OAuthClient toUpdate) throws ServiceUnavailableException {
+		ValidateArgument.requiredNotEmpty(toUpdate.getClient_id(), "Client ID");
+		OAuthClient currentClient = oauthClientDao.selectOAuthClientForUpdate(toUpdate.getClient_id());
+		validateOAuthClientForCreateOrUpdate(toUpdate);
+		
+		ValidateArgument.requiredNotEmpty(toUpdate.getEtag(), "etag");
+		if (!currentClient.getEtag().equals(toUpdate.getEtag())) {
+			throw new ConflictingUpdateException(
+					"OAuth Client was updated since you last fetched it.  Retrieve it again and reapply the update.");
+		}
+		
+		String resolvedSectorIdentifier = resolveSectorIdentifier(toUpdate.getSector_identifier_uri(), toUpdate.getRedirect_uris());
+		
+		return !resolvedSectorIdentifier.equals(currentClient.getSector_identifier());
+	}
+	
+	@WriteTransaction
+	@Override
 	public OAuthClient updateOpenIDConnectClient(UserInfo userInfo, OAuthClient toUpdate) throws ServiceUnavailableException {
 		ValidateArgument.requiredNotEmpty(toUpdate.getClient_id(), "Client ID");
 		OAuthClient currentClient = oauthClientDao.selectOAuthClientForUpdate(toUpdate.getClient_id());

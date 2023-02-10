@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.oauth;
 
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -116,6 +117,12 @@ public class OAuthClientManagerImplAutowiredTest {
 		
 		created.setPolicy_uri("http://someOtherPolicyUri.com");
 		created.setClient_name("some other name");
+		
+		// method under test
+		boolean reverificationRequired = oauthClientManager.
+				reverificationRequiredForUpdatedOpenIDConnectClient(userInfo, created);
+		
+		assertFalse(reverificationRequired);
 		
 		// method under test
 		OAuthClient updated = oauthClientManager.updateOpenIDConnectClient(userInfo, created);
