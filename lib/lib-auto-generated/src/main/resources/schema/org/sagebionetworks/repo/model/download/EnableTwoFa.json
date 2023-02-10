@@ -1,0 +1,14 @@
+{
+	"description": "In order to download a file the user will need to enable two factor authentication.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.download.Action"
+		}
+	],
+	"properties": {
+		"accessRequirementId": {
+			"description": "The ID of the first access requirement that requires two factor authentication.",
+			"type": "integer"
+		}
+	}
+}
