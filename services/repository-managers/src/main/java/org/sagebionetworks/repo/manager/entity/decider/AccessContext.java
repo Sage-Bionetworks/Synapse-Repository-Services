@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
+import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 
 /**
@@ -17,6 +18,7 @@ public class AccessContext {
 	private UserInfo user;
 	private UserEntityPermissionsState permissionsState;
 	private UsersRestrictionStatus restrictionStatus;
+	private TwoFactorState twoFactorAuthState;
 	private ACCESS_TYPE accessType;
 	private EntityType entityCreateType;
 
@@ -40,6 +42,13 @@ public class AccessContext {
 	public UsersRestrictionStatus getRestrictionStatus() {
 		return restrictionStatus;
 	}
+	
+	/**
+	 * @return
+	 */
+	public TwoFactorState getTwoFactorAuthState() {
+		return twoFactorAuthState;
+	}
 
 	/**
 	 * @param user the user to set
@@ -62,6 +71,15 @@ public class AccessContext {
 	 */
 	public AccessContext withRestrictionStatus(UsersRestrictionStatus restrictionStatus) {
 		this.restrictionStatus = restrictionStatus;
+		return this;
+	}
+	
+	/**
+	 * @param twoFactorAuthState
+	 * @return
+	 */
+	public AccessContext withTwoFactorAuthState(TwoFactorState twoFactorAuthState) {
+		this.twoFactorAuthState = twoFactorAuthState;
 		return this;
 	}
 	
@@ -97,7 +115,7 @@ public class AccessContext {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(permissionsState, restrictionStatus, user);
+		return Objects.hash(accessType, entityCreateType, permissionsState, restrictionStatus, twoFactorAuthState, user);
 	}
 
 	@Override
@@ -109,14 +127,16 @@ public class AccessContext {
 			return false;
 		}
 		AccessContext other = (AccessContext) obj;
-		return Objects.equals(permissionsState, other.permissionsState)
-				&& Objects.equals(restrictionStatus, other.restrictionStatus) && Objects.equals(user, other.user);
+		return accessType == other.accessType && entityCreateType == other.entityCreateType
+				&& Objects.equals(permissionsState, other.permissionsState) && Objects.equals(restrictionStatus, other.restrictionStatus)
+				&& twoFactorAuthState == other.twoFactorAuthState && Objects.equals(user, other.user);
 	}
 
 	@Override
 	public String toString() {
-		return "AccessContext [user=" + user + ", permissionState=" + permissionsState + ", restrictionStatus="
-				+ restrictionStatus + "]";
+		return "AccessContext [user=" + user + ", permissionsState=" + permissionsState + ", restrictionStatus=" + restrictionStatus
+				+ ", twoFactorAuthState=" + twoFactorAuthState + ", accessType=" + accessType + ", entityCreateType=" + entityCreateType
+				+ "]";
 	}
 	
 }

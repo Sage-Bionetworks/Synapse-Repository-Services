@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTI
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_NEED_TWO_FA;
 import static org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES.ROOT;
 
 import java.util.Optional;
@@ -17,7 +18,9 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
+import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.web.NotFoundException;;
 
 /**
@@ -235,6 +238,16 @@ public enum EntityDeciderFunctions implements AccessDecider {
 		if (ROOT.getId().equals(c.getPermissionsState().getEntityParentId()) || c.getPermissionsState().getEntityParentId() == null) {
 			return Optional.of(new UsersEntityAccessInfo(c,
 					AuthorizationStatus.accessDenied(ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT)));
+		} else {
+			return Optional.empty();
+		}
+	}),
+	/**
+	 * Denies access if the an access requirement required 2FA and the user does not have 2FA enabled
+	 */
+	DENY_IF_TWO_FA_REQUIREMENT_NOT_MET((c) -> {
+		if (!TwoFactorState.ENABLED.equals(c.getTwoFactorAuthState()) && c.getRestrictionStatus().getAccessRestrictions().stream().filter(UsersRequirementStatus::isTwoFaRequired).findFirst().isPresent()) {
+			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_YOU_NEED_TWO_FA)));
 		} else {
 			return Optional.empty();
 		}

@@ -51,10 +51,4 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 			return info;
 		});
 	}
-	
-	@Override
-	public List<UsersRestrictionStatus> getEntityRestrictionInformation(UserInfo userInfo, List<Long> entityIds){
-		return accessRestrictionStatusDao.getEntityStatus(entityIds, userInfo.getId());
-	}
-
 }

@@ -54,7 +54,12 @@ public class AccessRequirementUtils {
 		if(!StringUtils.isBlank(dto.getDescription())) {
 			dboRequirement.setName(dto.getDescription());
 		}
-
+		if (dto instanceof ManagedACTAccessRequirement) {
+			dboRequirement.setIsTwoFaRequired(((ManagedACTAccessRequirement) dto).getIsTwoFaRequired());
+		}		
+		if (dboRequirement.getIsTwoFaRequired() == null) {
+			dboRequirement.setIsTwoFaRequired(false);
+		}
 		// revision
 		dboRevision.setOwnerId(dto.getId());
 		dboRevision.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
@@ -91,6 +96,9 @@ public class AccessRequirementUtils {
 		dto.setModifiedOn(new Date(revision.getModifiedOn()));
 		dto.setAccessType(ACCESS_TYPE.valueOf(dbo.getAccessType()));
 		dto.setVersionNumber(dbo.getCurrentRevNumber());
+		if (dto instanceof ManagedACTAccessRequirement) {
+			((ManagedACTAccessRequirement) dto).setIsTwoFaRequired(dbo.getIsTwoFaRequired());
+		}
 		return dto;
 	}
 	

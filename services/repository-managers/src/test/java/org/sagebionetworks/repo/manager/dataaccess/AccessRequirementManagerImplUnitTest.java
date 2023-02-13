@@ -392,6 +392,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getIsIRBApprovalRequired());
 		assertFalse(ar.getAreOtherAttachmentsRequired());
 		assertFalse(ar.getIsIDUPublic());
+		assertFalse(ar.getIsTwoFaRequired());
 		assertTrue(ar.getIsIDURequired());
 	}
 
@@ -422,6 +423,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getAreOtherAttachmentsRequired());
 		assertFalse(ar.getIsIDUPublic());
 		assertTrue(ar.getIsIDURequired());
+		assertFalse(ar.getIsTwoFaRequired());
 
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 
@@ -673,6 +675,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getIsIDUPublic());
 		assertTrue(ar.getIsIDURequired());
 		assertTrue(ar.getVersionNumber().equals(info.getCurrentVersion()+1));
+		assertFalse(ar.getIsTwoFaRequired());
 
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,7 +26,6 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
-import org.sagebionetworks.util.TemporaryCode;
 
 import com.google.common.collect.Lists;
 
@@ -69,6 +69,32 @@ public class AccessRequirementUtilsTest {
 		DBOAccessRequirement dboRequirement = new DBOAccessRequirement();
 		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
 		AccessRequirementUtils.copyDtoToDbo(dto, dboRequirement, dboRevision);
+		assertFalse(dboRequirement.getIsTwoFaRequired());
+		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dboRequirement, dboRevision);
+		assertEquals(dto, dto2);
+		assertEquals(1, dto.getSubjectIds().size());
+	}
+	
+	@Test
+	public void testRoundtripWithManagedAR() throws Exception {
+		ManagedACTAccessRequirement dto = new ManagedACTAccessRequirement();
+		dto.setId(101L);
+		dto.setName("someName");
+		dto.setEtag("0");
+		dto.setSubjectIds(Lists.newArrayList(createRestrictableObjectDescriptor("syn999")));
+		dto.setCreatedBy("555");
+		dto.setCreatedOn(new Date());
+		dto.setModifiedBy("666");
+		dto.setModifiedOn(new Date());
+		dto.setConcreteType(ManagedACTAccessRequirement.class.getName());
+		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		dto.setVersionNumber(1L);
+		dto.setIsTwoFaRequired(true);
+			
+		DBOAccessRequirement dboRequirement = new DBOAccessRequirement();
+		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
+		AccessRequirementUtils.copyDtoToDbo(dto, dboRequirement, dboRevision);
+		assertTrue(dboRequirement.getIsTwoFaRequired());
 		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dboRequirement, dboRevision);
 		assertEquals(dto, dto2);
 		assertEquals(1, dto.getSubjectIds().size());

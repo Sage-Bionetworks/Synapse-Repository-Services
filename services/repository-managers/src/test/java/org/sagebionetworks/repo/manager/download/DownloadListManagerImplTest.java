@@ -48,6 +48,7 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.authentication.TwoFactorAuthManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
@@ -67,6 +68,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
+import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
@@ -91,6 +94,7 @@ import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
+import org.sagebionetworks.repo.model.download.EnableTwoFa;
 import org.sagebionetworks.repo.model.download.FilesStatisticsRequest;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
@@ -137,6 +141,8 @@ public class DownloadListManagerImplTest {
 
 	@Mock
 	private EntityAuthorizationManager mockEntityAuthorizationManager;
+	@Mock
+	private TwoFactorAuthManager mockTwofactorAuthManager;
 	@Mock
 	private DownloadListDAO mockDownloadListDao;
 	@Mock
@@ -194,13 +200,15 @@ public class DownloadListManagerImplTest {
 	private CsvTableDescriptor csvTableDescriptor;
 	private DownloadListManifestRequest downloadListManifestRequest;
 	private boolean fileSizesChecked;
-
+	private TwoFactorState userTwoFaState;
+	
 	@BeforeEach
 	public void before() {
 		boolean isAdmin = false;
 		userOne = new UserInfo(isAdmin, 222L);
 		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-
+		userTwoFaState = TwoFactorState.ENABLED;
+				
 		toAddRequest = new AddBatchOfFilesToDownloadListRequest();
 		List<DownloadListItem> batchOfItems = Arrays.asList(
 				new DownloadListItem().setFileEntityId("syn123").setVersionNumber(null),
@@ -745,6 +753,7 @@ public class DownloadListManagerImplTest {
 		ActionRequiredRequest request = new ActionRequiredRequest();
 		queryRequestBody.setRequestDetails(request);
 		when(mockDownloadListDao.getActionsRequiredFromDownloadList(any(), any(), any(), any())).thenReturn(page);
+		when(mockTwofactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(userTwoFaState));
 
 		ActionRequiredResponse expected = new ActionRequiredResponse();
 		expected.setNextPageToken(null);
@@ -759,6 +768,7 @@ public class DownloadListManagerImplTest {
 		Long offest = 0L;
 		verify(mockDownloadListDao).getActionsRequiredFromDownloadList(any(), eq(userOne.getId()), eq(limit),
 				eq(offest));
+		verify(mockTwofactorAuthManager).get2FaStatus(userOne);
 	}
 
 	@Test
@@ -768,7 +778,7 @@ public class DownloadListManagerImplTest {
 
 		List<FileActionRequired> expected = Collections.emptyList();
 		// call under test
-		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo);
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo, userTwoFaState);
 		assertEquals(expected, actions);
 	}
 
@@ -780,7 +790,7 @@ public class DownloadListManagerImplTest {
 		List<FileActionRequired> expected = Arrays.asList(new FileActionRequired().withFileId(entityId)
 				.withAction(new RequestDownload().setBenefactorId(benefactorId)));
 		// call under test
-		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo);
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo, userTwoFaState);
 		assertEquals(expected, actions);
 	}
 
@@ -793,7 +803,7 @@ public class DownloadListManagerImplTest {
 		
 		List<FileActionRequired> expected = Arrays.asList();
 		// call under test
-		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo);
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo, userTwoFaState);
 		assertEquals(expected, actions);
 	}
 
@@ -807,7 +817,7 @@ public class DownloadListManagerImplTest {
 		List<FileActionRequired> expected = Arrays.asList(new FileActionRequired().withFileId(entityId)
 				.withAction(new RequestDownload().setBenefactorId(benefactorId)));
 		// call under test
-		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo);
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo, userTwoFaState);
 		assertEquals(expected, actions);
 	}
 
@@ -822,7 +832,7 @@ public class DownloadListManagerImplTest {
 		List<FileActionRequired> expected = Arrays.asList(new FileActionRequired().withFileId(entityId)
 				.withAction(new MeetAccessRequirement().setAccessRequirementId(321L)));
 		// call under test
-		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo);
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo, userTwoFaState);
 		assertEquals(expected, actions);
 	}
 
@@ -833,7 +843,7 @@ public class DownloadListManagerImplTest {
 				.asList(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			DownloadListManagerImpl.createActionRequired(batchInfo);
+			DownloadListManagerImpl.createActionRequired(batchInfo, userTwoFaState);
 		}).getMessage();
 
 		assertEquals("info.accessRestrictions() is required.", message);
@@ -853,15 +863,68 @@ public class DownloadListManagerImplTest {
 				new FileActionRequired().withFileId(entityId)
 						.withAction(new MeetAccessRequirement().setAccessRequirementId(321L)));
 		// call under test
-		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo);
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo, userTwoFaState);
 		assertEquals(expected, actions);
 	}
+	
+	@Test
+	public void testCreateActionRequiredWithUnmetRestrictionsAndUnmetTwoFaRestriction() {
+		userTwoFaState = TwoFactorState.DISABLED;
+		List<UsersEntityAccessInfo> batchInfo = Arrays
+				.asList(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")));
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(432L).withIsTwoFaRequired(false));
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(789L).withIsTwoFaRequired(true));
+		restrictionStatus.setHasUnmet(true);
 
+		List<FileActionRequired> expected = Arrays.asList(
+			new FileActionRequired().withFileId(entityId)
+				.withAction(new MeetAccessRequirement().setAccessRequirementId(432L)),
+			new FileActionRequired().withFileId(entityId)
+				.withAction(new MeetAccessRequirement().setAccessRequirementId(789L)),
+			new FileActionRequired().withFileId(entityId)
+				.withAction(new EnableTwoFa().setAccessRequirementId(789L))
+		);
+		// call under test
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo, userTwoFaState);
+		assertEquals(expected, actions);
+	}
+	
+	@Test
+	public void testCreateActionRequiredWithMetTwoFaRestriction() {
+		userTwoFaState = TwoFactorState.ENABLED;
+		List<UsersEntityAccessInfo> batchInfo = Arrays
+				.asList(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")));
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L).withIsTwoFaRequired(true));
+		restrictionStatus.setHasUnmet(false);
+
+		List<FileActionRequired> expected = Arrays.asList(new FileActionRequired().withFileId(entityId)
+				.withAction(new RequestDownload().setBenefactorId(benefactorId)));
+		// call under test
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo, userTwoFaState);
+		assertEquals(expected, actions);
+	}
+	
+	@Test
+	public void testCreateActionRequiredWithUnmetTwoFaRestriction() {
+		userTwoFaState = TwoFactorState.DISABLED;
+		List<UsersEntityAccessInfo> batchInfo = Arrays
+				.asList(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")));
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L).withIsTwoFaRequired(true));
+		restrictionStatus.setHasUnmet(false);
+
+		List<FileActionRequired> expected = Arrays.asList(new FileActionRequired().withFileId(entityId)
+				.withAction(new EnableTwoFa().setAccessRequirementId(432L)));
+		// call under test
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo, userTwoFaState);
+		assertEquals(expected, actions);
+	}
+	
 	@Test
 	public void testQueryActionRequired() {
 		List<ActionRequiredCount> page = Arrays.asList(new ActionRequiredCount().setCount(3L));
 		ActionRequiredRequest request = new ActionRequiredRequest();
 		when(mockDownloadListDao.getActionsRequiredFromDownloadList(any(), any(), any(), any())).thenReturn(page);
+		when(mockTwofactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(userTwoFaState));
 		// call under test
 		ActionRequiredResponse resonse = manager.queryActionRequired(userOne, request);
 		assertNotNull(resonse);
@@ -869,8 +932,8 @@ public class DownloadListManagerImplTest {
 		assertNull(resonse.getNextPageToken());
 		Long limit = 51L;
 		Long offest = 0L;
-		verify(mockDownloadListDao).getActionsRequiredFromDownloadList(any(), eq(userOne.getId()), eq(limit),
-				eq(offest));
+		verify(mockDownloadListDao).getActionsRequiredFromDownloadList(any(), eq(userOne.getId()), eq(limit), eq(offest));
+		verify(mockTwofactorAuthManager).get2FaStatus(userOne);
 	}
 
 	@Test
@@ -881,6 +944,7 @@ public class DownloadListManagerImplTest {
 		ActionRequiredRequest request = new ActionRequiredRequest()
 				.setNextPageToken(new NextPageToken(limit, offset).toToken());
 		when(mockDownloadListDao.getActionsRequiredFromDownloadList(any(), any(), any(), any())).thenReturn(page);
+		when(mockTwofactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(userTwoFaState));
 		// call under test
 		ActionRequiredResponse resonse = manager.queryActionRequired(userOne, request);
 		assertNotNull(resonse);
@@ -889,6 +953,7 @@ public class DownloadListManagerImplTest {
 		assertEquals(new NextPageToken(limit, nextOffset).toToken(), resonse.getNextPageToken());
 		verify(mockDownloadListDao).getActionsRequiredFromDownloadList(any(), eq(userOne.getId()), eq(limit + 1L),
 				eq(offset));
+		verify(mockTwofactorAuthManager).get2FaStatus(userOne);
 	}
 
 	@Test

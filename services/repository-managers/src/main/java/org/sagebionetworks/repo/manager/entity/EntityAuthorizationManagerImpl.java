@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunct
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_NOT_CERTIFIED;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_PARENT_IS_ROOT_OR_NULL;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_TWO_FA_REQUIREMENT_NOT_MET;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_ADMIN;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_CHANGE_PERMISSION;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.GRANT_IF_HAS_CHANGE_SETTINGS;
@@ -32,6 +33,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.manager.authentication.TwoFactorAuthManager;
 import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
 import org.sagebionetworks.repo.manager.entity.decider.AccessDecider;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
@@ -44,6 +46,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
@@ -58,13 +61,15 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 
 	private AccessRestrictionStatusDao accessRestrictionStatusDao;
 	private UsersEntityPermissionsDao usersEntityPermissionsDao;
+	private TwoFactorAuthManager twoFactorAuthManager;
 
 	@Autowired
 	public EntityAuthorizationManagerImpl(AccessRestrictionStatusDao accessRestrictionStatusDao,
-			UsersEntityPermissionsDao usersEntityPermissionsDao) {
+			UsersEntityPermissionsDao usersEntityPermissionsDao, TwoFactorAuthManager twoFactorAuthManager) {
 		super();
 		this.accessRestrictionStatusDao = accessRestrictionStatusDao;
 		this.usersEntityPermissionsDao = usersEntityPermissionsDao;
+		this.twoFactorAuthManager = twoFactorAuthManager;
 	}
 
 	@Override
@@ -211,13 +216,17 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	 */
 	UsersEntityAccessInfo determineDownloadAccess(UserInfo userState, UserEntityPermissionsState permissionsState,
 			UsersRestrictionStatus restrictionStatus) {
+		
+		TwoFactorState twoFactorAuthState = twoFactorAuthManager.get2FaStatus(userState).getStatus();
+		
 		// @formatter:off
 		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userState).withPermissionsState(permissionsState)
-				.withRestrictionStatus(restrictionStatus).withAccessType(ACCESS_TYPE.DOWNLOAD),
+				.withRestrictionStatus(restrictionStatus).withAccessType(ACCESS_TYPE.DOWNLOAD).withTwoFactorAuthState(twoFactorAuthState),
 			DENY_IF_DOES_NOT_EXIST,
 			DENY_IF_IN_TRASH,
 			GRANT_IF_ADMIN,
 			DENY_IF_HAS_UNMET_ACCESS_RESTRICTIONS,
+			DENY_IF_TWO_FA_REQUIREMENT_NOT_MET,
 			GRANT_IF_OPEN_DATA_WITH_READ,
 			DENY_IF_ANONYMOUS,
 			DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE,

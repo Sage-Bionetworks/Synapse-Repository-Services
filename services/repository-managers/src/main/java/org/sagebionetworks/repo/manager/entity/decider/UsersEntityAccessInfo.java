@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.entity.decider;
 
-import java.util.Objects;
-
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.util.ValidateArgument;

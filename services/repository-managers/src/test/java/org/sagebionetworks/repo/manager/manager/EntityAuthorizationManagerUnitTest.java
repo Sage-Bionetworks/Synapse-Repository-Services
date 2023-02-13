@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.authentication.TwoFactorAuthManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -24,6 +25,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
+import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
@@ -37,6 +40,8 @@ public class EntityAuthorizationManagerUnitTest {
 	private AccessRestrictionStatusDao mockAccessRestrictionStatusDao;
 	@Mock
 	private UsersEntityPermissionsDao mockUsersEntityPermissionsDao;
+	@Mock
+	private TwoFactorAuthManager mockTwoFactorAuthManager;
 
 	@InjectMocks
 	private EntityAuthorizationManagerImpl entityAuthManager;
@@ -77,6 +82,8 @@ public class EntityAuthorizationManagerUnitTest {
 	public void testGetUserPermissionsForEntityWithNoPermissions() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		userInfo.setAcceptsTermsOfUse(false);
 		userInfo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		// call under test
@@ -86,6 +93,7 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	
@@ -93,6 +101,8 @@ public class EntityAuthorizationManagerUnitTest {
 	public void testGetUserPermissionsForEntityWithCertifiedUser() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		userInfo.setAcceptsTermsOfUse(false);
 		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		// call under test
@@ -103,12 +113,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanCreate() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasCreate(true);
 		userInfo.setAcceptsTermsOfUse(true);
@@ -124,12 +137,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanCreateButNotCertified() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasCreate(true);
 		userInfo.setAcceptsTermsOfUse(true);
@@ -145,12 +161,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanChangePermission() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasChangePermissions(true);
 
@@ -164,12 +183,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanMoveTrue() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasChangePermissions(true);
 		permissionsState.withHasUpdate(true);
@@ -187,12 +209,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanMoveAndNoChangePermissoins() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasChangePermissions(false);
 		permissionsState.withHasUpdate(true);
@@ -210,12 +235,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanMoveAndNoUpdate() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasChangePermissions(true);
 		permissionsState.withHasUpdate(false);
@@ -233,12 +261,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanChangeSettings() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasChangeSettings(true);
 
@@ -252,12 +283,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanDelete() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasDelete(true);
 
@@ -271,12 +305,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanEdit() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasUpdate(true);
 
@@ -291,12 +328,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanEditNotCertified() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasUpdate(true);
 		userInfo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
@@ -312,12 +352,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanView() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasRead(true);
 
@@ -331,12 +374,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanPublicRead() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasPublicRead(true);
 
@@ -350,12 +396,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanDownload() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasDownload(true);
 
@@ -369,6 +418,7 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	/**
@@ -378,6 +428,8 @@ public class EntityAuthorizationManagerUnitTest {
 	public void testGetUserPermissionsForEntityWithCanUploadFalse() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		userInfo.setAcceptsTermsOfUse(false);
 
@@ -390,6 +442,7 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	
@@ -400,6 +453,8 @@ public class EntityAuthorizationManagerUnitTest {
 	public void testGetUserPermissionsForEntityWithCanUploadTrue() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		userInfo.setAcceptsTermsOfUse(true);
 
@@ -412,12 +467,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanModerate() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasModerate(true);
 
@@ -431,12 +489,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCreatedBy() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		Long createdBy = 987L;
 		permissionsState.withEntityCreatedBy(createdBy);
@@ -451,12 +512,15 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanEnableInheritance() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
+		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withEntityParentId(654L);
 		permissionsState.withHasChangePermissions(true);
@@ -472,12 +536,14 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithNullDateType() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
 		
 		permissionsState.withDataType(null);
 
@@ -491,12 +557,14 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithDateTypeOpenDate() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
 		
 		permissionsState.withDataType(DataType.OPEN_DATA);
 
@@ -510,12 +578,14 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithDateTypeSensitiveDate() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockTwoFactorAuthManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
 		
 		permissionsState.withDataType(DataType.SENSITIVE_DATA);
 
@@ -529,6 +599,7 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockTwoFactorAuthManager).get2FaStatus(userInfo);
 	}
 	
 	@Test
