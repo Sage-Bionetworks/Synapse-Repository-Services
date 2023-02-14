@@ -3,12 +3,20 @@ package org.sagebionetworks.repo.manager.authentication;
 import java.nio.charset.StandardCharsets;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.EmailUtils;
+import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.manager.message.MessageTemplate;
+import org.sagebionetworks.repo.manager.message.TemplatedMessageSender;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -33,24 +41,30 @@ import org.springframework.stereotype.Service;
 public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 
 	public static final long TWO_FA_TOKEN_DURATION_MINS = 10;
+	private static final String NOTIFICATION_TEMPLATE_2FA_ENABLED = "message/TwoFaEnabledNotification.html.vtl";
+	private static final String NOTIFICATION_TEMPLATE_2FA_DISABLED = "message/TwoFaDisabledNotification.html.vtl";
 	
 	private TotpManager totpMananger;
 	private OtpSecretDao otpDao;
 	private TokenGenerator tokenGenerator;
 	private StackConfiguration config;
 	private Clock clock;
+	private TemplatedMessageSender messageSender;
+	private UserProfileManager userProfileManager;
 
-	public TwoFactorAuthManagerImpl(TotpManager totpManager, OtpSecretDao otpDao, TokenGenerator tokenGenerator, StackConfiguration config, Clock clock) {
+	public TwoFactorAuthManagerImpl(TotpManager totpManager, OtpSecretDao otpDao, TokenGenerator tokenGenerator, StackConfiguration config, Clock clock, TemplatedMessageSender messageSender, UserProfileManager userProfileManager) {
 		this.totpMananger = totpManager;
 		this.otpDao = otpDao;
 		this.tokenGenerator = tokenGenerator;
 		this.config = config;
 		this.clock = clock;
+		this.messageSender = messageSender;
+		this.userProfileManager = userProfileManager;
 	}
 
 	@Override
 	@WriteTransaction
-	public TotpSecret init2Fa(UserInfo user) {		
+	public TotpSecret init2Fa(UserInfo user) {
 		assertValidUser(user);
 		
 		String unencryptedSecret = totpMananger.generateTotpSecret();
@@ -95,6 +109,8 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		// If the user has a secret already in use, delete it first
 		otpDao.getActiveSecret(userId).ifPresent( existingSecret -> otpDao.deleteSecret(userId, existingSecret.getId()));
 		otpDao.activateSecret(userId, secretId);
+		
+		send2FaStateChangeNotification(user, TwoFactorState.ENABLED);
 	}
 
 	@Override
@@ -120,6 +136,8 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		}
 		
 		otpDao.deleteSecrets(user.getId());
+		
+		send2FaStateChangeNotification(user, TwoFactorState.DISABLED);
 	}
 	
 	@Override
@@ -225,6 +243,27 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		}
 		
 		return false;
+	}
+	
+	void send2FaStateChangeNotification(UserInfo user, TwoFactorState state) {
+		String template = TwoFactorState.ENABLED == state ? NOTIFICATION_TEMPLATE_2FA_ENABLED : NOTIFICATION_TEMPLATE_2FA_DISABLED;
+		
+		Map<String, Object> context = Map.of(
+			"displayName", EmailUtils.getDisplayNameOrUsername(userProfileManager.getUserProfile(user.getId().toString()))
+		);
+		
+		messageSender.sendMessage(MessageTemplate.builder()
+			.withNotificationMessage(true)
+			.withIncludeProfileSettingLink(true)
+			.withIncludeUnsubscribeLink(false)
+			.withIgnoreNotificationSettings(true)
+			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
+			.withRecipients(Collections.singleton(user.getId().toString()))
+			.withTemplateFile(template)
+			.withSubject("Two-Factor Authentication " + StringUtils.capitalize(state.toString().toLowerCase()))
+			.withContext(context).build()
+		);
+		
 	}
 	
 	boolean isTotpValid(UserInfo user, DBOOtpSecret secret, String otpCode) {
