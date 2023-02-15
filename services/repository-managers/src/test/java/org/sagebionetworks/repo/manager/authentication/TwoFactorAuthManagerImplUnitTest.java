@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
@@ -65,6 +66,9 @@ public class TwoFactorAuthManagerImplUnitTest {
 	
 	@Mock
 	private OtpSecretDao mockOtpSecretDao;
+	
+	@Mock
+	private AuthenticationDAO mockAuthDao;
 	
 	@Mock
 	private TokenGenerator mockTokenGenerator;
@@ -163,6 +167,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		verify(manager).isTotpValid(user, dbSecret, "12345");
 		verify(mockOtpSecretDao).getActiveSecret(user.getId());
 		verify(mockOtpSecretDao).activateSecret(user.getId(), 789L);
+		verify(mockAuthDao).setTwoFactorAuthState(user.getId(), true);
 		verify(manager).send2FaStateChangeNotification(user, TwoFactorState.ENABLED);
 		
 		verifyNoMoreInteractions(mockOtpSecretDao);		
@@ -192,6 +197,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		verify(mockOtpSecretDao).getActiveSecret(user.getId());
 		verify(mockOtpSecretDao).deleteSecret(user.getId(), activeSecret.getId());
 		verify(mockOtpSecretDao).activateSecret(user.getId(), 789L);
+		verify(mockAuthDao).setTwoFactorAuthState(user.getId(), true);
 		verify(manager).send2FaStateChangeNotification(user, TwoFactorState.ENABLED);
 		
 		verifyNoMoreInteractions(mockOtpSecretDao);		
@@ -218,7 +224,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		
 		verify(mockOtpSecretDao).getSecret(user.getId(), 789L);
 		verify(manager, never()).send2FaStateChangeNotification(any(), any());
-		
+		verifyZeroInteractions(mockAuthDao);
 		verifyNoMoreInteractions(mockTotpManager);
 		verifyNoMoreInteractions(mockOtpSecretDao);		
 	}
@@ -244,7 +250,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		
 		verify(mockOtpSecretDao).getSecret(user.getId(), 789L);
 		verify(manager, never()).send2FaStateChangeNotification(any(), any());
-		
+		verifyZeroInteractions(mockAuthDao);
 		verifyNoMoreInteractions(mockTotpManager);
 		verifyNoMoreInteractions(mockOtpSecretDao);		
 	}
@@ -270,7 +276,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		verify(mockOtpSecretDao).getSecret(user.getId(), 789L);
 		verify(manager).isTotpValid(user, dbSecret, "12345");
 		verify(manager, never()).send2FaStateChangeNotification(any(), any());
-		
+		verifyZeroInteractions(mockAuthDao);
 		verifyNoMoreInteractions(mockTotpManager);
 		verifyNoMoreInteractions(mockOtpSecretDao);		
 	}
@@ -289,7 +295,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		assertEquals("The request is required.", result);
 		
 		verify(manager, never()).send2FaStateChangeNotification(any(), any());
-		
+		verifyZeroInteractions(mockAuthDao);
 		verifyZeroInteractions(mockOtpSecretDao);
 		verifyZeroInteractions(mockTotpManager);
 	}
@@ -310,7 +316,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		assertEquals("The secret id is required.", result);
 		
 		verify(manager, never()).send2FaStateChangeNotification(any(), any());
-		
+		verifyZeroInteractions(mockAuthDao);
 		verifyZeroInteractions(mockOtpSecretDao);
 		verifyZeroInteractions(mockTotpManager);
 	}
@@ -331,7 +337,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		assertEquals("The totp code is required.", result);
 		
 		verify(manager, never()).send2FaStateChangeNotification(any(), any());
-		
+		verifyZeroInteractions(mockAuthDao);
 		verifyZeroInteractions(mockOtpSecretDao);
 		verifyZeroInteractions(mockTotpManager);
 	}
@@ -380,7 +386,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testDisabled2Fa() {
+	public void testDisable2Fa() {
 		doNothing().when(manager).assertValidUser(any());
 		doNothing().when(manager).send2FaStateChangeNotification(any(), any());
 		
@@ -391,11 +397,12 @@ public class TwoFactorAuthManagerImplUnitTest {
 		
 		verify(mockOtpSecretDao).hasActiveSecret(user.getId());
 		verify(mockOtpSecretDao).deleteSecrets(user.getId());
+		verify(mockAuthDao).setTwoFactorAuthState(user.getId(), false);
 		verify(manager).send2FaStateChangeNotification(user, TwoFactorState.DISABLED);
 	}
 	
 	@Test
-	public void testDisabled2FaWithNoActiveSecret() {
+	public void testDisable2FaWithNoActiveSecret() {
 		doNothing().when(manager).assertValidUser(any());
 		
 		when(mockOtpSecretDao.hasActiveSecret(any())).thenReturn(false);
@@ -409,7 +416,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		
 		verify(mockOtpSecretDao).hasActiveSecret(user.getId());
 		verify(manager, never()).send2FaStateChangeNotification(any(), any());
-		
+		verifyZeroInteractions(mockAuthDao);
 		verifyNoMoreInteractions(mockOtpSecretDao);
 	}
 	

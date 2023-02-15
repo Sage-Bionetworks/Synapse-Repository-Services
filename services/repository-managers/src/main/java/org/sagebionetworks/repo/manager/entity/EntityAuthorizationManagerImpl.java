@@ -33,7 +33,6 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.sagebionetworks.repo.manager.authentication.TwoFactorAuthManager;
 import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
 import org.sagebionetworks.repo.manager.entity.decider.AccessDecider;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
@@ -46,7 +45,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
@@ -61,15 +59,12 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 
 	private AccessRestrictionStatusDao accessRestrictionStatusDao;
 	private UsersEntityPermissionsDao usersEntityPermissionsDao;
-	private TwoFactorAuthManager twoFactorAuthManager;
 
 	@Autowired
-	public EntityAuthorizationManagerImpl(AccessRestrictionStatusDao accessRestrictionStatusDao,
-			UsersEntityPermissionsDao usersEntityPermissionsDao, TwoFactorAuthManager twoFactorAuthManager) {
+	public EntityAuthorizationManagerImpl(AccessRestrictionStatusDao accessRestrictionStatusDao, UsersEntityPermissionsDao usersEntityPermissionsDao) {
 		super();
 		this.accessRestrictionStatusDao = accessRestrictionStatusDao;
 		this.usersEntityPermissionsDao = usersEntityPermissionsDao;
-		this.twoFactorAuthManager = twoFactorAuthManager;
 	}
 
 	@Override
@@ -217,11 +212,9 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	UsersEntityAccessInfo determineDownloadAccess(UserInfo userState, UserEntityPermissionsState permissionsState,
 			UsersRestrictionStatus restrictionStatus) {
 		
-		TwoFactorState twoFactorAuthState = twoFactorAuthManager.get2FaStatus(userState).getStatus();
-		
 		// @formatter:off
 		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userState).withPermissionsState(permissionsState)
-				.withRestrictionStatus(restrictionStatus).withAccessType(ACCESS_TYPE.DOWNLOAD).withTwoFactorAuthState(twoFactorAuthState),
+				.withRestrictionStatus(restrictionStatus).withAccessType(ACCESS_TYPE.DOWNLOAD),
 			DENY_IF_DOES_NOT_EXIST,
 			DENY_IF_IN_TRASH,
 			GRANT_IF_ADMIN,

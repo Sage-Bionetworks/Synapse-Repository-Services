@@ -226,6 +226,7 @@ public class UserManagerImpl implements UserManager {
 		// Put all the pieces together
 		ui.setGroups(groups);
 		ui.setAcceptsTermsOfUse(authDAO.hasUserAcceptedToU(principalId));
+		ui.setTwoFactorAuthEnabled(authDAO.isTwoFactorAuthEnabled(principalId));
 		return ui;
 	}
 

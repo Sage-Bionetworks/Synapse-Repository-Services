@@ -19,6 +19,7 @@ public class UserInfo {
 	private Long id;
 	private Date creationDate;
 	private boolean acceptsTermsOfUse;
+	private boolean hasTwoFactorAuthEnabled;
 
 	public UserInfo(boolean isAdmin) {
 		this.isAdmin = isAdmin;
@@ -90,10 +91,18 @@ public class UserInfo {
 	public void setAcceptsTermsOfUse(boolean acceptsTermsOfUse) {
 		this.acceptsTermsOfUse = acceptsTermsOfUse;
 	}
+	
+	public boolean hasTwoFactorAuthEnabled() {
+		return hasTwoFactorAuthEnabled;
+	}
+	
+	public void setTwoFactorAuthEnabled(boolean isTwoFactorAuthEnabled) {
+		this.hasTwoFactorAuthEnabled = isTwoFactorAuthEnabled;
+	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(acceptsTermsOfUse, creationDate, groups, id, isAdmin);
+		return Objects.hash(acceptsTermsOfUse, creationDate, groups, id, isAdmin, hasTwoFactorAuthEnabled);
 	}
 
 	@Override
@@ -106,13 +115,14 @@ public class UserInfo {
 		}
 		UserInfo other = (UserInfo) obj;
 		return acceptsTermsOfUse == other.acceptsTermsOfUse && Objects.equals(creationDate, other.creationDate)
-				&& Objects.equals(groups, other.groups) && Objects.equals(id, other.id) && isAdmin == other.isAdmin;
+				&& Objects.equals(groups, other.groups) && Objects.equals(id, other.id) && isAdmin == other.isAdmin
+				&& hasTwoFactorAuthEnabled == other.hasTwoFactorAuthEnabled;
 	}
 
 	@Override
 	public String toString() {
 		return "UserInfo [groups=" + groups + ", isAdmin=" + isAdmin + ", id=" + id + ", creationDate=" + creationDate
-				+ ", acceptsTermsOfUse=" + acceptsTermsOfUse + "]";
+				+ ", acceptsTermsOfUse=" + acceptsTermsOfUse + ", hasTwoFactorAuthEnabled=" + hasTwoFactorAuthEnabled + "]";
 	}
 	
 }

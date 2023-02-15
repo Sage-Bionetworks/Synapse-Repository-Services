@@ -42,10 +42,10 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
-import org.sagebionetworks.repo.model.dbo.otp.OtpSecretDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
@@ -88,7 +88,7 @@ public class EntityAuthorizationManagerAutowireTest {
 	@Autowired
 	private EntityAuthorizationManager entityAuthManager;
 	@Autowired
-	private OtpSecretDao otpSecretDao;
+	private AuthenticationDAO authDao;
 	
 	private UserInfo adminUserInfo;
 	private UserInfo anonymousUser;
@@ -96,9 +96,7 @@ public class EntityAuthorizationManagerAutowireTest {
 	private UserInfo userTwo;
 
 	@BeforeEach
-	public void before() {
-		otpSecretDao.truncateAll();
-		
+	public void before() {		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
@@ -126,7 +124,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		aclDao.truncateAll();
 		dataTypeDao.truncateAllData();
 		nodeDao.truncateAll();
-		otpSecretDao.truncateAll();
 		if (userOne != null) {
 			userManager.deletePrincipal(adminUserInfo, userOne.getId());
 		}
@@ -448,7 +445,8 @@ public class EntityAuthorizationManagerAutowireTest {
 		});
 		
 		// Enable 2FA for the user
-		otpSecretDao.activateSecret(userTwo.getId(), otpSecretDao.storeSecret(userTwo.getId(), "secret").getId());
+		authDao.setTwoFactorAuthState(userTwo.getId(), true);
+		userTwo = userManager.getUserInfo(userTwo.getId());
 
 		String entityId = project.getId();
 		UserInfo user = userTwo;

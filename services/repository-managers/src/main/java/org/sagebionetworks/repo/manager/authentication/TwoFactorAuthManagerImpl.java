@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
@@ -46,15 +47,17 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	
 	private TotpManager totpMananger;
 	private OtpSecretDao otpDao;
+	private AuthenticationDAO authDao;
 	private TokenGenerator tokenGenerator;
 	private StackConfiguration config;
 	private Clock clock;
 	private TemplatedMessageSender messageSender;
 	private UserProfileManager userProfileManager;
 
-	public TwoFactorAuthManagerImpl(TotpManager totpManager, OtpSecretDao otpDao, TokenGenerator tokenGenerator, StackConfiguration config, Clock clock, TemplatedMessageSender messageSender, UserProfileManager userProfileManager) {
+	public TwoFactorAuthManagerImpl(TotpManager totpManager, OtpSecretDao otpDao, AuthenticationDAO authDao, TokenGenerator tokenGenerator, StackConfiguration config, Clock clock, TemplatedMessageSender messageSender, UserProfileManager userProfileManager) {
 		this.totpMananger = totpManager;
 		this.otpDao = otpDao;
+		this.authDao = authDao;
 		this.tokenGenerator = tokenGenerator;
 		this.config = config;
 		this.clock = clock;
@@ -109,6 +112,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		// If the user has a secret already in use, delete it first
 		otpDao.getActiveSecret(userId).ifPresent( existingSecret -> otpDao.deleteSecret(userId, existingSecret.getId()));
 		otpDao.activateSecret(userId, secretId);
+		authDao.setTwoFactorAuthState(userId, true);
 		
 		send2FaStateChangeNotification(user, TwoFactorState.ENABLED);
 	}
@@ -136,6 +140,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		}
 		
 		otpDao.deleteSecrets(user.getId());
+		authDao.setTwoFactorAuthState(user.getId(), false);
 		
 		send2FaStateChangeNotification(user, TwoFactorState.DISABLED);
 	}

@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -111,10 +112,13 @@ public class UserManagerImplUnitTest {
 		someGroup.setIsIndividual(false);
 		someGroup.setId("222");
 		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.singletonList(someGroup));
+		when(mockAuthDAO.isTwoFactorAuthEnabled(anyLong())).thenReturn(true);
 		
 		
 		// method under test
 		UserInfo userInfo = userManager.getUserInfo(principalId);
+		
+		verify(mockAuthDAO).isTwoFactorAuthEnabled(principalId);
 		
 		assertFalse(userInfo.isAdmin());
 		Set<Long> expectedUserGroupIds = new HashSet<Long>();
@@ -125,6 +129,7 @@ public class UserManagerImplUnitTest {
 
 		assertEquals(expectedUserGroupIds, userInfo.getGroups());
 		assertEquals(principalId, userInfo.getId());
+		assertTrue(userInfo.hasTwoFactorAuthEnabled());
 	}
 	
 	@Test
@@ -139,10 +144,12 @@ public class UserManagerImplUnitTest {
 		adminGroup.setIsIndividual(false);
 		adminGroup.setId(TeamConstants.ADMINISTRATORS_TEAM_ID.toString());
 		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.singletonList(adminGroup));
-		
+		when(mockAuthDAO.isTwoFactorAuthEnabled(anyLong())).thenReturn(true);
 		
 		// method under test
 		UserInfo userInfo = userManager.getUserInfo(principalId);
+		
+		verify(mockAuthDAO).isTwoFactorAuthEnabled(principalId);
 		
 		assertTrue(userInfo.isAdmin());
 		Set<Long> expectedUserGroupIds = new HashSet<Long>();
@@ -153,6 +160,7 @@ public class UserManagerImplUnitTest {
 
 		assertEquals(expectedUserGroupIds, userInfo.getGroups());
 		assertEquals(principalId, userInfo.getId());
+		assertTrue(userInfo.hasTwoFactorAuthEnabled());
 	}
 	
 	@Test
@@ -166,7 +174,7 @@ public class UserManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testGetUserAdmin() throws Exception {
+	public void testCreateOrGetTestUser() throws Exception {
 		long principalId=1111L;
 		when(mockUserGroup.getId()).thenReturn(""+principalId);
 		when(mockUserGroup.getIsIndividual()).thenReturn(true);

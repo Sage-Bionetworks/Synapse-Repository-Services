@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -645,7 +644,9 @@ public class EntityDeciderFunctionsTest {
 	public void testDenyIfTwoFactorRequiredAndTwoFactorDisabled() {
 		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsTwoFaRequired(false));
 		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsTwoFaRequired(true));
-		context.withTwoFactorAuthState(TwoFactorState.DISABLED);
+		
+		nonAdminUser.setTwoFactorAuthEnabled(false);
+		
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_TWO_FA_REQUIREMENT_NOT_MET
 				.determineAccess(context);
@@ -660,7 +661,9 @@ public class EntityDeciderFunctionsTest {
 	public void testGrantIfTwoFactorRequiredAndTwoFactorEnabled() {
 		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsTwoFaRequired(false));
 		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsTwoFaRequired(true));
-		context.withTwoFactorAuthState(TwoFactorState.ENABLED);
+
+		nonAdminUser.setTwoFactorAuthEnabled(true);
+		
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_TWO_FA_REQUIREMENT_NOT_MET
 				.determineAccess(context);
@@ -670,7 +673,9 @@ public class EntityDeciderFunctionsTest {
 	
 	@Test
 	public void testGrantIfTwoFactorNotRequiredAndTwoFactorDisabled() {
-		context.withTwoFactorAuthState(TwoFactorState.DISABLED);
+
+		nonAdminUser.setTwoFactorAuthEnabled(false);
+
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_TWO_FA_REQUIREMENT_NOT_MET
 				.determineAccess(context);
@@ -680,7 +685,9 @@ public class EntityDeciderFunctionsTest {
 	
 	@Test
 	public void testGrantIfTwoFactorNotRequiredAndTwoFactorEnabled() {
-		context.withTwoFactorAuthState(TwoFactorState.ENABLED);
+
+		nonAdminUser.setTwoFactorAuthEnabled(true);
+		
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_TWO_FA_REQUIREMENT_NOT_MET
 				.determineAccess(context);
