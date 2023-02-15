@@ -259,7 +259,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		
 		messageSender.sendMessage(MessageTemplate.builder()
 			.withNotificationMessage(true)
-			.withIncludeProfileSettingLink(true)
+			.withIncludeProfileSettingLink(false)
 			.withIncludeUnsubscribeLink(false)
 			.withIgnoreNotificationSettings(true)
 			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))

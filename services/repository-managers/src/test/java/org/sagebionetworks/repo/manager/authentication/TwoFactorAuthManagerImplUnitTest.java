@@ -775,7 +775,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		
 		MessageTemplate expectedMessage = MessageTemplate.builder()
 			.withNotificationMessage(true)
-			.withIncludeProfileSettingLink(true)
+			.withIncludeProfileSettingLink(false)
 			.withIncludeUnsubscribeLink(false)
 			.withIgnoreNotificationSettings(true)
 			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
@@ -801,7 +801,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		
 		MessageTemplate expectedMessage = MessageTemplate.builder()
 			.withNotificationMessage(true)
-			.withIncludeProfileSettingLink(true)
+			.withIncludeProfileSettingLink(false)
 			.withIncludeUnsubscribeLink(false)
 			.withIgnoreNotificationSettings(true)
 			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
