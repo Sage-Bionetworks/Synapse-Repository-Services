@@ -262,5 +262,25 @@ public class DBOAuthenticationDAOImplTest {
 		// check that etag has changed
 		assertNotEquals(original.getEtag(), updated.getEtag());
 	}
+	
+	@Test
+	public void testSetGetTwoFactorAuthState() {
+		
+		assertFalse(authDAO.isTwoFactorAuthEnabled(userId));
+		
+		String userEtag = userGroupDAO.get(userId).getEtag();
+		
+		// Call under test
+		authDAO.setTwoFactorAuthState(userId, true);
+		
+		assertTrue(authDAO.isTwoFactorAuthEnabled(userId));
+		assertNotEquals(userEtag, userEtag = userGroupDAO.get(userId).getEtag());
+		
+		// Call under test
+		authDAO.setTwoFactorAuthState(userId, false);
+		
+		assertFalse(authDAO.isTwoFactorAuthEnabled(userId));
+		assertNotEquals(userEtag, userEtag = userGroupDAO.get(userId).getEtag());
+	}
 
 }

@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
@@ -34,6 +35,7 @@ import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 
@@ -191,6 +193,27 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		agreement.setPrincipalId(principalId);
 		agreement.setAgreesToTermsOfUse(acceptance);
 		basicDAO.createOrUpdate(agreement);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void setTwoFactorAuthState(long principalId, boolean enabled) {
+		if (enabled) {
+			DBOUserTwoFaStatus status = new DBOUserTwoFaStatus();
+			status.setPrincipalId(principalId);
+			status.setEnabled(true);
+			basicDAO.createOrUpdate(status);
+		} else {
+			basicDAO.deleteObjectByPrimaryKey(DBOUserTwoFaStatus.class, new SinglePrimaryKeySqlParameterSource(principalId));
+		}
+		userGroupDAO.touch(principalId);
+	}
+	
+	@Override
+	public boolean isTwoFactorAuthEnabled(long principalId) {
+		return basicDAO.getObjectByPrimaryKey(DBOUserTwoFaStatus.class, new SinglePrimaryKeySqlParameterSource(principalId))
+			.map(DBOUserTwoFaStatus::getEnabled)
+			.orElse(false);
 	}
 	
 	@Override
