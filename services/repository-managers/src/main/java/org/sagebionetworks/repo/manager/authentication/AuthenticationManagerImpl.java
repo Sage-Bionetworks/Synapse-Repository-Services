@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
-import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -178,7 +177,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	public LoginResponse loginWithNoPasswordCheck(long principalId, String issuer) {
 		UserInfo user = userManager.getUserInfo(principalId);
 		
-		if (TwoFactorState.ENABLED.equals(twoFaManager.get2FaStatus(user).getStatus())) {
+		if (user.hasTwoFactorAuthEnabled()) {
 			throw new TwoFactorAuthRequiredException(principalId, twoFaManager.generate2FaLoginToken(user));
 		}
 		

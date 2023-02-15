@@ -46,8 +46,6 @@ import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
-import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
-import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -174,7 +172,6 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
 		setupMockPrincipalAliasDAO();
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
-		when(mock2FaManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
 		String newReceipt = "newReceipt";
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
@@ -200,8 +197,8 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
 		setupMockPrincipalAliasDAO();
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
+		userInfo.setTwoFactorAuthEnabled(true);
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
-		when(mock2FaManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.ENABLED));
 		when(mock2FaManager.generate2FaLoginToken(any())).thenReturn("2faToken");
 		
 		TwoFactorAuthRequiredException result = assertThrows(TwoFactorAuthRequiredException.class, () -> {			
@@ -214,15 +211,14 @@ public class AuthenticationManagerImplUnitTest {
 		
 		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mock2FaManager).get2FaStatus(userInfo);
 		verify(mock2FaManager).generate2FaLoginToken(userInfo);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
 	}
 	
 	@Test
 	public void testLoginWithNoPasswordCheckWith2FaDisabled() {
+		userInfo.setTwoFactorAuthEnabled(false);
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
-		when(mock2FaManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED));
 		String newReceipt = "newReceipt";
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
 		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer)).thenReturn(synapseAccessToken);
@@ -241,7 +237,6 @@ public class AuthenticationManagerImplUnitTest {
 		assertEquals(expected, response);
 
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mock2FaManager).get2FaStatus(userInfo);
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
 		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer);
 		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
@@ -249,8 +244,8 @@ public class AuthenticationManagerImplUnitTest {
 	
 	@Test
 	public void testLoginWithNoPasswordCheckWith2FaEnabled() {
+		userInfo.setTwoFactorAuthEnabled(true);
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
-		when(mock2FaManager.get2FaStatus(any())).thenReturn(new TwoFactorAuthStatus().setStatus(TwoFactorState.ENABLED));
 		when(mock2FaManager.generate2FaLoginToken(any())).thenReturn("2faToken");
 		
 		TwoFactorAuthRequiredException result = assertThrows(TwoFactorAuthRequiredException.class, () -> {			
@@ -262,7 +257,6 @@ public class AuthenticationManagerImplUnitTest {
 		assertEquals("2faToken", result.getTwoFaToken());
 
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mock2FaManager).get2FaStatus(userInfo);
 		verify(mock2FaManager).generate2FaLoginToken(userInfo);
 	}
 	
