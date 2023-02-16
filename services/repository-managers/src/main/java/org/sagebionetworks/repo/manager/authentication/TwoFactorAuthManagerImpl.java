@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -44,6 +45,8 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	public static final long TWO_FA_TOKEN_DURATION_MINS = 10;
 	private static final String NOTIFICATION_TEMPLATE_2FA_ENABLED = "message/TwoFaEnabledNotification.html.vtl";
 	private static final String NOTIFICATION_TEMPLATE_2FA_DISABLED = "message/TwoFaDisabledNotification.html.vtl";
+	private static final String NOTIFICATION_TEMPLATE_RECOVERY_CODES_GENERATED = "message/TwoFaRecoveryCodesGeneratedNotification.html.vtl";
+	private static final String NOTIFICATION_TEMPLATE_RECOVERY_CODE_USED = "message/TwoFaRecoveryCodeUsedNotification.html.vtl";
 	
 	private TotpManager totpMananger;
 	private OtpSecretDao otpDao;
@@ -221,6 +224,8 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		// For proper migration
 		otpDao.touchSecret(secret.getId());
 		
+		send2FaRecoveryCodesGeneratedNotification(user);
+		
 		return new TwoFactorAuthRecoveryCodes().setCodes(recoveryCodes);
 	}
 	
@@ -243,6 +248,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 			// Found the match
 			if (candidate.equals(recoveryCodeHash) && otpDao.deleteRecoveryCode(secret.getId(), recoveryCodeHash)) {
 				otpDao.touchSecret(secret.getId());
+				send2FaRecoveryCodeUsedNotification(user, recoveryCodes.size() - 1);
 				return true;
 			}
 		}
@@ -250,12 +256,35 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		return false;
 	}
 	
+	void send2FaRecoveryCodesGeneratedNotification(UserInfo user) {
+		String template = NOTIFICATION_TEMPLATE_RECOVERY_CODES_GENERATED;
+		
+		sendNotification(user, template, "Two-Factor Authentication Recovery Codes Generated", null);
+	}
+	
+	void send2FaRecoveryCodeUsedNotification(UserInfo user, int codesCount) {
+		String template = NOTIFICATION_TEMPLATE_RECOVERY_CODE_USED;
+		
+		Map<String, Object> context = new HashMap<>();
+		
+		context.put("codesCount", codesCount);
+		
+		sendNotification(user, template, "Two-Factor Authentication Recovery Code Used", context);
+	}
+	
 	void send2FaStateChangeNotification(UserInfo user, TwoFactorState state) {
 		String template = TwoFactorState.ENABLED == state ? NOTIFICATION_TEMPLATE_2FA_ENABLED : NOTIFICATION_TEMPLATE_2FA_DISABLED;
 		
-		Map<String, Object> context = Map.of(
-			"displayName", EmailUtils.getDisplayNameOrUsername(userProfileManager.getUserProfile(user.getId().toString()))
-		);
+		sendNotification(user, template, "Two-Factor Authentication " + StringUtils.capitalize(state.toString().toLowerCase()), null);
+	}
+	
+	private void sendNotification(UserInfo user, String template, String subject, Map<String, Object> context) {
+		
+		if (context == null) {
+			context = new HashMap<>();
+		}
+		
+		context.put("displayName", EmailUtils.getDisplayNameOrUsername(userProfileManager.getUserProfile(user.getId().toString())));
 		
 		messageSender.sendMessage(MessageTemplate.builder()
 			.withNotificationMessage(true)
@@ -265,10 +294,9 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
 			.withRecipients(Collections.singleton(user.getId().toString()))
 			.withTemplateFile(template)
-			.withSubject("Two-Factor Authentication " + StringUtils.capitalize(state.toString().toLowerCase()))
+			.withSubject(subject)
 			.withContext(context).build()
 		);
-		
 	}
 	
 	boolean isTotpValid(UserInfo user, DBOOtpSecret secret, String otpCode) {

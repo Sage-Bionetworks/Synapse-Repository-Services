@@ -1,0 +1,31 @@
+<html>
+<body>
+<p>
+Dear $displayName,
+</p>
+<p>
+A recovery code was just used to log in into your account through two-factor authentication.
+</p>
+<p>
+#if( $codesCount == 0 )
+This was your last recovery code, please make sure to generate a new set of recovery codes from your profile setting page.
+#else
+You have $codesCount
+#if($codesCount == 1)
+ code
+#else
+ codes
+#end
+ remaining. You can re-generate a new set of recovery codes at any time by visiting your profile setting page.
+#end
+<p>
+If you have any question please do not hesitate to contact us at synapseInfo@synapse.org.
+</p>
+<p>
+Sincerely,
+</p>
+<p>
+Synapse Team
+</p>
+</body>
+</html>
