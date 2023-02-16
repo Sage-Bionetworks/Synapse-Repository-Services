@@ -76,7 +76,7 @@ public class TwoFactorAuthController {
 	 * @return The generated TOTP secret that can be used in the user authenticator application, the secret is not active. 
 	 * To use this secret for 2FA a <a href="${POST.2fa}">POST /2fa</a> must be performed that includes the secret id and a totp code.
 	 */
-	@RequiredScope({OAuthScope.modify})
+	@RequiredScope({OAuthScope.modify, OAuthScope.authorize})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TWO_FA_ENROLL, method = RequestMethod.POST)
 	public @ResponseBody TotpSecret enroll(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
@@ -90,7 +90,7 @@ public class TwoFactorAuthController {
 	 * @param userId
 	 * @return The status of 2FA for the user
 	 */
-	@RequiredScope({OAuthScope.modify})
+	@RequiredScope({OAuthScope.modify, OAuthScope.authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TWO_FA, method = RequestMethod.POST)
 	public @ResponseBody TwoFactorAuthStatus enable(@RequestBody TotpSecretActivationRequest request, @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
@@ -115,7 +115,7 @@ public class TwoFactorAuthController {
 	 * 
 	 * @param userId
 	 */
-	@RequiredScope({OAuthScope.modify})
+	@RequiredScope({OAuthScope.modify, OAuthScope.authorize})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TWO_FA, method = RequestMethod.DELETE)
 	public void disable(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
@@ -148,7 +148,7 @@ public class TwoFactorAuthController {
 	 * @param userId
 	 * @return
 	 */
-	@RequiredScope({OAuthScope.modify})
+	@RequiredScope({OAuthScope.modify, OAuthScope.authorize})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TWO_FA_RECOVERY_CODES, method = RequestMethod.POST)
 	public @ResponseBody TwoFactorAuthRecoveryCodes generateRecoveryCodes(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
