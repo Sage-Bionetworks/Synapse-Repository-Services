@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Arrays;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseTwoFactorAuthRequiredException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
@@ -24,6 +26,7 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import dev.samstevens.totp.code.CodeGenerator;
@@ -47,10 +50,35 @@ public class ITTwoFactorAuthTest {
 	}
 
 	@Test
-	public void testEnable2FaRoundTrip() throws SynapseException, CodeGenerationException {
+	public void testEnable2FaRoundTrip(SynapseAdminClient adminClient) throws SynapseException, JSONObjectAdapterException {
 		assertEquals(TwoFactorState.DISABLED, synapseClient.get2FaStatus().getStatus());
 		
+		// Setup a client that uses a PAT, it should not be able to enroll, enable and disable 2FA
+		String personalAccessToken = synapseClient.createPersonalAccessToken(new AccessTokenGenerationRequest()
+			.setName("PAT")
+			.setScope(Arrays.asList(OAuthScope.modify, OAuthScope.view))
+		);
+		
+		SynapseClient patSynapseClient = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(patSynapseClient);
+		patSynapseClient.setBearerAuthorizationToken(personalAccessToken);
+		
+		SynapseForbiddenException ex = assertThrows(SynapseForbiddenException.class, () -> {
+			patSynapseClient.init2Fa();
+		});
+		
+		assertEquals("insufficient_scope. Request lacks scope(s) required by this service: authorize", ex.getMessage());
+		
 		TotpSecret secret = synapseClient.init2Fa();
+		
+		ex = assertThrows(SynapseForbiddenException.class, () -> {
+			patSynapseClient.enable2Fa(new TotpSecretActivationRequest()
+				.setSecretId(secret.getSecretId())
+				.setTotp(generateTotpCode(secret.getSecret()))
+			);
+		});
+		
+		assertEquals("insufficient_scope. Request lacks scope(s) required by this service: authorize", ex.getMessage());
 		
 		TwoFactorAuthStatus status = synapseClient.enable2Fa(new TotpSecretActivationRequest()
 			.setSecretId(secret.getSecretId())
@@ -82,13 +110,19 @@ public class ITTwoFactorAuthTest {
 		
 		assertEquals(TwoFactorState.ENABLED, status.getStatus());
 		
+		ex = assertThrows(SynapseForbiddenException.class, () -> {
+			patSynapseClient.disable2Fa();
+		});
+		
+		assertEquals("insufficient_scope. Request lacks scope(s) required by this service: authorize", ex.getMessage());
+		
 		synapseClient.disable2Fa();
 		
 		assertEquals(TwoFactorState.DISABLED, synapseClient.get2FaStatus().getStatus());
 	}
 	
 	@Test
-	public void testLoginWith2Fa(SynapseAdminClient adminClient) throws SynapseException, CodeGenerationException, JSONObjectAdapterException {
+	public void testLoginWith2Fa(SynapseAdminClient adminClient) throws SynapseException, JSONObjectAdapterException {
 		// Creates a new user so that we retain user/password
 		SynapseClient newSynapseClient = new SynapseClientImpl();
 		
@@ -143,7 +177,7 @@ public class ITTwoFactorAuthTest {
 	}
 	
 	@Test
-	public void testLoginWithRecoveryCodes(SynapseAdminClient adminClient) throws SynapseException, CodeGenerationException, JSONObjectAdapterException {
+	public void testLoginWithRecoveryCodes(SynapseAdminClient adminClient) throws SynapseException, JSONObjectAdapterException {
 		// Creates a new user so that we retain user/password
 		SynapseClient newSynapseClient = new SynapseClientImpl();
 		
@@ -213,8 +247,12 @@ public class ITTwoFactorAuthTest {
 		}
 	}
 	
-	private String generateTotpCode(String secret) throws TimeProviderException, CodeGenerationException {
-		return totpGenerator.generate(secret, Math.floorDiv(timeProvider.getTime(), 30));
+	private String generateTotpCode(String secret) {
+		try {
+			return totpGenerator.generate(secret, Math.floorDiv(timeProvider.getTime(), 30));
+		} catch (TimeProviderException | CodeGenerationException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 }
