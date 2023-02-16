@@ -496,7 +496,7 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete.add( submissionDao.createSubmission(dto6).getSubmissionId() );	
 		
 		// we should get back dto3 , then dto4, in that order
-		List<SubmissionInfo> expectedWithAccessorChanges = ImmutableList.of(dto3InfoWithAccessorChanges, dto4InfoWithAccessorChanges);
+		List<SubmissionInfo> expectedWithAccessorChanges = ImmutableList.of(dto4InfoWithAccessorChanges, dto3InfoWithAccessorChanges);
 
 		// method under test
 		List<SubmissionInfo> actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 10, 0, true);
@@ -505,15 +505,15 @@ public class DBOSubmissionDAOImplTest {
 		// method under test
 		List<SubmissionInfo> actualWithoutAccessorChanges = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 10, 0, false);
 		
-		List<SubmissionInfo> expectedWithoutAccessorChanges = ImmutableList.of(dto3InfoWithoutAccessorChanges, dto4InfoWithoutAccessorChanges);
+		List<SubmissionInfo> expectedWithoutAccessorChanges = ImmutableList.of(dto4InfoWithoutAccessorChanges, dto3InfoWithoutAccessorChanges);
 		assertEquals(expectedWithoutAccessorChanges, actualWithoutAccessorChanges);
 		
 	
 		// check that pagination works right:  If I get the first page of size *one*, I should just get dto3
-		actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 1, 0, true);
+		actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 1, 1, true);
 		assertEquals(ImmutableList.of(dto3InfoWithAccessorChanges), actual);
 		// If I get the second page of size *one*, I should just get dto4
-		actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 1, 1, true);
+		actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 1, 0, true);
 		assertEquals(ImmutableList.of(dto4InfoWithAccessorChanges), actual);
 	}
 
