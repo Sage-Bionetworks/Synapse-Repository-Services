@@ -35,7 +35,6 @@ import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 
@@ -198,14 +197,10 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	@WriteTransaction
 	public void setTwoFactorAuthState(long principalId, boolean enabled) {
-		if (enabled) {
-			DBOUserTwoFaStatus status = new DBOUserTwoFaStatus();
-			status.setPrincipalId(principalId);
-			status.setEnabled(true);
-			basicDAO.createOrUpdate(status);
-		} else {
-			basicDAO.deleteObjectByPrimaryKey(DBOUserTwoFaStatus.class, new SinglePrimaryKeySqlParameterSource(principalId));
-		}
+		DBOUserTwoFaStatus status = new DBOUserTwoFaStatus();
+		status.setPrincipalId(principalId);
+		status.setEnabled(enabled);
+		basicDAO.createOrUpdate(status);
 		userGroupDAO.touch(principalId);
 	}
 	
