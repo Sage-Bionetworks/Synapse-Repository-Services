@@ -439,6 +439,10 @@
 			"description": "Table that stores recovery codes for active otp secrets"
 		},
 		{
+			"name": "TWO_FA_STATUS",
+			"description": "Table to keep track of the 2FA status for the users"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}

@@ -1258,7 +1258,12 @@ public class SqlConstants {
 	public static final String TABLE_OTP_RECOVERY_CODE =	 							"OTP_RECOVERY_CODE";
 	public static final String COL_OTP_RECOVERY_CODE_SECRET_ID =						"SECRET_ID";
 	public static final String COL_OTP_RECOVERY_CODE_CODE_HASH =						"CODE_HASH";
-	public static final String COL_OTP_RECOVERY_CODE_CREATED_ON = 						"CREATED_ON";	
+	public static final String COL_OTP_RECOVERY_CODE_CREATED_ON = 						"CREATED_ON";
+	
+	public static final String DDL_TWO_FA_STATUS =										"schema/UserTwoFaStatus-ddl.sql";
+	public static final String TABLE_TWO_FA_STATUS =	 								"USER_TWO_FA_STATUS";
+	public static final String COL_TWO_FA_STATUS_PRINCIPAL_ID =							"PRINCIPAL_ID";
+	public static final String COL_TWO_FA_STATUS_ENABLED =								"ENABLED";	
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

@@ -20,6 +20,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.auth.DBOUserTwoFaStatus;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -167,6 +168,7 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 		list.add(new DBOCredential());
 		list.add(new DBOTermsOfUseAgreement());
 		list.add(new DBOSessionToken());
+		list.add(new DBOUserTwoFaStatus());
 		return list;
 	}
 

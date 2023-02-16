@@ -18,7 +18,6 @@ import java.util.stream.Stream;
 
 import org.json.JSONObject;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.authentication.TwoFactorAuthManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -35,7 +34,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
-import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
@@ -131,7 +129,6 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	public static long MAX_FILES_PER_USER = 100 * 1000;
 
 	private EntityAuthorizationManager entityAuthorizationManager;
-	private TwoFactorAuthManager twoFactorAuthManager;
 	private DownloadListDAO downloadListDao;
 	private TableQueryManager tableQueryManager;
 	private FileHandlePackageManager fileHandlePackageManager;
@@ -141,13 +138,11 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 	@Autowired
 	public DownloadListManagerImpl(EntityAuthorizationManager entityAuthorizationManager,
-			TwoFactorAuthManager twoFactorAuthManager,
 			DownloadListDAO downloadListDao, TableQueryManager tableQueryManager,
 			FileHandlePackageManager fileHandlePackageManager, FileHandleManager fileHandleManager, FileProvider fileProvider,
 			NodeDAO nodeDao) {
 		super();
 		this.entityAuthorizationManager = entityAuthorizationManager;
-		this.twoFactorAuthManager = twoFactorAuthManager;
 		this.downloadListDao = downloadListDao;
 		this.tableQueryManager = tableQueryManager;
 		this.fileHandlePackageManager = fileHandlePackageManager;
@@ -306,13 +301,12 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @return
 	 */
 	EntityActionRequiredCallback createEntityActionRequiredCallback(UserInfo userInfo) {
-		TwoFactorState userTwoFactorState = twoFactorAuthManager.get2FaStatus(userInfo).getStatus();
 		return (List<Long> entityIds) -> {
 			// Determine which files of this batch the user can download.
 			List<UsersEntityAccessInfo> batchInfo = entityAuthorizationManager.batchHasAccess(userInfo, entityIds,
 					ACCESS_TYPE.DOWNLOAD);
 			// map the access information into actions.
-			return DownloadListManagerImpl.createActionRequired(batchInfo, userTwoFactorState);
+			return DownloadListManagerImpl.createActionRequired(batchInfo, userInfo.hasTwoFactorAuthEnabled());
 		};
 	}
 
@@ -324,7 +318,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @param batchInfo
 	 * @return
 	 */
-	public static List<FileActionRequired> createActionRequired(List<UsersEntityAccessInfo> batchInfo, TwoFactorState userTwoFacoFactorState) {
+	public static List<FileActionRequired> createActionRequired(List<UsersEntityAccessInfo> batchInfo, boolean hasTwoFactorAuthEnabled) {
 		List<FileActionRequired> actions = new ArrayList<>(batchInfo.size());
 		for (UsersEntityAccessInfo info : batchInfo) {
 			ValidateArgument.required(info.getAuthorizationStatus(), "info.authroizationStatus");
@@ -344,7 +338,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 				
 				// The user might need to enable 2FA in order to download data
 				Optional<UsersRequirementStatus> twoFaRequirement = info.getAccessRestrictions().getAccessRestrictions().stream().filter(UsersRequirementStatus::isTwoFaRequired).findFirst();
-				if (!TwoFactorState.ENABLED.equals(userTwoFacoFactorState) && twoFaRequirement.isPresent()) {
+				if (!hasTwoFactorAuthEnabled && twoFaRequirement.isPresent()) {
 					actions.add(new FileActionRequired().withFileId(info.getEntityId()).withAction(
 							new EnableTwoFa().setAccessRequirementId(twoFaRequirement.get().getRequirementId())
 						)
