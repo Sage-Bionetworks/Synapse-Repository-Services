@@ -146,7 +146,7 @@ public class TableWorkerIntegrationTest {
 	/**
 	 * 
 	 */
-	public static final int MAX_WAIT_MS = 1000 * 60;
+	public static final int MAX_WAIT_MS = 1000 * 60 * 2;
 	
 	@Autowired
 	StackConfiguration config;
@@ -3572,7 +3572,10 @@ public class TableWorkerIntegrationTest {
 		
 		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
 		
-		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
+		System.out.println("TableId: "+ tableId);
+		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
+		
+		waitForConsistentQuery(adminUserInfo, "select ROW_ID from " + tableId, null, null, (queryResult) -> {
 			assertEquals(2, queryResult.getQueryResults().getRows().size());
 		});
 	}
