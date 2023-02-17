@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -670,6 +671,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	public void testGenerateRecoveryCodes() {
 		doNothing().when(manager).assertValidUser(any());
 		doReturn(dbSecret).when(manager).getActiveSecretOrThrow(any());
+		doNothing().when(manager).send2FaRecoveryCodesGeneratedNotification(any());
 		
 		List<String> recoveryCodes = List.of("one", "two");
 		
@@ -698,6 +700,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		}
 		
 		verify(mockOtpSecretDao).touchSecret(dbSecret.getId());
+		verify(manager).send2FaRecoveryCodesGeneratedNotification(user);
 	}
 	
 	@Test
@@ -707,6 +710,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		
 		doNothing().when(manager).assertValidUser(any());
 		doReturn(dbSecret).when(manager).getActiveSecretOrThrow(any());
+		doNothing().when(manager).send2FaRecoveryCodeUsedNotification(any(), anyInt());
 		when(mockOtpSecretDao.getRecoveryCodes(any())).thenReturn(List.of(PBKDF2Utils.hashPassword("anotherCode", null), recoveryCodeHash));
 		when(mockOtpSecretDao.deleteRecoveryCode(any(), any())).thenReturn(true);
 		
@@ -720,6 +724,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		verify(mockOtpSecretDao).getRecoveryCodes(dbSecret.getId());
 		verify(mockOtpSecretDao).deleteRecoveryCode(dbSecret.getId(), recoveryCodeHash);
 		verify(mockOtpSecretDao).touchSecret(dbSecret.getId());
+		verify(manager).send2FaRecoveryCodeUsedNotification(user, 1);
 		verifyNoMoreInteractions(mockOtpSecretDao);
 	}
 	
@@ -812,6 +817,60 @@ public class TwoFactorAuthManagerImplUnitTest {
 		
 		// Call under test
 		manager.send2FaStateChangeNotification(user, TwoFactorState.DISABLED);
+		
+		verify(mockUserProfileManager).getUserProfile(user.getId().toString());
+		verify(mockMessageSender).sendMessage(expectedMessage);
+	}
+	
+	@Test
+	public void testSend2FaRecoveryCodesGeneratedNotification() {
+		UserProfile profile = new UserProfile()
+				.setFirstName("User")
+				.setLastName("Name");
+				
+		when(mockUserProfileManager.getUserProfile(any())).thenReturn(profile);
+		
+		MessageTemplate expectedMessage = MessageTemplate.builder()
+			.withNotificationMessage(true)
+			.withIncludeProfileSettingLink(false)
+			.withIncludeUnsubscribeLink(false)
+			.withIgnoreNotificationSettings(true)
+			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
+			.withRecipients(Collections.singleton(user.getId().toString()))
+			.withTemplateFile("message/TwoFaRecoveryCodesGeneratedNotification.html.vtl")
+			.withSubject("Two-Factor Authentication Recovery Codes Generated")
+			.withContext(Map.of("displayName", "User Name")).build();
+		
+		// Call under test
+		manager.send2FaRecoveryCodesGeneratedNotification(user);
+		
+		verify(mockUserProfileManager).getUserProfile(user.getId().toString());
+		verify(mockMessageSender).sendMessage(expectedMessage);
+	}
+	
+	@Test
+	public void testSend2FaRecoveryCodesUsedNotification() {
+		int codesRemaining = 9;
+		
+		UserProfile profile = new UserProfile()
+				.setFirstName("User")
+				.setLastName("Name");
+				
+		when(mockUserProfileManager.getUserProfile(any())).thenReturn(profile);
+		
+		MessageTemplate expectedMessage = MessageTemplate.builder()
+			.withNotificationMessage(true)
+			.withIncludeProfileSettingLink(false)
+			.withIncludeUnsubscribeLink(false)
+			.withIgnoreNotificationSettings(true)
+			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
+			.withRecipients(Collections.singleton(user.getId().toString()))
+			.withTemplateFile("message/TwoFaRecoveryCodeUsedNotification.html.vtl")
+			.withSubject("Two-Factor Authentication Recovery Code Used")
+			.withContext(Map.of("displayName", "User Name", "codesCount", codesRemaining)).build();
+		
+		// Call under test
+		manager.send2FaRecoveryCodeUsedNotification(user, codesRemaining);
 		
 		verify(mockUserProfileManager).getUserProfile(user.getId().toString());
 		verify(mockMessageSender).sendMessage(expectedMessage);
