@@ -7,16 +7,16 @@ public class EndpointInfo {
 	private List<String> tags;
 	private String operationID;
 	private List<ParameterInfo> parameters;
-	private ResponsesInfo responses;
 	private RequestBodyInfo requestBody;
+	private ResponsesInfo responses;
 	
-	public EndpointInfo(String operationID, List<String> tags, List<ParameterInfo> parameters, ResponsesInfo responses,
-			RequestBodyInfo requestBody) {
-		this.operationID = operationID;
+	public EndpointInfo(List<String> tags, String operationID, List<ParameterInfo> parameters,
+			RequestBodyInfo requestBody, ResponsesInfo responses) {
 		this.tags = tags;
+		this.operationID = operationID;
 		this.parameters = parameters;
-		this.responses = responses;
 		this.requestBody = requestBody;
+		this.responses = responses;
 	}
 	
 	public List<String> getTags() {

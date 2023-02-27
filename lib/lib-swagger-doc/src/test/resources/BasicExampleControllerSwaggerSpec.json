@@ -14,7 +14,7 @@
         "/person/{name}": {
 			"post": {
                 "tags": [
-                    "example-controller"
+                    "basic-example-controller"
                 ],
                 "operationId": "addPerson",
                 "parameters": [
@@ -55,7 +55,7 @@
         "/person/age/{name}": {
             "get": {
                 "tags": [
-                    "example-controller"
+                    "basic-example-controller"
                 ],
                 "operationId": "getPersonAge",
                 "parameters": [

@@ -32,6 +32,10 @@ public class RequestBodyInfo {
 		return this.description;
 	}
 	
+	public void setIsRequired(boolean isRequired) {
+		this.isRequired = isRequired;
+	}
+	
 	public boolean isRequired() {
 		return this.isRequired;
 	}

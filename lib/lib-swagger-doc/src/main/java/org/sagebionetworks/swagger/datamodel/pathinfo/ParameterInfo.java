@@ -10,18 +10,18 @@ public class ParameterInfo {
 	private JSONObject schema;
 	
 	public ParameterInfo(String name, String in, JSONObject schema) {
-		this(name, in, schema, "", true);
+		this(name, in, true, schema, "");
 	}
 	
-	public ParameterInfo(String name, String in, JSONObject schema, String description, boolean isRequired) {
+	public ParameterInfo(String name, String in, boolean isRequired, JSONObject schema, String description) {
 		if (in.equals("path") && !isRequired) {
 			throw new IllegalArgumentException("All parameters in path should be required");
 		}
 		this.name = name;
 		this.in = in;
+		this.isRequired = isRequired;
 		this.schema = schema;
 		this.description = description;
-		this.isRequired = isRequired;
 	}
 	
 	public String getName() {

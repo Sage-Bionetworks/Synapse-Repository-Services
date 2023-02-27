@@ -55,14 +55,19 @@ public class SwaggerSpecJsonGenerator {
 				EndpointInfo endpointInfo = operationToEndpointInfo.get(crudOperation);
 				crudOperationJson.put("tags", getTags(endpointInfo));
 				crudOperationJson.put("operationId", endpointInfo.getOperationID());
-				crudOperationJson.put("parameters", getParameters(endpointInfo));
-				crudOperationJson.put("requestBody", getRequestBody(endpointInfo));
+				if (!endpointInfo.getParameters().isEmpty()) {
+					crudOperationJson.put("parameters", getParameters(endpointInfo));
+				}
+				if (endpointInfo.getRequestBody() != null) {
+					crudOperationJson.put("requestBody", getRequestBody(endpointInfo));
+				}
 				crudOperationJson.put("responses", getResponse(endpointInfo));
 				
 				endpointJson.put(crudOperation, crudOperationJson);
 			}
 			pathsJson.put(endpointPath, endpointJson);
 		}
+		json.put("paths", pathsJson);
 	}
 	
 	private JSONObject getRequestBody(EndpointInfo endpointInfo) {
