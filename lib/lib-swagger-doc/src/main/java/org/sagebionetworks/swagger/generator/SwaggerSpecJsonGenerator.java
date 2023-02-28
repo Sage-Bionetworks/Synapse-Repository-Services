@@ -24,27 +24,27 @@ import org.sagebionetworks.swagger.datamodel.pathinfo.ResponsesInfo;
  */
 public class SwaggerSpecJsonGenerator {
 	
-	private SwaggerSpecModel swaggerSpecModel;
-	
-	public SwaggerSpecJsonGenerator(SwaggerSpecModel swaggerSpecModel) {
-		this.swaggerSpecModel = swaggerSpecModel;
-	}
-	
-	public JSONObject generateJson() {
+	public static JSONObject generateJson(SwaggerSpecModel swaggerSpecModel) {
 		JSONObject json = new JSONObject();
+		json.put("openapi", swaggerSpecModel.getOpenapiVersion());
 		
-		addOpenapiVersion(json);
-		addApiInfo(json);
-		addServers(json);
-		addPaths(json);
-		addComponents(json);
+		JSONObject info = generateApiInfo(swaggerSpecModel.getApiInfo());
+		json.put("info", info);
+		
+		JSONArray servers = generateServers(swaggerSpecModel.getServers());
+		json.put("servers", servers);
+		
+		JSONObject paths = generatePaths(swaggerSpecModel.getPaths());
+		json.put("paths", paths);
+		
+		JSONObject components = generateComponents();
+		json.put("components", components);
 		
 		return json;
 	}
 	
-	private void addPaths(JSONObject json) {
+	private static JSONObject generatePaths(List<PathInfo> paths) {
 		JSONObject pathsJson = new JSONObject();
-		List<PathInfo> paths = this.swaggerSpecModel.getPaths();
 		for (PathInfo path : paths) {
 			String endpointPath = path.getPath();
 			JSONObject endpointJson = new JSONObject();
@@ -67,10 +67,10 @@ public class SwaggerSpecJsonGenerator {
 			}
 			pathsJson.put(endpointPath, endpointJson);
 		}
-		json.put("paths", pathsJson);
+		return pathsJson;
 	}
 	
-	private JSONObject getRequestBody(EndpointInfo endpointInfo) {
+	private static JSONObject getRequestBody(EndpointInfo endpointInfo) {
 		JSONObject content = new JSONObject();
 		
 		RequestBodyInfo requestBodyInfo = endpointInfo.getRequestBody();
@@ -86,7 +86,7 @@ public class SwaggerSpecJsonGenerator {
 		return requestBody;
 	}
 	
-	private JSONObject getResponse(EndpointInfo endpointInfo) {
+	private static JSONObject getResponse(EndpointInfo endpointInfo) {
 		JSONObject responsesJson = new JSONObject();
 		
 		ResponsesInfo responsesInfo = endpointInfo.getResponses();
@@ -110,7 +110,7 @@ public class SwaggerSpecJsonGenerator {
 		return responsesJson;
 	}
 	
-	private JSONArray getParameters(EndpointInfo endpointInfo) {
+	private static JSONArray getParameters(EndpointInfo endpointInfo) {
 		JSONArray parameters = new JSONArray();
 		for (ParameterInfo parameter : endpointInfo.getParameters()) {
 			JSONObject parameterJson = new JSONObject();
@@ -124,7 +124,7 @@ public class SwaggerSpecJsonGenerator {
 		return parameters;
 	}
 	
-	private JSONArray getTags(EndpointInfo endpointInfo) {
+	private static JSONArray getTags(EndpointInfo endpointInfo) {
 		JSONArray tags = new JSONArray();
 		for (String tag : endpointInfo.getTags()) {
 			tags.put(tag);
@@ -132,35 +132,26 @@ public class SwaggerSpecJsonGenerator {
 		return tags;
 	}
 	
-	private void addServers(JSONObject json) {
+	private static JSONArray generateServers(List<ServerInfo> servers) {
 		JSONArray serversArr = new JSONArray();
-		List<ServerInfo> servers = this.swaggerSpecModel.getServers();
 		for (ServerInfo server : servers) {
 			JSONObject serverJson = new JSONObject();
 			serverJson.put("url", server.getUrl());
 			serverJson.put("description", server.getDescription());
 			serversArr.put(serverJson);
 		}
-		
-		json.put("servers", serversArr);
+		return serversArr;
 	}
 	
-	private void addComponents(JSONObject json) {
+	private static JSONObject generateComponents() {
 		// Leave as an empty object for now
-		JSONObject components = new JSONObject();
-		json.put("components", components);
+		return new JSONObject();
 	}
 	
-	private void addApiInfo(JSONObject json) {
+	private static JSONObject generateApiInfo(ApiInfo apiInfo) {
 		JSONObject info = new JSONObject();
-		ApiInfo apiInfo = this.swaggerSpecModel.getApiInfo();
 		info.put("title", apiInfo.getTitle());
 		info.put("version", apiInfo.getVersion());
-		
-		json.put("info", info);
-	}
-	
-	private void addOpenapiVersion(JSONObject json) {
-		json.put("openapi", this.swaggerSpecModel.getOpenapiVersion());
+		return info;
 	}
 }

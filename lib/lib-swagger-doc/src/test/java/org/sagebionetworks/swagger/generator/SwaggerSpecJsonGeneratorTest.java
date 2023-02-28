@@ -37,8 +37,7 @@ public class SwaggerSpecJsonGeneratorTest {
         assertNotNull(expectedBasicExampleControllerJson);
         
         SwaggerSpecModel swaggerSpecModel = generateBasicSwaggerSpecModel();
-        SwaggerSpecJsonGenerator swaggerSpecJsonGenerator = new SwaggerSpecJsonGenerator(swaggerSpecModel);
-        generatedBasicExampleControllerJson = swaggerSpecJsonGenerator.generateJson();
+        generatedBasicExampleControllerJson = SwaggerSpecJsonGenerator.generateJson(swaggerSpecModel);
         assertNotNull(generatedBasicExampleControllerJson);
     }
 	
