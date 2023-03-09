@@ -1,0 +1,7 @@
+{
+	"properties": {
+		"schema": {
+			"$ref": "org.sagebionetworks.swagger.datamodel.JsonSchema"
+		}
+	}
+}

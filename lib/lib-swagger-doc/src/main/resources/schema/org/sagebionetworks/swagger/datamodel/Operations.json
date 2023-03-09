@@ -1,0 +1,23 @@
+{
+    "description": "Enumeration of possible CRUD operations.",
+    "name": "Operations",
+    "type": "string",
+    "enum": [
+        {
+            "name": "get",
+            "description": "Represents the GET operation."
+        },
+        {
+            "name": "post",
+            "description": "Represents the POST operation."
+        },
+        {
+            "name": "put",
+            "description": "Represents the PUT operation."
+        },
+        {
+            "name": "delete",
+            "description": "Represents the DELETE operation."
+        }
+    ]
+}

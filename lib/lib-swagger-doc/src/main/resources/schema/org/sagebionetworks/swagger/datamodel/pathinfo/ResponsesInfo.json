@@ -1,0 +1,16 @@
+{
+	"description": "Maps an http status code to its response.",
+	"properties": {
+		"responses": {
+			"type": "map",
+			"key": {
+				"description": "The status code.",
+		    	"type": "string"
+		    },
+		    "value": {
+				"description": "The response returned for the status code.",
+		    	"$ref": "org.sagebionetworks.swagger.datamodel.pathinfo.ResponseInfo"
+		    }
+		}
+	}
+}

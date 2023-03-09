@@ -1,0 +1,17 @@
+{
+	"description": "Represents a path.",
+	"properties": {
+		"get": {
+			"$ref": "org.sagebionetworks.swagger.datamodel.pathinfo.EndpointInfo"
+		},
+		"post": {
+			"$ref": "org.sagebionetworks.swagger.datamodel.pathinfo.EndpointInfo"
+		},
+		"put": {
+			"$ref": "org.sagebionetworks.swagger.datamodel.pathinfo.EndpointInfo"
+		},
+		"delete": {
+			"$ref": "org.sagebionetworks.swagger.datamodel.pathinfo.EndpointInfo"
+		}
+	}
+}

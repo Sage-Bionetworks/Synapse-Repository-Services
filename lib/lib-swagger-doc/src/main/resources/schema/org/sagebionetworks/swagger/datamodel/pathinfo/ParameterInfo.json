@@ -1,0 +1,21 @@
+{
+	"description": "Represents a parameter that an endpoint can take.",
+	"properties": {
+		"name": {
+			"description": "The name of the parameter.",
+			"type": "string"
+		},
+		"in": {
+			"description": "The location of the parameter",
+			"type": "string"
+		},
+		"required": {
+			"description": "Determines whether this parameter is mandatory.",
+			"type": "boolean"
+		},
+		"schema": {
+			"description": "The schema defining the type used for the parameter. <SHOULD BE JSON SCHEMA>",
+			"type": "string"			
+		}
+	}
+}

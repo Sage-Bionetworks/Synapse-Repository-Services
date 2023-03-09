@@ -1,0 +1,145 @@
+{
+	"$recursiveAnchor": true,
+	"description": "The JSON schema is defined by: <a href=\"https://json-schema.org/\">json-schema.org</a>, specifically draft-07.  Only features listed here are currently supported.",
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.1.1\">The \"$schema\" Keyword</a>"
+		},
+		"$id": {
+			"type": "string",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.2.2\">The \"$id\" Keyword</a>"
+		},
+		"$ref": {
+			"type": "string",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.2.4.1\">Direct References with \"$ref\"</a>"
+		},
+		"type": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.4.2.1\">Instance Data Model</a>",
+			"$ref": "org.sagebionetworks.swagger.datamodel.Type"
+		},
+		"items": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.3.1.1\">items\"</a>",
+			"$recursiveRef": "#"
+		},
+		"properties": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.3.2.1\">properties</a>",
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$recursiveRef": "#"
+			}
+		},
+		"title": {
+			"type": "string",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-hypermedia.html#rfc.section.6.5.1\">title</a>"
+		},
+		"description": {
+			"type": "string",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-hypermedia.html#rfc.section.6.5.2\">description</a>"
+		},
+		"allOf": {
+			"description": "Use allOf to 'extend' or 'implement' one or more schemas.  See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.1.1\">allOf</a>",
+			"type": "array",
+			"items": {
+				"$recursiveRef": "#"
+			}
+		},
+		"anyOf": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.1.2\">anyOf</a>",
+			"type": "array",
+			"items": {
+				"$recursiveRef": "#"
+			}
+		},
+		"oneOf": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.1.3\">oneOf</a>",
+			"type": "array",
+			"items": {
+				"$recursiveRef": "#"
+			}
+		},
+		"not": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.1.4\">not</a>",
+			"$recursiveRef": "#"
+		},
+		"format": {
+			"type": "string",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.7.3\">Defined Formats</a>"
+		},
+		"definitions": {
+			"description": "In an effor to support draft-07 implementations, we are using 'definitions' instead of '$defs'.  See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.appendix.A\">Appendix A</a>",
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$recursiveRef": "#"
+			}
+		},
+		"enum": {
+			"type": "array",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.6.1.2\">enum</a>",
+			"items": {
+				"type": "object"
+			}
+		},
+		"const": {
+			"type": "object",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.6.1.3\">const</a>"
+		},
+		"source": {
+			"type": "string",
+			"description": "Used to indicate that this schema is derived from another object/schema.  The value should be a URL reference to the original work.  The 'source' is solely descriptive and should have no impact on validation."
+		},
+		"required": {
+			"type": "array",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.6.5.3\">required</a>",
+			"items": {
+				"type": "string"
+			}
+		},
+		"maxLength": {
+			"type": "integer",
+			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.3.1\">maxLength</a>"
+		},
+		"minLength": {
+			"type": "integer",
+			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.3.2\">minLength</a>"
+		},
+		"pattern": {
+			"type": "string",
+			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.3.3\">pattern</a>"
+		},
+		"if": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.2.1\">if\"</a>",
+			"$recursiveRef": "#"
+		},
+		"then": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.2.2\">then\"</a>",
+			"$recursiveRef": "#"
+		},
+		"else": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.2.3\">else\"</a>",
+			"$recursiveRef": "#"
+		},
+		"maximum": {
+			"type": "integer",
+			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.2.2\">maximum</a>"
+		},
+		"minimum": {
+			"type": "integer",
+			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.2.4\">minimum</a>"
+		},
+		"default": {
+			"type": "object",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.9.2\">default</a>"
+		},
+		"contains": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.3.1.4\">contains</a>",
+			"$recursiveRef": "#"
+		}
+	}
+}

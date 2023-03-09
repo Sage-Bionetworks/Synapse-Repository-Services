@@ -1,0 +1,25 @@
+{
+	"description": "ApiInfo provides metadata about the API.",
+	"properties": {
+		"title": {
+			"type": "string",
+			"description": "The title of the API."
+		},
+		"version": {
+			"type": "string",
+			"description": "The version of the OpenAPI document."
+		},
+		"summary": {
+			"type": "string",
+			"description": "A short summary of the API."
+		},
+		"description": {
+			"type": "string",
+			"description": "A description of the API."
+		},
+		"termsOfService": {
+			"type": "string",
+			"description": "A URL to the terms of service for the API."
+		}
+	}
+}
