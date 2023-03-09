@@ -23,6 +23,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManagerImpl;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.sts.StsManager;
@@ -30,6 +32,11 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
+import org.sagebionetworks.repo.model.download.Action;
+import org.sagebionetworks.repo.model.download.ActionRequiredList;
+import org.sagebionetworks.repo.model.download.EnableTwoFa;
+import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.sts.StsCredentials;
 import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.repo.web.service.metadata.AllTypesValidator;
@@ -62,6 +69,8 @@ public class EntityServiceImplUnitTest {
 	TypeSpecificUpdateProvider<Project> mockProjectUpdateProvider;
 	@Mock
 	TypeSpecificCreateProvider<Project> mockProjectCreateProvider;
+	@Mock
+	EntityAuthorizationManager mockAuthManager;
 
 	List<EntityProvider<? extends Entity>> projectProviders;
 
@@ -203,5 +212,27 @@ public class EntityServiceImplUnitTest {
 			entityService.hasAccess(ENTITY_ID, PRINCIPAL_ID, "invalidAccessType");
 		});
 		assertEquals("No enum constant org.sagebionetworks.repo.model.ACCESS_TYPE.invalidAccessType", thrown.getMessage());
+	}
+	
+	@Test
+	public void testGetActionRequiredForDownload() {
+		
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mockAuthManager.getActionsRequiredForDownload(any(), any())).thenReturn(List.of(
+			new FileActionRequired().withAction(new EnableTwoFa()).withFileId(123),
+			new FileActionRequired().withAction(new RequestDownload()).withFileId(123)
+		));
+		
+		ActionRequiredList expected = new ActionRequiredList().setActions(List.of(
+			new EnableTwoFa(),
+			new RequestDownload()
+		));
+		
+		// Call under test
+		ActionRequiredList result = entityService.getActionsRequiredForDownload(PRINCIPAL_ID, ENTITY_ID);
+		
+		assertEquals(expected, result);
+		
+		verify(mockAuthManager).getActionsRequiredForDownload(userInfo, List.of(123L));
 	}
 }

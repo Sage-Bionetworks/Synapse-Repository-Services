@@ -1,0 +1,12 @@
+{
+	"description": "Represents the list of required actions that the user will need to take in order to gain access to an entity for download.",
+	"properties": {
+		"actions": {
+			"description": "The list of actions",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.download.Action"
+			}
+		}
+	}
+}
