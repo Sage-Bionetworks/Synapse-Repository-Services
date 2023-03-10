@@ -30,7 +30,9 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.MODERATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
@@ -43,11 +45,16 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
+import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
+import org.sagebionetworks.repo.model.download.EnableTwoFa;
+import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
+import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -358,6 +365,49 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		// @formatter:on
 	}
 
+	@Override
+	public List<FileActionRequired> getActionsRequiredForDownload(UserInfo userInfo, List<Long> entityIds) {
+		ValidateArgument.required(userInfo, "The userInfo");
+		ValidateArgument.required(entityIds, "The entityIds");
+		
+		List<UsersEntityAccessInfo> batchInfo = batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
 
+		List<FileActionRequired> actions = new ArrayList<>(batchInfo.size());
+		
+		boolean hasTwoFactorAuthEnabled = userInfo.hasTwoFactorAuthEnabled();
+		
+		for (UsersEntityAccessInfo info : batchInfo) {
+			ValidateArgument.required(info.getAuthorizationStatus(), "info.authroizationStatus");
+			ValidateArgument.required(info.getAccessRestrictions(), "info.accessRestrictions()");
+			if (!info.getAuthorizationStatus().isAuthorized() && info.doesEntityExist()) {
+				// First check if the user has any unapproved AR
+				if (info.getAccessRestrictions().hasUnmet()) {
+					for (UsersRequirementStatus status : info.getAccessRestrictions().getAccessRestrictions()) {
+						if (status.isUnmet()) {
+							actions.add(new FileActionRequired().withFileId(info.getEntityId()).withAction(
+									new MeetAccessRequirement().setAccessRequirementId(status.getRequirementId())
+								)
+							);
+						}			
+					}
+				}
+				
+				// The user might need to enable 2FA in order to download data
+				Optional<UsersRequirementStatus> twoFaRequirement = info.getAccessRestrictions().getAccessRestrictions().stream().filter(UsersRequirementStatus::isTwoFaRequired).findFirst();
+				if (!hasTwoFactorAuthEnabled && twoFaRequirement.isPresent()) {
+					actions.add(new FileActionRequired().withFileId(info.getEntityId()).withAction(
+							new EnableTwoFa().setAccessRequirementId(twoFaRequirement.get().getRequirementId())
+						)
+					);
+				} else if (!info.getAccessRestrictions().hasUnmet()) {
+					// The last check is on the ACL
+					actions.add(new FileActionRequired().withFileId(info.getEntityId())
+						.withAction(new RequestDownload().setBenefactorId(info.getBenefactorId())));
+				}
+			}
+		}
+		
+		return actions;
+	}
 
 }

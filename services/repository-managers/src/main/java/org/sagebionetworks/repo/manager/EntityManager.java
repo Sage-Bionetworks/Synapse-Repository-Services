@@ -52,7 +52,7 @@ public interface EntityManager {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity, String activityId)
+	<T extends Entity> String createEntity(UserInfo userInfo, T newEntity, String activityId)
 			throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 
 	/**
@@ -65,7 +65,7 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public <T extends Entity> T getEntity(UserInfo userInfo, String entityId, Class<? extends T> entityClass)
+	<T extends Entity> T getEntity(UserInfo userInfo, String entityId, Class<? extends T> entityClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -79,7 +79,7 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public List<EntityHeader> getEntityPath(UserInfo userInfo, String entityId)
+	List<EntityHeader> getEntityPath(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -92,7 +92,7 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public String getEntityPathAsFilePath(UserInfo userInfo, String entityId)
+	String getEntityPathAsFilePath(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -105,7 +105,7 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public List<EntityHeader> getEntityPathAsAdmin(String entityId) throws NotFoundException, DatastoreException;
+	List<EntityHeader> getEntityPathAsAdmin(String entityId) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Get the type of an entity
@@ -117,7 +117,7 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public EntityType getEntityType(UserInfo userInfo, String entityId)
+	EntityType getEntityType(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
@@ -141,7 +141,7 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public EntityHeader getEntityHeader(UserInfo userInfo, String entityId)
+	EntityHeader getEntityHeader(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -154,7 +154,7 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public List<EntityHeader> getEntityHeader(UserInfo userInfo, List<Reference> references)
+	List<EntityHeader> getEntityHeader(UserInfo userInfo, List<Reference> references)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -169,7 +169,7 @@ public interface EntityManager {
 	 * @throws NotFoundException
 	 */
 	@Deprecated
-	public void deleteEntity(UserInfo userInfo, String entityId)
+	void deleteEntity(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -183,7 +183,7 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void deleteEntityVersion(UserInfo userInfo, String id, Long versionNumber)
+	void deleteEntityVersion(UserInfo userInfo, String id, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
 
 	/**
@@ -196,10 +196,10 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Annotations getAnnotations(UserInfo userInfo, String entityId)
+	Annotations getAnnotations(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 	
-	public Annotations getAnnotations(UserInfo userInfo, String id, boolean includeDerived);
+	Annotations getAnnotations(UserInfo userInfo, String id, boolean includeDerived);
 
 	/**
 	 * Get the annotations of an entity for a given version.
@@ -212,7 +212,7 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Annotations getAnnotationsForVersion(UserInfo userInfo, String id, Long versionNumber)
+	Annotations getAnnotationsForVersion(UserInfo userInfo, String id, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -227,7 +227,7 @@ public interface EntityManager {
 	 * @throws ConflictingUpdateException
 	 * @throws InvalidModelException
 	 */
-	public void updateAnnotations(UserInfo userInfo, String entityId, Annotations updated)
+	void updateAnnotations(UserInfo userInfo, String entityId, Annotations updated)
 			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException,
 			InvalidModelException;
 
@@ -248,7 +248,7 @@ public interface EntityManager {
 	 * @throws ConflictingUpdateException
 	 * @throws InvalidModelException
 	 */
-	public <T extends Entity> boolean updateEntity(UserInfo userInfo, T updated, boolean newVersion, String activityId)
+	<T extends Entity> boolean updateEntity(UserInfo userInfo, T updated, boolean newVersion, String activityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException,
 			InvalidModelException;
 	
@@ -280,13 +280,13 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public <T extends Entity> T getEntityForVersion(UserInfo userInfo, String entityId, Long versionNumber,
+	<T extends Entity> T getEntityForVersion(UserInfo userInfo, String entityId, Long versionNumber,
 			Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Gets the entity whose file's MD5 is the same as the specified MD5 string.
 	 */
-	public List<EntityHeader> getEntityHeaderByMd5(UserInfo userInfo, String md5)
+	List<EntityHeader> getEntityHeaderByMd5(UserInfo userInfo, String md5)
 			throws NotFoundException, DatastoreException;
 
 	/**
@@ -298,7 +298,7 @@ public interface EntityManager {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public void validateReadAccess(UserInfo userInfo, String entityId)
+	void validateReadAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
@@ -309,7 +309,7 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public void validateUpdateAccess(UserInfo userInfo, String entityId)
+	void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
@@ -322,7 +322,7 @@ public interface EntityManager {
 	 * @throws UnauthorizedException
 	 * @throws DatastoreException
 	 */
-	public boolean doesEntityHaveChildren(UserInfo userInfo, String entityId)
+	boolean doesEntityHaveChildren(UserInfo userInfo, String entityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
@@ -334,7 +334,7 @@ public interface EntityManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId, long offset, long limit)
+	List<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId, long offset, long limit)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
@@ -348,7 +348,7 @@ public interface EntityManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public Activity getActivityForEntity(UserInfo userInfo, String entityId, Long versionNumber)
+	Activity getActivityForEntity(UserInfo userInfo, String entityId, Long versionNumber)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
@@ -362,7 +362,7 @@ public interface EntityManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public Activity setActivityForEntity(UserInfo userInfo, String entityId, String activityId)
+	Activity setActivityForEntity(UserInfo userInfo, String entityId, String activityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
@@ -375,7 +375,7 @@ public interface EntityManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void deleteActivityForEntity(UserInfo userInfo, String entityId)
+	void deleteActivityForEntity(UserInfo userInfo, String entityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
@@ -388,7 +388,7 @@ public interface EntityManager {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber)
+	String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber)
 			throws UnauthorizedException, NotFoundException;
 
 	/**
@@ -397,7 +397,7 @@ public interface EntityManager {
 	 * @param entityIds entities ids to lookup
 	 * @return list of References with the current version filled in
 	 */
-	public List<Reference> getCurrentRevisionNumbers(List<String> entityIds);
+	List<Reference> getCurrentRevisionNumbers(List<String> entityIds);
 
 	/**
 	 * Get an entity with just the ID.
@@ -409,7 +409,7 @@ public interface EntityManager {
 	 * @throws UnauthorizedException
 	 * @throws DatastoreException
 	 */
-	public Entity getEntity(UserInfo user, String entityId)
+	Entity getEntity(UserInfo user, String entityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
@@ -418,7 +418,7 @@ public interface EntityManager {
 	 * @param alias
 	 * @return
 	 */
-	public String getEntityIdForAlias(String alias);
+	String getEntityIdForAlias(String alias);
 
 	/**
 	 * A consistent query to get a page children for a given container.
@@ -427,7 +427,7 @@ public interface EntityManager {
 	 * @param request
 	 * @return
 	 */
-	public EntityChildrenResponse getChildren(UserInfo user, EntityChildrenRequest request);
+	EntityChildrenResponse getChildren(UserInfo user, EntityChildrenRequest request);
 
 	/**
 	 * Retrieve the entityId based on its name and parentId.
@@ -436,7 +436,7 @@ public interface EntityManager {
 	 * @param request
 	 * @return
 	 */
-	public EntityId lookupChild(UserInfo userInfo, EntityLookupRequest request);
+	EntityId lookupChild(UserInfo userInfo, EntityLookupRequest request);
 
 	/**
 	 * Change the given entity's {@link DataType}
@@ -446,7 +446,7 @@ public interface EntityManager {
 	 * @param dataType
 	 * @return
 	 */
-	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String id, DataType dataType);
+	DataTypeResponse changeEntityDataType(UserInfo userInfo, String id, DataType dataType);
 
 	/**
 	 * Bind a JSON schema to an Entity and sends a notification message to trigger revalidation
@@ -456,7 +456,7 @@ public interface EntityManager {
 	 * @param request
 	 * @return
 	 */
-	public JsonSchemaObjectBinding bindSchemaToEntity(UserInfo userInfo, BindSchemaToEntityRequest request);
+	JsonSchemaObjectBinding bindSchemaToEntity(UserInfo userInfo, BindSchemaToEntityRequest request);
 	
 	/**
 	 * Bind a JSON schema to an Entity and has the option to send notification messages to trigger
@@ -468,7 +468,7 @@ public interface EntityManager {
 	 * If sendNotificationMessage is true, send notification message for revalidation, otherwise don't.
 	 * @return
 	 */
-	public JsonSchemaObjectBinding bindSchemaToEntity(UserInfo userInfo, BindSchemaToEntityRequest request, boolean sendNotificationMessage);
+	JsonSchemaObjectBinding bindSchemaToEntity(UserInfo userInfo, BindSchemaToEntityRequest request, boolean sendNotificationMessage);
 
 	/**
 	 * Get metadata about a JSON schema bound to an Entity
@@ -477,7 +477,7 @@ public interface EntityManager {
 	 * @param id
 	 * @return
 	 */
-	public JsonSchemaObjectBinding getBoundSchema(UserInfo userInfo, String id);
+	JsonSchemaObjectBinding getBoundSchema(UserInfo userInfo, String id);
 
 	/**
 	 * Get metadata about a JSON schema bound to an Entity. There is no
@@ -486,7 +486,7 @@ public interface EntityManager {
 	 * @param entityId
 	 * @return
 	 */
-	public Optional<JsonSchemaObjectBinding> findBoundSchema(String entityId);
+	Optional<JsonSchemaObjectBinding> findBoundSchema(String entityId);
 
 	/**
 	 * Clear the bound JSON schema from an Entity.
@@ -495,7 +495,7 @@ public interface EntityManager {
 	 * @param id
 	 * @return
 	 */
-	public void clearBoundSchema(UserInfo userInfo, String id);
+	void clearBoundSchema(UserInfo userInfo, String id);
 
 	/**
 	 * Get the flat JSON representation of an Entity that includes both Entity data
@@ -507,7 +507,7 @@ public interface EntityManager {
 	 * @param includeDerivedAnnotations True if the annotations derived from a bound schema should be included
 	 * @return
 	 */
-	public JSONObject getEntityJson(UserInfo userInfo, String id, boolean includeDerivedAnnotations);
+	JSONObject getEntityJson(UserInfo userInfo, String id, boolean includeDerivedAnnotations);
 
 	/**
 	 * Same as : {@link #getEntityJson(UserInfo, String)} without an authorization
@@ -517,7 +517,7 @@ public interface EntityManager {
 	 * @param includeDerivedAnnotations True if the annotations derived from a bound schema should be included
 	 * @return
 	 */
-	public JSONObject getEntityJson(String id, boolean includeDerivedAnnotations);
+	JSONObject getEntityJson(String id, boolean includeDerivedAnnotations);
 
 	/**
 	 * Get the flat JSON representation of an Entity for a specified version that includes both Entity data
@@ -538,7 +538,7 @@ public interface EntityManager {
 	 * @param includeDerivedAnnotations True if the annotations derived from a bound schema should be included
 	 * @return
 	 */
-	public JsonSubject getEntityJsonSubject(String id, boolean includeDerivedAnnotations);
+	JsonSubject getEntityJsonSubject(String id, boolean includeDerivedAnnotations);
 
 	/**
 	 * Update the annotation of an Entity by providing the flat JSON representation
@@ -552,7 +552,7 @@ public interface EntityManager {
 	 * @param request
 	 * @return
 	 */
-	public JSONObject updateEntityJson(UserInfo userInfo, String entityId, JSONObject request);
+	JSONObject updateEntityJson(UserInfo userInfo, String entityId, JSONObject request);
 
 	/**
 	 * Get the ValidationResults for the given entity.
@@ -561,7 +561,7 @@ public interface EntityManager {
 	 * @param entityId
 	 * @return
 	 */
-	public ValidationResults getEntityValidationResults(UserInfo userInfo, String entityId);
+	ValidationResults getEntityValidationResults(UserInfo userInfo, String entityId);
 
 	/**
 	 * Get the JSON schema validation statistics for the given container.
@@ -570,7 +570,7 @@ public interface EntityManager {
 	 * @param entityId
 	 * @return
 	 */
-	public ValidationSummaryStatistics getEntityValidationStatistics(UserInfo userInfo, String entityId);
+	ValidationSummaryStatistics getEntityValidationStatistics(UserInfo userInfo, String entityId);
 
 	/**
 	 * 
@@ -578,7 +578,7 @@ public interface EntityManager {
 	 * @param request
 	 * @return
 	 */
-	public ListValidationResultsResponse getInvalidEntitySchemaValidationResults(UserInfo userInfo,
+	ListValidationResultsResponse getInvalidEntitySchemaValidationResults(UserInfo userInfo,
 			ListValidationResultsRequest request);
 	
 	/**
@@ -587,8 +587,9 @@ public interface EntityManager {
 	 * @param id
 	 * @return
 	 */
-	public Keys getDerivedAnnotationKeys(UserInfo userInfo, String id);
+	Keys getDerivedAnnotationKeys(UserInfo userInfo, String id);
 	
-	public void truncateAll();
+	void truncateAll();
+
 
 }

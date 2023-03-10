@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface EntityAuthorizationManager {
@@ -29,7 +30,7 @@ public interface EntityAuthorizationManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public AuthorizationStatus hasAccess(UserInfo userInfo, String entityId, ACCESS_TYPE...accessType);
+	AuthorizationStatus hasAccess(UserInfo userInfo, String entityId, ACCESS_TYPE...accessType);
 
 	/**
 	 * Determine if the user is authorized access the given batch of entityIds. This
@@ -42,7 +43,7 @@ public interface EntityAuthorizationManager {
 	 *                   the batch.
 	 * @return
 	 */
-	public List<UsersEntityAccessInfo> batchHasAccess(UserInfo userInfo, List<Long> entityIds, ACCESS_TYPE accessType);
+	List<UsersEntityAccessInfo> batchHasAccess(UserInfo userInfo, List<Long> entityIds, ACCESS_TYPE accessType);
 
 	/**
 	 * Get a bundle of all of the permission that the user has on a single entity.
@@ -53,7 +54,7 @@ public interface EntityAuthorizationManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo, String entityId)
+	UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException;
 	
 
@@ -66,7 +67,7 @@ public interface EntityAuthorizationManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public AuthorizationStatus canCreate(String parentId, EntityType entityCreateType, UserInfo userInfo) throws DatastoreException, NotFoundException;
+	AuthorizationStatus canCreate(String parentId, EntityType entityCreateType, UserInfo userInfo) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Can the user delete the ACL on the given entity?
@@ -76,7 +77,7 @@ public interface EntityAuthorizationManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public AuthorizationStatus canDeleteACL(UserInfo userInfo, String entityId);
+	AuthorizationStatus canDeleteACL(UserInfo userInfo, String entityId);
 
 	/**
 	 * Can the user create a wiki for the given entity?  The user must have the CREATE permission
@@ -86,8 +87,17 @@ public interface EntityAuthorizationManager {
 	 * @param userInfo
 	 * @return
 	 */
-	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo);
+	AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo);
 
-
-
+	/**
+	 * For the given batch of entity ids create a list of actions that
+	 * the user will need to take in order to download any file that they are
+	 * currently not authorized to download.
+	 * 
+	 * @param userInfo
+	 * @param entityIds
+	 * @return
+	 */
+	List<FileActionRequired> getActionsRequiredForDownload(UserInfo userInfo, List<Long> entityIds);
+	
 }

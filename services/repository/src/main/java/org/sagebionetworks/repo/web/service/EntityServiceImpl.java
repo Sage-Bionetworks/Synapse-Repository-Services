@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -35,11 +36,14 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
+import org.sagebionetworks.repo.model.download.ActionRequiredList;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
@@ -790,6 +794,18 @@ public class EntityServiceImpl implements EntityService {
 		ValidateArgument.required(id, "id");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.getDerivedAnnotationKeys(userInfo, id);
+	}
+	
+	@Override
+	public ActionRequiredList getActionsRequiredForDownload(Long userId, String entityId) {
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(entityId, "entityId");
+		
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		
+		List<FileActionRequired> actions = entityAuthorizationMangaer.getActionsRequiredForDownload(userInfo, KeyFactory.stringToKey(List.of(entityId)));
+		
+		return new ActionRequiredList().setActions(actions.stream().map(FileActionRequired::getAction).collect(Collectors.toList()));
 	}
 
 }

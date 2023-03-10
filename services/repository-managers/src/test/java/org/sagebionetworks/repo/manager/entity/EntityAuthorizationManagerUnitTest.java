@@ -1,12 +1,14 @@
-package org.sagebionetworks.repo.manager.manager;
+package org.sagebionetworks.repo.manager.entity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,19 +18,27 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.authentication.TwoFactorAuthManager;
-import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManagerImpl;
+import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
+import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
+import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
+import org.sagebionetworks.repo.model.download.EnableTwoFa;
+import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
+import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,18 +52,23 @@ public class EntityAuthorizationManagerUnitTest {
 	private TwoFactorAuthManager mockTwoFactorAuthManager;
 
 	@InjectMocks
+	@Spy
 	private EntityAuthorizationManagerImpl entityAuthManager;
-
+	
 	private UserInfo userInfo;
 
 	private String entityId;
 	private Long entityIdLong;
 	private List<Long> entityIds;
+	private Long benefactorId;
 	private UserEntityPermissionsState permissionsState;
 	private Map<Long, UserEntityPermissionsState> mapIdToState;
 	
 	private UsersRestrictionStatus accessRestrictions;
 	private Map<Long, UsersRestrictionStatus> mapIdToAccess;
+	
+	private UsersRestrictionStatus restrictionStatus;
+	private AccessContext accessContext;
 
 	@BeforeEach
 	public void before() {
@@ -66,14 +81,19 @@ public class EntityAuthorizationManagerUnitTest {
 		entityId = "syn456";
 		entityIdLong = KeyFactory.stringToKey(entityId);
 		entityIds = KeyFactory.stringToKeySingletonList(entityId);
+		benefactorId = 789L;
 
-		permissionsState = new UserEntityPermissionsState(entityIdLong);
+		permissionsState = new UserEntityPermissionsState(entityIdLong).withBenefactorId(benefactorId).withDoesEntityExist(true);
 		mapIdToState = new LinkedHashMap<Long, UserEntityPermissionsState>();
 		mapIdToState.put(entityIdLong, permissionsState);
 		
 		accessRestrictions = new UsersRestrictionStatus(entityIdLong, userInfo.getId());
 		mapIdToAccess = new LinkedHashMap<Long, UsersRestrictionStatus>();
 		mapIdToAccess.put(entityIdLong, accessRestrictions);
+		
+		restrictionStatus = new UsersRestrictionStatus(entityIdLong, userInfo.getId());
+		accessContext = new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
+				.withRestrictionStatus(restrictionStatus);
 	}
 
 	@Test
@@ -698,6 +718,220 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, status);
 
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+	}
+	
+	@Test
+	public void testGetActionsRequiredForDownloadWithAuthorized() {
+		EntityAuthorizationManagerImpl manager = Mockito.spy(entityAuthManager);
+		
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.authorized()))).when(manager).batchHasAccess(any(), any(), any());
+
+		List<FileActionRequired> expected = Collections.emptyList();
+		
+		// Call under test
+		List<FileActionRequired> result = manager.getActionsRequiredForDownload(userInfo, entityIds);
+		
+		assertEquals(expected, result);
+		
+		verify(manager).batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
+	}
+
+	@Test
+	public void testGetActionsRequiredForDownloadWithNoRestrictions() {
+		EntityAuthorizationManagerImpl manager = Mockito.spy(entityAuthManager);
+		
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
+
+		List<FileActionRequired> expected = List.of(
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new RequestDownload().setBenefactorId(benefactorId))
+		);
+		
+		// Call under test
+		List<FileActionRequired> result = manager.getActionsRequiredForDownload(userInfo, entityIds);
+		
+		assertEquals(expected, result);
+		
+		verify(manager).batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
+		
+	}
+
+	@Test
+	public void testGetActionsRequiredForDownloadWithNonExistentEntity() {
+		permissionsState.withDoesEntityExist(false);
+		
+		EntityAuthorizationManagerImpl manager = Mockito.spy(entityAuthManager);
+		
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
+
+		List<FileActionRequired> expected = Collections.emptyList();
+		
+		// Call under test
+		List<FileActionRequired> result = manager.getActionsRequiredForDownload(userInfo, entityIds);
+		
+		assertEquals(expected, result);
+		
+		verify(manager).batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
+
+	}
+
+	@Test
+	public void testGetActionsRequiredForDownloadWithMetRestrictions() {
+		EntityAuthorizationManagerImpl manager = Mockito.spy(entityAuthManager);
+		
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
+		
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L));
+		restrictionStatus.setHasUnmet(false);
+
+		List<FileActionRequired> expected = List.of(
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new RequestDownload().setBenefactorId(benefactorId))
+		);
+		
+		// Call under test
+		List<FileActionRequired> result = manager.getActionsRequiredForDownload(userInfo, entityIds);
+		
+		assertEquals(expected, result);
+		
+		verify(manager).batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
+	}
+
+	@Test
+	public void testGetActionsRequiredForDownloadWithMixedRestrictions() {
+		EntityAuthorizationManagerImpl manager = Mockito.spy(entityAuthManager);
+		
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
+		
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L));
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(321L));
+		restrictionStatus.setHasUnmet(true);
+
+		List<FileActionRequired> expected = List.of(
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new MeetAccessRequirement().setAccessRequirementId(321L))
+		);
+		
+		// Call under test
+		List<FileActionRequired> result = manager.getActionsRequiredForDownload(userInfo, entityIds);
+		
+		assertEquals(expected, result);
+		
+		verify(manager).batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
+	}
+
+	@Test
+	public void testGetActionsRequiredForDownloadWithNullRestrictionStatus() {
+		accessContext.withRestrictionStatus(null);
+		
+		EntityAuthorizationManagerImpl manager = Mockito.spy(entityAuthManager);
+		
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			manager.getActionsRequiredForDownload(userInfo, entityIds);
+		}).getMessage();
+
+		assertEquals("info.accessRestrictions() is required.", message);
+	}
+
+	@Test
+	public void testGetActionsRequiredForDownloadWithMultipleUnmetRestrictions() {
+		EntityAuthorizationManagerImpl manager = Mockito.spy(entityAuthManager);
+		
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
+		
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(432L));
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(321L));
+		restrictionStatus.setHasUnmet(true);
+
+		List<FileActionRequired> expected = List.of(
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new MeetAccessRequirement().setAccessRequirementId(432L)),
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new MeetAccessRequirement().setAccessRequirementId(321L))
+		);
+		
+		// Call under test
+		List<FileActionRequired> result = manager.getActionsRequiredForDownload(userInfo, entityIds);
+		
+		assertEquals(expected, result);
+		
+		verify(manager).batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
+	}
+	
+	@Test
+	public void testGetActionsRequiredForDownloadWithUnmetRestrictionsAndUnmetTwoFaRestriction() {
+		
+		EntityAuthorizationManagerImpl manager = Mockito.spy(entityAuthManager);
+		
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
+		
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(432L).withIsTwoFaRequired(false));
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(789L).withIsTwoFaRequired(true));
+		restrictionStatus.setHasUnmet(true);
+
+		List<FileActionRequired> expected = List.of(
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new MeetAccessRequirement().setAccessRequirementId(432L)),
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new MeetAccessRequirement().setAccessRequirementId(789L)),
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new EnableTwoFa().setAccessRequirementId(789L))
+		);
+		
+		// Call under test
+		List<FileActionRequired> result = manager.getActionsRequiredForDownload(userInfo, entityIds);
+		
+		assertEquals(expected, result);
+		
+		verify(manager).batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
+	}
+	
+	@Test
+	public void testGetActionsRequiredForDownloadWithMetTwoFaRestriction() {
+		
+		EntityAuthorizationManagerImpl manager = Mockito.spy(entityAuthManager);
+		
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
+		
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L).withIsTwoFaRequired(true));
+		restrictionStatus.setHasUnmet(false);
+		userInfo.setTwoFactorAuthEnabled(true);
+
+		List<FileActionRequired> expected = List.of(
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new RequestDownload().setBenefactorId(benefactorId))
+		);
+		
+		// Call under test
+		List<FileActionRequired> result = manager.getActionsRequiredForDownload(userInfo, entityIds);
+		
+		assertEquals(expected, result);
+		
+		verify(manager).batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
+	}
+	
+	@Test
+	public void testGetActionsRequiredForDownloadWithUnmetTwoFaRestriction() {
+		EntityAuthorizationManagerImpl manager = Mockito.spy(entityAuthManager);
+		
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
+		
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L).withIsTwoFaRequired(true));
+		restrictionStatus.setHasUnmet(false);
+
+		List<FileActionRequired> expected = List.of(
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new EnableTwoFa().setAccessRequirementId(432L))
+		);
+		
+		// Call under test
+		List<FileActionRequired> result = manager.getActionsRequiredForDownload(userInfo, entityIds);
+		
+		assertEquals(expected, result);
+		
+		verify(manager).batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
 	}
 	
 	

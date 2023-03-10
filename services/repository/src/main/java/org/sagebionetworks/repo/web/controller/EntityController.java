@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.download.ActionRequiredList;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
@@ -913,7 +914,21 @@ public class EntityController {
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		return new BooleanResult(serviceProvider.getEntityService().hasAccess(id, userId, accessType));
 	}
-
+	
+	/**
+	 * Returns the list of <a href="${org.sagebionetworks.repo.model.download.Action}">actions</a> required by the user to gain access to the given entity for download.
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ID + "/actions/download" }, method = RequestMethod.GET)
+	public @ResponseBody ActionRequiredList getEntityActionsForDownload(@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
+		return serviceProvider.getEntityService().getActionsRequiredForDownload(userId, id);
+	}
+	
 	/**
 	 * Get the full path of an Entity as a List of EntityHeaders. The first
 	 * EntityHeader will be the Root Entity, and the last EntityHeader will be the
