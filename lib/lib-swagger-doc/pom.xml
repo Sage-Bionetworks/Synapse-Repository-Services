@@ -93,11 +93,6 @@
 				<!-- We also want the resources directory added -->
 				<directory>src/test/java</directory>
 			</resource>
-			<resource>
-				<!-- This will add all of the auto-generated sources files, which is
-					needed for GWT compile. -->
-				<directory>target/auto-generated-pojos</directory>
-			</resource>
 		</resources>
 		<plugins>
 			<plugin>
