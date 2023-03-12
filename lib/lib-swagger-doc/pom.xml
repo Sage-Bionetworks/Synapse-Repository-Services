@@ -10,8 +10,8 @@
 	<artifactId>lib-swagger-doc</artifactId>
 	<dependencies>
 		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>schema-to-pojo-lib</artifactId>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.json</groupId>
@@ -115,23 +115,6 @@
 							<!-- We this plugin to generate a classpath file that can be used 
 								for javadoc testing. -->
 							<outputFile>${auto.generated.classpath}</outputFile>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			
-			<plugin>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>schema-to-pojo-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<goals>
-							<goal>generate</goal>
-						</goals>
-						<configuration>
-							<sourceDirectory>src/main/resources/schema</sourceDirectory>
-							<outputDirectory>target/auto-generated-pojos</outputDirectory>
-							<createRegister>org.sagebionetworks.server.ServerSideOnlyFactory</createRegister>
 						</configuration>
 					</execution>
 				</executions>
