@@ -1,10 +1,14 @@
 package org.sagebionetworks.openapi.datamodel;
 
 import java.util.List;
+
 import java.util.Map;
 import java.util.Objects;
 
+import org.json.JSONObject;
 import org.sagebionetworks.openapi.datamodel.pathinfo.EndpointInfo;
+
+import com.google.gson.Gson;
 
 /**
  * Models the OpenAPI specification.
@@ -62,6 +66,17 @@ public class OpenAPISpecModel {
 	public OpenAPISpecModel withComponents(ComponentInfo components) {
 		this.components = components;
 		return this;
+	}
+	
+	/**
+	 * Generates a JSONObject based on the state of this OpenAPISpecModel.
+	 * 
+	 * @return the JSON representation of this object.
+	 */
+	public JSONObject generateJSON() {
+		Gson gson = new Gson();
+		String json = gson.toJson(this);
+		return new JSONObject(json);
 	}
 
 	@Override

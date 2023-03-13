@@ -1,4 +1,4 @@
-package org.sagebionetworks.swagger.generator;
+package org.sagebionetworks.openapi.datamodel;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -12,11 +12,11 @@ import org.sagebionetworks.openapi.datamodel.OpenAPISpecModel;
 
 import com.google.gson.Gson;
 
-public class SwaggerSpecJsonGeneratorTest {
+public class OpenAPISpecModelTest {
 	
 	@Test
 	public void testGeneratesCorrectJsonBasicController() throws Exception {
-		InputStream is = SwaggerSpecJsonGenerator.class.getClassLoader().getResourceAsStream("BasicExampleControllerOpenAPISpec.json");
+		InputStream is = OpenAPISpecModel.class.getClassLoader().getResourceAsStream("BasicExampleControllerOpenAPISpec.json");
 		assertNotNull(is);
 		String jsonTxt = IOUtils.toString(is, "UTF-8");
 		JSONObject expectedJson = new JSONObject(jsonTxt);
@@ -25,7 +25,7 @@ public class SwaggerSpecJsonGeneratorTest {
 		OpenAPISpecModel swaggerSpecModel = gson.fromJson(expectedJson.toString(), OpenAPISpecModel.class);
 		assertNotNull(swaggerSpecModel);
 		
-		JSONObject generatedJson = SwaggerSpecJsonGenerator.generateJson(swaggerSpecModel);
+		JSONObject generatedJson = swaggerSpecModel.generateJSON();
 		assertEquals(expectedJson.toString(), generatedJson.toString());
     }
 }
