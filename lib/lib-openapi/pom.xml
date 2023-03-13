@@ -34,20 +34,6 @@
 			<artifactId>spring-web</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>csv-utilities</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-junit-jupiter</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-launcher</artifactId>
 			<scope>test</scope>
@@ -67,21 +53,7 @@
 			<artifactId>junit-jupiter-api</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.junit.vintage</groupId>
-			<artifactId>junit-vintage-engine</artifactId>
-			<scope>test</scope>
-		</dependency>
 	</dependencies>
-	<properties>
-		<!-- This file is used to provide classpath information to the test javadoc 
-			tool -->
-		<auto.generated.classpath>${project.build.directory}/gen/auto-generated-classpath.txt</auto.generated.classpath>
-		<test.javadoc.output.directory>${project.build.directory}/javadoc</test.javadoc.output.directory>
-
-		<jacoco.branch.minumum>0.40</jacoco.branch.minumum>
-		<jacoco.line.minumum>0.60</jacoco.line.minumum>
-	</properties>
 	<build>
 		<resources>
 			<resource>
@@ -94,26 +66,5 @@
 				<directory>src/test/java</directory>
 			</resource>
 		</resources>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-dependency-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>build-classpath</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>build-classpath</goal>
-						</goals>
-						<configuration>
-							<excludeArtifactIds>tools</excludeArtifactIds>
-							<!-- We this plugin to generate a classpath file that can be used 
-								for javadoc testing. -->
-							<outputFile>${auto.generated.classpath}</outputFile>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
 	</build>
 </project>	

@@ -8,7 +8,6 @@ import java.io.InputStream;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.openapi.datamodel.OpenAPISpecModel;
 
 import com.google.gson.Gson;
 
