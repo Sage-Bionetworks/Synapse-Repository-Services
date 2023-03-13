@@ -1,4 +1,4 @@
-package org.sagebionetworks.swagger.datamodel.pathinfo;
+package org.sagebionetworks.openapi.datamodel.pathinfo;
 
 import java.util.Objects;
 

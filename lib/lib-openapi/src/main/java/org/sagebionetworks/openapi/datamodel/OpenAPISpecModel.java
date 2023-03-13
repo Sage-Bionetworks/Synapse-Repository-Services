@@ -1,17 +1,17 @@
-package org.sagebionetworks.swagger.datamodel;
+package org.sagebionetworks.openapi.datamodel;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.sagebionetworks.swagger.datamodel.pathinfo.EndpointInfo;
+import org.sagebionetworks.openapi.datamodel.pathinfo.EndpointInfo;
 
 /**
  * Models the OpenAPI specification.
  * @author lli
  *
  */
-public class SwaggerSpecModel {
+public class OpenAPISpecModel {
 	private String openapi;
 	private ApiInfo info;
 	private List<ServerInfo> servers;
@@ -23,7 +23,7 @@ public class SwaggerSpecModel {
 		return openapi;
 	}
 	
-	public SwaggerSpecModel withOpenapi(String openapi) {
+	public OpenAPISpecModel withOpenapi(String openapi) {
 		this.openapi = openapi;
 		return this;
 	}
@@ -32,7 +32,7 @@ public class SwaggerSpecModel {
 		return info;
 	}
 	
-	public SwaggerSpecModel withInfo(ApiInfo info) {
+	public OpenAPISpecModel withInfo(ApiInfo info) {
 		this.info = info;
 		return this;
 	}
@@ -41,7 +41,7 @@ public class SwaggerSpecModel {
 		return servers;
 	}
 	
-	public SwaggerSpecModel withServers(List<ServerInfo> servers) {
+	public OpenAPISpecModel withServers(List<ServerInfo> servers) {
 		this.servers = servers;
 		return this;
 	}
@@ -50,7 +50,7 @@ public class SwaggerSpecModel {
 		return paths;
 	}
 	
-	public SwaggerSpecModel withPaths(Map<String, Map<String, EndpointInfo>> paths) {
+	public OpenAPISpecModel withPaths(Map<String, Map<String, EndpointInfo>> paths) {
 		this.paths = paths;
 		return this;
 	}
@@ -59,7 +59,7 @@ public class SwaggerSpecModel {
 		return components;
 	}
 	
-	public SwaggerSpecModel withComponents(ComponentInfo components) {
+	public OpenAPISpecModel withComponents(ComponentInfo components) {
 		this.components = components;
 		return this;
 	}
@@ -77,7 +77,7 @@ public class SwaggerSpecModel {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		SwaggerSpecModel other = (SwaggerSpecModel) obj;
+		OpenAPISpecModel other = (OpenAPISpecModel) obj;
 		return Objects.equals(components, other.components) && Objects.equals(info, other.info)
 				&& Objects.equals(openapi, other.openapi) && Objects.equals(paths, other.paths)
 				&& Objects.equals(servers, other.servers);

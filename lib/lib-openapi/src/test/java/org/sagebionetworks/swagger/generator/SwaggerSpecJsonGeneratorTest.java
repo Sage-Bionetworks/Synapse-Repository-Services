@@ -8,7 +8,7 @@ import java.io.InputStream;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.swagger.datamodel.SwaggerSpecModel;
+import org.sagebionetworks.openapi.datamodel.OpenAPISpecModel;
 
 import com.google.gson.Gson;
 
@@ -16,13 +16,13 @@ public class SwaggerSpecJsonGeneratorTest {
 	
 	@Test
 	public void testGeneratesCorrectJsonBasicController() throws Exception {
-		InputStream is = SwaggerSpecJsonGenerator.class.getClassLoader().getResourceAsStream("BasicExampleControllerSwaggerSpec.json");
+		InputStream is = SwaggerSpecJsonGenerator.class.getClassLoader().getResourceAsStream("BasicExampleControllerOpenAPISpec.json");
 		assertNotNull(is);
 		String jsonTxt = IOUtils.toString(is, "UTF-8");
 		JSONObject expectedJson = new JSONObject(jsonTxt);
 		
 		Gson gson = new Gson();
-		SwaggerSpecModel swaggerSpecModel = gson.fromJson(expectedJson.toString(), SwaggerSpecModel.class);
+		OpenAPISpecModel swaggerSpecModel = gson.fromJson(expectedJson.toString(), OpenAPISpecModel.class);
 		assertNotNull(swaggerSpecModel);
 		
 		JSONObject generatedJson = SwaggerSpecJsonGenerator.generateJson(swaggerSpecModel);

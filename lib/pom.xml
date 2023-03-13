@@ -28,7 +28,7 @@
 		<module>lib-doi</module>
 		<module>lib-googlecloud</module>
 		<module>lib-javadoc</module>
-		<module>lib-swagger-doc</module>
+		<module>lib-openapi</module>
 		<module>lib-audit</module>
 		<module>lib-table-cluster</module>
 		<module>lib-table-query</module>

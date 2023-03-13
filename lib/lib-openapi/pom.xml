@@ -7,7 +7,7 @@
 		<version>develop-SNAPSHOT</version>
 		<relativePath>..</relativePath>
 	</parent>
-	<artifactId>lib-swagger-doc</artifactId>
+	<artifactId>lib-openapi</artifactId>
 	<dependencies>
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
