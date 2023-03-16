@@ -5,9 +5,12 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.repo.manager.NotificationManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.ClaimsJsonUtil;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -48,15 +51,29 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 
 	// the minimum period in which we update the 'last updated' time stamp for a token
 	private static final Long UPDATE_THRESHOLD_MILLIS = 60*1000L; // one minute
+	
+	private static final String NOTIFICATION_TPL_PAT_ADDED = "message/PersonalAccessTokenAddedNotification.html.vtl";
+	
+	private static final String NOTIFICATION_TPL_PAT_REMOVED = "message/PersonalAccessTokenRemovedNotification.html.vtl";
 
-	@Autowired
 	private PersonalAccessTokenDao personalAccessTokenDao;
 
-	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
-
-	@Autowired
+	
+	private UserManager userManager;
+	
+	private NotificationManager notificationManager;
+	
 	private Clock clock;
+	
+	@Autowired
+	public PersonalAccessTokenManagerImpl(PersonalAccessTokenDao personalAccessTokenDao, OIDCTokenHelper oidcTokenHelper, UserManager userManager, NotificationManager notificationManager, Clock clock) {
+		this.personalAccessTokenDao = personalAccessTokenDao;
+		this.oidcTokenHelper = oidcTokenHelper;
+		this.userManager = userManager;
+		this.notificationManager = notificationManager;
+		this.clock = clock;
+	}
 
 	/**
 	 * Determine the state of the access token record using the last used date.
@@ -140,6 +157,13 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 
 		// If the user has over 100 tokens, delete the least recently used to get under the limit.
 		personalAccessTokenDao.deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), MAX_NUMBER_OF_TOKENS_PER_USER);
+		
+		Map<String, Object> notificationContext = new HashMap<>();
+		
+		notificationContext.put("tokenName", record.getName());
+		notificationContext.put("scopeList", record.getScopes());
+		
+		notificationManager.sendTemplatedNotification(userInfo, NOTIFICATION_TPL_PAT_ADDED, "Personal Access Token Added", notificationContext);
 
 		return response;
 	}
@@ -197,10 +221,17 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 	@Override
 	public void revokeToken(UserInfo userInfo, String tokenId) {
 		AccessTokenRecord record = personalAccessTokenDao.getTokenRecord(tokenId);
+		
 		if (userInfo.getId().toString().equals(record.getUserId()) || userInfo.isAdmin()) {
 			personalAccessTokenDao.deleteToken(tokenId);
 		} else {
 			throw new UnauthorizedException("You do not have permission to revoke this token.");
 		}
+				
+		Map<String, Object> notificationContext = new HashMap<>();
+		
+		notificationContext.put("tokenName", record.getName());
+		
+		notificationManager.sendTemplatedNotification(userManager.getUserInfo(Long.valueOf(record.getUserId())), NOTIFICATION_TPL_PAT_REMOVED, "Personal Access Token Removed", notificationContext);
 	}
 }
