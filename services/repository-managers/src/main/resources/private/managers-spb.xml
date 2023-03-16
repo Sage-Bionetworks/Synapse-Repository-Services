@@ -74,8 +74,6 @@
 		</property>
 	</bean>
 
-	<bean id="oauthClientManager" class="org.sagebionetworks.repo.manager.oauth.OAuthClientManagerImpl" />
-
 	<bean id="tokenGenerator"
 		class="org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton"
 		factory-method="singleton"/>

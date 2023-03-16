@@ -1,0 +1,27 @@
+<html>
+<body>
+<p>
+Dear $displayName,
+</p>
+<p>
+A new OAuth Client ($clientName) was just added to your account configured with the following redirect uris:
+<ul>
+#foreach( $uri in $redirectUris )
+  <li><a href="$uri">$uri</a></li>
+#end
+</ul>
+</p>
+<p>
+Before usage a secret should be generated and the client should be verified, you can find instructions in the <a href="https://help.synapse.org/docs/Using-Synapse-as-an-OAuth-Server.2048327904.html">Synapse OAuth Server Documentation</a>.
+</p>
+<p>
+If you have any questions, please submit a request to the <a href="https://sagebionetworks.jira.com/servicedesk/customer/portal/9">Synapse Service Desk</a>.
+</p>
+<p>
+Sincerely,
+</p>
+<p>
+Synapse Team
+</p>
+</body>
+</html>

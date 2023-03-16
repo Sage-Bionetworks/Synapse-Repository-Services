@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -36,6 +37,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.NotificationManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -82,6 +85,12 @@ public class OAuthClientManagerImplUnitTest {
 	
 	@Mock
 	private AuthorizationManager mockAuthManager;
+	
+	@Mock
+	private UserManager mockUserManager;
+	
+	@Mock
+	private NotificationManager mockNotificationManager;
 
 	@Captor
 	private ArgumentCaptor<SimpleHttpRequest> simpleHttpRequestCaptor;
@@ -405,6 +414,10 @@ public class OAuthClientManagerImplUnitTest {
 		assertNotNull(si.getCreatedOn());
 		assertNotNull(si.getSecret());
 		assertEquals("client.com", si.getSectorIdentifierUri());
+		
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "messages/OAuthClientAddedNotification.html.vtl", "OAuth Client Added", 
+			Map.of("clientName", CLIENT_NAME, "redirectUris", REDIRCT_URIS)
+		);
 	}
 	
 	@Test
@@ -430,6 +443,10 @@ public class OAuthClientManagerImplUnitTest {
 		verify(mockOauthClientDao).createSectorIdentifier(sectorIdentifierCaptor.capture());
 		SectorIdentifier si = sectorIdentifierCaptor.getValue();
 		assertEquals("client.uri.com", si.getSectorIdentifierUri());
+		
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "messages/OAuthClientAddedNotification.html.vtl", "OAuth Client Added", 
+			Map.of("clientName", CLIENT_NAME, "redirectUris", List.of("https://host1.com/redir1"))
+		);
 	}
 	
 
@@ -444,6 +461,10 @@ public class OAuthClientManagerImplUnitTest {
 		
 		// make sure sector identifier was created
 		verify(mockOauthClientDao, never()).createSectorIdentifier((SectorIdentifier)any());
+
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "messages/OAuthClientAddedNotification.html.vtl", "OAuth Client Added", 
+			Map.of("clientName", CLIENT_NAME, "redirectUris", REDIRCT_URIS)
+		);
 	}
 	
 	@Test
@@ -454,6 +475,8 @@ public class OAuthClientManagerImplUnitTest {
 			// method under test
 			oauthClientManagerImpl.createOpenIDConnectClient(anonymousUserInfo, oauthClient);
 		});
+		
+		verifyZeroInteractions(mockNotificationManager);
 	}
 	
 	@Test
@@ -640,7 +663,8 @@ public class OAuthClientManagerImplUnitTest {
 		toUpdate.setModifiedOn(null);
 		
 		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClient_id())).thenReturn(created);
-		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
+		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
 		
 		// method under test
 		OAuthClient updated = oauthClientManagerImpl.updateOpenIDConnectClient(userInfo, toUpdate);
@@ -664,6 +688,47 @@ public class OAuthClientManagerImplUnitTest {
 		assertNotNull(updated.getCreatedBy());
 		assertNotNull(updated.getCreatedOn());
 		assertNotNull(updated.getModifiedOn());
+		
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "messages/OAuthClientVerificationRequiredNotification.html.vtl", "OAuth Client Verification Required",
+			Map.of("clientName", "some other name")
+		);
+	}
+	
+	@Test
+	public void testUpdateOpenIDConnectClientWithNoVerificationRequired() throws Exception {
+		// 'created' simulates what's in the database already
+		OAuthClient created = newCreatedOAuthClient();
+		
+		// 'toUpdate' is the object as retrieved and modified by the client
+		OAuthClient toUpdate = newCreatedOAuthClient();
+		
+		toUpdate.setClient_name("some other name");
+		toUpdate.setClient_uri("some other client uri");
+		toUpdate.setPolicy_uri("some new policy URI");
+		toUpdate.setTos_uri("some new TOS URI");
+				
+		when(mockHttpResponse.getStatusCode()).thenReturn(200);
+		when(mockHttpResponse.getContent()).thenReturn("[\"https://"+REDIRCT_URIS_HOST+"/redir\"]");
+		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
+		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClient_id())).thenReturn(created);
+		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());
+		
+		// method under test
+		OAuthClient updated = oauthClientManagerImpl.updateOpenIDConnectClient(userInfo, toUpdate);
+		
+		assertEquals(toUpdate.getClient_id(), updated.getClient_id());
+		assertEquals(toUpdate.getClient_name(), updated.getClient_name());
+		assertEquals(toUpdate.getClient_uri(), updated.getClient_uri());
+		assertEquals(toUpdate.getPolicy_uri(), updated.getPolicy_uri());
+		assertEquals(toUpdate.getTos_uri(), updated.getTos_uri());
+		assertEquals(toUpdate.getUserinfo_signed_response_alg(), updated.getUserinfo_signed_response_alg());
+		assertEquals(toUpdate.getRedirect_uris(), updated.getRedirect_uris());
+		assertEquals(toUpdate.getSector_identifier_uri(), updated.getSector_identifier_uri());
+		assertNotNull(updated.getModifiedOn());
+		assertNotEquals(toUpdate.getEtag(), updated.getEtag());
+		assertEquals(toUpdate.getSector_identifier(), updated.getSector_identifier());
+		assertTrue(updated.getVerified());
+		verifyZeroInteractions(mockNotificationManager);
 	}
 	
 	@Test
@@ -680,6 +745,8 @@ public class OAuthClientManagerImplUnitTest {
 			// method under test
 			oauthClientManagerImpl.updateOpenIDConnectClient(anonymousUserInfo, toUpdate);
 		});
+		
+		verifyZeroInteractions(mockNotificationManager);
 	}
 	
 	@Test
@@ -697,20 +764,32 @@ public class OAuthClientManagerImplUnitTest {
 			// method under test
 			oauthClientManagerImpl.updateOpenIDConnectClient(userInfo, toUpdate);
 		});
+		
+		verifyZeroInteractions(mockNotificationManager);
 	}
 	
 	@Test
 	public void testDeleteOpenIDConnectClient() {
-		when(mockOauthClientDao.getOAuthClientCreator(OAUTH_CLIENT_ID)).thenReturn(USER_ID);
+		
+		OAuthClient client = newCreatedOAuthClient();
+		
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(client);
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
 		
 		// method under test
 		oauthClientManagerImpl.deleteOpenIDConnectClient(userInfo, OAUTH_CLIENT_ID);
 		verify(mockOauthClientDao).deleteOAuthClient(OAUTH_CLIENT_ID);
+		verify(mockUserManager).getUserInfo(USER_ID_LONG);
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "messages/OAuthClientRemovedNotification.html.vtl", "OAuth Client Removed",
+			Map.of("clientName", client.getClient_name())
+		);
 	}
 	
 	@Test
 	public void testDeleteOpenIDConnectClient_Unauthorized() {
-		when(mockOauthClientDao.getOAuthClientCreator(OAUTH_CLIENT_ID)).thenReturn("202");
+		OAuthClient client = newCreatedOAuthClient().setCreatedBy("202");
+		
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(client);
 
 		assertThrows(UnauthorizedException.class, () -> {
 			// method under test
@@ -718,25 +797,36 @@ public class OAuthClientManagerImplUnitTest {
 		});
 		
 		verify(mockOauthClientDao, never()).deleteOAuthClient(OAUTH_CLIENT_ID);
+		verifyZeroInteractions(mockNotificationManager);
 	}
 	
 	@Test
 	public void testCreateClientSecret() {
 		
-		when(mockOauthClientDao.getOAuthClientCreator(OAUTH_CLIENT_ID)).thenReturn(USER_ID);
+		OAuthClient client = newCreatedOAuthClient();
+		
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(client);
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
 		
 		// method under test
 		OAuthClientIdAndSecret idAndSecret = oauthClientManagerImpl.createClientSecret(userInfo, OAUTH_CLIENT_ID);
 
-		verify(mockOauthClientDao).setOAuthClientSecretHash(eq(OAUTH_CLIENT_ID), anyString(), anyString());
 		assertEquals(OAUTH_CLIENT_ID, idAndSecret.getClient_id());
 		assertNotNull(idAndSecret.getClient_secret());
+		
+		verify(mockOauthClientDao).setOAuthClientSecretHash(eq(OAUTH_CLIENT_ID), anyString(), anyString());
+		verify(mockUserManager).getUserInfo(USER_ID_LONG);
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "messages/OAuthClientSecretGeneratedNotification.html.vtl", "OAuth Client Secret Generated", 
+			Map.of("clientName", client.getClient_name())
+		);
 	}
 
 	@Test
 	public void testCreateClientSecret_unauthorized() {
 
-		when(mockOauthClientDao.getOAuthClientCreator(OAUTH_CLIENT_ID)).thenReturn(USER_ID);
+		OAuthClient client = newCreatedOAuthClient();
+		
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(client);
 		
 		assertThrows(UnauthorizedException.class, () -> {
 			// method under test
@@ -744,6 +834,7 @@ public class OAuthClientManagerImplUnitTest {
 		});
 
 		verify(mockOauthClientDao, never()).setOAuthClientSecretHash(eq(OAUTH_CLIENT_ID), anyString(), anyString());
+		verifyZeroInteractions(mockNotificationManager);
 	}
 	
 	private static final String CLIENT_SECRET = "some secret";
@@ -829,6 +920,8 @@ public class OAuthClientManagerImplUnitTest {
 		});
 		
 		assertEquals("User info is required.", ex.getMessage());
+		
+		verifyZeroInteractions(mockNotificationManager);
 	}
 	
 	@Test
@@ -849,6 +942,8 @@ public class OAuthClientManagerImplUnitTest {
 		});
 		
 		assertEquals("Client ID is required and must not be a blank string.", ex.getMessage());
+		
+		verifyZeroInteractions(mockNotificationManager);
 	}
 	
 	@Test
@@ -866,6 +961,7 @@ public class OAuthClientManagerImplUnitTest {
 		
 		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
 		verifyZeroInteractions(mockOauthClientDao);
+		verifyZeroInteractions(mockNotificationManager);
 		
 	}
 	
@@ -881,9 +977,9 @@ public class OAuthClientManagerImplUnitTest {
 		});
 		
 		verifyZeroInteractions(mockOauthClientDao);
+		verifyZeroInteractions(mockNotificationManager);
 		
-	}
-	
+	}	
 
 	@Test
 	public void testUpdateOpenIDConnectClientVerifiedStatusWithConflictingEtag() {
@@ -904,6 +1000,7 @@ public class OAuthClientManagerImplUnitTest {
 		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
 		verify(mockOauthClientDao).selectOAuthClientForUpdate(clientId);
 		verify(mockOauthClientDao, times(0)).updateOAuthClient(any());
+		verifyZeroInteractions(mockNotificationManager);
 		
 	}
 	
@@ -926,6 +1023,7 @@ public class OAuthClientManagerImplUnitTest {
 		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
 		verify(mockOauthClientDao).selectOAuthClientForUpdate(clientId);
 		verify(mockOauthClientDao, times(0)).updateOAuthClient(any());
+		verifyZeroInteractions(mockNotificationManager);
 		
 	}
 	
@@ -945,7 +1043,8 @@ public class OAuthClientManagerImplUnitTest {
 		
 		when(mockAuthManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockOauthClientDao.selectOAuthClientForUpdate(clientId)).thenReturn(originalClient);
-		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
+		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
 		
 		// Method under test
 		oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, originalEtag, !originalVerifiedStatus);
@@ -959,6 +1058,10 @@ public class OAuthClientManagerImplUnitTest {
 		assertNotEquals(originalModifiedOn, updated.getModifiedOn());
 		assertNotEquals(originalEtag, updated.getEtag());
 		assertNotEquals(originalVerifiedStatus, updated.getVerified());
+		
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "messages/OAuthClientVerifiedNotification.html.vtl", "OAuth Client Verified", 
+			Map.of("clientName", CLIENT_NAME)
+		);
 		
 	}
 	

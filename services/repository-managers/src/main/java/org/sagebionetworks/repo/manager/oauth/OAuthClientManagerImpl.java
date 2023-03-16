@@ -6,16 +6,21 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
+import org.bouncycastle.cms.Recipient;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.PrivateFieldUtils;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -35,17 +40,37 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class OAuthClientManagerImpl implements OAuthClientManager {
 	
-	@Autowired
+	private static final String NOTIFICATION_TPL_CLIENT_ADDED = "messages/OAuthClientAddedNotification.html.vtl";
+	private static final String NOTIFICATION_TPL_CLIENT_REMOVED = "messages/OAuthClientRemovedNotification.html.vtl";
+	private static final String NOTIFICATION_TPL_CLIENT_SECRET_GENERATED = "messages/OAuthClientSecretGeneratedNotification.html.vtl";
+	private static final String NOTIFICATION_TPL_CLIENT_VERIFIED = "messages/OAuthClientVerifiedNotification.html.vtl";
+	private static final String NOTIFICATION_TPL_CLIENT_VERIFICATION_REQUIRED = "messages/OAuthClientVerificationRequiredNotification.html.vtl";
+	
 	private OAuthClientDao oauthClientDao;
 	
-	@Autowired
 	private SimpleHttpClient httpClient;
 	
-	@Autowired
 	private AuthorizationManager authManager;
+	
+	private UserManager userManager;
+	
+	private NotificationManager notificationManager;
+	
+	@Autowired
+	public OAuthClientManagerImpl(OAuthClientDao oauthClientDao, SimpleHttpClient httpClient, AuthorizationManager authManager, UserManager userManager,
+			NotificationManager notificationManager) {
+		super();
+		this.oauthClientDao = oauthClientDao;
+		this.httpClient = httpClient;
+		this.authManager = authManager;
+		this.userManager = userManager;
+		this.notificationManager = notificationManager;
+	}
 
 	public static void validateOAuthClientForCreateOrUpdate(OAuthClient oauthClient) {
 		ValidateArgument.required(oauthClient.getClient_name(), "OAuth client name");
@@ -165,7 +190,16 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		// find or create SectorIdentifier
 		ensureSectorIdentifierExists(resolvedSectorIdentifier, userInfo.getId());
 
-		return oauthClientDao.createOAuthClient(oauthClient);
+		OAuthClient client = oauthClientDao.createOAuthClient(oauthClient);
+		
+		Map<String, Object> notificationContext = new HashMap<>();
+		
+		notificationContext.put("clientName", oauthClient.getClient_name());
+		notificationContext.put("redirectUris", oauthClient.getRedirect_uris());
+		
+		notificationManager.sendTemplatedNotification(userInfo, NOTIFICATION_TPL_CLIENT_ADDED, "OAuth Client Added", notificationContext);
+		
+		return client;
 	}
 	
 	@Override
@@ -242,10 +276,24 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		toStore.setEtag(UUID.randomUUID().toString());
 		toStore.setVerified(currentClient.getVerified());
 		toStore.setSector_identifier(resolvedSectorIdentifier);
+		
 		if (!resolvedSectorIdentifier.equals(currentClient.getSector_identifier())) {
 			toStore.setVerified(false);
 		}
-		return oauthClientDao.updateOAuthClient(toStore);
+		
+		OAuthClient client = oauthClientDao.updateOAuthClient(toStore);
+		
+		if (currentClient.getVerified() && !client.getVerified()) {
+			Map<String, Object> notificationContext = new HashMap<>();
+			
+			notificationContext.put("clientName", client.getClient_name());
+			
+			UserInfo recipient = userManager.getUserInfo(Long.valueOf(client.getCreatedBy()));
+			
+			notificationManager.sendTemplatedNotification(recipient, NOTIFICATION_TPL_CLIENT_VERIFICATION_REQUIRED, "OAuth Client Verification Required", notificationContext);
+		}
+		
+		return client;
 	}
 	
 	@WriteTransaction
@@ -270,6 +318,17 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 			client.setModifiedOn(new Date());
 			client.setEtag(UUID.randomUUID().toString());
 			client = oauthClientDao.updateOAuthClient(client);
+			
+			if (client.getVerified()) {
+				Map<String, Object> notificationContext = new HashMap<>();
+				
+				notificationContext.put("clientName", client.getClient_name());
+				
+				UserInfo recipient = userManager.getUserInfo(Long.valueOf(client.getCreatedBy()));
+				
+				notificationManager.sendTemplatedNotification(recipient, NOTIFICATION_TPL_CLIENT_VERIFIED, "OAuth Client Verified", notificationContext);
+			}
+			
 		}
 
 		return client;
@@ -278,26 +337,47 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	@WriteTransaction
 	@Override
 	public void deleteOpenIDConnectClient(UserInfo userInfo, String id) {
-		String creator = oauthClientDao.getOAuthClientCreator(id);
-		if (!canAdministrate(userInfo, creator)) {
+		OAuthClient client = oauthClientDao.getOAuthClient(id);
+		
+		if (!canAdministrate(userInfo, client.getCreatedBy())) {
 			throw new UnauthorizedException("You can only delete your own OAuth client(s).");
 		}
+		
 		oauthClientDao.deleteOAuthClient(id);
+		
+		Map<String, Object> notificationContext = new HashMap<>();
+		
+		notificationContext.put("clientName", client.getClient_name());
+		
+		UserInfo recipient = userManager.getUserInfo(Long.valueOf(client.getCreatedBy()));
+		
+		notificationManager.sendTemplatedNotification(recipient, NOTIFICATION_TPL_CLIENT_REMOVED, "OAuth Client Removed", notificationContext);
 	}
 
 	@WriteTransaction
 	@Override
 	public OAuthClientIdAndSecret createClientSecret(UserInfo userInfo, String clientId) {
-		String creator = oauthClientDao.getOAuthClientCreator(clientId);
-		if (!canAdministrate(userInfo, creator)) {
+		OAuthClient client = oauthClientDao.getOAuthClient(clientId);
+		
+		if (!canAdministrate(userInfo, client.getCreatedBy())) {
 			throw new UnauthorizedException("You can only generate credentials for your own OAuth client(s).");
 		}		
 		String secret = PBKDF2Utils.generateSecureRandomString();
 		String secretHash = PBKDF2Utils.hashPassword(secret, null);
 		oauthClientDao.setOAuthClientSecretHash(clientId, secretHash, UUID.randomUUID().toString());
+		
 		OAuthClientIdAndSecret result = new OAuthClientIdAndSecret();
 		result.setClient_id(clientId);
 		result.setClient_secret(secret);
+		
+		Map<String, Object> notificationContext = new HashMap<>();
+		
+		notificationContext.put("clientName", client.getClient_name());
+		
+		UserInfo recipient = userManager.getUserInfo(Long.valueOf(client.getCreatedBy()));
+		
+		notificationManager.sendTemplatedNotification(recipient, NOTIFICATION_TPL_CLIENT_SECRET_GENERATED, "OAuth Client Secret Generated", notificationContext);
+		
 		return result;
 	}
 
