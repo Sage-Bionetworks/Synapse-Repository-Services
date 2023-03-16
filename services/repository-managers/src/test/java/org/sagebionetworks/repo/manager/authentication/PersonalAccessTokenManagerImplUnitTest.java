@@ -153,7 +153,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 		verify(mockPersonalAccessTokenDao).deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), EXPECTED_TOKEN_LIMIT);
 		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/PersonalAccessTokenAddedNotification.html.vtl", "Personal Access Token Added", 
-			Map.of("tokenName", tokenName, "scopeList", scopes)
+			Map.of("tokenName", tokenName, "scopeList", scopes, "expireDays", 180L)
 		);
 	}
 
@@ -193,7 +193,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		assertEquals(expectedScopes, captured.getScopes());
 		
 		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/PersonalAccessTokenAddedNotification.html.vtl", "Personal Access Token Added", 
-			Map.of("tokenName", "tokenName", "scopeList", expectedScopes)
+			Map.of("tokenName", "tokenName", "scopeList", expectedScopes, "expireDays", 180L)
 		);
 	}
 
@@ -238,7 +238,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		verify(mockPersonalAccessTokenDao).deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), EXPECTED_TOKEN_LIMIT);
 		
 		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/PersonalAccessTokenAddedNotification.html.vtl", "Personal Access Token Added", 
-			Map.of("tokenName", "tokenName", "scopeList", scopes)
+			Map.of("tokenName", "tokenName", "scopeList", scopes, "expireDays", 180L)
 		);
 	}
 
@@ -278,7 +278,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		verify(mockPersonalAccessTokenDao).deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), EXPECTED_TOKEN_LIMIT);
 		
 		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/PersonalAccessTokenAddedNotification.html.vtl", "Personal Access Token Added", 
-			Map.of("tokenName", tokenName, "scopeList", expectedScope)
+			Map.of("tokenName", tokenName, "scopeList", expectedScope, "expireDays", 180L)
 		);
 	}
 
@@ -313,7 +313,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		verify(mockPersonalAccessTokenDao).deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), EXPECTED_TOKEN_LIMIT);
 		
 		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/PersonalAccessTokenAddedNotification.html.vtl", "Personal Access Token Added", 
-			Map.of("tokenName", tokenName, "scopeList", scopes)
+			Map.of("tokenName", tokenName, "scopeList", scopes, "expireDays", 180L)
 		);
 	}
 

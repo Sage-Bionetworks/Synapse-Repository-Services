@@ -162,6 +162,7 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 		
 		notificationContext.put("tokenName", record.getName());
 		notificationContext.put("scopeList", record.getScopes());
+		notificationContext.put("expireDays", MAX_TOKEN_LEASE_LENGTH_DAYS);
 		
 		notificationManager.sendTemplatedNotification(userInfo, NOTIFICATION_TPL_PAT_ADDED, "Personal Access Token Added", notificationContext);
 
