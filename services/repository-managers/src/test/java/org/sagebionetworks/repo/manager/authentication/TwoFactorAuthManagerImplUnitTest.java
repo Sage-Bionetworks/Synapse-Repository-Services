@@ -19,7 +19,6 @@ import static org.mockito.Mockito.when;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -35,15 +34,11 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.UserProfileManager;
-import org.sagebionetworks.repo.manager.message.MessageTemplate;
-import org.sagebionetworks.repo.manager.message.TemplatedMessageSender;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
@@ -81,10 +76,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	private Clock mockClock;
 	
 	@Mock
-	private TemplatedMessageSender mockMessageSender;
-	
-	@Mock
-	private UserProfileManager mockUserProfileManager;
+	private NotificationManager mockNotificationManager;
 	
 	@InjectMocks
 	@Spy
@@ -772,108 +764,36 @@ public class TwoFactorAuthManagerImplUnitTest {
 	
 	@Test
 	public void testSend2FaStateChangeNotificationWithEnabled() {
-		UserProfile profile = new UserProfile()
-			.setFirstName("User")
-			.setLastName("Name");
-			
-		when(mockUserProfileManager.getUserProfile(any())).thenReturn(profile);
-		
-		MessageTemplate expectedMessage = MessageTemplate.builder()
-			.withNotificationMessage(true)
-			.withIncludeProfileSettingLink(false)
-			.withIncludeUnsubscribeLink(false)
-			.withIgnoreNotificationSettings(true)
-			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
-			.withRecipients(Collections.singleton(user.getId().toString()))
-			.withTemplateFile("message/TwoFaEnabledNotification.html.vtl")
-			.withSubject("Two-Factor Authentication Enabled")
-			.withContext(Map.of("displayName", "User Name")).build();
-		
 		// Call under test
 		manager.send2FaStateChangeNotification(user, TwoFactorState.ENABLED);
 		
-		verify(mockUserProfileManager).getUserProfile(user.getId().toString());
-		verify(mockMessageSender).sendMessage(expectedMessage);
+		verify(mockNotificationManager).sendTemplatedNotification(user, "message/TwoFaEnabledNotification.html.vtl", "Two-Factor Authentication Enabled", null);
 	}
 	
 	@Test
 	public void testSend2FaStateChangeNotificationWithDisabled() {
-		UserProfile profile = new UserProfile()
-			.setFirstName("User")
-			.setLastName("Name");
-			
-		when(mockUserProfileManager.getUserProfile(any())).thenReturn(profile);
-		
-		MessageTemplate expectedMessage = MessageTemplate.builder()
-			.withNotificationMessage(true)
-			.withIncludeProfileSettingLink(false)
-			.withIncludeUnsubscribeLink(false)
-			.withIgnoreNotificationSettings(true)
-			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
-			.withRecipients(Collections.singleton(user.getId().toString()))
-			.withTemplateFile("message/TwoFaDisabledNotification.html.vtl")
-			.withSubject("Two-Factor Authentication Disabled")
-			.withContext(Map.of("displayName", "User Name")).build();
-		
 		// Call under test
 		manager.send2FaStateChangeNotification(user, TwoFactorState.DISABLED);
 		
-		verify(mockUserProfileManager).getUserProfile(user.getId().toString());
-		verify(mockMessageSender).sendMessage(expectedMessage);
+		verify(mockNotificationManager).sendTemplatedNotification(user, "message/TwoFaDisabledNotification.html.vtl", "Two-Factor Authentication Disabled", null);
 	}
 	
 	@Test
 	public void testSend2FaRecoveryCodesGeneratedNotification() {
-		UserProfile profile = new UserProfile()
-				.setFirstName("User")
-				.setLastName("Name");
-				
-		when(mockUserProfileManager.getUserProfile(any())).thenReturn(profile);
-		
-		MessageTemplate expectedMessage = MessageTemplate.builder()
-			.withNotificationMessage(true)
-			.withIncludeProfileSettingLink(false)
-			.withIncludeUnsubscribeLink(false)
-			.withIgnoreNotificationSettings(true)
-			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
-			.withRecipients(Collections.singleton(user.getId().toString()))
-			.withTemplateFile("message/TwoFaRecoveryCodesGeneratedNotification.html.vtl")
-			.withSubject("Two-Factor Authentication Recovery Codes Generated")
-			.withContext(Map.of("displayName", "User Name")).build();
-		
 		// Call under test
 		manager.send2FaRecoveryCodesGeneratedNotification(user);
 		
-		verify(mockUserProfileManager).getUserProfile(user.getId().toString());
-		verify(mockMessageSender).sendMessage(expectedMessage);
+		verify(mockNotificationManager).sendTemplatedNotification(user, "message/TwoFaRecoveryCodesGeneratedNotification.html.vtl", "Two-Factor Authentication Recovery Codes Generated", null);
 	}
 	
 	@Test
 	public void testSend2FaRecoveryCodesUsedNotification() {
 		int codesRemaining = 9;
 		
-		UserProfile profile = new UserProfile()
-				.setFirstName("User")
-				.setLastName("Name");
-				
-		when(mockUserProfileManager.getUserProfile(any())).thenReturn(profile);
-		
-		MessageTemplate expectedMessage = MessageTemplate.builder()
-			.withNotificationMessage(true)
-			.withIncludeProfileSettingLink(false)
-			.withIncludeUnsubscribeLink(false)
-			.withIgnoreNotificationSettings(true)
-			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
-			.withRecipients(Collections.singleton(user.getId().toString()))
-			.withTemplateFile("message/TwoFaRecoveryCodeUsedNotification.html.vtl")
-			.withSubject("Two-Factor Authentication Recovery Code Used")
-			.withContext(Map.of("displayName", "User Name", "codesCount", codesRemaining)).build();
-		
 		// Call under test
 		manager.send2FaRecoveryCodeUsedNotification(user, codesRemaining);
 		
-		verify(mockUserProfileManager).getUserProfile(user.getId().toString());
-		verify(mockMessageSender).sendMessage(expectedMessage);
+		verify(mockNotificationManager).sendTemplatedNotification(user, "message/TwoFaRecoveryCodeUsedNotification.html.vtl", "Two-Factor Authentication Recovery Code Used", Map.of("codesCount", codesRemaining));
 	}
 	
 	private String encodeToken(TwoFactorAuthToken token) {

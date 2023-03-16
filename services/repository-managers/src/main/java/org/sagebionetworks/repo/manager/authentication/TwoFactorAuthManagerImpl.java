@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.authentication;
 import java.nio.charset.StandardCharsets;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -12,12 +11,8 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.EmailUtils;
-import org.sagebionetworks.repo.manager.UserProfileManager;
-import org.sagebionetworks.repo.manager.message.MessageTemplate;
-import org.sagebionetworks.repo.manager.message.TemplatedMessageSender;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -54,18 +49,16 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	private TokenGenerator tokenGenerator;
 	private StackConfiguration config;
 	private Clock clock;
-	private TemplatedMessageSender messageSender;
-	private UserProfileManager userProfileManager;
+	private NotificationManager notificationManager;
 
-	public TwoFactorAuthManagerImpl(TotpManager totpManager, OtpSecretDao otpDao, AuthenticationDAO authDao, TokenGenerator tokenGenerator, StackConfiguration config, Clock clock, TemplatedMessageSender messageSender, UserProfileManager userProfileManager) {
+	public TwoFactorAuthManagerImpl(TotpManager totpManager, OtpSecretDao otpDao, AuthenticationDAO authDao, TokenGenerator tokenGenerator, StackConfiguration config, Clock clock, NotificationManager notificationManager) {
 		this.totpMananger = totpManager;
 		this.otpDao = otpDao;
 		this.authDao = authDao;
 		this.tokenGenerator = tokenGenerator;
 		this.config = config;
 		this.clock = clock;
-		this.messageSender = messageSender;
-		this.userProfileManager = userProfileManager;
+		this.notificationManager = notificationManager;
 	}
 
 	@Override
@@ -259,7 +252,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	void send2FaRecoveryCodesGeneratedNotification(UserInfo user) {
 		String template = NOTIFICATION_TEMPLATE_RECOVERY_CODES_GENERATED;
 		
-		sendNotification(user, template, "Two-Factor Authentication Recovery Codes Generated", null);
+		notificationManager.sendTemplatedNotification(user, template, "Two-Factor Authentication Recovery Codes Generated", null);
 	}
 	
 	void send2FaRecoveryCodeUsedNotification(UserInfo user, int codesCount) {
@@ -269,34 +262,13 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		
 		context.put("codesCount", codesCount);
 		
-		sendNotification(user, template, "Two-Factor Authentication Recovery Code Used", context);
+		notificationManager.sendTemplatedNotification(user, template, "Two-Factor Authentication Recovery Code Used", context);
 	}
 	
 	void send2FaStateChangeNotification(UserInfo user, TwoFactorState state) {
 		String template = TwoFactorState.ENABLED == state ? NOTIFICATION_TEMPLATE_2FA_ENABLED : NOTIFICATION_TEMPLATE_2FA_DISABLED;
 		
-		sendNotification(user, template, "Two-Factor Authentication " + StringUtils.capitalize(state.toString().toLowerCase()), null);
-	}
-	
-	private void sendNotification(UserInfo user, String template, String subject, Map<String, Object> context) {
-		
-		if (context == null) {
-			context = new HashMap<>();
-		}
-		
-		context.put("displayName", EmailUtils.getDisplayNameOrUsername(userProfileManager.getUserProfile(user.getId().toString())));
-		
-		messageSender.sendMessage(MessageTemplate.builder()
-			.withNotificationMessage(true)
-			.withIncludeProfileSettingLink(false)
-			.withIncludeUnsubscribeLink(false)
-			.withIgnoreNotificationSettings(true)
-			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
-			.withRecipients(Collections.singleton(user.getId().toString()))
-			.withTemplateFile(template)
-			.withSubject(subject)
-			.withContext(context).build()
-		);
+		notificationManager.sendTemplatedNotification(user, template, "Two-Factor Authentication " + StringUtils.capitalize(state.toString().toLowerCase()), null);
 	}
 	
 	boolean isTotpValid(UserInfo user, DBOOtpSecret secret, String otpCode) {
