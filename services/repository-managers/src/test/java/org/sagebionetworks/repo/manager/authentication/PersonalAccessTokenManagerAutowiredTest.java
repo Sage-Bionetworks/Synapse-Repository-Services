@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.helper.MessageToUserObjectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -47,6 +48,9 @@ public class PersonalAccessTokenManagerAutowiredTest {
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
+	
+	@Autowired
+	private MessageToUserObjectHelper messageHelper;
 
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
@@ -80,7 +84,9 @@ public class PersonalAccessTokenManagerAutowiredTest {
 		for (String t : tokenIdsToDelete) {
 			personalAccessTokenManager.revokeToken(adminUserInfo, t);
 		}
-
+		
+		messageHelper.truncateAll();
+		
 		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
 	}
 
