@@ -14,7 +14,6 @@ import java.util.UUID;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
-import org.bouncycastle.cms.Recipient;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.sagebionetworks.repo.manager.AuthorizationManager;

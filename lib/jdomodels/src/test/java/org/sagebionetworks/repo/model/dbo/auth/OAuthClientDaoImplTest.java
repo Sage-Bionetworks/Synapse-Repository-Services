@@ -261,22 +261,6 @@ public class OAuthClientDaoImplTest {
 	}
 	
 	@Test
-	public void testGetOAuthClientCreator() {
-		String clientId = createSectorIdentifierAndClient();
-		
-		// method under test
-		String creator = oauthClientDao.getOAuthClientCreator(clientId);
-		
-		assertEquals(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString(), creator);
-		
-		try {
-			oauthClientDao.getOAuthClientCreator("0");
-		} catch (NotFoundException e) {
-			// as expected
-		}
-	}
-	
-	@Test
 	public void testSecretHash() {
 		String clientId = createSectorIdentifierAndClient();
 		

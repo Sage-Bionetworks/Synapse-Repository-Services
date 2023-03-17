@@ -61,9 +61,6 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	private static final String CLIENT_SQL_SELECT = "SELECT * FROM "+TABLE_OAUTH_CLIENT+" WHERE "+
 			COL_OAUTH_CLIENT_CREATED_BY+" = ? LIMIT ? OFFSET ?";
 	
-	private static final String CLIENT_CREATOR_SQL_SELECT = "SELECT "+COL_OAUTH_CLIENT_CREATED_BY+" FROM "+TABLE_OAUTH_CLIENT+" WHERE "+
-			COL_OAUTH_CLIENT_ID+" = ?";
-
 	private static final String CLIENT_SECRET_HASH_SQL_SELECT = "SELECT "+COL_OAUTH_CLIENT_SECRET_HASH+
 			" FROM "+TABLE_OAUTH_CLIENT
 			+ " WHERE "+COL_OAUTH_CLIENT_ID+" = ?";
@@ -211,20 +208,6 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		return clientDboToDto(dbo);
 	}
 	
-	/**
-	 * 
-	 * @param clientId
-	 * @return
-	 */
-	@Override
-	public String getOAuthClientCreator(String clientId) {
-		try {
-			return jdbcTemplate.queryForObject(CLIENT_CREATOR_SQL_SELECT, String.class, clientId);
-		} catch (EmptyResultDataAccessException e) {
-			throw clientNotFoundException(clientId);
-		}
-	}
-
 	@Override
 	public OAuthClientList listOAuthClients(String nextPageToken, Long userId) {
 		NextPageToken nextPage = new NextPageToken(nextPageToken);
