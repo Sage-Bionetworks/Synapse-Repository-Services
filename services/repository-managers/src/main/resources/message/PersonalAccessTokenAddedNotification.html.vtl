@@ -1,0 +1,27 @@
+<html>
+<body>
+<p>
+Dear $displayName,
+</p>
+<p>
+A new personal access token ($tokenName) was just added to your account with the following scope:
+<ul>
+#foreach( $scope in $scopeList )
+  <li>$scope</li>
+#end
+</ul>
+</p>
+<p>
+A personal access token should be treated like a password, please make sure that it is kept in a secure place. The token will expire if it is unused for $expireDays consecutive days.
+</p>
+<p>
+If you have any questions, please submit a request to the <a href="https://sagebionetworks.jira.com/servicedesk/customer/portal/9">Synapse Service Desk</a>.
+</p>
+<p>
+Sincerely,
+</p>
+<p>
+Synapse Team
+</p>
+</body>
+</html>

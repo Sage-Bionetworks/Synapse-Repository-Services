@@ -8,16 +8,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +27,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.NotificationManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.ClaimsJsonUtil;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -60,6 +62,10 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	private PersonalAccessTokenDao mockPersonalAccessTokenDao;
 	@Mock
 	private OIDCTokenHelper mockTokenHelper;
+	@Mock
+	private UserManager mockUserManager;
+	@Mock
+	private NotificationManager mockNotificationManager;
 	@Mock
 	private Clock mockClock;
 	
@@ -127,7 +133,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		Map<String, OIDCClaimsRequestDetails> expectedClaims = new HashMap<>();
 		expectedClaims.put(OIDCClaimName.userid.name(), new OIDCClaimsRequestDetails());
 
-		AccessTokenRecord createdRecord = new AccessTokenRecord();
+		AccessTokenRecord createdRecord = new AccessTokenRecord().setName(tokenName).setScopes(scopes);
 		when(mockClock.now()).thenReturn(new Date());
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
 		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
@@ -146,6 +152,9 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		assertEquals(expectedToken, token);
 
 		verify(mockPersonalAccessTokenDao).deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), EXPECTED_TOKEN_LIMIT);
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/PersonalAccessTokenAddedNotification.html.vtl", "Personal Access Token Added", 
+			Map.of("tokenName", tokenName, "scopeList", scopes, "expireDays", 180L)
+		);
 	}
 
 	@Test
@@ -169,7 +178,8 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 		String expectedToken = "abc123";
 
-		AccessTokenRecord createdRecord = new AccessTokenRecord();
+		AccessTokenRecord createdRecord = new AccessTokenRecord().setName("tokenName").setScopes(expectedScopes);
+		
 		when(mockClock.now()).thenReturn(new Date());
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
 		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
@@ -181,6 +191,10 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		AccessTokenRecord captured = recordCaptor.getValue();
 		assertEquals(userInfo.getId().toString(), captured.getUserId());
 		assertEquals(expectedScopes, captured.getScopes());
+		
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/PersonalAccessTokenAddedNotification.html.vtl", "Personal Access Token Added", 
+			Map.of("tokenName", "tokenName", "scopeList", expectedScopes, "expireDays", 180L)
+		);
 	}
 
 	@Test
@@ -190,6 +204,8 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 		// method under test
 		assertThrows(UnauthenticatedException.class, () -> personalAccessTokenManager.issueToken(anonymousUserInfo, ACCESS_TOKEN, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT));
+		
+		verifyZeroInteractions(mockNotificationManager);
 	}
 
 	@Test
@@ -207,7 +223,8 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 		String expectedToken = "abc123";
 
-		AccessTokenRecord createdRecord = new AccessTokenRecord();
+		AccessTokenRecord createdRecord = new AccessTokenRecord().setName("tokenName").setScopes(scopes);
+		
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
 		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
@@ -219,6 +236,10 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		assertTrue(StringUtils.isNotBlank(captured.getName()));
 
 		verify(mockPersonalAccessTokenDao).deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), EXPECTED_TOKEN_LIMIT);
+		
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/PersonalAccessTokenAddedNotification.html.vtl", "Personal Access Token Added", 
+			Map.of("tokenName", "tokenName", "scopeList", scopes, "expireDays", 180L)
+		);
 	}
 
 	@Test
@@ -237,7 +258,12 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 		String expectedToken = "abc123";
 
-		AccessTokenRecord createdRecord = new AccessTokenRecord();
+		List<OAuthScope> expectedScope = new ArrayList<>();
+		Collections.addAll(expectedScope, OAuthScope.values());
+		expectedScope.remove(OAuthScope.authorize);
+
+		AccessTokenRecord createdRecord = new AccessTokenRecord().setName(tokenName).setScopes(expectedScope);
+		
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
 		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
@@ -245,15 +271,15 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		// method under test
 		personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT);
 
-		Set<OAuthScope> expectedScope = new HashSet<>();
-		Collections.addAll(expectedScope, OAuthScope.values());
-		expectedScope.remove(OAuthScope.authorize);
-
 		AccessTokenRecord captured = recordCaptor.getValue();
-		Set<OAuthScope> actualScope = new HashSet<>(captured.getScopes());
-		assertEquals(expectedScope, actualScope);
+		
+		assertEquals(expectedScope, captured.getScopes());
 
 		verify(mockPersonalAccessTokenDao).deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), EXPECTED_TOKEN_LIMIT);
+		
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/PersonalAccessTokenAddedNotification.html.vtl", "Personal Access Token Added", 
+			Map.of("tokenName", tokenName, "scopeList", expectedScope, "expireDays", 180L)
+		);
 	}
 
 	@Test
@@ -270,7 +296,8 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 		String expectedToken = "abc123";
 
-		AccessTokenRecord createdRecord = new AccessTokenRecord();
+		AccessTokenRecord createdRecord = new AccessTokenRecord().setName(tokenName).setScopes(scopes);
+		
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
 		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
@@ -284,6 +311,10 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		assertEquals(expectedClaims, captured.getUserInfoClaims());
 
 		verify(mockPersonalAccessTokenDao).deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), EXPECTED_TOKEN_LIMIT);
+		
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/PersonalAccessTokenAddedNotification.html.vtl", "Personal Access Token Added", 
+			Map.of("tokenName", tokenName, "scopeList", scopes, "expireDays", 180L)
+		);
 	}
 
 	@Test
@@ -402,14 +433,20 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	@Test
 	void testRevokeToken() {
 		AccessTokenRecord tokenRecord = new AccessTokenRecord();
+		tokenRecord.setName("tokenName");
 		tokenRecord.setId(TOKEN_ID);
 		tokenRecord.setUserId(USER_ID.toString());
 		when(mockPersonalAccessTokenDao.getTokenRecord(TOKEN_ID)).thenReturn(tokenRecord);
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
 
 		// method under test
 		personalAccessTokenManager.revokeToken(userInfo, TOKEN_ID);
 
 		verify(mockPersonalAccessTokenDao).deleteToken(TOKEN_ID);
+		
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/PersonalAccessTokenRemovedNotification.html.vtl", "Personal Access Token Removed", 
+			Map.of("tokenName", "tokenName")
+		);
 	}
 
 	@Test
@@ -418,14 +455,20 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		adminUserInfo.setId(1L);
 
 		AccessTokenRecord tokenRecord = new AccessTokenRecord();
+		tokenRecord.setName("tokenName");
 		tokenRecord.setId(TOKEN_ID);
 		tokenRecord.setUserId(USER_ID.toString());
 		when(mockPersonalAccessTokenDao.getTokenRecord(TOKEN_ID)).thenReturn(tokenRecord);
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
 
 		// method under test
 		personalAccessTokenManager.revokeToken(adminUserInfo, TOKEN_ID);
 
 		verify(mockPersonalAccessTokenDao).deleteToken(TOKEN_ID);
+		
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/PersonalAccessTokenRemovedNotification.html.vtl", "Personal Access Token Removed", 
+			Map.of("tokenName", "tokenName")
+		);
 	}
 
 
@@ -440,6 +483,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		assertThrows(UnauthorizedException. class, () -> personalAccessTokenManager.revokeToken(userInfo, TOKEN_ID));
 
 		verify(mockPersonalAccessTokenDao, never()).deleteToken(TOKEN_ID);
+		verifyZeroInteractions(mockNotificationManager);
 	}
 
 	@Test // PLFM-6494
@@ -452,5 +496,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 				IllegalArgumentException.class,
 				() -> personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT),
 				PersonalAccessTokenManagerImpl.DUPLICATE_TOKEN_NAME_MSG);
+		
+		verifyZeroInteractions(mockNotificationManager);
 	}
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.model.UserInfo;
 
@@ -21,6 +22,17 @@ public interface NotificationManager {
 	 * @param userInfo The user requesting the notification to be sent
 	 * @param messages The list of messages to be sent
 	 */
-	public void sendNotifications(UserInfo userInfo, List<MessageToUserAndBody> messages);
+	void sendNotifications(UserInfo userInfo, List<MessageToUserAndBody> messages);
+	
+	/**
+	 * Send a notification from the given template using the given context to populate the template. The context will be automatically
+	 * enriched with the displayName property if not present already containing the name of the user.
+	 * 
+	 * @param user
+	 * @param template
+	 * @param subject
+	 * @param context
+	 */
+	void sendTemplatedNotification(UserInfo user, String template, String subject, Map<String, Object> context);
 
 }
