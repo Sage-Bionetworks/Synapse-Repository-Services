@@ -415,7 +415,7 @@ public class OAuthClientManagerImplUnitTest {
 		assertNotNull(si.getSecret());
 		assertEquals("client.com", si.getSectorIdentifierUri());
 		
-		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "messages/OAuthClientAddedNotification.html.vtl", "OAuth Client Added", 
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/OAuthClientAddedNotification.html.vtl", "OAuth Client Added", 
 			Map.of("clientName", CLIENT_NAME, "redirectUris", REDIRCT_URIS)
 		);
 	}
@@ -444,7 +444,7 @@ public class OAuthClientManagerImplUnitTest {
 		SectorIdentifier si = sectorIdentifierCaptor.getValue();
 		assertEquals("client.uri.com", si.getSectorIdentifierUri());
 		
-		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "messages/OAuthClientAddedNotification.html.vtl", "OAuth Client Added", 
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/OAuthClientAddedNotification.html.vtl", "OAuth Client Added", 
 			Map.of("clientName", CLIENT_NAME, "redirectUris", List.of("https://host1.com/redir1"))
 		);
 	}
@@ -462,7 +462,7 @@ public class OAuthClientManagerImplUnitTest {
 		// make sure sector identifier was created
 		verify(mockOauthClientDao, never()).createSectorIdentifier((SectorIdentifier)any());
 
-		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "messages/OAuthClientAddedNotification.html.vtl", "OAuth Client Added", 
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/OAuthClientAddedNotification.html.vtl", "OAuth Client Added", 
 			Map.of("clientName", CLIENT_NAME, "redirectUris", REDIRCT_URIS)
 		);
 	}
@@ -689,7 +689,7 @@ public class OAuthClientManagerImplUnitTest {
 		assertNotNull(updated.getCreatedOn());
 		assertNotNull(updated.getModifiedOn());
 		
-		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "messages/OAuthClientVerificationRequiredNotification.html.vtl", "OAuth Client Verification Required",
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/OAuthClientVerificationRequiredNotification.html.vtl", "OAuth Client Verification Required",
 			Map.of("clientName", "some other name")
 		);
 	}
@@ -780,7 +780,7 @@ public class OAuthClientManagerImplUnitTest {
 		oauthClientManagerImpl.deleteOpenIDConnectClient(userInfo, OAUTH_CLIENT_ID);
 		verify(mockOauthClientDao).deleteOAuthClient(OAUTH_CLIENT_ID);
 		verify(mockUserManager).getUserInfo(USER_ID_LONG);
-		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "messages/OAuthClientRemovedNotification.html.vtl", "OAuth Client Removed",
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/OAuthClientRemovedNotification.html.vtl", "OAuth Client Removed",
 			Map.of("clientName", client.getClient_name())
 		);
 	}
@@ -816,7 +816,7 @@ public class OAuthClientManagerImplUnitTest {
 		
 		verify(mockOauthClientDao).setOAuthClientSecretHash(eq(OAUTH_CLIENT_ID), anyString(), anyString());
 		verify(mockUserManager).getUserInfo(USER_ID_LONG);
-		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "messages/OAuthClientSecretGeneratedNotification.html.vtl", "OAuth Client Secret Generated", 
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/OAuthClientSecretGeneratedNotification.html.vtl", "OAuth Client Secret Generated", 
 			Map.of("clientName", client.getClient_name())
 		);
 	}
@@ -1059,7 +1059,7 @@ public class OAuthClientManagerImplUnitTest {
 		assertNotEquals(originalEtag, updated.getEtag());
 		assertNotEquals(originalVerifiedStatus, updated.getVerified());
 		
-		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "messages/OAuthClientVerifiedNotification.html.vtl", "OAuth Client Verified", 
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/OAuthClientVerifiedNotification.html.vtl", "OAuth Client Verified", 
 			Map.of("clientName", CLIENT_NAME)
 		);
 		
