@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.helper.MessageToUserObjectHelper;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
@@ -47,6 +48,9 @@ public class OAuthClientManagerImplAutowiredTest {
 
 	@Autowired
 	private OAuthClientManager oauthClientManager;
+	
+	@Autowired
+	private MessageToUserObjectHelper messageHelper;
 	
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
@@ -76,6 +80,9 @@ public class OAuthClientManagerImplAutowiredTest {
 				// stale ID, no deletion necessary
 			}
 		}
+		
+		messageHelper.truncateAll();
+		
 		try {
 			userManager.deletePrincipal(adminUserInfo, userInfo.getId());
 		} catch (DataAccessException e) {
