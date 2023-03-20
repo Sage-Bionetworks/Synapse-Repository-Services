@@ -44,11 +44,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class OAuthClientManagerImpl implements OAuthClientManager {
 	
-	private static final String NOTIFICATION_TPL_CLIENT_ADDED = "messages/OAuthClientAddedNotification.html.vtl";
-	private static final String NOTIFICATION_TPL_CLIENT_REMOVED = "messages/OAuthClientRemovedNotification.html.vtl";
-	private static final String NOTIFICATION_TPL_CLIENT_SECRET_GENERATED = "messages/OAuthClientSecretGeneratedNotification.html.vtl";
-	private static final String NOTIFICATION_TPL_CLIENT_VERIFIED = "messages/OAuthClientVerifiedNotification.html.vtl";
-	private static final String NOTIFICATION_TPL_CLIENT_VERIFICATION_REQUIRED = "messages/OAuthClientVerificationRequiredNotification.html.vtl";
+	private static final String NOTIFICATION_TPL_CLIENT_ADDED = "message/OAuthClientAddedNotification.html.vtl";
+	private static final String NOTIFICATION_TPL_CLIENT_REMOVED = "message/OAuthClientRemovedNotification.html.vtl";
+	private static final String NOTIFICATION_TPL_CLIENT_SECRET_GENERATED = "message/OAuthClientSecretGeneratedNotification.html.vtl";
+	private static final String NOTIFICATION_TPL_CLIENT_VERIFIED = "message/OAuthClientVerifiedNotification.html.vtl";
+	private static final String NOTIFICATION_TPL_CLIENT_VERIFICATION_REQUIRED = "message/OAuthClientVerificationRequiredNotification.html.vtl";
 	
 	private OAuthClientDao oauthClientDao;
 	
