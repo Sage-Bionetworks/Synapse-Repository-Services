@@ -81,6 +81,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		PROFILE_CLAIMS.put(OIDCClaimName.company, null);
 		PROFILE_CLAIMS.put(OIDCClaimName.user_name, null);
 	}
+	
+	private static final String NOTIFICATION_TPL_CLIENT_AUTHORIZED = "message/OAuthClientAuthorizedNotification.html.vtl";
 
 	private OAuthClientDao oauthClientDao;
 
@@ -185,7 +187,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		OIDCAuthorizationRequestDescription result = new OIDCAuthorizationRequestDescription();
 		result.setClientId(client.getClient_id());
 		result.setRedirect_uri(authorizationRequest.getRedirectUri());
+		result.setScope(getScopeDescription(authorizationRequest));
+		
+		return result;
+	}
 
+	private List<String> getScopeDescription(OIDCAuthorizationRequest authorizationRequest) {
 		List<OAuthScope> scopes = parseScopeString(authorizationRequest.getScope());
 		Set<String> scopeDescriptions = new TreeSet<String>();
 		for (OAuthScope scope : scopes) {
@@ -212,8 +219,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 				scopeDescriptions.addAll(getDescriptionsForClaims(idTokenClaims));
 			}
 		}
-		result.setScope(new ArrayList<String>(scopeDescriptions));
-		return result;
+		return new ArrayList<>(scopeDescriptions);
 	}
 	
 	private Set<String> getDescriptionsForClaims(Map<OIDCClaimName,OIDCClaimsRequestDetails> idTokenClaimsMap) {
@@ -257,18 +263,24 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		validateAuthenticationRequest(authorizationRequest, client);
 
-		authorizationRequest.setUserId((new Long(userInfo.getId()).toString()));
+		authorizationRequest.setUserId(userInfo.getId().toString());
 		authorizationRequest.setAuthorizedAt(clock.now());
 		authorizationRequest.setAuthenticatedAt(authDao.getAuthenticatedOn(userInfo.getId()));
 		
 		String authorizationCode = UUID.randomUUID().toString();
 		oauthDao.createAuthorizationCode(authorizationCode, authorizationRequest);
 
-		OAuthAuthorizationResponse result = new OAuthAuthorizationResponse();
-		result.setAccess_code(authorizationCode);
-		oauthDao.saveAuthorizationConsent(userInfo.getId(), 
-				Long.valueOf(authorizationRequest.getClientId()), 
-				getScopeHash(authorizationRequest), new Date());
+		OAuthAuthorizationResponse result = new OAuthAuthorizationResponse().setAccess_code(authorizationCode);
+		
+		oauthDao.saveAuthorizationConsent(userInfo.getId(), Long.valueOf(authorizationRequest.getClientId()), getScopeHash(authorizationRequest), new Date());
+		
+		Map<String, Object> notificationContext = new HashMap<>();
+		
+		notificationContext.put("clientName", client.getClient_name());
+		notificationContext.put("permissions", getScopeDescription(authorizationRequest));
+		
+		notificationManager.sendTemplatedNotification(userInfo, NOTIFICATION_TPL_CLIENT_AUTHORIZED, "OAuth Client Authorized", notificationContext);
+		
 		return result;
 	}
 

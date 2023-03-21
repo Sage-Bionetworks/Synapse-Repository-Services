@@ -14,6 +14,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager.getScopeHash;
 
@@ -102,6 +103,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	private static final Long USER_ID_LONG = Long.parseLong(USER_ID);
 	private static final List<String> REDIRCT_URIS = Collections.singletonList("https://client.com/redir");
 	private static final String OAUTH_CLIENT_ID = "123";
+	private static final String OAUTH_CLIENT_NAME = "Client Name";
 	private static final String OAUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
 	private static final String EMAIL = "me@domain.com";
 	private static final String LAST_NAME = "last-name";
@@ -229,6 +231,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		oauthClient = new OAuthClient();
+		oauthClient.setClient_name(OAUTH_CLIENT_NAME);
 		oauthClient.setVerified(true);
 		oauthClient.setClient_id(OAUTH_CLIENT_ID);
 		oauthClient.setRedirect_uris(REDIRCT_URIS);
@@ -576,6 +579,11 @@ public class OpenIDConnectManagerImplUnitTest {
 		authorizationRequest.setAuthorizedAt(capturedAuthRequest.getAuthorizedAt());
 		authorizationRequest.setAuthenticatedAt(now);
 		assertEquals(authorizationRequest, capturedAuthRequest);
+		
+		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/OAuthClientAuthorizedNotification.html.vtl", "OAuth Client Authorized", 
+			Map.of("clientName", OAUTH_CLIENT_NAME, "permissions", List.of("To access the resources authorized here when you are not logged in, until you revoke access from this application."))
+		);
+		
 	}
 
 	@Test
@@ -586,6 +594,8 @@ public class OpenIDConnectManagerImplUnitTest {
 			// method under test
 			openIDConnectManagerImpl.authorizeClient(anonymousUserInfo, authorizationRequest);
 		});
+		
+		verifyZeroInteractions(mockNotificationManager);
 	}
 
 	@Test
@@ -600,6 +610,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		});
 		assertEquals(OAuthErrorCode.invalid_client, ex.getError());
 		assertEquals("invalid_client Invalid OAuth Client ID: 42", ex.getMessage());
+		
+		verifyZeroInteractions(mockNotificationManager);
 	}
 
 	@Test
@@ -615,6 +627,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		});
 		
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
+		
+		verifyZeroInteractions(mockNotificationManager);
 	}
 	
 	@Test
@@ -630,7 +644,9 @@ public class OpenIDConnectManagerImplUnitTest {
 			openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		});
 		
-		assertEquals(OAuthErrorCode.invalid_redirect_uri, e.getError());		
+		assertEquals(OAuthErrorCode.invalid_redirect_uri, e.getError());
+		
+		verifyZeroInteractions(mockNotificationManager);
 	}
 
 	@Test
