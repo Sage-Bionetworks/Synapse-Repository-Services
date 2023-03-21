@@ -4,7 +4,9 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class OrcidClaimProvider implements OIDCClaimProvider {
 	@Autowired
 	private UserProfileManager userProfileManager;

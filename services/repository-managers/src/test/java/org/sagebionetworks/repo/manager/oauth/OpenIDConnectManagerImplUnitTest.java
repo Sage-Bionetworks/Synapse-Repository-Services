@@ -39,6 +39,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.manager.util.OAuthPermissionUtils;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
@@ -133,6 +134,9 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Mock
 	private PersonalAccessTokenManager mockPersonalAccessTokenManager;
+	
+	@Mock
+	private NotificationManager mockNotificationManager;
 
 	@InjectMocks
 	private OpenIDConnectManagerImpl openIDConnectManagerImpl;

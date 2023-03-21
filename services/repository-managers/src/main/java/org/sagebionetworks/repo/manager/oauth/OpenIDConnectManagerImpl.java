@@ -16,8 +16,8 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.manager.util.OAuthPermissionUtils;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -50,11 +50,13 @@ import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.EnumKeyedJsonMapUtil;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
 
+@Service
 public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private static final long AUTHORIZATION_CODE_TIME_LIMIT_MILLIS = 60000L; // one minute
 
@@ -80,36 +82,42 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		PROFILE_CLAIMS.put(OIDCClaimName.user_name, null);
 	}
 
-	@Autowired
-	private StackEncrypter stackEncrypter;
-
-	@Autowired
 	private OAuthClientDao oauthClientDao;
 
-	@Autowired
 	private OAuthRefreshTokenManager oauthRefreshTokenManager;
 
-	@Autowired
 	private PersonalAccessTokenManager personalAccessTokenManager;
 
-	@Autowired
 	private AuthenticationDAO authDao;
 	
-	@Autowired
 	private OAuthDao oauthDao;
 
-	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
-
-	@Autowired
-	private Clock clock;
 	
-	/**
-	 * Injected.
-	 */
+	private NotificationManager notificationManager;
+
+	private Clock clock;
+
 	private Map<OIDCClaimName, OIDCClaimProvider> claimProviders;
 	
-	public void setClaimProviders(Map<OIDCClaimName, OIDCClaimProvider> claimProviders) {
+	@Autowired
+	public OpenIDConnectManagerImpl(OAuthClientDao oauthClientDao, OAuthRefreshTokenManager oauthRefreshTokenManager,
+			PersonalAccessTokenManager personalAccessTokenManager, AuthenticationDAO authDao, OAuthDao oauthDao,
+			OIDCTokenHelper oidcTokenHelper, NotificationManager notificationManager, Clock clock,
+			Map<OIDCClaimName, OIDCClaimProvider> claimProviders) {
+		this.oauthClientDao = oauthClientDao;
+		this.oauthRefreshTokenManager = oauthRefreshTokenManager;
+		this.personalAccessTokenManager = personalAccessTokenManager;
+		this.authDao = authDao;
+		this.oauthDao = oauthDao;
+		this.oidcTokenHelper = oidcTokenHelper;
+		this.notificationManager = notificationManager;
+		this.clock = clock;
+		this.claimProviders = claimProviders;
+	}
+	
+	// For testing
+	void setClaimProviders(Map<OIDCClaimName, OIDCClaimProvider> claimProviders) {
 		this.claimProviders = claimProviders;
 	}
 

@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.manager.oauth.claimprovider;
 
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
+import org.springframework.stereotype.Service;
 
+@Service
 public class EmailVerifiedClaimProvider implements OIDCClaimProvider {
 	@Override
 	public OIDCClaimName getName() {

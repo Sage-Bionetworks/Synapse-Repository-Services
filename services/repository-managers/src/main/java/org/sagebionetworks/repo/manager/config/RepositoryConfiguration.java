@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.OAuthProviderBinding;
 import org.sagebionetworks.repo.manager.oauth.OIDCConfig;
 import org.sagebionetworks.repo.manager.oauth.OrcidOAuth2Provider;
+import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest;
@@ -42,6 +43,7 @@ import org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiAttachmentReservation;
 import org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiMarkdown;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -226,6 +228,11 @@ public class RepositoryConfiguration {
 		RecoveryCodeGenerator recoveryCodesGenerator = new RecoveryCodeGenerator();
 		
 		return new TotpManager(secretGenerator, codeVerifier, recoveryCodesGenerator);
+	}
+	
+	@Bean
+	public Map<OIDCClaimName, OIDCClaimProvider> claimProviders(List<OIDCClaimProvider> providerList) {
+		return providerList.stream().collect(Collectors.toMap(OIDCClaimProvider::getName, Function.identity()));		
 	}
 	
 }
