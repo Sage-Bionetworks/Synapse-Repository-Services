@@ -5,8 +5,9 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-
+@Service
 public class IsCertifiedClaimProvider implements OIDCClaimProvider {
 	@Autowired
 	private UserManager userManager;

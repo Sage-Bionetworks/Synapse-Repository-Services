@@ -4,8 +4,10 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 //https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
+@Service
 public class FamilyNameClaimProvider implements OIDCClaimProvider {
 	@Autowired
 	private UserProfileManager userProfileManager;

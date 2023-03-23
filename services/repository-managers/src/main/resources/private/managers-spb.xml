@@ -30,50 +30,6 @@
 	
 	<bean id="CloudMailInManager" class="org.sagebionetworks.repo.manager.CloudMailInManagerImpl" />
 	
-	<bean id="companyClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.CompanyClaimProvider"/>
-	<bean id="emailClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.EmailClaimProvider"/>
-	<bean id="emailVerifiedClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.EmailVerifiedClaimProvider"/>
-	<bean id="familyNameClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.FamilyNameClaimProvider"/>
-	<bean id="givenNameClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.GivenNameClaimProvider"/>
-	<bean id="isCertifiedClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.IsCertifiedClaimProvider"/>
-	<bean id="isValidatedClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.IsValidatedClaimProvider"/>
-	<bean id="orcidClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.OrcidClaimProvider"/>
-	<bean id="teamClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.TeamClaimProvider"/>
-	<bean id="userIdClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.UserIdClaimProvider"/>
-	<bean id="userNameClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.UserNameClaimProvider"/>
-	<bean id="validatedAtClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedAtClaimProvider"/>
-	<bean id="validatedCompanyClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedCompanyClaimProvider"/>
-	<bean id="validatedEmailClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedEmailClaimProvider"/>
-	<bean id="validatedFamilyNameClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedFamilyNameClaimProvider"/>
-	<bean id="validatedGivenNameClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedGivenNameClaimProvider"/>
-	<bean id="validatedLocationClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedLocationClaimProvider"/>
-	<bean id="validatedOrcidClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedOrcidClaimProvider"/>
-
-	<bean id="oidcManager" class="org.sagebionetworks.repo.manager.oauth.OpenIDConnectManagerImpl">
-		<property name="claimProviders">
-			<map>
-				<entry key="company" value-ref="companyClaimProvider" />
-				<entry key="email" value-ref="emailClaimProvider" />
-				<entry key="email_verified" value-ref="emailVerifiedClaimProvider" />
-				<entry key="family_name" value-ref="familyNameClaimProvider" />
-				<entry key="given_name" value-ref="givenNameClaimProvider" />
-				<entry key="is_certified" value-ref="isCertifiedClaimProvider" />
-				<entry key="is_validated" value-ref="isValidatedClaimProvider" />
-				<entry key="orcid" value-ref="orcidClaimProvider" />
-				<entry key="team" value-ref="teamClaimProvider" />
-				<entry key="userid" value-ref="userIdClaimProvider" />
-				<entry key="user_name" value-ref="userNameClaimProvider" />
-				<entry key="validated_at" value-ref="validatedAtClaimProvider" />
-				<entry key="validated_company" value-ref="validatedCompanyClaimProvider" />
-				<entry key="validated_email" value-ref="validatedEmailClaimProvider" />
-				<entry key="validated_family_name" value-ref="validatedFamilyNameClaimProvider" />
-				<entry key="validated_given_name" value-ref="validatedGivenNameClaimProvider" />
-				<entry key="validated_location" value-ref="validatedLocationClaimProvider" />
-				<entry key="validated_orcid" value-ref="validatedOrcidClaimProvider" />
-			</map>
-		</property>
-	</bean>
-
 	<bean id="tokenGenerator"
 		class="org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton"
 		factory-method="singleton"/>

@@ -1,0 +1,24 @@
+<html>
+<body>
+<p>
+Dear $displayName,
+</p>
+<p>
+An OAuth Client ($clientName) was just authorized to access your account and your consent was given for the following set of permissions:
+<ul>
+#foreach( $permission in $permissions )
+  <li>$permission</li>
+#end
+</ul>
+</p>
+<p>
+If you have any questions, please submit a request to the <a href="https://sagebionetworks.jira.com/servicedesk/customer/portal/9">Synapse Service Desk</a>.
+</p>
+<p>
+Sincerely,
+</p>
+<p>
+Synapse Team
+</p>
+</body>
+</html>
