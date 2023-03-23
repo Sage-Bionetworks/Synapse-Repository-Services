@@ -28,6 +28,8 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.SQLUtils.TableIndexType;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
@@ -1040,6 +1042,60 @@ public class SQLTranslatorUtils {
 		builder.append("'");
 		builder.append(value.replaceAll("'", "''"));
 		builder.append("'");
+	}
+
+	/**
+	 * Create the schema of a select. Tables and views can only have a single select
+	 * statement, so their select schema is simply the schema of that select. A
+	 * materialized view that includes one or more UIONs will have one schema for
+	 * each select statement. For such cases, the schema of the materialized view
+	 * will be created from the first select statement. However, for columns with a
+	 * maximum size and/or maximum list length, the resulting size/length must be
+	 * the maximum of all columns from the same column index.
+	 * 
+	 * @param selectSchemas The schemas of each select statement. Tables, Views, and
+	 *                      materialized views without UNIONs should only provide
+	 *                      one schema.
+	 * @return Will always return the first schema of the provided list, with
+	 *         ColumnModels modified as needed.
+	 */
+	public static List<ColumnModel> createSchemaOfSelect(final List<List<ColumnModel>> selectSchemas) {
+		if (selectSchemas.size() < 2) {
+			return selectSchemas.get(0);
+		}
+		List<ColumnModel> firstSchema = selectSchemas.get(0);
+		List<ColumnModel> newSchema = new ArrayList<>(firstSchema.size());
+		for (int colunIndex = 0; colunIndex < firstSchema.size(); colunIndex++) {
+			try {
+				ColumnModel clone = EntityFactory.createEntityFromJSONString(
+						EntityFactory.createJSONStringForEntity(firstSchema.get(colunIndex)), ColumnModel.class);
+				newSchema.add(clone);
+				for (int schemaIndex = 1; schemaIndex < selectSchemas.size(); schemaIndex++) {
+					ColumnModel compareToColumn = selectSchemas.get(schemaIndex).get(colunIndex);
+					clone.setMaximumSize(maxWithNulls(clone.getMaximumSize(), compareToColumn.getMaximumSize()));
+					clone.setMaximumListLength(maxWithNulls(clone.getMaximumListLength(), compareToColumn.getMaximumListLength()));
+				}
+			} catch (JSONObjectAdapterException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		return newSchema;
+	}
+	
+	/**
+	 * Get the max long with null checking.
+	 * @param first
+	 * @param second
+	 * @return
+	 */
+	public static Long maxWithNulls(Long first, Long second) {
+		if(first == null) {
+			return second;
+		}
+		if(second == null) {
+			return first;
+		}
+		return Math.max(first, second);
 	}
 
 	
