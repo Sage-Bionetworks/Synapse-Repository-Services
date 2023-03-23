@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -150,8 +151,13 @@ public class QueryTranslator {
 			List<ColumnModel> unionOfSchemas = firstPart.getMapper().getUnionOfAllTableSchemas();
 
 
-			this.schemaOfSelect = SQLTranslatorUtils.getSchemaOfSelect(firstPart.getQuerySpecification().getSelectList(), firstPart.getMapper());
-
+			List<List<ColumnModel>> partsSelectSchemas = new ArrayList<>(parts.size());
+			for(QueryPart part: parts) {
+				List<ColumnModel> schema = SQLTranslatorUtils.getSchemaOfSelect(part.getQuerySpecification().getSelectList(), part.getMapper());
+				partsSelectSchemas.add(schema);
+			}
+			this.schemaOfSelect = SQLTranslatorUtils.createSchemaOfSelect(partsSelectSchemas);
+			
 			// Track if this is an aggregate query.
 			this.isAggregatedResult = transformedModel.hasAnyAggregateElements();
 			this.includesRowIdAndVersion = !this.isAggregatedResult;

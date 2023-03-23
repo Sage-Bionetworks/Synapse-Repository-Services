@@ -6,10 +6,8 @@
 		<groupId>org.sagebionetworks</groupId>
 		<version>develop-SNAPSHOT</version>
 	</parent>
-	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-test</artifactId>
 
-	<version>develop-SNAPSHOT</version>
 	<name>lib-test</name>
 	<description>Shared library with test-only code</description>
 

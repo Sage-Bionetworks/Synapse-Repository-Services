@@ -9,7 +9,6 @@
 		<version>develop-SNAPSHOT</version>
 	</parent>
 
-	<groupId>org.sagebionetworks</groupId>
 	<artifactId>auth-util</artifactId>
 	<packaging>jar</packaging>
 	<name>Platform Authentication and Authorization Utilities</name>

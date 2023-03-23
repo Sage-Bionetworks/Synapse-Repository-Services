@@ -1263,6 +1263,38 @@ public class QueryTranslatorTest {
 		assertEquals(expected, schema);
 	}
 	
+	/**
+	 * Test added for PLFM-7738.
+	 * @throws ParseException
+	 */
+	@Test
+	public void testGetSchemaOfSelectWithUnion() throws ParseException {
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		IdAndVersion one = IdAndVersion.parse("syn1");
+		schemaMap.put(one, List.of(TableModelTestUtils.createColumn(111L, "a", ColumnType.STRING).setMaximumSize(100L),
+				TableModelTestUtils.createColumn(222L, "b", ColumnType.STRING).setMaximumSize(50L)));
+
+		IdAndVersion two = IdAndVersion.parse("syn2");
+		schemaMap.put(two, List.of(TableModelTestUtils.createColumn(333L, "c", ColumnType.STRING).setMaximumSize(40L),
+				TableModelTestUtils.createColumn(444L, "d", ColumnType.STRING).setMaximumSize(150L)));
+
+		List<IndexDescription> dependencies = List.of(new TableIndexDescription(one), new TableIndexDescription(two));
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		sql = "select a, b from syn1 union select c, d from syn2";
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.indexDescription(indexDescription).sqlContext(SqlContext.build).build();
+		
+		// call under test
+		List<ColumnModel> schema = query.getSchemaOfSelect();
+		List<ColumnModel> expected = List.of(
+				new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(100L),
+				new ColumnModel().setName("b").setColumnType(ColumnType.STRING).setMaximumSize(150L));
+		assertEquals(expected, schema);
+	}
+	
 	@Test
 	public void testJoinViewAndTableWithDepenenciesOutOfOrder() throws ParseException {
 		IdAndVersion viewId = IdAndVersion.parse("syn1");

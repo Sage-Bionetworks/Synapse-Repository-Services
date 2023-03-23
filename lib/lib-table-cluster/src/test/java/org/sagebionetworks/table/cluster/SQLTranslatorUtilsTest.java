@@ -3398,4 +3398,118 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("INSERT INTO T123 (_C111_,_C333_) select _c1_, _c2_ from T111", result);
 	}
 	
+	@Test
+	public void testCreateSchemaOfSelect() {
+		List<List<ColumnModel>> selectSchemas = List.of(
+				List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(10L),
+						new ColumnModel().setName("b").setColumnType(ColumnType.STRING).setMaximumSize(11L)
+								.setMaximumListLength(12L)),
+				List.of(new ColumnModel().setName("c").setColumnType(ColumnType.STRING).setMaximumSize(13L),
+						new ColumnModel().setName("d").setColumnType(ColumnType.STRING).setMaximumSize(14L)
+								.setMaximumListLength(15L)),
+				List.of(new ColumnModel().setName("e").setColumnType(ColumnType.STRING).setMaximumSize(16L),
+						new ColumnModel().setName("f").setColumnType(ColumnType.STRING).setMaximumSize(17L)
+								.setMaximumListLength(18L)));
+		
+		// call under test
+		List<ColumnModel> result = SQLTranslatorUtils.createSchemaOfSelect(selectSchemas);
+		List<ColumnModel> expected = List.of(
+				new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(16L), new ColumnModel()
+						.setName("b").setColumnType(ColumnType.STRING).setMaximumSize(17L).setMaximumListLength(18L));
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testCreateSchemaOfSelectWithSingleSelect() {
+		List<List<ColumnModel>> selectSchemas = List.of(
+				List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(10L),
+						new ColumnModel().setName("b").setColumnType(ColumnType.STRING).setMaximumSize(11L)
+								.setMaximumListLength(12L)));
+		
+		// call under test
+		List<ColumnModel> result = SQLTranslatorUtils.createSchemaOfSelect(selectSchemas);
+		List<ColumnModel> expected = List.of(
+				new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(10L), new ColumnModel()
+						.setName("b").setColumnType(ColumnType.STRING).setMaximumSize(11L).setMaximumListLength(12L));
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testCreateSchemaOfSelectWithFirstMaxSizeNull() {
+		List<List<ColumnModel>> selectSchemas = List.of(
+				List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(null)),
+				List.of(new ColumnModel().setName("c").setColumnType(ColumnType.STRING).setMaximumSize(13L)));
+
+		// call under test
+		List<ColumnModel> result = SQLTranslatorUtils.createSchemaOfSelect(selectSchemas);
+		List<ColumnModel> expected = List.of(
+				new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(13L));
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testCreateSchemaOfSelectWithSecondMaxSizeNull() {
+		List<List<ColumnModel>> selectSchemas = List.of(
+				List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(10L)),
+				List.of(new ColumnModel().setName("c").setColumnType(ColumnType.STRING).setMaximumSize(null)));
+
+		// call under test
+		List<ColumnModel> result = SQLTranslatorUtils.createSchemaOfSelect(selectSchemas);
+		List<ColumnModel> expected = List.of(
+				new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(10L));
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testCreateSchemaOfSelectWithBothMaxSizeNull() {
+		List<List<ColumnModel>> selectSchemas = List.of(
+				List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(null)),
+				List.of(new ColumnModel().setName("c").setColumnType(ColumnType.STRING).setMaximumSize(null)));
+
+		// call under test
+		List<ColumnModel> result = SQLTranslatorUtils.createSchemaOfSelect(selectSchemas);
+		List<ColumnModel> expected = List.of(
+				new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(null));
+		assertEquals(expected, result);
+	}
+	
+	
+	@Test
+	public void testCreateSchemaOfSelectWithFirstMaxListLenthNull() {
+		List<List<ColumnModel>> selectSchemas = List.of(
+				List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumListLength(null)),
+				List.of(new ColumnModel().setName("c").setColumnType(ColumnType.STRING).setMaximumListLength(13L)));
+
+		// call under test
+		List<ColumnModel> result = SQLTranslatorUtils.createSchemaOfSelect(selectSchemas);
+		List<ColumnModel> expected = List.of(
+				new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumListLength(13L));
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testCreateSchemaOfSelectWithSecondMaxListLengthNull() {
+		List<List<ColumnModel>> selectSchemas = List.of(
+				List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumListLength(10L)),
+				List.of(new ColumnModel().setName("c").setColumnType(ColumnType.STRING).setMaximumListLength(null)));
+
+		// call under test
+		List<ColumnModel> result = SQLTranslatorUtils.createSchemaOfSelect(selectSchemas);
+		List<ColumnModel> expected = List.of(
+				new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumListLength(10L));
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testCreateSchemaOfSelectWithBothMaxListLengthNull() {
+		List<List<ColumnModel>> selectSchemas = List.of(
+				List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumListLength(null)),
+				List.of(new ColumnModel().setName("c").setColumnType(ColumnType.STRING).setMaximumListLength(null)));
+
+		// call under test
+		List<ColumnModel> result = SQLTranslatorUtils.createSchemaOfSelect(selectSchemas);
+		List<ColumnModel> expected = List.of(
+				new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumListLength(null));
+		assertEquals(expected, result);
+	}
 }
