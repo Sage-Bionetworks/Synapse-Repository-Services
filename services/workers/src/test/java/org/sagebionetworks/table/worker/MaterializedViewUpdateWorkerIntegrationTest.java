@@ -991,14 +991,17 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		appendRowsToTable(twoSchema, two.toString(),
 				List.of(new Row().setValues(List.of("a".repeat(150), "b".repeat(100)))));
 
-		String definingSql = String.format("select t1.a, t1.b from %s t1 union select t2.a, t2.b from %s t2",
-				one.toString(), two.toString());
+		String definingSql = String.format("select a, b from %s union select a, b from %s", one.toString(),
+				two.toString());
 
 		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
 
 		String materializedQuery = "select * from " + materializedViewId.toString() + " order by a asc";
 
-		List<Row> expected = Arrays.asList(new Row().setRowId(1L).setVersionNumber(0L).setValues(List.of()));
+		List<Row> expected = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(List.of("a".repeat(50), "b".repeat(250))),
+				new Row().setRowId(2L).setVersionNumber(0L).setValues(List.of("a".repeat(150), "b".repeat(100)))
+				);
 
 		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
 			assertEquals(expected, results.getQueryResult().getQueryResults().getRows());
