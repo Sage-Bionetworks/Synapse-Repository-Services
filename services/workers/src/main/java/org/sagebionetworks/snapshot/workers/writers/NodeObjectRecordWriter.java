@@ -1,6 +1,9 @@
 package org.sagebionetworks.snapshot.workers.writers;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -9,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
@@ -27,11 +31,16 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class NodeObjectRecordWriter implements ObjectRecordWriter {
+	
+	private static final long KINISIS_LOG_MAX_CHANGE_LIFE_DAYS = 5;
+	
+	private static final String KINESIS_STREAM = "nodeSnapshots";
 	
 	private static Logger log = LogManager.getLogger(NodeObjectRecordWriter.class);
 
@@ -40,15 +49,17 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 	private AccessRequirementDAO accessRequirementDao;
 	private EntityAuthorizationManager entityAuthorizationManager;
 	private ObjectRecordDAO objectRecordDAO;
+	private AwsKinesisFirehoseLogger kinesisLogger;
 	
 	@Autowired
 	public NodeObjectRecordWriter(NodeDAO nodeDAO, UserManager userManager, AccessRequirementDAO accessRequirementDao,
-			EntityAuthorizationManager entityAuthorizationManager, ObjectRecordDAO objectRecordDAO) {
+			EntityAuthorizationManager entityAuthorizationManager, ObjectRecordDAO objectRecordDAO, AwsKinesisFirehoseLogger kinesisLogger) {
 		this.nodeDAO = nodeDAO;
 		this.userManager = userManager;
 		this.accessRequirementDao = accessRequirementDao;
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.objectRecordDAO = objectRecordDAO;
+		this.kinesisLogger = kinesisLogger;
 	}
 
 	/**
@@ -107,12 +118,23 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException {
 		List<ObjectRecord> nonDeleteRecords = new LinkedList<ObjectRecord>();
 		List<ObjectRecord> deleteRecords = new LinkedList<ObjectRecord>();
+		List<KinesisObjectSnapshotRecord<NodeRecord>> kinesisRecords = new ArrayList<>(messages.size());
 		for (ChangeMessage message : messages) {
 			if (message.getObjectType() != ObjectType.ENTITY) {
 				throw new IllegalArgumentException();
 			}
+			
+			boolean logToKinesis = message.getTimestamp().toInstant().isAfter(Instant.now().minus(Duration.ofDays(KINISIS_LOG_MAX_CHANGE_LIFE_DAYS)));
+			
 			if (message.getChangeType() == ChangeType.DELETE) {
 				deleteRecords.add(buildDeletedNodeRecord(message));
+				
+				if (logToKinesis) {
+					NodeRecord record = new NodeRecord();
+					record.setId(message.getObjectId());
+					kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, record));
+				}
+				
 			} else {
 				try {
 					Node node = nodeDAO.getNode(message.getObjectId());
@@ -122,8 +144,20 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 					record = setAccessProperties(record, userManager, accessRequirementDao, entityAuthorizationManager, nodeDAO);
 					ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
 					nonDeleteRecords.add(objectRecord);
+					
+					if (logToKinesis) {
+						kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, record));
+					}
+					
 				} catch (EntityInTrashCanException e) {
 					deleteRecords.add(buildDeletedNodeRecord(message));
+					
+					if (logToKinesis) {
+						NodeRecord record = new NodeRecord();
+						record.setId(message.getObjectId());
+						kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, record));
+					}
+					
 				} catch (NotFoundException e) {
 					log.error("Cannot find node for a " + message.getChangeType() + " message: " + message.toString()) ;
 				}
@@ -135,13 +169,16 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 		if (!deleteRecords.isEmpty()) {
 			objectRecordDAO.saveBatch(deleteRecords, deleteRecords.get(0).getJsonClassName());
 		}
+		if (!kinesisRecords.isEmpty()) {
+			kinesisLogger.logBatch(KINESIS_STREAM, kinesisRecords);
+		}
 	}
 	
 	@Override
 	public ObjectType getObjectType() {
 		return ObjectType.ENTITY;
 	}
-
+	
 	public static ObjectRecord buildDeletedNodeRecord(ChangeMessage message) throws IOException {
 		DeletedNode deletedNode = new DeletedNode();
 		deletedNode.setId(message.getObjectId());

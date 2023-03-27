@@ -60,7 +60,7 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
 	@Autowired
-	AsynchronousJobWorkerHelper asyncHelper;
+	private AsynchronousJobWorkerHelper asyncHelper;
 
 	private List<String> toDelete = new ArrayList<String>();
 	private Long creatorUserGroupId;
