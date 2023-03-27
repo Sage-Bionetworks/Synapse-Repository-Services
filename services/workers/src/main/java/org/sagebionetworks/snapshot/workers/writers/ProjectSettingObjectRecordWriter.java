@@ -1,4 +1,4 @@
-package org.sagebionetworks.object.snapshot.worker.utils;
+package org.sagebionetworks.snapshot.workers.writers;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -17,14 +17,20 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class ProjectSettingObjectRecordWriter implements ObjectRecordWriter {
 	private static Logger log = LogManager.getLogger(ProjectSettingObjectRecordWriter.class);
 
-	@Autowired
 	private ProjectSettingsDAO projectSettingsDao;
-	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
+
+	@Autowired
+	public ProjectSettingObjectRecordWriter(ProjectSettingsDAO projectSettingsDao, ObjectRecordDAO objectRecordDAO) {
+		this.projectSettingsDao = projectSettingsDao;
+		this.objectRecordDAO = objectRecordDAO;
+	}
 
 	@Override
 	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException {
@@ -48,6 +54,11 @@ public class ProjectSettingObjectRecordWriter implements ObjectRecordWriter {
 		if (!toWrite.isEmpty()) {
 			objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
 		}
+	}
+	
+	@Override
+	public ObjectType getObjectType() {
+		return ObjectType.PROJECT_SETTING;
 	}
 
 }

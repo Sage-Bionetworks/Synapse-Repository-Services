@@ -1,4 +1,4 @@
-package org.sagebionetworks.object.snapshot.worker.utils;
+package org.sagebionetworks.snapshot.workers.writers;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -22,16 +22,21 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 
 	static private Logger log = LogManager.getLogger(FileHandleSnapshotRecordWriter.class);
-	@Autowired
+	
 	private FileHandleDao fileHandleDao;
-	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
-
-	FileHandleSnapshotRecordWriter(){}
+	
+	@Autowired
+	public FileHandleSnapshotRecordWriter(FileHandleDao fileHandleDao, ObjectRecordDAO objectRecordDAO) {
+		this.fileHandleDao = fileHandleDao;
+		this.objectRecordDAO = objectRecordDAO;
+	}
 
 	/**
 	 * Build a FileHandleSnapshot that captures all common fields in all FileHandle implementations.
@@ -91,6 +96,11 @@ public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 		if (!toWrite.isEmpty()) {
 			objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
 		}
+	}
+	
+	@Override
+	public ObjectType getObjectType() {
+		return ObjectType.FILE;
 	}
 
 }

@@ -1,4 +1,4 @@
-package org.sagebionetworks.object.snapshot.worker;
+package org.sagebionetworks.snapshot.workers;
 
 import java.io.IOException;
 import java.util.ArrayList;

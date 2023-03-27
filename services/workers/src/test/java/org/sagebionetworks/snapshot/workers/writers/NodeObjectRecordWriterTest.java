@@ -1,6 +1,7 @@
-package org.sagebionetworks.object.snapshot.worker.utils;
+package org.sagebionetworks.snapshot.workers.writers;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -9,11 +10,13 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
@@ -37,10 +40,10 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;
 
+@ExtendWith(MockitoExtension.class)
 public class NodeObjectRecordWriterTest {
 
 	@Mock
@@ -59,38 +62,24 @@ public class NodeObjectRecordWriterTest {
 	private ObjectRecordDAO mockObjectRecordDao;
 	@Mock
 	private ProgressCallback mockCallback;
-
+	
+	@InjectMocks
 	private NodeObjectRecordWriter writer;
+	
 	private NodeRecord node;
 	private AccessRequirementStats stats;
 	private boolean canPublicRead;
 
-	@Before
+	@BeforeEach
 	public void setup() {
-		MockitoAnnotations.initMocks(this);
-		writer = new NodeObjectRecordWriter();
-		ReflectionTestUtils.setField(writer, "nodeDAO", mockNodeDAO);
-		ReflectionTestUtils.setField(writer, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(writer, "accessRequirementDao", mockAccessRequirementDao);
-		ReflectionTestUtils.setField(writer, "entityAuthorizationManager", mockEntityAuthorizationManager);
-		ReflectionTestUtils.setField(writer, "objectRecordDAO", mockObjectRecordDao);
 
 		node = new NodeRecord();
 		node.setId("123");
-		when(mockNodeDAO.getNode("123")).thenReturn(node);
-
-		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
-				.thenReturn(mockUserInfo);
-		when(mockEntityAuthorizationManager.getUserPermissionsForEntity(mockUserInfo, node.getId()))
-				.thenReturn(mockPermissions);
-		when(mockNodeDAO.getEntityPathIds(node.getId())).thenReturn(Arrays.asList(KeyFactory.stringToKey(node.getId())));
+		
 		stats = new AccessRequirementStats();
 		stats.setHasACT(true);
 		stats.setHasToU(false);
-		when(mockAccessRequirementDao.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY))
-				.thenReturn(stats);
 		canPublicRead = true;
-		when(mockPermissions.getCanPublicRead()).thenReturn(canPublicRead);
 
 	}
 
@@ -107,15 +96,30 @@ public class NodeObjectRecordWriterTest {
 		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void invalidObjectType() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.TABLE, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		});
 	}
 
 	@Test
 	public void publicRestrictedAndControlledTest() throws IOException {
+		
+		when(mockNodeDAO.getNode("123")).thenReturn(node);
+
+		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
+				.thenReturn(mockUserInfo);
+		when(mockEntityAuthorizationManager.getUserPermissionsForEntity(mockUserInfo, node.getId()))
+				.thenReturn(mockPermissions);
+		when(mockNodeDAO.getEntityPathIds(node.getId())).thenReturn(Arrays.asList(KeyFactory.stringToKey(node.getId())));
+		when(mockAccessRequirementDao.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY))
+				.thenReturn(stats);
+		when(mockPermissions.getCanPublicRead()).thenReturn(canPublicRead);
+		
 		Long timestamp = System.currentTimeMillis();
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ENTITY, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
@@ -160,6 +164,13 @@ public class NodeObjectRecordWriterTest {
 
 	@Test
 	public void testNodeInTrashCan() throws IOException {
+		
+		when(mockNodeDAO.getNode("123")).thenReturn(node);
+		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
+				.thenReturn(mockUserInfo);
+		when(mockEntityAuthorizationManager.getUserPermissionsForEntity(mockUserInfo, node.getId()))
+				.thenReturn(mockPermissions);
+				
 		EntityInTrashCanException exception = new EntityInTrashCanException("");
 		when(mockPermissions.getCanPublicRead()).thenThrow(exception);
 

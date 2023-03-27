@@ -39,6 +39,7 @@
     <context:component-scan base-package="org.sagebionetworks.migration.worker" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.report.worker" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.ses.workers" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.snapshot.workers" annotation-config="false"/>
 
 	<!-- Non worker triggers that come from the repo dependencies -->
 	<import resource="classpath:external-triggers-spb.xml" />
@@ -52,7 +53,6 @@
 	<import resource="classpath:worker-log-sweep-spb.xml" />
 	<import resource="classpath:message-to-user-sqs-spb.xml" />
     <import resource="classpath:change-synch-worker-spb.xml" />
-    <import resource="classpath:object-snapshot-sqs-spb.xml"/>
     <import resource="classpath:principal-prefix-sqs-spb.xml"/>
     <import resource="classpath:discussion-workers-spb.xml"/>
     <import resource="classpath:broadcast-message-worker-sqs-spb.xml"/>
@@ -88,7 +88,7 @@
 		<ref bean="tableQueryTrigger" />
 		<ref bean="tableQueryNextPageTrigger" />
 		<ref bean="projectStatsWorkerV2QueueMessageReveiverTrigger"/>
-		<ref bean="objectQueueMessageReveiverTrigger"/>
+		<ref bean="objectSnapshotWorkerTrigger"/>
 		<ref bean="fileBulkDownloadWorkerTrigger"/>
 		<ref bean="threadStatsWorkerTrigger"/>
 		<ref bean="discussionSearchIndexWorkerTrigger"/>

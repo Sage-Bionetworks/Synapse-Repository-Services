@@ -1,4 +1,4 @@
-package org.sagebionetworks.object.snapshot.worker.utils;
+package org.sagebionetworks.snapshot.workers.writers;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -28,20 +28,28 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class NodeObjectRecordWriter implements ObjectRecordWriter {
+	
 	private static Logger log = LogManager.getLogger(NodeObjectRecordWriter.class);
 
-	@Autowired
 	private NodeDAO nodeDAO;
-	@Autowired
 	private UserManager userManager;
-	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
-	@Autowired
 	private EntityAuthorizationManager entityAuthorizationManager;
-	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
+	
+	@Autowired
+	public NodeObjectRecordWriter(NodeDAO nodeDAO, UserManager userManager, AccessRequirementDAO accessRequirementDao,
+			EntityAuthorizationManager entityAuthorizationManager, ObjectRecordDAO objectRecordDAO) {
+		this.nodeDAO = nodeDAO;
+		this.userManager = userManager;
+		this.accessRequirementDao = accessRequirementDao;
+		this.entityAuthorizationManager = entityAuthorizationManager;
+		this.objectRecordDAO = objectRecordDAO;
+	}
 
 	/**
 	 * set record's isPublic, isRestricted, and isControlled fields
@@ -127,6 +135,11 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 		if (!deleteRecords.isEmpty()) {
 			objectRecordDAO.saveBatch(deleteRecords, deleteRecords.get(0).getJsonClassName());
 		}
+	}
+	
+	@Override
+	public ObjectType getObjectType() {
+		return ObjectType.ENTITY;
 	}
 
 	public static ObjectRecord buildDeletedNodeRecord(ChangeMessage message) throws IOException {

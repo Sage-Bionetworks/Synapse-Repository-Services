@@ -1,4 +1,4 @@
-package org.sagebionetworks.object.snapshot.worker.utils;
+package org.sagebionetworks.snapshot.workers.writers;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,25 +26,21 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 
 	static private Logger log = LogManager.getLogger(PrincipalObjectRecordWriter.class);
-	@Autowired
+	
 	private UserGroupDAO userGroupDAO;
-	@Autowired
 	private UserProfileManager userProfileManager;
-	@Autowired
 	private TeamDAO teamDAO;
-	@Autowired
 	private GroupMembersDAO groupMembersDAO;
-	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
-	
-	PrincipalObjectRecordWriter(){}
-	
-	// for unit test only
-	PrincipalObjectRecordWriter(UserGroupDAO userGroupDAO, UserProfileManager userProfileManager, 
+
+	@Autowired
+	public PrincipalObjectRecordWriter(UserGroupDAO userGroupDAO, UserProfileManager userProfileManager, 
 			TeamDAO teamDAO, GroupMembersDAO groupMembersDAO, ObjectRecordDAO objectRecordDAO) {
 		this.userGroupDAO = userGroupDAO;
 		this.userProfileManager = userProfileManager;
@@ -104,6 +100,11 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 		if (!individuals.isEmpty()) {
 			objectRecordDAO.saveBatch(individuals, individuals.get(0).getJsonClassName());
 		}
+	}
+	
+	@Override
+	public ObjectType getObjectType() {
+		return ObjectType.PRINCIPAL;
 	}
 
 	/**

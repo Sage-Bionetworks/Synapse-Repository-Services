@@ -1,6 +1,7 @@
-package org.sagebionetworks.object.snapshot.worker.utils;
+package org.sagebionetworks.snapshot.workers.writers;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -14,10 +15,11 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
@@ -30,10 +32,10 @@ import org.sagebionetworks.repo.model.audit.AclRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;
 
+@ExtendWith(MockitoExtension.class)
 public class AclObjectRecordWriterTest {
 	@Mock
 	private AccessControlListDAO mockAccessControlListDao;
@@ -41,16 +43,10 @@ public class AclObjectRecordWriterTest {
 	private ObjectRecordDAO mockObjectRecordDao;
 	@Mock
 	private ProgressCallback mockCallback;
+	
+	@InjectMocks
 	private AclObjectRecordWriter writer;
 	private long id = 123L;
-
-	@Before
-	public void setup() {
-		MockitoAnnotations.initMocks(this);
-		writer = new AclObjectRecordWriter();
-		ReflectionTestUtils.setField(writer, "accessControlListDao", mockAccessControlListDao);
-		ReflectionTestUtils.setField(writer, "objectRecordDAO", mockObjectRecordDao);
-	}
 
 	@Test
 	public void deleteAclTest() throws IOException {
@@ -60,11 +56,14 @@ public class AclObjectRecordWriterTest {
 		verify(mockObjectRecordDao, never()).saveBatch(anyList(), anyString());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void invalidChangeMessageTest() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, id+"", ObjectType.PRINCIPAL, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		
+		assertThrows(IllegalArgumentException.class, () -> {	
+			writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		});
 	}
 	
 	@Test

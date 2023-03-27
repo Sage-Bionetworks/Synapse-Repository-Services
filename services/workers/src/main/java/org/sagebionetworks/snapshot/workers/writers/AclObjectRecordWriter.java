@@ -1,4 +1,4 @@
-package org.sagebionetworks.object.snapshot.worker.utils;
+package org.sagebionetworks.snapshot.workers.writers;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -18,14 +18,21 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class AclObjectRecordWriter implements ObjectRecordWriter {
 
 	static private Logger log = LogManager.getLogger(AclObjectRecordWriter.class);
-	@Autowired
+	
 	private AccessControlListDAO accessControlListDao;
-	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
+	
+	@Autowired
+	public AclObjectRecordWriter(AccessControlListDAO accessControlListDao, ObjectRecordDAO objectRecordDAO) {
+		this.accessControlListDao = accessControlListDao;
+		this.objectRecordDAO = objectRecordDAO;
+	}
 
 	/**
 	 * Build an AclRecord that wrap around AccessControlList object and contains
@@ -71,6 +78,11 @@ public class AclObjectRecordWriter implements ObjectRecordWriter {
 		if (!toWrite.isEmpty()) {
 			objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
 		}
+	}
+	
+	@Override
+	public ObjectType getObjectType() {
+		return ObjectType.ACCESS_CONTROL_LIST;
 	}
 
 }

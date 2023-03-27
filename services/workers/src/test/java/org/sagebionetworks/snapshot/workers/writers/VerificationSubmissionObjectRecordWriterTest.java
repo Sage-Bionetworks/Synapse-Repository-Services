@@ -1,20 +1,23 @@
-package org.sagebionetworks.object.snapshot.worker.utils;
+package org.sagebionetworks.snapshot.workers.writers;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.object.snapshot.worker.utils.VerificationSubmissionObjectRecordWriter.LIMIT;
+import static org.sagebionetworks.snapshot.workers.writers.VerificationSubmissionObjectRecordWriter.LIMIT;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
@@ -29,10 +32,10 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;
 
+@ExtendWith(MockitoExtension.class)
 public class VerificationSubmissionObjectRecordWriterTest {
 
 	@Mock
@@ -43,18 +46,15 @@ public class VerificationSubmissionObjectRecordWriterTest {
 	private ObjectRecordDAO mockObjectRecordDAO;
 	@Mock
 	private ProgressCallback mockCallback;
+	@InjectMocks
 	private VerificationSubmissionObjectRecordWriter writer;
+	
 	private UserInfo admin = new UserInfo(true);
 	private Long userId = 123L;
 
-	@Before
+	@BeforeEach
 	public void before() {
-		MockitoAnnotations.initMocks(this);
 		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())).thenReturn(admin );
-		writer = new VerificationSubmissionObjectRecordWriter();
-		ReflectionTestUtils.setField(writer, "verificationManager", mockVerificationManager);
-		ReflectionTestUtils.setField(writer, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(writer, "objectRecordDAO", mockObjectRecordDAO);
 	}
 
 	@Test
@@ -65,11 +65,14 @@ public class VerificationSubmissionObjectRecordWriterTest {
 		verify(mockObjectRecordDAO, never()).saveBatch(anyList(), anyString());
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void invalidObjectType() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ENTITY, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		
+		assertThrows(IllegalArgumentException.class, () -> {			
+			writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		});
 	}
 
 	@Test
