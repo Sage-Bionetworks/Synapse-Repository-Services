@@ -1,6 +1,7 @@
 package org.sagebionetworks.snapshot.workers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Date;
 
@@ -33,10 +34,17 @@ public class KinesisObjectSnapshotRecordTest {
 			.withObjectType(ObjectType.ENTITY)
 			.withUserId(456L)
 			.withSnapshot(record)
-			.withTimestamp(message.getTimestamp().getTime());
+			.withChangeTimestamp(message.getTimestamp().getTime()
+		);
 		
 		// Call under test
-		assertEquals(expected, KinesisObjectSnapshotRecord.map(message, record));
+		KinesisObjectSnapshotRecord<NodeRecord> result = KinesisObjectSnapshotRecord.map(message, record);
+		
+		assertNotNull(result.getSnapshotTimestamp());
+		
+		expected.withSnapshotTimestamp(result.getSnapshotTimestamp());
+		
+		assertEquals(expected, result);
 	}
 
 }

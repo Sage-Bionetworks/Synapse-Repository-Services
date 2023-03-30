@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -17,6 +16,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -76,6 +77,9 @@ public class NodeObjectRecordWriterTest {
 	private NodeRecord node;
 	private AccessRequirementStats stats;
 	private boolean canPublicRead;
+	
+	@Captor
+	private ArgumentCaptor<List<KinesisObjectSnapshotRecord<?>>> recordCaptor;
 
 	@BeforeEach
 	public void setup() {
@@ -92,7 +96,7 @@ public class NodeObjectRecordWriterTest {
 
 	@Test
 	public void deleteChangeMessage() throws IOException {
-		Long timestamp = Instant.now().minus(5, ChronoUnit.DAYS).toEpochMilli();
+		Long timestamp = Instant.now().toEpochMilli();
 		
 		String nodeId = "123";
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, nodeId, ObjectType.ENTITY, "etag", timestamp);
@@ -105,29 +109,14 @@ public class NodeObjectRecordWriterTest {
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, timestamp);
 		
 		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
+
+		KinesisObjectSnapshotRecord<?> expectedRecord = KinesisObjectSnapshotRecord.map(changeMessage, new NodeRecord().setId(nodeId));
 		
-		verifyZeroInteractions(mockKinesisLogger);
-	}
-	
-	@Test
-	public void testWriteRecordsWithOldDeleteChange() throws IOException {
-		Long timestamp = System.currentTimeMillis();
-		String nodeId = "123";
-		Message message = MessageUtils.buildMessage(ChangeType.DELETE, nodeId, ObjectType.ENTITY, "etag", timestamp);
-		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockKinesisLogger).logBatch(eq("nodeSnapshots"), recordCaptor.capture());
 		
-		DeletedNode deletedNode = new DeletedNode();
-		deletedNode.setId(nodeId);
+		expectedRecord.withSnapshotTimestamp(recordCaptor.getValue().get(0).getSnapshotTimestamp());
 		
-		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, timestamp);
-		
-		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
-		
-		NodeRecord expectedRecord = new NodeRecord();
-		expectedRecord.setId(nodeId);
-		
-		verify(mockKinesisLogger).logBatch("nodeSnapshots", List.of(KinesisObjectSnapshotRecord.map(changeMessage, expectedRecord)));
+		assertEquals(recordCaptor.getValue(), List.of(expectedRecord));
 	}
 
 	@Test
@@ -170,40 +159,16 @@ public class NodeObjectRecordWriterTest {
 		
 		verify(mockNodeDAO).getNode(eq("123"));
 		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
-		verify(mockKinesisLogger).logBatch("nodeSnapshots", List.of(KinesisObjectSnapshotRecord.map(changeMessage, node)));
+		
+		KinesisObjectSnapshotRecord<NodeRecord> expectedRecord = KinesisObjectSnapshotRecord.map(changeMessage, node);
+		
+		verify(mockKinesisLogger).logBatch(eq("nodeSnapshots"), recordCaptor.capture());
+		
+		expectedRecord.withSnapshotTimestamp(recordCaptor.getValue().get(0).getSnapshotTimestamp());
+		
+		assertEquals(recordCaptor.getValue(), List.of(expectedRecord));
 	}
 	
-	@Test
-	public void testWriteRecordsWithOldUpdateChange() throws IOException {
-		
-		when(mockNodeDAO.getNode("123")).thenReturn(node);
-
-		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
-				.thenReturn(mockUserInfo);
-		when(mockEntityAuthorizationManager.getUserPermissionsForEntity(mockUserInfo, node.getId()))
-				.thenReturn(mockPermissions);
-		when(mockNodeDAO.getEntityPathIds(node.getId())).thenReturn(Arrays.asList(KeyFactory.stringToKey(node.getId())));
-		when(mockAccessRequirementDao.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY))
-				.thenReturn(stats);
-		when(mockPermissions.getCanPublicRead()).thenReturn(canPublicRead);
-		
-		Long timestamp = Instant.now().minus(5L, ChronoUnit.DAYS).toEpochMilli();
-		
-		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ENTITY, "etag", timestamp);
-		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-
-		node.setIsPublic(canPublicRead);
-		node.setIsControlled(stats.getHasACT());
-		node.setIsRestricted(stats.getHasToU());
-		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
-
-		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-		
-		verify(mockNodeDAO).getNode(eq("123"));
-		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
-		verifyZeroInteractions(mockKinesisLogger);
-	}
-
 	@Test
 	public void buildNodeRecordTest() {
 		Node node = new Node();
@@ -254,10 +219,13 @@ public class NodeObjectRecordWriterTest {
 		deletedNode.setId(nodeId);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, timestamp);
 		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
+				
+		KinesisObjectSnapshotRecord<?> expectedRecord = KinesisObjectSnapshotRecord.map(changeMessage, new NodeRecord().setId(nodeId));
 		
-		NodeRecord expectedRecord = new NodeRecord();
-		expectedRecord.setId(nodeId);
+		verify(mockKinesisLogger).logBatch(eq("nodeSnapshots"), recordCaptor.capture());
 		
-		verify(mockKinesisLogger).logBatch("nodeSnapshots", List.of(KinesisObjectSnapshotRecord.map(changeMessage, expectedRecord)));
+		expectedRecord.withSnapshotTimestamp(recordCaptor.getValue().get(0).getSnapshotTimestamp());
+		
+		assertEquals(recordCaptor.getValue(), List.of(expectedRecord));
 	}
 }

@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.threeten.bp.Instant;
 
 public class KinesisObjectSnapshotRecord<T extends JSONEntity> implements AwsKinesisLogRecord {
 
@@ -15,7 +16,8 @@ public class KinesisObjectSnapshotRecord<T extends JSONEntity> implements AwsKin
 
 	private ObjectType objectType;
 	private ChangeType changeType;
-	private Long timestamp;
+	private Long changeTimestamp;
+	private Long snapshotTimestamp;
 	private Long userId;
 	private T snapshot;
 
@@ -39,12 +41,21 @@ public class KinesisObjectSnapshotRecord<T extends JSONEntity> implements AwsKin
 		return this;
 	}
 
-	public Long getTimestamp() {
-		return timestamp;
+	public Long getChangeTimestamp() {
+		return changeTimestamp;
 	}
 	
-	public KinesisObjectSnapshotRecord<T> withTimestamp(Long timestamp) {
-		this.timestamp = timestamp;
+	public KinesisObjectSnapshotRecord<T> withChangeTimestamp(Long changeTimestamp) {
+		this.changeTimestamp = changeTimestamp;
+		return this;
+	}
+	
+	public Long getSnapshotTimestamp() {
+		return snapshotTimestamp;
+	}
+	
+	public KinesisObjectSnapshotRecord<T> withSnapshotTimestamp(Long snapshotTimestamp) {
+		this.snapshotTimestamp = snapshotTimestamp;
 		return this;
 	}
 
@@ -92,14 +103,15 @@ public class KinesisObjectSnapshotRecord<T extends JSONEntity> implements AwsKin
 		return new KinesisObjectSnapshotRecord<T>()
 			.withChangeType(message.getChangeType())
 			.withObjectType(message.getObjectType())
-			.withTimestamp(message.getTimestamp().getTime())
+			.withChangeTimestamp(message.getTimestamp().getTime())
+			.withSnapshotTimestamp(Instant.now().toEpochMilli())
 			.withUserId(message.getUserId())
 			.withSnapshot(snapshot);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(changeType, instance, objectType, snapshot, stack, timestamp, userId);
+		return Objects.hash(changeTimestamp, changeType, instance, objectType, snapshot, snapshotTimestamp, stack, userId);
 	}
 
 	@Override
@@ -111,15 +123,17 @@ public class KinesisObjectSnapshotRecord<T extends JSONEntity> implements AwsKin
 			return false;
 		}
 		KinesisObjectSnapshotRecord<?> other = (KinesisObjectSnapshotRecord<?>) obj;
-		return changeType == other.changeType && Objects.equals(instance, other.instance) && objectType == other.objectType
-				&& Objects.equals(snapshot, other.snapshot) && Objects.equals(stack, other.stack)
-				&& Objects.equals(timestamp, other.timestamp) && Objects.equals(userId, other.userId);
+		return Objects.equals(changeTimestamp, other.changeTimestamp) && changeType == other.changeType
+				&& Objects.equals(instance, other.instance) && objectType == other.objectType && Objects.equals(snapshot, other.snapshot)
+				&& Objects.equals(snapshotTimestamp, other.snapshotTimestamp) && Objects.equals(stack, other.stack)
+				&& Objects.equals(userId, other.userId);
 	}
 
 	@Override
 	public String toString() {
 		return "KinesisObjectSnapshotRecord [stack=" + stack + ", instance=" + instance + ", objectType=" + objectType + ", changeType="
-				+ changeType + ", timestamp=" + timestamp + ", userId=" + userId + ", snapshot=" + snapshot + "]";
+				+ changeType + ", changeTimestamp=" + changeTimestamp + ", snapshotTimestamp=" + snapshotTimestamp + ", userId=" + userId
+				+ ", snapshot=" + snapshot + "]";
 	}
 	
 }

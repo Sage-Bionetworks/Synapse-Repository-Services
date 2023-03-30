@@ -123,17 +123,12 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 			if (message.getObjectType() != ObjectType.ENTITY) {
 				throw new IllegalArgumentException();
 			}
-			
-			boolean logToKinesis = message.getTimestamp().toInstant().isAfter(Instant.now().minus(Duration.ofDays(KINISIS_LOG_MAX_CHANGE_LIFE_DAYS)));
-			
 			if (message.getChangeType() == ChangeType.DELETE) {
 				deleteRecords.add(buildDeletedNodeRecord(message));
-				
-				if (logToKinesis) {
-					NodeRecord record = new NodeRecord();
-					record.setId(message.getObjectId());
-					kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, record));
-				}
+			
+				NodeRecord record = new NodeRecord();
+				record.setId(message.getObjectId());
+				kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, record));
 				
 			} else {
 				try {
@@ -145,19 +140,14 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 					ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
 					nonDeleteRecords.add(objectRecord);
 					
-					if (logToKinesis) {
-						kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, record));
-					}
+					kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, record));
 					
 				} catch (EntityInTrashCanException e) {
 					deleteRecords.add(buildDeletedNodeRecord(message));
 					
-					if (logToKinesis) {
-						NodeRecord record = new NodeRecord();
-						record.setId(message.getObjectId());
-						kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, record));
-					}
-					
+					NodeRecord record = new NodeRecord();
+					record.setId(message.getObjectId());
+					kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, record));					
 				} catch (NotFoundException e) {
 					log.error("Cannot find node for a " + message.getChangeType() + " message: " + message.toString()) ;
 				}
