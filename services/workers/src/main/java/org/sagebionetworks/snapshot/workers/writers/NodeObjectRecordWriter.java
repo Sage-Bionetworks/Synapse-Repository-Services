@@ -1,8 +1,6 @@
 package org.sagebionetworks.snapshot.workers.writers;
 
 import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,9 +35,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class NodeObjectRecordWriter implements ObjectRecordWriter {
-	
-	private static final long KINISIS_LOG_MAX_CHANGE_LIFE_DAYS = 5;
-	
+		
 	private static final String KINESIS_STREAM = "nodeSnapshots";
 	
 	private static Logger log = LogManager.getLogger(NodeObjectRecordWriter.class);
