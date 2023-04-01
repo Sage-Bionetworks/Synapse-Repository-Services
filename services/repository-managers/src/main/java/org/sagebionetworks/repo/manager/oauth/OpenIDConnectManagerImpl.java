@@ -272,14 +272,18 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		OAuthAuthorizationResponse result = new OAuthAuthorizationResponse().setAccess_code(authorizationCode);
 		
+		boolean isSendNotification = !hasUserGrantedConsent(userInfo, authorizationRequest);
+		
 		oauthDao.saveAuthorizationConsent(userInfo.getId(), Long.valueOf(authorizationRequest.getClientId()), getScopeHash(authorizationRequest), new Date());
 		
-		Map<String, Object> notificationContext = new HashMap<>();
-		
-		notificationContext.put("clientName", client.getClient_name());
-		notificationContext.put("permissions", getScopeDescription(authorizationRequest));
-		
-		notificationManager.sendTemplatedNotification(userInfo, NOTIFICATION_TPL_CLIENT_AUTHORIZED, "OAuth Client Authorized", notificationContext);
+		if (isSendNotification) {
+			Map<String, Object> notificationContext = new HashMap<>();
+			
+			notificationContext.put("clientName", client.getClient_name());
+			notificationContext.put("permissions", getScopeDescription(authorizationRequest));
+			
+			notificationManager.sendTemplatedNotification(userInfo, NOTIFICATION_TPL_CLIENT_AUTHORIZED, "OAuth Client Authorized", notificationContext);
+		}
 		
 		return result;
 	}

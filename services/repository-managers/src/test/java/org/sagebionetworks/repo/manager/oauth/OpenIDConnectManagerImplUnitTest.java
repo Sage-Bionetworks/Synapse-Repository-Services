@@ -558,6 +558,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.now()).thenReturn(new Date());
+		when(mockOauthDao.lookupAuthorizationConsent(any(), any(), any(), any())).thenReturn(false);
 		
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
@@ -583,6 +584,39 @@ public class OpenIDConnectManagerImplUnitTest {
 		verify(mockNotificationManager).sendTemplatedNotification(userInfo, "message/OAuthClientAuthorizedNotification.html.vtl", "OAuth Client Authorized", 
 			Map.of("clientName", OAUTH_CLIENT_NAME, "permissions", List.of("To access the resources authorized here when you are not logged in, until you revoke access from this application."))
 		);
+		
+	}
+	
+	@Test
+	public void testAuthorizeClientWithExistingUserConsent() throws Exception {
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
+		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockClock.now()).thenReturn(new Date());
+		when(mockOauthDao.lookupAuthorizationConsent(any(), any(), any(), any())).thenReturn(true);
+		
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
+
+		// method under test
+		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
+		String code = authResponse.getAccess_code();
+		assertNotNull(code);
+		
+		verify(mockOauthDao).createAuthorizationCode(authorizationCodeCaptor.capture(), authorizationRequestCaptor.capture());
+		assertEquals(code, authorizationCodeCaptor.getValue());
+				
+		OIDCAuthorizationRequest capturedAuthRequest = authorizationRequestCaptor.getValue();
+		
+		// make sure authorizedAt was set
+		assertNotNull(capturedAuthRequest.getAuthorizedAt());
+		
+		// if we update the original request with the fields set by the server, it should match the captured value
+		authorizationRequest.setUserId(USER_ID);
+		authorizationRequest.setAuthorizedAt(capturedAuthRequest.getAuthorizedAt());
+		authorizationRequest.setAuthenticatedAt(now);
+		assertEquals(authorizationRequest, capturedAuthRequest);
+		
+		verifyZeroInteractions(mockNotificationManager);
 		
 	}
 
