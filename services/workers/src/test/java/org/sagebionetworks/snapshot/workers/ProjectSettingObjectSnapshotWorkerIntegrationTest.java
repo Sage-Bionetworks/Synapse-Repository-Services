@@ -1,18 +1,18 @@
-package org.sagebionetworks.object.snapshot.worker;
+package org.sagebionetworks.snapshot.workers;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -27,9 +27,9 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.workers.util.aws.message.QueueCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
 public class ProjectSettingObjectSnapshotWorkerIntegrationTest {
 	private static final String QUEUE_NAME = "OBJECT";
@@ -47,7 +47,7 @@ public class ProjectSettingObjectSnapshotWorkerIntegrationTest {
 
 	private String type;
 
-	@Before
+	@BeforeEach
 	public void before() {
 		assertNotNull(nodeDao);
 		assertNotNull(objectRecordDAO);
@@ -68,7 +68,7 @@ public class ProjectSettingObjectSnapshotWorkerIntegrationTest {
 		queueCleaner.purgeQueue(StackConfigurationSingleton.singleton().getQueueName(QUEUE_NAME));
 	}
 
-	@After
+	@AfterEach
 	public void teardown() throws Exception {
 		if (projectId != null) {
 			nodeDao.delete(projectId);

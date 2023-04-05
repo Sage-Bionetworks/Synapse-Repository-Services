@@ -1,7 +1,8 @@
-package org.sagebionetworks.object.snapshot.worker;
+package org.sagebionetworks.snapshot.workers;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,14 +10,13 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
-import org.sagebionetworks.object.snapshot.worker.utils.NodeObjectRecordWriter;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -37,12 +37,13 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.snapshot.workers.writers.NodeObjectRecordWriter;
 import org.sagebionetworks.workers.util.aws.message.QueueCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
 public class NodeObjectSnapshotWorkerIntegrationTest {
 
@@ -59,7 +60,7 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
 	@Autowired
-	AsynchronousJobWorkerHelper asyncHelper;
+	private AsynchronousJobWorkerHelper asyncHelper;
 
 	private List<String> toDelete = new ArrayList<String>();
 	private Long creatorUserGroupId;
@@ -67,7 +68,7 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 	private String type;
 	UserInfo adminUser;
 
-	@Before
+	@BeforeEach
 	public void before() {
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		altUserGroupId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
@@ -84,7 +85,7 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 		objectRecordDAO.deleteAllStackInstanceBatches(type);
 	}
 	
-	@After
+	@AfterEach
 	public void after() {
 		if(toDelete != null && nodeDao != null){
 			for(String id:  toDelete){

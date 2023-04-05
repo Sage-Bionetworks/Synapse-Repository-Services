@@ -1,12 +1,18 @@
-package org.sagebionetworks.object.snapshot.worker.utils;
+package org.sagebionetworks.snapshot.workers.writers;
 
 import java.io.IOException;
 import java.util.List;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 
 public interface ObjectRecordWriter {
+	
+	/**
+	 * @return The object type this writer supports
+	 */
+	ObjectType getObjectType();
 	
 	/**
 	 * Builds a list of ObjectRecord from the change messages,
@@ -15,5 +21,5 @@ public interface ObjectRecordWriter {
 	 * @param message
 	 * @throws IOException 
 	 */
-	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException;
+	void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException;
 }

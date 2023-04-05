@@ -1,6 +1,7 @@
-package org.sagebionetworks.object.snapshot.worker.utils;
+package org.sagebionetworks.snapshot.workers.writers;
 
-import static org.junit.Assert.assertEquals;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -8,7 +9,9 @@ import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.csv.utils.ObjectCSVReader;
 import org.sagebionetworks.csv.utils.ObjectCSVWriter;
@@ -18,6 +21,7 @@ import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.Question;
 import org.sagebionetworks.repo.model.quiz.ResponseCorrectness;
 
+@ExtendWith(MockitoExtension.class)
 public class ObjectCSVWriterTest {
 
 	@Test

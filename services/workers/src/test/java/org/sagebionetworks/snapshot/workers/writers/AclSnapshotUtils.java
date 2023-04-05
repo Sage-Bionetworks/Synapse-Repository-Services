@@ -1,4 +1,4 @@
-package org.sagebionetworks.object.snapshot.worker.utils;
+package org.sagebionetworks.snapshot.workers.writers;
 
 import java.util.HashSet;
 import java.util.List;

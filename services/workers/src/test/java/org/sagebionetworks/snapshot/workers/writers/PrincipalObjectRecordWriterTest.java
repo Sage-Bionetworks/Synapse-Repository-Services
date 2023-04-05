@@ -1,5 +1,6 @@
-package org.sagebionetworks.object.snapshot.worker.utils;
+package org.sagebionetworks.snapshot.workers.writers;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -13,11 +14,13 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
@@ -27,7 +30,6 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -37,9 +39,8 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 
 import com.amazonaws.services.sqs.model.Message;
 
+@ExtendWith(MockitoExtension.class)
 public class PrincipalObjectRecordWriterTest {
-	
-	private PrincipalObjectRecordWriter writer;
 	@Mock
 	private UserProfileManager mockUserProfileManager;
 	@Mock
@@ -53,6 +54,9 @@ public class PrincipalObjectRecordWriterTest {
 	@Mock
 	private ProgressCallback mockCallback;
 	
+	@InjectMocks
+	private PrincipalObjectRecordWriter writer;
+	
 	private Long principalID = 123L;
 	private Date createdOn = new Date();
 	private Date modifiedOn = new Date();
@@ -64,13 +68,8 @@ public class PrincipalObjectRecordWriterTest {
 	Team team;
 	UserProfile up;
 	
-	@Before
+	@BeforeEach
 	public void setup() {
-		MockitoAnnotations.initMocks(this);
-
-		writer = new PrincipalObjectRecordWriter(mockUserGroupDAO, mockUserProfileManager,
-				mockTeamDAO, mockGroupMembersDao, mockObjectRecordDao);	
-
 		ug = new UserGroup();
 
 		team = buildTeam(teamId);
@@ -100,11 +99,14 @@ public class PrincipalObjectRecordWriterTest {
 		return team;
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void nonPrincipalChangeMessage() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "1", "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		
+		assertThrows(IllegalArgumentException.class, () -> {			
+			writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		});
 	}
 
 	@Test
@@ -195,8 +197,6 @@ public class PrincipalObjectRecordWriterTest {
 	public void logGroupMembersTest() throws IOException {
 		List<UserGroup> list = createListOfMembers(2);
 		Mockito.when(mockGroupMembersDao.getMembers(principalID.toString())).thenReturn(list);
-		TeamMember teamMember = new TeamMember();
-		Mockito.when(mockTeamDAO.getMember(Mockito.anyString(), Mockito.anyString())).thenReturn(teamMember);
 		writer.captureAllMembers(principalID.toString(), timestamp);
 		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.anyList(), Mockito.anyString());
 	}

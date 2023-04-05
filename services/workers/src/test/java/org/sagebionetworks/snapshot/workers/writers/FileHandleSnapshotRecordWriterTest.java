@@ -1,4 +1,4 @@
-package org.sagebionetworks.object.snapshot.worker.utils;
+package org.sagebionetworks.snapshot.workers.writers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
