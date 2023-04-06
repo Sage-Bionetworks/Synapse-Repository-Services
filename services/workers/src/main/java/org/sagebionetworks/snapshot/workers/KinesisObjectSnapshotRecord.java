@@ -99,7 +99,7 @@ public class KinesisObjectSnapshotRecord<T extends JSONEntity> implements AwsKin
 		return this;
 	}
 	
-	public static final <T extends JSONEntity> KinesisObjectSnapshotRecord<T> map(ChangeMessage message, T snapshot) {
+	public static final <T extends JSONEntity> KinesisObjectSnapshotRecord<T> map(ChangeMessage message, T snapshot) {		
 		return new KinesisObjectSnapshotRecord<T>()
 			.withChangeType(message.getChangeType())
 			.withObjectType(message.getObjectType())

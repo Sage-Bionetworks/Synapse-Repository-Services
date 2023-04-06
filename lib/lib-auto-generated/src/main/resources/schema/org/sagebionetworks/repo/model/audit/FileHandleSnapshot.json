@@ -14,12 +14,21 @@
 			"type": "string",
 			"format":"date-time"
 		},
+		"modifiedOn": {
+			"description": "The date when this file was updated. Handled by the backend only.",
+			"type": "string",
+			"format":"date-time"
+		},
 		"concreteType":{
 			"type":"string",
 			"description":"This is used to indicate the implementation of this interface. For example, an S3FileHandle should be set to: org.sagebionetworks.repo.model.file.S3FileHandle"
 		},
 		"contentMd5": {
 			"description": "The file's content MD5.",
+			"type": "string"
+		},
+		"contentType": {
+			"description": "The file's content type.'",
 			"type": "string"
 		},
 		"fileName": {
@@ -41,6 +50,18 @@
 		"bucket": {
 			"description": "The S3 bucket where the file is stored. Null if the file is not stored in an S3 bucket.",
 			"type": "string"
+		},
+		"previewId": {
+			"description": "If this file has a preview, then this will be the file ID of the preview.",
+			"type": "string"
+		},
+		"isPreview": {
+			"type": "boolean",
+			"description": "Whether or not this is a preview of another file"
+		},
+		"status": {
+			"$ref": "org.sagebionetworks.repo.model.file.FileHandleStatus",
+			"descriptoin": "The status of the file handle"
 		}
 	}
 }
