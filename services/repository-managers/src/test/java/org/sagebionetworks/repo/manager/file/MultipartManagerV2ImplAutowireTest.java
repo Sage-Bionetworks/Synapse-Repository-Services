@@ -39,12 +39,16 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
+import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
@@ -78,8 +82,8 @@ import com.amazonaws.util.Md5Utils;
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MultipartManagerV2ImplAutowireTest {
-		
-	private static final Pattern ETAG_PATTERN = Pattern.compile("<ETag>\"(.+)\"</ETag>");
+
+	private static final Pattern ETAG_PATTERN = Pattern.compile("<ETag>&quot;(.+)&quot;</ETag>");
 	
 	@Autowired
 	StackConfiguration stackConfiguration;
@@ -832,8 +836,6 @@ public class MultipartManagerV2ImplAutowireTest {
 		if (matcher.find()) {			
 			return matcher.group(1);
 		}
-		
-		System.out.println(response.getContent());
 		
 		throw new IllegalStateException("Could not extract ETag value");
 	}
