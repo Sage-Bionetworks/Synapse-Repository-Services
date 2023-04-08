@@ -23,6 +23,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,7 +84,7 @@ import com.amazonaws.util.Md5Utils;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MultipartManagerV2ImplAutowireTest {
 
-	private static final Pattern ETAG_PATTERN = Pattern.compile("<ETag>&quot;(.+)&quot;</ETag>");
+	private static final Pattern ETAG_PATTERN = Pattern.compile("<ETag>\"(.+)\"</ETag>");
 	
 	@Autowired
 	StackConfiguration stackConfiguration;
@@ -217,7 +218,6 @@ public class MultipartManagerV2ImplAutowireTest {
 			storageLocationDao.delete(storageLocationId);
 		}
 	}
-
 	@Test
 	public void testMultipartUpload() throws Exception {
 		String fileName = "foo.txt";
@@ -329,7 +329,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		// There shouldn't be any other now
 		assertEquals(Collections.emptyList(), multipartManagerV2.getUploadsModifiedBefore(0, 10));
 	}
-	
+
 	@Test
 	public void testMultipartUploadCopyFromAtomicUpload() throws Exception {
 		
@@ -349,7 +349,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		doMultipartCopy(sourceEntity, copyDestination);
 	}
-	
+
 	@Test
 	public void testMultipartUploadCopyWithPlusInName() throws Exception {
 		
@@ -443,6 +443,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 	}
 	
+
 	@Test
 	public void testS3MultipartCopyCompleteClear() throws Exception {
 		String fileName = "foo.txt";
@@ -518,7 +519,7 @@ public class MultipartManagerV2ImplAutowireTest {
 	}
 	
 	// The following tests can be enabled after we setup a VPC endpoint
-	
+
 	@Test
 	@Disabled("This test uploads a large file, can be enabled once we have a VPC endpoint")
 	public void testMultipartUploadCopyFromMultipartUploadWithMultipleParts() throws Exception {
@@ -832,7 +833,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		assertEquals(200, response.getStatusCode());
 
 		System.out.println(response.getContent());
-		
+
 		Matcher matcher = ETAG_PATTERN.matcher(response.getContent());
 		
 		if (matcher.find()) {			
