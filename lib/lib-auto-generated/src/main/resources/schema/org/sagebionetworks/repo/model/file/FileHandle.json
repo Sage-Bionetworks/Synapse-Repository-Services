@@ -49,23 +49,7 @@
 			"type": "integer"
 		},
 		"status": {
-			"type": "string",
-			"description": "The status of the file handle as computed by the backend. This value cannot be changed, any file handle that is not AVAILABLE should not be used.",
-			"name": "FileHandleStatus",
-            "enum": [
-                {
-                    "name": "AVAILABLE",
-                    "description": "The default status of a file handle that is considered available and linked to at least on object (For the possible associations see <a href=\"${org.sagebionetworks.repo.model.file.FileHandleAssociateType}\">FileHandleAssociateType</a>)."
-                },
-                {
-                    "name": "UNLINKED",
-                    "description": "The file handle has been detected as not linked to any object (For the possible associations see <a href=\"${org.sagebionetworks.repo.model.file.FileHandleAssociateType}\">FileHandleAssociateType</a>), this file will eventually be archived."
-                },
-                {
-                    "name": "ARCHIVED",
-                    "description": "The file handle has been archived after being UNLINKED for more than 30 days. The file handle can be restored by the creator using the dedicated API. When ARCHIVED the file might not be readily accessible and restoring might take a few hours."
-                }
-            ]
+			"$ref": "org.sagebionetworks.repo.model.file.FileHandleStatus"
 		}
 	}
 }

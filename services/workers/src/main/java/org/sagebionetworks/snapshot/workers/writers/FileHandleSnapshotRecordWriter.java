@@ -1,6 +1,7 @@
 package org.sagebionetworks.snapshot.workers.writers;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -9,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.audit.FileHandleSnapshot;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
@@ -21,21 +23,27 @@ import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 
+	private static final String KINESIS_STREAM = "fileSnapshots";
+
 	static private Logger log = LogManager.getLogger(FileHandleSnapshotRecordWriter.class);
-	
+
 	private FileHandleDao fileHandleDao;
 	private ObjectRecordDAO objectRecordDAO;
-	
+	private AwsKinesisFirehoseLogger kinesisLogger;
+
 	@Autowired
-	public FileHandleSnapshotRecordWriter(FileHandleDao fileHandleDao, ObjectRecordDAO objectRecordDAO) {
+	public FileHandleSnapshotRecordWriter(FileHandleDao fileHandleDao, ObjectRecordDAO objectRecordDAO,
+			AwsKinesisFirehoseLogger kinesisLogger) {
 		this.fileHandleDao = fileHandleDao;
 		this.objectRecordDAO = objectRecordDAO;
+		this.kinesisLogger = kinesisLogger;
 	}
 
 	/**
@@ -51,13 +59,19 @@ public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 		snapshot.setContentSize(fileHandle.getContentSize());
 		snapshot.setCreatedBy(fileHandle.getCreatedBy());
 		snapshot.setCreatedOn(fileHandle.getCreatedOn());
+		snapshot.setModifiedOn(fileHandle.getModifiedOn());
 		snapshot.setFileName(fileHandle.getFileName());
 		snapshot.setId(fileHandle.getId());
 		snapshot.setStorageLocationId(fileHandle.getStorageLocationId());
+		snapshot.setContentType(fileHandle.getContentType());
+		snapshot.setStatus(fileHandle.getStatus());
+		snapshot.setIsPreview(false);
 		if (fileHandle instanceof CloudProviderFileHandleInterface) {
 			CloudProviderFileHandleInterface s3FH = (CloudProviderFileHandleInterface) fileHandle;
 			snapshot.setBucket(s3FH.getBucketName());
 			snapshot.setKey(s3FH.getKey());
+			snapshot.setPreviewId(s3FH.getPreviewId());
+			snapshot.setIsPreview(s3FH.getIsPreview());
 		} else if (fileHandle instanceof ExternalFileHandle) {
 			ExternalFileHandle externalFH = (ExternalFileHandle) fileHandle;
 			snapshot.setKey(externalFH.getExternalURL());
@@ -67,7 +81,7 @@ public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 		} else if (fileHandle instanceof ExternalObjectStoreFileHandle) {
 			ExternalObjectStoreFileHandle externalObjectStoreFH = (ExternalObjectStoreFileHandle) fileHandle;
 			snapshot.setKey(externalObjectStoreFH.getFileKey());
-		}else{
+		} else {
 			throw new IllegalArgumentException("Unexpected FileHandle Type:" + fileHandle.getClass().getName());
 		}
 		return snapshot;
@@ -76,28 +90,35 @@ public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 	@Override
 	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException {
 		List<ObjectRecord> toWrite = new LinkedList<ObjectRecord>();
+		List<KinesisObjectSnapshotRecord<FileHandleSnapshot>> kinesisRecords = new ArrayList<>(messages.size());
 		for (ChangeMessage message : messages) {
+			
 			if (message.getObjectType() != ObjectType.FILE) {
 				throw new IllegalArgumentException();
 			}
-			// skip delete messages
+			
 			if (message.getChangeType() == ChangeType.DELETE) {
-				continue;
-			}
-			try {
-				FileHandle fileHandle = fileHandleDao.get(message.getObjectId());
-				FileHandleSnapshot snapshot = buildFileHandleSnapshot(fileHandle);
-				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(snapshot, message.getTimestamp().getTime());
-				toWrite.add(objectRecord);
-			} catch (NotFoundException e) {
-				log.error("Cannot find FileHandle for a " + message.getChangeType() + " message: " + message.toString()) ;
+				kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, new FileHandleSnapshot().setId(message.getObjectId())));
+			} else {
+				try {
+					FileHandle fileHandle = fileHandleDao.get(message.getObjectId());
+					FileHandleSnapshot snapshot = buildFileHandleSnapshot(fileHandle);
+					ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(snapshot, message.getTimestamp().getTime());
+					toWrite.add(objectRecord);
+					kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, snapshot));
+				} catch (NotFoundException e) {
+					log.error("Cannot find FileHandle for a " + message.getChangeType() + " message: " + message.toString()) ;
+				}
 			}
 		}
 		if (!toWrite.isEmpty()) {
 			objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
 		}
+		if (!kinesisRecords.isEmpty()) {
+			kinesisLogger.logBatch(KINESIS_STREAM, kinesisRecords);
+		}
 	}
-	
+
 	@Override
 	public ObjectType getObjectType() {
 		return ObjectType.FILE;
