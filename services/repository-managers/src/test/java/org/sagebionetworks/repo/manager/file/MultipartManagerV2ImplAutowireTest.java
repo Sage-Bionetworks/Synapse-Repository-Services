@@ -221,7 +221,6 @@ public class MultipartManagerV2ImplAutowireTest {
 
 	@Test
 	public void testRE() {
-		Pattern ETAG_PATTERN = Pattern.compile("<ETag>(&quot;|\")(.+)(&quot;|\")</ETag>");
 		String toCheck1 = "<CopyPartResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><LastModified>2023-04-08T18:41:33.000Z</LastModified><ETag>&quot;d3f417646951d56ee15b9eb39a055205&quot;</ETag></CopyPartResult>";
 		String toCheck2 = "<CopyPartResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><LastModified>2023-04-08T18:41:33.000Z</LastModified><ETag>\"d3f417646951d56ee15b9eb39a055205\"</ETag></CopyPartResult>";
 		Matcher matcher = ETAG_PATTERN.matcher(toCheck1);
