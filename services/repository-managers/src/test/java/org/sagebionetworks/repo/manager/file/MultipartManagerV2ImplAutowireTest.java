@@ -23,6 +23,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,7 +84,7 @@ import com.amazonaws.util.Md5Utils;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MultipartManagerV2ImplAutowireTest {
 
-	private static final Pattern ETAG_PATTERN = Pattern.compile("<ETag>&quot;(.+)&quot;</ETag>");
+	private static final Pattern ETAG_PATTERN = Pattern.compile("<ETag>(&quot;|\")(.+)(&quot;|\")</ETag>");
 	
 	@Autowired
 	StackConfiguration stackConfiguration;
@@ -219,6 +220,26 @@ public class MultipartManagerV2ImplAutowireTest {
 	}
 
 	@Test
+	public void testRE() {
+		String toCheck1 = "<CopyPartResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><LastModified>2023-04-08T18:41:33.000Z</LastModified><ETag>&quot;d3f417646951d56ee15b9eb39a055205&quot;</ETag></CopyPartResult>";
+		String toCheck2 = "<CopyPartResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><LastModified>2023-04-08T18:41:33.000Z</LastModified><ETag>\"d3f417646951d56ee15b9eb39a055205\"</ETag></CopyPartResult>";
+		Matcher matcher = ETAG_PATTERN.matcher(toCheck1);
+		if (matcher.find() && matcher.groupCount() == 3) {
+			System.out.println(matcher.group(2));
+			assertEquals("d3f417646951d56ee15b9eb39a055205", matcher.group(2));
+		} else {
+			throw new IllegalStateException();
+		}
+		matcher = ETAG_PATTERN.matcher(toCheck2);
+		if (matcher.find() && matcher.groupCount() == 3) {
+			System.out.println(matcher.group(2));
+			assertEquals("d3f417646951d56ee15b9eb39a055205", matcher.group(2));
+		} else {
+			throw new IllegalStateException();
+		}
+	}
+
+	@Test
 	public void testMultipartUpload() throws Exception {
 		String fileName = "foo.txt";
 		String contentType = "plain/text";
@@ -228,6 +249,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
 	}
+
 
 	@Test
 	public void testMultipartUploadWithContentType() throws Exception {
@@ -329,7 +351,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		// There shouldn't be any other now
 		assertEquals(Collections.emptyList(), multipartManagerV2.getUploadsModifiedBefore(0, 10));
 	}
-	
+
 	@Test
 	public void testMultipartUploadCopyFromAtomicUpload() throws Exception {
 		
@@ -349,7 +371,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		doMultipartCopy(sourceEntity, copyDestination);
 	}
-	
+
 	@Test
 	public void testMultipartUploadCopyWithPlusInName() throws Exception {
 		
@@ -443,6 +465,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 	}
 	
+
 	@Test
 	public void testS3MultipartCopyCompleteClear() throws Exception {
 		String fileName = "foo.txt";
@@ -518,7 +541,7 @@ public class MultipartManagerV2ImplAutowireTest {
 	}
 	
 	// The following tests can be enabled after we setup a VPC endpoint
-	
+
 	@Test
 	@Disabled("This test uploads a large file, can be enabled once we have a VPC endpoint")
 	public void testMultipartUploadCopyFromMultipartUploadWithMultipleParts() throws Exception {
@@ -830,11 +853,13 @@ public class MultipartManagerV2ImplAutowireTest {
 		SimpleHttpResponse response = simpleHttpClient.put(request, null);
 		
 		assertEquals(200, response.getStatusCode());
-		
+
+		System.out.println(response.getContent());
+
 		Matcher matcher = ETAG_PATTERN.matcher(response.getContent());
 		
 		if (matcher.find()) {			
-			return matcher.group(1);
+			return matcher.group(2);
 		}
 		
 		throw new IllegalStateException("Could not extract ETag value");
