@@ -830,6 +830,8 @@ public class MultipartManagerV2ImplAutowireTest {
 		SimpleHttpResponse response = simpleHttpClient.put(request, null);
 		
 		assertEquals(200, response.getStatusCode());
+
+		System.out.println(response.getContent());
 		
 		Matcher matcher = ETAG_PATTERN.matcher(response.getContent());
 		
