@@ -23,7 +23,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
 import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -216,26 +215,6 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		for (Long storageLocationId :  storageLocationsToDelete) {
 			storageLocationDao.delete(storageLocationId);
-		}
-	}
-
-	@Test
-	public void testRE() {
-		String toCheck1 = "<CopyPartResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><LastModified>2023-04-08T18:41:33.000Z</LastModified><ETag>&quot;d3f417646951d56ee15b9eb39a055205&quot;</ETag></CopyPartResult>";
-		String toCheck2 = "<CopyPartResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><LastModified>2023-04-08T18:41:33.000Z</LastModified><ETag>\"d3f417646951d56ee15b9eb39a055205\"</ETag></CopyPartResult>";
-		Matcher matcher = ETAG_PATTERN.matcher(toCheck1);
-		if (matcher.find() && matcher.groupCount() == 3) {
-			System.out.println(matcher.group(2));
-			assertEquals("d3f417646951d56ee15b9eb39a055205", matcher.group(2));
-		} else {
-			throw new IllegalStateException();
-		}
-		matcher = ETAG_PATTERN.matcher(toCheck2);
-		if (matcher.find() && matcher.groupCount() == 3) {
-			System.out.println(matcher.group(2));
-			assertEquals("d3f417646951d56ee15b9eb39a055205", matcher.group(2));
-		} else {
-			throw new IllegalStateException();
 		}
 	}
 
@@ -853,8 +832,6 @@ public class MultipartManagerV2ImplAutowireTest {
 		SimpleHttpResponse response = simpleHttpClient.put(request, null);
 		
 		assertEquals(200, response.getStatusCode());
-
-		System.out.println(response.getContent());
 
 		Matcher matcher = ETAG_PATTERN.matcher(response.getContent());
 		
