@@ -83,7 +83,7 @@ import com.amazonaws.util.Md5Utils;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MultipartManagerV2ImplAutowireTest {
 
-	private static final Pattern ETAG_PATTERN = Pattern.compile("<ETag>&quot;(.+)&quot;</ETag>");
+	private static final Pattern ETAG_PATTERN = Pattern.compile("<ETag>(&quot;|\")(.+)(&quot;|\")</ETag>");
 	
 	@Autowired
 	StackConfiguration stackConfiguration;
@@ -229,6 +229,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
 	}
 
+
 	@Test
 	public void testMultipartUploadWithContentType() throws Exception {
 		String fileName = "foo.txt";
@@ -329,7 +330,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		// There shouldn't be any other now
 		assertEquals(Collections.emptyList(), multipartManagerV2.getUploadsModifiedBefore(0, 10));
 	}
-	
+
 	@Test
 	public void testMultipartUploadCopyFromAtomicUpload() throws Exception {
 		
@@ -349,7 +350,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 		doMultipartCopy(sourceEntity, copyDestination);
 	}
-	
+
 	@Test
 	public void testMultipartUploadCopyWithPlusInName() throws Exception {
 		
@@ -443,6 +444,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		
 	}
 	
+
 	@Test
 	public void testS3MultipartCopyCompleteClear() throws Exception {
 		String fileName = "foo.txt";
@@ -518,7 +520,7 @@ public class MultipartManagerV2ImplAutowireTest {
 	}
 	
 	// The following tests can be enabled after we setup a VPC endpoint
-	
+
 	@Test
 	@Disabled("This test uploads a large file, can be enabled once we have a VPC endpoint")
 	public void testMultipartUploadCopyFromMultipartUploadWithMultipleParts() throws Exception {
@@ -830,11 +832,11 @@ public class MultipartManagerV2ImplAutowireTest {
 		SimpleHttpResponse response = simpleHttpClient.put(request, null);
 		
 		assertEquals(200, response.getStatusCode());
-		
+
 		Matcher matcher = ETAG_PATTERN.matcher(response.getContent());
 		
 		if (matcher.find()) {			
-			return matcher.group(1);
+			return matcher.group(2);
 		}
 		
 		throw new IllegalStateException("Could not extract ETag value");
