@@ -48,6 +48,12 @@ public class ParameterModel {
 	}
 	
 	public ParameterModel withRequired(boolean required) {
+		if (this.in == null) {
+			throw new IllegalArgumentException("The 'in' field must be set before 'required' field.");
+		}
+		if (this.in == ParameterLocation.path && !required) {
+			throw new IllegalArgumentException("Parameters must be required for path variables.");
+		}
 		this.required = required;
 		return this;
 	}
