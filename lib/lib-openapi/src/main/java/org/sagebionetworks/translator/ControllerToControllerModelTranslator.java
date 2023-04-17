@@ -53,7 +53,7 @@ import jdk.javadoc.doclet.DocletEnvironment;
 public class ControllerToControllerModelTranslator {
 	// TODO: overlook translator to see if anything else needs to be addressed, then
 	// rewrite tests.
-	public static ControllerModel translate(DocletEnvironment docEnv) {
+	public ControllerModel translate(DocletEnvironment docEnv) {
 		DocTrees docTrees = docEnv.getDocTrees();
 		ControllerModel controllerModel = new ControllerModel();
 		for (TypeElement t : ElementFilter.typesIn(docEnv.getIncludedElements())) {
@@ -75,7 +75,7 @@ public class ControllerToControllerModelTranslator {
 	 *                         method.
 	 * @return the created list of MethodModels
 	 */
-	static List<MethodModel> getMethods(List<? extends Element> enclosedElements, DocTrees docTrees) {
+	List<MethodModel> getMethods(List<? extends Element> enclosedElements, DocTrees docTrees) {
 		List<MethodModel> methods = new ArrayList<>();
 		for (ExecutableElement method : ElementFilter.methodsIn(enclosedElements)) {
 			DocCommentTree docCommentTree = docTrees.getDocCommentTree(method);
@@ -111,9 +111,9 @@ public class ControllerToControllerModelTranslator {
 	 *                             inside of it.
 	 * @return a model that represents the response of a method.
 	 */
-	static ResponseModel getResponseModel(TypeKind returnType, List<? extends DocTree> blockTags,
+	ResponseModel getResponseModel(TypeKind returnType, List<? extends DocTree> blockTags,
 			ResponseStatusModel responseStatus) {
-		if (responseStatus.getStatus() == null) {
+		if (responseStatus == null || responseStatus.getStatus() == null) {
 			throw new IllegalArgumentException("Response status is missing status " + responseStatus);
 		}
 		Optional<String> returnComment = getReturnComment(blockTags);
@@ -128,8 +128,8 @@ public class ControllerToControllerModelTranslator {
 	 * @param requestMapping - model of the RequestMapping annotation
 	 * @return the path that this method represents.
 	 */
-	static String getMethodPath(RequestMappingModel requestMapping) {
-		if (requestMapping.getPath() == null) {
+	String getMethodPath(RequestMappingModel requestMapping) {
+		if (requestMapping == null || requestMapping.getPath() == null) {
 			throw new IllegalArgumentException("The path is not defined for RequestMappingModel " + requestMapping);
 		}
 		return requestMapping.getPath();
@@ -142,7 +142,7 @@ public class ControllerToControllerModelTranslator {
 	 *                             annotation's element names to element values.
 	 * @return the CRUD operation being performed.
 	 */
-	static Operation getMethodOperation(RequestMappingModel requestMapping) {
+	Operation getMethodOperation(RequestMappingModel requestMapping) {
 		RequestMethod requestMethod = requestMapping.getOperation();
 		if (RequestMethod.GET.equals(requestMethod)) {
 			return Operation.get;
@@ -163,7 +163,7 @@ public class ControllerToControllerModelTranslator {
 	 * @param methodAnnotations - all of the annotation present on a method.
 	 * @return map of an annotation class to model for that annotation.
 	 */
-	static Map<Class, Object> getAnnotationToModel(List<? extends AnnotationMirror> methodAnnotations) {
+	Map<Class, Object> getAnnotationToModel(List<? extends AnnotationMirror> methodAnnotations) {
 		if (methodAnnotations == null) {
 			throw new IllegalArgumentException("method annotations should not be null.");
 		}
@@ -202,9 +202,9 @@ public class ControllerToControllerModelTranslator {
 	 * @param object - the status
 	 * @return HttpStatus of an endpoint.
 	 */
-	static HttpStatus getHttpStatus(Object object) {
+	HttpStatus getHttpStatus(Object object) {
 		String status = object.toString();
-		if (status.equals("OK")) {
+		if (HttpStatus.OK.getReasonPhrase().equals(status)) {
 			return HttpStatus.OK;
 		}
 		throw new IllegalArgumentException("Could not translate HttpStatus for status " + status);
@@ -216,7 +216,7 @@ public class ControllerToControllerModelTranslator {
 	 * @param object - the operation
 	 * @return A RequestMethod that represents the operation of the endpoint.
 	 */
-	static RequestMethod getRequestMethod(Object object) {
+	RequestMethod getRequestMethod(Object object) {
 		String[] parts = object.toString().split("\\.");
 		String operation = parts[parts.length - 1];
 		if (operation.equals(RequestMethod.GET.toString())) {
@@ -240,7 +240,7 @@ public class ControllerToControllerModelTranslator {
 	 * @return optional that stores a model that represents the request body, or
 	 *         empty if a request body does not exist.
 	 */
-	static Optional<RequestBodyModel> getRequestBody(List<? extends VariableElement> parameters,
+	Optional<RequestBodyModel> getRequestBody(List<? extends VariableElement> parameters,
 			Map<String, String> paramToDescription) {
 		for (VariableElement param : parameters) {
 			String simpleAnnotationName = getSimpleAnnotationName(getParameterAnnotation(param));
@@ -263,7 +263,7 @@ public class ControllerToControllerModelTranslator {
 	 *                               that parameter.
 	 * @return a list that represents all parameters for a method.
 	 */
-	static List<ParameterModel> getParameters(List<? extends VariableElement> params,
+	List<ParameterModel> getParameters(List<? extends VariableElement> params,
 			Map<String, String> parameterToDescription) {
 		List<ParameterModel> parameters = new ArrayList<>();
 		for (VariableElement param : params) {
@@ -282,7 +282,7 @@ public class ControllerToControllerModelTranslator {
 	 * @param param - the parameter being looked at
 	 * @return location of a parameter.
 	 */
-	static ParameterLocation getParameterLocation(VariableElement param) {
+	ParameterLocation getParameterLocation(VariableElement param) {
 		String simpleAnnotationName = getSimpleAnnotationName(getParameterAnnotation(param));
 		if (PathVariable.class.getSimpleName().equals(simpleAnnotationName)) {
 			return ParameterLocation.path;
@@ -299,7 +299,7 @@ public class ControllerToControllerModelTranslator {
 	 * @param param - the parameter being looked at
 	 * @return annotation for the parameter
 	 */
-	static AnnotationMirror getParameterAnnotation(VariableElement param) {
+	AnnotationMirror getParameterAnnotation(VariableElement param) {
 		if (param == null) {
 			throw new IllegalArgumentException("Parameter cannot be null");
 		}
@@ -317,7 +317,7 @@ public class ControllerToControllerModelTranslator {
 	 * @param annotation - the annotation being looked at
 	 * @return the simple name for the annotation.
 	 */
-	static String getSimpleAnnotationName(AnnotationMirror annotation) {
+	String getSimpleAnnotationName(AnnotationMirror annotation) {
 		return annotation.getAnnotationType().asElement().getSimpleName().toString();
 	}
 
@@ -327,7 +327,7 @@ public class ControllerToControllerModelTranslator {
 	 * @param typeKind - the type of the element
 	 * @return the schema of the element
 	 */
-	static JsonSchema getSchema(TypeKind typeKind) {
+	JsonSchema getSchema(TypeKind typeKind) {
 		JsonSchema schema = new JsonSchema();
 		if (typeKind == null) {
 			throw new IllegalArgumentException("TypeKind cannot be null.");
@@ -352,7 +352,7 @@ public class ControllerToControllerModelTranslator {
 	 * @param typeKind - the type of the element
 	 * @return a Type as used in JsonSchema.
 	 */
-	static Type getType(TypeKind typeKind) {
+	Type getType(TypeKind typeKind) {
 		switch (typeKind) {
 		case INT:
 			return Type.integer;
@@ -380,7 +380,7 @@ public class ControllerToControllerModelTranslator {
 	 * @param blockTags - list of param/return comments on the method.
 	 * @return map that maps a parameter name to a description of that parameter.
 	 */
-	static Map<String, String> getParameterToDescription(List<? extends DocTree> blockTags) {
+	Map<String, String> getParameterToDescription(List<? extends DocTree> blockTags) {
 		Map<String, String> parameterToDescription = new HashMap<>();
 		if (blockTags == null) {
 			return parameterToDescription;
@@ -405,7 +405,7 @@ public class ControllerToControllerModelTranslator {
 	 * @return return optional containing comment for a method, or empty optional if
 	 *         there is none.
 	 */
-	static Optional<String> getReturnComment(List<? extends DocTree> blockTags) {
+	Optional<String> getReturnComment(List<? extends DocTree> blockTags) {
 		if (blockTags == null) {
 			return Optional.empty();
 		}
@@ -428,7 +428,7 @@ public class ControllerToControllerModelTranslator {
 	 * @return optional with the behavior/overall comment inside, or empty optional
 	 *         if no behavior comment found.
 	 */
-	static Optional<String> getBehaviorComment(List<? extends DocTree> fullBody) {
+	Optional<String> getBehaviorComment(List<? extends DocTree> fullBody) {
 		if (fullBody == null || fullBody.isEmpty()) {
 			return Optional.empty();
 		}
