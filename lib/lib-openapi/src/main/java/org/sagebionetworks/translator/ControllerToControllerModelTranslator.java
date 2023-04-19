@@ -9,7 +9,6 @@ import java.util.Optional;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
@@ -41,28 +40,19 @@ import com.sun.source.doctree.ParamTree;
 import com.sun.source.doctree.ReturnTree;
 import com.sun.source.util.DocTrees;
 
-import jdk.javadoc.doclet.DocletEnvironment;
-
 /**
- * This translator parses information from a Controller and creates the
- * appropriate ControllerModel.
+ * This translator pulls information from a generic doclet model into our
+ * representation of a controller model. This is a layer of abstraction that is
+ * then used to export the OpenAPI specification of our API.
  * 
  * @author lli
  *
  */
 public class ControllerToControllerModelTranslator {
-	// TODO: overlook translator to see if anything else needs to be addressed, then
-	// rewrite tests.
-	public ControllerModel translate(DocletEnvironment docEnv) {
-		DocTrees docTrees = docEnv.getDocTrees();
+	public ControllerModel translate(TypeElement controller, DocTrees docTrees) {
 		ControllerModel controllerModel = new ControllerModel();
-		for (TypeElement t : ElementFilter.typesIn(docEnv.getIncludedElements())) {
-			if (!t.getKind().equals(ElementKind.CLASS))
-				continue;
-			List<MethodModel> methods = getMethods(t.getEnclosedElements(), docTrees);
-			controllerModel.withDisplayName(t.toString()).withPath("/").withMethods(methods);
-			break;
-		}
+		List<MethodModel> methods = getMethods(controller.getEnclosedElements(), docTrees);
+		controllerModel.withDisplayName(controller.toString()).withPath("/").withMethods(methods);
 		return controllerModel;
 	}
 
@@ -81,7 +71,8 @@ public class ControllerToControllerModelTranslator {
 			DocCommentTree docCommentTree = docTrees.getDocCommentTree(method);
 			Map<String, String> parameterToDescription = getParameterToDescription(docCommentTree.getBlockTags());
 			Map<Class, Object> annotationToModel = getAnnotationToModel(method.getAnnotationMirrors());
-			if (!annotationToModel.containsKey(RequestMapping.class)|| !annotationToModel.containsKey(ResponseStatus.class)) {
+			if (!annotationToModel.containsKey(RequestMapping.class)
+					|| !annotationToModel.containsKey(ResponseStatus.class)) {
 				throw new IllegalStateException(
 						"This method does not have both the RequestMapping and ResponseStatus annotations "
 								+ method.getSimpleName());
@@ -92,7 +83,7 @@ public class ControllerToControllerModelTranslator {
 					.withPath(getMethodPath((RequestMappingModel) annotationToModel.get(RequestMapping.class)))
 					.withName(method.getSimpleName().toString())
 					.withDescription(behaviorComment.isEmpty() ? null : behaviorComment.get())
-					.withOperation(getMethodOperation((RequestMappingModel) annotationToModel.get(RequestMapping.class)))
+					.withOperation(((RequestMappingModel) annotationToModel.get(RequestMapping.class)).getOperation())
 					.withParameters(getParameters(method.getParameters(), parameterToDescription))
 					.withRequestBody(requestBody.isEmpty() ? null : requestBody.get())
 					.withResponse(getResponseModel(method.getReturnType().getKind(), docCommentTree.getBlockTags(),
@@ -136,27 +127,6 @@ public class ControllerToControllerModelTranslator {
 	}
 
 	/**
-	 * Get the CRUD operation being performed by this method.
-	 * 
-	 * @param annotationToElements - maps an annotation name to a map of that
-	 *                             annotation's element names to element values.
-	 * @return the CRUD operation being performed.
-	 */
-	Operation getMethodOperation(RequestMappingModel requestMapping) {
-		RequestMethod requestMethod = requestMapping.getOperation();
-		if (RequestMethod.GET.equals(requestMethod)) {
-			return Operation.get;
-		} else if (RequestMethod.POST.equals(requestMethod)) {
-			return Operation.post;
-		} else if (RequestMethod.PUT.equals(requestMethod)) {
-			return Operation.put;
-		} else if (RequestMethod.DELETE.equals(requestMethod)) {
-			return Operation.delete;
-		}
-		throw new IllegalArgumentException("Unable to get operation from " + requestMethod);
-	}
-
-	/**
 	 * Constructs a map that maps an annotation class to a model that represents
 	 * that annotation.
 	 * 
@@ -177,8 +147,7 @@ public class ControllerToControllerModelTranslator {
 					if (keyName.equals("value") || keyName.equals("path")) {
 						requestMapping.withPath(annotation.getElementValues().get(key).getValue().toString());
 					} else if (keyName.equals("method")) {
-						requestMapping
-								.withOperation(getRequestMethod(annotation.getElementValues().get(key).getValue()));
+						requestMapping.withOperation(Operation.get(annotation.getElementValues().get(key).getValue()));
 					}
 				}
 				annotationToModel.put(RequestMapping.class, requestMapping);
@@ -208,27 +177,6 @@ public class ControllerToControllerModelTranslator {
 			return HttpStatus.OK;
 		}
 		throw new IllegalArgumentException("Could not translate HttpStatus for status " + status);
-	}
-
-	/**
-	 * Gets the RequestMethod for the endpoint.
-	 * 
-	 * @param object - the operation
-	 * @return A RequestMethod that represents the operation of the endpoint.
-	 */
-	RequestMethod getRequestMethod(Object object) {
-		String[] parts = object.toString().split("\\.");
-		String operation = parts[parts.length - 1];
-		if (operation.equals(RequestMethod.GET.toString())) {
-			return RequestMethod.GET;
-		} else if (operation.equals(RequestMethod.POST.toString())) {
-			return RequestMethod.POST;
-		} else if (operation.equals(RequestMethod.PUT.toString())) {
-			return RequestMethod.PUT;
-		} else if (operation.equals(RequestMethod.DELETE.toString())) {
-			return RequestMethod.DELETE;
-		}
-		throw new IllegalArgumentException("Could not translate RequestMethod for object " + object.toString());
 	}
 
 	/**

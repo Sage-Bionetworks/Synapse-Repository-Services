@@ -2,11 +2,11 @@ package org.sagebionetworks.controller.annotations.model;
 
 import java.util.Objects;
 
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.sagebionetworks.controller.model.Operation;
 
 public class RequestMappingModel {
 	private String path;
-	private RequestMethod operation;
+	private Operation operation;
 	
 	public String getPath() {
 		return path;
@@ -17,11 +17,11 @@ public class RequestMappingModel {
 		return this;
 	}
 	
-	public RequestMethod getOperation() {
+	public Operation getOperation() {
 		return operation;
 	}
 	
-	public RequestMappingModel withOperation(RequestMethod operation) {
+	public RequestMappingModel withOperation(Operation operation) {
 		this.operation = operation;
 		return this;
 	}
