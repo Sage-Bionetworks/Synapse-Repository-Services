@@ -133,19 +133,12 @@ public class ControllerToControllerModelTranslatorTest {
 		ControllerModel expectedControllerModel = new ControllerModel().withDisplayName(CONTROLLER_NAME)
 				.withMethods(getExpectedMethods()).withPath("/");
 
-		DocletEnvironment docletEnvironment = Mockito.mock(DocletEnvironment.class);
-		when(docletEnvironment.getDocTrees()).thenReturn(Mockito.mock(DocTrees.class));
-
-		Set<Element> includedElements = new LinkedHashSet<>();
 		TypeElement controller = Mockito.mock(TypeElement.class);
-		when(controller.getKind()).thenReturn(ElementKind.CLASS);
 		when(controller.toString()).thenReturn(CONTROLLER_NAME);
-		includedElements.add(controller);
 
-		Mockito.doReturn(includedElements).when(docletEnvironment).getIncludedElements();
 		Mockito.doReturn(getExpectedMethods()).when(translator).getMethods(any(List.class), any(DocTrees.class));
 		// call under test
-		assertEquals(expectedControllerModel, translator.translate(docletEnvironment));
+		assertEquals(expectedControllerModel, translator.translate(controller, Mockito.mock(DocTrees.class)));
 	}
 
 	@Test
@@ -174,7 +167,7 @@ public class ControllerToControllerModelTranslatorTest {
 
 		Map<Class, Object> annotationToModel = new HashMap<>();
 		annotationToModel.put(RequestMapping.class,
-				new RequestMappingModel().withOperation(RequestMethod.GET).withPath(METHOD_PATH));
+				new RequestMappingModel().withOperation(Operation.get).withPath(METHOD_PATH));
 		annotationToModel.put(ResponseStatus.class, new ResponseStatusModel().withStatus(HttpStatus.OK));
 		Mockito.doReturn(annotationToModel).when(translator).getAnnotationToModel(any(List.class));
 
@@ -187,7 +180,6 @@ public class ControllerToControllerModelTranslatorTest {
 
 		Mockito.doReturn(Optional.of(METHOD_BEHAVIOR_COMMENT)).when(translator).getBehaviorComment(any(List.class));
 		Mockito.doReturn(METHOD_PATH).when(translator).getMethodPath(any(RequestMappingModel.class));
-		Mockito.doReturn(Operation.get).when(translator).getMethodOperation(any(RequestMappingModel.class));
 		Mockito.doReturn(getExpectedParameters()).when(translator).getParameters(any(List.class), any(Map.class));
 		Mockito.doReturn(getExpectedResponseModel()).when(translator).getResponseModel(any(TypeKind.class), any(),
 				any());
@@ -267,43 +259,6 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 
 	@Test
-	public void testGetMethodOperationWithUnknownOperation() {
-		RequestMappingModel model = new RequestMappingModel().withOperation(RequestMethod.TRACE);
-		// call under test
-		assertThrows(IllegalArgumentException.class, () -> {
-			translator.getMethodOperation(model);
-		});
-	}
-
-	@Test
-	public void testGetMethodOperationWithDeleteOperation() {
-		RequestMappingModel model = new RequestMappingModel().withOperation(RequestMethod.DELETE);
-		// call under test
-		assertEquals(Operation.delete, translator.getMethodOperation(model));
-	}
-
-	@Test
-	public void testGetMethodOperationWithPutOperation() {
-		RequestMappingModel model = new RequestMappingModel().withOperation(RequestMethod.PUT);
-		// call under test
-		assertEquals(Operation.put, translator.getMethodOperation(model));
-	}
-
-	@Test
-	public void testGetMethodOperationWithPostOperation() {
-		RequestMappingModel model = new RequestMappingModel().withOperation(RequestMethod.POST);
-		// call under test
-		assertEquals(Operation.post, translator.getMethodOperation(model));
-	}
-
-	@Test
-	public void testGetMethodOperationWithGetOperation() {
-		RequestMappingModel model = new RequestMappingModel().withOperation(RequestMethod.GET);
-		// call under test
-		assertEquals(Operation.get, translator.getMethodOperation(model));
-	}
-
-	@Test
 	public void testAnnotationToModelWithPathAndCodeAnnotations() {
 		List<AnnotationMirror> methodAnnotations = new ArrayList<>();
 
@@ -326,7 +281,7 @@ public class ControllerToControllerModelTranslatorTest {
 
 		Map<Class, Object> expectedAnnotationToModel = new LinkedHashMap<>();
 		expectedAnnotationToModel.put(RequestMapping.class,
-				new RequestMappingModel().withOperation(RequestMethod.GET).withPath(METHOD_PATH));
+				new RequestMappingModel().withOperation(Operation.get).withPath(METHOD_PATH));
 		expectedAnnotationToModel.put(ResponseStatus.class, new ResponseStatusModel().withStatus(HttpStatus.OK));
 
 		assertEquals(expectedAnnotationToModel, translator.getAnnotationToModel(methodAnnotations));
@@ -355,7 +310,7 @@ public class ControllerToControllerModelTranslatorTest {
 
 		Map<Class, Object> expectedAnnotationToModel = new LinkedHashMap<>();
 		expectedAnnotationToModel.put(RequestMapping.class,
-				new RequestMappingModel().withOperation(RequestMethod.GET).withPath(METHOD_PATH));
+				new RequestMappingModel().withOperation(Operation.get).withPath(METHOD_PATH));
 		expectedAnnotationToModel.put(ResponseStatus.class, new ResponseStatusModel().withStatus(HttpStatus.OK));
 
 		assertEquals(expectedAnnotationToModel, translator.getAnnotationToModel(methodAnnotations));
@@ -381,43 +336,6 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetHttpStatusWithOkStatus() {
 		String status = "OK";
 		assertEquals(HttpStatus.OK, translator.getHttpStatus(status));
-	}
-
-	@Test
-	public void testGetRequestMethodWithUnknownOperation() {
-		String operation = "UNKNOWN";
-		// call under test
-		assertThrows(IllegalArgumentException.class, () -> {
-			translator.getRequestMethod(operation);
-		});
-	}
-
-	@Test
-	public void testGetRequestMethodWithDeleteOperation() {
-		String operation = "DELETE";
-		// call under test
-		assertEquals(RequestMethod.DELETE, translator.getRequestMethod(operation));
-	}
-
-	@Test
-	public void testGetRequestMethodWithPutOperation() {
-		String operation = "PUT";
-		// call under test
-		assertEquals(RequestMethod.PUT, translator.getRequestMethod(operation));
-	}
-
-	@Test
-	public void testGetRequestMethodWithPostOperations() {
-		String operation = "POST";
-		// call under test
-		assertEquals(RequestMethod.POST, translator.getRequestMethod(operation));
-	}
-
-	@Test
-	public void testGetRequestMethodWithGetOperation() {
-		String operation = "GET";
-		// call under test
-		assertEquals(RequestMethod.GET, translator.getRequestMethod(operation));
 	}
 
 	@Test
