@@ -1,4 +1,4 @@
-package org.sagebionetworks.swagger;
+package controller;
 
 import org.springframework.web.bind.annotation.PathVariable;
 
@@ -11,8 +11,7 @@ import org.springframework.http.HttpStatus;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-
-public class ExampleControllerBasic {
+public class BasicExampleController {
 	ConcurrentMap<String, Integer> personNameToAge = new ConcurrentHashMap<>();
 	
 	/**
