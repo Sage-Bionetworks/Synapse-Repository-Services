@@ -2,23 +2,21 @@ package org.sagebionetworks.controller.annotations.model;
 
 import java.util.Objects;
 
-import org.springframework.http.HttpStatus;
-
 public class ResponseStatusModel {
-	private HttpStatus status;
+	private Integer statusCode;
 
-	public HttpStatus getStatus() {
-		return status;
+	public Integer getStatusCode() {
+		return statusCode;
 	}
 
-	public ResponseStatusModel withStatus(HttpStatus status) {
-		this.status = status;
+	public ResponseStatusModel withStatusCode(Integer statusCode) {
+		this.statusCode = statusCode;
 		return this;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(status);
+		return Objects.hash(statusCode);
 	}
 
 	@Override
@@ -30,11 +28,11 @@ public class ResponseStatusModel {
 		if (getClass() != obj.getClass())
 			return false;
 		ResponseStatusModel other = (ResponseStatusModel) obj;
-		return status == other.status;
+		return Objects.equals(statusCode, other.statusCode);
 	}
 
 	@Override
 	public String toString() {
-		return "ResponseStatusModel [status=" + status + "]";
+		return "ResponseStatusModel [statusCode=" + statusCode + "]";
 	}
 }

@@ -15,6 +15,7 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.util.ElementFilter;
 
+import org.sagebionetworks.controller.annotations.model.ControllerInfoModel;
 import org.sagebionetworks.controller.annotations.model.RequestMappingModel;
 import org.sagebionetworks.controller.annotations.model.ResponseStatusModel;
 import org.sagebionetworks.controller.model.ControllerModel;
@@ -26,6 +27,8 @@ import org.sagebionetworks.controller.model.RequestBodyModel;
 import org.sagebionetworks.controller.model.ResponseModel;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
+import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -52,8 +55,38 @@ public class ControllerToControllerModelTranslator {
 	public ControllerModel translate(TypeElement controller, DocTrees docTrees) {
 		ControllerModel controllerModel = new ControllerModel();
 		List<MethodModel> methods = getMethods(controller.getEnclosedElements(), docTrees);
-		controllerModel.withDisplayName(controller.toString()).withPath("/").withMethods(methods);
+		ControllerInfoModel controllerInfo = getControllerInfoModel(controller.getAnnotationMirrors());
+		controllerModel.withDisplayName(controllerInfo.getDisplayName()).withPath(controllerInfo.getPath()).withMethods(methods);
 		return controllerModel;
+	}
+	
+	/**
+	 * Constructs a model that represents the annotations on a Controller.
+	 * 
+	 * @param annotations - the annotations for a controller
+	 * @return a model that represents the annotations on a controller.
+	 */
+	public ControllerInfoModel getControllerInfoModel(List<? extends AnnotationMirror> annotations) {
+		ValidateArgument.required(annotations, "annotations");
+		for (AnnotationMirror annotation : annotations) {
+			if (!ControllerInfo.class.getSimpleName().equals(getSimpleAnnotationName(annotation))) {
+				continue;
+			}
+			ControllerInfoModel controllerInfo = new ControllerInfoModel();
+			for (ExecutableElement key : annotation.getElementValues().keySet()) {
+				String keyName = key.getSimpleName().toString();
+				Object value = annotation.getElementValues().get(key).getValue();
+				if (keyName.equals("displayName")) {
+					controllerInfo.withDisplayName(value.toString());
+				} else if (keyName.equals("path")) {
+					controllerInfo.withPath(value.toString());
+				}
+			}
+			ValidateArgument.required(controllerInfo.getPath(), "controllerInfo.path");
+			ValidateArgument.required(controllerInfo.getDisplayName(), "controllerInfo.displayName");
+			return controllerInfo;
+		}
+		throw new IllegalArgumentException("ControllerInfo annotation is not present in annotations " + annotations);
 	}
 
 	/**
@@ -104,13 +137,11 @@ public class ControllerToControllerModelTranslator {
 	 */
 	ResponseModel getResponseModel(TypeKind returnType, List<? extends DocTree> blockTags,
 			ResponseStatusModel responseStatus) {
-		if (responseStatus == null || responseStatus.getStatus() == null) {
-			throw new IllegalArgumentException("Response status is missing status " + responseStatus);
-		}
+		ValidateArgument.required(responseStatus, "ResponseStatus");
+		ValidateArgument.required(responseStatus.getStatusCode(), responseStatus.toString());
 		Optional<String> returnComment = getReturnComment(blockTags);
 		return new ResponseModel().withDescription(returnComment.isEmpty() ? null : returnComment.get())
-				.withStatusCode(responseStatus.getStatus().value()).withContentType("application/json")
-				.withSchema(getSchema(returnType));
+				.withStatusCode(responseStatus.getStatusCode()).withSchema(getSchema(returnType));
 	}
 
 	/**
@@ -120,9 +151,8 @@ public class ControllerToControllerModelTranslator {
 	 * @return the path that this method represents.
 	 */
 	String getMethodPath(RequestMappingModel requestMapping) {
-		if (requestMapping == null || requestMapping.getPath() == null) {
-			throw new IllegalArgumentException("The path is not defined for RequestMappingModel " + requestMapping);
-		}
+		ValidateArgument.required(requestMapping, "RequestMapping");
+		ValidateArgument.required(requestMapping.getPath(), requestMapping.toString());
 		return requestMapping.getPath();
 	}
 
@@ -134,35 +164,57 @@ public class ControllerToControllerModelTranslator {
 	 * @return map of an annotation class to model for that annotation.
 	 */
 	Map<Class, Object> getAnnotationToModel(List<? extends AnnotationMirror> methodAnnotations) {
-		if (methodAnnotations == null) {
-			throw new IllegalArgumentException("method annotations should not be null.");
-		}
+		ValidateArgument.required(methodAnnotations, "Method annotations");
 		Map<Class, Object> annotationToModel = new LinkedHashMap<>();
 		for (AnnotationMirror annotation : methodAnnotations) {
 			String annotationName = getSimpleAnnotationName(annotation);
 			if (annotationName.equals("RequestMapping")) {
-				RequestMappingModel requestMapping = new RequestMappingModel();
-				for (ExecutableElement key : annotation.getElementValues().keySet()) {
-					String keyName = key.getSimpleName().toString();
-					if (keyName.equals("value") || keyName.equals("path")) {
-						requestMapping.withPath(annotation.getElementValues().get(key).getValue().toString());
-					} else if (keyName.equals("method")) {
-						requestMapping.withOperation(Operation.get(annotation.getElementValues().get(key).getValue()));
-					}
-				}
-				annotationToModel.put(RequestMapping.class, requestMapping);
+				annotationToModel.put(RequestMapping.class, getRequestMappingModel(annotation));
 			} else if (annotationName.equals("ResponseStatus")) {
-				ResponseStatusModel responseStatus = new ResponseStatusModel();
-				for (ExecutableElement key : annotation.getElementValues().keySet()) {
-					String keyName = key.getSimpleName().toString();
-					if (keyName.equals("value") || keyName.equals("code")) {
-						responseStatus.withStatus(getHttpStatus(annotation.getElementValues().get(key).getValue()));
-					}
-				}
-				annotationToModel.put(ResponseStatus.class, responseStatus);
+				annotationToModel.put(ResponseStatus.class, getResponseStatusModel(annotation));
 			}
 		}
 		return annotationToModel;
+	}
+	
+	/**
+	 * Constructs a model that represents the ResponseStatus annotation.
+	 * 
+	 * @param annotation the annotation being looked at
+	 * @return a model that represents the ResponseStatus annotation.
+	 */
+	ResponseStatusModel getResponseStatusModel(AnnotationMirror annotation) {
+		ValidateArgument.required(annotation, "AnnotationMirror");
+		ResponseStatusModel responseStatus = new ResponseStatusModel();
+		for (ExecutableElement key : annotation.getElementValues().keySet()) {
+			String keyName = key.getSimpleName().toString();
+			if (keyName.equals("value") || keyName.equals("code")) {
+				responseStatus.withStatusCode(getHttpStatusCode(annotation.getElementValues().get(key).getValue().toString()));
+			}
+		}
+		return responseStatus;
+	}
+	
+	/**
+	 * Constructs a model that represents a RequestMapping annotation.
+	 * 
+	 * @param annotation the annotation being looked at
+	 * @return a model that represents a RequestMapping annotation.
+	 */
+	RequestMappingModel getRequestMappingModel(AnnotationMirror annotation) {
+		ValidateArgument.required(annotation, "AnnotationMirror");
+		RequestMappingModel requestMapping = new RequestMappingModel();
+		for (ExecutableElement key : annotation.getElementValues().keySet()) {
+			String keyName = key.getSimpleName().toString();
+			if (keyName.equals("value") || keyName.equals("path")) {
+				requestMapping.withPath(annotation.getElementValues().get(key).getValue().toString());
+			} else if (keyName.equals("method")) {
+				String value = annotation.getElementValues().get(key).getValue().toString();
+				String[] parts = value.split("\\.");
+				requestMapping.withOperation(Operation.get(RequestMethod.valueOf(parts[parts.length - 1])));
+			}
+		}
+		return requestMapping;
 	}
 
 	/**
@@ -171,10 +223,10 @@ public class ControllerToControllerModelTranslator {
 	 * @param object - the status
 	 * @return HttpStatus of an endpoint.
 	 */
-	HttpStatus getHttpStatus(Object object) {
-		String status = object.toString();
-		if (HttpStatus.OK.getReasonPhrase().equals(status)) {
-			return HttpStatus.OK;
+	int getHttpStatusCode(String object) {
+		HttpStatus status = HttpStatus.valueOf(object);
+		if (status.equals(HttpStatus.OK)) {
+			return HttpStatus.OK.value();
 		}
 		throw new IllegalArgumentException("Could not translate HttpStatus for status " + status);
 	}
@@ -216,6 +268,9 @@ public class ControllerToControllerModelTranslator {
 		List<ParameterModel> parameters = new ArrayList<>();
 		for (VariableElement param : params) {
 			ParameterLocation paramLocation = getParameterLocation(param);
+			if (paramLocation == null) {
+				continue;
+			}
 			String paramName = param.getSimpleName().toString();
 			String paramDescription = parameterToDescription.get(paramName);
 			parameters.add(new ParameterModel().withDescription(paramDescription).withIn(paramLocation)
@@ -228,7 +283,7 @@ public class ControllerToControllerModelTranslator {
 	 * Get the location of a parameter in the HTTP request.
 	 * 
 	 * @param param - the parameter being looked at
-	 * @return location of a parameter.
+	 * @return location of a parameter, null if it is the RequestBody annotation.
 	 */
 	ParameterLocation getParameterLocation(VariableElement param) {
 		String simpleAnnotationName = getSimpleAnnotationName(getParameterAnnotation(param));
@@ -237,6 +292,9 @@ public class ControllerToControllerModelTranslator {
 		}
 		if (RequestParam.class.getSimpleName().equals(simpleAnnotationName)) {
 			return ParameterLocation.query;
+		}
+		if (RequestBody.class.getSimpleName().equals(simpleAnnotationName)) {
+			return null;
 		}
 		throw new IllegalArgumentException("Unable to get parameter location with annotation " + simpleAnnotationName);
 	}
@@ -248,9 +306,7 @@ public class ControllerToControllerModelTranslator {
 	 * @return annotation for the parameter
 	 */
 	AnnotationMirror getParameterAnnotation(VariableElement param) {
-		if (param == null) {
-			throw new IllegalArgumentException("Parameter cannot be null");
-		}
+		ValidateArgument.required(param, "Param");
 		List<? extends AnnotationMirror> annotations = param.getAnnotationMirrors();
 		if (annotations.size() != 1) {
 			throw new IllegalArgumentException(
@@ -276,10 +332,8 @@ public class ControllerToControllerModelTranslator {
 	 * @return the schema of the element
 	 */
 	JsonSchema getSchema(TypeKind typeKind) {
+		ValidateArgument.required(typeKind, "TypeKind");
 		JsonSchema schema = new JsonSchema();
-		if (typeKind == null) {
-			throw new IllegalArgumentException("TypeKind cannot be null.");
-		}
 		Type type = getType(typeKind);
 		schema.setType(type);
 		switch (type) {
