@@ -1,6 +1,7 @@
 package org.sagebionetworks.controller.model;
 
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * The possible CRUD operations performed in a request.
@@ -17,19 +18,13 @@ public enum Operation {
 		this.requestMethod = method;
 	}
 
-	public static Operation get(Object method) {
-		if (method instanceof RequestMethod) {
-			return get((RequestMethod) method);
-		}
-		throw new IllegalArgumentException();
-	}
-
 	public static Operation get(RequestMethod method) {
+		ValidateArgument.required(method, "Request mapping is required.");
 		for (Operation opp : Operation.values()) {
 			if (opp.requestMethod.equals(method)) {
 				return opp;
 			}
 		}
-		throw new IllegalArgumentException();
+		throw new IllegalArgumentException("No operation found for RequestMethod " + method.getClass().getName());
 	}
 }

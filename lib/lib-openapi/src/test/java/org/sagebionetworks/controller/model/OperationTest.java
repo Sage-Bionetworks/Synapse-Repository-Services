@@ -8,9 +8,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 public class OperationTest {
 	@Test
-	public void testGetWithUnhandledObjectType() {
+	public void testGetWithNull() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			Operation.get("STRING");
+			Operation.get(null);
 		});
 	}
 	

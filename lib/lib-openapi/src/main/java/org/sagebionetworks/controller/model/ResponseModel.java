@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
 public class ResponseModel {
 	private int statusCode;
 	private String description;
-	private String contentType;
+	private String contentType = "application/json";
 	private JsonSchema schema;
 	
 	public int getStatusCode() {
