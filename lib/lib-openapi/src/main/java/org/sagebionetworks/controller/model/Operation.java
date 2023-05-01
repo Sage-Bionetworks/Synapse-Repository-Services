@@ -19,12 +19,12 @@ public enum Operation {
 	}
 
 	public static Operation get(RequestMethod method) {
-		ValidateArgument.required(method, "Request mapping is required.");
+		ValidateArgument.required(method, "method");
 		for (Operation opp : Operation.values()) {
 			if (opp.requestMethod.equals(method)) {
 				return opp;
 			}
 		}
-		throw new IllegalArgumentException("No operation found for RequestMethod " + method.getClass().getName());
+		throw new IllegalArgumentException("No operation found for RequestMethod " + method.toString());
 	}
 }

@@ -9,16 +9,18 @@ import org.springframework.web.bind.annotation.RequestMethod;
 public class OperationTest {
 	@Test
 	public void testGetWithNull() {
-		assertThrows(IllegalArgumentException.class, () -> {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			Operation.get(null);
 		});
+		assertEquals("method is required.", exception.getMessage());
 	}
 	
 	@Test
 	public void testGetWithUnhandledRequestMethodType() {
-		assertThrows(IllegalArgumentException.class, () -> {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			Operation.get(RequestMethod.TRACE);
 		});
+		assertEquals("No operation found for RequestMethod TRACE", exception.getMessage());
 	}
 	
 	@Test

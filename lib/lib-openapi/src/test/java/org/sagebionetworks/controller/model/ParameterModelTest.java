@@ -1,6 +1,7 @@
 package org.sagebionetworks.controller.model;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
@@ -9,20 +10,23 @@ public class ParameterModelTest {
 	
 	@Test
 	public void testWithRequiredWhenInIsNull() {
-		assertThrows(IllegalArgumentException.class, () -> {
+		IllegalArgumentException exception1 = assertThrows(IllegalArgumentException.class, () -> {
 			new ParameterModel().withRequired(true);
 		});
+		assertEquals("The 'in' field must be set before 'required' field.", exception1.getMessage());
 		
-		assertThrows(IllegalArgumentException.class, () -> {
+		IllegalArgumentException exception2 = assertThrows(IllegalArgumentException.class, () -> {
 			new ParameterModel().withRequired(false);
 		});
+		assertEquals("The 'in' field must be set before 'required' field.", exception2.getMessage());
 	}
 	
 	@Test
 	public void testWithRequiredVerifyRequiredForPathParameter() {
-		assertThrows(IllegalArgumentException.class, () -> {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			new ParameterModel().withIn(ParameterLocation.path).withRequired(false);
 		});
+		assertEquals("Parameters must be required for path variables.", exception.getMessage());
 	}
 	
 	@Test

@@ -86,7 +86,7 @@ public class ControllerToControllerModelTranslator {
 			ValidateArgument.required(controllerInfo.getDisplayName(), "controllerInfo.displayName");
 			return controllerInfo;
 		}
-		throw new IllegalArgumentException("ControllerInfo annotation is not present in annotations " + annotations);
+		throw new IllegalArgumentException("ControllerInfo annotation is not present in annotations.");
 	}
 
 	/**
@@ -104,11 +104,11 @@ public class ControllerToControllerModelTranslator {
 			DocCommentTree docCommentTree = docTrees.getDocCommentTree(method);
 			Map<String, String> parameterToDescription = getParameterToDescription(docCommentTree.getBlockTags());
 			Map<Class, Object> annotationToModel = getAnnotationToModel(method.getAnnotationMirrors());
-			if (!annotationToModel.containsKey(RequestMapping.class)
-					|| !annotationToModel.containsKey(ResponseStatus.class)) {
-				throw new IllegalStateException(
-						"This method does not have both the RequestMapping and ResponseStatus annotations "
-								+ method.getSimpleName());
+			if (!annotationToModel.containsKey(RequestMapping.class)) {
+				throw new IllegalStateException("Method " + method.getSimpleName() + " missing RequestMapping annotation.");
+			}
+			if (!annotationToModel.containsKey(ResponseStatus.class)) {
+				throw new IllegalStateException("Method " + method.getSimpleName() + " missing ResponseStatus annotation.");
 			}
 			Optional<String> behaviorComment = getBehaviorComment(docCommentTree.getFullBody());
 			Optional<RequestBodyModel> requestBody = getRequestBody(method.getParameters(), parameterToDescription);
@@ -138,7 +138,7 @@ public class ControllerToControllerModelTranslator {
 	ResponseModel getResponseModel(TypeKind returnType, List<? extends DocTree> blockTags,
 			ResponseStatusModel responseStatus) {
 		ValidateArgument.required(responseStatus, "ResponseStatus");
-		ValidateArgument.required(responseStatus.getStatusCode(), responseStatus.toString());
+		ValidateArgument.required(responseStatus.getStatusCode(), "ResponseStatus.statusCode");
 		Optional<String> returnComment = getReturnComment(blockTags);
 		return new ResponseModel().withDescription(returnComment.isEmpty() ? null : returnComment.get())
 				.withStatusCode(responseStatus.getStatusCode()).withSchema(getSchema(returnType));
@@ -152,7 +152,7 @@ public class ControllerToControllerModelTranslator {
 	 */
 	String getMethodPath(RequestMappingModel requestMapping) {
 		ValidateArgument.required(requestMapping, "RequestMapping");
-		ValidateArgument.required(requestMapping.getPath(), requestMapping.toString());
+		ValidateArgument.required(requestMapping.getPath(), "RequestMapping.path");
 		return requestMapping.getPath();
 	}
 
@@ -184,7 +184,7 @@ public class ControllerToControllerModelTranslator {
 	 * @return a model that represents the ResponseStatus annotation.
 	 */
 	ResponseStatusModel getResponseStatusModel(AnnotationMirror annotation) {
-		ValidateArgument.required(annotation, "AnnotationMirror");
+		ValidateArgument.required(annotation, "Annotation");
 		ResponseStatusModel responseStatus = new ResponseStatusModel();
 		for (ExecutableElement key : annotation.getElementValues().keySet()) {
 			String keyName = key.getSimpleName().toString();
@@ -202,7 +202,7 @@ public class ControllerToControllerModelTranslator {
 	 * @return a model that represents a RequestMapping annotation.
 	 */
 	RequestMappingModel getRequestMappingModel(AnnotationMirror annotation) {
-		ValidateArgument.required(annotation, "AnnotationMirror");
+		ValidateArgument.required(annotation, "Annotation");
 		RequestMappingModel requestMapping = new RequestMappingModel();
 		for (ExecutableElement key : annotation.getElementValues().keySet()) {
 			String keyName = key.getSimpleName().toString();
