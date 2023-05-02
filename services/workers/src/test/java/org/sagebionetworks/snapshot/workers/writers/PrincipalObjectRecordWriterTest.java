@@ -133,7 +133,7 @@ public class PrincipalObjectRecordWriterTest {
 		verify(mockTeamDAO).get(principalID.toString());
 		verify(mockTeamDAO, never()).getMember(anyString(), anyString());
         verify(firehoseLogger,times(2)).logBatch(streamNameCaptor.capture(),anyList());
-		assertTrue(streamNameCaptor.getAllValues().containsAll(Arrays.asList("userGroup", "teamSnapshots")));
+		assertTrue(streamNameCaptor.getAllValues().containsAll(Arrays.asList("userGroupSnapshots", "teamSnapshots")));
 	}
 	
 	@Test
@@ -176,7 +176,7 @@ public class PrincipalObjectRecordWriterTest {
 		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(ugr)), eq(ugr.getJsonClassName()));
 		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(upr)), eq(upr.getJsonClassName()));
 		verify(firehoseLogger,times(2)).logBatch(streamNameCaptor.capture(),anyList());
-		assertTrue(streamNameCaptor.getAllValues().containsAll(Arrays.asList("userGroup", "userProfileSnapshots")));
+		assertTrue(streamNameCaptor.getAllValues().containsAll(Arrays.asList("userGroupSnapshots", "userProfileSnapshots")));
 	}
 
 	@Test
@@ -194,7 +194,7 @@ public class PrincipalObjectRecordWriterTest {
 		verify(mockTeamDAO, never()).getMember(anyString(), anyString());
 		verify(firehoseLogger,times(2))
 				.logBatch(streamNameCaptor.capture(), anyList());
-		assertTrue(streamNameCaptor.getAllValues().containsAll(Arrays.asList("userProfileSnapshots","userGroup")));
+		assertTrue(streamNameCaptor.getAllValues().containsAll(Arrays.asList("userProfileSnapshots","userGroupSnapshots")));
 	}
 
 	@Test

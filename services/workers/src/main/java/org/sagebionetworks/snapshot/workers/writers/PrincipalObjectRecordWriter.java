@@ -36,7 +36,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
     private static final String TEAM_SNAPSHOT_STREAM = "teamSnapshots";
     private static final String TEAM_MEMBER_SNAPSHOT_STREAM = "teamMemberSnapshots";
     private static final String USER_PROFILE_SNAPSHOT_STREAM = "userProfileSnapshots";
-    private static final String USER_GROUP = "userGroup";
+    private static final String USER_GROUP_SNAPSHOT_STREAM = "userGroupSnapshots";
 	private UserGroupDAO userGroupDAO;
 	private UserProfileManager userProfileManager;
 	private TeamDAO teamDAO;
@@ -119,7 +119,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
             firehoseLogger.logBatch(USER_PROFILE_SNAPSHOT_STREAM, kinesisUserProfileRecords);
         }
         if (!kinesisUserGroups.isEmpty()) {
-            firehoseLogger.logBatch(USER_GROUP, kinesisUserGroups);
+            firehoseLogger.logBatch(USER_GROUP_SNAPSHOT_STREAM, kinesisUserGroups);
         }
 	}
 	
