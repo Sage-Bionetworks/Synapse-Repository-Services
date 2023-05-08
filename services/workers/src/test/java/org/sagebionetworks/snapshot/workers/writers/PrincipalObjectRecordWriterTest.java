@@ -1,22 +1,11 @@
 package org.sagebionetworks.snapshot.workers.writers;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-
+import com.amazonaws.services.sqs.model.Message;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -25,7 +14,9 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.manager.audit.KinesisJsonEntityRecord;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
@@ -37,7 +28,21 @@ import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 
-import com.amazonaws.services.sqs.model.Message;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class PrincipalObjectRecordWriterTest {
@@ -53,10 +58,16 @@ public class PrincipalObjectRecordWriterTest {
 	private GroupMembersDAO mockGroupMembersDao;
 	@Mock
 	private ProgressCallback mockCallback;
+	@Mock
+	private AwsKinesisFirehoseLogger firehoseLogger;
 	
 	@InjectMocks
 	private PrincipalObjectRecordWriter writer;
-	
+
+	@Captor
+	private ArgumentCaptor<List<KinesisJsonEntityRecord<?>>> recordCaptor;
+	@Captor
+	private ArgumentCaptor<String> streamNameCaptor;
 	private Long principalID = 123L;
 	private Date createdOn = new Date();
 	private Date modifiedOn = new Date();
@@ -121,6 +132,8 @@ public class PrincipalObjectRecordWriterTest {
 		verify(mockUserProfileManager, never()).getUserProfile(anyString());
 		verify(mockTeamDAO).get(principalID.toString());
 		verify(mockTeamDAO, never()).getMember(anyString(), anyString());
+        verify(firehoseLogger,times(2)).logBatch(streamNameCaptor.capture(),anyList());
+		assertTrue(streamNameCaptor.getAllValues().containsAll(Arrays.asList("userGroupSnapshots", "teamSnapshots")));
 	}
 	
 	@Test
@@ -129,6 +142,7 @@ public class PrincipalObjectRecordWriterTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		verify(mockObjectRecordDao, never()).saveBatch(anyList(), anyString());
+		verify(firehoseLogger, never()).logBatch(anyString(),anyList());
 	}
 
 	@Test
@@ -161,6 +175,8 @@ public class PrincipalObjectRecordWriterTest {
 		verify(mockTeamDAO, never()).getMember(anyString(), anyString());
 		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(ugr)), eq(ugr.getJsonClassName()));
 		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(upr)), eq(upr.getJsonClassName()));
+		verify(firehoseLogger,times(2)).logBatch(streamNameCaptor.capture(),anyList());
+		assertTrue(streamNameCaptor.getAllValues().containsAll(Arrays.asList("userGroupSnapshots", "userProfileSnapshots")));
 	}
 
 	@Test
@@ -168,13 +184,17 @@ public class PrincipalObjectRecordWriterTest {
 		ug.setIsIndividual(true);
 		when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
 		when(mockUserProfileManager.getUserProfile(principalID.toString())).thenReturn(up);
-		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
+		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, principalID.toString(),
+				ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		verify(mockUserGroupDAO).get(principalID);
 		verify(mockUserProfileManager).getUserProfile(principalID.toString());
 		verify(mockTeamDAO, never()).get(anyString());
 		verify(mockTeamDAO, never()).getMember(anyString(), anyString());
+		verify(firehoseLogger,times(2))
+				.logBatch(streamNameCaptor.capture(), anyList());
+		assertTrue(streamNameCaptor.getAllValues().containsAll(Arrays.asList("userProfileSnapshots","userGroupSnapshots")));
 	}
 
 	@Test
@@ -183,6 +203,7 @@ public class PrincipalObjectRecordWriterTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		verify(mockObjectRecordDao, never()).saveBatch(anyList(), anyString());
+		verify(firehoseLogger,never()).logBatch(anyString(),anyList());
 	}
 
 	@Test
@@ -191,6 +212,7 @@ public class PrincipalObjectRecordWriterTest {
 		writer.captureAllMembers(principalID.toString(), timestamp);
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 		Mockito.verify(mockObjectRecordDao, Mockito.never()).saveBatch(Mockito.anyList(), Mockito.anyString());
+		verify(firehoseLogger,never()).logBatch(anyString(),anyList());
 	}
 
 	@Test
@@ -199,6 +221,8 @@ public class PrincipalObjectRecordWriterTest {
 		Mockito.when(mockGroupMembersDao.getMembers(principalID.toString())).thenReturn(list);
 		writer.captureAllMembers(principalID.toString(), timestamp);
 		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.anyList(), Mockito.anyString());
+		verify(firehoseLogger).logBatch(streamNameCaptor.capture(), anyList());
+		assertTrue(streamNameCaptor.getValue().equals("teamMemberSnapshots"));
 	}
 
 	/**
