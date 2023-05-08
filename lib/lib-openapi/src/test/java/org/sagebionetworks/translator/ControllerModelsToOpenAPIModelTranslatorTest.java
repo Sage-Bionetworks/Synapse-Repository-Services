@@ -239,6 +239,32 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		Mockito.verify(translator).getRequestBodyInfo(requestBodyModel);
 		Mockito.verify(translator).getResponses(responses);
 	}
+	
+	@Test
+	public void testGetEndpointInfoWithNullRequestBodyModel() {
+		String methodName = "METHOD_NAME";
+		String displayName = "DISPLAY_NAME";
+		List<ParameterModel> parameters = new ArrayList<>();
+		RequestBodyModel requestBodyModel = null;
+		ResponseModel responses = new ResponseModel();
+		List<String> tags = new ArrayList<>(Arrays.asList(displayName));
+		MethodModel method = new MethodModel().withName(methodName).withRequestBody(requestBodyModel)
+				.withParameters(parameters).withResponse(responses);
+
+		List<ParameterInfo> expectedParameters = new ArrayList<>();
+		Map<String, ResponseInfo> respones = new LinkedHashMap<>();
+		Mockito.doReturn(expectedParameters).when(translator).getParameters(any(List.class));
+		Mockito.doReturn(respones).when(translator).getResponses(any(ResponseModel.class));
+
+		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags).withOperationId(methodName)
+				.withParameters(expectedParameters).withRequestBody(null).withResponses(respones);
+
+		// call under test.
+		assertEquals(expectedEndpointInfo, translator.getEndpointInfo(method, displayName));
+		Mockito.verify(translator).getParameters(parameters);
+		Mockito.verify(translator, Mockito.times(0)).getRequestBodyInfo(any());
+		Mockito.verify(translator).getResponses(responses);
+	}
 
 	@Test
 	public void testGetEndpointInfoWithNullDisplayName() {
