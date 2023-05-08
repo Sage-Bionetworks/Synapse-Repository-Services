@@ -79,13 +79,13 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 
 	@Test
 	public void testGetApiInfo() {
-		ApiInfo expectedApiInfo = new ApiInfo().withTitle("Sample OpenAPI definition").withVersion("v0");
+		ApiInfo expectedApiInfo = new ApiInfo().withTitle("Sample OpenAPI definition").withVersion("v1");
 		assertEquals(expectedApiInfo, translator.getApiInfo());
 	}
 
 	@Test
 	public void testGetServers() {
-		ServerInfo server = new ServerInfo().withUrl("https://localhost:8080")
+		ServerInfo server = new ServerInfo().withUrl("https://repo-prod.prod.sagebase.org")
 				.withDescription("This is the generated server URL");
 		assertEquals(new ArrayList<>(Arrays.asList(server)), translator.getServers());
 	}
@@ -98,7 +98,8 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		Map<String, Map<String, EndpointInfo>> paths = new LinkedHashMap<>();
 
 		String methodPath = "/METHOD_PATH";
-		MethodModel method = new MethodModel().withPath(methodPath).withOperation(Operation.get);
+		String observedMethodPath = "\"" + methodPath + "\"";
+		MethodModel method = new MethodModel().withPath(observedMethodPath).withOperation(Operation.get);
 		methods.add(method);
 
 		EndpointInfo endpointInfo = new EndpointInfo();
