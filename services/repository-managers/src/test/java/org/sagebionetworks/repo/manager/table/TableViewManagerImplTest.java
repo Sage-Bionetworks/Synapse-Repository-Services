@@ -62,6 +62,8 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.semaphore.LockContext;
+import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -171,6 +173,7 @@ public class TableViewManagerImplTest {
 	private ViewScopeType scopeType;
 	
 	private ObjectFieldModelResolver objectFieldModelResolver;
+	private LockContext expectedLockContext;
 	
 
 	@BeforeEach
@@ -251,6 +254,8 @@ public class TableViewManagerImplTest {
 		managerSpy = Mockito.spy(manager);
 		
 		pageSize = 2;
+		
+		expectedLockContext = new LockContext(ContextType.UpdatingViewIndex, idAndVersion);
 	}
 	
 	@Test
@@ -1192,10 +1197,10 @@ public class TableViewManagerImplTest {
 		
 		// call under test
 		managerSpy.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
-		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), any(),
+		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), any(),
 				eq(idAndVersion));
 		String expectedKey = TableModelUtils.getViewDeltaSemaphoreKey(idAndVersion);
-		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
+		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), eq(expectedKey),
 				any());
 		verify(managerSpy).applyChangesToAvailableViewOrSnapshot(idAndVersion);
 	}
@@ -1210,7 +1215,7 @@ public class TableViewManagerImplTest {
 			Object[] args = invocation.getArguments();
 			ProgressingCallable<?> callable = (ProgressingCallable<?>) args[args.length - 2];
 			return callable.call(mockProgressCallback);
-		}).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class),
+		}).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class), any(),
 				any(), any(IdAndVersion.class));
 	}
 	
@@ -1224,16 +1229,16 @@ public class TableViewManagerImplTest {
 			Object[] args = invocation.getArguments();
 			ProgressingCallable<?> callable = (ProgressingCallable<?>) args[args.length - 1];
 			return callable.call(mockProgressCallback);
-		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
+		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(),
 				anyString(), any());
 	}
 	
 	void setupNonExclusiveLockWithCustomKeyToForwardToCallack() throws Exception {
 		doAnswer((InvocationOnMock invocation) -> {
 			Object[] args = invocation.getArguments();
-			ProgressingCallable<?> callable = (ProgressingCallable<?>) args[1];
+			ProgressingCallable<?> callable = (ProgressingCallable<?>) args[2];
 			return callable.call(mockProgressCallback);
-		}).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class),
+		}).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class), any(),
 				any(), any(String.class));
 	}
 	
@@ -1241,24 +1246,24 @@ public class TableViewManagerImplTest {
 	public void testApplyChangesToAvailableView_ExcluisveLockUnavailable() throws Exception {
 		setupNonExclusiveLockToForwardToCallack();
 		LockUnavilableException exception = new LockUnavilableException(LockType.Read, "key", "context");
-		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(String.class), any());
+		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(), any(String.class), any());
 		String expectedKey = TableModelUtils.getViewDeltaSemaphoreKey(idAndVersion);
 		// call under test
 		managerSpy.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
-		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
+		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), eq(expectedKey),
 				any());
-		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), any(),
+		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), any(),
 				eq(idAndVersion));
 	}
 	
 	@Test
 	public void testApplyChangesToAvailableView_NonExcluisveLockUnavailable() throws Exception {
 		LockUnavilableException exception = new LockUnavilableException(LockType.Read, "key", "context");
-		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class),
+		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class), any(),
 				any(), any(IdAndVersion.class));
 		// call under test
 		manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
-		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), any(),
+		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), any(),
 				eq(idAndVersion));
 		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
@@ -1267,7 +1272,7 @@ public class TableViewManagerImplTest {
 	public void testApplyChangesToAvailableView_OtherException() throws Exception {
 		setupNonExclusiveLockToForwardToCallack();
 		IllegalArgumentException exception = new IllegalArgumentException("not now");
-		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
+		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(),
 				anyString(), any());
 		IllegalArgumentException result =assertThrows(IllegalArgumentException.class, () -> {
 			// call under test

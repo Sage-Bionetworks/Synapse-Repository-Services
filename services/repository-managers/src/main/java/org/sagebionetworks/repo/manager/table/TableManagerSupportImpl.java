@@ -67,6 +67,7 @@ import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVReaderIterator;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.sagebionetworks.workers.util.semaphore.ReadLock;
 import org.sagebionetworks.workers.util.semaphore.ReadLockRequest;
 import org.sagebionetworks.workers.util.semaphore.WriteLock;
@@ -404,22 +405,27 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, LockContext context, String key, ProgressingCallable<R> callable) throws Exception {
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, LockContext context, String key,
+			ProgressingCallable<R> callable) throws Exception {
 		ValidateArgument.required(context, "context");
-		 try(WriteLock lock = writeReadSemaphoreRunner.getWriteLock(new WriteLockRequest(callback, key, context.serializeToString()))){
-			 Optional<String> readersContextString = null;
-			 while ((readersContextString = lock.getExistingReadLockContext()).isPresent()) {
-				 LockContext readersLockContext = LockContext.deserialize(readersContextString.get());
-				 String message = new StringBuilder(context.toDisplayString()).append(readersLockContext.toDisplayString()).toString();
-				 log.info(message);
-				 if(callback instanceof AsyncJobProgressCallback) {
-					 AsyncJobProgressCallback asynchCallback = (AsyncJobProgressCallback)callback;
-					 asynchCallback.updateProgress(message, 0L, 100L);
-				 }
-				 clock.sleep(2000);
-			 }
-			 return callable.call(callback);
-		 }
+		logContext(callback, context);
+		try {
+			try (WriteLock lock = writeReadSemaphoreRunner
+					.getWriteLock(new WriteLockRequest(callback, key, context.serializeToString()))) {
+				Optional<String> readersContextString = null;
+				while ((readersContextString = lock.getExistingReadLockContext()).isPresent()) {
+					logWaitingForContext(callback, context, LockContext.deserialize(readersContextString.get()));
+					clock.sleep(2000);
+				}
+				return callable.call(callback);
+			}
+		} catch (LockUnavilableException e) {
+			e.getLockHoldersContext().ifPresent((existingContextString)->{
+				logWaitingForContext(callback, context, LockContext.deserialize(existingContextString));
+			});
+			throw e;
+		}
+
 	}
 
 	@Override
@@ -435,10 +441,46 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public <R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, LockContext context, ProgressingCallable<R> runner,
 			String... keys) throws Exception {
 		ValidateArgument.required(context, "context");
-		try(ReadLock lock = writeReadSemaphoreRunner.getReadLock(new ReadLockRequest(callback, context.serializeToString(), keys))){
-			return runner.call(callback);
+		logContext(callback, context);
+		try {
+			try(ReadLock lock = writeReadSemaphoreRunner.getReadLock(new ReadLockRequest(callback, context.serializeToString(), keys))){
+				return runner.call(callback);
+			}
+		} catch (LockUnavilableException e) {
+			e.getLockHoldersContext().ifPresent((existingContextString)->{
+				logWaitingForContext(callback, context, LockContext.deserialize(existingContextString));
+			});
+			throw e;
 		}
 	}
+	
+	/**
+	 * Will log that the current context is waiting for the waitingOn.
+	 * Will also update the progress message with the waitingOn context display message.
+	 * @param callback
+	 * @param current
+	 * @param waitingOn
+	 */
+	void logWaitingForContext(ProgressCallback callback, LockContext current, LockContext waitingOn) {
+		log.info(current.toWaitingOnMessage(waitingOn));
+		logContext(callback, waitingOn);
+	}
+	
+	/**
+	 * Log the display message
+	 * @param callback
+	 * @param existingContext
+	 */
+	void logContext(ProgressCallback callback, LockContext existingContext) {
+		 String message = existingContext.toDisplayString();
+		 log.info(message);
+		 if(callback instanceof AsyncJobProgressCallback) {
+			 AsyncJobProgressCallback asynchCallback = (AsyncJobProgressCallback)callback;
+			 asynchCallback.updateProgress(message, 0L, 100L);
+		 }
+	}
+	
+
 
 	@Override
 	public <R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, LockContext context, ProgressingCallable<R> callable,

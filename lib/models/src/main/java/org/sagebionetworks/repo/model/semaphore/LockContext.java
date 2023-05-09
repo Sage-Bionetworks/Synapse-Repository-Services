@@ -16,14 +16,14 @@ import org.sagebionetworks.util.ValidateArgument;
 public class LockContext {
 
 	public enum ContextType {
-		TableUpdate("Applying an update to table: '%s'"),
-		TableSnapshot("Creating a snapshot of table: '%s'"),
-		ViewSnapshot("Creating a snapshot of view: '%s'"),
-		BuildTableIndex("Rebuliding table index: '%s'"),
-		BuildViewIndex("Rebuilding view inxex: '%s'"),
-		UpdatingViewIndex("Updating view inxex: '%s'"),
-		Query("Querying table/view: '%s'"),
-		BuildMaterializedView("Rebuilding materialized view: '%s':");
+		TableUpdate("Applying an update to table: '%s' ..."),
+		TableSnapshot("Creating a snapshot of table: '%s' ..."),
+		ViewSnapshot("Creating a snapshot of view: '%s' ..."),
+		BuildTableIndex("Rebuliding table index: '%s' ..."),
+		BuildViewIndex("Rebuilding view inxex: '%s' ..."),
+		UpdatingViewIndex("Updating view inxex: '%s' ..."),
+		Query("Querying table/view: '%s' ..."),
+		BuildMaterializedView("Rebuilding materialized view: '%s' ...");
 
 		String template;
 
@@ -88,7 +88,23 @@ public class LockContext {
 	 * @return
 	 */
 	public String toDisplayString() {
-		return String.format(this.type.getDisplayStringTemplte(), this.objectId);
+		return String.format(this.type.getDisplayStringTemplte(), this.objectId.toString());
+	}
+	
+	public String toLogString() {
+		return String.format("[%s, %s]", this.type.name(), this.objectId.toString());
+	}
+	
+	/**
+	 * Generate a message indicating that this context is waiting on the passed
+	 * context.
+	 * 
+	 * @param waitingOn
+	 * @return
+	 */
+	public String toWaitingOnMessage(LockContext waitingOn) {
+		return String.format("[%s, %s] waiting on [%s, %s]", this.type.name(), this.objectId.toString(),
+				waitingOn.type.name(), waitingOn.objectId.toString());
 	}
 
 
