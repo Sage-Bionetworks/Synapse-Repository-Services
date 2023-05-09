@@ -45,6 +45,8 @@ public class LockContext {
 	 * @param objectId
 	 */
 	public LockContext(ContextType type, IdAndVersion objectId) {
+		ValidateArgument.required(type, "type");
+		ValidateArgument.required(objectId, "objectId");
 		this.type = type;
 		this.objectId = objectId;
 	}
@@ -91,10 +93,6 @@ public class LockContext {
 		return String.format(this.type.getDisplayStringTemplte(), this.objectId.toString());
 	}
 	
-	public String toLogString() {
-		return String.format("[%s, %s]", this.type.name(), this.objectId.toString());
-	}
-	
 	/**
 	 * Generate a message indicating that this context is waiting on the passed
 	 * context.
@@ -103,6 +101,7 @@ public class LockContext {
 	 * @return
 	 */
 	public String toWaitingOnMessage(LockContext waitingOn) {
+		ValidateArgument.required(waitingOn, "waitingOn");
 		return String.format("[%s, %s] waiting on [%s, %s]", this.type.name(), this.objectId.toString(),
 				waitingOn.type.name(), waitingOn.objectId.toString());
 	}
