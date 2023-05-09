@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.throttle;
 
+import java.util.Optional;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -22,16 +24,16 @@ public class CountingSemaphoreThrottle {
 
 	@Around("execution(* org.sagebionetworks.database.semaphore.CountingSemaphoreImpl.*(..))")
 	public Object profile(ProceedingJoinPoint pjp) throws Throwable {
-		Object result = null;
+		Optional<String> result = null;
 		long start = clock.currentTimeMillis();
 		try {
-			result = pjp.proceed();
+			result = (Optional<String>) pjp.proceed();
 			return result;
 		} finally {
 			throttleCounter++;
 			long elapse = clock.currentTimeMillis() - start;
 			long sleepTimeMs = elapse;
-			if (result == null && pjp.getSignature().getName().equals("attemptToAcquireLock")) {
+			if (result != null && result.isEmpty() && pjp.getSignature().getName().equals("attemptToAcquireLock")) {
 				/*
 				 * For the case where a lock is not acquired we sleep longer as this is the main
 				 * source of too many calls, and throttling here has a limited impact on

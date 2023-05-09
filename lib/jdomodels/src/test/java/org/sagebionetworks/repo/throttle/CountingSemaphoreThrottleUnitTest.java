@@ -1,41 +1,43 @@
 package org.sagebionetworks.repo.throttle;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.common.util.Clock;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class CountingSemaphoreThrottleUnitTest {
 	
 	@Mock
-	Clock mockClock;
+	private Clock mockClock;
 	@Mock
-	ProceedingJoinPoint mockPoint;
+	private ProceedingJoinPoint mockPoint;
 	@Mock
-	Signature mockSignature;
+	private Signature mockSignature;
 	
-	String result;
+	private Optional<String> result;
 	
 	@InjectMocks
 	CountingSemaphoreThrottle throttle;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Throwable {
 		when(mockClock.currentTimeMillis()).thenReturn(1L, 3L, 9L, 81L);
-		result = "foo";
-		when(mockPoint.getSignature()).thenReturn(mockSignature);
+		result = Optional.of("foo");
 	}
 	
 	@Test
@@ -64,22 +66,24 @@ public class CountingSemaphoreThrottleUnitTest {
 	
 	@Test
 	public void testThrottleNullResultNotAqcuire() throws Throwable {
-		when(mockPoint.proceed()).thenReturn(null);
+		when(mockPoint.proceed()).thenReturn(Optional.empty());
+		when(mockPoint.getSignature()).thenReturn(mockSignature);
 		when(mockSignature.getName()).thenReturn("refreshLockTimeout");
 		// call under test
-		Object back = throttle.profile(mockPoint);
-		assertEquals(null, back);
+		Optional<String> back = (Optional<String>) throttle.profile(mockPoint);
+		assertEquals(Optional.empty(), back);
 		// Should sleep for only the elapse as not an acquire lock call.
 		verify(mockClock).sleep((3-1));
 	}
 	
 	@Test
 	public void testThrottleFailedAcquireLock() throws Throwable {
-		when(mockPoint.proceed()).thenReturn(null);
+		when(mockPoint.proceed()).thenReturn(Optional.empty());
+		when(mockPoint.getSignature()).thenReturn(mockSignature);
 		when(mockSignature.getName()).thenReturn("attemptToAcquireLock");
 		// call under test
-		Object back = throttle.profile(mockPoint);
-		assertEquals(null, back);
+		Optional<String> back = (Optional<String>) throttle.profile(mockPoint);
+		assertEquals(Optional.empty(), back);
 		// Should sleep for longer as this was a failure.
 		verify(mockClock).sleep((3-1)*10);
 	}

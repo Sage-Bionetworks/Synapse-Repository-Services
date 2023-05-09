@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
@@ -137,7 +138,7 @@ public class TableEntityUpdateRequestManagerTest {
 	@Test
 	public void testUpdateTableWithTransactionLockUnavilableException() throws Exception {
 		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				any(ProgressingCallable.class))).thenThrow(new LockUnavilableException());
+				any(ProgressingCallable.class))).thenThrow(new LockUnavilableException(LockType.Read, "key", "context"));
 		assertThrows(LockUnavilableException.class, () -> {
 			// call under test.
 			manager.updateTableWithTransaction(progressCallback, userInfo, request);

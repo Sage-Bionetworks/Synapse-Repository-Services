@@ -13,6 +13,7 @@ import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.apache.velocity.runtime.resource.loader.FileResourceLoader;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO;
 import org.sagebionetworks.repo.manager.authentication.TotpManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
@@ -45,6 +46,8 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphore;
+import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -233,6 +236,11 @@ public class RepositoryConfiguration {
 	@Bean
 	public Map<OIDCClaimName, OIDCClaimProvider> claimProviders(List<OIDCClaimProvider> providerList) {
 		return providerList.stream().collect(Collectors.toMap(OIDCClaimProvider::getName, Function.identity()));		
+	}
+	
+	@Bean
+	public WriteReadSemaphore getWriteReadSemaphore(StackConfiguration config, CountingSemaphore countingSemaphore) {
+		return new WriteReadSemaphoreImpl(countingSemaphore, config.getWriteReadSemaphoreRunnerMaxReaders());
 	}
 	
 }

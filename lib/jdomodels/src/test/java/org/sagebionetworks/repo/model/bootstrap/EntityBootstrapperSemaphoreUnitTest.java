@@ -2,12 +2,15 @@ package org.sagebionetworks.repo.model.bootstrap;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,11 +82,11 @@ public class EntityBootstrapperSemaphoreUnitTest {
 
 	@Test
 	public void testBootsrapSemaphore() throws Exception {
-		when(mockSemaphoreDao.attemptToAcquireLock("ENTITYBOOTSTRAPPERLOCK", 30L, 1)).thenReturn(null, null, null, "token");
+		when(mockSemaphoreDao.attemptToAcquireLock(any(), anyLong(), anyInt(), any())).thenReturn(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of("token"));
 		when(mockNodeDao.getNodeIdForPath(bootstrapData.get(0).getEntityPath())).thenReturn(null, bootstrapData.get(0).getEntityId().toString()); // Should force node creation
 		when(mockNodeDao.bootstrapNode(any(Node.class), any(Long.class))).thenReturn(node);
 		bootstrapper.bootstrapAll();
-		verify(mockSemaphoreDao, times(4)).attemptToAcquireLock("ENTITYBOOTSTRAPPERLOCK", 30L, 1);
+		verify(mockSemaphoreDao, times(4)).attemptToAcquireLock("ENTITYBOOTSTRAPPERLOCK", 30L, 1, EntityBootstrapperImpl.class.getName());
 		verify(mockUserGroupDao).bootstrapUsers();
 		verify(mockUserProfileDao).bootstrapProfiles();
 		verify(mockGroupMembersDao).bootstrapGroups();
@@ -96,13 +99,13 @@ public class EntityBootstrapperSemaphoreUnitTest {
 	
 	@Test
 	public void testBootstrapSemaphoreException() throws Exception {
-		when(mockSemaphoreDao.attemptToAcquireLock("ENTITYBOOTSTRAPPERLOCK", 30L, 1)).thenReturn(null, null, null, "token");
+		when(mockSemaphoreDao.attemptToAcquireLock(any(), anyLong(), anyInt(), any())).thenReturn(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of("token"));
 		when(mockNodeDao.getNodeIdForPath(bootstrapData.get(0).getEntityPath())).thenReturn(null, bootstrapData.get(0).getEntityId().toString()); // Should force node creation
 		when(mockNodeDao.bootstrapNode(any(Node.class), any(Long.class))).thenThrow(new IllegalArgumentException());
 		assertThrows(IllegalArgumentException.class, ()->{
 			bootstrapper.bootstrapAll();
 		});
-		verify(mockSemaphoreDao, times(4)).attemptToAcquireLock("ENTITYBOOTSTRAPPERLOCK", 30L, 1);
+		verify(mockSemaphoreDao, times(4)).attemptToAcquireLock("ENTITYBOOTSTRAPPERLOCK", 30L, 1, EntityBootstrapperImpl.class.getName());
 		verify(mockUserGroupDao).bootstrapUsers();
 		verify(mockUserProfileDao).bootstrapProfiles();
 		verify(mockGroupMembersDao).bootstrapGroups();

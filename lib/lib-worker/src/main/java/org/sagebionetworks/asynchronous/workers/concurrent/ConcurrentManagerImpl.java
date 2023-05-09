@@ -1,6 +1,7 @@
 package org.sagebionetworks.asynchronous.workers.concurrent;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -90,18 +91,17 @@ public class ConcurrentManagerImpl implements ConcurrentManager {
 		ValidateArgument.required(callback, "callback");
 		ValidateArgument.required(runner, "runner");
 
-		String token = countingSemaphore.attemptToAcquireLock(lockKey, lockTimeoutSec, maxLockCount);
-		if (token == null) {
-			return;
-		}
-		callback.addProgressListener(() -> {
-			countingSemaphore.refreshLockTimeout(lockKey, token, lockTimeoutSec);
+		Optional<String> optional = countingSemaphore.attemptToAcquireLock(lockKey, lockTimeoutSec, maxLockCount, ConcurrentManagerImpl.class.getName());
+		optional.ifPresent((token)->{
+			callback.addProgressListener(() -> {
+				countingSemaphore.refreshLockTimeout(lockKey, token, lockTimeoutSec);
+			});
+			try {
+				runner.run();
+			} finally {
+				countingSemaphore.releaseLock(lockKey, token);
+			}
 		});
-		try {
-			runner.run();
-		} finally {
-			countingSemaphore.releaseLock(lockKey, token);
-		}
 	}
 
 	@Override

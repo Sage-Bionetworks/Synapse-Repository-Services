@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -22,8 +23,8 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
-import org.sagebionetworks.worker.AsyncJobProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -99,7 +100,7 @@ public class TableQueryWorkerTest {
 	@Test
 	public void testLockUnavilableExceptionException() throws Exception {
 		// table not available
-		when(mockTableQueryManager.queryBundle(mockJobCallback, userInfo, request)).thenThrow(new LockUnavilableException());
+		when(mockTableQueryManager.queryBundle(mockJobCallback, userInfo, request)).thenThrow(new LockUnavilableException(LockType.Read, "key", "context"));
 		assertThrows(RecoverableMessageException.class, () -> {			
 			// call under test
 			worker.run(jobId, userInfo, request, mockJobCallback);

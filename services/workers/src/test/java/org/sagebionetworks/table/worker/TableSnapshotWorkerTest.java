@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatusChangeEvent;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -65,7 +66,7 @@ public class TableSnapshotWorkerTest {
 	@Test
 	public void testRunWithLockUnavailableException() throws RecoverableMessageException, Exception {
 		
-		LockUnavilableException ex = new LockUnavilableException("nope");
+		LockUnavilableException ex = new LockUnavilableException(LockType.Read, "key", "context");
 		
 		doThrow(ex).when(mockTableManager).storeTableSnapshot(any(), any());
 		

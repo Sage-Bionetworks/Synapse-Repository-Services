@@ -61,6 +61,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
@@ -103,6 +104,7 @@ import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.PessimisticLockingFailureException;
@@ -1351,8 +1353,8 @@ public class TableIndexManagerImplTest {
 	 */
 	@Test
 	public void testBuildIndexToChangeNumber_LockUnavilableException() throws Exception {
-		LockUnavilableException exception = new LockUnavilableException("no lock for you!");
-		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+		LockUnavilableException exception = new LockUnavilableException(LockType.Read, "key", "context");
+		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(LockContext.class), any(IdAndVersion.class),
 				any(ProgressingCallable.class))).thenThrow(exception);
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();

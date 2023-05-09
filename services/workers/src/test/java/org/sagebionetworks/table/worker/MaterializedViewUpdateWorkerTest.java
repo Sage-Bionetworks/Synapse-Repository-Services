@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 @ExtendWith(MockitoExtension.class)
@@ -130,7 +131,7 @@ public class MaterializedViewUpdateWorkerTest {
 
 	@Test
 	public void testRunLockUnavilableException() throws Exception {
-		LockUnavilableException exception = new LockUnavilableException("no lock");
+		LockUnavilableException exception = new LockUnavilableException(LockType.Read, "key", "context");
 		doThrow(exception).when(mockMaterializedViewManager).createOrUpdateViewIndex(any(),any());
 		Throwable cause = assertThrows(RecoverableMessageException.class, () -> {
 			// call under test

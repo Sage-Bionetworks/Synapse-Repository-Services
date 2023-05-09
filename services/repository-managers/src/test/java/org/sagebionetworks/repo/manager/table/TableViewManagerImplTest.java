@@ -91,6 +91,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -1239,7 +1240,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testApplyChangesToAvailableView_ExcluisveLockUnavailable() throws Exception {
 		setupNonExclusiveLockToForwardToCallack();
-		LockUnavilableException exception = new LockUnavilableException("not now");
+		LockUnavilableException exception = new LockUnavilableException(LockType.Read, "key", "context");
 		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(String.class), any());
 		String expectedKey = TableModelUtils.getViewDeltaSemaphoreKey(idAndVersion);
 		// call under test
@@ -1252,7 +1253,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testApplyChangesToAvailableView_NonExcluisveLockUnavailable() throws Exception {
-		LockUnavilableException exception = new LockUnavilableException("not now");
+		LockUnavilableException exception = new LockUnavilableException(LockType.Read, "key", "context");
 		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class),
 				any(), any(IdAndVersion.class));
 		// call under test

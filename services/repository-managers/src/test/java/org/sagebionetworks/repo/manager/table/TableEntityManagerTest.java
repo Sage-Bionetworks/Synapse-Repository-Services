@@ -122,6 +122,7 @@ import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.google.common.collect.ImmutableMap;
@@ -1089,7 +1090,7 @@ public class TableEntityManagerTest {
 		doAnswer(new Answer<Void>(){
 			@Override
 			public Void answer(InvocationOnMock invocation) throws Throwable {
-				throw new LockUnavilableException("No Lock for you!");
+				throw new LockUnavilableException(LockType.Read, "key", "context");
 			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class), any(ProgressingCallable.class));
 		
 		List<String> schema = Lists.newArrayList("111","222");
@@ -1826,7 +1827,7 @@ public class TableEntityManagerTest {
 	 */
 	@Test
 	public void testTableUpdatedLockUnavilableException() throws Exception {
-		LockUnavilableException exception = new LockUnavilableException("No lock");
+		LockUnavilableException exception = new LockUnavilableException(LockType.Read, "key", "context");
 		when(mockTableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class),
 				any(IdAndVersion.class), any(ProgressingCallable.class))).thenThrow(exception);
 		List<String> newSchema = Lists.newArrayList("1", "2");
