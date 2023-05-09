@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.AvailableFilter;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.EnableTwoFa;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
 import org.sagebionetworks.repo.model.download.RequestDownload;
@@ -129,7 +130,7 @@ public class DownloadListDaoImplTest {
 
 			DownloadListItem idWithVersion = new DownloadListItem();
 			idWithVersion.setFileEntityId("syn" + i);
-			idWithVersion.setVersionNumber(new Long(i));
+			idWithVersion.setVersionNumber(Long.valueOf(i));
 			idsWithVersions.add(idWithVersion);
 
 			DownloadListItem idWithoutVersion = new DownloadListItem();
@@ -1760,6 +1761,7 @@ public class DownloadListDaoImplTest {
 		MeetAccessRequirement restrictionOne = new MeetAccessRequirement().setAccessRequirementId(999L);
 		RequestDownload downloadOne = new RequestDownload().setBenefactorId(888L);
 		MeetAccessRequirement restrictionTwo = new MeetAccessRequirement().setAccessRequirementId(777L);
+		EnableTwoFa twoFaRequirementOne = new EnableTwoFa().setAccessRequirementId(888L);
 		
 		List<FileActionRequired> actionsRequired = Arrays.asList(
 				new FileActionRequired().withFileId(fileIds.get(0)).withAction(restrictionOne),
@@ -1767,7 +1769,8 @@ public class DownloadListDaoImplTest {
 				new FileActionRequired().withFileId(fileIds.get(3)).withAction(restrictionOne),
 				new FileActionRequired().withFileId(fileIds.get(5)).withAction(downloadOne),
 				new FileActionRequired().withFileId(fileIds.get(6)).withAction(downloadOne),
-				new FileActionRequired().withFileId(fileIds.get(8)).withAction(restrictionTwo)
+				new FileActionRequired().withFileId(fileIds.get(7)).withAction(restrictionTwo),
+				new FileActionRequired().withFileId(fileIds.get(8)).withAction(twoFaRequirementOne)
 		);
 
 		List<DownloadListItem> items = files.stream()
@@ -1786,7 +1789,8 @@ public class DownloadListDaoImplTest {
 		List<ActionRequiredCount> expected = Arrays.asList(
 				new ActionRequiredCount().setAction(downloadOne).setCount(6L),
 				new ActionRequiredCount().setAction(restrictionOne).setCount(4L),
-				new ActionRequiredCount().setAction(restrictionTwo).setCount(2L)
+				new ActionRequiredCount().setAction(restrictionTwo).setCount(2L),
+				new ActionRequiredCount().setAction(twoFaRequirementOne).setCount(2L)
 		);
 		
 		// call under test
