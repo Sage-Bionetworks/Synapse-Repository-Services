@@ -53,6 +53,7 @@ import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.AvailableFilter;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.EnableTwoFa;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
 import org.sagebionetworks.repo.model.download.RequestDownload;
@@ -151,6 +152,9 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			break;
 		case DOWNLOAD_PERMISSION:
 			action = new RequestDownload().setBenefactorId(actionId);
+			break;
+		case ENABLE_TWO_FA:
+			action = new EnableTwoFa().setAccessRequirementId(actionId);
 			break;
 		default:
 			throw new IllegalStateException("Unknown type: " + type.name());
@@ -619,16 +623,20 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 				int index = 0;
 				ps.setLong(++index, required.getFileId());
 				Action action = required.getAction();
-				if(action instanceof MeetAccessRequirement) {
+				if (action instanceof MeetAccessRequirement) {
 					ps.setString(++index, ActionType.ACCESS_REQUIREMENT.name());
-					ps.setLong(++index, ((MeetAccessRequirement)action).getAccessRequirementId());
-				}else if(action instanceof RequestDownload) {
+					ps.setLong(++index, ((MeetAccessRequirement) action).getAccessRequirementId());
+				} else if (action instanceof RequestDownload) {
 					ps.setString(++index, ActionType.DOWNLOAD_PERMISSION.name());
-					ps.setLong(++index, ((RequestDownload)action).getBenefactorId());
-				}else {
-					throw new IllegalStateException("Unknown action type: "+action.getClass().getName());
+					ps.setLong(++index, ((RequestDownload) action).getBenefactorId());
+				} else if (action instanceof EnableTwoFa) {
+					ps.setString(++index, ActionType.ENABLE_TWO_FA.name());
+					ps.setLong(++index, ((EnableTwoFa) action).getAccessRequirementId());
+				} else {
+					throw new IllegalStateException("Unknown action type: " + action.getClass().getName());
 				}
 			}
+
 			@Override
 			public int getBatchSize() {
 				return actions.length;
