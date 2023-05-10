@@ -25,6 +25,7 @@ import org.sagebionetworks.controller.model.ResponseModel;
 import org.sagebionetworks.openapi.datamodel.ApiInfo;
 import org.sagebionetworks.openapi.datamodel.OpenAPISpecModel;
 import org.sagebionetworks.openapi.datamodel.ServerInfo;
+import org.sagebionetworks.openapi.datamodel.TagInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.EndpointInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.ParameterInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.RequestBodyInfo;
@@ -49,7 +50,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		String basePath = "/BASE_PATH";
 		List<MethodModel> methods = new ArrayList<>();
 		ControllerModel controllerModel = new ControllerModel().withDisplayName(displayName).withPath(basePath)
-				.withMethods(methods);
+				.withMethods(methods).withDescription(DESCRIPTION);
 		ApiInfo apiInfo = new ApiInfo();
 		List<ServerInfo> servers = new ArrayList<>();
 
@@ -59,8 +60,10 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		Mockito.doReturn(servers).when(translator).getServers();
 
 		OpenAPISpecModel result = translator.translate(Arrays.asList(controllerModel));
+		List<TagInfo> tags = new ArrayList<>();
+		tags.add(new TagInfo().withDescription(DESCRIPTION).withName(displayName));
 		OpenAPISpecModel expected = new OpenAPISpecModel().withInfo(apiInfo).withOpenapi("3.0.1").withServers(servers)
-				.withComponents(null).withPaths(new LinkedHashMap<>());
+				.withComponents(null).withPaths(new LinkedHashMap<>()).withTags(tags);
 		assertEquals(expected, result);
 
 		Mockito.verify(translator).insertPaths(methods, basePath, displayName, result.getPaths());
@@ -79,13 +82,13 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 
 	@Test
 	public void testGetApiInfo() {
-		ApiInfo expectedApiInfo = new ApiInfo().withTitle("Sample OpenAPI definition").withVersion("v0");
+		ApiInfo expectedApiInfo = new ApiInfo().withTitle("Sample OpenAPI definition").withVersion("v1");
 		assertEquals(expectedApiInfo, translator.getApiInfo());
 	}
 
 	@Test
 	public void testGetServers() {
-		ServerInfo server = new ServerInfo().withUrl("https://localhost:8080")
+		ServerInfo server = new ServerInfo().withUrl("https://repo-prod.prod.sagebase.org")
 				.withDescription("This is the generated server URL");
 		assertEquals(new ArrayList<>(Arrays.asList(server)), translator.getServers());
 	}
@@ -98,7 +101,8 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		Map<String, Map<String, EndpointInfo>> paths = new LinkedHashMap<>();
 
 		String methodPath = "/METHOD_PATH";
-		MethodModel method = new MethodModel().withPath(methodPath).withOperation(Operation.get);
+		String observedMethodPath = "\"" + methodPath + "\"";
+		MethodModel method = new MethodModel().withPath(observedMethodPath).withOperation(Operation.get);
 		methods.add(method);
 
 		EndpointInfo endpointInfo = new EndpointInfo();

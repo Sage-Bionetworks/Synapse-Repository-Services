@@ -19,6 +19,7 @@ public class OpenAPISpecModel {
 	private String openapi;
 	private ApiInfo info;
 	private List<ServerInfo> servers;
+	private List<TagInfo> tags;
 	// This maps path -> { operation -> endpointInfo}
 	private Map<String, Map<String, EndpointInfo>> paths;
 	private ComponentInfo components;
@@ -68,6 +69,15 @@ public class OpenAPISpecModel {
 		return this;
 	}
 	
+	public List<TagInfo> getTags() {
+		return this.tags;
+	}
+	
+	public OpenAPISpecModel withTags(List<TagInfo> tags) {
+		this.tags = tags;
+		return this;
+	}
+	
 	/**
 	 * Generates a JSONObject based on the state of this OpenAPISpecModel.
 	 * 
@@ -81,7 +91,7 @@ public class OpenAPISpecModel {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(components, info, openapi, paths, servers);
+		return Objects.hash(components, info, openapi, paths, servers, tags);
 	}
 
 	@Override
@@ -95,12 +105,12 @@ public class OpenAPISpecModel {
 		OpenAPISpecModel other = (OpenAPISpecModel) obj;
 		return Objects.equals(components, other.components) && Objects.equals(info, other.info)
 				&& Objects.equals(openapi, other.openapi) && Objects.equals(paths, other.paths)
-				&& Objects.equals(servers, other.servers);
+				&& Objects.equals(servers, other.servers) && Objects.equals(tags, other.tags);
 	}
 
 	@Override
 	public String toString() {
-		return "SwaggerSpecModel [openapi=" + openapi + ", info=" + info + ", servers=" + servers + ", paths=" + paths
-				+ ", components=" + components + "]";
+		return "OpenAPISpecModel [openapi=" + openapi + ", info=" + info + ", servers=" + servers + ", paths=" + paths
+				+ ", components=" + components + ", tags=" + tags + "]";
 	}
 }
