@@ -16,6 +16,7 @@ import org.sagebionetworks.openapi.datamodel.ApiInfo;
 import org.sagebionetworks.openapi.datamodel.ComponentInfo;
 import org.sagebionetworks.openapi.datamodel.OpenAPISpecModel;
 import org.sagebionetworks.openapi.datamodel.ServerInfo;
+import org.sagebionetworks.openapi.datamodel.TagInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.EndpointInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.ParameterInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.RequestBodyInfo;
@@ -32,15 +33,18 @@ public class ControllerModelsToOpenAPIModelTranslator {
 	 */
 	public OpenAPISpecModel translate(List<ControllerModel> controllerModels) {
 		ValidateArgument.required(controllerModels, "controllerModels");
+		List<TagInfo> tags = new ArrayList<>();
 		Map<String, Map<String, EndpointInfo>> paths = new LinkedHashMap<>();
 		for (ControllerModel controllerModel : controllerModels) {
 			String displayName = controllerModel.getDisplayName();
 			String basePath = controllerModel.getPath();
+			String description = controllerModel.getDescription();
 			List<MethodModel> methods = controllerModel.getMethods();
 			insertPaths(methods, basePath, displayName, paths);
+			tags.add(new TagInfo().withDescription(description).withName(displayName));
 		}
 		return new OpenAPISpecModel().withInfo(getApiInfo()).withOpenapi("3.0.1").withServers(getServers())
-				.withComponents(null).withPaths(paths);
+				.withComponents(null).withPaths(paths).withTags(tags);
 	}
 
 	/**

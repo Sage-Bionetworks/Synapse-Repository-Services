@@ -70,6 +70,7 @@ public class ControllerToControllerModelTranslatorTest {
 	private final String ANNOTATION_NAME = "ANNOTATION_NAME";
 	private final String CONTROLLER_NAME = "Person";
 	private final String CONTROLLER_PATH = "repo/v1/person";
+	private final String CONTROLLER_DESCRIPTION = "CONTROLLER_DESCRIPTION";
 
 	@BeforeEach
 	private void setUp() {
@@ -144,7 +145,7 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testTranslate() {
 		ControllerModel expectedControllerModel = new ControllerModel().withDisplayName(CONTROLLER_NAME)
-				.withMethods(getExpectedMethods()).withPath(CONTROLLER_PATH);
+				.withMethods(getExpectedMethods()).withPath(CONTROLLER_PATH).withDescription(CONTROLLER_DESCRIPTION);
 
 		TypeElement controller = Mockito.mock(TypeElement.class);
 		List<Element> elements = new ArrayList<>();
@@ -154,8 +155,11 @@ public class ControllerToControllerModelTranslatorTest {
 		Mockito.doReturn(getExpectedMethods()).when(translator).getMethods(any(List.class), any(DocTrees.class));
 		Mockito.doReturn(new ControllerInfoModel().withDisplayName(CONTROLLER_NAME).withPath(CONTROLLER_PATH))
 				.when(translator).getControllerInfoModel(any(List.class));
+		Mockito.doReturn(CONTROLLER_DESCRIPTION).when(translator).getControllerDescription(any(DocCommentTree.class));
 		
 		DocTrees mockDocTree = Mockito.mock(DocTrees.class);
+		DocCommentTree mockDocCommentTree = Mockito.mock(DocCommentTree.class);
+		Mockito.doReturn(mockDocCommentTree).when(mockDocTree).getDocCommentTree(any(TypeElement.class));
 		// call under test
 		assertEquals(expectedControllerModel, translator.translate(controller, mockDocTree));
 		
@@ -163,6 +167,41 @@ public class ControllerToControllerModelTranslatorTest {
 		Mockito.verify(controller, Mockito.times(1)).getAnnotationMirrors();
 		Mockito.verify(translator, Mockito.times(1)).getMethods(elements, mockDocTree);
 		Mockito.verify(translator, Mockito.times(1)).getControllerInfoModel(annoMirrors);
+		Mockito.verify(translator, Mockito.times(1)).getControllerDescription(mockDocCommentTree);
+	}
+	
+	@Test
+	public void testGetControllerDescription() {
+		DocCommentTree mockDocCommentTree = Mockito.mock(DocCommentTree.class);
+		List<DocTree> fullBody = new ArrayList<>();
+		Mockito.doReturn(fullBody).when(mockDocCommentTree).getFullBody();
+		Optional<String> result = Optional.of(CONTROLLER_DESCRIPTION);
+		Mockito.doReturn(result).when(translator).getBehaviorComment(any(List.class));
+		
+		assertEquals(CONTROLLER_DESCRIPTION, translator.getControllerDescription(mockDocCommentTree));
+		Mockito.verify(translator).getBehaviorComment(fullBody);
+		Mockito.verify(mockDocCommentTree).getFullBody();
+	}
+	
+	@Test
+	public void testGetControllerDescriptionWithMissingComment() {
+		DocCommentTree mockDocCommentTree = Mockito.mock(DocCommentTree.class);
+		List<DocTree> fullBody = new ArrayList<>();
+		Mockito.doReturn(fullBody).when(mockDocCommentTree).getFullBody();
+		Optional<String> result = Optional.empty();
+		Mockito.doReturn(result).when(translator).getBehaviorComment(any(List.class));
+		
+		assertEquals(null, translator.getControllerDescription(mockDocCommentTree));
+		Mockito.verify(translator).getBehaviorComment(fullBody);
+		Mockito.verify(mockDocCommentTree).getFullBody();
+	}
+	
+	@Test
+	public void testGetControllerDescriptionWithNull() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			translator.getControllerDescription(null);
+		});
+		assertEquals("controllerTree is required.", exception.getMessage());
 	}
 
 	@Test

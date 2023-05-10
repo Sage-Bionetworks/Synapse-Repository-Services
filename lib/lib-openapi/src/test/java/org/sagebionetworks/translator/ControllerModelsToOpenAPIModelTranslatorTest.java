@@ -25,6 +25,7 @@ import org.sagebionetworks.controller.model.ResponseModel;
 import org.sagebionetworks.openapi.datamodel.ApiInfo;
 import org.sagebionetworks.openapi.datamodel.OpenAPISpecModel;
 import org.sagebionetworks.openapi.datamodel.ServerInfo;
+import org.sagebionetworks.openapi.datamodel.TagInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.EndpointInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.ParameterInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.RequestBodyInfo;
@@ -49,7 +50,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		String basePath = "/BASE_PATH";
 		List<MethodModel> methods = new ArrayList<>();
 		ControllerModel controllerModel = new ControllerModel().withDisplayName(displayName).withPath(basePath)
-				.withMethods(methods);
+				.withMethods(methods).withDescription(DESCRIPTION);
 		ApiInfo apiInfo = new ApiInfo();
 		List<ServerInfo> servers = new ArrayList<>();
 
@@ -59,8 +60,10 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		Mockito.doReturn(servers).when(translator).getServers();
 
 		OpenAPISpecModel result = translator.translate(Arrays.asList(controllerModel));
+		List<TagInfo> tags = new ArrayList<>();
+		tags.add(new TagInfo().withDescription(DESCRIPTION).withName(displayName));
 		OpenAPISpecModel expected = new OpenAPISpecModel().withInfo(apiInfo).withOpenapi("3.0.1").withServers(servers)
-				.withComponents(null).withPaths(new LinkedHashMap<>());
+				.withComponents(null).withPaths(new LinkedHashMap<>()).withTags(tags);
 		assertEquals(expected, result);
 
 		Mockito.verify(translator).insertPaths(methods, basePath, displayName, result.getPaths());

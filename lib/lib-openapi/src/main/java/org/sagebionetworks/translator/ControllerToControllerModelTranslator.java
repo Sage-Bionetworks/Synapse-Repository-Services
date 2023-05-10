@@ -56,17 +56,30 @@ public class ControllerToControllerModelTranslator {
 		ControllerModel controllerModel = new ControllerModel();
 		List<MethodModel> methods = getMethods(controller.getEnclosedElements(), docTrees);
 		ControllerInfoModel controllerInfo = getControllerInfoModel(controller.getAnnotationMirrors());
-		controllerModel.withDisplayName(controllerInfo.getDisplayName()).withPath(controllerInfo.getPath()).withMethods(methods);
+		controllerModel.withDisplayName(controllerInfo.getDisplayName()).withPath(controllerInfo.getPath())
+				.withMethods(methods).withDescription(getControllerDescription(docTrees.getDocCommentTree(controller)));
 		return controllerModel;
 	}
 	
+	/**
+	 * Get comment for controller description.
+	 * 
+	 * @param controllerTree - the document tree for the controller
+	 * @return the overall comment for the controller.
+	 */
+	String getControllerDescription(DocCommentTree controllerTree) {
+		ValidateArgument.required(controllerTree, "controllerTree");
+		Optional<String> comment = getBehaviorComment(controllerTree.getFullBody());
+		return comment.isEmpty() ? null : comment.get();
+	}
+
 	/**
 	 * Constructs a model that represents the annotations on a Controller.
 	 * 
 	 * @param annotations - the annotations for a controller
 	 * @return a model that represents the annotations on a controller.
 	 */
-	public ControllerInfoModel getControllerInfoModel(List<? extends AnnotationMirror> annotations) {
+	ControllerInfoModel getControllerInfoModel(List<? extends AnnotationMirror> annotations) {
 		ValidateArgument.required(annotations, "annotations");
 		for (AnnotationMirror annotation : annotations) {
 			if (!ControllerInfo.class.getSimpleName().equals(getSimpleAnnotationName(annotation))) {
@@ -105,10 +118,12 @@ public class ControllerToControllerModelTranslator {
 			Map<String, String> parameterToDescription = getParameterToDescription(docCommentTree.getBlockTags());
 			Map<Class, Object> annotationToModel = getAnnotationToModel(method.getAnnotationMirrors());
 			if (!annotationToModel.containsKey(RequestMapping.class)) {
-				throw new IllegalStateException("Method " + method.getSimpleName() + " missing RequestMapping annotation.");
+				throw new IllegalStateException(
+						"Method " + method.getSimpleName() + " missing RequestMapping annotation.");
 			}
 			if (!annotationToModel.containsKey(ResponseStatus.class)) {
-				throw new IllegalStateException("Method " + method.getSimpleName() + " missing ResponseStatus annotation.");
+				throw new IllegalStateException(
+						"Method " + method.getSimpleName() + " missing ResponseStatus annotation.");
 			}
 			Optional<String> behaviorComment = getBehaviorComment(docCommentTree.getFullBody());
 			Optional<RequestBodyModel> requestBody = getRequestBody(method.getParameters(), parameterToDescription);
@@ -176,7 +191,7 @@ public class ControllerToControllerModelTranslator {
 		}
 		return annotationToModel;
 	}
-	
+
 	/**
 	 * Constructs a model that represents the ResponseStatus annotation.
 	 * 
@@ -189,12 +204,13 @@ public class ControllerToControllerModelTranslator {
 		for (ExecutableElement key : annotation.getElementValues().keySet()) {
 			String keyName = key.getSimpleName().toString();
 			if (keyName.equals("value") || keyName.equals("code")) {
-				responseStatus.withStatusCode(getHttpStatusCode(annotation.getElementValues().get(key).getValue().toString()));
+				responseStatus.withStatusCode(
+						getHttpStatusCode(annotation.getElementValues().get(key).getValue().toString()));
 			}
 		}
 		return responseStatus;
 	}
-	
+
 	/**
 	 * Constructs a model that represents a RequestMapping annotation.
 	 * 
@@ -424,9 +440,9 @@ public class ControllerToControllerModelTranslator {
 	}
 
 	/**
-	 * Gets an optional that contains the behavior/overall comment for a method.
+	 * Gets an optional that contains the behavior/overall comment.
 	 * 
-	 * @param fullBody - the body comment for the method.
+	 * @param fullBody - the body comment.
 	 * @return optional with the behavior/overall comment inside, or empty optional
 	 *         if no behavior comment found.
 	 */

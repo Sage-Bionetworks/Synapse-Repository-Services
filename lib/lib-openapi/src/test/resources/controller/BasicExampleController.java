@@ -11,7 +11,12 @@ import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@ControllerInfo(displayName = "Person", path = "repo/v1/person")
+/**
+ * This is a basic example controller.
+ * @author lli
+ *
+ */
+@ControllerInfo(displayName = "Person", path = "repo/v1")
 public class BasicExampleController {
 	ConcurrentMap<String, Integer> personNameToAge = new ConcurrentHashMap<>();
 	

@@ -15,6 +15,7 @@ import com.google.gson.Gson;
 public class ControllerModel {
 	private String path; // The path to the controller.
 	private String displayName; // The name of the controller.
+	private String description;
 	private List<MethodModel> methods;
 
 	public String getPath() {
@@ -35,6 +36,15 @@ public class ControllerModel {
 		return this;
 	}
 	
+	public String getDescription() {
+		return description;
+	}
+	
+	public ControllerModel withDescription(String description) {
+		this.description = description;
+		return this;
+	}
+	
 	public List<MethodModel> getMethods() {
 		return methods;
 	}
@@ -43,10 +53,10 @@ public class ControllerModel {
 		this.methods = methods;
 		return this;
 	}
-	
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(displayName, methods, path);
+		return Objects.hash(description, displayName, methods, path);
 	}
 
 	@Override
@@ -58,12 +68,13 @@ public class ControllerModel {
 		if (getClass() != obj.getClass())
 			return false;
 		ControllerModel other = (ControllerModel) obj;
-		return Objects.equals(displayName, other.displayName) && Objects.equals(methods, other.methods)
-				&& Objects.equals(path, other.path);
+		return Objects.equals(description, other.description) && Objects.equals(displayName, other.displayName)
+				&& Objects.equals(methods, other.methods) && Objects.equals(path, other.path);
 	}
 
 	@Override
 	public String toString() {
-		return "ControllerModel [path=" + path + ", displayName=" + displayName + ", methods=" + methods + "]";
-	}	
+		return "ControllerModel [path=" + path + ", displayName=" + displayName + ", description=" + description
+				+ ", methods=" + methods + "]";
+	}
 }
