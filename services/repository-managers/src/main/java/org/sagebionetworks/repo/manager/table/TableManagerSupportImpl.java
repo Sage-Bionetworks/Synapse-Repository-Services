@@ -407,11 +407,15 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, LockContext context, String key,
 			ProgressingCallable<R> callable) throws Exception {
+		ValidateArgument.required(callback, "callback");
 		ValidateArgument.required(context, "context");
+		ValidateArgument.required(key, "key");
+		ValidateArgument.required(callable, "callable");
+		
 		logContext(callback, context);
 		try {
 			try (WriteLock lock = writeReadSemaphoreRunner
-					.getWriteLock(new WriteLockRequest(callback, key, context.serializeToString()))) {
+					.getWriteLock(new WriteLockRequest(callback, context.serializeToString(), key))) {
 				Optional<String> readersContextString = null;
 				while ((readersContextString = lock.getExistingReadLockContext()).isPresent()) {
 					logWaitingForContext(callback, context, LockContext.deserialize(readersContextString.get()));
@@ -440,7 +444,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public <R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, LockContext context, ProgressingCallable<R> runner,
 			String... keys) throws Exception {
+		ValidateArgument.required(callback, "callback");
 		ValidateArgument.required(context, "context");
+		ValidateArgument.required(runner, "runner");
+		ValidateArgument.required(keys, "keys");
+		
 		logContext(callback, context);
 		try {
 			try(ReadLock lock = writeReadSemaphoreRunner.getReadLock(new ReadLockRequest(callback, context.serializeToString(), keys))){
