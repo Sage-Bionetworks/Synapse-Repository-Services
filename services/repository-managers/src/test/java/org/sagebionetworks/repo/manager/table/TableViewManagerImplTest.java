@@ -1146,6 +1146,13 @@ public class TableViewManagerImplTest {
 		// call under test
 		long result = managerSpy.createSnapshot(userInfo, idAndVersion.getId(), snapshotOptions, mockProgressCallback);
 		
+		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(
+				eq(mockProgressCallback),
+				eq(new LockContext(ContextType.ViewSnapshot, idAndVersion)),
+				any(),
+				eq(TableModelUtils.getTableSemaphoreKey(idAndVersion)),
+				eq(TableModelUtils.getViewDeltaSemaphoreKey(idAndVersion)));
+		
 		assertEquals(snapshotVersion, result);
 		
 		verify(managerSpy).validateViewForSnapshot(idAndVersion);

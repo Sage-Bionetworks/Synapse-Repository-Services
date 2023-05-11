@@ -1093,6 +1093,8 @@ public class TableEntityManagerTest {
 			// call under test.
 			manager.tableUpdated(user, schema, tableId, false);
 		});
+		
+		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), eq(expectedLockContext), eq(idAndVersion), any());
 	}
 	
 	@Test
