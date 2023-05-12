@@ -7,7 +7,6 @@ import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.UserProfileManager;
-import org.sagebionetworks.repo.manager.audit.KinesisJsonEntityRecord;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
@@ -21,6 +20,7 @@ import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -59,9 +59,9 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException {
         List<ObjectRecord> groups = new LinkedList<ObjectRecord>();
         List<ObjectRecord> individuals = new LinkedList<ObjectRecord>();
-        List<KinesisJsonEntityRecord> kinesisTeamRecords = new ArrayList<>();
-        List<KinesisJsonEntityRecord> kinesisUserProfileRecords = new ArrayList<>();
-        List<KinesisJsonEntityRecord> kinesisUserGroups = new ArrayList<>();
+		List<KinesisObjectSnapshotRecord<Team>>  kinesisTeamRecords = new ArrayList<>();
+		List<KinesisObjectSnapshotRecord<UserProfile>>  kinesisUserProfileRecords = new ArrayList<>();
+		List<KinesisObjectSnapshotRecord<UserGroup>>  kinesisUserGroups = new ArrayList<>();
 		for (ChangeMessage message : messages) {
 			if (message.getObjectType() != ObjectType.PRINCIPAL) {
 				throw new IllegalArgumentException();
@@ -76,7 +76,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 				userGroup = userGroupDAO.get(principalId);
 				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(userGroup, message.getTimestamp().getTime());
 				objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
-                kinesisUserGroups.add(new KinesisJsonEntityRecord<>(message.getTimestamp().getTime(), userGroup));
+				kinesisUserGroups.add(KinesisObjectSnapshotRecord.map(message.getTimestamp().getTime(), userGroup));
 
 				if(userGroup.getIsIndividual()){
 					// User
@@ -85,7 +85,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 						profile.setSummary(null);
 						ObjectRecord upRecord = ObjectRecordBuilderUtils.buildObjectRecord(profile, message.getTimestamp().getTime());
 						individuals.add(upRecord);
-                        kinesisUserProfileRecords.add(new KinesisJsonEntityRecord<>(message.getTimestamp().getTime(), profile));
+                        kinesisUserProfileRecords.add(KinesisObjectSnapshotRecord.map(message.getTimestamp().getTime(), profile));
 					} catch (NotFoundException e) {
 						log.warn("UserProfile not found: "+principalId);
 					}
@@ -96,7 +96,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 						Team team = teamDAO.get(message.getObjectId());
 						ObjectRecord teamRecord = ObjectRecordBuilderUtils.buildObjectRecord(team, message.getTimestamp().getTime());
 						groups.add(teamRecord);
-                        kinesisTeamRecords.add(new KinesisJsonEntityRecord<>(message.getTimestamp().getTime(), team));
+                        kinesisTeamRecords.add(KinesisObjectSnapshotRecord.map(message.getTimestamp().getTime(), team));
 					} catch (NotFoundException e) {
 						log.warn("Team not found: "+principalId);
 					}
@@ -138,7 +138,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	public void captureAllMembers(String groupId, long timestamp) throws IOException {
 		List<UserGroup> members = groupMembersDAO.getMembers(groupId);
 		List<ObjectRecord> records = new ArrayList<ObjectRecord>();
-        List<KinesisJsonEntityRecord> kinesisTeamMemberRecords = new ArrayList<>();
+		List<KinesisObjectSnapshotRecord<TeamMember>> kinesisTeamMemberRecords = new ArrayList<>();
 		for (UserGroup member : members) {
 			TeamMember teamMember = new TeamMember();
 			teamMember.setTeamId(groupId);
@@ -147,7 +147,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 			teamMember.setMember(ugh);
 			teamMember.setIsAdmin(false);
 			records.add(ObjectRecordBuilderUtils.buildObjectRecord(teamMember, timestamp));
-            kinesisTeamMemberRecords.add(new KinesisJsonEntityRecord(timestamp, teamMember));
+            kinesisTeamMemberRecords.add(KinesisObjectSnapshotRecord.map(timestamp, teamMember));
 		}
 		if (records.size() > 0) {
 			objectRecordDAO.saveBatch(records, records.get(0).getJsonClassName());

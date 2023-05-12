@@ -1,13 +1,13 @@
 package org.sagebionetworks.snapshot.workers;
 
-import java.util.Objects;
-
 import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.threeten.bp.Instant;
+
+import java.util.Objects;
 
 public class KinesisObjectSnapshotRecord<T extends JSONEntity> implements AwsKinesisLogRecord {
 
@@ -107,6 +107,13 @@ public class KinesisObjectSnapshotRecord<T extends JSONEntity> implements AwsKin
 			.withSnapshotTimestamp(Instant.now().toEpochMilli())
 			.withUserId(message.getUserId())
 			.withSnapshot(snapshot);
+	}
+
+	public static final <T extends JSONEntity> KinesisObjectSnapshotRecord<T> map(long changeTimestamp, T snapshot) {
+		return new KinesisObjectSnapshotRecord<T>()
+				.withChangeTimestamp(changeTimestamp)
+				.withSnapshotTimestamp(Instant.now().toEpochMilli())
+				.withSnapshot(snapshot);
 	}
 
 	@Override

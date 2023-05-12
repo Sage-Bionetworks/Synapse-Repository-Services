@@ -15,12 +15,6 @@ public class KinesisJsonEntityRecord<T extends JSONEntity> extends AbstractAwsKi
         this.payload = jsonEntity;
     }
 
-    public KinesisJsonEntityRecord(Long timestamp, T jsonEntity) {
-        super(null, null);
-        this.timestamp = timestamp;
-        this.payload = jsonEntity;
-    }
-
     public Long getTimestamp() {
         return timestamp;
     }
