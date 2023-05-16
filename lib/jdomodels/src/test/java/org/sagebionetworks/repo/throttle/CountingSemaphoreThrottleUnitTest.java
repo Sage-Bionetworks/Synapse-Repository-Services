@@ -42,6 +42,8 @@ public class CountingSemaphoreThrottleUnitTest {
 	
 	@Test
 	public void testThrottle() throws Throwable {
+		when(mockPoint.getSignature()).thenReturn(mockSignature);
+		when(mockSignature.getName()).thenReturn("releaseLock");
 		when(mockPoint.proceed()).thenReturn(result);
 		// call under test
 		Object back = throttle.profile(mockPoint);
@@ -54,6 +56,8 @@ public class CountingSemaphoreThrottleUnitTest {
 	
 	@Test
 	public void testThrottleZeroElapse() throws Throwable {
+		when(mockPoint.getSignature()).thenReturn(mockSignature);
+		when(mockSignature.getName()).thenReturn("releaseLock");
 		when(mockPoint.proceed()).thenReturn(result);
 		// elapse should be zero
 		when(mockClock.currentTimeMillis()).thenReturn(1L, 1L);
@@ -86,6 +90,17 @@ public class CountingSemaphoreThrottleUnitTest {
 		assertEquals(Optional.empty(), back);
 		// Should sleep for longer as this was a failure.
 		verify(mockClock).sleep((3-1)*10);
+	}
+	
+	@Test
+	public void testThrottleAcquireLock() throws Throwable {
+		when(mockPoint.proceed()).thenReturn(Optional.of("token"));
+		when(mockPoint.getSignature()).thenReturn(mockSignature);
+		when(mockSignature.getName()).thenReturn("attemptToAcquireLock");
+		// call under test
+		Optional<String> back = (Optional<String>) throttle.profile(mockPoint);
+		assertEquals(Optional.of("token"), back);
+		verify(mockClock).sleep((3-1));
 	}
 
 }

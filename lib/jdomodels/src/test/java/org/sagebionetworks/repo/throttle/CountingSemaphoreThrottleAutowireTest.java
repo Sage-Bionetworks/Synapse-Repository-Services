@@ -49,7 +49,7 @@ public class CountingSemaphoreThrottleAutowireTest {
 			countingSemaphore.releaseLock(key, token);
 		});
 		long elapseThrottleCount = throttle.getCounter()-startCount;
-		assertEquals(1L, elapseThrottleCount);
+		assertEquals(3L, elapseThrottleCount);
 	}
 	
 	@Test
