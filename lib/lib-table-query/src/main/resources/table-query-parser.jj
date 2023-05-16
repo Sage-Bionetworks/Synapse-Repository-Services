@@ -1379,8 +1379,13 @@ CaseSpecification caseSpecification():
 	SearchedCase searchedCase = null;
 }
 {
-	simpleCase = simpleCase() { return new CaseSpecification(simpleCase); }
-	| searchedCase = searchedCase() { return new CaseSpecification(searchedCase); }
+	<_case>
+		(
+			simpleCase = simpleCase()
+			| searchedCase = searchedCase()
+		)
+	<end>
+	{ return simpleCase != null ? new CaseSpecification(simpleCase) : new CaseSpecification(searchedCase); }
 }
 SimpleCase simpleCase():
 {
@@ -1389,11 +1394,9 @@ SimpleCase simpleCase():
 	ElseClause elseClause = null;
 }
 {
-	<_case>
-		caseOperand = caseOperand()
-		simpleWhenClause = simpleWhenClause()
-		[ elseClause = elseClause() ]
-	<end>
+	caseOperand = caseOperand()
+	simpleWhenClause = simpleWhenClause()
+	[ elseClause = elseClause() ]
 	{ return new SimpleCase(caseOperand, simpleWhenClause, elseClause); }
 }
 CaseOperand caseOperand():
@@ -1446,10 +1449,9 @@ SearchedCase searchedCase():
 	ElseClause elseClause = null;
 }
 {
-	<_case>
-		searchedWhenClause = searchedWhenClause()
-		[ elseClause = elseClause() ]
-	<end> { return new SearchedCase(searchedWhenClause, elseClause); }
+	searchedWhenClause = searchedWhenClause()
+	[ elseClause = elseClause() ]
+	{ return new SearchedCase(searchedWhenClause, elseClause); }
 }
 SearchedWhenClause searchedWhenClause():
 {
