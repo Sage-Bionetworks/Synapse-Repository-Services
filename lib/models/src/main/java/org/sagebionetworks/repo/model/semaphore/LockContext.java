@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.semaphore;
 
 import java.util.Objects;
+import java.util.StringJoiner;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.entity.IdAndVersionParser;
@@ -19,7 +20,7 @@ public class LockContext {
 		TableUpdate("Applying an update to table: '%s' ..."),
 		TableSnapshot("Creating a snapshot of table: '%s' ..."),
 		ViewSnapshot("Creating a snapshot of view: '%s' ..."),
-		BuildTableIndex("Rebuliding table index: '%s' ..."),
+		BuildTableIndex("Rebuilding table index: '%s' ..."),
 		BuildViewIndex("Rebuilding view inxex: '%s' ..."),
 		UpdatingViewIndex("Updating view inxex: '%s' ..."),
 		Query("Querying table/view: '%s' ..."),
@@ -31,7 +32,7 @@ public class LockContext {
 			this.template = template;
 		}
 
-		public String getDisplayStringTemplte() {
+		public String getDisplayStringTemplate() {
 			return template;
 		}
 	}
@@ -73,15 +74,9 @@ public class LockContext {
 	 * @return
 	 */
 	public String serializeToString() {
-		StringBuilder builder = new StringBuilder();
-		serializeToString(builder);
-		return builder.toString();
-	}
-
-	void serializeToString(StringBuilder builder) {
-		builder.append(type.name());
-		builder.append(",");
-		builder.append(objectId.toString());
+		StringJoiner joiner = new StringJoiner(",");
+		joiner.add(type.name());
+		return joiner.add(objectId.toString()).toString();
 	}
 
 	/**
@@ -90,7 +85,7 @@ public class LockContext {
 	 * @return
 	 */
 	public String toDisplayString() {
-		return String.format(this.type.getDisplayStringTemplte(), this.objectId.toString());
+		return String.format(this.type.getDisplayStringTemplate(), this.objectId.toString());
 	}
 	
 	/**

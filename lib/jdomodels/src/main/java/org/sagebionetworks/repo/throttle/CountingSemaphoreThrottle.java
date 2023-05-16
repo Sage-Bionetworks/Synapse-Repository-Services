@@ -22,7 +22,7 @@ public class CountingSemaphoreThrottle {
 	long throttleCounter = 0;
 	long failedLockAttemptCount = 0;
 
-	@Around("execution(* org.sagebionetworks.database.semaphore.CountingSemaphoreImpl.*(..))")
+	@Around("execution(* org.sagebionetworks.database.semaphore.CountingSemaphoreImpl.attemptToAcquireLock*(..))")
 	public Object profile(ProceedingJoinPoint pjp) throws Throwable {
 		Optional<String> result = null;
 		long start = clock.currentTimeMillis();
@@ -33,7 +33,7 @@ public class CountingSemaphoreThrottle {
 			throttleCounter++;
 			long elapse = clock.currentTimeMillis() - start;
 			long sleepTimeMs = elapse;
-			if (result != null && result.isEmpty() && pjp.getSignature().getName().equals("attemptToAcquireLock")) {
+			if (result != null && result.isEmpty()) {
 				/*
 				 * For the case where a lock is not acquired we sleep longer as this is the main
 				 * source of too many calls, and throttling here has a limited impact on

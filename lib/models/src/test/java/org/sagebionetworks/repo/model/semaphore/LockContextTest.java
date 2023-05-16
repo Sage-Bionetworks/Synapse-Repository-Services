@@ -36,7 +36,7 @@ public class LockContextTest {
 		assertEquals("Creating a snapshot of view: 'syn123.1' ...",
 				new LockContext(ContextType.ViewSnapshot, IdAndVersionParser.parseIdAndVersion("syn123.1"))
 						.toDisplayString());
-		assertEquals("Rebuliding table index: 'syn123.1' ...",
+		assertEquals("Rebuilding table index: 'syn123.1' ...",
 				new LockContext(ContextType.BuildTableIndex, IdAndVersionParser.parseIdAndVersion("syn123.1"))
 						.toDisplayString());
 		assertEquals("Rebuilding view inxex: 'syn123.1' ...",
