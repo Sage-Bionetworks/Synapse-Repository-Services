@@ -33,7 +33,7 @@ public class CountingSemaphoreThrottle {
 			throttleCounter++;
 			long elapse = clock.currentTimeMillis() - start;
 			long sleepTimeMs = elapse;
-			if (pjp.getSignature().getName().equals("attemptToAcquireLock")) {
+			if (result != null && pjp.getSignature().getName().equals("attemptToAcquireLock")) {
 				if(((Optional<String>)result).isEmpty()) {
 					/*
 					 * For the case where a lock is not acquired we sleep longer as this is the main

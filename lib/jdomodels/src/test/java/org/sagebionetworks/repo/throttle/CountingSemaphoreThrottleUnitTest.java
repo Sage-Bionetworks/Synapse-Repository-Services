@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.throttle;
 
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -102,5 +103,18 @@ public class CountingSemaphoreThrottleUnitTest {
 		assertEquals(Optional.of("token"), back);
 		verify(mockClock).sleep((3-1));
 	}
+	
+	@Test
+	public void testThrottleAcquireLockWithException() throws Throwable {
+		Exception exception = new IllegalArgumentException("wrong stuff");
+		when(mockPoint.proceed()).thenThrow(exception);
+		Exception result = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			 throttle.profile(mockPoint);
+		});
+		assertEquals(exception, result);
+		verify(mockClock).sleep((3-1));
+	}
+
 
 }
