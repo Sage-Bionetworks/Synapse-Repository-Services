@@ -11,6 +11,8 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.semaphore.LockContext;
+import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -149,13 +151,14 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 
 	@Override
 	public void createOrUpdateViewIndex(ProgressCallback callback, IdAndVersion idAndVersion) throws Exception {
-		tableManagerSupport.tryRunWithTableExclusiveLock(callback, idAndVersion, (ProgressCallback innerCallback) -> {
-			createOrRebuildViewHoldingExclusiveLock(innerCallback, idAndVersion);
+		LockContext parentContext = new LockContext(ContextType.BuildMaterializedView, idAndVersion);
+		tableManagerSupport.tryRunWithTableExclusiveLock(callback, parentContext , idAndVersion, (ProgressCallback innerCallback) -> {
+			createOrRebuildViewHoldingExclusiveLock(innerCallback, parentContext, idAndVersion);
 			return null;
 		});
 	}
 	
-	void createOrRebuildViewHoldingExclusiveLock(ProgressCallback callback, IdAndVersion idAndVersion)
+	void createOrRebuildViewHoldingExclusiveLock(ProgressCallback callback, LockContext parentContext, IdAndVersion idAndVersion)
 			throws Exception {
 		try {
 
@@ -194,7 +197,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			}
 			IdAndVersion[] dependentArray = dependentTables.toArray(new IdAndVersion[dependentTables.size()]);
 			// continue with a read lock on each dependent table.
-			tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, (ProgressCallback innerCallback) -> {
+			tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, parentContext, (ProgressCallback innerCallback) -> {
 				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(idAndVersion, sqlQuery);
 				return null;
 			}, dependentArray);

@@ -12,6 +12,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -28,6 +30,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
@@ -40,6 +43,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableState;
@@ -57,12 +61,18 @@ import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescri
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVReaderIterator;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+import org.sagebionetworks.workers.util.semaphore.ReadLock;
+import org.sagebionetworks.workers.util.semaphore.ReadLockRequest;
+import org.sagebionetworks.workers.util.semaphore.WriteLock;
+import org.sagebionetworks.workers.util.semaphore.WriteLockRequest;
+import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -81,38 +91,53 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	public static final long MAX_BYTES_PER_BATCH = 1024*1024*5;// 5MB
 
+	private final TableStatusDAO tableStatusDAO;
+	private final TimeoutUtils timeoutUtils;
+	private final TransactionalMessenger transactionalMessenger;
+	private final ConnectionFactory tableConnectionFactory;
+	private final ColumnModelManager columnModelManager;
+	private final NodeDAO nodeDao;
+	private final TableRowTruthDAO tableTruthDao;
+	private final ViewScopeDao viewScopeDao;
+	private final WriteReadSemaphore writeReadSemaphoreRunner;
+	private final AuthorizationManager authorizationManager;
+	private final TableSnapshotDao tableSnapshotDao;
+	private final MetadataIndexProviderFactory metadataIndexProviderFactory;
+	private final DefaultColumnModelMapper defaultColumnMapper;
+	private final MaterializedViewDao materializedViewDao;
+	private final FileProvider fileProvider;
+	private final SynapseS3Client s3Client;
+	private final Clock clock;
+	private final Logger log;
+	
 	@Autowired
-	private TableStatusDAO tableStatusDAO;
-	@Autowired
-	private TimeoutUtils timeoutUtils;
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
-	@Autowired
-	private ConnectionFactory tableConnectionFactory;
-	@Autowired
-	private ColumnModelManager columnModelManager;
-	@Autowired
-	private NodeDAO nodeDao;
-	@Autowired
-	private TableRowTruthDAO tableTruthDao;
-	@Autowired
-	private ViewScopeDao viewScopeDao;
-	@Autowired
-	private WriteReadSemaphoreRunner writeReadSemaphoreRunner;
-	@Autowired
-	private AuthorizationManager authorizationManager;
-	@Autowired
-	private TableSnapshotDao tableSnapshotDao;
-	@Autowired
-	private MetadataIndexProviderFactory metadataIndexProviderFactory;
-	@Autowired
-	private DefaultColumnModelMapper defaultColumnMapper;
-	@Autowired
-	private MaterializedViewDao materializedViewDao;
-	@Autowired
-	private FileProvider fileProvider;
-	@Autowired
-	private SynapseS3Client s3Client;
+	public TableManagerSupportImpl(TableStatusDAO tableStatusDAO, TimeoutUtils timeoutUtils,
+			TransactionalMessenger transactionalMessenger, ConnectionFactory tableConnectionFactory,
+			ColumnModelManager columnModelManager, NodeDAO nodeDao, TableRowTruthDAO tableTruthDao,
+			ViewScopeDao viewScopeDao, WriteReadSemaphore writeReadSemaphoreRunner,
+			AuthorizationManager authorizationManager, TableSnapshotDao tableSnapshotDao,
+			MetadataIndexProviderFactory metadataIndexProviderFactory, DefaultColumnModelMapper defaultColumnMapper,
+			MaterializedViewDao materializedViewDao, FileProvider fileProvider, SynapseS3Client s3Client, Clock clock, LoggerProvider loggerProvider) {
+		super();
+		this.tableStatusDAO = tableStatusDAO;
+		this.timeoutUtils = timeoutUtils;
+		this.transactionalMessenger = transactionalMessenger;
+		this.tableConnectionFactory = tableConnectionFactory;
+		this.columnModelManager = columnModelManager;
+		this.nodeDao = nodeDao;
+		this.tableTruthDao = tableTruthDao;
+		this.viewScopeDao = viewScopeDao;
+		this.writeReadSemaphoreRunner = writeReadSemaphoreRunner;
+		this.authorizationManager = authorizationManager;
+		this.tableSnapshotDao = tableSnapshotDao;
+		this.metadataIndexProviderFactory = metadataIndexProviderFactory;
+		this.defaultColumnMapper = defaultColumnMapper;
+		this.materializedViewDao = materializedViewDao;
+		this.fileProvider = fileProvider;
+		this.s3Client = s3Client;
+		this.clock = clock;
+		this.log = loggerProvider.getLogger(TableManagerSupportImpl.class.getName());
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -378,36 +403,100 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			throw new IllegalArgumentException("unknown table type: " + type);
 		}
 	}
+	
+	@Override
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, LockContext context, String key,
+			ProgressingCallable<R> callable) throws Exception {
+		ValidateArgument.required(callback, "callback");
+		ValidateArgument.required(context, "context");
+		ValidateArgument.required(key, "key");
+		ValidateArgument.required(callable, "callable");
+		
+		logContext(callback, context);
+		try {
+			try (WriteLock lock = writeReadSemaphoreRunner
+					.getWriteLock(new WriteLockRequest(callback, context.serializeToString(), key))) {
+				Optional<String> readersContextString = null;
+				while ((readersContextString = lock.getExistingReadLockContext()).isPresent()) {
+					logWaitingForContext(callback, context, LockContext.deserialize(readersContextString.get()));
+					clock.sleep(2000);
+				}
+				return callable.call(callback);
+			}
+		} catch (LockUnavilableException e) {
+			e.getLockHoldersContext().ifPresent((existingContextString)->{
+				logWaitingForContext(callback, context, LockContext.deserialize(existingContextString));
+			});
+			throw e;
+		}
+
+	}
 
 	@Override
-	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, IdAndVersion tableId,
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, LockContext context, IdAndVersion tableId,
 			ProgressingCallable<R> callable) throws Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
-		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, callable);
+		return tryRunWithTableExclusiveLock(callback, context, key, callable);
 	}
 
-	@Override
-	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, String key, ProgressingCallable<R> runner)
-			throws Exception {
-		// The semaphore runner does all of the lock work.
-		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, runner);
-	}
 
 	@Override
-	public <R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, ProgressingCallable<R> runner,
+	public <R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, LockContext context, ProgressingCallable<R> runner,
 			String... keys) throws Exception {
-		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, runner, keys);
+		ValidateArgument.required(callback, "callback");
+		ValidateArgument.required(context, "context");
+		ValidateArgument.required(runner, "runner");
+		ValidateArgument.required(keys, "keys");
+		
+		logContext(callback, context);
+		try {
+			try(ReadLock lock = writeReadSemaphoreRunner.getReadLock(new ReadLockRequest(callback, context.serializeToString(), keys))){
+				return runner.call(callback);
+			}
+		} catch (LockUnavilableException e) {
+			e.getLockHoldersContext().ifPresent((existingContextString)->{
+				logWaitingForContext(callback, context, LockContext.deserialize(existingContextString));
+			});
+			throw e;
+		}
 	}
+	
+	/**
+	 * Will log that the current context is waiting for the waitingOn.
+	 * Will also update the progress message with the waitingOn context display message.
+	 * @param callback
+	 * @param current
+	 * @param waitingOn
+	 */
+	void logWaitingForContext(ProgressCallback callback, LockContext current, LockContext waitingOn) {
+		log.info(current.toWaitingOnMessage(waitingOn));
+		logContext(callback, waitingOn);
+	}
+	
+	/**
+	 * Log the display message
+	 * @param callback
+	 * @param existingContext
+	 */
+	void logContext(ProgressCallback callback, LockContext existingContext) {
+		 String message = existingContext.toDisplayString();
+		 log.info(message);
+		 if(callback instanceof AsyncJobProgressCallback) {
+			 AsyncJobProgressCallback asynchCallback = (AsyncJobProgressCallback)callback;
+			 asynchCallback.updateProgress(message, 0L, 100L);
+		 }
+	}
+	
+
 
 	@Override
-	public <R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, ProgressingCallable<R> callable,
+	public <R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, LockContext context, ProgressingCallable<R> callable,
 			IdAndVersion... tableIds) throws Exception {
 		ValidateArgument.required(tableIds, "TableIds");
 		List<String> keys = Arrays.stream(tableIds).map(i -> TableModelUtils.getTableSemaphoreKey(i))
 				.collect(Collectors.toList());
-		// The semaphore runner does all of the lock work.
-		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, callable, keys.toArray(new String[keys.size()]));
+		return tryRunWithTableNonExclusiveLock(callback, context, callable, keys.toArray(new String[keys.size()]));
 	}
 
 	@Override

@@ -1,8 +1,8 @@
 package org.sagebionetworks.table.worker;
 
+import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.csv.CSVWriterStream;
-import org.sagebionetworks.worker.AsyncJobProgressCallback;
 
 import au.com.bytecode.opencsv.CSVWriter;
 

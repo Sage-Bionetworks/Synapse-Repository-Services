@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -140,7 +141,7 @@ public class ConcurrentManagerImplTest {
 	@Test
 	public void testRunWithSemaphoreLock() {
 		String token = "a-token";
-		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt())).thenReturn(token);
+		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt(), any())).thenReturn(Optional.of(token));
 		doAnswer((InvocationOnMock i) -> {
 			((ProgressListener) i.getArgument(0)).progressMade();
 			return null;
@@ -149,7 +150,7 @@ public class ConcurrentManagerImplTest {
 		// call under test
 		manager.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
 
-		verify(mockCountingSemaphore).attemptToAcquireLock(lockKey, lockTimeoutSec, maxLockCount);
+		verify(mockCountingSemaphore).attemptToAcquireLock(lockKey, lockTimeoutSec, maxLockCount, ConcurrentManagerImpl.class.getName());
 		verify(mockCallback).addProgressListener(any());
 		verify(mockCountingSemaphore).refreshLockTimeout(lockKey, token, lockTimeoutSec);
 		verify(mockRunner).run();
@@ -157,20 +158,19 @@ public class ConcurrentManagerImplTest {
 	}
 	
 	@Test
-	public void testRunWithSemaphoreLockWithNullLock() {
-		String token = null;
-		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt())).thenReturn(token);
+	public void testRunWithSemaphoreLockWithEmptyLock() {
+		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt(), any())).thenReturn(Optional.empty());
 		// call under test
 		manager.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
 
-		verify(mockCountingSemaphore).attemptToAcquireLock(lockKey, lockTimeoutSec, maxLockCount);
+		verify(mockCountingSemaphore).attemptToAcquireLock(lockKey, lockTimeoutSec, maxLockCount, ConcurrentManagerImpl.class.getName());
 		verifyNoMoreInteractions(mockCountingSemaphore);
 	}
 
 	@Test
 	public void testRunWithSemaphoreLockWithRunException() {
 		String token = "a-token";
-		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt())).thenReturn(token);
+		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt(), any())).thenReturn(Optional.of(token));
 		doAnswer((InvocationOnMock i) -> {
 			((ProgressListener) i.getArgument(0)).progressMade();
 			return null;
@@ -182,7 +182,7 @@ public class ConcurrentManagerImplTest {
 			manager.runWithSemaphoreLock(lockKey, lockTimeoutSec, maxLockCount, mockCallback, mockRunner);
 		});
 
-		verify(mockCountingSemaphore).attemptToAcquireLock(lockKey, lockTimeoutSec, maxLockCount);
+		verify(mockCountingSemaphore).attemptToAcquireLock(lockKey, lockTimeoutSec, maxLockCount, ConcurrentManagerImpl.class.getName());
 		verify(mockCountingSemaphore).refreshLockTimeout(lockKey, token, lockTimeoutSec);
 		verify(mockRunner).run();
 		verify(mockCountingSemaphore).releaseLock(lockKey, token);

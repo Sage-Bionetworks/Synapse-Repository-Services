@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
@@ -112,7 +113,7 @@ public class TableEntityUpdateRequestManagerTest {
 
 	@Test
 	public void testUpdateTableWithTransaction() throws Exception {
-		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(), any(IdAndVersion.class),
 				any(ProgressingCallable.class))).thenReturn(response);
 		// call under test.
 		TableUpdateTransactionResponse results = manager.updateTableWithTransaction(progressCallback, userInfo,
@@ -125,7 +126,7 @@ public class TableEntityUpdateRequestManagerTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testUpdateTableWithTransactionTableUnavailableException() throws Exception {
-		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(), any(IdAndVersion.class),
 				any(ProgressingCallable.class))).thenThrow(new TableUnavailableException(null));
 		assertThrows(TableUnavailableException.class, () -> {
 			// call under test.
@@ -136,8 +137,8 @@ public class TableEntityUpdateRequestManagerTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testUpdateTableWithTransactionLockUnavilableException() throws Exception {
-		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				any(ProgressingCallable.class))).thenThrow(new LockUnavilableException());
+		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(), any(IdAndVersion.class),
+				any(ProgressingCallable.class))).thenThrow(new LockUnavilableException(LockType.Read, "key", "context"));
 		assertThrows(LockUnavilableException.class, () -> {
 			// call under test.
 			manager.updateTableWithTransaction(progressCallback, userInfo, request);
@@ -148,7 +149,7 @@ public class TableEntityUpdateRequestManagerTest {
 	@Test
 	public void testUpdateTableWithTransactionRecoverableMessageException() throws Exception {
 
-		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(), any(IdAndVersion.class),
 				any(ProgressingCallable.class))).thenThrow(new RecoverableMessageException());
 		assertThrows(RecoverableMessageException.class, () -> {
 			// call under test.
@@ -160,7 +161,7 @@ public class TableEntityUpdateRequestManagerTest {
 	@Test
 	public void testUpdateTableWithTransactionRuntimeException() throws Exception {
 
-		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(), any(IdAndVersion.class),
 				any(ProgressingCallable.class))).thenThrow(new RuntimeException());
 		assertThrows(RuntimeException.class, () -> {
 			// call under test.

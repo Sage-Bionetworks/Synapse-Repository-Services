@@ -11,8 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.util.Clock;
-import org.sagebionetworks.worker.AsyncJobProgressCallback;
 
 import au.com.bytecode.opencsv.CSVWriter;
 

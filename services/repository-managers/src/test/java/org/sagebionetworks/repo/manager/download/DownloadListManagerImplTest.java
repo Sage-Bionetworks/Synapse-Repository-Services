@@ -121,6 +121,7 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.util.FileHandler;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.google.common.collect.Sets;
@@ -1413,7 +1414,7 @@ public class DownloadListManagerImplTest {
 
 		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(TableType.entityview);
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any()))
-				.thenThrow(new LockUnavilableException("no lock for you"));
+				.thenThrow(new LockUnavilableException(LockType.Read, "key", "context"));
 
 		Query query = new Query().setSql("select * from syn123");
 		boolean userVersion = true;
