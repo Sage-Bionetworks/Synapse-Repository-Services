@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
+import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.repo.web.service.metadata.EntityProvider;
 import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,13 @@ public class MetadataProviderFactoryTest {
 	@Test
 	public void testGetMaterializedViewMetadataProvider() {
 		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(MaterializedView.class));
+		assertNotNull(providers);
+		assertEquals(1, providers.size());		
+	}
+	
+	@Test
+	public void testGetVirtualTableMetadataProvider() {
+		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(VirtualTable.class));
 		assertNotNull(providers);
 		assertEquals(1, providers.size());		
 	}
