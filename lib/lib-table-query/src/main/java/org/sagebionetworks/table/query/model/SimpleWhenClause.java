@@ -18,9 +18,9 @@ public class SimpleWhenClause extends SQLElement {
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		builder.append(" WHEN");
+		builder.append(" WHEN ");
 		whenOperand.toSql(builder, parameters);
-		builder.append(" THEN");
+		builder.append(" THEN ");
 		result.toSql(builder, parameters);
 	}
 

@@ -11,14 +11,36 @@ package org.sagebionetworks.table.query.model;
  *  CaseSpecification ::= <CASE> ( {@link SimpleCase} | {@link SearchedCase} ) <END>
  *
  */
-public class CaseSpecification extends SimpleBranch {
+public class CaseSpecification extends SQLElement {
+	
+	private final SimpleCase simpleCase;
+	private final SearchedCase searchedCase;
 
-	public CaseSpecification(SimpleCase child) {
-		super(child);
+	public CaseSpecification(SimpleCase simpleCase) {
+		this.simpleCase = simpleCase;
+		this.searchedCase = null;
 	}
 	
-	public CaseSpecification(SearchedCase child) {
-		super(child);
+	public CaseSpecification(SearchedCase searchedCase) {
+		this.simpleCase = null;
+		this.searchedCase = searchedCase;
+	}
+
+	@Override
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		builder.append("CASE ");
+		if(simpleCase != null) {
+			simpleCase.toSql(builder, parameters);
+		}
+		if(searchedCase != null) {
+			searchedCase.toSql(builder, parameters);
+		}
+		builder.append(" END");
+	}
+
+	@Override
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(simpleCase, searchedCase);
 	}
 
 }

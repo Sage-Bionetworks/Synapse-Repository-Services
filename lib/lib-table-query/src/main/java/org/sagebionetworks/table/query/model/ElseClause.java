@@ -17,7 +17,7 @@ public class ElseClause extends SQLElement {
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		builder.append(" ELSE");
+		builder.append(" ELSE ");
 		result.toSql(builder, parameters);
 	}
 

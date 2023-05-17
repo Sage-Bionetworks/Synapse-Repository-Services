@@ -11,6 +11,12 @@ public class CaseSpecificationTest {
 	@Test
 	public void testSimpleCase() throws ParseException {
 		CaseSpecification element = new TableQueryParser("CASE FILE_TYPE WHEN 'raw' THEN 1 ELSE 0 END").caseSpecification();
-		assertEquals("NULLIF('one','two')", element.toSql());
+		assertEquals("CASE FILE_TYPE WHEN 'raw' THEN 1 ELSE 0 END", element.toSql());
+	}
+	
+	@Test
+	public void testSearchedCase() throws ParseException {
+		CaseSpecification element = new TableQueryParser("CASE WHEN FOO > BAR THEN 1 ELSE 0 END").caseSpecification();
+		assertEquals("CASE WHEN FOO > BAR THEN 1 ELSE 0 END", element.toSql());
 	}
 }

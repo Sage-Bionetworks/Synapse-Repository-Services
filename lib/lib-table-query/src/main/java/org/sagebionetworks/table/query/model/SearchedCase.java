@@ -1,8 +1,9 @@
 package org.sagebionetworks.table.query.model;
 
 /**
- * 
- * SearchedCase ::= CASE {@link SearchedWhenClause} [ {@link ElseClause} ] END
+ * See: {@link CaseSpecification}.
+ * <p>
+ * SearchedCase ::= {@link SearchedWhenClause} [ {@link ElseClause} ]
  *
  */
 public class SearchedCase extends SQLElement {
@@ -18,7 +19,6 @@ public class SearchedCase extends SQLElement {
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		builder.append(" CASE");
 		searchedWhenClause.toSql(builder, parameters);
 		if(elseClause != null) {
 			elseClause.toSql(builder, parameters);

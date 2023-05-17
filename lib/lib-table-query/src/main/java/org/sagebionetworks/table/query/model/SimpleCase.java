@@ -1,8 +1,9 @@
 package org.sagebionetworks.table.query.model;
 
 /**
+ * See: {@link CaseSpecification}.
  * 
- * SimpleCase ::= CASE {@link CaseOperand} {@link SimpleWhenClause} [ <else {@link ElseClause} ] END
+ * SimpleCase ::= {@link CaseOperand} {@link SimpleWhenClause} [ <else {@link ElseClause} ]
  *
  */
 public class SimpleCase extends SQLElement {
@@ -20,11 +21,9 @@ public class SimpleCase extends SQLElement {
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		builder.append(" CASE");
 		this.caseOperand.toSql(builder, parameters);
 		this.simpleWhereClause.toSql(builder, parameters);
 		if(elseClause != null) {
-			builder.append(" ELSE");
 			elseClause.toSql(builder, parameters);
 		}
 	}

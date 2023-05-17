@@ -1459,5 +1459,5 @@ SearchedWhenClause searchedWhenClause():
 	Result result = null;
 }
 {
-	<when> searchCondition() <then> result = result() { return new SearchedWhenClause(searchCondition, result); }
+	<when> searchCondition = searchCondition() <then> result = result() { return new SearchedWhenClause(searchCondition, result); }
 }

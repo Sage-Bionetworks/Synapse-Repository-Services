@@ -19,9 +19,9 @@ public class SearchedWhenClause extends SQLElement {
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		builder.append(" WHEN");
+		builder.append("WHEN ");
 		searchCondition.toSql(builder, parameters);
-		builder.append(" THEN");
+		builder.append(" THEN ");
 		result.toSql(builder, parameters);
 	}
 
