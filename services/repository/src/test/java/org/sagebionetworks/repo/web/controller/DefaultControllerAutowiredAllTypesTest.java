@@ -60,9 +60,8 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.EntityView;
-import org.sagebionetworks.repo.model.table.MaterializedView;
+import org.sagebionetworks.repo.model.table.HasDefiningSql;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -263,13 +262,13 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 					dockerRepository.setIsManaged(false);
 					dockerRepository.setRepositoryName("foo/bar");
 				}
-				if (object instanceof MaterializedView) {
+				if (object instanceof HasDefiningSql) {
 					TableEntity table = new TableEntity();
 					table.setName(UUID.randomUUID().toString());
 					table.setParentId(project.getId());
 					table.setColumnIds(Arrays.asList(columnModelOne.getId()));
 					table = servletTestHelper.createEntity(dispatchServlet, table, userId);
-					((MaterializedView) object).setDefiningSQL("SELECT * FROM "+table.getId());
+					((HasDefiningSql) object).setDefiningSQL("SELECT * FROM "+table.getId());
 				}
 				Entity clone = servletTestHelper.createEntity(dispatchServlet, object, userId);
 				assertNotNull(clone);

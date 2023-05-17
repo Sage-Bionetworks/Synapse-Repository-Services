@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
@@ -18,7 +17,7 @@ import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.ViewEntityType;
+import org.sagebionetworks.repo.model.table.VirtualTable;
 
 /**
  * Utilities for entity type.
@@ -66,7 +65,10 @@ public class EntityTypeUtils {
 				// dataset collection
 				buildMetadata(EntityType.datasetcollection, Arrays.asList(Project.class.getName(), Folder.class.getName()), DatasetCollection.class, "Dataset Collection"),
 				// materialized view
-				buildMetadata(EntityType.materializedview, Arrays.asList(Project.class.getName(), Folder.class.getName()), MaterializedView.class, "Materialized View")
+				buildMetadata(EntityType.materializedview, Arrays.asList(Project.class.getName(), Folder.class.getName()), MaterializedView.class, "Materialized View"),
+				// virtual table
+				buildMetadata(EntityType.virtualtable, Arrays.asList(Project.class.getName(), Folder.class.getName()), VirtualTable.class, "Virtual Table")
+				
 		};
 
 		className = new HashMap<String, Class<? extends Entity>>();
@@ -81,6 +83,7 @@ public class EntityTypeUtils {
 		className.put(Dataset.class.getName(), Dataset.class);
 		className.put(DatasetCollection.class.getName(), DatasetCollection.class);
 		className.put(MaterializedView.class.getName(), MaterializedView.class);
+		className.put(VirtualTable.class.getName(), VirtualTable.class);
 	}
 
 	/**
