@@ -106,6 +106,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.jdbc.BadSqlGrammarException;
 
@@ -247,12 +248,12 @@ public class TableQueryManagerImplTest {
 
 	void setupNonExclusiveLock() throws Exception {
 		// Just call the caller.
-		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(any(ProgressCallback.class),
+		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(any(ProgressCallback.class), any(),
 				any(ProgressingCallable.class), any(IdAndVersion.class))).thenAnswer(new Answer<Object>() {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
-				ProgressingCallable<Object> callable = (ProgressingCallable<Object>) invocation.getArguments()[1];
+				ProgressingCallable<Object> callable = (ProgressingCallable<Object>) invocation.getArguments()[2];
 						if (callable != null) {
 							return callable.call(mockProgressCallback2);
 						} else {
@@ -442,7 +443,7 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result.getQueryResult().getQueryResults());
 		assertEquals(status.getLastTableChangeEtag(), result.getQueryResult().getQueryResults().getEtag());
 		// an exclusive lock must be held for a consistent query.
-		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class), any(ProgressingCallable.class), any(IdAndVersion.class));
+		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class), any(), any(ProgressingCallable.class), any(IdAndVersion.class));
 		// The table status should be checked only for a consistent query.
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
 	}
@@ -450,7 +451,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamNotFoundException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
-						any(ProgressCallback.class), any(ProgressingCallable.class),
+						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
 				new NotFoundException("not found"));
 		RowHandler rowHandler = new SinglePageRowHandler();
@@ -464,7 +465,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamTableUnavailableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
-						any(ProgressCallback.class), any(ProgressingCallable.class),
+						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
 				new TableUnavailableException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
@@ -478,7 +479,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamTableFailedException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
-						any(ProgressCallback.class), any(ProgressingCallable.class),
+						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
 				new TableFailedException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
@@ -492,9 +493,9 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamLockUnavilableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
-						any(ProgressCallback.class),any(ProgressingCallable.class),
+						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
-				new LockUnavilableException());
+				new LockUnavilableException(LockType.Read, "key", "context"));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		assertThrows(LockUnavilableException.class, ()->{
@@ -507,7 +508,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamEmptyResultException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
-						any(ProgressCallback.class),any(ProgressingCallable.class),
+						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
 				new EmptyResultException());
 		RowHandler rowHandler = new SinglePageRowHandler();

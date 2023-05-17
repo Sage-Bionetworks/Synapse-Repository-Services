@@ -42,6 +42,8 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.semaphore.LockContext;
+import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -599,7 +601,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		try {
 			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 			SynchronizedProgressCallback callback = new SynchronizedProgressCallback(EXCLUSIVE_LOCK_TIMEOUT_SECONDS);
-			tableManagerSupport.tryRunWithTableExclusiveLock(callback, idAndVersion,
+			tableManagerSupport.tryRunWithTableExclusiveLock(callback, new LockContext(ContextType.TableUpdate, idAndVersion), idAndVersion,
 					(ProgressCallback callbackInner) -> {
 						tableUpdatedWithExclusiveLock(callbackInner, userInfo, newSchema, tableId, searchEnabled);
 						return null;
@@ -1085,7 +1087,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// We use a key specific to this streaming operation + tableId not to interfere with other readers
 		String exclusiveLockKey = TableModelUtils.getTableSnapshotStreamingSempahoreKey(tableId);
 		
-		tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, exclusiveLockKey, (innerCallback) -> {
+		tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, new LockContext(ContextType.TableSnapshot, tableId),  exclusiveLockKey, (innerCallback) -> {
 			
 			TableType tableType = tableManagerSupport.getTableType(tableId);
 			

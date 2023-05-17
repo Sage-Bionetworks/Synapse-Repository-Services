@@ -26,6 +26,8 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.semaphore.LockContext;
+import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
@@ -609,7 +611,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			final Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException {
 		try {
 			// Run with the exclusive lock on the table if we can get it.
-			tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion,
+			tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, new LockContext(ContextType.BuildTableIndex, idAndVersion), idAndVersion,
 					(ProgressCallback callback) -> {
 						buildTableIndexWithLock(callback, idAndVersion, iterator);
 						return null;
