@@ -1644,13 +1644,16 @@ public class QueryTranslatorTest {
 		IndexDescription indexDescription = new TableIndexDescription(tableId);
 
 		sql = "select foo, bar, case "
-				+ " when foo > 1 then 'greater than one'"
-				+ " when foo < 1 then 'less than one'"
+				+ " when foo > bar then 'greater than one'"
+				+ " when foo < bar then 'less than one'"
 				+ " else 'other'"
-				+ " end as desc from syn1 ";
+				+ " end as description from syn1 ";
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
 				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
-		assertEquals("SELECT CASE _C111_ WHEN 'a' THEN 0 ELSE 2 END AS aCase, ROW_ID, ROW_VERSION FROM T1",
+		assertEquals("SELECT _C111_, _C333_, CASE"
+				+ " WHEN _C111_ > _C333_ THEN 'greater than one'"
+				+ " WHEN _C111_ < _C333_ THEN 'less than one'"
+				+ " ELSE 'other' END AS description, ROW_ID, ROW_VERSION FROM T1",
 				query.getOutputSQL());
 	}
 

@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -31,8 +32,11 @@ public class SimpleCase extends SQLElement {
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		builder.append(" ");
 		this.caseOperand.toSql(builder, parameters);
-		this.simpleWhereClause.toSql(builder, parameters);
+		this.simpleWhereClauses.forEach((swc)->{
+			swc.toSql(builder, parameters);
+		});
 		if(elseClause != null) {
 			elseClause.toSql(builder, parameters);
 		}
@@ -40,7 +44,13 @@ public class SimpleCase extends SQLElement {
 
 	@Override
 	public Iterable<Element> getChildren() {
-		return SQLElement.buildChildren(caseOperand, simpleWhereClause, elseClause);
+		List<Element> list = new LinkedList<>();
+		list.add(caseOperand);
+		list.addAll(simpleWhereClauses);
+		if(elseClause != null) {
+			list.add(elseClause);
+		}
+		return list;
 	}
 
 }

@@ -1,5 +1,9 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
 /**
  * See: {@link CaseSpecification}.
  * <p>
@@ -8,18 +12,28 @@ package org.sagebionetworks.table.query.model;
  */
 public class SearchedCase extends SQLElement {
 	
-	private final SearchedWhenClause searchedWhenClause;
-	private final ElseClause elseClause;	
+	private final List<SearchedWhenClause> searchedWhenClauses;
+	private ElseClause elseClause;	
 
-	public SearchedCase(SearchedWhenClause searchedWhenClause, ElseClause elseClause) {
+	public SearchedCase() {
 		super();
-		this.searchedWhenClause = searchedWhenClause;
+		this.searchedWhenClauses = new ArrayList<>();
+		this.elseClause = null;
+	}
+	
+	public void addWhen(SearchedWhenClause toAdd) {
+		this.searchedWhenClauses.add(toAdd);
+	}
+	
+	public void setElse(ElseClause elseClause) {
 		this.elseClause = elseClause;
 	}
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		searchedWhenClause.toSql(builder, parameters);
+		searchedWhenClauses.forEach((swc)->{
+			swc.toSql(builder, parameters);
+		});
 		if(elseClause != null) {
 			elseClause.toSql(builder, parameters);
 		}
@@ -27,7 +41,12 @@ public class SearchedCase extends SQLElement {
 
 	@Override
 	public Iterable<Element> getChildren() {
-		return SQLElement.buildChildren(searchedWhenClause, elseClause);
+		List<Element> list = new LinkedList<>();
+		list.addAll(searchedWhenClauses);
+		if(elseClause != null) {
+			list.add(elseClause);
+		}
+		return list;
 	}
 
 }

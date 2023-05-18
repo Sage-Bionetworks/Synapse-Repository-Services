@@ -1391,15 +1391,16 @@ CaseSpecification caseSpecification():
 }
 SimpleCase simpleCase():
 {
+	SimpleCase simpleCase = null;
 	CaseOperand caseOperand = null;
 	SimpleWhenClause simpleWhenClause = null;
 	ElseClause elseClause = null;
 }
 {
-	caseOperand = caseOperand()
-	simpleWhenClause = simpleWhenClause()
-	[ elseClause = elseClause() ]
-	{ return new SimpleCase(caseOperand, simpleWhenClause, elseClause); }
+	caseOperand = caseOperand() { simpleCase = new SimpleCase(caseOperand); }
+	( simpleWhenClause = simpleWhenClause() { simpleCase.addWhen(simpleWhenClause); } )+
+	[ elseClause = elseClause() { simpleCase.setElse(elseClause); } ]
+	{ return simpleCase; }
 }
 CaseOperand caseOperand():
 {
@@ -1447,13 +1448,14 @@ ElseClause elseClause():
 }
 SearchedCase searchedCase():
 {
+	SearchedCase searchedCase = new SearchedCase();
 	SearchedWhenClause searchedWhenClause = null;
 	ElseClause elseClause = null;
 }
 {
-	searchedWhenClause = searchedWhenClause()
-	[ elseClause = elseClause() ]
-	{ return new SearchedCase(searchedWhenClause, elseClause); }
+ 	( searchedWhenClause = searchedWhenClause() { searchedCase.addWhen(searchedWhenClause); } )+
+	[ elseClause = elseClause() { searchedCase.setElse(elseClause); } ]
+	{ return searchedCase; }
 }
 SearchedWhenClause searchedWhenClause():
 {

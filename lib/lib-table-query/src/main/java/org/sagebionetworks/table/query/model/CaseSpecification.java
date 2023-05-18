@@ -28,7 +28,7 @@ public class CaseSpecification extends SQLElement {
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		builder.append("CASE ");
+		builder.append("CASE");
 		if(simpleCase != null) {
 			simpleCase.toSql(builder, parameters);
 		}
