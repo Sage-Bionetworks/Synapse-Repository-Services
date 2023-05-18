@@ -1621,6 +1621,38 @@ public class QueryTranslatorTest {
 		assertTrue(cause instanceof ParseException);
 
 	}
+	
+	@Test
+	public void testSelectWithSimpleCase() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(tableId, Arrays.asList(columnNameToModelMap.get("foo")));
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+
+		sql = "select case foo when 'a' then 0 else 2 end as aCase from syn1";
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
+		assertEquals("SELECT CASE _C111_ WHEN 'a' THEN 0 ELSE 2 END AS aCase, ROW_ID, ROW_VERSION FROM T1",
+				query.getOutputSQL());
+	}
+	
+	@Test
+	public void testSelectWithSearchedCase() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(tableId, List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+
+		sql = "select foo, bar, case "
+				+ " when foo > 1 then 'greater than one'"
+				+ " when foo < 1 then 'less than one'"
+				+ " else 'other'"
+				+ " end as desc from syn1 ";
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
+		assertEquals("SELECT CASE _C111_ WHEN 'a' THEN 0 ELSE 2 END AS aCase, ROW_ID, ROW_VERSION FROM T1",
+				query.getOutputSQL());
+	}
 
 	/**
 	 * Helper to create a schema provider for the given schema.
