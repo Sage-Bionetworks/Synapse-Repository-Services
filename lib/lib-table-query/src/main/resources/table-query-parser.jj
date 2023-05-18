@@ -492,6 +492,7 @@ ValueExpressionPrimary valueExpressionPrimary():
 	SetFunctionSpecification setFunctionSpecification = null;
 	ParenthesizedValueExpression parenthesizedValueExpression;
 	ArrayFunctionSpecification arrayFunctionSpecification = null;
+	CaseExpression caseExpression = null;
 }
 {
 	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
@@ -499,6 +500,7 @@ ValueExpressionPrimary valueExpressionPrimary():
 	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
 	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
 	| parenthesizedValueExpression = parenthesizedValueExpression() { return new ValueExpressionPrimary(parenthesizedValueExpression); }
+	| caseExpression = caseExpression() { return new ValueExpressionPrimary(caseExpression); }
 }
 ParenthesizedValueExpression parenthesizedValueExpression():
 {

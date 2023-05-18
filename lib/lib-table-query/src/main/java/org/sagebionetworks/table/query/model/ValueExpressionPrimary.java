@@ -26,6 +26,10 @@ public class ValueExpressionPrimary extends SimpleBranch implements HasReference
 			ParenthesizedValueExpression parenthesizedValueExpression) {
 		super(parenthesizedValueExpression);
 	}
+	
+	public ValueExpressionPrimary(CaseExpression caseExpression) {
+		super(caseExpression);
+	}
 
 	@Override
 	public ColumnNameReference getReferencedColumn() {

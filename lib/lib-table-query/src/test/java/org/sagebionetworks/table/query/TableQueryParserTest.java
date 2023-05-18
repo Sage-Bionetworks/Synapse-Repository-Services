@@ -578,5 +578,11 @@ public class TableQueryParserTest {
 		assertEquals("SELECT * FROM syn111 UNION SELECT * FROM syn222 ORDER BY foo LIMIT 10 OFFSET 1", element.toSql());
 	}
 	
+	@Test
+	public void testQueryExpressionWithCaseExpression() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"select sum(case foo when 'one' then 1 else 0 end) from syn123").queryExpression();
+		assertEquals("SELECT SUM(CASE foo WHEN 'one' THEN 1 ELSE 0 END) FROM syn123", element.toSql());
+	}
 
 }
