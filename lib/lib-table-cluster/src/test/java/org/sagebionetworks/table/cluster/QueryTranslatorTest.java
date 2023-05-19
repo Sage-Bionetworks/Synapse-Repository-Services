@@ -1656,6 +1656,22 @@ public class QueryTranslatorTest {
 				+ " ELSE 'other' END AS description, ROW_ID, ROW_VERSION FROM T1",
 				query.getOutputSQL());
 	}
+	
+	@Test
+	public void testSelectWithNullIf() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(tableId, List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+
+		sql = "select NULLIF(foo,bar) as fb from syn1 ";
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
+		assertEquals("SELECT NULLIF(_C111_,_C333_) AS fb, ROW_ID, ROW_VERSION FROM T1",
+				query.getOutputSQL());
+		List<SelectColumn> select = query.getSelectColumns();
+		assertEquals(List.of(new SelectColumn().setName("fb").setColumnType(ColumnType.STRING)), select);
+	}
 
 	/**
 	 * Helper to create a schema provider for the given schema.
