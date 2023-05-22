@@ -122,5 +122,11 @@ public class ValueExpressionPrimaryTest {
 		ValueExpressionPrimary element = new TableQueryParser("'foo' as bar").valueExpressionPrimary();
 		assertEquals(Collections.singleton(element.getChild()), element.getChildren());
 	}
+	
+	@Test
+	public void testValueExpressionWithCaseExpression() throws ParseException {
+		ValueExpressionPrimary element = new TableQueryParser("case bar when '123' then 1 else 0 end").valueExpressionPrimary();
+		assertEquals("CASE bar WHEN '123' THEN 1 ELSE 0 END", element.toSql());
+	}
 
 }
