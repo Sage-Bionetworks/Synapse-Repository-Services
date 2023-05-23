@@ -69,6 +69,7 @@ import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.FileDownloadRecord;
+import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -77,6 +78,7 @@ import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
+import org.sagebionetworks.repo.model.file.FileRecordEvent;
 import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.file.FileResultFailureCode;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
@@ -88,6 +90,7 @@ import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.project.BaseKeyStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
@@ -203,6 +206,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	private StackConfiguration config;
+
+	@Autowired
+	private TransactionalMessenger messenger;
 	/**
 	 * Used by spring
 	 */
@@ -330,12 +336,18 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		FileHandle fileHandle = fileHandleDao.get(fileHandleId);
 		
 		String url = getURLForFileHandle(userInfo, fileHandle);
-		
+
 		StatisticsFileEvent downloadEvent = StatisticsFileEventUtils.buildFileDownloadEvent(userInfo.getId(), fileHandleAssociation);
-		
 		statisticsCollector.collectEvent(downloadEvent);
-		
+
+		FileRecordEvent fileRecordEvent = FileRecordEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(), fileHandleAssociation);
+		sendFileEvents(Collections.singletonList(fileRecordEvent));
 		return url;
+	}
+	private void sendFileEvents(List<FileRecordEvent> fileRecordEvents) {
+		for (FileRecordEvent event: fileRecordEvents){
+			messenger.publishMessageAfterCommit(event);
+		}
 	}
 
 	/**
@@ -1219,6 +1231,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		Map<String, FileHandleAssociation> idToFileHandleAssociation = new HashMap<String, FileHandleAssociation>(request.getRequestedFiles().size());
 		List<ObjectRecord> downloadRecords = new LinkedList<ObjectRecord>();
 		List<StatisticsFileEvent> downloadEvents = new LinkedList<>();
+		List<FileRecordEvent> fileRecordEvents = new LinkedList<>();
 		
 		for(FileHandleAssociationAuthorizationStatus fhas: authResults){
 			FileResult result = new FileResult();
@@ -1267,9 +1280,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							
 							fr.setPreSignedURL(url);
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
-							
+
 							StatisticsFileEvent downloadEvent = StatisticsFileEventUtils.buildFileDownloadEvent(userInfo.getId(), association);
 							downloadEvents.add(downloadEvent);
+
+							fileRecordEvents.add(FileRecordEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD,userInfo.getId(),association));
 							
 							ObjectRecord record = createObjectRecord(userId, association, now);
 							downloadRecords.add(record);
@@ -1295,6 +1310,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 		if (!downloadEvents.isEmpty()) {
 			statisticsCollector.collectEvents(downloadEvents);
+		}
+
+		if(!fileRecordEvents.isEmpty()){
+			sendFileEvents(fileRecordEvents);
 		}
 		BatchFileResult batch = new BatchFileResult();
 		batch.setRequestedFiles(requestedFiles);

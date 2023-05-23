@@ -1,17 +1,5 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.mail.Folder;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +13,19 @@ import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.FileRecordEvent;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+
+import javax.mail.Folder;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 public class FileEntityMetadataProviderTest {
@@ -33,6 +34,8 @@ public class FileEntityMetadataProviderTest {
 
 	@Mock
 	private EventsCollector mockStatisticsCollector;
+	@Mock
+	private TransactionalMessenger messenger;
 
 	@Mock
 	private StsManager mockStsManager;
@@ -136,6 +139,7 @@ public class FileEntityMetadataProviderTest {
 		fileEntity.setDataFileHandleId("1");
 		provider.entityCreated(userInfo, fileEntity);
 		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
+		verify(messenger, times(1)).publishMessageAfterCommit(any(FileRecordEvent.class));
 	}
 
 	@Test
@@ -143,11 +147,13 @@ public class FileEntityMetadataProviderTest {
 		fileEntity.setDataFileHandleId("1");
 		provider.entityUpdated(userInfo, fileEntity, true);
 		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
+		verify(messenger, times(1)).publishMessageAfterCommit(any(FileRecordEvent.class));
 	}
 
 	@Test
 	public void testEntityUpdatedWithoutNewVersion() {
 		provider.entityUpdated(userInfo, fileEntity, false);
 		verify(mockStatisticsCollector, never()).collectEvent(any());
+		verify(messenger, never()).publishMessageAfterCommit(any());
 	}
 }

@@ -1,38 +1,7 @@
 package org.sagebionetworks.repo.manager.file;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.file.FileHandlePackageManagerImpl.FILE_ALREADY_ADDED;
-import static org.sagebionetworks.repo.manager.file.FileHandlePackageManagerImpl.FILE_EXCEEDS_THE_MAXIMUM_SIZE_LIMIT;
-import static org.sagebionetworks.repo.manager.file.FileHandlePackageManagerImpl.RESULT_FILE_HAS_REACHED_THE_MAXIMUM_SIZE;
-import static org.sagebionetworks.repo.model.file.FileHandleAssociateType.FileEntity;
-import static org.sagebionetworks.repo.model.file.FileHandleAssociateType.TableEntity;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
-
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.google.common.collect.Sets;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,13 +28,45 @@ import org.sagebionetworks.repo.model.file.FileDownloadStatus;
 import org.sagebionetworks.repo.model.file.FileDownloadSummary;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileRecordEvent;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.google.common.collect.Sets;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.file.FileHandlePackageManagerImpl.FILE_ALREADY_ADDED;
+import static org.sagebionetworks.repo.manager.file.FileHandlePackageManagerImpl.FILE_EXCEEDS_THE_MAXIMUM_SIZE_LIMIT;
+import static org.sagebionetworks.repo.manager.file.FileHandlePackageManagerImpl.RESULT_FILE_HAS_REACHED_THE_MAXIMUM_SIZE;
+import static org.sagebionetworks.repo.model.file.FileHandleAssociateType.FileEntity;
+import static org.sagebionetworks.repo.model.file.FileHandleAssociateType.TableEntity;
 
 @ExtendWith(MockitoExtension.class)
 public class FileHandlePackageManagerImplTest {
@@ -86,12 +87,16 @@ public class FileHandlePackageManagerImplTest {
 	private ZipEntryNameProvider mockZipEntryNameProvider;
 	@Mock
 	private EventsCollector mockStatisticsCollector;
+	@Mock
+	private TransactionalMessenger messenger;
 	@Captor
 	private ArgumentCaptor<Set<String>> filesInZipCaptor;
 	@Captor
 	private ArgumentCaptor<ZipEntryNameProvider> zipEntryNameProviderCaptor;
 	@Captor
 	private ArgumentCaptor<List<StatisticsFileEvent>> statisticsFileEventCaptor;
+	@Captor
+	private ArgumentCaptor<FileRecordEvent> fileRecordEventCaptor;
 
 	@Spy
 	@InjectMocks
@@ -663,7 +668,7 @@ public class FileHandlePackageManagerImplTest {
 		
 		// call under test
 		fileHandleSupportSpy.collectDownloadStatistics(userInfo.getId(), summaryResults);
-		
+
 		verify(mockStatisticsCollector).collectEvents(statisticsFileEventCaptor.capture());
 		List<StatisticsFileEvent> value = statisticsFileEventCaptor.getValue();
 		assertNotNull(value);
@@ -673,6 +678,14 @@ public class FileHandlePackageManagerImplTest {
 		assertEquals(summary.getAssociateObjectId(), event.getAssociationId());
 		assertEquals(summary.getAssociateObjectType(), event.getAssociationType());
 		assertEquals(summary.getFileHandleId(), event.getFileHandleId());
+
+		verify(messenger).publishMessageAfterCommit(fileRecordEventCaptor.capture());
+		FileRecordEvent fileEvent = fileRecordEventCaptor.getValue();
+		assertNotNull(fileEvent);
+		assertNotNull(fileEvent.getTimestamp());
+		assertEquals(summary.getAssociateObjectId(), fileEvent.getAssociateId());
+		assertEquals(summary.getAssociateObjectType(), fileEvent.getAssociateType());
+		assertEquals(summary.getFileHandleId(), fileEvent.getFileHandleId());
 	}
 	
 	@Test

@@ -1,18 +1,6 @@
 package org.sagebionetworks.repo.manager.file;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
-
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,15 +17,29 @@ import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileDownloadCode;
 import org.sagebionetworks.repo.model.file.FileDownloadStatus;
 import org.sagebionetworks.repo.model.file.FileDownloadSummary;
+import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileRecordEvent;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.amazonaws.services.s3.model.GetObjectRequest;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
@@ -56,17 +58,19 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 	private AuthorizationManager fileHandleAuthorizationManager;
 	private FileHandleManager fileHandleManager;
 	private EventsCollector statisticsCollector;
+	private TransactionalMessenger messenger;
 
 	@Autowired
 	public FileHandlePackageManagerImpl(FileHandleDao fileHandleDao, SynapseS3Client s3client,
 			AuthorizationManager fileHandleAuthorizationManager, FileHandleManager fileHandleManager,
-			EventsCollector statisticsCollector) {
+			EventsCollector statisticsCollector, TransactionalMessenger messenger) {
 		super();
 		this.fileHandleDao = fileHandleDao;
 		this.s3client = s3client;
 		this.fileHandleAuthorizationManager = fileHandleAuthorizationManager;
 		this.fileHandleManager = fileHandleManager;
 		this.statisticsCollector = statisticsCollector;
+		this.messenger = messenger;
 	}
 
 	/*
@@ -287,6 +291,17 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 
 		if (!downloadEvents.isEmpty()) {
 			statisticsCollector.collectEvents(downloadEvents);
+		}
+
+		List<FileRecordEvent> downloadFileRecordEvents = results.stream()
+				// Only collects stats for successful summaries
+				.filter(summary -> FileDownloadStatus.SUCCESS.equals(summary.getStatus()))
+				.map(summary -> FileRecordEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userId, summary.getFileHandleId(),
+						summary.getAssociateObjectId(), summary.getAssociateObjectType()))
+				.collect(Collectors.toList());
+
+		for (FileRecordEvent event : downloadFileRecordEvents) {
+			messenger.publishMessageAfterCommit(event);
 		}
 	}
 

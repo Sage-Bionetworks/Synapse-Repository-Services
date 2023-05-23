@@ -1,0 +1,52 @@
+{
+    "description": "Object used to propagate table status changes",
+    "implements": [
+    	{"$ref": "org.sagebionetworks.repo.model.message.LocalStackMessage"}
+    ],
+    "properties": {
+        "fileEventType": {
+            "type": "string",
+            "description": "The file event can be one of the following enumerations",
+            "name": "FileEventType",
+            "id": "org.sagebionetworks.repo.model.file.FileEventType",
+            "enum": [
+                {
+                    "name": "FILE_DOWNLOAD",
+                    "description": "File download event"
+                },
+                {
+                    "name": "FILE_UPLOAD",
+                    "description": "File upload event"
+                }
+            ]
+        },
+        "userId": {
+            "type": "integer",
+            "description": "The Id of user who initiated the file event."
+        },
+        "projectId": {
+            "type": "integer",
+            "description": "The project Id of file."
+        },
+        "fileHandleId": {
+            "type": "string",
+            "description": "The filehandle Id of file."
+        },
+        "associateType": {
+            "$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociateType",
+            "description": "The association type of filehandle."
+        },
+        "associateId": {
+            "type": "string",
+            "description": "The association Id of filehandle."
+        },
+        "stack": {
+            "type": "string",
+            "description": "The stack number."
+        },
+        "instance": {
+            "type": "string",
+            "description": "The instance number."
+        }
+    }
+}
