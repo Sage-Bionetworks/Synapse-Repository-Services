@@ -14,6 +14,7 @@ import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.query.model.*;
 
 public class TableQueryParser {
@@ -206,6 +207,7 @@ TOKEN [IGNORE_CASE]: {
 | < when: "WHEN">
 | < then: "THEN">
 | < _else: "ELSE">
+| < cast: "CAST">
 }
 
 /* Aggregate functions */
@@ -493,6 +495,7 @@ ValueExpressionPrimary valueExpressionPrimary():
 	ParenthesizedValueExpression parenthesizedValueExpression;
 	ArrayFunctionSpecification arrayFunctionSpecification = null;
 	CaseExpression caseExpression = null;
+	CastSpecification castSpecification = null;
 }
 {
 	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
@@ -501,6 +504,7 @@ ValueExpressionPrimary valueExpressionPrimary():
 	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
 	| parenthesizedValueExpression = parenthesizedValueExpression() { return new ValueExpressionPrimary(parenthesizedValueExpression); }
 	| caseExpression = caseExpression() { return new ValueExpressionPrimary(caseExpression); }
+	| castSpecification = castSpecification() { return new ValueExpressionPrimary(castSpecification); }
 }
 ParenthesizedValueExpression parenthesizedValueExpression():
 {
@@ -1464,4 +1468,38 @@ SearchedWhenClause searchedWhenClause():
 }
 {
 	<when> searchCondition = searchCondition() <then> result = result() { return new SearchedWhenClause(searchCondition, result); }
+}
+ColumnType columnType():
+{
+	Token token = null;
+}
+{
+	( token = <regular_identifier>
+	| token = <date_time_function_name> )
+	{ return ColumnType.valueOf(token.image.toUpperCase()); }
+}
+CastSpecification castSpecification():
+{
+	CastOperand castOperand = null;
+	CastTarget castTarget = null;
+}
+{
+	<cast> <left_paren> castOperand = castOperand() <as> castTarget = castTarget() <right_paren>
+	{ return new CastSpecification(castOperand, castTarget); }
+}
+CastOperand castOperand():
+{
+	NullableValueExpression nullableValueExpression = null;
+}
+{
+	nullableValueExpression = nullableValueExpression() { return new CastOperand(nullableValueExpression); }
+}
+CastTarget castTarget():
+{
+	ColumnType columnType = null;
+	UnsignedInteger unsignedInteger = null;
+}
+{
+	columnType = columnType() { return new CastTarget(columnType); }
+	| unsignedInteger = unsignedInteger() { return new CastTarget(unsignedInteger); }
 }
