@@ -214,6 +214,13 @@ public class SQLUtilsTest {
 		assertEquals("T123_456", SQLUtils.getTableNameForId(tableId, TableIndexType.INDEX));
 		assertEquals("T123_456S", SQLUtils.getTableNameForId(tableId, TableIndexType.STATUS));
 	}
+	
+	@Test
+	public void testGetTableNameForIdWithNegativeId(){
+		tableId = IdAndVersion.newBuilder().setId(-999L).build();
+		assertEquals("T__999", SQLUtils.getTableNameForId(tableId, TableIndexType.INDEX));
+		assertEquals("T__999S", SQLUtils.getTableNameForId(tableId, TableIndexType.STATUS));
+	}
 
 	@Test
 	public void testGetColumnNameForId(){
@@ -277,6 +284,13 @@ public class SQLUtilsTest {
 	public void testGetTableNamePrefixForMultiValueColumns_Id_WithVersion(){
 		String tableName = SQLUtils.getTableNamePrefixForMultiValueColumns(IdAndVersion.parse("syn123.456"), false);
 		assertEquals("T123_456_INDEX", tableName);
+	}
+	
+	@Test
+	public void testGetTableNamePrefixForMultiValueColumnsWithNegativeId(){
+		tableId = IdAndVersion.newBuilder().setId(-123L).build();
+		String tableName = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId, false);
+		assertEquals("T__123_INDEX", tableName);
 	}
 
 	@Test
@@ -2872,6 +2886,24 @@ public class SQLUtilsTest {
 				"PRIMARY KEY (ROW_ID_REF_C0_, INDEX_NUM)," +
 				" INDEX _C0__UNNEST_IDX (_C0__UNNEST ASC)," +
 				" CONSTRAINT TEMPT999_INDEX_C0__FK FOREIGN KEY (ROW_ID_REF_C0_) REFERENCES TEMPT999(ROW_ID) ON DELETE CASCADE);";
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testCreateListColumnIndexTableWithNegativeID(){
+		ColumnModel columnInfo = new ColumnModel();
+		columnInfo.setColumnType(ColumnType.STRING_LIST);
+		columnInfo.setId("0");
+		columnInfo.setMaximumSize(42L);
+		tableId = IdAndVersion.newBuilder().setId(-999L).build();
+		String sql = SQLUtils.createListColumnIndexTable(tableId, columnInfo, true);
+		String expected = "CREATE TABLE IF NOT EXISTS TEMPT__999_INDEX_C0_ (" +
+				"ROW_ID_REF_C0_ BIGINT NOT NULL, " +
+				"INDEX_NUM BIGINT NOT NULL, " +
+				"_C0__UNNEST VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+				"PRIMARY KEY (ROW_ID_REF_C0_, INDEX_NUM)," +
+				" INDEX _C0__UNNEST_IDX (_C0__UNNEST ASC)," +
+				" CONSTRAINT TEMPT__999_INDEX_C0__FK FOREIGN KEY (ROW_ID_REF_C0_) REFERENCES TEMPT__999(ROW_ID) ON DELETE CASCADE);";
 		assertEquals(expected, sql);
 	}
 

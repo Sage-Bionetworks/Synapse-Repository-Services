@@ -250,8 +250,14 @@ public class SQLUtils {
 
 	private static void appendTableNameForId(IdAndVersion id, TableIndexType type, StringBuilder builder) {
 		builder.append(TABLE_PREFIX);
-		builder.append(id.getId());
-		if(id.getVersion().isPresent()) {
+		if (id.getId() < 0) {
+			// When the id is negative the "-" sign can break some queries since we do not enquote the table name
+			builder.append("__");
+			builder.append(-id.getId());
+		} else {
+			builder.append(id.getId());
+		}
+		if (id.getVersion().isPresent()) {
 			builder.append("_").append(id.getVersion().get());
 		}
 		builder.append(type.getTablePostFix());
