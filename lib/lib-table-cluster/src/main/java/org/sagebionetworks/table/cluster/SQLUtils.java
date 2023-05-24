@@ -760,7 +760,7 @@ public class SQLUtils {
 				" DROP INDEX " + oldColumnName + "_IDX," +
 
 				//modify the row_id column which references the main table's row_ids
-				" DROP FOREIGN KEY " + tableName + "_FK" + "," +
+				" DROP FOREIGN KEY " + getMultiValueIndexTableForeignKeyConstraintName(tableName) + "," +
 				" RENAME COLUMN " + oldRowRefName + " TO " + newRowRefName + "," +
 				" ADD " + getMultiValueIndexTableForeignKeyConstraint(parentTableName,newTableName,newRowRefName)+
 
@@ -1967,7 +1967,12 @@ public class SQLUtils {
 	}
 
 	private static String getMultiValueIndexTableForeignKeyConstraint(String parentTable, String columnIndexTableName, String rowIdRefColumnName) {
-		return "CONSTRAINT " + columnIndexTableName + "_FK" + " FOREIGN KEY (" + rowIdRefColumnName + ") REFERENCES " + parentTable + "(" + ROW_ID + ") ON DELETE CASCADE";
+		return "CONSTRAINT " + getMultiValueIndexTableForeignKeyConstraintName(columnIndexTableName) + " FOREIGN KEY (" + rowIdRefColumnName + ") REFERENCES " + parentTable + "(" + ROW_ID + ") ON DELETE CASCADE";
+	}
+	
+	private static String getMultiValueIndexTableForeignKeyConstraintName(String columnIndexTableName) {
+		// Note: the pattern tableName + _ibfk_ is important so that when renaming the table the FK is renamed automatically (See https://dev.mysql.com/doc/refman/8.0/en/rename-table.html)
+		return columnIndexTableName + "_ibfk_FK";
 	}
 
 	/**
@@ -2107,6 +2112,11 @@ public class SQLUtils {
 		ValidateArgument.required(id, "The id");
 		
 		return "UPDATE " + getTableNameForId(id, TableIndexType.INDEX) + " SET `" + ROW_SEARCH_CONTENT + "` = NULL";
+	}
+	
+	public static String buildReplaceIndexSql(IdAndVersion targetId, IdAndVersion replacementId) {
+		
+		return null;
 	}
 	
 }
