@@ -1,15 +1,5 @@
 package org.sagebionetworks.aws;
 
-import java.io.File;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.collections4.map.PassiveExpiringMap;
-
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
@@ -34,6 +24,8 @@ import com.amazonaws.services.s3.model.HeadBucketResult;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.ObjectTagging;
@@ -48,6 +40,15 @@ import com.amazonaws.services.s3.model.Tag;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
 import com.amazonaws.util.StringUtils;
+import org.apache.commons.collections4.map.PassiveExpiringMap;
+
+import java.io.File;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /*
  * 
@@ -166,6 +167,12 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	public ObjectListing listObjects(ListObjectsRequest listObjectsRequest)
 			throws SdkClientException, AmazonServiceException {
 		return getS3ClientForBucket(listObjectsRequest.getBucketName()).listObjects( listObjectsRequest);
+	}
+
+	@Override
+	public ListObjectsV2Result listObjectsV2(ListObjectsV2Request listObjectsV2Request)
+			throws SdkClientException, AmazonServiceException {
+		return getS3ClientForBucket(listObjectsV2Request.getBucketName()).listObjectsV2(listObjectsV2Request);
 	}
 
 	@Override

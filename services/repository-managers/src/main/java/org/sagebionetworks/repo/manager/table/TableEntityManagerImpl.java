@@ -9,7 +9,7 @@ import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
-import org.sagebionetworks.repo.manager.file.FileRecordEventUtils;
+import org.sagebionetworks.repo.manager.file.FileRecordUtils;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
@@ -32,7 +32,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileRecordEvent;
+import org.sagebionetworks.repo.model.file.FileRecord;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
@@ -382,8 +382,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			statisticsCollector.collectEvents(uploadEvents);
 		}
 
-		List<FileRecordEvent> uploadFileRecordEvents = newFileIds.stream().map(fileHandleId ->
-			FileRecordEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId,
+		List<FileRecord> uploadFileRecordEvents = newFileIds.stream().map(fileHandleId ->
+			FileRecordUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId,
 					fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity)).collect(Collectors.toList());
 
 		if (!uploadFileRecordEvents.isEmpty()) {

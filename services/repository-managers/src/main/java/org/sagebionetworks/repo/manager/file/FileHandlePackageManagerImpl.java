@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.file.FileDownloadStatus;
 import org.sagebionetworks.repo.model.file.FileDownloadSummary;
 import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.FileRecordEvent;
+import org.sagebionetworks.repo.model.file.FileRecord;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
@@ -293,14 +293,14 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 			statisticsCollector.collectEvents(downloadEvents);
 		}
 
-		List<FileRecordEvent> downloadFileRecordEvents = results.stream()
+		List<FileRecord> downloadFileRecordEvents = results.stream()
 				// Only collects stats for successful summaries
 				.filter(summary -> FileDownloadStatus.SUCCESS.equals(summary.getStatus()))
-				.map(summary -> FileRecordEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userId, summary.getFileHandleId(),
+				.map(summary -> FileRecordUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userId, summary.getFileHandleId(),
 						summary.getAssociateObjectId(), summary.getAssociateObjectType()))
 				.collect(Collectors.toList());
 
-		for (FileRecordEvent event : downloadFileRecordEvents) {
+		for (FileRecord event : downloadFileRecordEvents) {
 			messenger.publishMessageAfterCommit(event);
 		}
 	}

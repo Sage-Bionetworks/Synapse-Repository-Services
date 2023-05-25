@@ -78,7 +78,7 @@ import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
-import org.sagebionetworks.repo.model.file.FileRecordEvent;
+import org.sagebionetworks.repo.model.file.FileRecord;
 import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.file.FileResultFailureCode;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
@@ -340,12 +340,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		StatisticsFileEvent downloadEvent = StatisticsFileEventUtils.buildFileDownloadEvent(userInfo.getId(), fileHandleAssociation);
 		statisticsCollector.collectEvent(downloadEvent);
 
-		FileRecordEvent fileRecordEvent = FileRecordEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(), fileHandleAssociation);
+		FileRecord fileRecordEvent = FileRecordUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(), fileHandleAssociation);
 		sendFileEvents(Collections.singletonList(fileRecordEvent));
 		return url;
 	}
-	private void sendFileEvents(List<FileRecordEvent> fileRecordEvents) {
-		for (FileRecordEvent event: fileRecordEvents){
+	private void sendFileEvents(List<FileRecord> fileRecordEvents) {
+		for (FileRecord event: fileRecordEvents){
 			messenger.publishMessageAfterCommit(event);
 		}
 	}
@@ -1231,7 +1231,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		Map<String, FileHandleAssociation> idToFileHandleAssociation = new HashMap<String, FileHandleAssociation>(request.getRequestedFiles().size());
 		List<ObjectRecord> downloadRecords = new LinkedList<ObjectRecord>();
 		List<StatisticsFileEvent> downloadEvents = new LinkedList<>();
-		List<FileRecordEvent> fileRecordEvents = new LinkedList<>();
+		List<FileRecord> fileRecords = new LinkedList<>();
 		
 		for(FileHandleAssociationAuthorizationStatus fhas: authResults){
 			FileResult result = new FileResult();
@@ -1284,7 +1284,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							StatisticsFileEvent downloadEvent = StatisticsFileEventUtils.buildFileDownloadEvent(userInfo.getId(), association);
 							downloadEvents.add(downloadEvent);
 
-							fileRecordEvents.add(FileRecordEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD,userInfo.getId(),association));
+							fileRecords.add(FileRecordUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD,userInfo.getId(),association));
 							
 							ObjectRecord record = createObjectRecord(userId, association, now);
 							downloadRecords.add(record);
@@ -1312,8 +1312,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			statisticsCollector.collectEvents(downloadEvents);
 		}
 
-		if(!fileRecordEvents.isEmpty()){
-			sendFileEvents(fileRecordEvents);
+		if(!fileRecords.isEmpty()){
+			sendFileEvents(fileRecords);
 		}
 		BatchFileResult batch = new BatchFileResult();
 		batch.setRequestedFiles(requestedFiles);

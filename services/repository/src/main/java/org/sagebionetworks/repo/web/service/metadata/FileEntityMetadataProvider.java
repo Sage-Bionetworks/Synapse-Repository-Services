@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
 import org.sagebionetworks.repo.manager.events.EventsCollector;
-import org.sagebionetworks.repo.manager.file.FileRecordEventUtils;
+import org.sagebionetworks.repo.manager.file.FileRecordUtils;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.manager.sts.StsManager;
@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileRecordEvent;
+import org.sagebionetworks.repo.model.file.FileRecord;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,7 +68,7 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 		StatisticsFileEvent event = StatisticsFileEventUtils.buildFileUploadEvent(userId, entity.getDataFileHandleId(),
 				entity.getId(), FileHandleAssociateType.FileEntity);
 		statisticsCollector.collectEvent(event);
-		FileRecordEvent fileRecordEvent = FileRecordEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId, entity.getDataFileHandleId(),
+		FileRecord fileRecordEvent = FileRecordUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId, entity.getDataFileHandleId(),
 				entity.getId(), FileHandleAssociateType.FileEntity);
 		messenger.publishMessageAfterCommit(fileRecordEvent);
 	}

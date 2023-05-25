@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.file.FileDownloadStatus;
 import org.sagebionetworks.repo.model.file.FileDownloadSummary;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.file.FileRecordEvent;
+import org.sagebionetworks.repo.model.file.FileRecord;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
@@ -96,7 +96,7 @@ public class FileHandlePackageManagerImplTest {
 	@Captor
 	private ArgumentCaptor<List<StatisticsFileEvent>> statisticsFileEventCaptor;
 	@Captor
-	private ArgumentCaptor<FileRecordEvent> fileRecordEventCaptor;
+	private ArgumentCaptor<FileRecord> fileRecordEventCaptor;
 
 	@Spy
 	@InjectMocks
@@ -680,7 +680,7 @@ public class FileHandlePackageManagerImplTest {
 		assertEquals(summary.getFileHandleId(), event.getFileHandleId());
 
 		verify(messenger).publishMessageAfterCommit(fileRecordEventCaptor.capture());
-		FileRecordEvent fileEvent = fileRecordEventCaptor.getValue();
+		FileRecord fileEvent = fileRecordEventCaptor.getValue();
 		assertNotNull(fileEvent);
 		assertNotNull(fileEvent.getTimestamp());
 		assertEquals(summary.getAssociateObjectId(), fileEvent.getAssociateId());

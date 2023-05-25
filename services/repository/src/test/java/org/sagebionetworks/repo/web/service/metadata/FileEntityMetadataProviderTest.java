@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.file.FileRecordEvent;
+import org.sagebionetworks.repo.model.file.FileRecord;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 
 import javax.mail.Folder;
@@ -139,7 +139,7 @@ public class FileEntityMetadataProviderTest {
 		fileEntity.setDataFileHandleId("1");
 		provider.entityCreated(userInfo, fileEntity);
 		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
-		verify(messenger, times(1)).publishMessageAfterCommit(any(FileRecordEvent.class));
+		verify(messenger, times(1)).publishMessageAfterCommit(any(FileRecord.class));
 	}
 
 	@Test
@@ -147,7 +147,7 @@ public class FileEntityMetadataProviderTest {
 		fileEntity.setDataFileHandleId("1");
 		provider.entityUpdated(userInfo, fileEntity, true);
 		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
-		verify(messenger, times(1)).publishMessageAfterCommit(any(FileRecordEvent.class));
+		verify(messenger, times(1)).publishMessageAfterCommit(any(FileRecord.class));
 	}
 
 	@Test
