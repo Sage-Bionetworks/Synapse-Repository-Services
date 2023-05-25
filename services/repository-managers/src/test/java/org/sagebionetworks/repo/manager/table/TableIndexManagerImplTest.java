@@ -3012,7 +3012,7 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testResetTableIndexInternal() {
+	public void testResetTableIndexWithSchema() {
 		
 		TableIndexDescription index = new TableIndexDescription(tableId);
 		
@@ -3029,7 +3029,7 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testResetTableIndexInternalWithSearchDisabled() {
+	public void testResetTableIndexWithSchemaAndSearchDisabled() {
 		
 		TableIndexDescription index = new TableIndexDescription(tableId);
 		
@@ -3322,6 +3322,17 @@ public class TableIndexManagerImplTest {
 		manager.validateSchemaChangeToMediumText(tableId, columnChanges);
 		
 		verifyZeroInteractions(mockIndexDao);
+	}
+	
+	@Test
+	public void testMoveIndex() {
+		TableIndexDescription source = new TableIndexDescription(IdAndVersion.parse("123"));
+		TableIndexDescription target = new TableIndexDescription(IdAndVersion.parse("456"));
+		
+		// Call under test
+		manager.moveIndex(source, target);
+		
+		verify(mockIndexDao).moveTableIndex(source.getIdAndVersion(), target.getIdAndVersion());
 	}
 		
 	@SuppressWarnings("unchecked")

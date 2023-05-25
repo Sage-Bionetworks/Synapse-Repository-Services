@@ -18,6 +18,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CUR_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_DESCRIPTION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_BUCKET;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_ID;
@@ -29,7 +30,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_DESCRIPTION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_VERSION;
@@ -53,6 +53,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -69,6 +70,7 @@ import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.IdAndChecksum;
@@ -225,6 +227,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static final String KEY = "Key";
 	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
+	private static final String STALE_TABLE_PREFIX = "STALE_";
+	private static final String STALE_TABLE_ORDER_KEY = "1";
+	private static final String STALE_TABLE_MV_ORDER_KEY = "0";
 
 	private static final RowMapper<DatabaseColumnInfo> DB_COL_INFO_MAPPER = (rs, rowNum) -> {
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
@@ -612,7 +617,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				.collect(Collectors.toSet());
 	}
 
-	private List<String> getMultivalueColumnIndexTableNames(IdAndVersion tableId, boolean alterTemp){
+	List<String> getMultivalueColumnIndexTableNames(IdAndVersion tableId, boolean alterTemp){
 		String multiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId, alterTemp);
 		return template.queryForList("SHOW TABLES LIKE '"+multiValueTableNamePrefix+"%'", String.class);
 	}
@@ -1612,6 +1617,64 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void update(String sql, Map<String, Object> parameters) {
 		namedTemplate.update(sql, parameters);
+	}
+	
+	@Override
+	public String moveTableIndex(IdAndVersion sourceIndexId, IdAndVersion targetIndexId) {
+		ValidateArgument.required(sourceIndexId, "sourceIndexId");
+		ValidateArgument.required(targetIndexId, "targetIndexId");
+		ValidateArgument.requirement(!sourceIndexId.equals(targetIndexId), "The source index id and the target index id cannot be the same");
+		
+		String randomPrefix = STALE_TABLE_PREFIX + RandomStringUtils.randomAlphanumeric(8) + "_";
+		StringBuilder sqlBuilder = new StringBuilder("RENAME TABLE ");
+		
+		// First rename the main index tables
+		Arrays.stream(TableIndexType.values()).forEach( indexType -> {
+			String oldTableName = SQLUtils.getTableNameForId(targetIndexId, indexType);
+			String newTableName = SQLUtils.getTableNameForId(sourceIndexId, indexType);
+			
+			sqlBuilder.append(oldTableName).append(" TO ").append(randomPrefix).append(STALE_TABLE_ORDER_KEY).append(oldTableName).append(",");
+			sqlBuilder.append(newTableName).append(" TO ").append(oldTableName).append(",");
+		});
+			
+		List<String> oldMultiValueTableNames = getMultivalueColumnIndexTableNames(targetIndexId, false);
+
+		// Now we also rename the old multi value tables into a discarded index
+		if (!oldMultiValueTableNames.isEmpty()) {
+			oldMultiValueTableNames.forEach( oldTableName -> {
+				sqlBuilder.append(oldTableName).append(" TO ").append(randomPrefix).append(STALE_TABLE_MV_ORDER_KEY).append(oldTableName).append(",");
+			});
+		}
+		
+		List<String> newMultiValueTableNames = getMultivalueColumnIndexTableNames(sourceIndexId, false);
+		
+		// Now we also rename the new multi value tables into the old index
+		if (!newMultiValueTableNames.isEmpty()) {
+			String newTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(sourceIndexId, false);
+			String oldTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(targetIndexId, false);
+			// Now we need to rename the new multi value tables to the old index name
+			newMultiValueTableNames.forEach( newTableName -> {
+				String oldTableName = newTableName.replace(newTableNamePrefix, oldTableNamePrefix);
+				sqlBuilder.append(newTableName).append(" TO ").append(oldTableName).append(",");
+			});
+		}
+		
+		sqlBuilder.deleteCharAt(sqlBuilder.length() - 1);
+	
+		template.update(sqlBuilder.toString());
+		
+		return randomPrefix;
+	}
+	
+	public int dropStaleTableIndices() {
+		// Note: the multivalue tables will be ordered before the index tables, this way we can delete them before their respective index tables
+		List<String> unusedTables = template.queryForList("SHOW TABLES LIKE '" + STALE_TABLE_PREFIX + "%'", String.class);
+		
+		unusedTables.forEach(tableName -> {
+			template.update("DROP TABLE IF EXISTS " + tableName);
+		});
+		
+		return unusedTables.size();
 	}
 	
 }

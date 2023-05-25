@@ -1970,7 +1970,7 @@ public class SQLUtils {
 		return "CONSTRAINT " + getMultiValueIndexTableForeignKeyConstraintName(columnIndexTableName) + " FOREIGN KEY (" + rowIdRefColumnName + ") REFERENCES " + parentTable + "(" + ROW_ID + ") ON DELETE CASCADE";
 	}
 	
-	private static String getMultiValueIndexTableForeignKeyConstraintName(String columnIndexTableName) {
+	static String getMultiValueIndexTableForeignKeyConstraintName(String columnIndexTableName) {
 		// Note: the pattern tableName + _ibfk_ is important so that when renaming the table the FK is renamed automatically (See https://dev.mysql.com/doc/refman/8.0/en/rename-table.html)
 		return columnIndexTableName + "_ibfk_FK";
 	}

@@ -1051,7 +1051,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		return resetTableIndex(index, schema, isSearchEnabled);
 	}
 	
-	List<ColumnModel> resetTableIndex(IndexDescription index, List<ColumnModel> schema, boolean isSearchEnabled) {
+	@Override
+	public List<ColumnModel> resetTableIndex(IndexDescription index, List<ColumnModel> schema, boolean isSearchEnabled) {
 		// Clear the table index
 		deleteTableIndex(index.getIdAndVersion());
 		
@@ -1228,6 +1229,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableIndexDao.update(insertSql, definingSql.getParameters());
 			return 1L;
 		});
+	}
+	
+	@Override
+	public void moveIndex(IndexDescription source, IndexDescription target) {
+		tableIndexDao.moveTableIndex(source.getIdAndVersion(), target.getIdAndVersion());
 	}
 	
 }

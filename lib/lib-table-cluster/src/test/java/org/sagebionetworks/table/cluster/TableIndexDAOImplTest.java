@@ -92,6 +92,7 @@ import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -143,7 +144,8 @@ public class TableIndexDAOImplTest {
 		// First get a connection for this table
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
 		tableIndexDAO.deleteTable(tableId);
-		tableIndexDAO.truncateIndex();		
+		tableIndexDAO.truncateIndex();
+		tableIndexDAO.dropStaleTableIndices();
 		indexDescription = new TableIndexDescription(tableId);
 		userId = 1L;
 		fieldTypeMapper = new ObjectFieldTypeMapper() {
@@ -169,6 +171,7 @@ public class TableIndexDAOImplTest {
 			}
 		};
 		subTypes = Set.of(SubType.file);
+		
 	}
 
 	@AfterEach
@@ -178,6 +181,7 @@ public class TableIndexDAOImplTest {
 			tableIndexDAO.deleteTable(tableId);
 		}
 		tableIndexDAO.truncateIndex();
+		tableIndexDAO.dropStaleTableIndices();
 	}
 	
 	/**
@@ -187,17 +191,17 @@ public class TableIndexDAOImplTest {
 	 * @param tableId
 	 */
 	public boolean createOrUpdateTable(List<ColumnModel> newSchema, IndexDescription indexDescription){
-		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(tableId);
+		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion());
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
 		boolean alterTemp = false;
 		// Ensure all all updated columns actually exist.
 		changes = SQLUtils.matchChangesToCurrentInfo(currentSchema, changes);
-		boolean altered = tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
+		boolean altered = tableIndexDAO.alterTableAsNeeded(indexDescription.getIdAndVersion(), changes, alterTemp);
 
 		for(ColumnModel columnModel : newSchema){
 			if(ColumnTypeListMappings.isList(columnModel.getColumnType())){
-				tableIndexDAO.createMultivalueColumnIndexTable(tableId, columnModel, false);
+				tableIndexDAO.createMultivalueColumnIndexTable(indexDescription.getIdAndVersion(), columnModel, false);
 			}
 		}
 
@@ -5205,6 +5209,98 @@ public class TableIndexDAOImplTest {
 			assertFalse(tableIndexDAO.doesIndexHashMatchSchemaHash(tableId, schema));
 		}).getMessage();
 		assertEquals("newSchema is required.",message);
+	}
+	
+	@Test
+	public void testMoveTableIndex() {
+		// Create the first table
+		List<ColumnModel> schemaOne = List.of(
+			TableModelTestUtils.createColumn(1L, "foo", ColumnType.DOUBLE),
+			TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING_LIST),
+			TableModelTestUtils.createColumn(3L, "barList", ColumnType.INTEGER_LIST)
+		);
+		
+		createOrUpdateTable(schemaOne, indexDescription);
+		tableIndexDAO.createSecondaryTables(indexDescription.getIdAndVersion());
+		
+		// Now add some data
+		RowSet set = new RowSet()
+			.setRows(TableModelTestUtils.createRows(schemaOne, 2))
+			.setHeaders(TableModelUtils.getSelectColumns(schemaOne))
+			.setTableId(indexDescription.getIdAndVersion().toString());
+		
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, new IdRange().setMinimumId(100L).setMaximumId(200L).setVersionNumber(3L));
+		
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(indexDescription.getIdAndVersion(), set, schemaOne);
+		
+		// Create another table
+		IndexDescription sourceIndexDescription = new TableIndexDescription(IdAndVersion.parse("456"));
+		
+		List<ColumnModel> schemaTwo = List.of(
+			TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER),
+			TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING),
+			TableModelTestUtils.createColumn(3L, "fooList", ColumnType.INTEGER_LIST),
+			TableModelTestUtils.createColumn(4L, "barList", ColumnType.STRING_LIST)
+		);
+				
+		createOrUpdateTable(schemaTwo, sourceIndexDescription);
+		tableIndexDAO.createSecondaryTables(sourceIndexDescription.getIdAndVersion());
+		
+		set = new RowSet()
+			.setRows(TableModelTestUtils.createRows(schemaTwo, 3))
+			.setHeaders(TableModelUtils.getSelectColumns(schemaTwo))
+			.setTableId(sourceIndexDescription.getIdAndVersion().toString());
+		
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, new IdRange().setMinimumId(100L).setMaximumId(200L).setVersionNumber(4L));
+		
+		createOrUpdateOrDeleteRows(sourceIndexDescription.getIdAndVersion(), set, schemaTwo);
+				
+		// Call under test
+		String randomPrefix = tableIndexDAO.moveTableIndex(sourceIndexDescription.getIdAndVersion(), indexDescription.getIdAndVersion());
+		
+		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_C2_", "_C3_", "_C4_"), 
+			tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
+		);
+		
+		assertEquals(Set.of(3L, 4L), 
+			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(indexDescription.getIdAndVersion())
+		);
+		
+		JdbcTemplate jdbcTemplate = tableIndexDAO.getConnection();
+		
+		// 3 old index tables renamed to be unused
+		Set<String> expectedRenamedIndexTables = Arrays.stream(TableIndexType.values()).map( t -> 
+			randomPrefix + "1" + SQLUtils.getTableNameForId(indexDescription.getIdAndVersion(), t)
+		).collect(Collectors.toSet());
+		
+		Set<String> renamedIndexTables = Set.copyOf(jdbcTemplate.queryForList("SHOW TABLES LIKE '" 
+			+ randomPrefix + "1" + SQLUtils.getTableNameForId(indexDescription.getIdAndVersion(), TableIndexType.INDEX) +"%'", String.class)
+		);
+		
+		assertEquals(expectedRenamedIndexTables, renamedIndexTables);
+
+		// All the old MV tables should be renamed 
+		Set<String> expectedMultiValueTables = schemaOne.stream().filter(c -> ColumnTypeListMappings.isList(c.getColumnType()))
+			.map(c->randomPrefix + "0" + SQLUtils.getTableNameForMultiValueColumnIndex(indexDescription.getIdAndVersion(), c.getId()))
+			.collect(Collectors.toSet());
+		
+		Set<String> renamedMultiValueTables = Set.copyOf(jdbcTemplate.queryForList("SHOW TABLES LIKE '" 
+			+ randomPrefix + "0" + SQLUtils.getTableNamePrefixForMultiValueColumns(indexDescription.getIdAndVersion(), false) +"%'", String.class)
+		);
+		
+		assertEquals(expectedMultiValueTables, renamedMultiValueTables);
+
+		// Makes sure the FK constraints were renamed as well, each renamed table will have one renamed FK
+		Set<String> expectedForeignKeys = expectedMultiValueTables.stream()
+			.map(t ->SQLUtils.getMultiValueIndexTableForeignKeyConstraintName(t))
+			.collect(Collectors.toSet());
+		
+		Set<String> renamedForeignKeys = Set.copyOf(jdbcTemplate.queryForList("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE "
+			+ "TABLE_NAME IN(" + String.join(",", renamedMultiValueTables.stream().map(t-> "'" + t + "'").collect(Collectors.toList())) + ") AND REFERENCED_COLUMN_NAME = 'ROW_ID'", String.class)
+		);
+		
+		assertEquals(expectedForeignKeys, renamedForeignKeys);
 	}
 
 	
