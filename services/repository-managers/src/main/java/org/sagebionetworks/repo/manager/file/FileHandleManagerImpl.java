@@ -40,8 +40,6 @@ import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -336,9 +334,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		FileHandle fileHandle = fileHandleDao.get(fileHandleId);
 		
 		String url = getURLForFileHandle(userInfo, fileHandle);
-
-		StatisticsFileEvent downloadEvent = StatisticsFileEventUtils.buildFileDownloadEvent(userInfo.getId(), fileHandleAssociation);
-		statisticsCollector.collectEvent(downloadEvent);
 
 		FileRecord fileRecordEvent = FileRecordUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(), fileHandleAssociation);
 		sendFileEvents(Collections.singletonList(fileRecordEvent));
@@ -1230,7 +1225,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		Set<String> fileHandleIdsToFetch = new HashSet<String>();
 		Map<String, FileHandleAssociation> idToFileHandleAssociation = new HashMap<String, FileHandleAssociation>(request.getRequestedFiles().size());
 		List<ObjectRecord> downloadRecords = new LinkedList<ObjectRecord>();
-		List<StatisticsFileEvent> downloadEvents = new LinkedList<>();
 		List<FileRecord> fileRecords = new LinkedList<>();
 		
 		for(FileHandleAssociationAuthorizationStatus fhas: authResults){
@@ -1281,9 +1275,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							fr.setPreSignedURL(url);
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
 
-							StatisticsFileEvent downloadEvent = StatisticsFileEventUtils.buildFileDownloadEvent(userInfo.getId(), association);
-							downloadEvents.add(downloadEvent);
-
 							fileRecords.add(FileRecordUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD,userInfo.getId(),association));
 							
 							ObjectRecord record = createObjectRecord(userId, association, now);
@@ -1307,9 +1298,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(!downloadRecords.isEmpty()){
 			// Push the records to queue
 			objectRecordQueue.pushObjectRecordBatch(new ObjectRecordBatch(downloadRecords, FILE_DOWNLOAD_RECORD_TYPE));
-		}
-		if (!downloadEvents.isEmpty()) {
-			statisticsCollector.collectEvents(downloadEvents);
 		}
 
 		if(!fileRecords.isEmpty()){

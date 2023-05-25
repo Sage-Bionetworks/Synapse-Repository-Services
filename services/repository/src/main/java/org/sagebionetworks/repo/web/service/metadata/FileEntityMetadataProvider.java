@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.web.service.metadata;
 
 import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.file.FileRecordUtils;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -65,9 +63,6 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 	}
 
 	private void sendFileUploadEvent(Long userId, FileEntity entity) {
-		StatisticsFileEvent event = StatisticsFileEventUtils.buildFileUploadEvent(userId, entity.getDataFileHandleId(),
-				entity.getId(), FileHandleAssociateType.FileEntity);
-		statisticsCollector.collectEvent(event);
 		FileRecord fileRecordEvent = FileRecordUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId, entity.getDataFileHandleId(),
 				entity.getId(), FileHandleAssociateType.FileEntity);
 		messenger.publishMessageAfterCommit(fileRecordEvent);

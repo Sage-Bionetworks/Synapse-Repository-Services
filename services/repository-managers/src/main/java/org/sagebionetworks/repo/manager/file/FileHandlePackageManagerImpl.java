@@ -7,8 +7,6 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -282,17 +280,6 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 	}
 
 	void collectDownloadStatistics(Long userId, List<FileDownloadSummary> results) {
-		List<StatisticsFileEvent> downloadEvents = results.stream()
-				// Only collects stats for successful summaries
-				.filter(summary -> FileDownloadStatus.SUCCESS.equals(summary.getStatus()))
-				.map(summary -> StatisticsFileEventUtils.buildFileDownloadEvent(userId, summary.getFileHandleId(),
-						summary.getAssociateObjectId(), summary.getAssociateObjectType()))
-				.collect(Collectors.toList());
-
-		if (!downloadEvents.isEmpty()) {
-			statisticsCollector.collectEvents(downloadEvents);
-		}
-
 		List<FileRecord> downloadFileRecordEvents = results.stream()
 				// Only collects stats for successful summaries
 				.filter(summary -> FileDownloadStatus.SUCCESS.equals(summary.getStatus()))

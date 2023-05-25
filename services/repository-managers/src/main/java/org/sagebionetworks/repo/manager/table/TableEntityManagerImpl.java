@@ -10,8 +10,6 @@ import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.file.FileRecordUtils;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -373,14 +371,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
  		final Set<Long> newFileIds = getFileHandleIdsNotAssociatedWithTable(tableId, fileIdsInSet);
  		
  		final Long userId = user.getId();
-
- 		List<StatisticsFileEvent> uploadEvents = newFileIds.stream().map(fileHandleId ->
-			StatisticsFileEventUtils.buildFileUploadEvent(userId, fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity)
-		).collect(Collectors.toList());
-
-		if (!uploadEvents.isEmpty()) {
-			statisticsCollector.collectEvents(uploadEvents);
-		}
 
 		List<FileRecord> uploadFileRecordEvents = newFileIds.stream().map(fileHandleId ->
 			FileRecordUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId,
