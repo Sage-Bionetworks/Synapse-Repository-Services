@@ -38,7 +38,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
-import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -192,9 +191,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	private IdGenerator idGenerator;
-	
-	@Autowired
-	private EventsCollector statisticsCollector;
 
 	@Autowired
 	private TransferManager transferManager;

@@ -111,7 +111,6 @@
 		<ref bean="idGeneratorCleanuSynchTrigger" />
 		<ref bean="memoryLoggerTrigger" />
 		<ref bean="semaphoreGarbageCollectionTrigger" />
-		<ref bean="eventsQueueTrigger" />
 		<ref bean="athenaPartitionScannerTrigger" />
 		<ref bean="statisticsMonthlyStatusWatcherWorkerTrigger" /> 
 		<ref bean="statisticsMonthlyWorkerTrigger" />

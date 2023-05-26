@@ -8,7 +8,6 @@ import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.file.FileRecordUtils;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -131,8 +130,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	private TableTransactionDao tableTransactionDao;
 	@Autowired
 	private NodeManager nodeManager;
-	@Autowired
-	private EventsCollector statisticsCollector;
 	@Autowired
 	private TableTransactionManager transactionManager;
 	@Autowired

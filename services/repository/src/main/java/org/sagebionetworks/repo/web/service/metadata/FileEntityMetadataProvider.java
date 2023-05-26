@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.file.FileRecordUtils;
 import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -21,9 +20,6 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 		TypeSpecificUpdateProvider<FileEntity> {
 
 	private static final String FILE_NAME_OVERRIDE_DEPRECATED_REASON = "fileNameOverride field is deprecated and should not be set.";
-
-	@Autowired
-	private EventsCollector statisticsCollector;
 
 	@Autowired
 	private StsManager stsManager;
