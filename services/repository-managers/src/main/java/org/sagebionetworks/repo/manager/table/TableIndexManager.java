@@ -331,6 +331,10 @@ public interface TableIndexManager {
 	 * @param target
 	 * @param replacement
 	 */
-	void moveIndex(IndexDescription source, IndexDescription target);
-
+	void moveTableIndex(IndexDescription source, IndexDescription target);
+	
+	/**
+	 * Deletes all the stale tables
+	 */
+	void deleteStaleTables();
 }

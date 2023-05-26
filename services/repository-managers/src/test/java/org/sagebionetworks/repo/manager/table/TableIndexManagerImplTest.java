@@ -3325,14 +3325,23 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testMoveIndex() {
+	public void testMoveTableIndex() {
 		TableIndexDescription source = new TableIndexDescription(IdAndVersion.parse("123"));
 		TableIndexDescription target = new TableIndexDescription(IdAndVersion.parse("456"));
 		
 		// Call under test
-		manager.moveIndex(source, target);
+		manager.moveTableIndex(source, target);
 		
 		verify(mockIndexDao).moveTableIndex(source.getIdAndVersion(), target.getIdAndVersion());
+	}
+	
+	@Test
+	public void testDeleteStaleTables() {
+		
+		// Call under test
+		manager.deleteStaleTables();
+		
+		verify(mockIndexDao).dropStaleTableIndices();
 	}
 		
 	@SuppressWarnings("unchecked")
