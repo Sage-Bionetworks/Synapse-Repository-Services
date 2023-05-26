@@ -1,14 +1,15 @@
 package org.sagebionetworks.repo.model.entity;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class IdAndVersionTest {
 	
@@ -26,9 +27,11 @@ public class IdAndVersionTest {
 		assertFalse(one.getVersion().isPresent());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testNullId() {
-		new IdAndVersionBuilder().setId(null).setVersion(456L).build();
+		assertThrows(IllegalArgumentException.class, () -> {			
+			new IdAndVersionBuilder().setId(null).setVersion(456L).build();
+		});
 	}
 	
 	@Test
