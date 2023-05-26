@@ -2,6 +2,7 @@ package org.sagebionetworks.worker.config;
 
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.file.worker.FileHandleAssociationScanDispatcherWorker;
+import org.sagebionetworks.table.worker.StaleTableCleaupWorker;
 import org.sagebionetworks.worker.utils.StackStatusGate;
 import org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack;
 import org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration;
@@ -42,6 +43,24 @@ public class TimerWorkersConfig {
 			// before we start migration which is when the stack is put to read-only mode.
 			// If we do not wait for this the scanner will scan a mostly empty database delaying the next scan for at least 5 days.
 			.withStartDelay(7200000)
+			.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean staleTablesCleanupWorkerTrigger(StaleTableCleaupWorker staleTableCleaupWorker) {
+		
+		SemaphoreGatedWorkerStackConfiguration config = new SemaphoreGatedWorkerStackConfiguration();
+		
+		config.setSemaphoreLockKey("staleTableCleaupWorker");
+		config.setProgressingRunner(staleTableCleaupWorker);
+		config.setSemaphoreMaxLockCount(1);
+		config.setSemaphoreLockTimeoutSec(120);
+		config.setGate(stackStatusGate);
+		
+		return new WorkerTriggerBuilder()
+			.withStack(new SemaphoreGatedWorkerStack(countingSemaphore, config))
+			.withRepeatInterval(600000)
+			.withStartDelay(3456)
 			.build();
 	}
 

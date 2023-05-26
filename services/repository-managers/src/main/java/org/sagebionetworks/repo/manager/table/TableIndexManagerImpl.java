@@ -1237,8 +1237,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public void deleteStaleTables() {
-		tableIndexDao.dropStaleTableIndices();
+	public int deleteStaleTables() {
+		return tableIndexDao.dropStaleTableIndices();
 	}
 	
 }

@@ -2114,9 +2114,4 @@ public class SQLUtils {
 		return "UPDATE " + getTableNameForId(id, TableIndexType.INDEX) + " SET `" + ROW_SEARCH_CONTENT + "` = NULL";
 	}
 	
-	public static String buildReplaceIndexSql(IdAndVersion targetId, IdAndVersion replacementId) {
-		
-		return null;
-	}
-	
 }

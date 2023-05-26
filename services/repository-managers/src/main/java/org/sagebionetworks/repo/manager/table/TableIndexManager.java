@@ -336,5 +336,5 @@ public interface TableIndexManager {
 	/**
 	 * Deletes all the stale tables
 	 */
-	void deleteStaleTables();
+	int deleteStaleTables();
 }

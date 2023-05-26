@@ -3338,8 +3338,12 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testDeleteStaleTables() {
 		
+		when(mockIndexDao.dropStaleTableIndices()).thenReturn(1000);
+		
 		// Call under test
-		manager.deleteStaleTables();
+		int result = manager.deleteStaleTables();
+		
+		assertEquals(1000, result);
 		
 		verify(mockIndexDao).dropStaleTableIndices();
 	}

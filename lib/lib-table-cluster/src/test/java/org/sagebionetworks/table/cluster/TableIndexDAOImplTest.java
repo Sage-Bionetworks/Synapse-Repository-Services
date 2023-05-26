@@ -5303,6 +5303,42 @@ public class TableIndexDAOImplTest {
 		assertEquals(expectedForeignKeys, renamedForeignKeys);
 	}
 
+	@Test
+	public void testDropStaleTableIndices() {
+		List<ColumnModel> schemaOne = List.of(
+			TableModelTestUtils.createColumn(1L, "foo", ColumnType.DOUBLE),
+			TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING_LIST),
+			TableModelTestUtils.createColumn(3L, "barList", ColumnType.INTEGER_LIST)
+		);
+		
+		createOrUpdateTable(schemaOne, indexDescription);
+		tableIndexDAO.createSecondaryTables(indexDescription.getIdAndVersion());
+		
+		// Create another table
+		IndexDescription sourceIndexDescription = new TableIndexDescription(IdAndVersion.parse("456"));
+		
+		List<ColumnModel> schemaTwo = List.of(
+			TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER),
+			TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING),
+			TableModelTestUtils.createColumn(3L, "fooList", ColumnType.INTEGER_LIST),
+			TableModelTestUtils.createColumn(4L, "barList", ColumnType.STRING_LIST)
+		);
+				
+		createOrUpdateTable(schemaTwo, sourceIndexDescription);
+		tableIndexDAO.createSecondaryTables(sourceIndexDescription.getIdAndVersion());
+		
+		tableIndexDAO.moveTableIndex(sourceIndexDescription.getIdAndVersion(), tableId);
+		
+		// Call under test (3 index tables, plus 2 for the multi value columns)
+		assertEquals(5, tableIndexDAO.dropStaleTableIndices());
+	}
+	
+	@Test
+	public void testDropStaleTableIndicesWithNoStaleTable() {
+		// Call under test
+		assertEquals(0, tableIndexDAO.dropStaleTableIndices());
+	}
+
 	
 	/**
 	 * Helper to create a schema provider for the given schema.
