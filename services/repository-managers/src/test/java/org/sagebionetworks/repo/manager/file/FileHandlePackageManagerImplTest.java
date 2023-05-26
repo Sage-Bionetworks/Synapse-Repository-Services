@@ -669,16 +669,6 @@ public class FileHandlePackageManagerImplTest {
 		// call under test
 		fileHandleSupportSpy.collectDownloadStatistics(userInfo.getId(), summaryResults);
 
-		verify(mockStatisticsCollector).collectEvents(statisticsFileEventCaptor.capture());
-		List<StatisticsFileEvent> value = statisticsFileEventCaptor.getValue();
-		assertNotNull(value);
-		assertEquals(1, value.size());
-		StatisticsFileEvent event = value.get(0);
-		assertNotNull(event.getTimestamp());
-		assertEquals(summary.getAssociateObjectId(), event.getAssociationId());
-		assertEquals(summary.getAssociateObjectType(), event.getAssociationType());
-		assertEquals(summary.getFileHandleId(), event.getFileHandleId());
-
 		verify(messenger).publishMessageAfterCommit(fileRecordEventCaptor.capture());
 		FileRecord fileEvent = fileRecordEventCaptor.getValue();
 		assertNotNull(fileEvent);

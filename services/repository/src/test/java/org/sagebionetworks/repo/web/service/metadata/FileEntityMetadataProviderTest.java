@@ -7,8 +7,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.events.EventsCollector;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -32,8 +30,6 @@ public class FileEntityMetadataProviderTest {
 	private static final String FILE_HANDLE_ID = "file-handle-id";
 	private static final String PARENT_ENTITY_ID = "parent-entity-id";
 
-	@Mock
-	private EventsCollector mockStatisticsCollector;
 	@Mock
 	private TransactionalMessenger messenger;
 
@@ -138,7 +134,6 @@ public class FileEntityMetadataProviderTest {
 	public void testEntityCreated() {
 		fileEntity.setDataFileHandleId("1");
 		provider.entityCreated(userInfo, fileEntity);
-		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
 		verify(messenger, times(1)).publishMessageAfterCommit(any(FileRecord.class));
 	}
 
@@ -146,14 +141,12 @@ public class FileEntityMetadataProviderTest {
 	public void testEntityUpdatedWithNewVersion() {
 		fileEntity.setDataFileHandleId("1");
 		provider.entityUpdated(userInfo, fileEntity, true);
-		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
 		verify(messenger, times(1)).publishMessageAfterCommit(any(FileRecord.class));
 	}
 
 	@Test
 	public void testEntityUpdatedWithoutNewVersion() {
 		provider.entityUpdated(userInfo, fileEntity, false);
-		verify(mockStatisticsCollector, never()).collectEvent(any());
 		verify(messenger, never()).publishMessageAfterCommit(any());
 	}
 }

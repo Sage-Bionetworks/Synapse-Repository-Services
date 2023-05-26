@@ -22,7 +22,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -161,8 +160,6 @@ public class TableEntityManagerTest {
 	TableTransactionDao mockTableTransactionDao;
 	@Mock
 	NodeManager mockNodeManager;
-	@Mock
-	EventsCollector mockStatisticsCollector;
 	@Mock
 	TableTransactionManager mockTransactionManager;
 	@Mock
@@ -798,7 +795,6 @@ public class TableEntityManagerTest {
 
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
-		verify(mockStatisticsCollector, times(1)).collectEvents(any(List.class));
 		verify(messenger, times(2)).publishMessageAfterCommit(any());
 	}
 	
@@ -829,7 +825,7 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong(), eq(false));
 
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
-		verify(mockStatisticsCollector, never()).collectEvents(any(List.class));
+		verifyZeroInteractions(messenger);
 	}
 
 	@Test
