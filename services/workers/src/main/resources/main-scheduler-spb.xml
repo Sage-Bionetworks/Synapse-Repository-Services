@@ -142,7 +142,7 @@
 		<ref bean="accessRequirementToProjectWorkerTrigger"/>
 		<ref bean="missingTableStatusWorkerTrigger"/>
 		<ref bean="tableSnapshotWorkerTrigger"/>
-		<ref bean="fileRecordEventTrigger"/>
+		<ref bean="fileRecordWorkerTrigger"/>
 		
 	</util:list>
 

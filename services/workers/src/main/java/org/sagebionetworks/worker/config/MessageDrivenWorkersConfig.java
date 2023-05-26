@@ -164,7 +164,7 @@ public class MessageDrivenWorkersConfig {
 	}
 
 	@Bean
-	public SimpleTriggerFactoryBean fileRecordEventTrigger(FileRecordWorker fileRecordWorker) {
+	public SimpleTriggerFactoryBean fileRecordWorkerTrigger(FileRecordWorker fileRecordWorker) {
 
 		String queueName = stackConfig.getQueueName("FILE_RECORDS");
 		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, fileRecordWorker);
