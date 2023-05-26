@@ -451,6 +451,12 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @return The most recent snapshot that exists for the table with the given id and version. A previous snapshot might be returned.
 	 */
 	Optional<TableSnapshot> getMostRecentTableSnapshot(IdAndVersion idAndVersion);
-
+	
+	/**
+	 * Sends a message to trigger an update for the table with the given id, this will not modify the status of the table
+	 * 
+	 * @param idAndVersion
+	 */
+	void triggerIndexUpdate(IdAndVersion idAndVersion);
 
 }

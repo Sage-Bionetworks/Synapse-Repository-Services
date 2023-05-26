@@ -1680,4 +1680,23 @@ public class TableManagerSupportTest {
 		verify(mockAsynchCallback).updateProgress("Applying an update to table: 'syn456' ...", 0L, 100L);
 	}
 	
+	@Test
+	public void testTriggerIndexUpdate() {
+		doReturn(ObjectType.ENTITY_VIEW).when(managerSpy).getTableObjectType(idAndVersion);
+
+		// Call under test
+		managerSpy.triggerIndexUpdate(idAndVersion);
+		
+		verify(managerSpy).getTableObjectType(idAndVersion);
+		
+		MessageToSend expected = new MessageToSend()
+			.withObjectId(idAndVersion.getId().toString())
+			.withObjectType(ObjectType.ENTITY_VIEW)
+			.withObjectVersion(null)
+			.withChangeType(ChangeType.UPDATE);
+		
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expected);
+		
+	}
+	
 }
