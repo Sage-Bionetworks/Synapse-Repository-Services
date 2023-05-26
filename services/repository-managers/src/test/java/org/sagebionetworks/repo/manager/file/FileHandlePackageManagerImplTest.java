@@ -14,8 +14,6 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.events.EventsCollector;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
@@ -86,15 +84,11 @@ public class FileHandlePackageManagerImplTest {
 	@Mock
 	private ZipEntryNameProvider mockZipEntryNameProvider;
 	@Mock
-	private EventsCollector mockStatisticsCollector;
-	@Mock
 	private TransactionalMessenger messenger;
 	@Captor
 	private ArgumentCaptor<Set<String>> filesInZipCaptor;
 	@Captor
 	private ArgumentCaptor<ZipEntryNameProvider> zipEntryNameProviderCaptor;
-	@Captor
-	private ArgumentCaptor<List<StatisticsFileEvent>> statisticsFileEventCaptor;
 	@Captor
 	private ArgumentCaptor<FileRecord> fileRecordEventCaptor;
 
@@ -686,8 +680,8 @@ public class FileHandlePackageManagerImplTest {
 		
 		// call under test
 		fileHandleSupportSpy.collectDownloadStatistics(userInfo.getId(), summaryResults);
-		
-		verify(mockStatisticsCollector, never()).collectEvents(any());
+
+		verifyNoMoreInteractions(messenger);
 	}
 	
 	@Test
