@@ -50,6 +50,9 @@ public class LockContextTest {
 		assertEquals("Rebuilding materialized view: 'syn123.1' ...",
 				new LockContext(ContextType.BuildMaterializedView, IdAndVersionParser.parseIdAndVersion("syn123.1"))
 						.toDisplayString());
+		assertEquals("Updating materialized view: 'syn123.1' ...",
+				new LockContext(ContextType.UpdatingMaterializedView, IdAndVersionParser.parseIdAndVersion("syn123.1"))
+						.toDisplayString());
 	}
 
 	@Test
