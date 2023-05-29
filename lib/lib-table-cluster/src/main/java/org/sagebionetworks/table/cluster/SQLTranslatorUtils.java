@@ -47,8 +47,11 @@ import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
+import org.sagebionetworks.table.query.model.CastSpecification;
+import org.sagebionetworks.table.query.model.CastTarget;
 import org.sagebionetworks.table.query.model.CharacterFactor;
 import org.sagebionetworks.table.query.model.CharacterPrimary;
+import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.CharacterValueExpression;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
@@ -325,6 +328,8 @@ public class SQLTranslatorUtils {
 	 */
 	public static void translateModel(QuerySpecification transformedModel,
 			Map<String, Object> parameters, Long userId, TableAndColumnMapper mapper) {
+		
+		translateCast(transformedModel, mapper);
 
 		translateSynapseFunctions(transformedModel, userId);
 
@@ -370,6 +375,27 @@ public class SQLTranslatorUtils {
 		 *  reference and therefore should be enclosed in backticks.
 		 */
 		translateUnresolvedDelimitedIdentifiers(transformedModel);
+	}
+	
+	public static void translateCast(QuerySpecification model,TableAndColumnMapper mapper) {
+		Iterable<CastSpecification> casts = model.createIterable(CastSpecification.class);
+		for(CastSpecification cast: casts) {
+			translateCastSpecification(cast, mapper);
+		}
+	}
+	
+
+	public static void translateCastSpecification(CastSpecification cast, TableAndColumnMapper mapper) {
+		ValidateArgument.required(cast, "CastSpecification");
+		ValidateArgument.required(mapper, "TableAndColumnMapper");
+		CastTarget target = cast.getCastTarget();
+		if(target.getType() == null && target.getColumnId() == null) {
+			throw new IllegalArgumentException("Either ColumnType or ColumnId is required");
+		}
+		ColumnType type = target.getType() != null ? target.getType()
+				: mapper.getColumnModel(target.getColumnId().toSql()).getColumnType();
+		target.replaceElement(
+				new CastTarget(ColumnTypeInfo.getInfoForType(type).getMySqlType().getMySqlCastType().name()));
 	}
 
 	/**

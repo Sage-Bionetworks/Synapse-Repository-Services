@@ -2,6 +2,8 @@ package org.sagebionetworks.table.cluster;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -11,9 +13,9 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
@@ -27,12 +29,15 @@ import org.sagebionetworks.repo.model.table.SortItem;
 
 @ExtendWith(MockitoExtension.class)
 public class CombinedQueryTest {
+	
+	@Mock
+	SchemaProvider mockSchemaProvider;
 
 	private List<QueryFilter> additionalFilters;
 	private List<FacetColumnRequest> selectedFacets;
 	private List<ColumnModel> schema;
 	private List<SortItem> sortList;
-	private SchemaProvider schemaProvider;
+
 	private Long overrideLimit;
 	private Long overrideOffset;
 
@@ -55,16 +60,15 @@ public class CombinedQueryTest {
 
 		sortList = List.of(new SortItem().setColumn("foo").setDirection(SortDirection.DESC));
 
-		schemaProvider = schemaProvider(schema);
-
 		overrideLimit = 99L;
 		overrideOffset = 2L;
 	}
 
 	@Test
 	public void testGetCombinedSqlWithAllOverrides() {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		// call under test
-		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(schemaProvider)
+		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
 				.setQuery("select * from syn123").setAdditionalFilters(additionalFilters).setSortList(sortList)
 				.setOverrideLimit(overrideLimit).setOverrideOffset(overrideOffset).setSelectedFacets(selectedFacets)
 				.build();
@@ -77,8 +81,9 @@ public class CombinedQueryTest {
 
 	@Test
 	public void testGetCombinedSqlWithAllOverridesExistingWhere() {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		// call under test
-		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(schemaProvider)
+		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
 				.setQuery("select aBool from syn123 where aBool is true").setAdditionalFilters(additionalFilters)
 				.setSortList(sortList).setOverrideLimit(overrideLimit).setOverrideOffset(overrideOffset)
 				.setSelectedFacets(selectedFacets).build();
@@ -92,13 +97,14 @@ public class CombinedQueryTest {
 
 	@Test
 	public void testGetCombinedSqlWithAllOverridesExistingPagination() {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		overrideLimit = 19L;
 		overrideOffset = 4L;
 		additionalFilters = null;
 		sortList = null;
 		selectedFacets = null;
 		// call under test
-		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(schemaProvider)
+		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
 				.setQuery("select * from syn123 limit 10 offset 3").setAdditionalFilters(additionalFilters)
 				.setSortList(sortList).setOverrideLimit(overrideLimit).setOverrideOffset(overrideOffset)
 				.setSelectedFacets(selectedFacets).build();
@@ -108,13 +114,14 @@ public class CombinedQueryTest {
 	
 	@Test
 	public void testGetCombinedSqlWithExistingSort() {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		overrideLimit = null;
 		overrideOffset = null;
 		additionalFilters = null;
 		sortList = List.of(new SortItem().setColumn("foo").setDirection(SortDirection.DESC));
 		selectedFacets = null;
 		// call under test
-		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(schemaProvider)
+		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
 				.setQuery("select * from syn123 order by aBool ASC").setAdditionalFilters(additionalFilters)
 				.setSortList(sortList).setOverrideLimit(overrideLimit).setOverrideOffset(overrideOffset)
 				.setSelectedFacets(selectedFacets).build();
@@ -124,13 +131,14 @@ public class CombinedQueryTest {
 
 	@Test
 	public void testGetCombinedSqlWithEmptyAdditionalFilters() {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		overrideLimit = null;
 		overrideOffset = null;
 		additionalFilters = Collections.emptyList();
 		sortList = null;
 		selectedFacets = null;
 		// call under test
-		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(schemaProvider)
+		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
 				.setQuery("select * from syn123").setAdditionalFilters(additionalFilters).setSortList(sortList)
 				.setOverrideLimit(overrideLimit).setOverrideOffset(overrideOffset).setSelectedFacets(selectedFacets)
 				.build();
@@ -140,13 +148,14 @@ public class CombinedQueryTest {
 
 	@Test
 	public void testGetCombinedSqlWithUnknownFacet() {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 
 		selectedFacets = List
 				.of(new FacetColumnValuesRequest().setColumnName("doesNotExist").setFacetValues(Set.of("1")));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			CombinedQuery.builder().setSchemaProvider(schemaProvider)
+			CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
 					.setQuery("select aBool from syn123 where aBool is true").setAdditionalFilters(additionalFilters)
 					.setSortList(sortList).setOverrideLimit(overrideLimit).setOverrideOffset(overrideOffset)
 					.setSelectedFacets(selectedFacets).build();
@@ -156,6 +165,7 @@ public class CombinedQueryTest {
 
 	@Test
 	public void testGetCombinedSqlWithAllNull() {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		additionalFilters = null;
 		selectedFacets = null;
 		sortList = null;
@@ -163,7 +173,7 @@ public class CombinedQueryTest {
 		overrideOffset = null;
 
 		// call under test
-		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(schemaProvider)
+		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
 				.setQuery("select * from syn123").setAdditionalFilters(additionalFilters).setSortList(sortList)
 				.setOverrideLimit(overrideLimit).setOverrideOffset(overrideOffset).setSelectedFacets(selectedFacets)
 				.build();
@@ -181,21 +191,10 @@ public class CombinedQueryTest {
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			CombinedQuery.builder().setSchemaProvider(schemaProvider).setQuery("this is not valid sql")
+			CombinedQuery.builder().setSchemaProvider(mockSchemaProvider).setQuery("this is not valid sql")
 					.setAdditionalFilters(additionalFilters).setSortList(sortList).setOverrideLimit(overrideLimit)
 					.setOverrideOffset(overrideOffset).setSelectedFacets(selectedFacets).build();
 		});
 	}
 
-	/**
-	 * Helper to create a schema provider for the given schema.
-	 * 
-	 * @param schema
-	 * @return
-	 */
-	SchemaProvider schemaProvider(List<ColumnModel> schema) {
-		return (IdAndVersion tableId) -> {
-			return schema;
-		};
-	}
 }

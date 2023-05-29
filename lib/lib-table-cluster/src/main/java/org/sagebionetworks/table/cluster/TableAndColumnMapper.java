@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -26,10 +27,12 @@ import org.sagebionetworks.util.ValidateArgument;
 public class TableAndColumnMapper implements ColumnLookup {
 
 	private final List<TableInfo> tables;
+	private final SchemaProvider schemaProvider;
 
 	public TableAndColumnMapper(QuerySpecification query, SchemaProvider schemaProvider) {
 		ValidateArgument.required(query, "QuerySpecification");
 		ValidateArgument.required(schemaProvider, "SchemaProvider");
+		this.schemaProvider = schemaProvider;
 		List<TableInfo> tables = new ArrayList<TableInfo>();
 		int tableIndex = 0;
 		// extract all of the table information from the SQL model.
@@ -177,5 +180,9 @@ public class TableAndColumnMapper implements ColumnLookup {
 			return Optional.empty();
 		}
 		return tables.stream().filter(t -> t.isMatch(tableNameCorrelation)).findFirst();
+	}
+
+	public ColumnModel getColumnModel(String columnId) {
+		return schemaProvider.getColumnModel(columnId);
 	}
 }

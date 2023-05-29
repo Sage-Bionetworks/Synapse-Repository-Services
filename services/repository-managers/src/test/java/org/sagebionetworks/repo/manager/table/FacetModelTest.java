@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -14,6 +16,7 @@ import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -307,9 +310,9 @@ public class FacetModelTest {
 	 * @return
 	 */
 	SchemaProvider schemaProvider(List<ColumnModel> schema) {
-		return (IdAndVersion tableId) -> {
-			return schema;
-		};
+		SchemaProvider mockProvider = Mockito.mock(SchemaProvider.class);
+		when(mockProvider.getTableSchema(any())).thenReturn(schema);
+		return mockProvider;
 	}
 	
 }

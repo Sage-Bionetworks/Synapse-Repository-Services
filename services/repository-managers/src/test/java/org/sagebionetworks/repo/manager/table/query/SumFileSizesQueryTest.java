@@ -4,6 +4,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.List;
@@ -13,6 +15,7 @@ import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -48,9 +51,8 @@ public class SumFileSizesQueryTest {
 				TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER).setFacetType(FacetType.range),
 				TableModelTestUtils.createColumn(3L, "three", ColumnType.STRING));
 
-		schemaProvider = (IdAndVersion tableId) -> {
-			return schema;
-		};
+		schemaProvider = Mockito.mock(SchemaProvider.class);
+		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
 
 		userId = 789L;
 		tableId = IdAndVersion.parse("syn123.4");

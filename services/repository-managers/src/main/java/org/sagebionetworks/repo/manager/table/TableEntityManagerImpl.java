@@ -78,7 +78,6 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.SQLUtils;
-import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -493,11 +492,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		}
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		String sql = SQLUtils.buildSelectRowIds(tableId, rows, columns);
-		SchemaProvider schemaProvider = (IdAndVersion id) -> {
-			return columns;
-		};
+
 		final Map<Long, Row> rowMap = new HashMap<Long, Row>(rows.size());
-		QueryTranslator query = QueryTranslator.builder(sql, schemaProvider, userInfo.getId())
+		QueryTranslator query = QueryTranslator.builder(sql, columModelManager, userInfo.getId())
 				.indexDescription(indexDescription).build();
 		indexDao.queryAsStream(null, query, new RowHandler() {
 			@Override
@@ -519,6 +516,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		return results;
 
 	}
+	
+	
 
 	public void setMaxBytesPerRequest(int maxBytesPerRequest) {
 		this.maxBytesPerRequest = maxBytesPerRequest;

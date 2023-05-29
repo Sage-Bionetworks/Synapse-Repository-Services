@@ -5,7 +5,6 @@ import java.util.Optional;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
 
-@FunctionalInterface
 public interface ColumnLookup {
 
 	/**
@@ -15,6 +14,6 @@ public interface ColumnLookup {
 	 * @param columnReference
 	 * @return
 	 */
-	public Optional<ColumnTranslationReference> lookupColumnReference(ColumnReference columnReference);
+	Optional<ColumnTranslationReference> lookupColumnReference(ColumnReference columnReference);
 
 }

@@ -30,13 +30,11 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
-import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -47,9 +45,7 @@ import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.SchemaProvider;
-import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 
@@ -63,32 +59,32 @@ import com.google.common.collect.Lists;
 public class TableServicesImplTest {
 	
 	@Mock
-	UserManager mockUserManager;
+	private UserManager mockUserManager;
 	@Mock
-	ColumnModelManager mockColumnModelManager;
+	private ColumnModelManager mockColumnModelManager;
 	@Mock
-	EntityManager mockEntityManager;
+	private EntityManager mockEntityManager;
 	@Mock
-	TableEntityManager mockTableEntityManager;
+	private TableEntityManager mockTableEntityManager;
 	@Mock
-	FileHandleManager mockFileHandleManager;
+	private FileHandleManager mockFileHandleManager;
+	@Mock
+	private SchemaProvider mockSchemaProvider;
 	@InjectMocks
-	TableServicesImpl tableService;
+	private TableServicesImpl tableService;
 	
-	Long userId;
-	UserInfo userInfo;
-	QueryBundleRequest queryBundle;
-	List<ColumnModel> columns;
-	List<SelectColumn> headers;
-	RowSet selectStar;
-	QueryResult selectStarResult;
-	String tableId;
-	QueryTranslator sqlQuery;
-	RowReferenceSet fileHandlesToFind;
-	RowReference rowRef;
-	String columnId;
-	ColumnModel fileColumn;
-	String fileHandleId;
+	private Long userId;
+	private UserInfo userInfo;
+	private List<ColumnModel> columns;
+	private List<SelectColumn> headers;
+	private RowSet selectStar;
+	private QueryResult selectStarResult;
+	private String tableId;
+	private RowReferenceSet fileHandlesToFind;
+	private RowReference rowRef;
+	private String columnId;
+	private ColumnModel fileColumn;
+	private String fileHandleId;
 
 	@BeforeEach
 	public void beforeEach() throws Exception{
@@ -106,11 +102,7 @@ public class TableServicesImplTest {
 		selectStarResult.setNextPageToken(null);
 		selectStarResult.setQueryResults(selectStar);
 
-		SchemaProvider schemaProvider = (IdAndVersion tableId) -> {
-			return columns;
-		};
-		sqlQuery = QueryTranslator.builder("select * from " + tableId, schemaProvider, userId).indexDescription(new TableIndexDescription(IdAndVersion.parse(tableId))).build();
-		List<ColumnModel> columns = new LinkedList<ColumnModel>();
+//		sqlQuery = QueryTranslator.builder("select * from " + tableId, mockSchemaProvider, userId).indexDescription(new TableIndexDescription(IdAndVersion.parse(tableId))).build();
 		fileHandlesToFind = new RowReferenceSet();
 		fileHandlesToFind.setTableId(tableId);
 		fileHandlesToFind.setRows(new LinkedList<RowReference>());

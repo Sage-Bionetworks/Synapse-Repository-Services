@@ -4,10 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -16,6 +17,9 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -29,10 +33,14 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 
+@ExtendWith(MockitoExtension.class)
 public class TableAndColumnMapperTest {
 
 	private List<ColumnModel> allColumns;
 	private Map<String, ColumnModel> columnMap;
+	
+	@Mock
+	SchemaProvider mockSchemaProvider;
 
 	@BeforeEach
 	public void before() {
@@ -53,11 +61,11 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testConstructorWithSingleTable() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), allColumns);
+
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(allColumns);
 
 		// call under test
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 		assertEquals(Arrays.asList(IdAndVersion.parse("syn123")), mapper.getTableIds());
 		assertEquals(allColumns, mapper.getUnionOfAllTableSchemas());
 	}
@@ -65,11 +73,14 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testConstructorWithMultipleTables() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space"), columnMap.get("bar")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("foo_bar"), allColumns.get(4), allColumns.get(5)));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+		.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space"), columnMap.get("bar")));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+		.thenReturn(List.of(columnMap.get("foo_bar"), allColumns.get(4), allColumns.get(5)));
+		
 		// call under test
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 		assertEquals(Arrays.asList(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456")), mapper.getTableIds());
 		assertEquals(allColumns.subList(0, 6), mapper.getUnionOfAllTableSchemas());
 	}
@@ -77,12 +88,10 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testConstructorWithNullModel() throws ParseException {
 		QuerySpecification model = null;
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), allColumns);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			new TableAndColumnMapper(model, new TestSchemaProvider(map));
+			new TableAndColumnMapper(model, mockSchemaProvider);
 		}).getMessage();
 		assertEquals("QuerySpecification is required.", message);
 	}
@@ -102,12 +111,12 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testConstructorWithEmptySchema() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Collections.emptyList());
 
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.emptyList());
+		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			new TableAndColumnMapper(model, new TestSchemaProvider(map));
+			new TableAndColumnMapper(model, mockSchemaProvider);
 		}).getMessage();
 		assertEquals("Schema for syn123 is empty.", message);
 	}
@@ -115,9 +124,10 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testBuildSelectAllColumns() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), allColumns);
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(allColumns);
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		// call under test
 		SelectList selectList = mapper.buildSelectAllColumns();
@@ -129,10 +139,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testBuildSelectAllColumnsWithJoinWithoutAlias() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		// call under test
 		SelectList selectList = mapper.buildSelectAllColumns();
@@ -143,10 +156,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testBuildSelectAllColumnsWithJoinWithAlias() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456 r").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		// call under test
 		SelectList selectList = mapper.buildSelectAllColumns();
@@ -157,10 +173,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testBuildSelectAllColumnsWithJoinWithMixedAlias() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		// call under test
 		SelectList selectList = mapper.buildSelectAllColumns();
@@ -171,10 +190,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceWithNullRef() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 		// call under test
 		assertEquals(Optional.empty(), mapper.lookupColumnReference((ColumnReference)null));
 	}
@@ -182,10 +204,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceWithMultipleTables() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		ColumnReference columnReference = new TableQueryParser("syn456.foo_bar").columnReference();
 		// call under test
@@ -196,9 +221,11 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceWithString() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		// call under test
 		assertEquals(Optional.of(new SchemaColumnTranslationReference(columnMap.get("foo"))),
@@ -208,9 +235,11 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceWithNullString() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		// call under test
 		assertEquals(Optional.empty(),	mapper.lookupColumnReference((String)null));
@@ -219,9 +248,11 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceWithStringSpace() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		// call under test
 		assertEquals(Optional.of(new SchemaColumnTranslationReference(columnMap.get("has space"))),
@@ -231,9 +262,11 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceWithStringQuote() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("has\"quote"), columnMap.get("has space")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("has\"quote"), columnMap.get("has space")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		// call under test
 		assertEquals(Optional.of(new SchemaColumnTranslationReference(columnMap.get("has\"quote"))),
@@ -243,9 +276,11 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceWithStringKeyword() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("year"), columnMap.get("has space")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("year"), columnMap.get("has space")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		// call under test
 		assertEquals(Optional.of(new SchemaColumnTranslationReference(columnMap.get("year"))),
@@ -255,10 +290,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceWithMultipleTablesTranslated() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 		
 		ColumnReference columnReference = new TableQueryParser("_A1._C444_").columnReference();
 		// call under test
@@ -269,10 +307,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceWithMultipleTablesNoMatch() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		ColumnReference columnReference = new TableQueryParser("syn456.nothere").columnReference();
 		// call under test
@@ -282,10 +323,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceWithNullLHSAndMultipleTables() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		ColumnReference columnReference = new TableQueryParser("foo").columnReference();
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -298,9 +342,11 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceWithNullLHSAndSingle() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		ColumnReference columnReference = new TableQueryParser("foo").columnReference();
 		// call under test
@@ -312,10 +358,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceMatchWithNullRef() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 		// call under test
 		assertEquals(Optional.empty(), mapper.lookupColumnReferenceMatch(null));
 	}
@@ -323,10 +372,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceMatchWithMultipleTables() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		ColumnReference columnReference = new TableQueryParser("syn456.foo_bar").columnReference();
 		// call under test
@@ -341,10 +393,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceMatchWithBenefactor() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		ColumnReference columnReference = new TableQueryParser("T123.ROW_BENEFACTOR").columnReference();
 		// call under test
@@ -359,10 +414,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceMatchWithBenefactorAndVersion() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456.3").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456.3"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456.3")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		ColumnReference columnReference = new TableQueryParser("T456_3.ROW_BENEFACTOR").columnReference();
 		// call under test
@@ -377,10 +435,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceMatchWithMultipleTablesFirstTable() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		ColumnReference columnReference = new TableQueryParser("syn123.foo").columnReference();
 		// call under test
@@ -395,10 +456,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceWithROW_ID() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		ColumnReference columnReference = new TableQueryParser("syn123.ROW_ID").columnReference();
 		// call under test
@@ -413,10 +477,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceMatchWithMultipleTablesNoMatch() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		ColumnReference columnReference = new TableQueryParser("syn456.nothere").columnReference();
 		// call under test
@@ -427,10 +494,13 @@ public class TableAndColumnMapperTest {
 	public void testLookupColumnReferenceMatchWithMultipleAliasOfSameTable() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t1 join syn456 join syn123 t2")
 				.querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		// call under test
 		Optional<ColumnReferenceMatch> optionalMatch = mapper
@@ -446,10 +516,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceMatchWithNullLHSAndMultipleTables() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		ColumnReference columnReference = new TableQueryParser("foo").columnReference();
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -462,9 +535,11 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupColumnReferenceMatchWithNullLHSAndSingle() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		ColumnReference columnReference = new TableQueryParser("foo").columnReference();
 		// call under test
@@ -479,9 +554,11 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupTableNameCorrelationWithSingleTable() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+	
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn123").tableNameCorrelation();
 		// call under test
@@ -495,9 +572,11 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupTableNameCorrelationWithSingleTableWithMatchingAlias() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 a").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn123 a").tableNameCorrelation();
 		// call under test
@@ -512,9 +591,11 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupTableNameCorrelationWithSingleTableWithNonmatchingAlias() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 r").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn123 _A0").tableNameCorrelation();
 		// call under test
@@ -528,9 +609,11 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupTableNameCorrelationWithSingleTableWithTranslated() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("T123").tableNameCorrelation();
 		// call under test
@@ -544,9 +627,11 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupTableNameCorrelationWithSingleTableWithNoMatch() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn456").tableNameCorrelation();
 		// call under test
@@ -557,10 +642,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupTableNameCorrelationWithMultipleTablesMatchFrist() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn123").tableNameCorrelation();
 		// call under test
@@ -574,10 +662,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupTableNameCorrelationWithMultipleTablesMatchLast() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn456").tableNameCorrelation();
 		// call under test
@@ -591,10 +682,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupTableNameCorrelationWithMultipleTablesNoMatch() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn789").tableNameCorrelation();
 		// call under test
@@ -605,10 +699,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupTableNameCorrelationWithMultipleTablesSameName() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 r1 join syn456 join syn123 r2").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		// call under test
 		Optional<TableInfo> optionalMatch = mapper.lookupTableNameCorrelation(new TableQueryParser("syn123 r2").tableNameCorrelation());
@@ -622,10 +719,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testLookupTableNameCorrelationWithMultipleTablesMissingAlias() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 r1 join syn456 join syn123 r2").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+	
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		// call under test
 		Optional<TableInfo> optionalMatch = mapper.lookupTableNameCorrelation(new TableQueryParser("syn123").tableNameCorrelation());
@@ -635,9 +735,11 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testgetSingleTableIdWithSingleTable() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 		// call under test
 		assertEquals(Optional.of(IdAndVersion.parse("syn123")), mapper.getSingleTableId());
 	}
@@ -645,10 +747,13 @@ public class TableAndColumnMapperTest {
 	@Test
 	public void testgetSingleTableIdWithMultipleTables() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 join syn456").querySpecification();
-		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
-		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
-		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnMap.get("foo"), columnMap.get("has space")));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+				.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 		// call under test
 		assertEquals(Optional.empty(), mapper.getSingleTableId());
 	}

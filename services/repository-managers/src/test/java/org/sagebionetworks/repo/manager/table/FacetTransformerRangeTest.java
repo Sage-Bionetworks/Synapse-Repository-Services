@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager.table;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +12,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -61,9 +64,8 @@ public class FacetTransformerRangeTest {
 		selectedMax = "34";
 		originalSearchCondition = "i0 LIKE 'asdf%'";
 		userId = 1L;
-		SchemaProvider schemaProvider = (IdAndVersion tableId) -> {
-			return schema;
-		};
+		SchemaProvider schemaProvider = Mockito.mock(SchemaProvider.class);
+		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
 		
 		dependencies = TranslationDependencies.builder().setSchemaProvider(schemaProvider)
 				.setIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn123"))).setUserId(userId).build();

@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
@@ -130,7 +132,7 @@ public class TableIndexDAOImplTest {
 	
 	@SuppressWarnings("rawtypes")
 	Class<? extends Enum> objectSubType = EntityType.class;
-
+	
 	Long userId;
 	
 	@BeforeEach
@@ -621,9 +623,8 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(4L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
-		SchemaProvider schemaProvider = (IdAndVersion tableId) -> {
-			return allTypes;
-		};
+		SchemaProvider schemaProvider = schemaProvider(allTypes);
+		
 		// This is our query
 		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider, userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
@@ -5214,8 +5215,8 @@ public class TableIndexDAOImplTest {
 	 * @return
 	 */
 	SchemaProvider schemaProvider(List<ColumnModel> schema) {
-		return (IdAndVersion tableId) -> {
-			return schema;
-		};
+		SchemaProvider mockProvider = Mockito.mock(SchemaProvider.class);
+		when(mockProvider.getTableSchema(any())).thenReturn(schema);
+		return mockProvider;
 	}
 }

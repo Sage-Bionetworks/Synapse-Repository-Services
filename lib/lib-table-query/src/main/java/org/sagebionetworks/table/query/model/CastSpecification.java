@@ -5,10 +5,10 @@ package org.sagebionetworks.table.query.model;
  * <cast specification> ::= CAST <left paren> {@link CastOperand} AS {@link CastTarget}  <right paren>
  *
  */
-public class CastSpecification extends SQLElement {
+public class CastSpecification extends SQLElement implements HasReplaceableChildren<CastTarget> {
 
 	private final CastOperand castOperand;
-	private final CastTarget castTarget;
+	private CastTarget castTarget;
 
 	public CastSpecification(CastOperand castOperand, CastTarget castTarget) {
 		super();
@@ -28,6 +28,15 @@ public class CastSpecification extends SQLElement {
 	@Override
 	public Iterable<Element> getChildren() {
 		return SQLElement.buildChildren(castOperand, castTarget);
+	}
+
+	public CastTarget getCastTarget() {
+		return castTarget;
+	}
+
+	@Override
+	public void replaceChildren(CastTarget replacement) {
+		this.castTarget = replacement;
 	}
 
 }
