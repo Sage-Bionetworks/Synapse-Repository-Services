@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -114,7 +113,7 @@ public class TableAndColumnMapper implements ColumnLookup {
 	 * @param columnName
 	 * @return
 	 */
-	public Optional<ColumnTranslationReference> lookupColumnReference(String columnName) {
+	public Optional<ColumnTranslationReference> lookupColumnReferenceByName(String columnName) {
 		if(columnName == null) {
 			return Optional.empty();
 		}

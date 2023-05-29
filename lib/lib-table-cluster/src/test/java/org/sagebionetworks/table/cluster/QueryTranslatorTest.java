@@ -1943,15 +1943,15 @@ public class QueryTranslatorTest {
 	@Test
 	public void testCastWithColumnType() {
 		IdAndVersion tableId = IdAndVersion.parse("syn1");
-		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
-		
+		when(mockSchemaProvider.getTableSchema(tableId))
+				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+
 		IndexDescription indexDescription = new TableIndexDescription(tableId);
 
 		sql = "select cast(foo as STRING) AS someString from syn1 ";
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
-		assertEquals("SELECT CAST(_C111_ AS CHAR) AS someString, ROW_ID, ROW_VERSION FROM T1",
-				query.getOutputSQL());
+		assertEquals("SELECT CAST(_C111_ AS CHAR) AS someString, ROW_ID, ROW_VERSION FROM T1", query.getOutputSQL());
 		List<SelectColumn> select = query.getSelectColumns();
 		assertEquals(List.of(new SelectColumn().setName("someString").setColumnType(ColumnType.STRING)), select);
 	}
@@ -1959,17 +1959,19 @@ public class QueryTranslatorTest {
 	@Test
 	public void testCastWithColumnId() {
 		IdAndVersion tableId = IdAndVersion.parse("syn1");
-		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		when(mockSchemaProvider.getTableSchema(tableId))
+				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 		when(mockSchemaProvider.getColumnModel("777")).thenReturn(columnNameToModelMap.get("doubletype"));
-		
+
 		IndexDescription indexDescription = new TableIndexDescription(tableId);
 
 		sql = "select cast(foo as 777) AS aDouble from syn1 ";
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
-		assertEquals("SELECT CAST(_C111_ AS DOUBLE) AS aDouble, ROW_ID, ROW_VERSION FROM T1",
-				query.getOutputSQL());
+		assertEquals("SELECT CAST(_C111_ AS DOUBLE) AS aDouble, ROW_ID, ROW_VERSION FROM T1", query.getOutputSQL());
 		List<SelectColumn> select = query.getSelectColumns();
-		assertEquals(List.of(new SelectColumn().setName("aDouble").setColumnType(ColumnType.DOUBLE)), select);
+		SelectColumn expectedSelect = new SelectColumn().setName("aDouble").setColumnType(ColumnType.DOUBLE)
+				.setId("777");
+		assertEquals(List.of(expectedSelect), select);
 	}
 }

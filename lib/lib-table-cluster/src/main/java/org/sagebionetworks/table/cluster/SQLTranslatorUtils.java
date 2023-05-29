@@ -51,7 +51,6 @@ import org.sagebionetworks.table.query.model.CastSpecification;
 import org.sagebionetworks.table.query.model.CastTarget;
 import org.sagebionetworks.table.query.model.CharacterFactor;
 import org.sagebionetworks.table.query.model.CharacterPrimary;
-import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.CharacterValueExpression;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
@@ -121,7 +120,7 @@ public class SQLTranslatorUtils {
 	 * @param isAggregate
 	 * @return
 	 */
-	public static List<SelectColumn> getSelectColumns(SelectList selectList, ColumnLookup lookup, boolean isAggregate) {
+	public static List<SelectColumn> getSelectColumns(SelectList selectList, TableAndColumnMapper lookup, boolean isAggregate) {
 		ValidateArgument.required(lookup, "ColumnLookup");
 		ValidateArgument.required(selectList, "selectList");
 		if (selectList.getAsterisk() != null) {
@@ -154,7 +153,20 @@ public class SQLTranslatorUtils {
 	 * @param columnTranslationReferenceLookup
 	 * @return
 	 */
-	public static SelectColumn getSelectColumns(DerivedColumn derivedColumn, ColumnLookup lookup){
+	public static SelectColumn getSelectColumns(DerivedColumn derivedColumn, TableAndColumnMapper lookup){
+		
+		CastTarget castTarget = derivedColumn.getFirstElementOfType(CastTarget.class);
+		if(castTarget != null) {
+			if(castTarget.getType() != null) {
+				return new SelectColumn().setColumnType(castTarget.getType() ).setName(derivedColumn.getDisplayName());
+			}
+			if(castTarget.getColumnId() != null) {
+				ColumnModel cm = lookup.getColumnModel(castTarget.getColumnId().toSql());
+				String name = derivedColumn.getAsClause() != null? derivedColumn.getDisplayName(): cm.getName();
+				return new SelectColumn().setColumnType(cm.getColumnType()).setName(name).setId(cm.getId());
+			}
+		}
+		
 		// Extract data about this column.
 		String displayName = derivedColumn.getDisplayName();
 		// lookup the column referenced by this select.

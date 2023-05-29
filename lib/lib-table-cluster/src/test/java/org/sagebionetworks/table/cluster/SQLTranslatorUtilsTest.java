@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
@@ -106,7 +107,7 @@ public class SQLTranslatorUtilsTest {
 	@Mock
 	private ResultSet mockResultSet;
 	@Mock
-	private ColumnLookup mockColumnLookup;
+	private TableAndColumnMapper mapper;
 	
 	@Captor
 	private ArgumentCaptor<ColumnReference> columnRefCapture;
@@ -227,95 +228,95 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSelectColumnsConstantString() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.empty());
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.empty());
 		
 		DerivedColumn derivedColumn = new TableQueryParser("'constant'").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("constant", results.getName());
 		assertEquals(ColumnType.STRING, results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(null);
+		verify(mapper).lookupColumnReference(null);
 	}
 	
 	@Test
 	public void testGetSelectColumnsConstantDouble() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.empty());
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.empty());
 		
 		DerivedColumn derivedColumn = new TableQueryParser("1.23").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("1.23", results.getName());
 		assertEquals(ColumnType.DOUBLE, results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(null);
+		verify(mapper).lookupColumnReference(null);
 	}
 	
 	@Test
 	public void testGetSelectColumnsRowIdLower() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_ID.getColumnTranslationReference()));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_ID.getColumnTranslationReference()));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("ROW_ID").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("ROW_ID", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("ROW_ID", columnRefCapture.getValue().toSql());
 	}
 	
 	@Test
 	public void testGetSelectColumnsRowIdUpper() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_ID.getColumnTranslationReference()));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_ID.getColumnTranslationReference()));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("ROW_ID").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("ROW_ID", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("ROW_ID", columnRefCapture.getValue().toSql());
 	}
 	
 	@Test
 	public void testGetSelectColumnsCountRowId() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_ID.getColumnTranslationReference()));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_ID.getColumnTranslationReference()));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("count(row_id)").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("COUNT(row_id)", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("row_id", columnRefCapture.getValue().toSql());
 	}
 		
 	@Test
 	public void testGetSelectColumnsRowVersionUpper() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_VERSION.getColumnTranslationReference()));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_VERSION.getColumnTranslationReference()));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("ROW_VERSION").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("ROW_VERSION", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("ROW_VERSION", columnRefCapture.getValue().toSql());
 	}
 	
@@ -323,7 +324,7 @@ public class SQLTranslatorUtilsTest {
 	public void testGetSelectColumnsCountStar() throws ParseException{
 		DerivedColumn derivedColumn = new TableQueryParser("count(*)").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("COUNT(*)", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
@@ -334,7 +335,7 @@ public class SQLTranslatorUtilsTest {
 	public void testGetSelectColumnsCountStarAs() throws ParseException{		
 		DerivedColumn derivedColumn = new TableQueryParser("count(*) as \"has space\"").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("has space", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
@@ -343,147 +344,147 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSelectColumnsCountNoMatch() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.empty());
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.empty());
 		
 		DerivedColumn derivedColumn = new TableQueryParser("count(no_match)").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("COUNT(no_match)", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("no_match", columnRefCapture.getValue().toSql());
 	}
 	
 	@Test
 	public void testGetSelectColumnsCountMatch() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnHasSpace)));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnHasSpace)));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("count(`has space`)").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("COUNT(`has space`)", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("`has space`", columnRefCapture.getValue().toSql());
 	}
 	
 	@Test
 	public void testGetSelectColumnsCountMatchAs() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnHasSpace)));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnHasSpace)));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("count(`has space`) as bar").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("bar", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("`has space`", columnRefCapture.getValue().toSql());
 	}
 	
 	@Test
 	public void testGetSelectColumnsSimpleMatch() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnFoo)));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnFoo)));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("foo").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("foo", results.getName());
 		assertEquals(columnFoo.getColumnType(), results.getColumnType());
 		assertEquals(columnFoo.getId(), results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("foo", columnRefCapture.getValue().toSql());
 	}
 	
 	@Test
 	public void testGetSelectColumnsMatchAs() throws ParseException{
 		
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnBar)));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnBar)));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("bar as foo").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("foo", results.getName());
 		assertEquals(columnBar.getColumnType(), results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("bar", columnRefCapture.getValue().toSql());
 	}
 	
 	@Test
 	public void testGetSelectColumnsSum() throws ParseException{
 		
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnId)));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnId)));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("sum( id )").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("SUM(id)", results.getName());
 		assertEquals(columnId.getColumnType(), results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("id", columnRefCapture.getValue().toSql());
 	}
 	
 	@Test
 	public void testGetSelectColumnsMax() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnBar)));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnBar)));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("max( bar )").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("MAX(bar)", results.getName());
 		assertEquals(columnBar.getColumnType(), results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("bar", columnRefCapture.getValue().toSql());
 	}
 	
 	@Test
 	public void testGetSelectColumnsAvg() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnId)));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnId)));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("avg( id )").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("AVG(id)", results.getName());
 		assertEquals(ColumnType.DOUBLE, results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("id", columnRefCapture.getValue().toSql());
 	}
 
 	@Test
 	public void testGetSelectColumnsHasIfNullFunction() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnId)));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnId)));
 
 		DerivedColumn derivedColumn = new TableQueryParser("IFNULL( id ,-1) as id").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("id", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals("444", results.getId());
 
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("id", columnRefCapture.getValue().toSql());
 	}
 
@@ -492,7 +493,7 @@ public class SQLTranslatorUtilsTest {
 		
 		DerivedColumn derivedColumn = new TableQueryParser("current_user()").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("CURRENT_USER()", results.getName());
 		assertEquals(ColumnType.USERID, results.getColumnType());
@@ -501,94 +502,131 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSelectColumnsSpecial() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnSpecial)));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnSpecial)));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("\""+columnSpecial.getName()+"\"").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals(columnSpecial.getName(), results.getName());
 		assertEquals(ColumnType.DOUBLE, results.getColumnType());
 		assertEquals(columnSpecial.getId(), results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("\""+columnSpecial.getName()+"\"", columnRefCapture.getValue().toSql());
 	}
 	
 	@Test
 	public void testGetSelectColumnsMySqlFunction() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnFoo)));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnFoo)));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("from_unixtime(foo)").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("FROM_UNIXTIME(foo)", results.getName());
 		assertEquals(ColumnType.STRING, results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("foo", columnRefCapture.getValue().toSql());
 	}
 
 	@Test
 	public void testGetSelectColumnsColumnNameWithQuotes() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnQuoted)));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnQuoted)));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("\"colWith\"\"Quotes\"\"InIt\"").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("colWith\"Quotes\"InIt", results.getName());
 		assertEquals(ColumnType.STRING, results.getColumnType());
 		assertEquals("999", results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("\"colWith\"\"Quotes\"\"InIt\"", columnRefCapture.getValue().toSql());
 	}
 
 	@Test
 	public void testGetSelectColumnsAliasNameWithQuotes() throws ParseException{
 		
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnFoo)));
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnFoo)));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("foo as \"aliasWith\"\"Quotes\"\"InIt\"").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("aliasWith\"Quotes\"InIt", results.getName());
 		assertEquals(ColumnType.STRING, results.getColumnType());
 		assertEquals(null, results.getId());
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		verify(mapper).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("foo", columnRefCapture.getValue().toSql());
 	}
 	
 	@Test
-	public void testGetSelectColumnsWithCast() throws ParseException{
-		
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnFoo)));
-		
+	public void testGetSelectColumnsWithCastAndAs() throws ParseException{
 		DerivedColumn derivedColumn = new TableQueryParser("cast(foo as INTEGER) AS anInt").derivedColumn();
 		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 		assertNotNull(results);
 		assertEquals("anInt", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
+		verifyZeroInteractions(mapper);
+	}
+	
+	@Test
+	public void testGetSelectColumnsWithCastNoAs() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("cast(foo as INTEGER)").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
+		assertNotNull(results);
+		assertEquals("CAST(foo AS INTEGER)", results.getName());
+		assertEquals(ColumnType.INTEGER, results.getColumnType());
+		assertEquals(null, results.getId());
+		verifyZeroInteractions(mapper);
+	}
+	
+	@Test
+	public void testGetSelectColumnsWithCastColumnId() throws ParseException{
+		when(mapper.getColumnModel(any())).thenReturn(columnHasSpace);
 		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
-		assertEquals("foo", columnRefCapture.getValue().toSql());
+		DerivedColumn derivedColumn = new TableQueryParser("cast(foo as 222)").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
+		assertNotNull(results);
+		assertEquals("has space", results.getName());
+		assertEquals(ColumnType.STRING, results.getColumnType());
+		assertEquals("222", results.getId());
+		
+		verify(mapper).getColumnModel("222");
+	}
+	
+	@Test
+	public void testGetSelectColumnsWithCastColumnIdAndAs() throws ParseException{
+		when(mapper.getColumnModel(any())).thenReturn(columnHasSpace);
+		
+		DerivedColumn derivedColumn = new TableQueryParser("cast(foo as 222) as newName").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
+		assertNotNull(results);
+		assertEquals("newName", results.getName());
+		assertEquals(ColumnType.STRING, results.getColumnType());
+		assertEquals("222", results.getId());
+		
+		verify(mapper).getColumnModel("222");
 	}
 
 	@Test
 	public void testGetSelectColumnsSimpleMismatch() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.empty());
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.empty());
 		
 		DerivedColumn derivedColumn = new TableQueryParser("fo0").derivedColumn();
 		// call under test
 		try {
-			SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+			SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
 			fail("Should throw IllegalArgumentException");
 		} catch (IllegalArgumentException e) {
 			String message = e.getMessage();
@@ -603,20 +641,20 @@ public class SQLTranslatorUtilsTest {
 		SelectList element = new TableQueryParser("*").selectList();
 		assertThrows(IllegalStateException.class, () -> {
 			//  call under test.
-			SQLTranslatorUtils.getSelectColumns(element, mockColumnLookup, isAggregate);
+			SQLTranslatorUtils.getSelectColumns(element, mapper, isAggregate);
 		});
 	}
 	
 	@Test
 	public void testGetSelectColumnsSelectActualColumnsAggregate() throws ParseException {
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(
+		when(mapper.lookupColumnReference(any())).thenReturn(
 				Optional.of(new SchemaColumnTranslationReference(columnFoo)),
 				Optional.of(new SchemaColumnTranslationReference(columnBar)));
 
 		boolean isAggregate = true;
 		SelectList element = new TableQueryParser("foo, bar").selectList();
 		// call under test.
-		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, mockColumnLookup, isAggregate);
+		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, mapper, isAggregate);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		for (SelectColumn select : results) {
@@ -626,14 +664,14 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSelectColumnsSelectActualColumnsNotAggregate() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(
+		when(mapper.lookupColumnReference(any())).thenReturn(
 				Optional.of(new SchemaColumnTranslationReference(columnFoo)),
 				Optional.of(new SchemaColumnTranslationReference(columnBar)));
 		
 		boolean isAggregate = false;
 		SelectList element = new TableQueryParser("foo, bar").selectList();
 		//  call under test.
-		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, mockColumnLookup, isAggregate);
+		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, mapper, isAggregate);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		for (SelectColumn select : results) {
@@ -645,13 +683,13 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSelectColumnsSelectConstantNotAggregate() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(
+		when(mapper.lookupColumnReference(any())).thenReturn(
 				Optional.of(new SchemaColumnTranslationReference(columnFoo)));
 		
 		boolean isAggregate = false;
 		SelectList element = new TableQueryParser("foo, 'some constant'").selectList();
 		//  call under test.
-		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, mockColumnLookup, isAggregate);
+		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, mapper, isAggregate);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		for (SelectColumn select : results) {
@@ -661,13 +699,13 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSelectColumnsSelectConstantAggregate() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(
+		when(mapper.lookupColumnReference(any())).thenReturn(
 				Optional.of(new SchemaColumnTranslationReference(columnFoo)));
 		
 		boolean isAggregate = true;
 		SelectList element = new TableQueryParser("foo, 'some constant'").selectList();
 		//  call under test.
-		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, mockColumnLookup, isAggregate);
+		List<SelectColumn> results = SQLTranslatorUtils.getSelectColumns(element, mapper, isAggregate);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		for (SelectColumn select : results) {

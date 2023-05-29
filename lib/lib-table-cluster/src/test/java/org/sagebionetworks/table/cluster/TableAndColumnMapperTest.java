@@ -229,7 +229,7 @@ public class TableAndColumnMapperTest {
 
 		// call under test
 		assertEquals(Optional.of(new SchemaColumnTranslationReference(columnMap.get("foo"))),
-				mapper.lookupColumnReference("foo"));
+				mapper.lookupColumnReferenceByName("foo"));
 	}
 	
 	@Test
@@ -242,7 +242,7 @@ public class TableAndColumnMapperTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 
 		// call under test
-		assertEquals(Optional.empty(),	mapper.lookupColumnReference((String)null));
+		assertEquals(Optional.empty(),	mapper.lookupColumnReferenceByName((String)null));
 	}
 	
 	@Test
@@ -256,7 +256,7 @@ public class TableAndColumnMapperTest {
 
 		// call under test
 		assertEquals(Optional.of(new SchemaColumnTranslationReference(columnMap.get("has space"))),
-				mapper.lookupColumnReference("has space"));
+				mapper.lookupColumnReferenceByName("has space"));
 	}
 	
 	@Test
@@ -270,7 +270,7 @@ public class TableAndColumnMapperTest {
 
 		// call under test
 		assertEquals(Optional.of(new SchemaColumnTranslationReference(columnMap.get("has\"quote"))),
-				mapper.lookupColumnReference("has\"quote"));
+				mapper.lookupColumnReferenceByName("has\"quote"));
 	}
 	
 	@Test
@@ -284,7 +284,7 @@ public class TableAndColumnMapperTest {
 
 		// call under test
 		assertEquals(Optional.of(new SchemaColumnTranslationReference(columnMap.get("year"))),
-				mapper.lookupColumnReference("year"));
+				mapper.lookupColumnReferenceByName("year"));
 	}
 	
 	@Test
