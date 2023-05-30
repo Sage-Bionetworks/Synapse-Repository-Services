@@ -9,6 +9,7 @@ import java.util.Optional;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
@@ -25,9 +26,12 @@ import org.sagebionetworks.controller.model.ParameterLocation;
 import org.sagebionetworks.controller.model.ParameterModel;
 import org.sagebionetworks.controller.model.RequestBodyModel;
 import org.sagebionetworks.controller.model.ResponseModel;
-import org.sagebionetworks.repo.model.schema.JsonSchema;
-import org.sagebionetworks.repo.model.schema.Type;
+import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.ObjectSchemaImpl;
+import org.sagebionetworks.schema.TYPE;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,6 +47,8 @@ import com.sun.source.doctree.ParamTree;
 import com.sun.source.doctree.ReturnTree;
 import com.sun.source.util.DocTrees;
 
+import jdk.javadoc.doclet.DocletEnvironment;
+
 /**
  * This translator pulls information from a generic doclet model into our
  * representation of a controller model. This is a layer of abstraction that is
@@ -52,15 +58,45 @@ import com.sun.source.util.DocTrees;
  *
  */
 public class ControllerToControllerModelTranslator {
-	public ControllerModel translate(TypeElement controller, DocTrees docTrees) {
+	
+	/**
+	 * Converts all controllers found in the doclet environment to controller models. Populates
+	 * schemaMap based on types found in all of the controllers.
+	 * 
+	 * @param env the doclet environment being looked at
+	 * @param classNameToObjectSchema a mapping between class name to object schema that represents it
+	 * @return
+	 */
+	public List<ControllerModel> extractControllerModels(DocletEnvironment env, Map<String, ObjectSchema> schemaMap) {
+		List<ControllerModel> controllerModels = new ArrayList<>();
+		for (TypeElement t : ElementFilter.typesIn(env.getIncludedElements())) {
+			if (!t.getKind().equals(ElementKind.CLASS)) {
+				continue;
+			}
+			ControllerModel controllerModel = translate(t, env.getDocTrees(), schemaMap);
+			controllerModels.add(controllerModel);
+		}
+		return controllerModels;
+	}
+	
+	/**
+	 * Translates a Doclet controller (TypeElement) to a ControllerModel. Populates schemaMap based on types found
+	 * in the controllers
+	 * 
+	 * @param controller the doclet representation of a controller
+	 * @param docTrees stores the necessary javadoc comments for the methods and classes
+	 * @param schemaMap a mapping between class name and an ObjectSchema that represents that class
+	 * @return a model that represents the controller.
+	 */
+	public ControllerModel translate(TypeElement controller, DocTrees docTrees, Map<String, ObjectSchema> schemaMap) {
 		ControllerModel controllerModel = new ControllerModel();
-		List<MethodModel> methods = getMethods(controller.getEnclosedElements(), docTrees);
+		List<MethodModel> methods = getMethods(controller.getEnclosedElements(), docTrees, schemaMap);
 		ControllerInfoModel controllerInfo = getControllerInfoModel(controller.getAnnotationMirrors());
 		controllerModel.withDisplayName(controllerInfo.getDisplayName()).withPath(controllerInfo.getPath())
 				.withMethods(methods).withDescription(getControllerDescription(docTrees.getDocCommentTree(controller)));
 		return controllerModel;
 	}
-	
+
 	/**
 	 * Get comment for controller description.
 	 * 
@@ -111,7 +147,8 @@ public class ControllerToControllerModelTranslator {
 	 *                         method.
 	 * @return the created list of MethodModels
 	 */
-	List<MethodModel> getMethods(List<? extends Element> enclosedElements, DocTrees docTrees) {
+	List<MethodModel> getMethods(List<? extends Element> enclosedElements, DocTrees docTrees,
+			Map<String, ObjectSchema> schemaMap) {
 		List<MethodModel> methods = new ArrayList<>();
 		for (ExecutableElement method : ElementFilter.methodsIn(enclosedElements)) {
 			DocCommentTree docCommentTree = docTrees.getDocCommentTree(method);
@@ -126,16 +163,18 @@ public class ControllerToControllerModelTranslator {
 						"Method " + method.getSimpleName() + " missing ResponseStatus annotation.");
 			}
 			Optional<String> behaviorComment = getBehaviorComment(docCommentTree.getFullBody());
-			Optional<RequestBodyModel> requestBody = getRequestBody(method.getParameters(), parameterToDescription);
+			Optional<RequestBodyModel> requestBody = getRequestBody(method.getParameters(), parameterToDescription,
+					schemaMap);
 			MethodModel methodModel = new MethodModel()
 					.withPath(getMethodPath((RequestMappingModel) annotationToModel.get(RequestMapping.class)))
 					.withName(method.getSimpleName().toString())
 					.withDescription(behaviorComment.isEmpty() ? null : behaviorComment.get())
 					.withOperation(((RequestMappingModel) annotationToModel.get(RequestMapping.class)).getOperation())
-					.withParameters(getParameters(method.getParameters(), parameterToDescription))
+					.withParameters(getParameters(method.getParameters(), parameterToDescription, schemaMap))
 					.withRequestBody(requestBody.isEmpty() ? null : requestBody.get())
-					.withResponse(getResponseModel(method.getReturnType().getKind(), docCommentTree.getBlockTags(),
-							(ResponseStatusModel) annotationToModel.get(ResponseStatus.class)));
+					.withResponse(getResponseModel(method.getReturnType().getKind(), method.getReturnType().toString(),
+							docCommentTree.getBlockTags(),
+							(ResponseStatusModel) annotationToModel.get(ResponseStatus.class), schemaMap));
 			methods.add(methodModel);
 		}
 		return methods;
@@ -145,18 +184,44 @@ public class ControllerToControllerModelTranslator {
 	 * Gets a model that represents the response of a method.
 	 * 
 	 * @param returnType           - the return type of the method.
+	 * @param returnClassName      - the full class name of the returned element.
 	 * @param blockTags            - the parameter/return comments on the method.
 	 * @param annotationToElements - maps an annotation to all of the elements
 	 *                             inside of it.
 	 * @return a model that represents the response of a method.
 	 */
-	ResponseModel getResponseModel(TypeKind returnType, List<? extends DocTree> blockTags,
-			ResponseStatusModel responseStatus) {
-		ValidateArgument.required(responseStatus, "ResponseStatus");
-		ValidateArgument.required(responseStatus.getStatusCode(), "ResponseStatus.statusCode");
+	ResponseModel getResponseModel(TypeKind returnType, String returnClassName, List<? extends DocTree> blockTags,
+			ResponseStatusModel responseStatus, Map<String, ObjectSchema> schemaMap) {
+		ValidateArgument.required(returnType, "returnType");
+		ValidateArgument.required(returnClassName, "returnClassName");
+		ValidateArgument.required(blockTags, "blockTags");
+		ValidateArgument.required(responseStatus, "responseStatus");
+		ValidateArgument.required(responseStatus.getStatusCode(), "responseStatus.statusCode");
+		ValidateArgument.required(schemaMap, "schemaMap");
+
+		populateSchemaMap(returnClassName, returnType, schemaMap);
 		Optional<String> returnComment = getReturnComment(blockTags);
 		return new ResponseModel().withDescription(returnComment.isEmpty() ? null : returnComment.get())
-				.withStatusCode(responseStatus.getStatusCode()).withSchema(getSchema(returnType));
+				.withStatusCode(responseStatus.getStatusCode()).withId(returnClassName);
+	}
+
+	/**
+	 * Populates the schemaMap by adding ObjectSchema that are associated with the className and type.
+	 * 
+	 * @param className - the name of the class
+	 * @param type - the type of the class
+	 * @param schemaMap - a mapping between class names and schemas that represent those classes
+	 */
+	void populateSchemaMap(String className, TypeKind type, Map<String, ObjectSchema> schemaMap) {
+		ValidateArgument.required(className, "className");
+        ValidateArgument.required(type, "type");
+		ValidateArgument.required(schemaMap, "schemaMap");
+		boolean isPrimitive = type.isPrimitive() || className.equals(String.class.getName());
+		if (!isPrimitive) {
+			SchemaUtils.recursiveAddTypes(schemaMap, className, null);
+		} else {
+			schemaMap.put(className, generateObjectSchemaForPrimitiveType(type));
+		}
 	}
 
 	/**
@@ -257,14 +322,17 @@ public class ControllerToControllerModelTranslator {
 	 *         empty if a request body does not exist.
 	 */
 	Optional<RequestBodyModel> getRequestBody(List<? extends VariableElement> parameters,
-			Map<String, String> paramToDescription) {
+			Map<String, String> paramToDescription, Map<String, ObjectSchema> schemaMap) {
 		for (VariableElement param : parameters) {
 			String simpleAnnotationName = getSimpleAnnotationName(getParameterAnnotation(param));
 			if (RequestBody.class.getSimpleName().equals(simpleAnnotationName)) {
 				String paramName = param.getSimpleName().toString();
 				String paramDescription = paramToDescription.get(paramName);
-				return Optional.of(new RequestBodyModel().withDescription(paramDescription).withRequired(true)
-						.withSchema(getSchema(param.asType().getKind())));
+				TypeKind parameterType = param.asType().getKind();
+				String paramTypeClassName = param.asType().toString();
+				populateSchemaMap(paramTypeClassName, parameterType, schemaMap);
+				return Optional.of(
+						new RequestBodyModel().withDescription(paramDescription).withRequired(true).withId(paramTypeClassName));
 			}
 		}
 		return Optional.empty();
@@ -280,7 +348,7 @@ public class ControllerToControllerModelTranslator {
 	 * @return a list that represents all parameters for a method.
 	 */
 	List<ParameterModel> getParameters(List<? extends VariableElement> params,
-			Map<String, String> parameterToDescription) {
+			Map<String, String> parameterToDescription, Map<String, ObjectSchema> schemaMap) {
 		List<ParameterModel> parameters = new ArrayList<>();
 		for (VariableElement param : params) {
 			ParameterLocation paramLocation = getParameterLocation(param);
@@ -289,10 +357,53 @@ public class ControllerToControllerModelTranslator {
 			}
 			String paramName = param.getSimpleName().toString();
 			String paramDescription = parameterToDescription.get(paramName);
+			TypeKind parameterType = param.asType().getKind();
+			String paramTypeClassName = param.asType().toString();
+			populateSchemaMap(paramTypeClassName, parameterType, schemaMap);
 			parameters.add(new ParameterModel().withDescription(paramDescription).withIn(paramLocation)
-					.withName(paramName).withRequired(true).withSchema(getSchema(param.asType().getKind())));
+					.withName(paramName).withRequired(true).withId(paramTypeClassName));
 		}
 		return parameters;
+	}
+	
+	/**
+	 * Generates a ObjectSchema for a primitive type. Since "STRING" does
+	 * not exist in TypeKind, we will pass it in as "DECLARED" type.
+	 * 
+	 * @param type - the primitive type we are translating
+	 * @return an ObjectSchema that represents the given type
+	 */
+	ObjectSchema generateObjectSchemaForPrimitiveType(TypeKind type) {
+		ValidateArgument.required(type, "type");
+		ObjectSchema schema;
+		try {
+			// We can use empty json object because we only need the type to translate to JsonSchema later.
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl("{}");
+			schema = new ObjectSchemaImpl(adpater);
+		} catch (Exception e) {
+			throw new RuntimeException("Error generating ObjectSchema for type " + type);
+		}
+		
+		switch (type) {
+		case INT:
+			schema.setType(TYPE.INTEGER);
+			break;
+		case BOOLEAN:
+			schema.setType(TYPE.BOOLEAN);
+			break;
+		case DOUBLE:
+		case LONG:
+		case FLOAT:
+			schema.setType(TYPE.NUMBER);
+			break;
+		case DECLARED:
+			// if the type is declared, we know that it is a string.
+			schema.setType(TYPE.STRING);
+			break;
+		default:
+			throw new IllegalArgumentException("Unrecognized primitive type " + type);
+		}
+		return schema;
 	}
 
 	/**
@@ -339,56 +450,6 @@ public class ControllerToControllerModelTranslator {
 	 */
 	String getSimpleAnnotationName(AnnotationMirror annotation) {
 		return annotation.getAnnotationType().asElement().getSimpleName().toString();
-	}
-
-	/**
-	 * Constructs the JsonSchema for a particular TypeKind.
-	 * 
-	 * @param typeKind - the type of the element
-	 * @return the schema of the element
-	 */
-	JsonSchema getSchema(TypeKind typeKind) {
-		ValidateArgument.required(typeKind, "TypeKind");
-		JsonSchema schema = new JsonSchema();
-		Type type = getType(typeKind);
-		schema.setType(type);
-		switch (type) {
-		case integer:
-			schema.setFormat("int32");
-			break;
-		case string:
-			break;
-		default:
-			throw new IllegalArgumentException("Type is unknown for type " + type);
-		}
-		return schema;
-	}
-
-	/**
-	 * Translates a TypeKind to a Type that JsonSchema recognizes.
-	 * 
-	 * @param typeKind - the type of the element
-	 * @return a Type as used in JsonSchema.
-	 */
-	Type getType(TypeKind typeKind) {
-		switch (typeKind) {
-		case INT:
-			return Type.integer;
-		case BOOLEAN:
-			return Type._boolean;
-		case FLOAT:
-		case LONG:
-		case DOUBLE:
-			return Type.number;
-		case ARRAY:
-			return Type.array;
-		// TODO: In the future, declared type can be more than just a String (other
-		// classes or interfaces).
-		case DECLARED:
-			return Type.string;
-		default:
-			throw new IllegalArgumentException("Unable to translate TypeKind " + typeKind);
-		}
 	}
 
 	/**

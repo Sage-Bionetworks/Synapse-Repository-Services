@@ -14,7 +14,7 @@ public class ParameterModel {
 	private ParameterLocation in;
 	private boolean required;
 	private String description;
-	private JsonSchema schema;
+	private String id;
 	
 	public String getName() {
 		return name;
@@ -58,18 +58,18 @@ public class ParameterModel {
 		return this;
 	}
 	
-	public JsonSchema getSchema() {
-		return schema;
+	public String getId() {
+		return id;
 	}
 	
-	public ParameterModel withSchema(JsonSchema schema) {
-		this.schema = schema;
+	public ParameterModel withId(String id) {
+		this.id = id;
 		return this;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(description, in, name, required, schema);
+		return Objects.hash(description, id, in, name, required);
 	}
 
 	@Override
@@ -81,13 +81,13 @@ public class ParameterModel {
 		if (getClass() != obj.getClass())
 			return false;
 		ParameterModel other = (ParameterModel) obj;
-		return Objects.equals(description, other.description) && in == other.in && Objects.equals(name, other.name)
-				&& required == other.required && Objects.equals(schema, other.schema);
+		return Objects.equals(description, other.description) && Objects.equals(id, other.id) && in == other.in
+				&& Objects.equals(name, other.name) && required == other.required;
 	}
 
 	@Override
 	public String toString() {
-		return "ParameterModel [name=" + name + ", in=" + in + ", required=" + required + ", schema=" + schema
-				+ ", description=" + description + "]";
+		return "ParameterModel [name=" + name + ", in=" + in + ", required=" + required + ", description=" + description
+				+ ", id=" + id + "]";
 	}
 }

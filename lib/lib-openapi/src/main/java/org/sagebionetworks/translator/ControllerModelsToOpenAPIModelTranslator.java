@@ -22,9 +22,16 @@ import org.sagebionetworks.openapi.datamodel.pathinfo.ParameterInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.RequestBodyInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.ResponseInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.Schema;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class ControllerModelsToOpenAPIModelTranslator {
+	private Map<String, JsonSchema> classNameToJsonSchema;
+	
+	public ControllerModelsToOpenAPIModelTranslator(Map<String, JsonSchema> classNameToJsonSchema) {
+		this.classNameToJsonSchema = classNameToJsonSchema;
+	}
+	
 	/**
 	 * Translates a list of controller models to an OpenAPI model.
 	 * 
@@ -142,7 +149,7 @@ public class ControllerModelsToOpenAPIModelTranslator {
 		ValidateArgument.required(response, "response");
 		Map<String, ResponseInfo> responses = new LinkedHashMap<>();
 		Map<String, Schema> contentTypeToSchema = new HashMap<>();
-		contentTypeToSchema.put(response.getContentType(), new Schema().withSchema(response.getSchema()));
+		contentTypeToSchema.put(response.getContentType(), new Schema().withSchema(classNameToJsonSchema.get(response.getId())));
 		ResponseInfo responseInfo = new ResponseInfo().withDescription(response.getDescription())
 				.withContent(contentTypeToSchema);
 
@@ -161,7 +168,7 @@ public class ControllerModelsToOpenAPIModelTranslator {
 		ValidateArgument.required(requestBody, "requestBody");
 		String contentType = "application/json";
 		Map<String, Schema> contentTypeToSchema = new LinkedHashMap<>();
-		contentTypeToSchema.put(contentType, new Schema().withSchema(requestBody.getSchema()));
+		contentTypeToSchema.put(contentType, new Schema().withSchema(classNameToJsonSchema.get(requestBody.getId())));
 		return new RequestBodyInfo().withRequired(requestBody.isRequired()).withContent(contentTypeToSchema);
 	}
 
@@ -192,7 +199,7 @@ public class ControllerModelsToOpenAPIModelTranslator {
 		ParameterInfo parameterInfo = new ParameterInfo();
 		parameterInfo.withName(parameter.getName()).withDescription(parameter.getDescription())
 				.withRequired(parameter.isRequired()).withIn(parameter.getIn().toString())
-				.withSchema(parameter.getSchema());
+				.withSchema(classNameToJsonSchema.get(parameter.getId()));
 		return parameterInfo;
 	}
 }

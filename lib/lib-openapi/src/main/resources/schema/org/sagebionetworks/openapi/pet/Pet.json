@@ -1,0 +1,15 @@
+{
+	"description": "This interface represents a pet.",
+	"name": "Pet",
+	"type": "interface",
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "The name of the Pet."
+		},
+		"hasTail": {
+			"type": "boolean",
+			"description": "Describes if the pet has a tail."
+		}
+	}
+}

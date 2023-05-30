@@ -38,10 +38,18 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 	ControllerModelsToOpenAPIModelTranslator translator;
 
 	private static final String DESCRIPTION = "DESCRIPTION";
+	private static final String MOCK_CLASS_NAME = "MOCK_CLASS_NAME";
+	private Map<String, JsonSchema> schemaMap;
 
 	@BeforeEach
 	private void setUp() {
-		this.translator = Mockito.spy(new ControllerModelsToOpenAPIModelTranslator());
+		Map<String, JsonSchema> schemaMap = new HashMap<>();
+		JsonSchema js = new JsonSchema();
+		js.setType(Type.integer);
+		schemaMap.put(MOCK_CLASS_NAME, js);
+		this.schemaMap = schemaMap;
+
+		this.translator = Mockito.spy(new ControllerModelsToOpenAPIModelTranslator(schemaMap));
 	}
 	
 	@Test
@@ -290,14 +298,12 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 
 	@Test
 	public void testGetResponses() {
-		JsonSchema js = new JsonSchema();
-		js.setType(Type.integer);
-		js.setFormat("int32");
-		ResponseModel input = new ResponseModel().withDescription(DESCRIPTION).withSchema(js).withStatusCode(200);
+		// should use id here instead
+		ResponseModel input = new ResponseModel().withDescription(DESCRIPTION).withId(MOCK_CLASS_NAME).withStatusCode(200);
 
 		Map<String, ResponseInfo> expectedResponses = new LinkedHashMap<>();
 		Map<String, Schema> contentTypeToSchema = new HashMap<>();
-		contentTypeToSchema.put("application/json", new Schema().withSchema(js));
+		contentTypeToSchema.put("application/json", new Schema().withSchema(schemaMap.get(MOCK_CLASS_NAME)));
 		ResponseInfo responseInfo = new ResponseInfo().withDescription(DESCRIPTION).withContent(contentTypeToSchema);
 		String statusCode = "200";
 		expectedResponses.put(statusCode, responseInfo);
@@ -317,13 +323,10 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 
 	@Test
 	public void testGetRequestBodyInfo() {
-		JsonSchema js = new JsonSchema();
-		js.setType(Type.integer);
-		js.setFormat("int32");
-		RequestBodyModel input = new RequestBodyModel().withDescription(DESCRIPTION).withSchema(js).withRequired(true);
+		RequestBodyModel input = new RequestBodyModel().withDescription(DESCRIPTION).withId(MOCK_CLASS_NAME).withRequired(true);
 
 		Map<String, Schema> contentTypeToSchema = new LinkedHashMap<>();
-		contentTypeToSchema.put("application/json", new Schema().withSchema(js));
+		contentTypeToSchema.put("application/json", new Schema().withSchema(schemaMap.get(MOCK_CLASS_NAME)));
 		RequestBodyInfo expected = new RequestBodyInfo().withRequired(true).withContent(contentTypeToSchema);
 
 		// call under test.

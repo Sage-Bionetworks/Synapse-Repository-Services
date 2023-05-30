@@ -1,0 +1,16 @@
+{
+	"description": "This class describes a Dog.",
+	"name": "Dog",
+	"type": "interface",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.openapi.pet.Pet"
+        }
+    ],
+	"properties": {
+		"age": {
+			"type": "integer",
+			"description": "The age of the dog."
+		}
+	}
+}

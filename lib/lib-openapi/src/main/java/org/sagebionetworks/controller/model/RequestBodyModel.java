@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
 public class RequestBodyModel {
 	private boolean required;
 	private String description;
-	private JsonSchema schema;
+	private String id;
 	
 	public boolean isRequired() {
 		return required;
@@ -32,18 +32,18 @@ public class RequestBodyModel {
 		return this;
 	}
 	
-	public JsonSchema getSchema() {
-		return schema;
+	public String getId() {
+		return id;
 	}
 	
-	public RequestBodyModel withSchema(JsonSchema schema) {
-		this.schema = schema;
+	public RequestBodyModel withId(String id) {
+		this.id = id;
 		return this;
 	}
 	
 	@Override
 	public int hashCode() {
-		return Objects.hash(description, required, schema);
+		return Objects.hash(description, required, id);
 	}
 
 	@Override
@@ -56,11 +56,11 @@ public class RequestBodyModel {
 			return false;
 		RequestBodyModel other = (RequestBodyModel) obj;
 		return Objects.equals(description, other.description) && required == other.required
-				&& Objects.equals(schema, other.schema);
+				&& Objects.equals(id, other.id);
 	}
 
 	@Override
 	public String toString() {
-		return "RequestBodyModel [required=" + required + ", description=" + description + ", schema=" + schema + "]";
+		return "RequestBodyModel [required=" + required + ", description=" + description + ", schema=" + id + "]";
 	}
 }

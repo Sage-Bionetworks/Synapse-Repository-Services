@@ -13,7 +13,7 @@ public class ResponseModel {
 	private int statusCode;
 	private String description;
 	private String contentType = "application/json";
-	private JsonSchema schema;
+	private String id;
 	
 	public int getStatusCode() {
 		return statusCode;
@@ -42,24 +42,18 @@ public class ResponseModel {
 		return this;
 	}
 	
-	public JsonSchema getSchema() {
-		return schema;
+	public String getId() {
+		return this.id;
 	}
 	
-	public ResponseModel withSchema(JsonSchema schema) {
-		this.schema = schema;
+	public ResponseModel withId(String id) {
+		this.id = id;
 		return this;
 	}
 
 	@Override
-	public String toString() {
-		return "ResponseModel [statusCode=" + statusCode + ", description=" + description + ", contentType="
-				+ contentType + ", schema=" + schema + "]";
-	}
-
-	@Override
 	public int hashCode() {
-		return Objects.hash(contentType, description, schema, statusCode);
+		return Objects.hash(contentType, description, id, statusCode);
 	}
 
 	@Override
@@ -72,6 +66,12 @@ public class ResponseModel {
 			return false;
 		ResponseModel other = (ResponseModel) obj;
 		return Objects.equals(contentType, other.contentType) && Objects.equals(description, other.description)
-				&& Objects.equals(schema, other.schema) && statusCode == other.statusCode;
+				&& Objects.equals(id, other.id) && statusCode == other.statusCode;
+	}
+
+	@Override
+	public String toString() {
+		return "ResponseModel [statusCode=" + statusCode + ", description=" + description + ", contentType="
+				+ contentType + ", id=" + id + "]";
 	}
 }

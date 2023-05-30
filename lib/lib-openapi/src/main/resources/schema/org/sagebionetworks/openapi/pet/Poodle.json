@@ -1,0 +1,15 @@
+{
+	"description": "Describes the poodle breed of Dog.",
+	"name": "Poodle",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.openapi.pet.Dog"
+		}
+	],
+	"properties": {
+		"isFluffy": {
+			"type": "boolean",
+			"description": "Describes if the poodle if fluffy."
+		}
+	}
+}

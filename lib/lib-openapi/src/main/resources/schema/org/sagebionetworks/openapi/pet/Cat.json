@@ -1,0 +1,15 @@
+{
+	"description": "This class describes a Cat.",
+	"name": "Cat",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.openapi.pet.Pet"
+        }
+    ],
+    "properties": {
+		"numWhiskers": {
+			"type": "integer",
+			"description": "The number of whiskers the cat has."
+		}
+	}
+}
