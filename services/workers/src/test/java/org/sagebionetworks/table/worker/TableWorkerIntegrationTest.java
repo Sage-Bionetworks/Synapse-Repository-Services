@@ -3580,6 +3580,46 @@ public class TableWorkerIntegrationTest {
 		});
 	}
 	
+	@Test
+	public void testBuildTableWithCaseSelect() throws Exception {
+		schema = Lists.newArrayList(
+				columnManager.createColumnModel(adminUserInfo,
+						new ColumnModel().setColumnType(ColumnType.INTEGER).setName("id")),
+				columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING)
+						.setEnumValues(List.of("one", "two")).setName("type")));
+		
+		headers = TableModelUtils.getIds(schema);
+		
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, true).getId();
+		
+		// Now add some data
+		List<Row> rows = Arrays.asList(
+			TableModelTestUtils.createRow(null, null, "1", "one"),
+			TableModelTestUtils.createRow(null, null, "2", "one"),
+			TableModelTestUtils.createRow(null, null, "2", "two"),
+			TableModelTestUtils.createRow(null, null, "3", "two"),
+			TableModelTestUtils.createRow(null, null, "3", "two")
+		);
+				
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		String sql = "select id,"
+				+ " sum(case type when 'one' then 1 else 0 end) as oneCount,"
+				+ " sum(case type when 'two' then 1 else 0 end) as twoCount"
+				+ " from "+tableId+" group by id order by id asc";
+		
+		waitForConsistentQuery(adminUserInfo, sql, null, null, (result) -> {
+			assertEquals(3, result.getQueryResults().getRows().size());
+			assertEquals(List.of("1","1","0"), result.getQueryResults().getRows().get(0).getValues());
+			assertEquals(List.of("2","1","1"), result.getQueryResults().getRows().get(1).getValues());
+			assertEquals(List.of("3","0","2"), result.getQueryResults().getRows().get(2).getValues());
+		});
+	}
+	
 	
 	/**
 	 * Create a string of the given size.

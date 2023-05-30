@@ -31,6 +31,8 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.semaphore.LockContext;
+import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
@@ -356,14 +358,15 @@ public class TableViewManagerImpl implements TableViewManager {
 		 * a full rebuild of the view while this runs.  The read lock also allows users
 		 * to query the view while this process runs.
 		 */
+		LockContext lockContext = new LockContext(ContextType.UpdatingViewIndex, idAndVersion);
 		try {
-			tableManagerSupport.tryRunWithTableNonExclusiveLock(outerProgressCallback, (ProgressCallback callback) -> {
+			tableManagerSupport.tryRunWithTableNonExclusiveLock(outerProgressCallback, lockContext,(ProgressCallback callback) -> {
 				/*
 				 * A special exclusive lock is used to prevent more then one instance
 				 * from applying deltas to a view at a time.
 				 */
 				String key = TableModelUtils.getViewDeltaSemaphoreKey(idAndVersion);
-				tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key,
+				tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, lockContext, key,
 						(ProgressCallback innerCallback) -> {
 							// while holding both locks do the work.
 							applyChangesToAvailableViewOrSnapshot(idAndVersion);
@@ -465,7 +468,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @throws Exception
 	 */
 	void createOrRebuildView(IdAndVersion idAndVersion, ProgressCallback outerProgressCallback) throws Exception {
-		tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, idAndVersion,
+		tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, new LockContext(ContextType.BuildViewIndex, idAndVersion), idAndVersion,
 				(ProgressCallback innerCallback) -> {
 					createOrRebuildViewHoldingLock(idAndVersion);
 					return null;
@@ -605,7 +608,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		// We also acquire a read lock on the delta key, to prevent changes to available views, the view can still be queried
 		String deltaLockKey = TableModelUtils.getViewDeltaSemaphoreKey(idAndVersion);
 		
-		return tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, (ProgressCallback innerCallback) -> {
+		return tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, new LockContext(ContextType.ViewSnapshot, idAndVersion) ,(ProgressCallback innerCallback) -> {
 		
 			validateViewForSnapshot(idAndVersion);
 

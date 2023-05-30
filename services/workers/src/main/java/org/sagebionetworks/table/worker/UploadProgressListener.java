@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.worker;
 
-import org.sagebionetworks.worker.AsyncJobProgressCallback;
+import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressListener;

@@ -199,6 +199,13 @@ TOKEN [IGNORE_CASE]: {
 | < right: "RIGHT">
 | < outer: "OUTER">
 | < union: "UNION">
+| < nullif: "NULLIF">
+| < coalesce: "COALESCE">
+| < _case: "CASE">
+| < end: "END">
+| < when: "WHEN">
+| < then: "THEN">
+| < _else: "ELSE">
 }
 
 /* Aggregate functions */
@@ -485,6 +492,7 @@ ValueExpressionPrimary valueExpressionPrimary():
 	SetFunctionSpecification setFunctionSpecification = null;
 	ParenthesizedValueExpression parenthesizedValueExpression;
 	ArrayFunctionSpecification arrayFunctionSpecification = null;
+	CaseExpression caseExpression = null;
 }
 {
 	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
@@ -492,6 +500,7 @@ ValueExpressionPrimary valueExpressionPrimary():
 	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
 	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
 	| parenthesizedValueExpression = parenthesizedValueExpression() { return new ValueExpressionPrimary(parenthesizedValueExpression); }
+	| caseExpression = caseExpression() { return new ValueExpressionPrimary(caseExpression); }
 }
 ParenthesizedValueExpression parenthesizedValueExpression():
 {
@@ -1327,4 +1336,132 @@ Pagination pagination():
 {
 	<limit> _limit = unsignedInteger() [ <offset> _offset = unsignedInteger() ]
 	{ return new Pagination(_limit, _offset); }
+}
+NullableValueExpression nullableValueExpression():
+{
+	ValueExpression valueExpression;
+}
+{
+	<null_specification> { return new NullableValueExpression(); }
+	| valueExpression = valueExpression() { return new NullableValueExpression(valueExpression); }
+}
+
+CaseExpression caseExpression():
+{
+	CaseAbbreviation caseAbbreviation = null;
+	CaseSpecification caseSpecification = null;
+}
+{
+	caseAbbreviation = caseAbbreviation() { return new CaseExpression(caseAbbreviation); }
+	| caseSpecification = caseSpecification() { return new CaseExpression(caseSpecification); }
+}
+AbbreviationType abbreviationType():
+{}
+{
+	<nullif> { return AbbreviationType.NULLIF; }
+	| <coalesce> { return AbbreviationType.COALESCE; }
+}
+CaseAbbreviation caseAbbreviation():
+{
+	AbbreviationType abbreviationType;
+	CaseAbbreviation caseAbbreviation = null;
+	NullableValueExpression lastValueExpression = null;
+}
+{
+	abbreviationType = abbreviationType() { caseAbbreviation = new CaseAbbreviation(abbreviationType);  }
+	<left_paren> 
+		lastValueExpression = nullableValueExpression() { caseAbbreviation.addValueExpression(lastValueExpression); }
+		 ( <comma> lastValueExpression = nullableValueExpression() { caseAbbreviation.addValueExpression(lastValueExpression); } )+ 
+	<right_paren>
+	{ return caseAbbreviation; }
+}
+CaseSpecification caseSpecification():
+{
+	SimpleCase simpleCase = null;
+	SearchedCase searchedCase = null;
+}
+{
+	<_case>
+		(
+			simpleCase = simpleCase()
+			| searchedCase = searchedCase()
+		)
+	<end>
+	{ return simpleCase != null ? new CaseSpecification(simpleCase) : new CaseSpecification(searchedCase); }
+}
+SimpleCase simpleCase():
+{
+	SimpleCase simpleCase = null;
+	CaseOperand caseOperand = null;
+	SimpleWhenClause simpleWhenClause = null;
+	ElseClause elseClause = null;
+}
+{
+	caseOperand = caseOperand() { simpleCase = new SimpleCase(caseOperand); }
+	( simpleWhenClause = simpleWhenClause() { simpleCase.addWhen(simpleWhenClause); } )+
+	[ elseClause = elseClause() { simpleCase.setElse(elseClause); } ]
+	{ return simpleCase; }
+}
+CaseOperand caseOperand():
+{
+	ValueExpression valueExpression;
+}
+{
+	valueExpression = valueExpression() { return new CaseOperand(valueExpression); }
+}
+SimpleWhenClause simpleWhenClause():
+{
+	WhenOperand whenOperand = null;;
+	Result result = null;
+}
+{
+	<when> whenOperand = whenOperand() <then> result = result() { return new SimpleWhenClause(whenOperand, result); }
+}
+WhenOperand whenOperand():
+{
+	ValueExpression valueExpression = null;
+}
+{
+	valueExpression = valueExpression() { return new WhenOperand(valueExpression); }
+}
+Result result():
+{
+	ResultExpression resultExpression = null;
+}
+{
+	<null_specification> { return new Result(); }
+	| resultExpression = resultExpression() { return new Result(resultExpression); }
+}
+ResultExpression resultExpression():
+{
+	ValueExpression valueExpression = null;
+}
+{
+	valueExpression = valueExpression() { return new ResultExpression(valueExpression); }
+}
+ElseClause elseClause():
+{
+	Result result = null;
+}
+{
+	<_else> result = result() { return new ElseClause(result); }
+}
+SearchedCase searchedCase():
+{
+	SearchedCase searchedCase = new SearchedCase();
+	SearchedWhenClause searchedWhenClause = null;
+	ElseClause elseClause = null;
+}
+{
+ 	( searchedWhenClause = searchedWhenClause() { searchedCase.addWhen(searchedWhenClause); } )+
+	[ elseClause = elseClause() { searchedCase.setElse(elseClause); } ]
+	{ return searchedCase; }
+}
+SearchedWhenClause searchedWhenClause():
+{
+	SearchCondition searchCondition = null;
+	Result result = null;
+}
+{
+	<when> searchCondition = searchCondition() <then> result = result() { return new SearchedWhenClause(searchCondition, result); }
 }

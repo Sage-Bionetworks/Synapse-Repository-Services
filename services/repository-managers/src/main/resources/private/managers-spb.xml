@@ -142,14 +142,7 @@
 
 	<bean id="columnModelManager" class="org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl"
 		scope="singleton" />
-	
-	<bean id="writeReadSemaphoreRunner" class="org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunnerImpl">
-		<constructor-arg index="0" ref="countingSemaphore"/>
-		<constructor-arg index="1"><bean class="org.sagebionetworks.common.util.ClockImpl"/>
-		</constructor-arg>
-		<constructor-arg index="2" ref="stackConfiguration.writeReadSemaphoreRunnerMaxReaders"/>
-	</bean>
-	
+		
 	<bean id="timeoutUtils" class="org.sagebionetworks.util.TimeoutUtils"/>
 		
 	<bean id="tableEntityManager" class="org.sagebionetworks.repo.manager.table.TableEntityManagerImpl" scope="singleton" >

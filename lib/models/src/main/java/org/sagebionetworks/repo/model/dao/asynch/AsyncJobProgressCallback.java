@@ -1,4 +1,4 @@
-package org.sagebionetworks.worker;
+package org.sagebionetworks.repo.model.dao.asynch;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 

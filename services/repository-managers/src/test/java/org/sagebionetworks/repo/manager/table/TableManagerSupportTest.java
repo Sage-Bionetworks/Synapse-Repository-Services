@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -30,24 +31,23 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -64,6 +64,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
@@ -72,11 +73,14 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.entity.IdAndVersionParser;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.semaphore.LockContext;
+import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
@@ -94,10 +98,17 @@ import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescri
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
+import org.sagebionetworks.workers.util.semaphore.LockType;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+import org.sagebionetworks.workers.util.semaphore.ReadLock;
+import org.sagebionetworks.workers.util.semaphore.ReadLockRequest;
+import org.sagebionetworks.workers.util.semaphore.WriteLock;
+import org.sagebionetworks.workers.util.semaphore.WriteLockRequest;
+import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphore;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonServiceException.ErrorType;
@@ -132,6 +143,8 @@ public class TableManagerSupportTest {
 	@Mock
 	private ProgressCallback mockCallback;
 	@Mock
+	private AsyncJobProgressCallback mockAsynchCallback;
+	@Mock
 	private TableSnapshotDao mockViewSnapshotDao;
 	@Mock
 	private MetadataIndexProviderFactory mockMetadataIndexProviderFactory;
@@ -142,17 +155,19 @@ public class TableManagerSupportTest {
 	@Mock
 	private MaterializedViewDao mockMaterializedViewDao;
 	@Mock
-	private WriteReadSemaphoreRunner mockWriteReadSemaphoreRunner;
+	private WriteReadSemaphore mockWriteReadSemaphore;
 	@Mock
 	private FileProvider mockFileProvider;
 	@Mock
 	private SynapseS3Client mockS3Client;
+	@Mock
+	private Clock mockClock;
+	@Mock
+	private LoggerProvider mockLoggerProvider;
+	@Mock
+	private Logger mockLogger;
 	
-	@InjectMocks
 	private TableManagerSupportImpl manager;
-	
-	@Spy
-	@InjectMocks
 	private TableManagerSupportImpl managerSpy;
 	
 	@Mock
@@ -172,25 +187,35 @@ public class TableManagerSupportTest {
 	@Mock
 	private GZIPInputStream mockGzipInStream;
 	
-	String schemaMD5Hex;
-	String tableId;
-	IdAndVersion idAndVersion;
-	Long tableIdLong;
-	TableStatus status;
-	String etag;
-	Set<Long> scope;
-	Set<Long> containersInScope;
-	UserInfo userInfo;
-	List<ColumnModel> columns;
-	List<String> columnIds;
+	@Mock
+	private ReadLock mockReadLock;
+	@Mock
+	private WriteLock mockWriteLock;
 	
-	Integer callableReturn;
-	ViewScopeType scopeType;
+	private String schemaMD5Hex;
+	private String tableId;
+	private IdAndVersion idAndVersion;
+	private Long tableIdLong;
+	private TableStatus status;
+	private String etag;
+	private Set<Long> scope;
+	private UserInfo userInfo;
+	private List<ColumnModel> columns;
+	private List<String> columnIds;
+	
+	private ViewScopeType scopeType;
+	
+	private LockContext lockContext;
 	
 	@BeforeEach
 	public void before() throws Exception {
-		callableReturn = 123;
-		
+		when(mockLoggerProvider.getLogger(any())).thenReturn(mockLogger);
+		manager = new TableManagerSupportImpl(mockTableStatusDAO, mockTimeoutUtils, mockTransactionalMessenger,
+				mockTableConnectionFactory, mockColumnModelManager, mockNodeDao, mockTableTruthDao, mockViewScopeDao,
+				mockWriteReadSemaphore, mockAuthorizationManager, mockViewSnapshotDao, mockMetadataIndexProviderFactory,
+				mockDefaultColumnModelMapper, mockMaterializedViewDao, mockFileProvider, mockS3Client, mockClock, mockLoggerProvider);
+		managerSpy = Mockito.spy(manager);
+			
 		userInfo = new UserInfo(false, 8L);
 		
 		idAndVersion = IdAndVersion.parse("syn123");
@@ -215,8 +240,9 @@ public class TableManagerSupportTest {
 		// setup the view scope
 		scope = Sets.newHashSet(222L,333L);
 		
-		containersInScope = new LinkedHashSet<Long>(Arrays.asList(222L,333L,20L,21L,30L,31L));
 		scopeType = new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.File.getMask());
+		
+		lockContext = new LockContext(ContextType.Query, idAndVersion);
 		
 	}
 	
@@ -1061,23 +1087,6 @@ public class TableManagerSupportTest {
 		assertEquals("syn123 is not a table or view", message);
 	}
 	
-	@Test
-	public void testTryRunWithTableNonExclusiveLock() throws Exception {
-		IdAndVersion one = IdAndVersion.parse("syn123.4");
-		IdAndVersion two = IdAndVersion.parse("syn456");
-		// call under test
-		manager.tryRunWithTableNonExclusiveLock(mockCallback, mockCallable, one, two);
-		verify(mockWriteReadSemaphoreRunner).tryRunWithReadLock(mockCallback, mockCallable, "TABLE-LOCK-123-4",
-				"TABLE-LOCK-456");
-	}
-	
-	@Test
-	public void testTryRunWithTableNonExclusiveLockCustomKey() throws Exception {
-		String[] keys = new String[] {"key1", "key2"};
-		// call under test
-		manager.tryRunWithTableNonExclusiveLock(mockCallback, mockCallable, keys);
-		verify(mockWriteReadSemaphoreRunner).tryRunWithReadLock(mockCallback, mockCallable, "key1", "key2");
-	}
 	
 	@Test
 	public void testStreamTableIndexToS3() throws IOException {
@@ -1338,4 +1347,337 @@ public class TableManagerSupportTest {
 		
 		verify(mockViewSnapshotDao).getMostRecentTableSnapshot(idAndVersion);
 	}
+	
+	@Test
+	public void testTryRunWithTableNonExclusiveLock() throws Exception {
+		when(mockCallback.getLockTimeoutSeconds()).thenReturn(3L);
+		when(mockCallable.call(any())).thenReturn("some result");
+		when(mockWriteReadSemaphore.getReadLock(any())).thenReturn(mockReadLock);
+		
+		// call under test
+		String result = managerSpy.tryRunWithTableNonExclusiveLock(mockCallback, lockContext, mockCallable, "one","two");
+		assertEquals("some result", result);
+		
+		verify(mockWriteReadSemaphore).getReadLock(new ReadLockRequest(mockCallback, lockContext.serializeToString(), "one","two"));
+		verify(mockCallable).call(mockCallback);
+		verify(managerSpy).logContext(mockCallback, lockContext);
+		verify(managerSpy, never()).logWaitingForContext(any(), any(), any());
+		verify(mockReadLock).close();
+	}
+	
+	@Test
+	public void testTryRunWithTableNonExclusiveLockWithCallableException() throws Exception {
+		when(mockCallback.getLockTimeoutSeconds()).thenReturn(3L);
+		Exception exception = new IllegalArgumentException("something is wrong");
+		when(mockCallable.call(any())).thenThrow(exception);
+		when(mockWriteReadSemaphore.getReadLock(any())).thenReturn(mockReadLock);
+		
+		Exception resultException = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			managerSpy.tryRunWithTableNonExclusiveLock(mockCallback, lockContext, mockCallable, "one","two");
+		});
+		assertEquals(exception, resultException);
+		
+		verify(mockWriteReadSemaphore).getReadLock(new ReadLockRequest(mockCallback, lockContext.serializeToString(), "one","two"));
+		verify(mockCallable).call(mockCallback);
+		verify(managerSpy).logContext(mockCallback, lockContext);
+		verify(managerSpy, never()).logWaitingForContext(any(), any(), any());
+		verify(mockReadLock).close();
+	}
+	
+	@Test
+	public void testTryRunWithTableNonExclusiveLockWithLockUnavailable() throws Exception {
+		when(mockCallback.getLockTimeoutSeconds()).thenReturn(3L);
+		LockContext waitingOnOne = new LockContext(ContextType.BuildTableIndex, idAndVersion);
+		Exception toThrow = new LockUnavilableException(LockType.Read, "one", waitingOnOne.serializeToString());
+		when(mockWriteReadSemaphore.getReadLock(any())).thenThrow(toThrow);
+		
+		Exception thrown = assertThrows(LockUnavilableException.class, ()->{
+			// call under test
+			managerSpy.tryRunWithTableNonExclusiveLock(mockCallback, lockContext, mockCallable, "one","two");
+		});
+		assertEquals(toThrow, thrown);
+		
+		verify(mockWriteReadSemaphore).getReadLock(new ReadLockRequest(mockCallback, lockContext.serializeToString(), "one","two"));
+		verify(mockCallable, never()).call(any());
+		verify(managerSpy).logContext(mockCallback, lockContext);
+		verify(managerSpy).logWaitingForContext(mockCallback, lockContext, waitingOnOne);
+		verify(mockReadLock, never()).close();
+	}
+	
+	@Test
+	public void testTryRunWithTableNonExclusiveLockWithLockUnavailableNullContext() throws Exception {
+		when(mockCallback.getLockTimeoutSeconds()).thenReturn(3L);
+		String contextString = null;
+		Exception toThrow = new LockUnavilableException(LockType.Read, "one", contextString);
+		when(mockWriteReadSemaphore.getReadLock(any())).thenThrow(toThrow);
+		LockContext context = new LockContext(ContextType.Query, idAndVersion);
+		
+		Exception thrown = assertThrows(LockUnavilableException.class, ()->{
+			// call under test
+			managerSpy.tryRunWithTableNonExclusiveLock(mockCallback, context, mockCallable, "one","two");
+		});
+		assertEquals(toThrow, thrown);
+		
+		verify(mockWriteReadSemaphore).getReadLock(new ReadLockRequest(mockCallback, context.serializeToString(), "one","two"));
+		verify(mockCallable, never()).call(any());
+		verify(managerSpy).logContext(mockCallback, context);
+		verify(managerSpy, never()).logWaitingForContext(any(), any(), any());
+	}
+	
+	@Test
+	public void testTryRunWithTableNoExclusiveLockWithIdAndVersion() throws Exception {
+
+		doReturn("some result").when(managerSpy).tryRunWithTableNonExclusiveLock(any(), any(), any(),
+				any(String.class));
+		IdAndVersion one = IdAndVersionParser.parseIdAndVersion("syn123");
+		IdAndVersion two = IdAndVersionParser.parseIdAndVersion("syn456");
+
+		// call under test
+		String result = managerSpy.tryRunWithTableNonExclusiveLock(mockCallback, lockContext, mockCallable,
+				one, two);
+		assertEquals("some result", result);
+
+		verify(managerSpy).tryRunWithTableNonExclusiveLock(mockCallback, lockContext, mockCallable,
+				TableModelUtils.getTableSemaphoreKey(one), TableModelUtils.getTableSemaphoreKey(two));
+	}
+	
+	@Test
+	public void testTryRunWithTableNonExclusiveLockWithNullCallback() {
+		mockCallback = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			managerSpy.tryRunWithTableNonExclusiveLock(mockCallback, lockContext, mockCallable, "one","two");
+		}).getMessage();
+		assertEquals("callback is required.", message);
+	}
+	
+	@Test
+	public void testTryRunWithTableNonExclusiveLockWithNullContext() {
+		lockContext = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			managerSpy.tryRunWithTableNonExclusiveLock(mockCallback, lockContext, mockCallable, "one","two");
+		}).getMessage();
+		assertEquals("context is required.", message);
+	}
+	
+	@Test
+	public void testTryRunWithTableNonExclusiveLockWithNullCallable() {
+		mockCallable = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			managerSpy.tryRunWithTableNonExclusiveLock(mockCallback, lockContext, mockCallable, "one","two");
+		}).getMessage();
+		assertEquals("runner is required.", message);
+	}
+	
+	
+	@Test
+	public void testTryRunWithTableExclusiveLock() throws Exception {
+		when(mockCallback.getLockTimeoutSeconds()).thenReturn(3L);
+		when(mockCallable.call(any())).thenReturn("some result");
+		when(mockWriteReadSemaphore.getWriteLock(any())).thenReturn(mockWriteLock);
+		when(mockWriteLock.getExistingReadLockContext()).thenReturn(Optional.empty());
+		
+		// call under test
+		String result = managerSpy.tryRunWithTableExclusiveLock(mockCallback, lockContext, "one", mockCallable);
+		assertEquals("some result", result);
+		
+		verify(mockWriteReadSemaphore).getWriteLock(new WriteLockRequest(mockCallback, lockContext.serializeToString(), "one"));
+		verify(mockCallable).call(mockCallback);
+		verify(managerSpy).logContext(mockCallback, lockContext);
+		verify(managerSpy, never()).logWaitingForContext(any(), any(), any());
+		verify(mockWriteLock).close();
+		verify(mockClock, never()).sleep(anyLong());
+	}
+
+	@Test
+	public void testTryRunWithTableExclusiveLockWithWaitingForReadLocks() throws Exception {
+		when(mockCallback.getLockTimeoutSeconds()).thenReturn(3L);
+		when(mockCallable.call(any())).thenReturn("some result");
+		when(mockWriteReadSemaphore.getWriteLock(any())).thenReturn(mockWriteLock);
+		
+		doNothing().when(managerSpy).logContext(any(), any());
+		doNothing().when(managerSpy).logWaitingForContext(any(), any(), any());
+		
+		LockContext readLockContextOne = new LockContext(ContextType.Query, idAndVersion);
+		LockContext readLockContextTwo = new LockContext(ContextType.TableSnapshot, idAndVersion);
+	
+		when(mockWriteLock.getExistingReadLockContext()).thenReturn(
+				Optional.of(readLockContextOne.serializeToString()),
+				Optional.of(readLockContextTwo.serializeToString()),
+				Optional.empty());
+		
+		// call under test
+		String result = managerSpy.tryRunWithTableExclusiveLock(mockCallback, lockContext, "one", mockCallable);
+		assertEquals("some result", result);
+		
+		verify(mockWriteReadSemaphore).getWriteLock(new WriteLockRequest(mockCallback, lockContext.serializeToString(), "one"));
+		verify(mockCallable).call(mockCallback);
+		verify(managerSpy).logContext(mockCallback, lockContext);
+		verify(managerSpy).logWaitingForContext(mockCallback, lockContext, readLockContextOne);
+		verify(managerSpy).logWaitingForContext(mockCallback, lockContext, readLockContextTwo);
+		verify(managerSpy, times(2)).logWaitingForContext(any(), any(), any());
+		verify(mockWriteLock).close();
+		verify(mockClock, times(2)).sleep(2000L);
+	}
+	
+	@Test
+	public void testTryRunWithTableExclusiveLockWithLockUnavailableException() throws Exception {
+		when(mockCallback.getLockTimeoutSeconds()).thenReturn(3L);
+		LockContext waitingOnOne = new LockContext(ContextType.BuildTableIndex, idAndVersion);
+		Exception toThrow = new LockUnavilableException(LockType.Read, "one", waitingOnOne.serializeToString());
+		when(mockWriteReadSemaphore.getWriteLock(any())).thenThrow(toThrow);
+		
+		Exception thrown = assertThrows(LockUnavilableException.class, ()->{
+			// call under test
+			managerSpy.tryRunWithTableExclusiveLock(mockCallback, lockContext, "one", mockCallable);
+		});
+		assertEquals(toThrow, thrown);
+		
+		verify(mockWriteReadSemaphore).getWriteLock(new WriteLockRequest(mockCallback, lockContext.serializeToString(), "one"));
+		verify(mockCallable, never()).call(mockCallback);
+		verify(managerSpy).logContext(mockCallback, lockContext);
+		verify(managerSpy).logWaitingForContext(mockCallback, lockContext, waitingOnOne);
+		verify(mockWriteLock, never()).close();
+		verify(mockClock, never()).sleep(anyLong());
+	}
+	
+	@Test
+	public void testTryRunWithTableExclusiveLockWithLockUnavailableExceptionNullContext() throws Exception {
+		when(mockCallback.getLockTimeoutSeconds()).thenReturn(3L);
+		Exception toThrow = new LockUnavilableException(LockType.Read, "one", null);
+		when(mockWriteReadSemaphore.getWriteLock(any())).thenThrow(toThrow);
+		
+		Exception thrown = assertThrows(LockUnavilableException.class, ()->{
+			// call under test
+			managerSpy.tryRunWithTableExclusiveLock(mockCallback, lockContext, "one", mockCallable);
+		});
+		assertEquals(toThrow, thrown);
+		
+		verify(mockWriteReadSemaphore).getWriteLock(new WriteLockRequest(mockCallback, lockContext.serializeToString(), "one"));
+		verify(mockCallable, never()).call(mockCallback);
+		verify(managerSpy).logContext(mockCallback, lockContext);
+		verify(managerSpy, never()).logWaitingForContext(any(), any(), any());
+		verify(mockWriteLock, never()).close();
+		verify(mockClock, never()).sleep(anyLong());
+	}
+	
+	@Test
+	public void testTryRunWithTableExclusiveLockWithCallableException() throws Exception {
+		when(mockCallback.getLockTimeoutSeconds()).thenReturn(3L);
+		Exception toThrow = new IllegalAccessException("something is wrong");
+		when(mockCallable.call(any())).thenThrow(toThrow);
+		when(mockWriteReadSemaphore.getWriteLock(any())).thenReturn(mockWriteLock);
+		
+		Exception thrown = assertThrows(IllegalAccessException.class, ()->{
+			// call under test
+			managerSpy.tryRunWithTableExclusiveLock(mockCallback, lockContext, "one", mockCallable);
+		});
+		assertEquals(toThrow, thrown);
+		
+		verify(mockWriteReadSemaphore).getWriteLock(new WriteLockRequest(mockCallback, lockContext.serializeToString(), "one"));
+		verify(mockCallable).call(mockCallback);
+		verify(managerSpy).logContext(mockCallback, lockContext);
+		verify(managerSpy, never()).logWaitingForContext(any(), any(), any());
+		verify(mockWriteLock).close();
+		verify(mockClock, never()).sleep(anyLong());
+	}
+	
+	@Test
+	public void testTryRunWithTableExclusiveLockWithNullCallback() {
+		mockCallback = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			managerSpy.tryRunWithTableExclusiveLock(mockCallback, lockContext, "one", mockCallable);
+		}).getMessage();
+		assertEquals("callback is required.", message);
+	}
+	
+	@Test
+	public void testTryRunWithTableExclusiveLockWithNullContext() {
+		lockContext = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			managerSpy.tryRunWithTableExclusiveLock(mockCallback, lockContext, "one", mockCallable);
+		}).getMessage();
+		assertEquals("context is required.", message);
+	}
+	
+	@Test
+	public void testTryRunWithTableExclusiveLockWithNullKey() {
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			managerSpy.tryRunWithTableExclusiveLock(mockCallback, lockContext, (String)null, mockCallable);
+		}).getMessage();
+		assertEquals("key is required.", message);
+	}
+	
+	@Test
+	public void testTryRunWithTableExclusiveLockWithNullCallable() {
+		mockCallable = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			managerSpy.tryRunWithTableExclusiveLock(mockCallback, lockContext, "one", mockCallable);
+		}).getMessage();
+		assertEquals("callable is required.", message);
+	}
+	
+	@Test
+	public void testTryRunWithTableExclusiveLockWithIdAndVersion() throws Exception {
+		
+		doReturn("some result").when(managerSpy).tryRunWithTableExclusiveLock(any(),any(),any(String.class),any());
+		
+		// call under test
+		String result = managerSpy.tryRunWithTableExclusiveLock(mockCallback, lockContext, idAndVersion, mockCallable);
+		assertEquals("some result", result);
+		
+		verify(managerSpy).tryRunWithTableExclusiveLock(mockCallback, lockContext, TableModelUtils.getTableSemaphoreKey(idAndVersion), mockCallable);
+	}
+	
+	@Test
+	public void testLockContext() {
+		
+		// call under test
+		managerSpy.logContext(mockCallback, lockContext);
+		
+		verify(mockLogger).info("Querying table/view: 'syn123' ...");
+	}
+	
+	@Test
+	public void testLockContextWithAsynchCallabck() {
+		
+		// call under test
+		managerSpy.logContext(mockAsynchCallback, lockContext);
+		
+		verify(mockLogger).info("Querying table/view: 'syn123' ...");
+		verify(mockAsynchCallback).updateProgress("Querying table/view: 'syn123' ...", 0L, 100L);
+	}
+	
+	@Test
+	public void testLogWaitingForContext() {
+		LockContext waitingOn = new LockContext(ContextType.TableUpdate, IdAndVersionParser.parseIdAndVersion("syn456"));
+		
+		// call under test
+		managerSpy.logWaitingForContext(mockCallback, lockContext, waitingOn);
+		
+		verify(mockLogger).info("[Query, syn123] waiting on [TableUpdate, syn456]");
+		verify(mockLogger).info("Applying an update to table: 'syn456' ...");
+
+	}
+	
+	@Test
+	public void testLogWaitingForContextWithAsyncCallback() {
+		LockContext waitingOn = new LockContext(ContextType.TableUpdate, IdAndVersionParser.parseIdAndVersion("syn456"));
+		
+		// call under test
+		managerSpy.logWaitingForContext(mockAsynchCallback, lockContext, waitingOn);
+		
+		verify(mockLogger).info("[Query, syn123] waiting on [TableUpdate, syn456]");
+		verify(mockLogger).info("Applying an update to table: 'syn456' ...");
+
+		verify(mockAsynchCallback).updateProgress("Applying an update to table: 'syn456' ...", 0L, 100L);
+	}
+	
 }

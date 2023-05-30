@@ -86,7 +86,7 @@
         	"type":"boolean"
         },
         "definingSQL": {
-        	"description":"For materialized views, specifies the SQL defining the materialized view.",
+        	"description":"For materialized views and virtual tables, specifies the SQL defining the content of the table.",
         	"type": "string"
         }
     }

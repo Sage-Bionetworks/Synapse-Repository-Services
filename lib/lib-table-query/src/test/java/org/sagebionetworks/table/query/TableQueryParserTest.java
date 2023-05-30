@@ -11,6 +11,7 @@ import java.util.List;
 import com.google.common.base.Strings;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
+import org.sagebionetworks.table.query.model.CaseAbbreviation;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Predicate;
@@ -575,6 +576,13 @@ public class TableQueryParserTest {
 		QueryExpression element = new TableQueryParser(
 				"select * from syn111 union select * from syn222 order by foo limit 10 offset 1").queryExpression();
 		assertEquals("SELECT * FROM syn111 UNION SELECT * FROM syn222 ORDER BY foo LIMIT 10 OFFSET 1", element.toSql());
+	}
+	
+	@Test
+	public void testQueryExpressionWithCaseExpression() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"select sum(case foo when 'one' then 1 else 0 end) from syn123").queryExpression();
+		assertEquals("SELECT SUM(CASE foo WHEN 'one' THEN 1 ELSE 0 END) FROM syn123", element.toSql());
 	}
 
 }

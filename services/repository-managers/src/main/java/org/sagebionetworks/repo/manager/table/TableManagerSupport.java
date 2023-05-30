@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -219,7 +220,7 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @return
 	 * @throws Exception
 	 */
-	<R> R tryRunWithTableExclusiveLock(ProgressCallback callback, IdAndVersion tableId, ProgressingCallable<R> runner)
+	<R> R tryRunWithTableExclusiveLock(ProgressCallback callback, LockContext context, IdAndVersion tableId, ProgressingCallable<R> runner)
 			throws Exception;
 
 	/**
@@ -248,7 +249,7 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @return
 	 * @throws Exception
 	 */
-	<R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, ProgressingCallable<R> runner,
+	<R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, LockContext context, ProgressingCallable<R> runner,
 			IdAndVersion...tableIds) throws Exception;
 
 	/**
@@ -260,7 +261,7 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @return
 	 * @throws Exception
 	 */
-	<R> R tryRunWithTableExclusiveLock(ProgressCallback callback, String key, ProgressingCallable<R> runner)
+	<R> R tryRunWithTableExclusiveLock(ProgressCallback callback, LockContext context, String key, ProgressingCallable<R> runner)
 			throws Exception;
 	
 	/**
@@ -271,7 +272,7 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @return
 	 * @throws Exception
 	 */
-	<R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, ProgressingCallable<R> runner, String ...keys)
+	<R> R tryRunWithTableNonExclusiveLock(ProgressCallback callback, LockContext context, ProgressingCallable<R> runner, String ...keys)
 			throws Exception;
 
 	/**

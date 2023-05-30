@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import org.apache.logging.log4j.Logger;
@@ -133,7 +134,7 @@ public class TableViewWorkerTest {
 	
 	@Test
 	public void testRunLockUnavilableException() throws Exception {
-		LockUnavilableException exception = new LockUnavilableException("no lock");
+		LockUnavilableException exception = new LockUnavilableException(LockType.Read, "key", "context");
 		doThrow(exception).when(mockTableViewManager)
 				.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
 		Throwable cause = assertThrows(RecoverableMessageException.class, ()->{

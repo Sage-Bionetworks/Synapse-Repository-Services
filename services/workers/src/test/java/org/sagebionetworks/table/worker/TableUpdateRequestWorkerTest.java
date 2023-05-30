@@ -22,14 +22,15 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableUpdateRequestManager;
 import org.sagebionetworks.repo.manager.table.TableUpdateRequestManagerProvider;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
-import org.sagebionetworks.worker.AsyncJobProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 @ExtendWith(MockitoExtension.class)
@@ -176,7 +177,7 @@ public class TableUpdateRequestWorkerTest {
 		when(mockTableUpdateRequestManagerProvider.getUpdateRequestManagerForType(tableType)).thenReturn(mockTableUpdateRequestManager);
 		when(mockTableManagerSupport.getTableType(idAndVersion)).thenReturn(tableType);
 		makeProgress();
-		when(mockTableUpdateRequestManager.updateTableWithTransaction(any(), any(), any())).thenThrow(new LockUnavilableException());
+		when(mockTableUpdateRequestManager.updateTableWithTransaction(any(), any(), any())).thenThrow(new LockUnavilableException(LockType.Read, "key", "context"));
 		
 		assertThrows(RecoverableMessageException.class, () -> {
 			// call under test

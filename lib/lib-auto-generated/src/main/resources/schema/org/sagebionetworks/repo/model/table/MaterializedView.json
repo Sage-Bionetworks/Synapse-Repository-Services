@@ -1,8 +1,11 @@
 {
-	"description": "A materialized view is a type of table that is automatically built from a Synapse SQL query. The SQL of the materialized view may contain JOIN clauses on multiple tables.",
+	"description": "A materialized view is a type of table that is automatically built from a Synapse SQL query. Its content is persisted. The SQL of the materialized view may contain JOIN clauses on multiple tables.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.table.Table"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.HasDefiningSql"
 		}
 	],
 	"properties": {

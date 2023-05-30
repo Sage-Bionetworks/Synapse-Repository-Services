@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
@@ -211,6 +212,16 @@ public class NodeTranslationUtilsTest {
 		view.setDefiningSQL("SELECT * FROM syn123");
 		
 		MaterializedView clone = cloneUsingNodeTranslation(view);
+		assertEquals(view, clone);
+	}
+	
+	@Test
+	public void testVirtualTableTranslation() throws InstantiationException, IllegalAccessException {
+		VirtualTable view = new VirtualTable();
+		view.setName("a-virtual-table");
+		view.setDefiningSQL("SELECT * FROM syn123");
+
+		VirtualTable clone = cloneUsingNodeTranslation(view);
 		assertEquals(view, clone);
 	}
 

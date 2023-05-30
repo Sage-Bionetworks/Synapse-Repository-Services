@@ -1,0 +1,24 @@
+{
+	"description": "A virtual table is a type of table whose content is defined by a synapse SQL query. Its content is NOT persisted and any query on a virtual table will run the defined SQL statement. The defining SQL of the virtual table CANNOT contain JOIN clauses on multiple tables.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.Table"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.HasDefiningSql"
+		}
+	],
+	"properties": {
+		"definingSQL": {
+			"description": "The synapse SQL statement that defines the data in the virtual table. The SQL CANNOT contain JOIN/UNION clauses on multiple tables.",
+			"type": "string"
+		},
+		"columnIds": {
+		    "description":"The columns of a virtual table are dynamic based on the select statement of the definingSQL. This list of columnIds is for read only, and will be ignored for create and update operations.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

@@ -3,6 +3,7 @@ package org.sagebionetworks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -410,6 +411,40 @@ public class IT054FileEntityTest {
 				downloaded.delete();
 			}
 		}
+	}
+	
+	/**
+	 * Test to try reproducing https://sagebionetworks.jira.com/browse/PLFM-7746:
+	 * When updating the file handle of a file entity and the MD5 didn't change, then a new version should not
+	 * be created automatically
+	 * 
+	 * @throws IOException 
+	 * @throws SynapseException 
+	 * @throws FileNotFoundException 
+	 */
+	@Test
+	public void testUpdateFileEntityHandleWithSameMd5() throws FileNotFoundException, SynapseException, IOException {
+		FileHandle fileHandleTwo = synapse.multipartUpload(imageFile, null, true, true);
+		
+		fileHandlesToDelete.add(fileHandleTwo.getId());
+		
+		// Add a file to the folder
+		FileEntity fileEntity = new FileEntity();
+		fileEntity.setName("fileEntity");
+		fileEntity.setParentId(folder.getId());
+		fileEntity.setDataFileHandleId(this.fileHandle.getId());
+		fileEntity = synapse.createEntity(fileEntity);
+		
+		String etag = fileEntity.getEtag();
+		Long versionNumber = fileEntity.getVersionNumber();
+		
+		fileEntity.setDataFileHandleId(fileHandleTwo.getId());
+		
+		// Call under test, we specifically set the newVersion to false
+		fileEntity = synapse.putEntity(fileEntity, null, false);
+		
+		assertNotEquals(etag, fileEntity.getEtag());
+		assertEquals(versionNumber, fileEntity.getVersionNumber());
 	}
 
 	/**

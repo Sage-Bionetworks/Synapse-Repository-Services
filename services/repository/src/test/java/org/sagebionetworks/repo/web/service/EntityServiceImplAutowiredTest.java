@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.metadata.EventType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -650,6 +651,60 @@ public class EntityServiceImplAutowiredTest  {
 		}).getMessage();
 
 		assertEquals(project.getId() + " is not a table or view", errorMessage);
+	}
+	
+	@Test
+	public void testVirtualTableCRUD() {
+		boolean newVersion = false;
+		String activityId = null;
+
+		VirtualTable virtualTable = new VirtualTable();
+
+		virtualTable.setName("virtualTable");
+		virtualTable.setParentId(project.getId());
+		virtualTable.setDefiningSQL("SELECT * FROM syn123");
+
+		// call under test (create and get)
+		virtualTable = entityService.createEntity(adminUserId, virtualTable, activityId);
+
+		assertEquals(virtualTable, entityService.getEntity(adminUserId, virtualTable.getId()));
+
+		String updatedSQL = virtualTable.getDefiningSQL() + " WHERE foo = 'bar'";
+
+		virtualTable.setDefiningSQL(updatedSQL);
+
+		// call under test (update)
+		virtualTable = entityService.updateEntity(adminUserId, virtualTable, newVersion, activityId);
+
+		assertEquals(updatedSQL, virtualTable.getDefiningSQL());
+
+		String id = virtualTable.getId();
+
+		// call under test (delete)
+		entityService.deleteEntity(adminUserId, id);
+
+		assertThrows(NotFoundException.class, ()-> {
+			entityService.getEntity(adminUserId, id);
+		});
+	}
+
+	@Test
+	public void testVirtualTableWithNullSQL() {
+		String activityId = null;
+
+		VirtualTable virtualTable = new VirtualTable();
+
+		virtualTable.setName("virtualTable");
+		virtualTable.setParentId(project.getId());
+		virtualTable.setDefiningSQL(null);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test (create and get)
+			entityService.createEntity(adminUserId, virtualTable, activityId);
+		}).getMessage();
+
+		assertEquals("The definingSQL of the virtual table is required and must not be the empty string.", message);
+
 	}
 	
 	@Test

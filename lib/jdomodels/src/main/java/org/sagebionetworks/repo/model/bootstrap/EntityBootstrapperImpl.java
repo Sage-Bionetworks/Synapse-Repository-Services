@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -80,8 +81,9 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			while (true) {
 				long lockTimeoutSec = ENTITY_BOOTSTRAPPER_LOCK_TIMEOUT/1000;
 				int maxCount = 1;
-				token = semaphoreDao.attemptToAcquireLock(ENTITY_BOOTSTRAPPER_LOCK, lockTimeoutSec, maxCount);
-				if (token != null) {
+				Optional<String> optional = semaphoreDao.attemptToAcquireLock(ENTITY_BOOTSTRAPPER_LOCK, lockTimeoutSec, maxCount, EntityBootstrapperImpl.class.getName());
+				if (optional.isPresent()) {
+					token = optional.get();
 					break;
 				}
 				// Sleep

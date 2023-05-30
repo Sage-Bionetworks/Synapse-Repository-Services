@@ -45,6 +45,8 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.semaphore.LockContext;
+import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -92,6 +94,7 @@ import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import java.io.IOException;
@@ -133,86 +136,84 @@ import static org.mockito.Mockito.when;
 public class TableEntityManagerTest {
 	
 	@Mock
-	ProgressCallback mockProgressCallback;
+	private ProgressCallback mockProgressCallback;
 	@Mock
-	StackStatusDao mockStackStatusDao;
+	private StackStatusDao mockStackStatusDao;
 	@Mock
-	TableRowTruthDAO mockTruthDao;
+	private TableRowTruthDAO mockTruthDao;
 	@Mock
-	ConnectionFactory mockTableConnectionFactory;
+	private ConnectionFactory mockTableConnectionFactory;
 	@Mock
-	TableIndexDAO mockTableIndexDAO;
+	private TableIndexDAO mockTableIndexDAO;
 	@Mock
-	ProgressCallback mockProgressCallback2;
+	private ProgressCallback mockProgressCallback2;
 	@Mock
-	ProgressCallback mockProgressCallbackVoid;
+	private ProgressCallback mockProgressCallbackVoid;
 	@Mock
-	FileHandleDao mockFileDao;
+	private FileHandleDao mockFileDao;
 	@Mock
-	ColumnModelManager mockColumModelManager;
+	private ColumnModelManager mockColumModelManager;
 	@Mock
-	TableManagerSupport mockTableManagerSupport;
+	private TableManagerSupport mockTableManagerSupport;
 	@Mock
-	TableIndexManager mockIndexManager;
+	private TableIndexManager mockIndexManager;
 	@Mock
-	TableUploadManager mockTableUploadManager;
+	private TableUploadManager mockTableUploadManager;
 	@Mock
-	TableTransactionDao mockTableTransactionDao;
+	private TableTransactionDao mockTableTransactionDao;
 	@Mock
 	NodeManager mockNodeManager;
 	@Mock
-	TableTransactionManager mockTransactionManager;
+	private TableTransactionManager mockTransactionManager;
 	@Mock
-	TableTransactionContext mockTransactionContext;
+	private TableTransactionContext mockTransactionContext;
 	@Mock
-	TableSnapshotDao mockTableSnapshotDao;
+	private TableSnapshotDao mockTableSnapshotDao;
 	@Mock
-	StackConfiguration mockConfig;
+	private StackConfiguration mockConfig;
 	@Mock
-	TransactionalMessenger messenger;
-	
+	private TransactionalMessenger messenger;
+	private StackConfiguration mockConfig;
+
 	@InjectMocks
-	TableEntityManagerImpl manager;
+	private TableEntityManagerImpl manager;
 	
-	TableEntityManagerImpl managerSpy;
+	private TableEntityManagerImpl managerSpy;
 	
 	@Captor
-	ArgumentCaptor<List<String>> stringListCaptor;
+	private ArgumentCaptor<List<String>> stringListCaptor;
 
-	List<ColumnModel> models;
+	private List<ColumnModel> models;
 	
-	UserInfo user;
-	String tableId;
-	IdAndVersion idAndVersion;
-	Long tableIdLong;
-	List<Row> rows;
-	RowSet set;
-	RawRowSet rawSet;
-	SparseChangeSet sparseChangeSet;
-	SparseChangeSet sparseChangeSetWithRowIds;
-	PartialRowSet partialSet;
-	RawRowSet expectedRawRows;
-	RowReferenceSet refSet;
-	long rowIdSequence;
-	long rowVersionSequence;
-	int maxBytesPerRequest;
-	List<FileHandleAuthorizationStatus> fileAuthResults;
-	TableStatus status;
-	String ETAG;
-	IdRange range;
+	private UserInfo user;
+	private String tableId;
+	private IdAndVersion idAndVersion;
+	private List<Row> rows;
+	private RowSet set;
+	private RawRowSet rawSet;
+	private SparseChangeSet sparseChangeSet;
+	private SparseChangeSet sparseChangeSetWithRowIds;
+	private PartialRowSet partialSet;
+	private RowReferenceSet refSet;
+	private int maxBytesPerRequest;
+	private TableStatus status;
+	private String ETAG;
+	private IdRange range;
 	
-	SparseChangeSetDto rowDto;
+	private SparseChangeSetDto rowDto;
 	
-	TableSchemaChangeRequest schemaChangeRequest;
-	List<ColumnChangeDetails> columChangedetails;
-	List<String> newColumnIds;
+	private TableSchemaChangeRequest schemaChangeRequest;
+	private List<ColumnChangeDetails> columChangedetails;
+	private List<String> newColumnIds;
 	
-	Long transactionId;
+	private Long transactionId;
 	
-	SnapshotRequest snapshotRequest;
-	List<ColumnChange> changes;
-	IdRange range2;
-	IdRange range3;
+	private SnapshotRequest snapshotRequest;
+	private List<ColumnChange> changes;
+	private IdRange range2;
+	private IdRange range3;
+
+	private LockContext expectedLockContext;
 	
 	@BeforeEach
 	public void before() throws Exception {
@@ -223,7 +224,6 @@ public class TableEntityManagerTest {
 		models = TableModelTestUtils.createOneOfEachType(true);
 		tableId = "syn123";
 		idAndVersion = IdAndVersion.parse(tableId);
-		tableIdLong = KeyFactory.stringToKey(tableId);
 		rows = TableModelTestUtils.createRows(models, 10);
 		set = new RowSet();
 		set.setTableId(tableId);
@@ -250,17 +250,13 @@ public class TableEntityManagerTest {
 		partialSet.setRows(partialRows);
 		
 		rows = TableModelTestUtils.createExpectedFullRows(models, 10);
-		expectedRawRows = new RawRowSet(TableModelUtils.getIds(models), null, tableId, rows);
 		
 		refSet = new RowReferenceSet();
 		refSet.setTableId(tableId);
 		refSet.setHeaders(TableModelUtils.getSelectColumns(models));
 		refSet.setRows(new LinkedList<RowReference>());
 		refSet.setEtag("etag123");
-		
-		rowIdSequence = 0;
-		rowVersionSequence = 0;		
-		
+
 		status = new TableStatus();
 		status.setTableId(tableId);
 		status.setState(TableState.PROCESSING);
@@ -312,6 +308,8 @@ public class TableEntityManagerTest {
 		snapshotRequest.setSnapshotLabel("a new label");
 		
 		managerSpy = Mockito.spy(manager);
+
+		expectedLockContext = new LockContext(ContextType.TableUpdate, idAndVersion);
 	}
 
 	void setupQueryAsStream() {
@@ -351,7 +349,7 @@ public class TableEntityManagerTest {
 
 	void setupNonexclusiveLock() throws Exception {
 		// Just call the caller.
-		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(any(ProgressCallback.class),any(ProgressingCallable.class)
+		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(any(ProgressCallback.class), any(), any(ProgressingCallable.class)
 				,any(IdAndVersion.class))).thenAnswer(new Answer<Object>() {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
@@ -1087,8 +1085,8 @@ public class TableEntityManagerTest {
 		doAnswer(new Answer<Void>(){
 			@Override
 			public Void answer(InvocationOnMock invocation) throws Throwable {
-				throw new LockUnavilableException("No Lock for you!");
-			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class), any(ProgressingCallable.class));
+				throw new LockUnavilableException(LockType.Read, "key", "context");
+			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(), any(IdAndVersion.class), any(ProgressingCallable.class));
 		
 		List<String> schema = Lists.newArrayList("111","222");
 
@@ -1096,6 +1094,8 @@ public class TableEntityManagerTest {
 			// call under test.
 			manager.tableUpdated(user, schema, tableId, false);
 		});
+
+		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), eq(expectedLockContext), eq(idAndVersion), any());
 	}
 	
 	@Test
@@ -1814,7 +1814,7 @@ public class TableEntityManagerTest {
 		List<String> newSchema = Lists.newArrayList("1", "2");
 		// call under test
 		manager.tableUpdated(user, newSchema, tableId, false);
-		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
+		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), eq(expectedLockContext),
 				any(IdAndVersion.class), any(ProgressingCallable.class));
 	}
 	
@@ -1824,8 +1824,8 @@ public class TableEntityManagerTest {
 	 */
 	@Test
 	public void testTableUpdatedLockUnavilableException() throws Exception {
-		LockUnavilableException exception = new LockUnavilableException("No lock");
-		when(mockTableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class),
+		LockUnavilableException exception = new LockUnavilableException(LockType.Read, "key", "context");
+		when(mockTableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(),
 				any(IdAndVersion.class), any(ProgressingCallable.class))).thenThrow(exception);
 		List<String> newSchema = Lists.newArrayList("1", "2");
 		assertThrows(TemporarilyUnavailableException.class, ()->{
@@ -2161,8 +2161,8 @@ public class TableEntityManagerTest {
 		idAndVersion = IdAndVersion.parse("syn123.2");
 
 		doAnswer((InvocationOnMock invocation) -> {
-			return invocation.getArgument(2, ProgressingCallable.class).call(mockProgressCallback);
-		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), anyString(), any());
+			return invocation.getArgument(3, ProgressingCallable.class).call(mockProgressCallback);
+		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), any(), anyString(), any());
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
 		when(mockTableSnapshotDao.getSnapshot(any())).thenReturn(Optional.empty());
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.AVAILABLE));
@@ -2178,8 +2178,8 @@ public class TableEntityManagerTest {
 		
 		// Call under test
 		manager.storeTableSnapshot(idAndVersion, mockProgressCallback);
-		
-		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq("TABLE-LOCK-SNAPSHOT-STREAMING-" + idAndVersion), any());
+		expectedLockContext = new LockContext(ContextType.TableSnapshot, idAndVersion);
+		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), eq("TABLE-LOCK-SNAPSHOT-STREAMING-" + idAndVersion), any());
 		verify(mockTableManagerSupport).getTableType(idAndVersion);
 		verify(mockTableSnapshotDao).getSnapshot(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
@@ -2203,8 +2203,8 @@ public class TableEntityManagerTest {
 		idAndVersion = IdAndVersion.parse("syn123.2");
 		
 		doAnswer((InvocationOnMock invocation) -> {
-			return invocation.getArgument(2, ProgressingCallable.class).call(mockProgressCallback);
-		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), anyString(), any());
+			return invocation.getArgument(3, ProgressingCallable.class).call(mockProgressCallback);
+		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), any(), anyString(), any());
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
 		when(mockTableSnapshotDao.getSnapshot(any())).thenReturn(Optional.of(new TableSnapshot()));
 		
@@ -2253,8 +2253,8 @@ public class TableEntityManagerTest {
 		idAndVersion = IdAndVersion.parse("syn123.2");
 		
 		doAnswer((InvocationOnMock invocation) -> {
-			return invocation.getArgument(2, ProgressingCallable.class).call(mockProgressCallback);
-		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), anyString(), any());
+			return invocation.getArgument(3, ProgressingCallable.class).call(mockProgressCallback);
+		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), any(), anyString(), any());
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
 		
 		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
@@ -2275,8 +2275,8 @@ public class TableEntityManagerTest {
 		idAndVersion = IdAndVersion.parse("syn123.2");
 		
 		doAnswer((InvocationOnMock invocation) -> {
-			return invocation.getArgument(2, ProgressingCallable.class).call(mockProgressCallback);
-		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), anyString(), any());
+			return invocation.getArgument(3, ProgressingCallable.class).call(mockProgressCallback);
+		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), any(), anyString(), any());
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
 		when(mockTableSnapshotDao.getSnapshot(any())).thenReturn(Optional.empty());
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.empty());
@@ -2299,8 +2299,8 @@ public class TableEntityManagerTest {
 		idAndVersion = IdAndVersion.parse("syn123.2");
 		
 		doAnswer((InvocationOnMock invocation) -> {
-			return invocation.getArgument(2, ProgressingCallable.class).call(mockProgressCallback);
-		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), anyString(), any());
+			return invocation.getArgument(3, ProgressingCallable.class).call(mockProgressCallback);
+		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), any(), anyString(), any());
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.table);
 		when(mockTableSnapshotDao.getSnapshot(any())).thenReturn(Optional.empty());
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.PROCESSING));

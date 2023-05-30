@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.google.common.collect.Lists;
@@ -459,7 +460,7 @@ public class BulkDownloadManagerImplTest {
 
 	@Test
 	public void testAddFilesFromQueryLockUnavilableException() throws Exception {
-		LockUnavilableException exception = new LockUnavilableException();
+		LockUnavilableException exception = new LockUnavilableException(LockType.Read, "key", "context");
 		when(mockTableQueryManager.queryBundle(any(ProgressCallback.class), any(UserInfo.class),
 				any(QueryBundleRequest.class))).thenThrow(exception);
 		assertThrows(RecoverableMessageException.class, ()->{
