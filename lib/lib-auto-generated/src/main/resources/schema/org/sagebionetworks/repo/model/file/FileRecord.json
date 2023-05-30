@@ -1,5 +1,5 @@
 {
-    "description": "Object used to propagate table status changes",
+    "description": "File record for file upload and download events",
     "implements": [
     	{"$ref": "org.sagebionetworks.repo.model.message.LocalStackMessage"}
     ],
