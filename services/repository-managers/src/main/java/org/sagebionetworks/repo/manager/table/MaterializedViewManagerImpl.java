@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -169,9 +168,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			throw new IllegalArgumentException("MaterializedView snapshots not currently supported");
 		}
 		
-		Optional<TableState> optionalState = tableManagerSupport.getTableStatusState(idAndVersion);
-		
-		if (optionalState.isPresent() && TableState.AVAILABLE == optionalState.get()) {
+		if (TableState.AVAILABLE == tableManagerSupport.getTableStatusState(idAndVersion).orElse(null)) {
 			// We use a negative id as the temporary id of the view
 			IdAndVersion temporaryId = IdAndVersion.newBuilder()
 				.setId(-idAndVersion.getId())
@@ -273,14 +270,17 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			// Note that if we fail to obtain an exclusive lock someone else is building the table so there is nothing to do at this point
 			recoverOnLockUnavailable = false;
 			
-			LOG.info("Updating materialized view index " + idAndVersion + " from temporary index " + temporaryId);
-			
-			tableManagerSupport.tryRunWithTableExclusiveLock(callback, parentContext, idAndVersion, (innerCallback) -> {
-				TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
-				indexManager.moveTableIndex(temporaryIndex, currentIndex);
-				columModelManager.bindColumnsToVersionOfObject(schema.stream().map(ColumnModel::getId).collect(Collectors.toList()), idAndVersion);
-				return null;
-			});
+			// If the table is not available anymore there is no need to switch
+			if (TableState.AVAILABLE == tableManagerSupport.getTableStatusState(idAndVersion).orElse(null)) {
+				LOG.info("Updating materialized view index " + idAndVersion + " from temporary index " + temporaryId);
+				
+				tableManagerSupport.tryRunWithTableExclusiveLock(callback, parentContext, idAndVersion, (innerCallback) -> {
+					TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
+					indexManager.moveTableIndex(temporaryIndex, currentIndex);
+					columModelManager.bindColumnsToVersionOfObject(schema.stream().map(ColumnModel::getId).collect(Collectors.toList()), idAndVersion);
+					return null;
+				});
+			}
 			
 		} catch (RecoverableMessageException e) {
 			throw e;
