@@ -939,6 +939,7 @@ public class MaterializedViewManagerImplTest {
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), eq(idAndVersion), any());
 		verify(mockTableIndexManager).moveTableIndex(temporaryIndex, indexDescription);
 		verify(mockColumnModelManager).bindColumnsToVersionOfObject(viewSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()), idAndVersion);
+		verify(mockTableManagerSupport).updateChangedOnIfAvailable(idAndVersion);
 		
 	}
 	

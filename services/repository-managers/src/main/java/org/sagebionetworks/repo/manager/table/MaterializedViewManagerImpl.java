@@ -278,6 +278,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 					TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
 					indexManager.moveTableIndex(temporaryIndex, currentIndex);
 					columModelManager.bindColumnsToVersionOfObject(schema.stream().map(ColumnModel::getId).collect(Collectors.toList()), idAndVersion);
+					tableManagerSupport.updateChangedOnIfAvailable(idAndVersion);
 					return null;
 				});
 			}
