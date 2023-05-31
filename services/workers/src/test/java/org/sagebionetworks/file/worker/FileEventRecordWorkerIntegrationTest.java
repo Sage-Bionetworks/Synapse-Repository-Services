@@ -9,6 +9,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -19,9 +20,9 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileRecord;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -44,11 +45,10 @@ import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 
-
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
-public class FileRecordWorkerIntegrationTest {
-    private static final long WORKER_TIMEOUT = 300 * 1000;
+public class FileEventRecordWorkerIntegrationTest {
+    private static final long WORKER_TIMEOUT = 3 * 60 * 1000;
     private static final String BUCKET_NAME = "dev.log.sagebase.org";
     @Autowired
     private UserManager userManager;
@@ -62,6 +62,8 @@ public class FileRecordWorkerIntegrationTest {
     private FileHandleDao fileHandleDao;
     @Autowired
     private TransactionalMessenger transactionalMessenger;
+    @Autowired
+    private StackConfiguration configuration;
 
     private UserInfo adminUserInfo;
     private Project project;
@@ -71,6 +73,8 @@ public class FileRecordWorkerIntegrationTest {
     private LocalDate currentDate = LocalDate.now();
     private String fileDownloadRecordKey;
     private String startAfterKey;
+    private String stack;
+    private String instance;
 
     @BeforeEach
     public void before() {
@@ -78,6 +82,8 @@ public class FileRecordWorkerIntegrationTest {
         String month = String.format("%02d", currentDate.getMonth().getValue());
         fileDownloadRecordKey = "fileDownloadRecords/records/";
         startAfterKey = "/year=" + currentDate.getYear() + "/month=" + month + "/day=" + currentDate.getDayOfMonth();
+        stack = configuration.getStack();
+        instance = configuration.getStackInstance();
     }
 
     @AfterEach
@@ -107,7 +113,7 @@ public class FileRecordWorkerIntegrationTest {
         createTestData(adminUserInfo);
 
         //send data into topic FILE_EVENT
-        transactionalMessenger.publishMessageAfterCommit(new FileRecord().setObjectType(ObjectType.FILE_EVENT)
+        transactionalMessenger.publishMessageAfterCommit(new FileEvent().setObjectType(ObjectType.FILE_EVENT)
                 .setObjectId(file.getDataFileHandleId()).setTimestamp(Date.from(Instant.now()))
                 .setUserId(adminUserInfo.getId()).setFileEventType(FileEventType.FILE_DOWNLOAD)
                 .setFileHandleId(file.getDataFileHandleId()).setAssociateId(file.getId())
@@ -126,7 +132,7 @@ public class FileRecordWorkerIntegrationTest {
         createTestData(adminUserInfo);
 
         //send data into topic FILE_EVENT
-        transactionalMessenger.publishMessageAfterCommit(new FileRecord().setObjectType(ObjectType.FILE_EVENT)
+        transactionalMessenger.publishMessageAfterCommit(new FileEvent().setObjectType(ObjectType.FILE_EVENT)
                 .setObjectId(file.getDataFileHandleId()).setTimestamp(Date.from(Instant.now()))
                 .setUserId(adminUserInfo.getId()).setFileEventType(FileEventType.FILE_DOWNLOAD)
                 .setFileHandleId(file.getDataFileHandleId()).setAssociateId(file.getId())
@@ -167,7 +173,7 @@ public class FileRecordWorkerIntegrationTest {
                 .withPrefix(key).withStartAfter(startAfterKey));
         for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
             S3Object object = s3Client.getObject(BUCKET_NAME, objectSummary.getKey());
-            if (!objectSummary.getKey().contains(".gz")) {
+            if (!objectSummary.getKey().contains(".gz") || !object.getKey().contains(stack + instance)) {
                 continue;
             }
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(object.getObjectContent())))) {

@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
+import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
@@ -160,7 +161,7 @@ public class TableEntityManagerTest {
 	@Mock
 	private TableTransactionDao mockTableTransactionDao;
 	@Mock
-	NodeManager mockNodeManager;
+	private NodeManager mockNodeManager;
 	@Mock
 	private TableTransactionManager mockTransactionManager;
 	@Mock
@@ -179,6 +180,8 @@ public class TableEntityManagerTest {
 	
 	@Captor
 	private ArgumentCaptor<List<String>> stringListCaptor;
+	@Captor
+	private ArgumentCaptor<FileEvent> fileEventCaptor;
 
 	private List<ColumnModel> models;
 	
@@ -431,7 +434,11 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao).listRowSetsKeysForTableGreaterThanVersion(tableId, 0L);
 		// save the row set
 		verify(mockTruthDao).appendRowSetToTable(""+user.getId(), tableId, range.getEtag(), range.getVersionNumber(), models, sparseChangeSet.writeToDto(), transactionId, /* hasFileRefs */ true);
-		verify(messenger, times(rowCount)).publishMessageAfterCommit(any());
+		verify(messenger, times(rowCount)).publishMessageAfterCommit(fileEventCaptor.capture());
+		List<FileEvent> fileEvents = fileEventCaptor.getAllValues();
+		assertEquals(fileEvents.size(), rowCount);
+		assertEquals(sparseChangeSet.getTableId(), fileEvents.get(0).getAssociateId());
+
 	}
 	
 	@Test
@@ -790,7 +797,11 @@ public class TableEntityManagerTest {
 
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
-		verify(messenger, times(2)).publishMessageAfterCommit(any());
+		verify(messenger, times(2)).publishMessageAfterCommit(fileEventCaptor.capture());
+		List<FileEvent> fileEvents = fileEventCaptor.getAllValues();
+		assertEquals(fileEvents.size(), 2);
+		assertEquals(sparseChangeSet.getTableId(), fileEvents.get(0).getAssociateId());
+		assertEquals("3333", fileEvents.get(0).getFileHandleId());
 	}
 	
 	@Test

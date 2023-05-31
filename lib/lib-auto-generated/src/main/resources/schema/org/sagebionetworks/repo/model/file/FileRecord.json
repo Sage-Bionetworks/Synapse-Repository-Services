@@ -1,28 +1,13 @@
 {
     "description": "File record for file upload and download events",
-    "implements": [
-    	{"$ref": "org.sagebionetworks.repo.model.message.LocalStackMessage"}
-    ],
     "properties": {
-        "fileEventType": {
-            "type": "string",
-            "description": "The file event can be one of the following enumerations",
-            "name": "FileEventType",
-            "id": "org.sagebionetworks.repo.model.file.FileEventType",
-            "enum": [
-                {
-                    "name": "FILE_DOWNLOAD",
-                    "description": "File download event"
-                },
-                {
-                    "name": "FILE_UPLOAD",
-                    "description": "File upload event"
-                }
-            ]
-        },
         "userId": {
             "type": "integer",
             "description": "The Id of user who initiated the file event."
+        },
+        "timestamp": {
+            "type": "integer",
+            "description": "The timestamp of the record, in UTC milliseconds"
         },
         "projectId": {
             "type": "integer",

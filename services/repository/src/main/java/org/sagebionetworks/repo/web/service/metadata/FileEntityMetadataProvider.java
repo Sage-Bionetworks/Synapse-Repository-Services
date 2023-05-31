@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
+import org.sagebionetworks.repo.manager.file.FileEventUtils;
 import org.sagebionetworks.repo.manager.file.FileRecordUtils;
 import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -7,6 +8,7 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileRecord;
@@ -59,8 +61,8 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 	}
 
 	private void sendFileUploadEvent(Long userId, FileEntity entity) {
-		FileRecord fileRecordEvent = FileRecordUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId, entity.getDataFileHandleId(),
+		FileEvent fileEvent = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId, entity.getDataFileHandleId(),
 				entity.getId(), FileHandleAssociateType.FileEntity);
-		messenger.publishMessageAfterCommit(fileRecordEvent);
+		messenger.publishMessageAfterCommit(fileEvent);
 	}
 }

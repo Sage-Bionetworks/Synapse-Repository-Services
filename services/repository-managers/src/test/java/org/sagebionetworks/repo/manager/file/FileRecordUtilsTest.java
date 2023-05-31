@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.file;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileRecord;
@@ -11,104 +10,99 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FileRecordUtilsTest {
     @Test
-    public void testBuildFileDownloadEvent() {
-        FileRecord expectedEvent = new FileRecord().setFileEventType(FileEventType.FILE_DOWNLOAD)
+    public void testBuildFileDownloadRecord() {
+        FileRecord expectedRecord = new FileRecord()
                 .setUserId(123L).setFileHandleId("345").setAssociateId("678").setAssociateType(FileHandleAssociateType.FileEntity);
 
         FileHandleAssociation association = new FileHandleAssociation();
 
-        association.setFileHandleId(expectedEvent.getFileHandleId());
-        association.setAssociateObjectId(expectedEvent.getAssociateId());
-        association.setAssociateObjectType(expectedEvent.getAssociateType());
+        association.setFileHandleId(expectedRecord.getFileHandleId());
+        association.setAssociateObjectId(expectedRecord.getAssociateId());
+        association.setAssociateObjectType(expectedRecord.getAssociateType());
 
         // Call under test
-        FileRecord result = FileRecordUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, expectedEvent.getUserId(),
-                association);
+        FileRecord result = FileRecordUtils.buildFileRecord(expectedRecord.getUserId(), association);
 
-        assertEquals(expectedEvent.getFileEventType(), result.getFileEventType());
-        assertEquals(expectedEvent.getAssociateId(), result.getAssociateId());
-        assertEquals(expectedEvent.getAssociateType(), result.getAssociateType());
-        assertEquals(expectedEvent.getFileHandleId(), result.getFileHandleId());
-        assertEquals(expectedEvent.getUserId(), result.getUserId());
+        assertEquals(expectedRecord.getAssociateId(), result.getAssociateId());
+        assertEquals(expectedRecord.getAssociateType(), result.getAssociateType());
+        assertEquals(expectedRecord.getFileHandleId(), result.getFileHandleId());
+        assertEquals(expectedRecord.getUserId(), result.getUserId());
     }
 
     @Test
-    public void testBuildFileUploadEvent() {
-        FileRecord expectedEvent = new FileRecord().setFileEventType(FileEventType.FILE_UPLOAD)
+    public void testBuildFileUploadRecord() {
+        FileRecord expectedRecord = new FileRecord()
                 .setUserId(123L).setFileHandleId("345").setAssociateId("678").setAssociateType(FileHandleAssociateType.FileEntity);
 
         FileHandleAssociation association = new FileHandleAssociation();
 
-        association.setFileHandleId(expectedEvent.getFileHandleId());
-        association.setAssociateObjectId(expectedEvent.getAssociateId());
-        association.setAssociateObjectType(expectedEvent.getAssociateType());
+        association.setFileHandleId(expectedRecord.getFileHandleId());
+        association.setAssociateObjectId(expectedRecord.getAssociateId());
+        association.setAssociateObjectType(expectedRecord.getAssociateType());
 
         // Call under test
-        FileRecord result = FileRecordUtils.buildFileEvent(FileEventType.FILE_UPLOAD, expectedEvent.getUserId(),
+        FileRecord result = FileRecordUtils.buildFileRecord(expectedRecord.getUserId(),
                 association);
 
-        assertEquals(expectedEvent.getFileEventType(), result.getFileEventType());
-        assertEquals(expectedEvent.getAssociateId(), result.getAssociateId());
-        assertEquals(expectedEvent.getAssociateType(), result.getAssociateType());
-        assertEquals(expectedEvent.getFileHandleId(), result.getFileHandleId());
-        assertEquals(expectedEvent.getUserId(), result.getUserId());
+        assertEquals(expectedRecord.getAssociateId(), result.getAssociateId());
+        assertEquals(expectedRecord.getAssociateType(), result.getAssociateType());
+        assertEquals(expectedRecord.getFileHandleId(), result.getFileHandleId());
+        assertEquals(expectedRecord.getUserId(), result.getUserId());
     }
 
     @Test
-    public void testWithNullParams() {
+    public void testWithNullAssociation() {
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            FileRecordUtils.buildFileEvent(FileEventType.FILE_UPLOAD, 123L, null);
+            // Call under test
+            FileRecordUtils.buildFileRecord(123L, null);
         });
+    }
 
+    @Test
+    public void testWithNullUserId() {
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
             FileHandleAssociation association = new FileHandleAssociation();
-
             association.setFileHandleId(null);
             association.setAssociateObjectId("id");
             association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
-
-            FileRecordUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, 123L, association);
+            // Call under test
+            FileRecordUtils.buildFileRecord(null, association);
         });
+    }
 
+    @Test
+    public void testWithNullAssociationId() {
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
             FileHandleAssociation association = new FileHandleAssociation();
-
-            association.setFileHandleId("id");
+            association.setFileHandleId("123");
             association.setAssociateObjectId(null);
             association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
-
-            FileRecordUtils.buildFileEvent(FileEventType.FILE_UPLOAD, 123L, association);
+            // Call under test
+            FileRecordUtils.buildFileRecord(123L, association);
         });
+    }
 
+    @Test
+    public void testWithNullAssociationObjectType() {
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
             FileHandleAssociation association = new FileHandleAssociation();
-
-            association.setFileHandleId("id");
-            association.setAssociateObjectId("id");
+            association.setFileHandleId("123");
+            association.setAssociateObjectId("syn123");
             association.setAssociateObjectType(null);
-
-            FileRecordUtils.buildFileEvent(FileEventType.FILE_UPLOAD, 123L, association);
+            // Call under test
+            FileRecordUtils.buildFileRecord(123L, association);
         });
+    }
 
-
+    @Test
+    public void testWithNullFileHandleId() {
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            FileRecordUtils.buildFileEvent(null, 123L, "123", "id", FileHandleAssociateType.FileEntity);
-        });
-
-        Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            FileRecordUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, null, "id", "id", FileHandleAssociateType.FileEntity);
-        });
-
-        Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            FileRecordUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, 123L, null, "id", FileHandleAssociateType.FileEntity);
-        });
-
-        Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            FileRecordUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, 123L, "id", null, FileHandleAssociateType.FileEntity);
-        });
-
-        Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            FileRecordUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, 123L, "id", "id", null);
+            FileHandleAssociation association = new FileHandleAssociation();
+            association.setFileHandleId(null);
+            association.setAssociateObjectId("syn123");
+            association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+            // Call under test
+            FileRecordUtils.buildFileRecord(123L, association);
         });
     }
 

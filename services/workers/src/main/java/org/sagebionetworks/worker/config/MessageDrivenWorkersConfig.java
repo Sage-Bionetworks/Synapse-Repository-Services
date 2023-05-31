@@ -8,7 +8,7 @@ import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentWorkerStack
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.file.worker.FileHandleAssociationScanRangeWorker;
 import org.sagebionetworks.file.worker.FileHandleKeysArchiveWorker;
-import org.sagebionetworks.file.worker.FileRecordWorker;
+import org.sagebionetworks.file.worker.FileEventRecordWorker;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.ses.workers.SESNotificationWorker;
 import org.sagebionetworks.table.worker.MaterializedViewSourceUpdateWorker;
@@ -164,17 +164,17 @@ public class MessageDrivenWorkersConfig {
 	}
 
 	@Bean
-	public SimpleTriggerFactoryBean fileRecordWorkerTrigger(FileRecordWorker fileRecordWorker) {
+	public SimpleTriggerFactoryBean fileRecordWorkerTrigger(FileEventRecordWorker fileEventRecordWorker) {
 
-		String queueName = stackConfig.getQueueName("FILE_RECORDS");
-		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, fileRecordWorker);
+		String queueName = stackConfig.getQueueName("FILE_EVENT_RECORDS");
+		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, fileEventRecordWorker);
 
 		return new WorkerTriggerBuilder()
 				.withStack(ConcurrentWorkerStack.builder()
 						.withSemaphoreLockKey("fileRecordWorker")
-						.withSemaphoreMaxLockCount(10)
+						.withSemaphoreMaxLockCount(5)
 						.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
-						.withMaxThreadsPerMachine(2)
+						.withMaxThreadsPerMachine(1)
 						.withSingleton(concurrentStackManager)
 						.withCanRunInReadOnly(true)
 						.withQueueName(queueName)

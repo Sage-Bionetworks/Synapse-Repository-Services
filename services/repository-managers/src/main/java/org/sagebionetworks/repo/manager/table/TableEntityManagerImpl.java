@@ -8,7 +8,7 @@ import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.file.FileRecordUtils;
+import org.sagebionetworks.repo.manager.file.FileEventUtils;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -27,9 +27,9 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
+import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileRecord;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
@@ -371,13 +371,11 @@ public class TableEntityManagerImpl implements TableEntityManager {
  		
  		final Long userId = user.getId();
 
-		List<FileRecord> uploadFileRecordEvents = newFileIds.stream().map(fileHandleId ->
-			FileRecordUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId,
-					fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity)).collect(Collectors.toList());
+		List<FileEvent> uploadFileEvents = newFileIds.stream().map(fileHandleId ->
+				FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId,
+						fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity)).collect(Collectors.toList());
 
-		if (!uploadFileRecordEvents.isEmpty()) {
-			uploadFileRecordEvents.forEach(fileRecordEvent -> messenger.publishMessageAfterCommit(fileRecordEvent));
-		}
+		uploadFileEvents.forEach(messenger::publishMessageAfterCommit);
 
 		final boolean hasFileRefs = !newFileIds.isEmpty();
 		

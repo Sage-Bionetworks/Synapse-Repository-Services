@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -58,6 +59,7 @@ import org.sagebionetworks.repo.model.file.ExternalGoogleCloudUploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
+import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -181,6 +183,8 @@ public class FileHandleManagerImplTest {
 	ObjectMetadata mockObjectMeta;
 	@Mock
 	TransactionalMessenger messenger;
+	@Captor
+	private ArgumentCaptor<FileEvent> fileEventCaptor;
 
 	UserInfo mockUser;
 	UserInfo anonymousUser;
@@ -805,11 +809,14 @@ public class FileHandleManagerImplTest {
 				.withAssociation(association.getAssociateObjectType(), association.getAssociateObjectId());
 		
 		String redirectURL = manager.getRedirectURLForFileHandle(request);
-		
 		verify(mockAuthorizationManager, times(1)).canDownLoadFile(mockUser, associations);
 		// Verifies that download stats are sent
-		verify(messenger, times(1)).publishMessageAfterCommit(any());
-		
+		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
+		FileEvent fileEvent = fileEventCaptor.getValue();
+		assertNotNull(fileEvent);
+		assertEquals(association.getAssociateObjectId(), fileEvent.getAssociateId());
+		assertEquals(association.getAssociateObjectType(), fileEvent.getAssociateType());
+		assertEquals(association.getFileHandleId(), fileEvent.getFileHandleId());
 		assertEquals(expectedURL, redirectURL);
 	}
 	
@@ -1688,7 +1695,12 @@ public class FileHandleManagerImplTest {
 		verify(mockS3Client).generatePresignedUrl(any(GeneratePresignedUrlRequest.class));
 		
 		// Verifies that download stats are sent
-		verify(messenger, times(1)).publishMessageAfterCommit(any());
+		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
+		FileEvent fileEvent = fileEventCaptor.getValue();
+		assertNotNull(fileEvent);
+		assertEquals(fha2.getAssociateObjectId(), fileEvent.getAssociateId());
+		assertEquals(fha2.getAssociateObjectType(), fileEvent.getAssociateType());
+		assertEquals(fha2.getFileHandleId(), fileEvent.getFileHandleId());
 		
 		// Verify a download record is created for the success case.
 		ArgumentCaptor<ObjectRecordBatch> batchCapture = ArgumentCaptor.forClass(ObjectRecordBatch.class);
@@ -1740,7 +1752,12 @@ public class FileHandleManagerImplTest {
 		// a batch of records should be pushed.
 		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are sent
-		verify(messenger, times(1)).publishMessageAfterCommit(any());
+		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
+		FileEvent fileEvent = fileEventCaptor.getValue();
+		assertNotNull(fileEvent);
+		assertEquals(fha2.getAssociateObjectId(), fileEvent.getAssociateId());
+		assertEquals(fha2.getAssociateObjectType(), fileEvent.getAssociateType());
+		assertEquals(fha2.getFileHandleId(), fileEvent.getFileHandleId());
 	}
 
 	@Test
@@ -1781,7 +1798,12 @@ public class FileHandleManagerImplTest {
 		// a batch of records should be pushed.
 		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are sent
-		verify(messenger, times(1)).publishMessageAfterCommit(any());
+		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
+		FileEvent fileEvent = fileEventCaptor.getValue();
+		assertNotNull(fileEvent);
+		assertEquals(fha2.getAssociateObjectId(), fileEvent.getAssociateId());
+		assertEquals(fha2.getAssociateObjectType(), fileEvent.getAssociateType());
+		assertEquals(fha2.getFileHandleId(), fileEvent.getFileHandleId());
 	}
 
 	@Test
@@ -2056,7 +2078,64 @@ public class FileHandleManagerImplTest {
 
 		verify(mockObjectRecordQueue, times(1)).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));
-		verify(messenger, times(1)).publishMessageAfterCommit(any());
+		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
+		FileEvent fileEvent = fileEventCaptor.getValue();
+		assertNotNull(fileEvent);
+		assertEquals(fha2.getAssociateObjectId(), fileEvent.getAssociateId());
+		assertEquals(fha2.getAssociateObjectType(), fileEvent.getAssociateType());
+		assertEquals(fha2.getFileHandleId(), fileEvent.getFileHandleId());
+	}
+
+	@Test
+	public void testGetFileHandleAndUrlBatchPreSignedURLForMultipleExternalObjectStore() {
+		batchRequest.setIncludeFileHandles(false);
+		batchRequest.setIncludePreSignedURLs(true);
+		batchRequest.setIncludePreviewPreSignedURLs(false);
+		ExternalObjectStoreFileHandle fh1 = new ExternalObjectStoreFileHandle();
+		fh1.setEndpointUrl("https://s3.amazonaws.com");
+		fh1.setBucket("some.bucket.name");
+		fh1.setFileKey("somepath/file.txt");
+
+		fh1.setId(fha2.getFileHandleId());
+		fh1.setStatus(FileHandleStatus.AVAILABLE);
+
+		ExternalObjectStoreFileHandle fh2 = new ExternalObjectStoreFileHandle();
+		fh2.setEndpointUrl("https://s3.amazonaws.com");
+		fh2.setBucket("some.bucket.name");
+		fh2.setFileKey("somepath/file.txt");
+
+		fh2.setId(fha1.getFileHandleId());
+		fh2.setStatus(FileHandleStatus.AVAILABLE);
+
+		Map<String, FileHandle> handleMap = new HashMap<String, FileHandle>();
+		handleMap.put(fh1.getId(), fh1);
+		handleMap.put(fh2.getId(), fh2);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any(Iterable.class))).thenReturn(handleMap);
+
+		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.authorized());
+		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
+		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2);
+		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+
+		// call under test
+		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(2, results.getRequestedFiles().size());
+
+		verify(mockObjectRecordQueue, times(1)).pushObjectRecordBatch(any(ObjectRecordBatch.class));
+		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));
+		verify(messenger, times(2)).publishMessageAfterCommit(fileEventCaptor.capture());
+		List<FileEvent> fileEvents = fileEventCaptor.getAllValues();
+		assertNotNull(fileEvents);
+		assertEquals(fileEvents.size(), 2);
+		assertEquals(fha1.getAssociateObjectId(), fileEvents.get(0).getAssociateId());
+		assertEquals(fha1.getAssociateObjectType(), fileEvents.get(0).getAssociateType());
+		assertEquals(fha1.getFileHandleId(), fileEvents.get(0).getFileHandleId());
+		assertEquals(fha2.getAssociateObjectId(), fileEvents.get(1).getAssociateId());
+		assertEquals(fha2.getAssociateObjectType(), fileEvents.get(1).getAssociateType());
+		assertEquals(fha2.getFileHandleId(), fileEvents.get(1).getFileHandleId());
+
 	}
 
 	/**

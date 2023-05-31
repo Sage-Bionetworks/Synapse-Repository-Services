@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileDownloadCode;
 import org.sagebionetworks.repo.model.file.FileDownloadStatus;
 import org.sagebionetworks.repo.model.file.FileDownloadSummary;
+import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileRecord;
@@ -90,7 +91,7 @@ public class FileHandlePackageManagerImplTest {
 	@Captor
 	private ArgumentCaptor<ZipEntryNameProvider> zipEntryNameProviderCaptor;
 	@Captor
-	private ArgumentCaptor<FileRecord> fileRecordEventCaptor;
+	private ArgumentCaptor<FileEvent> fileRecordEventCaptor;
 
 	@Spy
 	@InjectMocks
@@ -664,7 +665,7 @@ public class FileHandlePackageManagerImplTest {
 		fileHandleSupportSpy.collectDownloadStatistics(userInfo.getId(), summaryResults);
 
 		verify(messenger).publishMessageAfterCommit(fileRecordEventCaptor.capture());
-		FileRecord fileEvent = fileRecordEventCaptor.getValue();
+		FileEvent fileEvent = fileRecordEventCaptor.getValue();
 		assertNotNull(fileEvent);
 		assertNotNull(fileEvent.getTimestamp());
 		assertEquals(summary.getAssociateObjectId(), fileEvent.getAssociateId());

@@ -66,6 +66,7 @@ import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.FileDownloadRecord;
+import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -331,14 +332,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		
 		String url = getURLForFileHandle(userInfo, fileHandle);
 
-		FileRecord fileRecordEvent = FileRecordUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(), fileHandleAssociation);
-		sendFileEvents(Collections.singletonList(fileRecordEvent));
+		FileEvent fileEvent = FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(), fileHandleAssociation);
+		messenger.publishMessageAfterCommit(fileEvent);
 		return url;
-	}
-	private void sendFileEvents(List<FileRecord> fileRecordEvents) {
-		for (FileRecord event: fileRecordEvents){
-			messenger.publishMessageAfterCommit(event);
-		}
 	}
 
 	/**
@@ -1221,7 +1217,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		Set<String> fileHandleIdsToFetch = new HashSet<String>();
 		Map<String, FileHandleAssociation> idToFileHandleAssociation = new HashMap<String, FileHandleAssociation>(request.getRequestedFiles().size());
 		List<ObjectRecord> downloadRecords = new LinkedList<ObjectRecord>();
-		List<FileRecord> fileRecords = new LinkedList<>();
+		List<FileEvent> fileEvents = new LinkedList<>();
 		
 		for(FileHandleAssociationAuthorizationStatus fhas: authResults){
 			FileResult result = new FileResult();
@@ -1271,7 +1267,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							fr.setPreSignedURL(url);
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
 
-							fileRecords.add(FileRecordUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD,userInfo.getId(),association));
+							fileEvents.add(FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD,userInfo.getId(),association));
 							
 							ObjectRecord record = createObjectRecord(userId, association, now);
 							downloadRecords.add(record);
@@ -1296,9 +1292,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			objectRecordQueue.pushObjectRecordBatch(new ObjectRecordBatch(downloadRecords, FILE_DOWNLOAD_RECORD_TYPE));
 		}
 
-		if(!fileRecords.isEmpty()){
-			sendFileEvents(fileRecords);
-		}
+		fileEvents.forEach(messenger::publishMessageAfterCommit);
+
 		BatchFileResult batch = new BatchFileResult();
 		batch.setRequestedFiles(requestedFiles);
 		return batch;
