@@ -725,4 +725,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return tableSnapshotDao.getMostRecentTableSnapshot(idAndVersion);
 	}
 
+	@Override
+	public ColumnModel getColumnModel(String id) {
+		return columnModelManager.getColumnModel(id);
+	}
+
 }

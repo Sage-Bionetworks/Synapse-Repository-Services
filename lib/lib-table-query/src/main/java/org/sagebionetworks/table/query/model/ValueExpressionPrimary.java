@@ -2,7 +2,10 @@ package org.sagebionetworks.table.query.model;
 
 
 /**
- * ValueExpressionPrimary ::= {@link UnsignedValueSpecification} | {@link ColumnReference} | {@link SetFunctionSpecification} | {@link ParenthesizedValueExpression}
+ * ValueExpressionPrimary ::= {@link UnsignedValueSpecification} |
+ * {@link ColumnReference} | {@link SetFunctionSpecification} |
+ * {@link ParenthesizedValueExpression}
+ * | {@link CaseExpression} | {@link CastSpecification}
  */
 public class ValueExpressionPrimary extends SimpleBranch implements HasReferencedColumn {
 	
@@ -29,6 +32,10 @@ public class ValueExpressionPrimary extends SimpleBranch implements HasReference
 	
 	public ValueExpressionPrimary(CaseExpression caseExpression) {
 		super(caseExpression);
+	}
+	
+	public ValueExpressionPrimary(CastSpecification castSpecification) {
+		super(castSpecification);
 	}
 
 	@Override

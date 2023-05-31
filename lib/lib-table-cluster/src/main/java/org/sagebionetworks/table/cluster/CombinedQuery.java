@@ -49,7 +49,7 @@ public class CombinedQuery {
 				List<FacetRequestColumnModel> facetRequestModels = new ArrayList<>();
 				for (FacetColumnRequest facetRequest : selectedFacets) {
 					ColumnTranslationReference ref = tableAndColumnMapper
-							.lookupColumnReference(facetRequest.getColumnName())
+							.lookupColumnReferenceByName(facetRequest.getColumnName())
 							.orElseThrow(() -> new IllegalArgumentException(
 									String.format("Facet selection: '%s' does not match any column name of the schema",
 											facetRequest.getColumnName())));

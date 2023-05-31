@@ -26,10 +26,12 @@ import org.sagebionetworks.util.ValidateArgument;
 public class TableAndColumnMapper implements ColumnLookup {
 
 	private final List<TableInfo> tables;
+	private final SchemaProvider schemaProvider;
 
 	public TableAndColumnMapper(QuerySpecification query, SchemaProvider schemaProvider) {
 		ValidateArgument.required(query, "QuerySpecification");
 		ValidateArgument.required(schemaProvider, "SchemaProvider");
+		this.schemaProvider = schemaProvider;
 		List<TableInfo> tables = new ArrayList<TableInfo>();
 		int tableIndex = 0;
 		// extract all of the table information from the SQL model.
@@ -111,7 +113,7 @@ public class TableAndColumnMapper implements ColumnLookup {
 	 * @param columnName
 	 * @return
 	 */
-	public Optional<ColumnTranslationReference> lookupColumnReference(String columnName) {
+	public Optional<ColumnTranslationReference> lookupColumnReferenceByName(String columnName) {
 		if(columnName == null) {
 			return Optional.empty();
 		}
@@ -177,5 +179,9 @@ public class TableAndColumnMapper implements ColumnLookup {
 			return Optional.empty();
 		}
 		return tables.stream().filter(t -> t.isMatch(tableNameCorrelation)).findFirst();
+	}
+
+	public ColumnModel getColumnModel(String columnId) {
+		return schemaProvider.getColumnModel(columnId);
 	}
 }

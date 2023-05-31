@@ -5,6 +5,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
 
 import java.util.ArrayList;
@@ -15,6 +17,7 @@ import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -82,12 +85,10 @@ public class FacetTransformerValueCountsTest {
 		facets.add(new FacetRequestColumnModel(schema.get(0), valuesRequest));//use column "i0"
 
 		userId = 1L;
-		SchemaProvider schemaProvider = (IdAndVersion tableId) -> {
-			return schema;
-		};
+		SchemaProvider schemaProvider = Mockito.mock(SchemaProvider.class);
+		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
 
 		originalSearchCondition = "\"stringColumn\" LIKE 'asdf%'";
-//		originalQuery = new SqlQueryBuilder("SELECT * FROM syn123 WHERE " + originalSearchCondition, schemaProvider, userId).indexDescription(new TableIndexDescription(IdAndVersion.parse("syn123"))).build();
 		
 		dependencies = TranslationDependencies.builder().setSchemaProvider(schemaProvider)
 				.setIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn123"))).setUserId(userId).build();

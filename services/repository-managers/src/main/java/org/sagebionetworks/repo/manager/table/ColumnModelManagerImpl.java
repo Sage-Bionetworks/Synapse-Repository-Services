@@ -516,4 +516,9 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		return columnModelDao.createColumnModel(columnModel);
 	}
 
+	@Override
+	public ColumnModel getColumnModel(String id) {
+		return columnModelDao.getColumnModel(id);
+	}
+
 }

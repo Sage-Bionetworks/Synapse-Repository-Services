@@ -1,8 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.Collections;
-import java.util.List;
-
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 
 /**

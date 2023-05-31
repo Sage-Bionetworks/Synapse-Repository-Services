@@ -8,10 +8,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.List;
 
-import com.google.common.base.Strings;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
-import org.sagebionetworks.table.query.model.CaseAbbreviation;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Predicate;
@@ -24,6 +22,8 @@ import org.sagebionetworks.table.query.model.SetFunctionSpecification;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
+
+import com.google.common.base.Strings;
 
 public class TableQueryParserTest {	
 	
@@ -583,6 +583,13 @@ public class TableQueryParserTest {
 		QueryExpression element = new TableQueryParser(
 				"select sum(case foo when 'one' then 1 else 0 end) from syn123").queryExpression();
 		assertEquals("SELECT SUM(CASE foo WHEN 'one' THEN 1 ELSE 0 END) FROM syn123", element.toSql());
+	}
+	
+	@Test
+	public void testCastSpecification() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"select cast(foo as integer) from syn123").queryExpression();
+		assertEquals("SELECT CAST(foo AS INTEGER) FROM syn123", element.toSql());
 	}
 
 }

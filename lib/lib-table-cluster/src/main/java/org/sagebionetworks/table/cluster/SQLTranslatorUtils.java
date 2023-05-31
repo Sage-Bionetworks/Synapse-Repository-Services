@@ -47,6 +47,8 @@ import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
+import org.sagebionetworks.table.query.model.CastSpecification;
+import org.sagebionetworks.table.query.model.CastTarget;
 import org.sagebionetworks.table.query.model.CharacterFactor;
 import org.sagebionetworks.table.query.model.CharacterPrimary;
 import org.sagebionetworks.table.query.model.CharacterValueExpression;
@@ -118,7 +120,7 @@ public class SQLTranslatorUtils {
 	 * @param isAggregate
 	 * @return
 	 */
-	public static List<SelectColumn> getSelectColumns(SelectList selectList, ColumnLookup lookup, boolean isAggregate) {
+	public static List<SelectColumn> getSelectColumns(SelectList selectList, TableAndColumnMapper lookup, boolean isAggregate) {
 		ValidateArgument.required(lookup, "ColumnLookup");
 		ValidateArgument.required(selectList, "selectList");
 		if (selectList.getAsterisk() != null) {
@@ -151,7 +153,20 @@ public class SQLTranslatorUtils {
 	 * @param columnTranslationReferenceLookup
 	 * @return
 	 */
-	public static SelectColumn getSelectColumns(DerivedColumn derivedColumn, ColumnLookup lookup){
+	public static SelectColumn getSelectColumns(DerivedColumn derivedColumn, TableAndColumnMapper lookup){
+		
+		CastTarget castTarget = derivedColumn.getFirstElementOfType(CastTarget.class);
+		if(castTarget != null) {
+			if(castTarget.getType() != null) {
+				return new SelectColumn().setColumnType(castTarget.getType() ).setName(derivedColumn.getDisplayName());
+			}
+			if(castTarget.getColumnId() != null) {
+				ColumnModel cm = lookup.getColumnModel(castTarget.getColumnId().toSql());
+				String name = derivedColumn.getAsClause() != null? derivedColumn.getDisplayName(): cm.getName();
+				return new SelectColumn().setColumnType(cm.getColumnType()).setName(name).setId(cm.getId());
+			}
+		}
+		
 		// Extract data about this column.
 		String displayName = derivedColumn.getDisplayName();
 		// lookup the column referenced by this select.
@@ -325,6 +340,8 @@ public class SQLTranslatorUtils {
 	 */
 	public static void translateModel(QuerySpecification transformedModel,
 			Map<String, Object> parameters, Long userId, TableAndColumnMapper mapper) {
+		
+		translateCast(transformedModel, mapper);
 
 		translateSynapseFunctions(transformedModel, userId);
 
@@ -370,6 +387,27 @@ public class SQLTranslatorUtils {
 		 *  reference and therefore should be enclosed in backticks.
 		 */
 		translateUnresolvedDelimitedIdentifiers(transformedModel);
+	}
+	
+	public static void translateCast(QuerySpecification model,TableAndColumnMapper mapper) {
+		Iterable<CastSpecification> casts = model.createIterable(CastSpecification.class);
+		for(CastSpecification cast: casts) {
+			translateCastSpecification(cast, mapper);
+		}
+	}
+	
+
+	public static void translateCastSpecification(CastSpecification cast, TableAndColumnMapper mapper) {
+		ValidateArgument.required(cast, "CastSpecification");
+		ValidateArgument.required(mapper, "TableAndColumnMapper");
+		CastTarget target = cast.getCastTarget();
+		if(target.getType() == null && target.getColumnId() == null) {
+			throw new IllegalArgumentException("Either ColumnType or ColumnId is required");
+		}
+		ColumnType type = target.getType() != null ? target.getType()
+				: mapper.getColumnModel(target.getColumnId().toSql()).getColumnType();
+		target.replaceElement(
+				new CastTarget(ColumnTypeInfo.getInfoForType(type).getMySqlType().getMySqlCastType().name()));
 	}
 
 	/**

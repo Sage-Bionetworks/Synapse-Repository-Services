@@ -5,23 +5,25 @@ package org.sagebionetworks.table.cluster;
  *
  */
 public enum MySqlColumnType {
-	BIGINT(false, true),
-	VARCHAR(true, true),
-	DOUBLE(false, true),
-	BOOLEAN(false, true),
-	MEDIUMTEXT(false, false),
-	TEXT(false, true),
-	TINYINT(false, true),
-	ENUM(false, true),
-	JSON(false, false);
+	BIGINT(false, true, MySqlCastType.SIGNED),
+	VARCHAR(true, true, MySqlCastType.CHAR),
+	DOUBLE(false, true, MySqlCastType.DOUBLE),
+	BOOLEAN(false, true, MySqlCastType.UNSIGNED),
+	MEDIUMTEXT(false, false, MySqlCastType.CHAR),
+	TEXT(false, true, MySqlCastType.CHAR),
+	TINYINT(false, true, MySqlCastType.UNSIGNED),
+	ENUM(false, true, MySqlCastType.CHAR),
+	JSON(false, false, MySqlCastType.JSON);
 
 	
 	boolean hasSize;
 	boolean isCreateIndex;
+	MySqlCastType castType;
 	
-	private MySqlColumnType(boolean hasSize, boolean isCreateIndex){
+	private MySqlColumnType(boolean hasSize, boolean isCreateIndex, MySqlCastType castType){
 		this.hasSize = hasSize;
 		this.isCreateIndex = isCreateIndex;
+		this.castType = castType;
 	}
 	
 	/**
@@ -67,5 +69,9 @@ public enum MySqlColumnType {
 		} catch (NumberFormatException e) {
 			return null;
 		}
+	}
+	
+	public MySqlCastType getMySqlCastType() {
+		return this.castType;
 	}
 }

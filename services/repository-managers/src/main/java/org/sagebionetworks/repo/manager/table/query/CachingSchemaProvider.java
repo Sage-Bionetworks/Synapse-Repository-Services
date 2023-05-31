@@ -17,11 +17,13 @@ public class CachingSchemaProvider implements SchemaProvider {
 
 	private final SchemaProvider wrapped;
 	private final Map<IdAndVersion, List<ColumnModel>> cache;
+	private final Map<String, ColumnModel> modelcache;
 
 	public CachingSchemaProvider(SchemaProvider toWrap) {
 		ValidateArgument.required(toWrap, "toWrap");
 		this.wrapped = toWrap;
 		cache = new HashMap<>(1);
+		modelcache = new HashMap<>(1);
 	}
 
 	@Override
@@ -31,4 +33,10 @@ public class CachingSchemaProvider implements SchemaProvider {
 		});
 	}
 
+	@Override
+	public ColumnModel getColumnModel(String id) {
+		return modelcache.computeIfAbsent(id, (key) -> {
+			return wrapped.getColumnModel(id);
+		});
+	}
 }
