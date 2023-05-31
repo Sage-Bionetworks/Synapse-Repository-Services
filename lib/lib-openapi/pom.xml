@@ -10,6 +10,10 @@
 	<artifactId>lib-openapi</artifactId>
 	<dependencies>
 		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>schema-to-pojo-lib</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
 		</dependency>
@@ -20,6 +24,10 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-auto-generated</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-javadoc</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
@@ -59,6 +67,12 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+	<properties>
+		<!-- This file is used to provide classpath information to the test javadoc 
+			tool -->
+		<auto.generated.classpath>${project.build.directory}/gen/auto-generated-classpath.txt</auto.generated.classpath>
+		<test.javadoc.output.directory>${project.build.directory}/javadoc</test.javadoc.output.directory>
+	</properties>
 	<build>
 		<resources>
 			<resource>
@@ -71,5 +85,59 @@
 				<directory>src/test/java</directory>
 			</resource>
 		</resources>
+		
+		<plugins>
+			<plugin>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>schema-to-pojo-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<sourceDirectory>src/main/resources/schema</sourceDirectory>
+							<outputDirectory>target/auto-generated-pojos</outputDirectory>
+							<createRegister>org.sagebionetworks.openapi.server.ServerSideOnlyFactory</createRegister>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>build-classpath</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>build-classpath</goal>
+						</goals>
+						<configuration>
+							<excludeArtifactIds>tools</excludeArtifactIds>
+							<!-- We this plugin to generate a classpath file that can be used 
+								for javadoc testing. -->
+							<outputFile>${auto.generated.classpath}</outputFile>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<systemProperties>
+						<property>
+							<name>auto.generated.classpath</name>
+							<value>${auto.generated.classpath}</value>
+						</property>
+						<property>
+							<name>test.javadoc.output.directory</name>
+							<value>${test.javadoc.output.directory}</value>
+						</property>
+					</systemProperties>
+				</configuration>
+			</plugin>
+		</plugins>
 	</build>
 </project>	
