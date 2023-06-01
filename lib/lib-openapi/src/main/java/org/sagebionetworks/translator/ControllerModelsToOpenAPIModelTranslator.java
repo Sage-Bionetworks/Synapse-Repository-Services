@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class ControllerModelsToOpenAPIModelTranslator {
-	private Map<String, JsonSchema> classNameToJsonSchema;
+	private final Map<String, JsonSchema> classNameToJsonSchema;
 	
 	public ControllerModelsToOpenAPIModelTranslator(Map<String, JsonSchema> classNameToJsonSchema) {
 		this.classNameToJsonSchema = classNameToJsonSchema;

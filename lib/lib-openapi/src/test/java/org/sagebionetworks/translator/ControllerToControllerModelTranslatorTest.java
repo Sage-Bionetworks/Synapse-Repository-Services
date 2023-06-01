@@ -692,7 +692,7 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testPopulateSchemaMapWithString() {
 		ObjectSchema schema = null;
 		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl("{}");
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 			schema = new ObjectSchemaImpl(adpater);
 		} catch (Exception e) {
 			// this should never happen
@@ -715,7 +715,7 @@ public class ControllerToControllerModelTranslatorTest {
 		
 		ObjectSchema schema = null;
 		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl("{}");
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 			schema = new ObjectSchemaImpl(adpater);
 		} catch (Exception e) {
 			// this should never happen
@@ -1133,7 +1133,7 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGenerateObjectSchemaForPrimitiveTypeWithStringType() {
 		ObjectSchema schema = null;
 		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl("{}");
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 			schema = new ObjectSchemaImpl(adpater);
 		} catch (Exception e) {
 			// this should never happen
@@ -1148,7 +1148,7 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGenerateObjectSchemaForPrimitiveTypeWithNumberType() {
 		ObjectSchema schema = null;
 		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl("{}");
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 			schema = new ObjectSchemaImpl(adpater);
 		} catch (Exception e) {
 			// this should never happen
@@ -1165,7 +1165,7 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGenerateObjectSchemaForPrimitiveTypeWithBooleanType() {
 		ObjectSchema schema = null;
 		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl("{}");
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 			schema = new ObjectSchemaImpl(adpater);
 		} catch (Exception e) {
 			// this should never happen
@@ -1180,7 +1180,7 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGenerateObjectSchemaForPrimitiveTypeWithIntType() {
 		ObjectSchema schema = null;
 		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl("{}");
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 			schema = new ObjectSchemaImpl(adpater);
 		} catch (Exception e) {
 			// this should never happen

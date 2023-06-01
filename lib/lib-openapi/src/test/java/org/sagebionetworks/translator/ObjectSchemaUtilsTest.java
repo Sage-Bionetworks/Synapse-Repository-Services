@@ -47,7 +47,7 @@ public class ObjectSchemaUtilsTest {
 			SchemaUtils.recursiveAddTypes(expected, className, schema);
 		}
 		// call under test
-		assertEquals(expected, util.getConcreteClasses(autoGen));
+		assertEquals(expected, util.getConcreteClasses(autoGen.getKeySetIterator()));
 	}
 	
 	@Test
@@ -55,7 +55,7 @@ public class ObjectSchemaUtilsTest {
 		Map<String, ObjectSchema> classNameToObjectSchema = new HashMap<>();
 		ObjectSchema objectSchema;
 		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl("{}");
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 			objectSchema = new ObjectSchemaImpl(adpater);
 		} catch (Exception e) {
 			// this should never happen
@@ -79,7 +79,7 @@ public class ObjectSchemaUtilsTest {
 	public void testTranslateObjectSchemaToJsonSchemaWithNDescription() {
 		ObjectSchema objectSchema;
 		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl("{}");
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 			objectSchema = new ObjectSchemaImpl(adpater);
 		} catch (Exception e) {
 			// this should never happen
@@ -107,7 +107,7 @@ public class ObjectSchemaUtilsTest {
 	public void testTranslateObjectSchemaToJsonSchemaWithNonPrimitiveType() {
 		ObjectSchema objectSchema;
 		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl("{}");
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 			objectSchema = new ObjectSchemaImpl(adpater);
 		} catch (Exception e) {
 			// this should never happen
@@ -133,7 +133,7 @@ public class ObjectSchemaUtilsTest {
 	public void testTranslateObjectSchemaToJsonSchemaWithPrimitiveType() {
 		ObjectSchema objectSchema;
 		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl("{}");
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 			objectSchema = new ObjectSchemaImpl(adpater);
 		} catch (Exception e) {
 			// this should never happen
