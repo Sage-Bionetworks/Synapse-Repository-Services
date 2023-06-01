@@ -72,6 +72,7 @@ public class FileEventRecordWorkerIntegrationTest {
     private List<S3FileHandle> fileHandlesToDelete = Lists.newArrayList();
     private LocalDate currentDate = LocalDate.now();
     private String fileDownloadRecordKey;
+    private String fileUploadRecordKey;
     private String startAfterKey;
     private String stack;
     private String instance;
@@ -80,8 +81,10 @@ public class FileEventRecordWorkerIntegrationTest {
     public void before() {
         adminUserInfo = userManager.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
         String month = String.format("%02d", currentDate.getMonth().getValue());
+        String day = String.format("%02d", currentDate.getDayOfMonth());
         fileDownloadRecordKey = "fileDownloadRecords/records/";
-        startAfterKey = "/year=" + currentDate.getYear() + "/month=" + month + "/day=" + currentDate.getDayOfMonth();
+        fileUploadRecordKey = "fileUploadRecords/records/";
+        startAfterKey = "/year=" + currentDate.getYear() + "/month=" + month + "/day=" + day;
         stack = configuration.getStack();
         instance = configuration.getStackInstance();
     }
@@ -134,13 +137,13 @@ public class FileEventRecordWorkerIntegrationTest {
         //send data into topic FILE_EVENT
         transactionalMessenger.publishMessageAfterCommit(new FileEvent().setObjectType(ObjectType.FILE_EVENT)
                 .setObjectId(file.getDataFileHandleId()).setTimestamp(Date.from(Instant.now()))
-                .setUserId(adminUserInfo.getId()).setFileEventType(FileEventType.FILE_DOWNLOAD)
+                .setUserId(adminUserInfo.getId()).setFileEventType(FileEventType.FILE_UPLOAD)
                 .setFileHandleId(file.getDataFileHandleId()).setAssociateId(file.getId())
                 .setAssociateType(FileHandleAssociateType.FileEntity));
 
         //cal under test - wait for worker to send the data into s3
         TimeUtils.waitFor(WORKER_TIMEOUT, 10_000L, () -> {
-            boolean found = getRecord(file.getDataFileHandleId(), fileDownloadRecordKey, startAfterKey);
+            boolean found = getRecord(file.getDataFileHandleId(), fileUploadRecordKey, startAfterKey);
             return new Pair<>(found, null);
         });
     }
