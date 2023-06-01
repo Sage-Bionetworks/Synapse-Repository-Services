@@ -49,9 +49,10 @@ public class FileEventRecordWorker implements TypedMessageDrivenRunner<FileEvent
             // The object does not exist anymore or there is a loop
             return;
         }
+
         FileRecord record = FileRecordUtils.buildFileRecord(event.getUserId(), event.getFileHandleId(),
-                event.getAssociateId(), event.getAssociateType());
-        record.setProjectId(projectId);
+                event.getAssociateId(), event.getAssociateType(), projectId);
+
         KinesisJsonEntityRecord kinesisJsonEntityRecord = new KinesisJsonEntityRecord(record.getTimestamp(),
                 record, configuration.getStack(), configuration.getStackInstance());
 

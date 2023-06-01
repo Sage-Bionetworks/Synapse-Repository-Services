@@ -9,22 +9,20 @@ import java.time.Instant;
 import java.util.Date;
 
 public class FileRecordUtils {
-
-    public static FileRecord buildFileRecord(Long userId, FileHandleAssociation association){
-        ValidateArgument.required(association, "association");
-        return buildFileRecord(userId,association.getFileHandleId(),association.getAssociateObjectId(),association.getAssociateObjectType());
-    }
     public static FileRecord buildFileRecord(Long userId, String fileHandleId,
-                                             String associateObjectId, FileHandleAssociateType associateObjectType) {
+                                             String associateObjectId, FileHandleAssociateType associateObjectType,
+                                             long projectId) {
         ValidateArgument.required(userId, "userId");
         ValidateArgument.required(fileHandleId, "fileHandleId");
         ValidateArgument.required(associateObjectId, "associateObjectId");
         ValidateArgument.required(associateObjectType, "associateObjectType");
+        ValidateArgument.required(projectId, "projectId");
         return new FileRecord()
                 .setTimestamp(Date.from(Instant.now()).getTime())
                 .setUserId(userId)
                 .setFileHandleId(fileHandleId)
                 .setAssociateId(associateObjectId)
-                .setAssociateType(associateObjectType);
+                .setAssociateType(associateObjectType)
+                .setProjectId(projectId);
     }
 }
