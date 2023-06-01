@@ -674,20 +674,11 @@ public interface TableIndexDAO {
 	void update(String string, Map<String, Object> parameters);
 
 	/**
-	 * Moves the content from the index tables of the given sourceIndexId to the index tables of the given targetIndexId.
-	 * The targetIndexId must exist and its content will be replaced. The old table content will become stale and
-	 * can be cleaned up using {@link #dropStaleTableIndices()}
+	 * Swap the two table indices
 	 * 
-	 * @param newIndexId
-	 * @param oldIndexId
-	 * @return A random prefix that is used to rename the target table index to
+	 * @param sourceIndexId
+	 * @param targetIndexId
 	 */
-	String moveTableIndex(IdAndVersion sourceIndexId, IdAndVersion targetIndexId);
+	void swapTableIndex(IdAndVersion sourceIndexId, IdAndVersion targetIndexId);	
 	
-	/**
-	 * Drops any table that became stale due to a move
-	 * 
-	 * @return The number of tables deleted
-	 */
-	int dropStaleTableIndices();
 }

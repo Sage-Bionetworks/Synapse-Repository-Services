@@ -145,7 +145,6 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
 		tableIndexDAO.deleteTable(tableId);
 		tableIndexDAO.truncateIndex();
-		tableIndexDAO.dropStaleTableIndices();
 		indexDescription = new TableIndexDescription(tableId);
 		userId = 1L;
 		fieldTypeMapper = new ObjectFieldTypeMapper() {
@@ -181,7 +180,6 @@ public class TableIndexDAOImplTest {
 			tableIndexDAO.deleteTable(tableId);
 		}
 		tableIndexDAO.truncateIndex();
-		tableIndexDAO.dropStaleTableIndices();
 	}
 	
 	/**
@@ -4388,7 +4386,7 @@ public class TableIndexDAOImplTest {
 	 * @return
 	 */
 	Long countRowsInMultiValueIndex(IdAndVersion idAndversion, String columnId) {
-		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId);
+		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(idAndversion, columnId);
 		return tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap());
 	}
 
@@ -5212,7 +5210,7 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testMoveTableIndex() {
+	public void testSwapTableIndex() {
 		// Create the first table
 		List<ColumnModel> schemaOne = List.of(
 			TableModelTestUtils.createColumn(1L, "foo", ColumnType.DOUBLE),
@@ -5234,16 +5232,21 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(indexDescription.getIdAndVersion(), set, schemaOne);
 		
+		schemaOne.stream().filter( m -> ColumnTypeListMappings.isList(m.getColumnType())).forEach( column -> {			
+			tableIndexDAO.populateListColumnIndexTable(indexDescription.getIdAndVersion(), column, null, false);
+		});
+		
 		// Create another table
 		IndexDescription sourceIndexDescription = new TableIndexDescription(IdAndVersion.parse("456"));
 		
 		List<ColumnModel> schemaTwo = List.of(
-			TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER),
-			TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING),
-			TableModelTestUtils.createColumn(3L, "fooList", ColumnType.INTEGER_LIST),
-			TableModelTestUtils.createColumn(4L, "barList", ColumnType.STRING_LIST)
+			TableModelTestUtils.createColumn(3L, "foo", ColumnType.INTEGER),
+			TableModelTestUtils.createColumn(4L, "bar", ColumnType.STRING),
+			TableModelTestUtils.createColumn(5L, "fooList", ColumnType.INTEGER_LIST),
+			TableModelTestUtils.createColumn(6L, "barList", ColumnType.STRING_LIST)
 		);
-				
+		
+		tableIndexDAO.deleteTable(sourceIndexDescription.getIdAndVersion());
 		createOrUpdateTable(schemaTwo, sourceIndexDescription);
 		tableIndexDAO.createSecondaryTables(sourceIndexDescription.getIdAndVersion());
 		
@@ -5255,44 +5258,69 @@ public class TableIndexDAOImplTest {
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, new IdRange().setMinimumId(100L).setMaximumId(200L).setVersionNumber(4L));
 		
 		createOrUpdateOrDeleteRows(sourceIndexDescription.getIdAndVersion(), set, schemaTwo);
-				
-		// Call under test
-		String randomPrefix = tableIndexDAO.moveTableIndex(sourceIndexDescription.getIdAndVersion(), indexDescription.getIdAndVersion());
 		
-		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_C2_", "_C3_", "_C4_"), 
+		schemaTwo.stream().filter( m -> ColumnTypeListMappings.isList(m.getColumnType())).forEach( column -> {			
+			tableIndexDAO.populateListColumnIndexTable(sourceIndexDescription.getIdAndVersion(), column, null, false);
+		});
+		
+		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_DBL_C1_", "_C2_", "_C3_"), 
 			tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
 		);
 		
-		assertEquals(Set.of(3L, 4L), 
+		assertEquals(Set.of(2L, 3L), 
 			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(indexDescription.getIdAndVersion())
+		);
+		
+		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C4_", "_C5_", "_C6_"), 
+			tableIndexDAO.getDatabaseInfo(sourceIndexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
+		);
+		
+		assertEquals(Set.of(5L, 6L), 
+			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(sourceIndexDescription.getIdAndVersion())
+		);
+		
+		assertEquals(2L, tableIndexDAO.getRowCountForTable(indexDescription.getIdAndVersion()));
+		assertEquals(3L, tableIndexDAO.getRowCountForTable(sourceIndexDescription.getIdAndVersion()));
+		
+		assertEquals(4L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "2"));
+		assertEquals(2L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "3"));
+		assertEquals(3L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "5"));
+		assertEquals(6L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "6"));
+				
+		// Call under test
+		tableIndexDAO.swapTableIndex(sourceIndexDescription.getIdAndVersion(), indexDescription.getIdAndVersion());
+		
+		assertEquals(3L, tableIndexDAO.getRowCountForTable(indexDescription.getIdAndVersion()));
+		assertEquals(2L, tableIndexDAO.getRowCountForTable(sourceIndexDescription.getIdAndVersion()));
+		
+		assertEquals(3L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "5"));
+		assertEquals(6L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "6"));
+		assertEquals(4L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "2"));
+		assertEquals(2L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "3"));
+		
+		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C4_", "_C5_", "_C6_"), 
+			tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
+		);
+		
+		assertEquals(Set.of(5L, 6L), 
+			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(indexDescription.getIdAndVersion())
+		);
+		
+		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_DBL_C1_", "_C2_", "_C3_"), 
+			tableIndexDAO.getDatabaseInfo(sourceIndexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
+		);
+		
+		assertEquals(Set.of(2L, 3L), 
+			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(sourceIndexDescription.getIdAndVersion())
 		);
 		
 		JdbcTemplate jdbcTemplate = tableIndexDAO.getConnection();
 		
-		// 3 old index tables renamed to be unused
-		Set<String> expectedRenamedIndexTables = Arrays.stream(TableIndexType.values()).map( t -> 
-			randomPrefix + "1" + SQLUtils.getTableNameForId(indexDescription.getIdAndVersion(), t)
-		).collect(Collectors.toSet());
-		
-		Set<String> renamedIndexTables = Set.copyOf(jdbcTemplate.queryForList("SHOW TABLES LIKE '" 
-			+ randomPrefix + "1" + SQLUtils.getTableNameForId(indexDescription.getIdAndVersion(), TableIndexType.INDEX) +"%'", String.class)
-		);
-		
-		assertEquals(expectedRenamedIndexTables, renamedIndexTables);
-
-		// All the old MV tables should be renamed 
-		Set<String> expectedMultiValueTables = schemaOne.stream().filter(c -> ColumnTypeListMappings.isList(c.getColumnType()))
-			.map(c->randomPrefix + "0" + SQLUtils.getTableNameForMultiValueColumnIndex(indexDescription.getIdAndVersion(), c.getId()))
-			.collect(Collectors.toSet());
-		
-		Set<String> renamedMultiValueTables = Set.copyOf(jdbcTemplate.queryForList("SHOW TABLES LIKE '" 
-			+ randomPrefix + "0" + SQLUtils.getTableNamePrefixForMultiValueColumns(indexDescription.getIdAndVersion(), false) +"%'", String.class)
-		);
-		
-		assertEquals(expectedMultiValueTables, renamedMultiValueTables);
-
+		Set<String> renamedMultiValueTables = Set.of("2", "3").stream()
+			.map(id -> SQLUtils.getTableNameForMultiValueColumnIndex(sourceIndexDescription.getIdAndVersion(), id)).collect(Collectors.toSet());
+				
 		// Makes sure the FK constraints were renamed as well, each renamed table will have one renamed FK
-		Set<String> expectedForeignKeys = expectedMultiValueTables.stream()
+		Set<String> expectedForeignKeys = renamedMultiValueTables.stream()
 			.map(t ->SQLUtils.getMultiValueIndexTableForeignKeyConstraintName(t))
 			.collect(Collectors.toSet());
 		
@@ -5301,44 +5329,9 @@ public class TableIndexDAOImplTest {
 		);
 		
 		assertEquals(expectedForeignKeys, renamedForeignKeys);
+		
+		tableIndexDAO.deleteTable(sourceIndexDescription.getIdAndVersion());
 	}
-
-	@Test
-	public void testDropStaleTableIndices() {
-		List<ColumnModel> schemaOne = List.of(
-			TableModelTestUtils.createColumn(1L, "foo", ColumnType.DOUBLE),
-			TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING_LIST),
-			TableModelTestUtils.createColumn(3L, "barList", ColumnType.INTEGER_LIST)
-		);
-		
-		createOrUpdateTable(schemaOne, indexDescription);
-		tableIndexDAO.createSecondaryTables(indexDescription.getIdAndVersion());
-		
-		// Create another table
-		IndexDescription sourceIndexDescription = new TableIndexDescription(IdAndVersion.parse("456"));
-		
-		List<ColumnModel> schemaTwo = List.of(
-			TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER),
-			TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING),
-			TableModelTestUtils.createColumn(3L, "fooList", ColumnType.INTEGER_LIST),
-			TableModelTestUtils.createColumn(4L, "barList", ColumnType.STRING_LIST)
-		);
-				
-		createOrUpdateTable(schemaTwo, sourceIndexDescription);
-		tableIndexDAO.createSecondaryTables(sourceIndexDescription.getIdAndVersion());
-		
-		tableIndexDAO.moveTableIndex(sourceIndexDescription.getIdAndVersion(), tableId);
-		
-		// Call under test (3 index tables, plus 2 for the multi value columns)
-		assertEquals(5, tableIndexDAO.dropStaleTableIndices());
-	}
-	
-	@Test
-	public void testDropStaleTableIndicesWithNoStaleTable() {
-		// Call under test
-		assertEquals(0, tableIndexDAO.dropStaleTableIndices());
-	}
-
 	
 	/**
 	 * Helper to create a schema provider for the given schema.

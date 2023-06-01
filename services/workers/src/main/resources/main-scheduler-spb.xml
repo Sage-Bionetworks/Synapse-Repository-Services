@@ -144,7 +144,6 @@
 		<ref bean="accessRequirementToProjectWorkerTrigger"/>
 		<ref bean="missingTableStatusWorkerTrigger"/>
 		<ref bean="tableSnapshotWorkerTrigger"/>
-		<ref bean="staleTablesCleanupWorkerTrigger"/>
 		
 	</util:list>
 

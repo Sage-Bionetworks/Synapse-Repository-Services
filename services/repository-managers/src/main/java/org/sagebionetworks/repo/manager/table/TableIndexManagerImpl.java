@@ -1232,13 +1232,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public void moveTableIndex(IndexDescription source, IndexDescription target) {
-		tableIndexDao.moveTableIndex(source.getIdAndVersion(), target.getIdAndVersion());
-	}
-	
-	@Override
-	public int deleteStaleTables() {
-		return tableIndexDao.dropStaleTableIndices();
+	public void swapTableIndex(IndexDescription source, IndexDescription target) {
+		tableIndexDao.swapTableIndex(source.getIdAndVersion(), target.getIdAndVersion());
 	}
 	
 }

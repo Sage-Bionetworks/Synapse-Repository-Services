@@ -276,7 +276,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 				
 				tableManagerSupport.tryRunWithTableExclusiveLock(callback, parentContext, idAndVersion, (innerCallback) -> {
 					TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
-					indexManager.moveTableIndex(temporaryIndex, currentIndex);
+					indexManager.swapTableIndex(temporaryIndex, currentIndex);
 					columModelManager.bindColumnsToVersionOfObject(schema.stream().map(ColumnModel::getId).collect(Collectors.toList()), idAndVersion);
 					tableManagerSupport.updateChangedOnIfAvailable(idAndVersion);
 					return null;

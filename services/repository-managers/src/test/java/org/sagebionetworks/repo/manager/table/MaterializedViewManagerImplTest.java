@@ -912,7 +912,7 @@ public class MaterializedViewManagerImplTest {
 		doNothing().when(managerSpy).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(any(), any(), anyBoolean());
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
-		doNothing().when(mockTableIndexManager).moveTableIndex(any(), any());
+		doNothing().when(mockTableIndexManager).swapTableIndex(any(), any());
 		when(mockColumnModelManager.bindColumnsToVersionOfObject(any(), any())).thenReturn(syn123Schema);
 		
 		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456") };
@@ -937,7 +937,7 @@ public class MaterializedViewManagerImplTest {
 		assertEquals(temporaryIndex, query.getIndexDescription());
 		
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), eq(idAndVersion), any());
-		verify(mockTableIndexManager).moveTableIndex(temporaryIndex, indexDescription);
+		verify(mockTableIndexManager).swapTableIndex(temporaryIndex, indexDescription);
 		verify(mockColumnModelManager).bindColumnsToVersionOfObject(viewSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()), idAndVersion);
 		verify(mockTableManagerSupport).updateChangedOnIfAvailable(idAndVersion);
 		

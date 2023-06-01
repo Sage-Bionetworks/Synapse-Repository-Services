@@ -3325,29 +3325,16 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testMoveTableIndex() {
+	public void testSwapTableIndex() {
 		TableIndexDescription source = new TableIndexDescription(IdAndVersion.parse("123"));
 		TableIndexDescription target = new TableIndexDescription(IdAndVersion.parse("456"));
 		
 		// Call under test
-		manager.moveTableIndex(source, target);
+		manager.swapTableIndex(source, target);
 		
-		verify(mockIndexDao).moveTableIndex(source.getIdAndVersion(), target.getIdAndVersion());
+		verify(mockIndexDao).swapTableIndex(source.getIdAndVersion(), target.getIdAndVersion());
 	}
-	
-	@Test
-	public void testDeleteStaleTables() {
-		
-		when(mockIndexDao.dropStaleTableIndices()).thenReturn(1000);
-		
-		// Call under test
-		int result = manager.deleteStaleTables();
-		
-		assertEquals(1000, result);
-		
-		verify(mockIndexDao).dropStaleTableIndices();
-	}
-		
+			
 	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {
 		// When a write transaction callback is used, we need to call the callback.

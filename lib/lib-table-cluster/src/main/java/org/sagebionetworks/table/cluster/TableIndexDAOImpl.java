@@ -228,8 +228,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
 	private static final String STALE_TABLE_PREFIX = "STALE_";
-	private static final String STALE_TABLE_ORDER_KEY = "1";
-	private static final String STALE_TABLE_MV_ORDER_KEY = "0";
 
 	private static final RowMapper<DatabaseColumnInfo> DB_COL_INFO_MAPPER = (rs, rowNum) -> {
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
@@ -1620,7 +1618,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public String moveTableIndex(IdAndVersion sourceIndexId, IdAndVersion targetIndexId) {
+	public void swapTableIndex(IdAndVersion sourceIndexId, IdAndVersion targetIndexId) {
 		ValidateArgument.required(sourceIndexId, "sourceIndexId");
 		ValidateArgument.required(targetIndexId, "targetIndexId");
 		ValidateArgument.requirement(!sourceIndexId.equals(targetIndexId), "The source index id and the target index id cannot be the same");
@@ -1630,51 +1628,51 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 		// First rename the main index tables
 		Arrays.stream(TableIndexType.values()).forEach( indexType -> {
-			String oldTableName = SQLUtils.getTableNameForId(targetIndexId, indexType);
-			String newTableName = SQLUtils.getTableNameForId(sourceIndexId, indexType);
+			String targetTableName = SQLUtils.getTableNameForId(targetIndexId, indexType);
+			String sourceTableName = SQLUtils.getTableNameForId(sourceIndexId, indexType);
+			String tmpTableName = randomPrefix + targetTableName;
 			
-			sqlBuilder.append(oldTableName).append(" TO ").append(randomPrefix).append(STALE_TABLE_ORDER_KEY).append(oldTableName).append(",");
-			sqlBuilder.append(newTableName).append(" TO ").append(oldTableName).append(",");
+			// First rename the target index to a random name
+			sqlBuilder.append(targetTableName).append(" TO ").append(tmpTableName).append(",");
+			// Now rename the source index to the target index
+			sqlBuilder.append(sourceTableName).append(" TO ").append(targetTableName).append(",");
+			// Now rename the random name to the source index
+			sqlBuilder.append(tmpTableName).append(" TO ").append(sourceTableName).append(",");
 		});
 			
-		List<String> oldMultiValueTableNames = getMultivalueColumnIndexTableNames(targetIndexId, false);
-
-		// Now we also rename the old multi value tables into a discarded index
-		if (!oldMultiValueTableNames.isEmpty()) {
-			oldMultiValueTableNames.forEach( oldTableName -> {
-				sqlBuilder.append(oldTableName).append(" TO ").append(randomPrefix).append(STALE_TABLE_MV_ORDER_KEY).append(oldTableName).append(",");
-			});
-		}
+		// Now we also swap the multi value tables
 		
-		List<String> newMultiValueTableNames = getMultivalueColumnIndexTableNames(sourceIndexId, false);
+		List<String> targetMultiValueTableNames = getMultivalueColumnIndexTableNames(targetIndexId, false);
+		List<String> tmpMultiValueTableNames = new ArrayList<>(targetMultiValueTableNames.size());
 		
-		// Now we also rename the new multi value tables into the old index
-		if (!newMultiValueTableNames.isEmpty()) {
-			String newTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(sourceIndexId, false);
-			String oldTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(targetIndexId, false);
-			// Now we need to rename the new multi value tables to the old index name
-			newMultiValueTableNames.forEach( newTableName -> {
-				String oldTableName = newTableName.replace(newTableNamePrefix, oldTableNamePrefix);
-				sqlBuilder.append(newTableName).append(" TO ").append(oldTableName).append(",");
-			});
-		}
+		// First rename the target MV tables to random table names
+		targetMultiValueTableNames.forEach( targetTableName -> {
+			String tmpTableName = randomPrefix + targetTableName;
+			sqlBuilder.append(targetTableName).append(" TO ").append(tmpTableName).append(",");
+			tmpMultiValueTableNames.add(tmpTableName);
+		});
+		
+		// We can now rename the source tables into the target
+		List<String> sourceMultiValueTableNames = getMultivalueColumnIndexTableNames(sourceIndexId, false);
+		
+		String sourceMultiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(sourceIndexId, false);
+		String targetMultiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(targetIndexId, false);
+		
+		// Now we also rename the source MV tables into the target index
+		sourceMultiValueTableNames.forEach( sourceTableName -> {
+			String targetTableName = sourceTableName.replace(sourceMultiValueTableNamePrefix, targetMultiValueTableNamePrefix);
+			sqlBuilder.append(sourceTableName).append(" TO ").append(targetTableName).append(",");
+		});
+		
+		// We can now rename all the tmp tables to the source index prefix
+		tmpMultiValueTableNames.forEach( tmpTableName -> {
+			String sourceTableName = tmpTableName.replace(randomPrefix, "").replace(targetMultiValueTableNamePrefix, sourceMultiValueTableNamePrefix);
+			sqlBuilder.append(tmpTableName).append(" TO ").append(sourceTableName).append(",");
+		});
 		
 		sqlBuilder.deleteCharAt(sqlBuilder.length() - 1);
 	
 		template.update(sqlBuilder.toString());
-		
-		return randomPrefix;
-	}
-	
-	public int dropStaleTableIndices() {
-		// Note: the multivalue tables will be ordered before the index tables, this way we can delete them before their respective index tables
-		List<String> unusedTables = template.queryForList("SHOW TABLES LIKE '" + STALE_TABLE_PREFIX + "%'", String.class);
-		
-		unusedTables.forEach(tableName -> {
-			template.update("DROP TABLE IF EXISTS " + tableName);
-		});
-		
-		return unusedTables.size();
 	}
 	
 }
