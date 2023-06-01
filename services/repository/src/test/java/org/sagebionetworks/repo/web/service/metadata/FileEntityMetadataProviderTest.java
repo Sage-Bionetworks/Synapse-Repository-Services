@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.file.FileRecord;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 
@@ -134,14 +135,14 @@ public class FileEntityMetadataProviderTest {
 	public void testEntityCreated() {
 		fileEntity.setDataFileHandleId("1");
 		provider.entityCreated(userInfo, fileEntity);
-		verify(messenger, times(1)).publishMessageAfterCommit(any(FileRecord.class));
+		verify(messenger, times(1)).publishMessageAfterCommit(any(FileEvent.class));
 	}
 
 	@Test
 	public void testEntityUpdatedWithNewVersion() {
 		fileEntity.setDataFileHandleId("1");
 		provider.entityUpdated(userInfo, fileEntity, true);
-		verify(messenger, times(1)).publishMessageAfterCommit(any(FileRecord.class));
+		verify(messenger, times(1)).publishMessageAfterCommit(any(FileEvent.class));
 	}
 
 	@Test
