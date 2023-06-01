@@ -11,26 +11,22 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
-import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
 import org.sagebionetworks.repo.manager.audit.KinesisJsonEntityRecord;
 import org.sagebionetworks.repo.manager.file.FileEventUtils;
-import org.sagebionetworks.repo.manager.file.FileRecordUtils;
 import org.sagebionetworks.repo.manager.statistics.ProjectResolver;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.FileEvent;
+import org.sagebionetworks.repo.model.file.FileEventRecord;
 import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileRecord;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -60,11 +56,11 @@ public class FileEventRecordWorkerTest {
 
     @Test
     public void testRunForUpload() throws RecoverableMessageException, Exception {
-        FileEvent event = new FileEvent().setObjectType(ObjectType.FILE_EVENT)
-                .setObjectId("123").setTimestamp(Date.from(Instant.now()))
-                .setUserId(1L).setFileEventType(FileEventType.FILE_UPLOAD)
-                .setFileHandleId("123").setAssociateId("1")
-                .setAssociateType(FileHandleAssociateType.FileEntity);
+        FileEventRecord record = new FileEventRecord().setUserId(1L).setAssociateId("1").setFileHandleId("123").setProjectId(23L)
+                .setAssociateType(FileHandleAssociateType.FileEntity).setStack("test").setInstance("test");
+
+        FileEvent event = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, 1L, "123",
+                "1", FileHandleAssociateType.FileEntity);
 
         when(projectResolver.resolveProject(any(), any())).thenReturn(23L);
         when(configuration.getStack()).thenReturn("test");
@@ -75,29 +71,32 @@ public class FileEventRecordWorkerTest {
 
         verify(firehoseLogger, times(2)).logBatch(streamNameCaptor.capture(), fileRecordCaptor.capture());
         assertEquals(streamNameCaptor.getAllValues().get(0), "fileUploadRecords");
-        assertTrue(fileRecordCaptor.getValue().get(0).getPayload().toString().contains("fileHandleId=" + event.getFileHandleId()));
+        record.setTimestamp(fileRecordCaptor.getValue().get(0).getTimestamp());
+        assertEquals(fileRecordCaptor.getValue().get(0).getPayload(), record);
         assertEquals(streamNameCaptor.getAllValues().get(1), "fileUploads");
-        assertTrue(fileRecordCaptor.getValue().get(0).getPayload().toString().contains("fileHandleId=" + event.getFileHandleId()));
+        assertEquals(fileRecordCaptor.getValue().get(0).getPayload(), record);
     }
 
     @Test
     public void testRunForDownload() throws RecoverableMessageException, Exception {
-        FileEvent event = new FileEvent().setObjectType(ObjectType.FILE_EVENT)
-                .setObjectId("123").setTimestamp(Date.from(Instant.now()))
-                .setUserId(1L).setFileEventType(FileEventType.FILE_DOWNLOAD)
-                .setFileHandleId("123").setAssociateId("1")
-                .setAssociateType(FileHandleAssociateType.FileEntity);
+        FileEventRecord record = new FileEventRecord().setUserId(1L).setAssociateId("1").setFileHandleId("123").setProjectId(23L)
+                .setAssociateType(FileHandleAssociateType.FileEntity).setStack("test").setInstance("test");
+
+        FileEvent event = FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, 1L, "123",
+                "1", FileHandleAssociateType.FileEntity);
 
         when(projectResolver.resolveProject(any(), any())).thenReturn(23L);
-
+        when(configuration.getStack()).thenReturn("test");
+        when(configuration.getStackInstance()).thenReturn("test");
         // Call under test
         worker.run(progressCallback, message, event);
 
         verify(firehoseLogger, times(2)).logBatch(streamNameCaptor.capture(), fileRecordCaptor.capture());
         assertEquals(streamNameCaptor.getAllValues().get(0), "fileDownloadRecords");
-        assertTrue(fileRecordCaptor.getValue().get(0).getPayload().toString().contains("fileHandleId=" + event.getFileHandleId()));
+        record.setTimestamp(fileRecordCaptor.getValue().get(0).getTimestamp());
+        assertEquals(fileRecordCaptor.getValue().get(0).getPayload(), record);
         assertEquals(streamNameCaptor.getAllValues().get(1), "fileDownloads");
-        assertTrue(fileRecordCaptor.getValue().get(0).getPayload().toString().contains("fileHandleId=" + event.getFileHandleId()));
+        assertEquals(fileRecordCaptor.getValue().get(0).getPayload(), record);
     }
 
     @Test

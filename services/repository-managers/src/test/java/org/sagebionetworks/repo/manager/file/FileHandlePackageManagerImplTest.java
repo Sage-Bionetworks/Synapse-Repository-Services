@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.file.FileDownloadSummary;
 import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.file.FileRecord;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.NameValidation;

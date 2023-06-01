@@ -5,18 +5,19 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.audit.KinesisJsonEntityRecord;
-import org.sagebionetworks.repo.manager.file.FileRecordUtils;
 import org.sagebionetworks.repo.manager.statistics.ProjectResolver;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.FileEvent;
-import org.sagebionetworks.repo.model.file.FileRecord;
+import org.sagebionetworks.repo.model.file.FileEventRecord;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.Collections;
+import java.util.Date;
 
 
 @Service
@@ -50,11 +51,12 @@ public class FileEventRecordWorker implements TypedMessageDrivenRunner<FileEvent
             return;
         }
 
-        FileRecord record = FileRecordUtils.buildFileRecord(event.getUserId(), event.getFileHandleId(),
-                event.getAssociateId(), event.getAssociateType(), projectId);
+        FileEventRecord record = new FileEventRecord().setUserId(event.getUserId()).setFileHandleId(event.getFileHandleId()).
+                setAssociateId(event.getAssociateId()).setAssociateType(event.getAssociateType()).setProjectId(projectId)
+                .setTimestamp(Date.from(Instant.now()).getTime()).setStack(configuration.getStack()).setInstance(configuration.getStackInstance());
 
         KinesisJsonEntityRecord kinesisJsonEntityRecord = new KinesisJsonEntityRecord(record.getTimestamp(),
-                record, configuration.getStack(), configuration.getStackInstance());
+                record, record.getStack(), record.getInstance());
 
         switch (event.getFileEventType()) {
             case FILE_DOWNLOAD:

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
 import org.sagebionetworks.repo.manager.file.FileEventUtils;
-import org.sagebionetworks.repo.manager.file.FileRecordUtils;
 import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -11,7 +10,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileRecord;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
 import org.sagebionetworks.repo.model.file.FileEvent;
+import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -812,11 +813,9 @@ public class FileHandleManagerImplTest {
 		verify(mockAuthorizationManager, times(1)).canDownLoadFile(mockUser, associations);
 		// Verifies that download stats are sent
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
-		FileEvent fileEvent = fileEventCaptor.getValue();
-		assertNotNull(fileEvent);
-		assertEquals(association.getAssociateObjectId(), fileEvent.getAssociateId());
-		assertEquals(association.getAssociateObjectType(), fileEvent.getAssociateType());
-		assertEquals(association.getFileHandleId(), fileEvent.getFileHandleId());
+		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, association);
+		assertEquals(expectedFileEvent, actualFileEvent);
 		assertEquals(expectedURL, redirectURL);
 	}
 	
@@ -1696,12 +1695,9 @@ public class FileHandleManagerImplTest {
 		
 		// Verifies that download stats are sent
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
-		FileEvent fileEvent = fileEventCaptor.getValue();
-		assertNotNull(fileEvent);
-		assertEquals(fha2.getAssociateObjectId(), fileEvent.getAssociateId());
-		assertEquals(fha2.getAssociateObjectType(), fileEvent.getAssociateType());
-		assertEquals(fha2.getFileHandleId(), fileEvent.getFileHandleId());
-		
+		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		assertEquals(expectedFileEvent, actualFileEvent);
 		// Verify a download record is created for the success case.
 		ArgumentCaptor<ObjectRecordBatch> batchCapture = ArgumentCaptor.forClass(ObjectRecordBatch.class);
 		verify(mockObjectRecordQueue).pushObjectRecordBatch(batchCapture.capture());
@@ -1753,11 +1749,9 @@ public class FileHandleManagerImplTest {
 		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are sent
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
-		FileEvent fileEvent = fileEventCaptor.getValue();
-		assertNotNull(fileEvent);
-		assertEquals(fha2.getAssociateObjectId(), fileEvent.getAssociateId());
-		assertEquals(fha2.getAssociateObjectType(), fileEvent.getAssociateType());
-		assertEquals(fha2.getFileHandleId(), fileEvent.getFileHandleId());
+		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		assertEquals(expectedFileEvent, actualFileEvent);
 	}
 
 	@Test
@@ -1799,11 +1793,9 @@ public class FileHandleManagerImplTest {
 		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are sent
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
-		FileEvent fileEvent = fileEventCaptor.getValue();
-		assertNotNull(fileEvent);
-		assertEquals(fha2.getAssociateObjectId(), fileEvent.getAssociateId());
-		assertEquals(fha2.getAssociateObjectType(), fileEvent.getAssociateType());
-		assertEquals(fha2.getFileHandleId(), fileEvent.getFileHandleId());
+		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		assertEquals(expectedFileEvent, actualFileEvent);
 	}
 
 	@Test
@@ -2079,11 +2071,9 @@ public class FileHandleManagerImplTest {
 		verify(mockObjectRecordQueue, times(1)).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
-		FileEvent fileEvent = fileEventCaptor.getValue();
-		assertNotNull(fileEvent);
-		assertEquals(fha2.getAssociateObjectId(), fileEvent.getAssociateId());
-		assertEquals(fha2.getAssociateObjectType(), fileEvent.getAssociateType());
-		assertEquals(fha2.getFileHandleId(), fileEvent.getFileHandleId());
+		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		assertEquals(expectedFileEvent, actualFileEvent);
 	}
 
 	@Test
@@ -2127,14 +2117,13 @@ public class FileHandleManagerImplTest {
 		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));
 		verify(messenger, times(2)).publishMessageAfterCommit(fileEventCaptor.capture());
 		List<FileEvent> fileEvents = fileEventCaptor.getAllValues();
-		assertNotNull(fileEvents);
-		assertEquals(fileEvents.size(), 2);
-		assertEquals(fha1.getAssociateObjectId(), fileEvents.get(0).getAssociateId());
-		assertEquals(fha1.getAssociateObjectType(), fileEvents.get(0).getAssociateType());
-		assertEquals(fha1.getFileHandleId(), fileEvents.get(0).getFileHandleId());
-		assertEquals(fha2.getAssociateObjectId(), fileEvents.get(1).getAssociateId());
-		assertEquals(fha2.getAssociateObjectType(), fileEvents.get(1).getAssociateType());
-		assertEquals(fha2.getFileHandleId(), fileEvents.get(1).getFileHandleId());
+		FileEvent actualFileEventOne = fileEvents.get(0);
+		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEventOne.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha1);
+		assertEquals(expectedFileEvent, actualFileEventOne);
+		FileEvent actualFileEventTwo = fileEvents.get(1);
+		FileEvent expectedFileEventTwo = getFileEvent(mockUser.getId(), actualFileEventOne.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		assertEquals(expectedFileEventTwo, actualFileEventTwo);
+
 
 	}
 
@@ -2695,5 +2684,11 @@ public class FileHandleManagerImplTest {
 			temp.delete();
 		}
 		
+	}
+
+	private FileEvent getFileEvent(long userId, Date timestamp, FileEventType fileHandleType, FileHandleAssociation fileHandleAssociation) {
+		FileEvent expectedFileEvent = FileEventUtils.buildFileEvent(fileHandleType, userId, fileHandleAssociation);
+		expectedFileEvent.setTimestamp(timestamp);
+		return expectedFileEvent;
 	}
 }

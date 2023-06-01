@@ -22,6 +22,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.file.FileEventUtils;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -43,6 +44,8 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.file.FileEvent;
+import org.sagebionetworks.repo.model.file.FileEventType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
@@ -108,6 +111,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -437,8 +441,13 @@ public class TableEntityManagerTest {
 		verify(messenger, times(rowCount)).publishMessageAfterCommit(fileEventCaptor.capture());
 		List<FileEvent> fileEvents = fileEventCaptor.getAllValues();
 		assertEquals(fileEvents.size(), rowCount);
-		assertEquals(sparseChangeSet.getTableId(), fileEvents.get(0).getAssociateId());
-
+		List<Long> fileHandles = new ArrayList<>(sparseChangeSet.getFileHandleIdsInSparseChangeSet());
+		for (int i = 0; i < rowCount; i++) {
+			FileEvent expected = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, user.getId(),
+							String.valueOf(fileHandles.get(i)), sparseChangeSet.getTableId(), FileHandleAssociateType.TableEntity)
+					.setTimestamp(fileEvents.get(i).getTimestamp());
+			assertEquals(expected, fileEvents.get(i));
+		}
 	}
 	
 	@Test
@@ -772,7 +781,7 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
 		replace.setHeaders(TableModelUtils.getSelectColumns(models));
@@ -789,7 +798,7 @@ public class TableEntityManagerTest {
 		replaceRows.get(1).getValues().set(ColumnType.FILEHANDLEID.ordinal(), null);
 		// unowned, but unchanged replaceRows[2]
 		replace.setRows(replaceRows);
-		
+
 		// call under test
 		manager.appendRows(user, tableId, replace, mockTransactionContext);
 
@@ -799,9 +808,20 @@ public class TableEntityManagerTest {
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 		verify(messenger, times(2)).publishMessageAfterCommit(fileEventCaptor.capture());
 		List<FileEvent> fileEvents = fileEventCaptor.getAllValues();
+		List<String> fileHandlesList = new ArrayList<>();
+		replaceRows.forEach(row -> {
+			String fileHandleId = row.getValues().get(ColumnType.FILEHANDLEID.ordinal());
+			if (fileHandleId != null) {
+				fileHandlesList.add(fileHandleId);
+			}
+		});
 		assertEquals(fileEvents.size(), 2);
-		assertEquals(sparseChangeSet.getTableId(), fileEvents.get(0).getAssociateId());
-		assertEquals("3333", fileEvents.get(0).getFileHandleId());
+		for (int i = 0; i < 2; i++) {
+			FileEvent expected = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, user.getId(),
+							String.valueOf(fileHandlesList.get(i)), tableId, FileHandleAssociateType.TableEntity)
+					.setTimestamp(fileEvents.get(i).getTimestamp());
+			assertEquals(expected, fileEvents.get(i));
+		}
 	}
 	
 	@Test

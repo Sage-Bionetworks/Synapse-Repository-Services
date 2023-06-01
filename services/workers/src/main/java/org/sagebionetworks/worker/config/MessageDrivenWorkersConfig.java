@@ -171,7 +171,7 @@ public class MessageDrivenWorkersConfig {
 
 		return new WorkerTriggerBuilder()
 				.withStack(ConcurrentWorkerStack.builder()
-						.withSemaphoreLockKey("fileRecordWorker")
+						.withSemaphoreLockKey("fileEventRecordWorker")
 						.withSemaphoreMaxLockCount(5)
 						.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
 						.withMaxThreadsPerMachine(1)
