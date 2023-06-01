@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -9,6 +10,7 @@ import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createRe
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -1014,6 +1016,8 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertEquals(initialRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 		
+		Date initialChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);
+		
 		// Now trigger an update of the dependent table changing its schema
 		List<ColumnModel> schema = List.of(
 			columnModelManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING).setName("aString"))
@@ -1021,7 +1025,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 
 		tableManager.tableUpdated(adminUserInfo, TableModelUtils.getIds(schema), tableId.toString(), false);
 		
-		List<Row> updatedRows = Arrays.asList(
+		List<Row> expectedRows = Arrays.asList(
 			new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList("string0")),
 			new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList("string1"))
 		);
@@ -1030,9 +1034,24 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			// While querying the materialized view, the status should always be available
 			assertEquals(TableState.AVAILABLE, tableManagerSupport.getTableStatusState(materializedViewId).orElse(null));
 			// Eventually the materialized view will be updated
-			assertEquals(updatedRows, results.getQueryResult().getQueryResults().getRows());
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+			// The last changedOn should be updated
+			assertNotEquals(initialChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
 		}, MAX_WAIT_MS);
 		
+		Date lastChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);
+		 
+		// We emulate another update, the index should be eventually replaced again 
+		tableManagerSupport.triggerIndexUpdate(materializedViewId);
+		
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + materializedViewId.toString() + " order by ROW_ID asc", (results) -> {
+			// While querying the materialized view, the status should always be available
+			assertEquals(TableState.AVAILABLE, tableManagerSupport.getTableStatusState(materializedViewId).orElse(null));
+			// Eventually the materialized view will be updated
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+			// The last changedOn should be updated
+			assertNotEquals(lastChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
+		}, MAX_WAIT_MS);
 	}
 
 	/**

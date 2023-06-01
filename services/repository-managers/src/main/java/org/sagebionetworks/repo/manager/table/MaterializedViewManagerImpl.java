@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -168,29 +169,39 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			throw new IllegalArgumentException("MaterializedView snapshots not currently supported");
 		}
 		
+		// We use a negative id as the temporary id of the view
+		IdAndVersion temporaryId = IdAndVersion.newBuilder()
+			.setId(-idAndVersion.getId())
+			.setVersion(idAndVersion.getVersion().orElse(null)).build();
+		
+		LockContext lockContext;
+		ProgressingCallable<Void> callable;
+		
 		if (TableState.AVAILABLE == tableManagerSupport.getTableStatusState(idAndVersion).orElse(null)) {
-			// We use a negative id as the temporary id of the view
-			IdAndVersion temporaryId = IdAndVersion.newBuilder()
-				.setId(-idAndVersion.getId())
-				.setVersion(idAndVersion.getVersion().orElse(null)).build();
 			
-			LockContext parentContext = new LockContext(ContextType.UpdatingMaterializedView, temporaryId);
+			lockContext = new LockContext(ContextType.UpdatingMaterializedView, idAndVersion);
 			
-			// We get an exclusive lock on the temporary id so that only one at the time can be built
-			tableManagerSupport.tryRunWithTableExclusiveLock(callback, parentContext, temporaryId, (innerCallback) -> {
-				rebuildAvailableViewHoldingTemporaryExclusiveLock(innerCallback, parentContext, idAndVersion, temporaryId);
-				return null;
-			});
+			callable = (innerCallback) -> {
+				rebuildAvailableViewHoldingTemporaryExclusiveLock(innerCallback, lockContext, idAndVersion, temporaryId);
+				return null;	
+			};
 			
 		} else {
 			
-			LockContext parentContext = new LockContext(ContextType.BuildMaterializedView, idAndVersion);
+			lockContext = new LockContext(ContextType.BuildMaterializedView, idAndVersion);
 			
-			tableManagerSupport.tryRunWithTableExclusiveLock(callback, parentContext , idAndVersion, (innerCallback) -> {
-				createOrRebuildViewHoldingExclusiveLock(innerCallback, parentContext, idAndVersion);
-				return null;
-			});
+			callable = (innerCallback) -> {
+				return tableManagerSupport.tryRunWithTableExclusiveLock(innerCallback, lockContext , idAndVersion, (innerInnerCallback) -> {
+					createOrRebuildViewHoldingExclusiveLock(innerInnerCallback, lockContext, idAndVersion);
+					return null;
+				});
+			};
+			
 		}
+		
+		// We acquire an exclusive lock on the temporary index id, so that we force the serialization of the rebuild/update operations
+		// avoiding potential race conditions
+		tableManagerSupport.tryRunWithTableExclusiveLock(callback, lockContext, temporaryId, callable);
 	}
 		
 	void createOrRebuildViewHoldingExclusiveLock(ProgressCallback callback, LockContext parentContext, IdAndVersion idAndVersion)
@@ -234,11 +245,9 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	}
 
 	void rebuildAvailableViewHoldingTemporaryExclusiveLock(ProgressCallback callback, LockContext parentContext, IdAndVersion idAndVersion, IdAndVersion temporaryId) throws Exception {
-		
-		boolean recoverOnLockUnavailable = true;
-		
 		try {
 			IndexDescription currentIndex = tableManagerSupport.getIndexDescription(idAndVersion);
+			// Note: The dependencies must match the current index dependencies, if that was not true then the view would be rebuilt from scratch
 			IndexDescription temporaryIndex = new MaterializedViewIndexDescription(temporaryId, currentIndex.getDependencies());
 			
 			String definingSql = materializedViewDao.getMaterializedViewDefiningSql(idAndVersion)
@@ -267,10 +276,8 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			
 			
 			// Now we switch the temporary index to the real index, we try to acquire an exclusive lock so that readers are temporarily blocked during this operation
-			// Note that if we fail to obtain an exclusive lock someone else is building the table so there is nothing to do at this point
-			recoverOnLockUnavailable = false;
 			
-			// If the table is not available anymore there is no need to switch
+			// If the table is not available anymore there is no need to switch since another process triggered a processing of the table
 			if (TableState.AVAILABLE == tableManagerSupport.getTableStatusState(idAndVersion).orElse(null)) {
 				LOG.info("Updating materialized view index " + idAndVersion + " from temporary index " + temporaryId);
 				
@@ -286,10 +293,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		} catch (RecoverableMessageException e) {
 			throw e;
 		}  catch (LockUnavilableException e) {
-			if (recoverOnLockUnavailable) {
-				throw new RecoverableMessageException(e);
-			}
-			LOG.warn("Failed to obtain an exclusive lock to switch materialized temporary index " + temporaryId + " to index " + idAndVersion, e);
+			throw new RecoverableMessageException(e);
 		} catch (InvalidStatusTokenException | TableIndexConnectionUnavailableException | TableUnavailableException e) {
 			throw e;
 		} catch (Exception e) {
