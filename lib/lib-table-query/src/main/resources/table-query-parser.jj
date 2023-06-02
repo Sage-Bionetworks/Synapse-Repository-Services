@@ -13,6 +13,7 @@ package org.sagebionetworks.table.query;
 import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ArrayList;
 
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.query.model.*;
@@ -208,6 +209,7 @@ TOKEN [IGNORE_CASE]: {
 | < then: "THEN">
 | < _else: "ELSE">
 | < cast: "CAST">
+| < with: "WITH">
 }
 
 /* Aggregate functions */
@@ -363,10 +365,17 @@ TOKEN: {
 }
 QueryExpression queryExpression():
 {
+	WithListElement withListElement = null;
+	List<WithListElement> withListElements = new ArrayList();
 	NonJoinQueryExpression nonJoinQueryExpression = null;
 }
 {
-  nonJoinQueryExpression = nonJoinQueryExpression() <EOF> { return new QueryExpression(nonJoinQueryExpression); }
+	[ 
+		<with> withListElement = withListElement() { withListElements.add(withListElement); }
+		( <comma> withListElement = withListElement() { withListElements.add(withListElement); } )* 
+	]
+ 	nonJoinQueryExpression = nonJoinQueryExpression() <EOF>
+   { return new QueryExpression(withListElements, nonJoinQueryExpression); }
 }
 NonJoinQueryExpression nonJoinQueryExpression():
 {
@@ -1502,4 +1511,29 @@ CastTarget castTarget():
 {
 	columnType = columnType() { return new CastTarget(columnType); }
 	| unsignedInteger = unsignedInteger() { return new CastTarget(unsignedInteger); }
+}
+ColumnList columnList():
+{
+	Identifier identifier = null;
+	ColumnList columnList = new ColumnList();
+}
+{
+	<left_paren> 
+		identifier = identifier() { columnList.addIdentifier(identifier);	}
+		( <comma> identifier = identifier() { columnList.addIdentifier(identifier);	} )*
+	<right_paren>
+	{ return columnList; }
+}
+WithListElement withListElement():
+{
+	Identifier identifier = null;
+	ColumnList columnList = null;
+	NonJoinQueryExpression nonJoinQueryExpression = null;
+}
+{
+	identifier = identifier() [ columnList = columnList() ] <as> 
+	<left_paren>
+		nonJoinQueryExpression = nonJoinQueryExpression()
+	<right_paren>
+	{ return new WithListElement(identifier, columnList, nonJoinQueryExpression); }
 }
