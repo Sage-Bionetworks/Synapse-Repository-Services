@@ -3012,7 +3012,7 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testResetTableIndexInternal() {
+	public void testResetTableIndexWithSchema() {
 		
 		TableIndexDescription index = new TableIndexDescription(tableId);
 		
@@ -3029,7 +3029,7 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testResetTableIndexInternalWithSearchDisabled() {
+	public void testResetTableIndexWithSchemaAndSearchDisabled() {
 		
 		TableIndexDescription index = new TableIndexDescription(tableId);
 		
@@ -3323,7 +3323,18 @@ public class TableIndexManagerImplTest {
 		
 		verifyZeroInteractions(mockIndexDao);
 	}
+	
+	@Test
+	public void testSwapTableIndex() {
+		TableIndexDescription source = new TableIndexDescription(IdAndVersion.parse("123"));
+		TableIndexDescription target = new TableIndexDescription(IdAndVersion.parse("456"));
 		
+		// Call under test
+		manager.swapTableIndex(source, target);
+		
+		verify(mockIndexDao).swapTableIndex(source.getIdAndVersion(), target.getIdAndVersion());
+	}
+			
 	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {
 		// When a write transaction callback is used, we need to call the callback.

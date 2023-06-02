@@ -185,14 +185,6 @@ public interface TableManagerSupport extends SchemaProvider {
 	ObjectType getTableObjectType(IdAndVersion tableId);
 
 	/**
-	 * Get the number currently associated with a view, for consistency checks.
-	 * 
-	 * @param table
-	 * @return
-	 */
-	Long getViewStateNumber(IdAndVersion table);
-
-	/**
 	 * <p>
 	 * Attempt to acquire an exclusive lock on a table. If the lock is acquired, the
 	 * passed Callable will be run while holding lock. The lock will automatically
@@ -451,6 +443,12 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @return The most recent snapshot that exists for the table with the given id and version. A previous snapshot might be returned.
 	 */
 	Optional<TableSnapshot> getMostRecentTableSnapshot(IdAndVersion idAndVersion);
-
+	
+	/**
+	 * Sends a message to trigger an update for the table with the given id, this will not modify the status of the table
+	 * 
+	 * @param idAndVersion
+	 */
+	void triggerIndexUpdate(IdAndVersion idAndVersion);
 
 }

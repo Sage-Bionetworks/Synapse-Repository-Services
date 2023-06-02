@@ -41,8 +41,11 @@ public class IdAndVersionParser {
 			consumeWhiteSpace();
 			// skip 'syn' if present.
 			consumeSyn();
+			// Check for the sign if present
+			boolean negative = consumeNegative();
 			// first long is the ID
-			builder.setId(consumeLong());
+			long id = consumeLong();
+			builder.setId(negative ? -id : id);
 			// version is optional so might be at the end.
 			if (!isEnd()) {
 				// Not at the end so the next char must be dot
@@ -95,6 +98,14 @@ public class IdAndVersionParser {
 		} else {
 			throw new ParseException(index);
 		}
+	}
+	
+	private boolean consumeNegative() throws ParseException {
+		if (currentChar == '-') {
+			consumeCharacter();
+			return true;
+		}
+		return false;
 	}
 
 	/**

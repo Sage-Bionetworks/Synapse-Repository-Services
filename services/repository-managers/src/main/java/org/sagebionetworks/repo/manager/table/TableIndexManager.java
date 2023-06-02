@@ -311,10 +311,26 @@ public interface TableIndexManager {
 	List<ColumnModel> resetTableIndex(IndexDescription index);
 	
 	/**
+	 * Reset the state of the table index described by the given {@link IndexDescription} using the given schema and search status
+	 * 
+	 * @param index
+	 * @return The schema of the table
+	 */
+	List<ColumnModel> resetTableIndex(IndexDescription index, List<ColumnModel> schema, boolean isSearchEnabled);
+	
+	/**
 	 * Build all the secondary table indices for the table
 	 * 
 	 * @param index
 	 */
 	void buildTableIndexIndices(IndexDescription index, List<ColumnModel> schema);
-
+	
+	/**
+	 * Moves the content of the source index into the target index.
+	 * 
+	 * @param target
+	 * @param replacement
+	 */
+	void swapTableIndex(IndexDescription source, IndexDescription target);
+	
 }

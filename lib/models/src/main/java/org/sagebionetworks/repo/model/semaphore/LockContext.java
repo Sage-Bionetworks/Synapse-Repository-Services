@@ -24,7 +24,8 @@ public class LockContext {
 		BuildViewIndex("Rebuilding view inxex: '%s' ..."),
 		UpdatingViewIndex("Updating view inxex: '%s' ..."),
 		Query("Querying table/view: '%s' ..."),
-		BuildMaterializedView("Rebuilding materialized view: '%s' ...");
+		BuildMaterializedView("Rebuilding materialized view: '%s' ..."),
+		UpdatingMaterializedView("Updating materialized view: '%s' ...");
 
 		String template;
 

@@ -673,4 +673,12 @@ public interface TableIndexDAO {
 	 */
 	void update(String string, Map<String, Object> parameters);
 
+	/**
+	 * Swap the two table indices
+	 * 
+	 * @param sourceIndexId
+	 * @param targetIndexId
+	 */
+	void swapTableIndex(IdAndVersion sourceIndexId, IdAndVersion targetIndexId);	
+	
 }

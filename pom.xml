@@ -348,6 +348,12 @@
 				<version>${junit.jupiter.version}</version>
 				<scope>test</scope>
 			</dependency>
+			<dependency>
+			    <groupId>org.junit.jupiter</groupId>
+			    <artifactId>junit-jupiter-params</artifactId>
+			    <version>${junit.jupiter.version}</version>
+			    <scope>test</scope>
+			</dependency>
 			<!--junit4 engine for backwards compatibility -->
 			<dependency>
 				<groupId>org.junit.vintage</groupId>

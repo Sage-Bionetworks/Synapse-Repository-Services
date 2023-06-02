@@ -604,24 +604,24 @@ public class TableManagerSupportTest {
 	
 	
 	@Test
-	public void testGetViewStateNumber() throws LimitExceededException{
+	public void testGetCurrentViewIndexStateNumber() throws LimitExceededException{
 		Long expectedNumber = 123L;
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(idAndVersion)).thenReturn(expectedNumber);
 		// call under test
-		Long viewNumer = manager.getViewStateNumber(idAndVersion);
+		Long viewNumer = manager.getCurrentViewIndexStateNumber(idAndVersion);
 		assertEquals(expectedNumber, viewNumer);
 		verify(mockTableIndexDAO).getMaxCurrentCompleteVersionForTable(idAndVersion);
 		verify(mockViewSnapshotDao, never()).getSnapshot(any(IdAndVersion.class));
 	}
 	
 	@Test
-	public void testGetViewStateNumber_WithVersion(){
+	public void testGetCurrentViewIndexStateNumberWithVersion(){
 		idAndVersion = IdAndVersion.parse("syn123.45");
 		Long snapshotId = 33L;
 		when(mockViewSnapshotDao.getSnapshotId(idAndVersion)).thenReturn(snapshotId);
 		// call under test
-		Long result = manager.getViewStateNumber(idAndVersion);
+		Long result = manager.getCurrentViewIndexStateNumber(idAndVersion);
 		assertEquals(snapshotId, result);
 		verify(mockTableIndexDAO, never()).getMaxCurrentCompleteVersionForTable(any(IdAndVersion.class));
 		verify(mockViewSnapshotDao).getSnapshotId(idAndVersion);
@@ -1678,6 +1678,25 @@ public class TableManagerSupportTest {
 		verify(mockLogger).info("Applying an update to table: 'syn456' ...");
 
 		verify(mockAsynchCallback).updateProgress("Applying an update to table: 'syn456' ...", 0L, 100L);
+	}
+	
+	@Test
+	public void testTriggerIndexUpdate() {
+		doReturn(ObjectType.ENTITY_VIEW).when(managerSpy).getTableObjectType(idAndVersion);
+
+		// Call under test
+		managerSpy.triggerIndexUpdate(idAndVersion);
+		
+		verify(managerSpy).getTableObjectType(idAndVersion);
+		
+		MessageToSend expected = new MessageToSend()
+			.withObjectId(idAndVersion.getId().toString())
+			.withObjectType(ObjectType.ENTITY_VIEW)
+			.withObjectVersion(null)
+			.withChangeType(ChangeType.UPDATE);
+		
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expected);
+		
 	}
 	
 }

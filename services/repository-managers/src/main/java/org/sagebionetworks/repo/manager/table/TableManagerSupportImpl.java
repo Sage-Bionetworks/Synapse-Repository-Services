@@ -181,17 +181,14 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		}
 	}
 
-	public void sendAsynchronousActivitySignal(IdAndVersion idAndVersion) {
+	void sendAsynchronousActivitySignal(IdAndVersion idAndVersion) {
 		// lookup the table type.
 		ObjectType tableType = getTableObjectType(idAndVersion);
 
 		// Currently we only signal views
 		if (ObjectType.ENTITY_VIEW.equals(tableType)) {
 			// notify all listeners.
-			transactionalMessenger
-					.sendMessageAfterCommit(new MessageToSend().withObjectId(idAndVersion.getId().toString())
-							.withObjectVersion(idAndVersion.getVersion().orElse(null)).withObjectType(tableType)
-							.withChangeType(ChangeType.UPDATE));
+			triggerIndexUpdate(tableType, idAndVersion);
 		}
 	}
 
@@ -212,11 +209,21 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// building of the index and report the table as unavailable
 		tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
 		// notify all listeners.
+		triggerIndexUpdate(tableType, idAndVersion);
+		// status should exist now
+		return tableStatusDAO.getTableStatus(idAndVersion);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void triggerIndexUpdate(IdAndVersion idAndVersion) {
+		triggerIndexUpdate(getTableObjectType(idAndVersion), idAndVersion);
+	}
+	
+	private void triggerIndexUpdate(ObjectType tableType, IdAndVersion idAndVersion) {
 		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObjectId(idAndVersion.getId().toString())
 				.withObjectVersion(idAndVersion.getVersion().orElse(null)).withObjectType(tableType)
 				.withChangeType(ChangeType.UPDATE));
-		// status should exist now
-		return tableStatusDAO.getTableStatus(idAndVersion);
 	}
 
 	@NewWriteTransaction
@@ -365,21 +372,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return getTableType(idAndVersion).getObjectType();
 	}
 
-	@Override
-	public Long getViewStateNumber(IdAndVersion idAndVersion) {
-		if (idAndVersion.getVersion().isPresent()) {
-			// The ID of the snapshot is used for this case.
-			return tableSnapshotDao.getSnapshotId(idAndVersion);
-		} else {
-			/*
-			 * By returning the version already associated with the view index, we ensure
-			 * this call will not trigger a view to be rebuilt.
-			 */
-			TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(idAndVersion);
-			return indexDao.getMaxCurrentCompleteVersionForTable(idAndVersion);
-		}
-	}
-
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -398,9 +390,23 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			return value.orElse(-1L);
 		case ENTITY_VIEW:
 		case MATERIALIZED_VIEW:
-			return getViewStateNumber(idAndVersion);
+			return getCurrentViewIndexStateNumber(idAndVersion);
 		default:
 			throw new IllegalArgumentException("unknown table type: " + type);
+		}
+	}
+	
+	Long getCurrentViewIndexStateNumber(IdAndVersion idAndVersion) {
+		if (idAndVersion.getVersion().isPresent()) {
+			// The ID of the snapshot is used for this case.
+			return tableSnapshotDao.getSnapshotId(idAndVersion);
+		} else {
+			/*
+			 * By returning the version already associated with the view index, we ensure
+			 * this call will not trigger a view to be rebuilt.
+			 */
+			TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(idAndVersion);
+			return indexDao.getMaxCurrentCompleteVersionForTable(idAndVersion);
 		}
 	}
 	

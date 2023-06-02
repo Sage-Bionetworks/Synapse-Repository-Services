@@ -1,12 +1,15 @@
 package org.sagebionetworks.repo.model.entity;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
-import org.junit.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.entity.IdAndVersionParser.ParseException;
 
 
@@ -75,16 +78,20 @@ public class IdAndVersionParserTest {
 		assertEquals(new Long(456), id.getVersion().get());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testNullString() {
 		// call under test
-		IdAndVersionParser.parseIdAndVersion(null);
+		assertThrows(IllegalArgumentException.class, () -> {			
+			IdAndVersionParser.parseIdAndVersion(null);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testEmpty() {
 		// call under test
-		IdAndVersionParser.parseIdAndVersion("");
+		assertThrows(IllegalArgumentException.class, () -> {
+			IdAndVersionParser.parseIdAndVersion("");
+		});
 	}
 	
 	@Test
@@ -180,6 +187,15 @@ public class IdAndVersionParserTest {
 			assertTrue(e.getCause() instanceof ParseException);
 			assertEquals(23, ((ParseException)e.getCause()).getErrorIndex());
 		}
+	}
+	
+	@Test
+	public void testWithNegativeId() {
+		// call under test
+		IdAndVersion id = IdAndVersionParser.parseIdAndVersion("syn-123.456");
+		assertNotNull(id);
+		assertEquals(-123L, id.getId());
+		assertEquals(456L, id.getVersion().get());
 	}
 
 }
