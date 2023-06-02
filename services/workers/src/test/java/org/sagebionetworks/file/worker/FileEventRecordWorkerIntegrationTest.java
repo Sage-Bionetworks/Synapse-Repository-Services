@@ -175,13 +175,14 @@ public class FileEventRecordWorkerIntegrationTest {
         ListObjectsV2Result objectListing = s3Client.listObjectsV2(new ListObjectsV2Request().withBucketName(BUCKET_NAME)
                 .withPrefix(key).withStartAfter(startAfterKey));
         for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
-            S3Object object = s3Client.getObject(BUCKET_NAME, objectSummary.getKey());
-            if (!objectSummary.getKey().contains(".gz") || !object.getKey().contains(stack + instance)) {
+            if (!objectSummary.getKey().contains(".gz") || !objectSummary.getKey().contains(stack + instance)) {
                 continue;
             }
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(object.getObjectContent())))) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                    new GZIPInputStream(s3Client.getObject(BUCKET_NAME, objectSummary.getKey()).getObjectContent())))) {
                 String record;
-                while ((record = reader.readLine()) != null) {
+                while((record =reader.readLine())!=null)
+                {
                     if (record.contains("\"fileHandleId\":\"" + fileHandleId + "\"")) {
                         return true;
                     }
