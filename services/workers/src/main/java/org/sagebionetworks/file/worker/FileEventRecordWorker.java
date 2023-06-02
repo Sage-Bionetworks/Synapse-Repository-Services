@@ -6,6 +6,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.audit.KinesisJsonEntityRecord;
 import org.sagebionetworks.repo.manager.statistics.ProjectResolver;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventRecord;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.file.FileEventRecord;
@@ -30,7 +31,6 @@ public class FileEventRecordWorker implements TypedMessageDrivenRunner<FileEvent
     private ProjectResolver projectResolver;
     @Autowired
     private AwsKinesisFirehoseLogger firehoseLogger;
-
     @Autowired
     private StackConfiguration configuration;
 
@@ -41,7 +41,6 @@ public class FileEventRecordWorker implements TypedMessageDrivenRunner<FileEvent
             throw new IllegalStateException("Unsupported object type: expected " + ObjectType.FILE_EVENT.name() + ", got " + event.getObjectType());
         }
 
-
         Long projectId = null;
 
         try {
@@ -51,27 +50,37 @@ public class FileEventRecordWorker implements TypedMessageDrivenRunner<FileEvent
             return;
         }
 
+        String stack = configuration.getStack();
+        String instance = configuration.getStackInstance();
+        Long timestamp = Date.from(Instant.now()).getTime();
+
         FileEventRecord record = new FileEventRecord().setUserId(event.getUserId()).setFileHandleId(event.getFileHandleId()).
                 setAssociateId(event.getAssociateId()).setAssociateType(event.getAssociateType()).setProjectId(projectId)
-                .setTimestamp(Date.from(Instant.now()).getTime()).setStack(configuration.getStack()).setInstance(configuration.getStackInstance());
-
-        KinesisJsonEntityRecord kinesisJsonEntityRecord = new KinesisJsonEntityRecord(record.getTimestamp(),
-                record, record.getStack(), record.getInstance());
+                .setTimestamp(timestamp).setStack(stack).setInstance(instance);
+        // KinesisJsonEntityRecord contains json entity FileEventRecord which logges data in new kinesis stream in json format.
+        KinesisJsonEntityRecord kinesisJsonEntityRecord = new KinesisJsonEntityRecord(record.getTimestamp(), record,
+                record.getStack(), record.getInstance());
+        //StatisticsFileEvent is required for old kinesis stream which stores data in parquet in defined schema.
+        // so we can not use KinesisJsonEntityRecord for old stream for more information see PLFM-7754
+        StatisticsFileEventRecord statisticsFileEventRecord = new StatisticsFileEventRecord(stack, instance)
+                .withUserId(event.getUserId())
+                .withFileHandleId(event.getFileHandleId()).withAssociateId(event.getAssociateId())
+                .withAssociateType(event.getAssociateType()).withProjectId(projectId)
+                .withTimestamp(timestamp).withStack(stack).withInstance(instance);
 
         switch (event.getFileEventType()) {
             case FILE_DOWNLOAD:
                 firehoseLogger.logBatch(FILE_RECORD_DOWNLOAD_STREAM, Collections.singletonList(kinesisJsonEntityRecord));
                 // Keep old streams for backward compatibility, for more information see PLFM-7754
-                firehoseLogger.logBatch(FILE_DOWNLOAD_STREAM, Collections.singletonList(kinesisJsonEntityRecord));
+                firehoseLogger.logBatch(FILE_DOWNLOAD_STREAM, Collections.singletonList(statisticsFileEventRecord));
                 return;
             case FILE_UPLOAD:
                 firehoseLogger.logBatch(FILE_RECORD_UPLOAD_STREAM, Collections.singletonList(kinesisJsonEntityRecord));
                 // Keep old streams for backward compatibility, for more information see PLFM-7754
-                firehoseLogger.logBatch(FILE_UPLOAD_STREAM, Collections.singletonList(kinesisJsonEntityRecord));
+                firehoseLogger.logBatch(FILE_UPLOAD_STREAM, Collections.singletonList(statisticsFileEventRecord));
                 return;
             default:
                 throw new IllegalArgumentException("Unsupported event type: " + event.getFileEventType().name());
-
         }
     }
 

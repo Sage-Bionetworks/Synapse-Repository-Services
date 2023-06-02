@@ -10,10 +10,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.kinesis.AbstractAwsKinesisLogRecord;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.audit.KinesisJsonEntityRecord;
 import org.sagebionetworks.repo.manager.file.FileEventUtils;
 import org.sagebionetworks.repo.manager.statistics.ProjectResolver;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventRecord;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.file.FileEventRecord;
@@ -50,14 +52,17 @@ public class FileEventRecordWorkerTest {
     @Mock
     private StackConfiguration configuration;
     @Captor
-    private ArgumentCaptor<List<KinesisJsonEntityRecord>> fileRecordCaptor;
+    private ArgumentCaptor<List<AbstractAwsKinesisLogRecord>> fileRecordCaptor;
     @Captor
     private ArgumentCaptor<String> streamNameCaptor;
 
     @Test
     public void testRunForUpload() throws RecoverableMessageException, Exception {
-        FileEventRecord record = new FileEventRecord().setUserId(1L).setAssociateId("1").setFileHandleId("123").setProjectId(23L)
+        FileEventRecord expectedRecord = new FileEventRecord().setUserId(1L).setAssociateId("1").setFileHandleId("123").setProjectId(23L)
                 .setAssociateType(FileHandleAssociateType.FileEntity).setStack("test").setInstance("test");
+        StatisticsFileEventRecord expectedStatisticsRecord = new StatisticsFileEventRecord("test", "test").withUserId(1L)
+                .withAssociateId("1").withFileHandleId("123").withProjectId(23L)
+                .withAssociateType(FileHandleAssociateType.FileEntity).withStack("test").withInstance("test");
 
         FileEvent event = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, 1L, "123",
                 "1", FileHandleAssociateType.FileEntity);
@@ -71,16 +76,23 @@ public class FileEventRecordWorkerTest {
 
         verify(firehoseLogger, times(2)).logBatch(streamNameCaptor.capture(), fileRecordCaptor.capture());
         assertEquals(streamNameCaptor.getAllValues().get(0), "fileUploadRecords");
-        record.setTimestamp(fileRecordCaptor.getValue().get(0).getTimestamp());
-        assertEquals(fileRecordCaptor.getValue().get(0).getPayload(), record);
+        KinesisJsonEntityRecord kinesisJsonEntityRecord = (KinesisJsonEntityRecord) fileRecordCaptor.getAllValues().get(0).get(0);
+        FileEventRecord actualRecord = (FileEventRecord) kinesisJsonEntityRecord.getPayload();
+        expectedRecord.setTimestamp(actualRecord.getTimestamp());
+        assertEquals(expectedRecord, actualRecord);
         assertEquals(streamNameCaptor.getAllValues().get(1), "fileUploads");
-        assertEquals(fileRecordCaptor.getValue().get(0).getPayload(), record);
+        StatisticsFileEventRecord statisticsFileEventRecord = (StatisticsFileEventRecord) fileRecordCaptor.getAllValues().get(1).get(0);
+        expectedStatisticsRecord.withTimestamp(statisticsFileEventRecord.getTimestamp());
+        assertEquals(expectedStatisticsRecord, statisticsFileEventRecord);
     }
 
     @Test
     public void testRunForDownload() throws RecoverableMessageException, Exception {
-        FileEventRecord record = new FileEventRecord().setUserId(1L).setAssociateId("1").setFileHandleId("123").setProjectId(23L)
+        FileEventRecord expectedRecord = new FileEventRecord().setUserId(1L).setAssociateId("1").setFileHandleId("123").setProjectId(23L)
                 .setAssociateType(FileHandleAssociateType.FileEntity).setStack("test").setInstance("test");
+        StatisticsFileEventRecord expectedStatisticsRecord = new StatisticsFileEventRecord("test", "test").withUserId(1L)
+                .withAssociateId("1").withFileHandleId("123").withProjectId(23L)
+                .withAssociateType(FileHandleAssociateType.FileEntity).withStack("test").withInstance("test");
 
         FileEvent event = FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, 1L, "123",
                 "1", FileHandleAssociateType.FileEntity);
@@ -93,10 +105,14 @@ public class FileEventRecordWorkerTest {
 
         verify(firehoseLogger, times(2)).logBatch(streamNameCaptor.capture(), fileRecordCaptor.capture());
         assertEquals(streamNameCaptor.getAllValues().get(0), "fileDownloadRecords");
-        record.setTimestamp(fileRecordCaptor.getValue().get(0).getTimestamp());
-        assertEquals(fileRecordCaptor.getValue().get(0).getPayload(), record);
+        KinesisJsonEntityRecord kinesisJsonEntityRecord = (KinesisJsonEntityRecord) fileRecordCaptor.getAllValues().get(0).get(0);
+        FileEventRecord actualRecord = (FileEventRecord) kinesisJsonEntityRecord.getPayload();
+        expectedRecord.setTimestamp(actualRecord.getTimestamp());
+        assertEquals(expectedRecord, actualRecord);
         assertEquals(streamNameCaptor.getAllValues().get(1), "fileDownloads");
-        assertEquals(fileRecordCaptor.getValue().get(0).getPayload(), record);
+        StatisticsFileEventRecord statisticsFileEventRecord = (StatisticsFileEventRecord) fileRecordCaptor.getAllValues().get(1).get(0);
+        expectedStatisticsRecord.withTimestamp(statisticsFileEventRecord.getTimestamp());
+        assertEquals(expectedStatisticsRecord, statisticsFileEventRecord);
     }
 
     @Test
