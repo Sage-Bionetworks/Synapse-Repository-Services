@@ -185,14 +185,6 @@ public interface TableManagerSupport extends SchemaProvider {
 	ObjectType getTableObjectType(IdAndVersion tableId);
 
 	/**
-	 * Get the number currently associated with a view, for consistency checks.
-	 * 
-	 * @param table
-	 * @return
-	 */
-	Long getViewStateNumber(IdAndVersion table);
-
-	/**
 	 * <p>
 	 * Attempt to acquire an exclusive lock on a table. If the lock is acquired, the
 	 * passed Callable will be run while holding lock. The lock will automatically

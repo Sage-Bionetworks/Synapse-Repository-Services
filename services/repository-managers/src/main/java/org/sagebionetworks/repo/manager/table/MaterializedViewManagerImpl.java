@@ -169,6 +169,11 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			throw new IllegalArgumentException("MaterializedView snapshots not currently supported");
 		}
 		
+		// If the view is in the trash can or if it does not exist we do not build the index
+		if (!tableManagerSupport.isTableAvailable(idAndVersion)) {
+			return;
+		}
+		
 		// We use a negative id as the temporary id of the view
 		IdAndVersion temporaryId = IdAndVersion.newBuilder()
 			.setId(-idAndVersion.getId())

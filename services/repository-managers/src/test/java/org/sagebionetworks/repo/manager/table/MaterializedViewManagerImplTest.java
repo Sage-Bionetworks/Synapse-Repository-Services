@@ -651,7 +651,20 @@ public class MaterializedViewManagerImplTest {
 	}
 	
 	@Test
+	public void testCreateOrUpdateViewIndexWithNonExistingTable() throws Exception {
+		when(mockTableManagerSupport.isTableAvailable(any())).thenReturn(false);
+		
+		// call under test
+		manager.createOrUpdateViewIndex(mockProgressCallback, idAndVersion);
+		
+		verify(mockTableManagerSupport).isTableAvailable(idAndVersion);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockTableIndexManager);
+	}
+	
+	@Test
 	public void testCreateOrUpdateViewIndexWithNoTableState() throws Exception {
+		when(mockTableManagerSupport.isTableAvailable(any())).thenReturn(true);
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.empty());
 		
 		doAnswer(invocation -> {
@@ -666,6 +679,7 @@ public class MaterializedViewManagerImplTest {
 		// call under test
 		managerSpy.createOrUpdateViewIndex(mockProgressCallback, idAndVersion);
 		
+		verify(mockTableManagerSupport).isTableAvailable(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), eq(temporaryId), any());
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), eq(idAndVersion), any());
@@ -675,7 +689,7 @@ public class MaterializedViewManagerImplTest {
 	@ParameterizedTest
 	@EnumSource(value = TableState.class, names = {"AVAILABLE"})
 	public void testCreateOrUpdateViewIndexWithAvailableState(TableState state) throws Exception {
-		
+		when(mockTableManagerSupport.isTableAvailable(any())).thenReturn(true);
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(state));
 		
 		doAnswer(invocation -> {
@@ -693,6 +707,7 @@ public class MaterializedViewManagerImplTest {
 		// call under test
 		managerSpy.createOrUpdateViewIndex(mockProgressCallback, idAndVersion);
 		
+		verify(mockTableManagerSupport).isTableAvailable(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), eq(temporaryId), any());
 		verify(managerSpy).rebuildAvailableViewHoldingTemporaryExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion, temporaryId);
@@ -701,6 +716,7 @@ public class MaterializedViewManagerImplTest {
 	@ParameterizedTest
 	@EnumSource(value = TableState.class, mode = Mode.EXCLUDE, names = {"AVAILABLE"})
 	public void testCreateOrUpdateViewIndexWithNonAvailableState(TableState state) throws Exception {
+		when(mockTableManagerSupport.isTableAvailable(any())).thenReturn(true);
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(state));
 		
 		doAnswer(invocation -> {
@@ -715,6 +731,7 @@ public class MaterializedViewManagerImplTest {
 		// call under test
 		managerSpy.createOrUpdateViewIndex(mockProgressCallback, idAndVersion);
 		
+		verify(mockTableManagerSupport).isTableAvailable(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), eq(temporaryId), any());
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), eq(idAndVersion), any());
