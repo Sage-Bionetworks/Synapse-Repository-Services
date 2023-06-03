@@ -11,7 +11,6 @@ import java.util.Set;
 
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.velocity.schema.TypeReference;
-import org.sagebionetworks.openapi.server.ServerSideOnlyFactory;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.ObjectSchema;

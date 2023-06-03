@@ -6,7 +6,6 @@ import java.util.Map;
 
 import org.json.JSONObject;
 import org.sagebionetworks.controller.model.ControllerModel;
-import org.sagebionetworks.openapi.server.ServerSideOnlyFactory;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.schema.ObjectSchema;
 
