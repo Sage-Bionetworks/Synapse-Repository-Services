@@ -162,6 +162,7 @@ public class ControllerModelDocletTest {
 		assertEquals("the Pet associated with 'name'.", responseStatusCode.getString("description"));
 		JSONObject content = responseStatusCode.getJSONObject("content");
 		JSONObject contentType = content.getJSONObject("application/json");
+		System.out.println("content type JSONObject: " + contentType.toString(5));
 		JSONObject responseSchema = contentType.getJSONObject("schema");
 
 		// test to see if Pet interface is represented correctly as the return type.
@@ -203,6 +204,7 @@ public class ControllerModelDocletTest {
 		assertEquals(true, requestBody.getBoolean("required"));
 		JSONObject content = requestBody.getJSONObject("content");
 		JSONObject contentType = content.getJSONObject("application/json");
+		System.out.println("content type JSONObject: " + contentType.toString(5));
 		JSONObject schema = contentType.getJSONObject("schema");
 		
 		assertEquals("object", schema.getString("type"));
