@@ -2,7 +2,6 @@ package org.sagebionetworks.file.worker;
 
 import com.amazonaws.services.s3.model.ListObjectsV2Request;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.Lists;
 import org.junit.jupiter.api.AfterEach;
@@ -84,7 +83,7 @@ public class FileEventRecordWorkerIntegrationTest {
         String day = String.format("%02d", currentDate.getDayOfMonth());
         fileDownloadRecordKey = "fileDownloadRecords/records/";
         fileUploadRecordKey = "fileUploadRecords/records/";
-        startAfterKey = "/year=" + currentDate.getYear() + "/month=" + month + "/day=" + day;
+        startAfterKey = "year=" + currentDate.getYear() + "/month=" + month + "/day=" + day +"/";
         stack = configuration.getStack();
         instance = configuration.getStackInstance();
     }
@@ -172,8 +171,10 @@ public class FileEventRecordWorkerIntegrationTest {
     }
 
     private boolean getRecord(String fileHandleId, String key, String startAfterKey) throws IOException, JSONObjectAdapterException {
+        //withStartAfter need full path in the bucket like fileUploadRecords/records/year=2023/month=06/day=05/
+        // because all the object in same folder structure startswith same path/prefix
         ListObjectsV2Result objectListing = s3Client.listObjectsV2(new ListObjectsV2Request().withBucketName(BUCKET_NAME)
-                .withPrefix(key).withStartAfter(startAfterKey));
+                .withPrefix(key).withStartAfter(key + startAfterKey));
         for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
             if (!objectSummary.getKey().contains(".gz") || !objectSummary.getKey().contains(stack + instance)) {
                 continue;

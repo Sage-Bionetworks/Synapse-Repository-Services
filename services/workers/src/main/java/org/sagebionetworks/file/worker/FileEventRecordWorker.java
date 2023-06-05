@@ -1,12 +1,10 @@
 package org.sagebionetworks.file.worker;
 
 import com.amazonaws.services.sqs.model.Message;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.audit.KinesisJsonEntityRecord;
 import org.sagebionetworks.repo.manager.statistics.ProjectResolver;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventRecord;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.file.FileEventRecord;
@@ -16,9 +14,7 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.Collections;
-import java.util.Date;
 
 
 @Service
@@ -31,8 +27,6 @@ public class FileEventRecordWorker implements TypedMessageDrivenRunner<FileEvent
     private ProjectResolver projectResolver;
     @Autowired
     private AwsKinesisFirehoseLogger firehoseLogger;
-    @Autowired
-    private StackConfiguration configuration;
 
 
     @Override
@@ -50,23 +44,15 @@ public class FileEventRecordWorker implements TypedMessageDrivenRunner<FileEvent
             return;
         }
 
-        String stack = configuration.getStack();
-        String instance = configuration.getStackInstance();
-        Long timestamp = Date.from(Instant.now()).getTime();
-
         FileEventRecord record = new FileEventRecord().setUserId(event.getUserId()).setFileHandleId(event.getFileHandleId()).
-                setAssociateId(event.getAssociateId()).setAssociateType(event.getAssociateType()).setProjectId(projectId)
-                .setTimestamp(timestamp).setStack(stack).setInstance(instance);
+                setAssociateId(event.getAssociateId()).setAssociateType(event.getAssociateType()).setProjectId(projectId);
         // KinesisJsonEntityRecord contains json entity FileEventRecord which logges data in new kinesis stream in json format.
-        KinesisJsonEntityRecord kinesisJsonEntityRecord = new KinesisJsonEntityRecord(record.getTimestamp(), record,
-                record.getStack(), record.getInstance());
+        KinesisJsonEntityRecord kinesisJsonEntityRecord = new KinesisJsonEntityRecord(event.getTimestamp().getTime(), record,
+                event.getStack(), event.getInstance());
         //StatisticsFileEvent is required for old kinesis stream which stores data in parquet in defined schema.
         // so we can not use KinesisJsonEntityRecord for old stream for more information see PLFM-7754
-        StatisticsFileEventRecord statisticsFileEventRecord = new StatisticsFileEventRecord(stack, instance)
-                .withUserId(event.getUserId())
-                .withFileHandleId(event.getFileHandleId()).withAssociateId(event.getAssociateId())
-                .withAssociateType(event.getAssociateType()).withProjectId(projectId)
-                .withTimestamp(timestamp).withStack(stack).withInstance(instance);
+        StatisticsFileEventRecord statisticsFileEventRecord = new StatisticsFileEventRecord(event.getStack(), event.getInstance(),
+                event.getTimestamp().getTime(), record);
 
         switch (event.getFileEventType()) {
             case FILE_DOWNLOAD:

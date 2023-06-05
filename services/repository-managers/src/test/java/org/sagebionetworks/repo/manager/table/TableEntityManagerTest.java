@@ -443,14 +443,16 @@ public class TableEntityManagerTest {
 		List<FileEvent> fileEvents = fileEventCaptor.getAllValues();
 		assertEquals(fileEvents.size(), rowCount);
 		List<Long> fileHandles = new ArrayList<>(sparseChangeSet.getFileHandleIdsInSparseChangeSet());
+		List<FileEvent> expectedFileEvents =new ArrayList<>();
 		for (int i = 0; i < rowCount; i++) {
 			assertNotNull(fileEvents.get(i).getTimestamp());
 			FileEvent expected = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, user.getId(),
 							String.valueOf(fileHandles.get(i)), sparseChangeSet.getTableId(),
 							FileHandleAssociateType.TableEntity, STACK, INSTANCE)
 					.setTimestamp(fileEvents.get(i).getTimestamp());
-			assertEquals(expected, fileEvents.get(i));
+			expectedFileEvents.add(expected);
 		}
+		assertEquals(expectedFileEvents, fileEvents);
 	}
 	
 	@Test
@@ -821,13 +823,15 @@ public class TableEntityManagerTest {
 			}
 		});
 		assertEquals(fileEvents.size(), 2);
+		List<FileEvent> expectedFileEvents = new ArrayList<>();
 		for (int i = 0; i < 2; i++) {
 			assertNotNull(fileEvents.get(i).getTimestamp());
 			FileEvent expected = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, user.getId(),
 							String.valueOf(fileHandlesList.get(i)), tableId, FileHandleAssociateType.TableEntity, STACK, INSTANCE)
 					.setTimestamp(fileEvents.get(i).getTimestamp());
-			assertEquals(expected, fileEvents.get(i));
+			expectedFileEvents.add(expected);
 		}
+		assertEquals(expectedFileEvents, fileEvents);
 	}
 	
 	@Test

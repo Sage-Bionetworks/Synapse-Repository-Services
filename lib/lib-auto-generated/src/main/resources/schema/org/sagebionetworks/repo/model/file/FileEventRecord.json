@@ -6,10 +6,6 @@
             "description": "The Id of user who initiated the file event.",
             "required": true
         },
-        "timestamp": {
-            "type": "integer",
-            "description": "The timestamp of the record, in UTC milliseconds"
-        },
         "projectId": {
             "type": "integer",
             "description": "The project Id of file.",
@@ -29,14 +25,6 @@
             "type": "string",
             "description": "The association Id of filehandle.",
             "required": true
-        },
-        "stack": {
-            "type": "string",
-            "description": "The stack number."
-        },
-        "instance": {
-            "type": "string",
-            "description": "The instance number."
         }
     }
 }
