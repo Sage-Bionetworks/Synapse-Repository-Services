@@ -2137,7 +2137,7 @@ public class FileHandleManagerImplTest {
 		assertEquals(expectedFileEvent, actualFileEventOne);
 		FileEvent actualFileEventTwo = fileEvents.get(1);
 		assertNotNull(actualFileEventTwo.getTimestamp());
-		FileEvent expectedFileEventTwo = getFileEvent(mockUser.getId(), actualFileEventOne.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		FileEvent expectedFileEventTwo = getFileEvent(mockUser.getId(), actualFileEventTwo.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
 		assertEquals(expectedFileEventTwo, actualFileEventTwo);
 
 

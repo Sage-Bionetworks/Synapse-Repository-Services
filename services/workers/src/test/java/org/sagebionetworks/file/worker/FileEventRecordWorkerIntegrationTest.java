@@ -2,6 +2,7 @@ package org.sagebionetworks.file.worker;
 
 import com.amazonaws.services.s3.model.ListObjectsV2Request;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.Lists;
 import org.junit.jupiter.api.AfterEach;
@@ -179,8 +180,9 @@ public class FileEventRecordWorkerIntegrationTest {
             if (!objectSummary.getKey().contains(".gz") || !objectSummary.getKey().contains(stack + instance)) {
                 continue;
             }
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                    new GZIPInputStream(s3Client.getObject(BUCKET_NAME, objectSummary.getKey()).getObjectContent())))) {
+            try (S3ObjectInputStream s3ObjectInputStream = s3Client.getObject(BUCKET_NAME, objectSummary.getKey()).getObjectContent();
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(
+                    new GZIPInputStream(s3ObjectInputStream)))) {
                 String record;
                 while((record =reader.readLine())!=null)
                 {
