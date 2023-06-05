@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
@@ -35,10 +36,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-;
 
 @ExtendWith(MockitoExtension.class)
 public class FileEventRecordWorkerTest {
+    private static final String STACK = "stack";
+    private static final String INSTANCE = "instance";
+
     @InjectMocks
     FileEventRecordWorker worker;
     @Mock
@@ -65,22 +68,21 @@ public class FileEventRecordWorkerTest {
                 .withAssociateType(FileHandleAssociateType.FileEntity).withStack("test").withInstance("test");
 
         FileEvent event = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, 1L, "123",
-                "1", FileHandleAssociateType.FileEntity);
+                "1", FileHandleAssociateType.FileEntity, STACK, INSTANCE);
 
         when(projectResolver.resolveProject(any(), any())).thenReturn(23L);
-        when(configuration.getStack()).thenReturn("test");
-        when(configuration.getStackInstance()).thenReturn("test");
+        when(configuration.getStack()).thenReturn(STACK);
+        when(configuration.getStackInstance()).thenReturn(INSTANCE);
 
         // Call under test
         worker.run(progressCallback, message, event);
 
         verify(firehoseLogger, times(2)).logBatch(streamNameCaptor.capture(), fileRecordCaptor.capture());
-        assertEquals(streamNameCaptor.getAllValues().get(0), "fileUploadRecords");
+        assertEquals(List.of("fileUploadRecords", "fileUploads"), streamNameCaptor.getAllValues());
         KinesisJsonEntityRecord kinesisJsonEntityRecord = (KinesisJsonEntityRecord) fileRecordCaptor.getAllValues().get(0).get(0);
         FileEventRecord actualRecord = (FileEventRecord) kinesisJsonEntityRecord.getPayload();
         expectedRecord.setTimestamp(actualRecord.getTimestamp());
         assertEquals(expectedRecord, actualRecord);
-        assertEquals(streamNameCaptor.getAllValues().get(1), "fileUploads");
         StatisticsFileEventRecord statisticsFileEventRecord = (StatisticsFileEventRecord) fileRecordCaptor.getAllValues().get(1).get(0);
         expectedStatisticsRecord.withTimestamp(statisticsFileEventRecord.getTimestamp());
         assertEquals(expectedStatisticsRecord, statisticsFileEventRecord);
@@ -95,22 +97,23 @@ public class FileEventRecordWorkerTest {
                 .withAssociateType(FileHandleAssociateType.FileEntity).withStack("test").withInstance("test");
 
         FileEvent event = FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, 1L, "123",
-                "1", FileHandleAssociateType.FileEntity);
+                "1", FileHandleAssociateType.FileEntity, STACK, INSTANCE);
 
         when(projectResolver.resolveProject(any(), any())).thenReturn(23L);
-        when(configuration.getStack()).thenReturn("test");
-        when(configuration.getStackInstance()).thenReturn("test");
+        when(configuration.getStack()).thenReturn(STACK);
+        when(configuration.getStackInstance()).thenReturn(INSTANCE);
         // Call under test
         worker.run(progressCallback, message, event);
 
         verify(firehoseLogger, times(2)).logBatch(streamNameCaptor.capture(), fileRecordCaptor.capture());
-        assertEquals(streamNameCaptor.getAllValues().get(0), "fileDownloadRecords");
+        assertEquals(List.of("fileDownloadRecords", "fileDownloads"), streamNameCaptor.getAllValues());
         KinesisJsonEntityRecord kinesisJsonEntityRecord = (KinesisJsonEntityRecord) fileRecordCaptor.getAllValues().get(0).get(0);
         FileEventRecord actualRecord = (FileEventRecord) kinesisJsonEntityRecord.getPayload();
+        assertNotNull(actualRecord.getTimestamp());
         expectedRecord.setTimestamp(actualRecord.getTimestamp());
         assertEquals(expectedRecord, actualRecord);
-        assertEquals(streamNameCaptor.getAllValues().get(1), "fileDownloads");
         StatisticsFileEventRecord statisticsFileEventRecord = (StatisticsFileEventRecord) fileRecordCaptor.getAllValues().get(1).get(0);
+        assertNotNull(statisticsFileEventRecord.getTimestamp());
         expectedStatisticsRecord.withTimestamp(statisticsFileEventRecord.getTimestamp());
         assertEquals(expectedStatisticsRecord, statisticsFileEventRecord);
     }

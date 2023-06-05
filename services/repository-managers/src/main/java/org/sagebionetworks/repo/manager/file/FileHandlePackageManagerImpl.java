@@ -4,6 +4,7 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -55,17 +56,19 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 	private AuthorizationManager fileHandleAuthorizationManager;
 	private FileHandleManager fileHandleManager;
 	private TransactionalMessenger messenger;
+	private StackConfiguration configuration;
 
 	@Autowired
 	public FileHandlePackageManagerImpl(FileHandleDao fileHandleDao, SynapseS3Client s3client,
 			AuthorizationManager fileHandleAuthorizationManager, FileHandleManager fileHandleManager,
-			TransactionalMessenger messenger) {
+			TransactionalMessenger messenger, StackConfiguration configuration) {
 		super();
 		this.fileHandleDao = fileHandleDao;
 		this.s3client = s3client;
 		this.fileHandleAuthorizationManager = fileHandleAuthorizationManager;
 		this.fileHandleManager = fileHandleManager;
 		this.messenger = messenger;
+		this.configuration = configuration;
 	}
 
 	/*
@@ -281,7 +284,7 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 				// Only collects stats for successful summaries
 				.filter(summary -> FileDownloadStatus.SUCCESS.equals(summary.getStatus()))
 				.map(summary -> FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userId, summary.getFileHandleId(),
-						summary.getAssociateObjectId(), summary.getAssociateObjectType()))
+						summary.getAssociateObjectId(), summary.getAssociateObjectType(), configuration.getStack(), configuration.getStackInstance()))
 				.collect(Collectors.toList());
 
 		downloadFileEvents.forEach(messenger::publishMessageAfterCommit);

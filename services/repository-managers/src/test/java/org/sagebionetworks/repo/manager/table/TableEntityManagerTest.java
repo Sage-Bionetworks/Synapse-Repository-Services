@@ -111,7 +111,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -137,7 +136,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TableEntityManagerTest {
-	
+	private static final String STACK = "stack";
+	private static final String INSTANCE = "instance";
 	@Mock
 	private ProgressCallback mockProgressCallback;
 	@Mock
@@ -400,7 +400,8 @@ public class TableEntityManagerTest {
 		setUserAsFileHandleCreator();
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTransactionContext.getTransactionId()).thenReturn(transactionId);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
 		// assign a rowId and version to trigger a row level conflict test.
 		rawSet.getRows().get(0).setRowId(1L);
 		rawSet.getRows().get(0).setVersionNumber(0L);
@@ -443,8 +444,10 @@ public class TableEntityManagerTest {
 		assertEquals(fileEvents.size(), rowCount);
 		List<Long> fileHandles = new ArrayList<>(sparseChangeSet.getFileHandleIdsInSparseChangeSet());
 		for (int i = 0; i < rowCount; i++) {
+			assertNotNull(fileEvents.get(i).getTimestamp());
 			FileEvent expected = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, user.getId(),
-							String.valueOf(fileHandles.get(i)), sparseChangeSet.getTableId(), FileHandleAssociateType.TableEntity)
+							String.valueOf(fileHandles.get(i)), sparseChangeSet.getTableId(),
+							FileHandleAssociateType.TableEntity, STACK, INSTANCE)
 					.setTimestamp(fileEvents.get(i).getTimestamp());
 			assertEquals(expected, fileEvents.get(i));
 		}
@@ -781,6 +784,8 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
 
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
@@ -817,8 +822,9 @@ public class TableEntityManagerTest {
 		});
 		assertEquals(fileEvents.size(), 2);
 		for (int i = 0; i < 2; i++) {
+			assertNotNull(fileEvents.get(i).getTimestamp());
 			FileEvent expected = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, user.getId(),
-							String.valueOf(fileHandlesList.get(i)), tableId, FileHandleAssociateType.TableEntity)
+							String.valueOf(fileHandlesList.get(i)), tableId, FileHandleAssociateType.TableEntity, STACK, INSTANCE)
 					.setTimestamp(fileEvents.get(i).getTimestamp());
 			assertEquals(expected, fileEvents.get(i));
 		}

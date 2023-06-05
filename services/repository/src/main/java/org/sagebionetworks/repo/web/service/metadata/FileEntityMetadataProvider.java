@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileEventUtils;
 import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -25,6 +26,8 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 	private StsManager stsManager;
 	@Autowired
 	private TransactionalMessenger messenger;
+	@Autowired
+	private StackConfiguration configuration;
 
 	@Override
 	public void validateEntity(FileEntity entity, EntityEvent event)
@@ -60,7 +63,7 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 
 	private void sendFileUploadEvent(Long userId, FileEntity entity) {
 		FileEvent fileEvent = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId, entity.getDataFileHandleId(),
-				entity.getId(), FileHandleAssociateType.FileEntity);
+				entity.getId(), FileHandleAssociateType.FileEntity, configuration.getStack(), configuration.getStackInstance());
 		messenger.publishMessageAfterCommit(fileEvent);
 	}
 }

@@ -143,6 +143,8 @@ public class FileHandleManagerImplTest {
 	private static final String BANNER = "dummy banner text";
 	private static final String BASE_KEY = "some-base-key";
 	private static final String PARENT_ENTITY_ID = "syn123";
+	private static final String STACK = "stack";
+	private static final String INSTANCE = "instance";
 
 	@Mock
 	FileHandleDao mockFileHandleDao;
@@ -805,6 +807,8 @@ public class FileHandleManagerImplTest {
 
 		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).
 		thenReturn(Collections.singletonList(authorizationResult));
+		when(mockStackConfig.getStack()).thenReturn(STACK);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
 		
 		FileHandleUrlRequest request = new FileHandleUrlRequest(mockUser, s3FileHandle.getId())
 				.withAssociation(association.getAssociateObjectType(), association.getAssociateObjectId());
@@ -814,6 +818,7 @@ public class FileHandleManagerImplTest {
 		// Verifies that download stats are sent
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		assertNotNull(actualFileEvent.getTimestamp());
 		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, association);
 		assertEquals(expectedFileEvent, actualFileEvent);
 		assertEquals(expectedURL, redirectURL);
@@ -1646,7 +1651,6 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
 		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
-
 		FileHandle fh2 = new S3FileHandle();
 		fh2.setId(fha2.getFileHandleId());
 		fh2.setStatus(FileHandleStatus.AVAILABLE);
@@ -1655,7 +1659,8 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.getAllFileHandlesBatch(any())).thenReturn(handleMap);
 
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
-
+		when(mockStackConfig.getStack()).thenReturn(STACK);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1696,6 +1701,7 @@ public class FileHandleManagerImplTest {
 		// Verifies that download stats are sent
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		assertNotNull(actualFileEvent.getTimestamp());
 		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
 		assertEquals(expectedFileEvent, actualFileEvent);
 		// Verify a download record is created for the success case.
@@ -1721,7 +1727,6 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
 		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
-
 		FileHandle fh2 = new S3FileHandle();
 		fh2.setId(fha2.getFileHandleId());
 		fh2.setStatus(FileHandleStatus.AVAILABLE);
@@ -1730,7 +1735,8 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.getAllFileHandlesBatch(any())).thenReturn(handleMap);
 
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
-
+		when(mockStackConfig.getStack()).thenReturn(STACK);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1750,6 +1756,7 @@ public class FileHandleManagerImplTest {
 		// Verifies that download stats are sent
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		assertNotNull(actualFileEvent.getTimestamp());
 		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
 		assertEquals(expectedFileEvent, actualFileEvent);
 	}
@@ -1774,7 +1781,8 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.getAllFileHandlesBatch(any())).thenReturn(handleMap);
 
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
-
+		when(mockStackConfig.getStack()).thenReturn(STACK);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1794,6 +1802,7 @@ public class FileHandleManagerImplTest {
 		// Verifies that download stats are sent
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		assertNotNull(actualFileEvent.getTimestamp());
 		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
 		assertEquals(expectedFileEvent, actualFileEvent);
 	}
@@ -2052,7 +2061,8 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
 		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
-
+		when(mockStackConfig.getStack()).thenReturn(STACK);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -2072,6 +2082,7 @@ public class FileHandleManagerImplTest {
 		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		assertNotNull(actualFileEvent.getTimestamp());
 		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
 		assertEquals(expectedFileEvent, actualFileEvent);
 	}
@@ -2106,7 +2117,8 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2);
 		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
-
+		when(mockStackConfig.getStack()).thenReturn(STACK);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -2118,9 +2130,11 @@ public class FileHandleManagerImplTest {
 		verify(messenger, times(2)).publishMessageAfterCommit(fileEventCaptor.capture());
 		List<FileEvent> fileEvents = fileEventCaptor.getAllValues();
 		FileEvent actualFileEventOne = fileEvents.get(0);
+		assertNotNull(actualFileEventOne.getTimestamp());
 		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEventOne.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha1);
 		assertEquals(expectedFileEvent, actualFileEventOne);
 		FileEvent actualFileEventTwo = fileEvents.get(1);
+		assertNotNull(actualFileEventTwo.getTimestamp());
 		FileEvent expectedFileEventTwo = getFileEvent(mockUser.getId(), actualFileEventOne.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
 		assertEquals(expectedFileEventTwo, actualFileEventTwo);
 
@@ -2687,7 +2701,7 @@ public class FileHandleManagerImplTest {
 	}
 
 	private FileEvent getFileEvent(long userId, Date timestamp, FileEventType fileHandleType, FileHandleAssociation fileHandleAssociation) {
-		FileEvent expectedFileEvent = FileEventUtils.buildFileEvent(fileHandleType, userId, fileHandleAssociation);
+		FileEvent expectedFileEvent = FileEventUtils.buildFileEvent(fileHandleType, userId, fileHandleAssociation, STACK, INSTANCE);
 		expectedFileEvent.setTimestamp(timestamp);
 		return expectedFileEvent;
 	}

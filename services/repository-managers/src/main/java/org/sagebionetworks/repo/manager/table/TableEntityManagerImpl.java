@@ -372,8 +372,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
  		final Long userId = user.getId();
 
 		List<FileEvent> uploadFileEvents = newFileIds.stream().map(fileHandleId ->
-				FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId,
-						fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity)).collect(Collectors.toList());
+						FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId,
+								fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity, config.getStack(), config.getStackInstance()))
+				.collect(Collectors.toList());
 
 		uploadFileEvents.forEach(messenger::publishMessageAfterCommit);
 

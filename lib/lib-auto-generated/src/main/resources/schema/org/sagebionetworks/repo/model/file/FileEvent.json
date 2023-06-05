@@ -35,6 +35,14 @@
         "associateId": {
             "type": "string",
             "description": "The association Id of filehandle."
+        },
+        "stack": {
+            "type": "string",
+            "description": "The stack number."
+        },
+        "instance": {
+            "type": "string",
+            "description": "The instance number."
         }
     }
 }

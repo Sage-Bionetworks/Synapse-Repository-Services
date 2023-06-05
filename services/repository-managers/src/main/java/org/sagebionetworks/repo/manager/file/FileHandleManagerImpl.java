@@ -331,7 +331,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		
 		String url = getURLForFileHandle(userInfo, fileHandle);
 
-		FileEvent fileEvent = FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(), fileHandleAssociation);
+		FileEvent fileEvent = FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(), fileHandleAssociation,
+				config.getStack(), config.getStackInstance());
 		messenger.publishMessageAfterCommit(fileEvent);
 		return url;
 	}
@@ -1266,7 +1267,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							fr.setPreSignedURL(url);
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
 
-							fileEvents.add(FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD,userInfo.getId(),association));
+							fileEvents.add(FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(),
+									association, config.getStack(), config.getStackInstance()));
 							
 							ObjectRecord record = createObjectRecord(userId, association, now);
 							downloadRecords.add(record);

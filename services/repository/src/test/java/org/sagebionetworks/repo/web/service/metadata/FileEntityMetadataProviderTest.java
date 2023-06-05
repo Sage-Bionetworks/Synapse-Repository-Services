@@ -9,6 +9,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileEventUtils;
 import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -24,21 +25,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class FileEntityMetadataProviderTest {
 	private static final String FILE_HANDLE_ID = "file-handle-id";
 	private static final String PARENT_ENTITY_ID = "parent-entity-id";
+	private static final String STACK = "stack";
+	private static final String INSTANCE = "instance";
 
 	@Mock
 	private TransactionalMessenger messenger;
 
 	@Mock
 	private StsManager mockStsManager;
+	@Mock
+	private StackConfiguration configuration;
 
 	@InjectMocks
 	private FileEntityMetadataProvider provider;
@@ -138,25 +145,32 @@ public class FileEntityMetadataProviderTest {
 
 	@Test
 	public void testEntityCreated() {
+		when(configuration.getStack()).thenReturn(STACK);
+		when(configuration.getStackInstance()).thenReturn(INSTANCE);
 		fileEntity.setDataFileHandleId("1");
 		provider.entityCreated(userInfo, fileEntity);
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualEvent = fileEventCaptor.getValue();
+		assertNotNull(actualEvent.getTimestamp());
 		FileEvent expectedEvent = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userInfo.getId(),
-				fileEntity.getDataFileHandleId(), fileEntity.getId(), FileHandleAssociateType.FileEntity);
+				fileEntity.getDataFileHandleId(), fileEntity.getId(), FileHandleAssociateType.FileEntity, STACK, INSTANCE);
 		expectedEvent.setTimestamp(actualEvent.getTimestamp());
 		assertEquals(expectedEvent, actualEvent);
 	}
 
 	@Test
 	public void testEntityUpdatedWithNewVersion() {
+		when(configuration.getStack()).thenReturn(STACK);
+		when(configuration.getStackInstance()).thenReturn(INSTANCE);
 		fileEntity.setDataFileHandleId("1");
 		provider.entityUpdated(userInfo, fileEntity, true);
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualEvent = fileEventCaptor.getValue();
+		assertNotNull(actualEvent.getTimestamp());
 		FileEvent expectedEvent = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userInfo.getId(),
-				fileEntity.getDataFileHandleId(), fileEntity.getId(), FileHandleAssociateType.FileEntity);
+				fileEntity.getDataFileHandleId(), fileEntity.getId(), FileHandleAssociateType.FileEntity, STACK, INSTANCE);
 		expectedEvent.setTimestamp(actualEvent.getTimestamp());
+		assertEquals(expectedEvent, actualEvent);
 	}
 
 	@Test
