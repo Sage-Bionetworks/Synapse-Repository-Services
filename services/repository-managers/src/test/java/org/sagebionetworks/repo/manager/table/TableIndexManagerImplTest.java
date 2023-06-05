@@ -2374,11 +2374,12 @@ public class TableIndexManagerImplTest {
 		IdAndVersion viewId = IdAndVersion.parse("syn123");
 		when(mockManagerSupport.getViewScopeType(any())).thenReturn(scopeType);
 		when(mockIndexDao.refreshViewBenefactors(any(), any())).thenReturn(true);
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(100L);
 		
 		// call under test
-		boolean result = manager.refreshViewBenefactors(viewId);
+		Optional<Long> result = manager.refreshViewBenefactors(viewId);
 		
-		assertTrue(result);
+		assertEquals(Optional.of(101L), result);
 		
 		verify(mockManagerSupport).getViewScopeType(viewId);
 		verify(mockIndexDao).refreshViewBenefactors(viewId, scopeType.getObjectType().getMainType());
@@ -2391,9 +2392,9 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.refreshViewBenefactors(any(), any())).thenReturn(false);
 		
 		// call under test
-		boolean result = manager.refreshViewBenefactors(viewId);
+		Optional<Long> result = manager.refreshViewBenefactors(viewId);
 		
-		assertFalse(result);
+		assertEquals(Optional.empty(), result);
 		
 		verify(mockManagerSupport).getViewScopeType(viewId);
 		verify(mockIndexDao).refreshViewBenefactors(viewId, scopeType.getObjectType().getMainType());

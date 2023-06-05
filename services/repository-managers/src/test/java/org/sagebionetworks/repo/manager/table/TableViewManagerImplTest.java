@@ -779,10 +779,30 @@ public class TableViewManagerImplTest {
 		long snapshotId = 998L;
 		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
 		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(Optional.of(snapshot));
+		when(mockIndexManager.refreshViewBenefactors(idAndVersion)).thenReturn(Optional.of(101L));
 		
 		// call under test
-		long id = manager.populateViewFromSnapshot(indexDescription, mockIndexManager);
-		assertEquals(snapshotId, id);
+		long version = manager.populateViewFromSnapshot(indexDescription, mockIndexManager);
+		
+		assertEquals(101L, version);
+		
+		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
+		verify(mockTableManagerSupport).restoreTableIndexFromS3(idAndVersion, "bucket", "key");
+		verify(mockIndexManager).refreshViewBenefactors(idAndVersion);
+	}
+	
+	@Test
+	public void testPopulateViewFromSnapshotWithNoBenefactorChanges() throws IOException {
+		long snapshotId = 998L;
+		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
+		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(Optional.of(snapshot));
+		when(mockIndexManager.refreshViewBenefactors(idAndVersion)).thenReturn(Optional.empty());
+		
+		// call under test
+		long version = manager.populateViewFromSnapshot(indexDescription, mockIndexManager);
+		
+		assertEquals(0L, version);
+		
 		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
 		verify(mockTableManagerSupport).restoreTableIndexFromS3(idAndVersion, "bucket", "key");
 		verify(mockIndexManager).refreshViewBenefactors(idAndVersion);
@@ -882,6 +902,7 @@ public class TableViewManagerImplTest {
 		TableSnapshot snapshot = new TableSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
 		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(Optional.of(snapshot));
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockIndexManager.refreshViewBenefactors(any())).thenReturn(Optional.of(101L));
 		
 		// call under test
 		manager.createOrRebuildViewHoldingLock(idAndVersion);
@@ -897,7 +918,7 @@ public class TableViewManagerImplTest {
 		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
 		verify(mockTableManagerSupport).restoreTableIndexFromS3(idAndVersion, "bucket", "key");
 		verify(mockIndexManager).buildTableIndexIndices(indexDescription, viewSchema);
-		verify(mockIndexManager).setIndexVersion(idAndVersion, snapshotId);
+		verify(mockIndexManager).setIndexVersion(idAndVersion, 101L);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
@@ -1701,20 +1722,22 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testRefreshBenefactorsForViewSnapshotWithChanges() {
 		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockIndexManager);
-		when(mockIndexManager.refreshViewBenefactors(any())).thenReturn(true);
+		when(mockIndexManager.refreshViewBenefactors(any())).thenReturn(Optional.of(101L));
 		// call under test
 		manager.refreshBenefactorsForViewSnapshot(idAndVersion);
 		verify(mockIndexManager).refreshViewBenefactors(idAndVersion);
+		verify(mockIndexManager).setIndexVersion(idAndVersion, 101L);
 		verify(mockTableManagerSupport).updateChangedOnIfAvailable(idAndVersion);
 	}
 	
 	@Test
 	public void testRefreshBenefactorsForViewSnapshotWithNoChanges() {
 		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockIndexManager);
-		when(mockIndexManager.refreshViewBenefactors(any())).thenReturn(false);
+		when(mockIndexManager.refreshViewBenefactors(any())).thenReturn(Optional.empty());
 		// call under test
 		manager.refreshBenefactorsForViewSnapshot(idAndVersion);
 		verify(mockIndexManager).refreshViewBenefactors(idAndVersion);
+		verifyNoMoreInteractions(mockIndexManager);
 		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 	

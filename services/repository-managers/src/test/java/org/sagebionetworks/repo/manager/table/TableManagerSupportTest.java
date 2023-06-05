@@ -602,31 +602,6 @@ public class TableManagerSupportTest {
 		verify(mockMetadataIndexProvider).validateScopeAndType(scopeType.getTypeMask(), scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
 	
-	
-	@Test
-	public void testGetCurrentViewIndexStateNumber() throws LimitExceededException{
-		Long expectedNumber = 123L;
-		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(idAndVersion)).thenReturn(expectedNumber);
-		// call under test
-		Long viewNumer = manager.getCurrentViewIndexStateNumber(idAndVersion);
-		assertEquals(expectedNumber, viewNumer);
-		verify(mockTableIndexDAO).getMaxCurrentCompleteVersionForTable(idAndVersion);
-		verify(mockViewSnapshotDao, never()).getSnapshot(any(IdAndVersion.class));
-	}
-	
-	@Test
-	public void testGetCurrentViewIndexStateNumberWithVersion(){
-		idAndVersion = IdAndVersion.parse("syn123.45");
-		Long snapshotId = 33L;
-		when(mockViewSnapshotDao.getSnapshotId(idAndVersion)).thenReturn(snapshotId);
-		// call under test
-		Long result = manager.getCurrentViewIndexStateNumber(idAndVersion);
-		assertEquals(snapshotId, result);
-		verify(mockTableIndexDAO, never()).getMaxCurrentCompleteVersionForTable(any(IdAndVersion.class));
-		verify(mockViewSnapshotDao).getSnapshotId(idAndVersion);
-	}
-
 	@Test
 	public void testGetTableVersionForTableEntityNoVersion() {
 		idAndVersion = IdAndVersion.parse("syn123");

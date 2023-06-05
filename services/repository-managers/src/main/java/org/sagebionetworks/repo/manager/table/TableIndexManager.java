@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -248,9 +249,9 @@ public interface TableIndexManager {
 	 * Ensure the benefactor IDs for the given view snapshot are up-to-date.
 	 * 
 	 * @param viewId
-	 * @return True if any benefactor was updated, false otherwise
+	 * @return An optional containing the next version of the view if any benefactor changed, empty otherwise
 	 */
-	boolean refreshViewBenefactors(IdAndVersion viewId);
+	Optional<Long> refreshViewBenefactors(IdAndVersion viewId);
 
 	/**
 	 * Update the object replication for the given object data.

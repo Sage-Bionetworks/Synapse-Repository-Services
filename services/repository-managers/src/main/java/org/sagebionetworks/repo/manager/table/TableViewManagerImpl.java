@@ -399,9 +399,11 @@ public class TableViewManagerImpl implements TableViewManager {
 	void refreshBenefactorsForViewSnapshot(IdAndVersion viewId) {
 		ValidateArgument.required(viewId, "viewId");
 		TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
-		if (indexManager.refreshViewBenefactors(viewId)) {
+		indexManager.refreshViewBenefactors(viewId).ifPresent( nextVersion -> {		
+			// We update the version so that any materialized view depending on the snapshot will detect the change
+			indexManager.setIndexVersion(viewId, nextVersion);
 			tableManagerSupport.updateChangedOnIfAvailable(viewId);
-		}
+		});
 	}
 	
 	
@@ -566,10 +568,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		tableManagerSupport.restoreTableIndexFromS3(idAndVersion, snapshot.getBucket(), snapshot.getKey());
 		
 		// ensure the latest benefactors are used.
-		indexManager.refreshViewBenefactors(idAndVersion);
-		
-		return snapshot.getSnapshotId();
-		
+		return indexManager.refreshViewBenefactors(idAndVersion).orElse(0L);
 	}
 		
 	void validateViewForSnapshot(IdAndVersion idAndVersion) throws TableUnavailableException {

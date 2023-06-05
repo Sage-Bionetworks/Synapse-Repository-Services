@@ -390,26 +390,16 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			return value.orElse(-1L);
 		case ENTITY_VIEW:
 		case MATERIALIZED_VIEW:
-			return getCurrentViewIndexStateNumber(idAndVersion);
-		default:
-			throw new IllegalArgumentException("unknown table type: " + type);
-		}
-	}
-	
-	Long getCurrentViewIndexStateNumber(IdAndVersion idAndVersion) {
-		if (idAndVersion.getVersion().isPresent()) {
-			// The ID of the snapshot is used for this case.
-			return tableSnapshotDao.getSnapshotId(idAndVersion);
-		} else {
 			/*
 			 * By returning the version already associated with the view index, we ensure
 			 * this call will not trigger a view to be rebuilt.
 			 */
-			TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(idAndVersion);
-			return indexDao.getMaxCurrentCompleteVersionForTable(idAndVersion);
+			return this.tableConnectionFactory.getConnection(idAndVersion).getMaxCurrentCompleteVersionForTable(idAndVersion);
+		default:
+			throw new IllegalArgumentException("unknown table type: " + type);
 		}
 	}
-	
+		
 	@Override
 	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, LockContext context, String key,
 			ProgressingCallable<R> callable) throws Exception {
