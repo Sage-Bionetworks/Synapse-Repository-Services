@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -60,7 +59,6 @@ import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
@@ -70,7 +68,6 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.ReplicationType;
-import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -157,8 +154,6 @@ public class TableIndexManagerImplTest {
 	private Long versionNumber;
 	private SparseChangeSet sparseChangeSet;
 	private List<ColumnModel> schema;
-	private String schemaMD5Hex;
-	private List<SelectColumn> selectColumns;
 
 	private Grouping groupOne;
 	private Grouping groupTwo;
@@ -169,7 +164,6 @@ public class TableIndexManagerImplTest {
 	private NextPageToken nextPageToken;
 	private String tokenString;
 	private List<String> scopeSynIds;
-	private Set<Long> scopeIds;
 	private ViewScope scope;
 
 	private ViewObjectType objectType;
@@ -193,10 +187,7 @@ public class TableIndexManagerImplTest {
 		versionNumber = 99L;
 		schema = Arrays.asList(TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
 				TableModelTestUtils.createColumn(101L, "aFile", ColumnType.FILEHANDLEID));
-		schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(TableModelUtils.getIds(schema));
-		selectColumns = Arrays.asList(TableModelTestUtils.createSelectColumn(99L, "aString", ColumnType.STRING),
-				TableModelTestUtils.createSelectColumn(101L, "aFile", ColumnType.FILEHANDLEID));
-
+		
 		sparseChangeSet = new SparseChangeSet(tableId.toString(), schema);
 		SparseRow row = sparseChangeSet.addEmptyRow();
 		row.setRowId(0L);
@@ -224,7 +215,6 @@ public class TableIndexManagerImplTest {
 		nextPageToken = new NextPageToken(limit, offset);
 		tokenString = nextPageToken.toToken();
 		scopeSynIds = List.of("syn123", "syn345");
-		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scopeSynIds));
 
 		scope = new ViewScope();
 		scope.setScope(scopeSynIds);
@@ -321,8 +311,6 @@ public class TableIndexManagerImplTest {
 		// no files in the schema
 		schema = Arrays.asList(TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
 				TableModelTestUtils.createColumn(101L, "moreStrings", ColumnType.STRING));
-		selectColumns = Arrays.asList(TableModelTestUtils.createSelectColumn(99L, "aString", ColumnType.STRING),
-				TableModelTestUtils.createSelectColumn(101L, "moreStrings", ColumnType.STRING));
 		sparseChangeSet = new SparseChangeSet(tableId.toString(), schema);
 		SparseRow row = sparseChangeSet.addEmptyRow();
 		row.setRowId(0L);
@@ -1685,11 +1673,14 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockFilter.getLimitObjectIds()).thenReturn(Optional.of(rowsIdsWithChanges));
 		when(mockIndexDao.isSearchEnabled(any())).thenReturn(false);
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(3L);
 
 		IndexDescription indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		
 		// call under test
-		managerSpy.updateViewRowsInTransaction(indexDescription, scopeType, schema, mockFilter);
+		long newVersion = managerSpy.updateViewRowsInTransaction(indexDescription, scopeType, schema, mockFilter);
+		
+		assertEquals(4, newVersion);
 
 		verify(mockIndexDao).executeInWriteTransaction(any());
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
@@ -1707,6 +1698,7 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockFilter.getLimitObjectIds()).thenReturn(Optional.of(rowsIdsWithChanges));
 		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(3L);
 		doReturn(schema).when(managerSpy).getSchemaForSearchIndex(any());
 		List<TableRowData> mockedData = Mockito.mock(List.class);
 		when(mockIndexDao.getTableDataForRowIds(any(), any(), any())).thenReturn(mockedData);
@@ -1716,8 +1708,10 @@ public class TableIndexManagerImplTest {
 		IndexDescription indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		
 		// call under test
-		managerSpy.updateViewRowsInTransaction(indexDescription, scopeType, schema, mockFilter);
-
+		long newVersion = managerSpy.updateViewRowsInTransaction(indexDescription, scopeType, schema, mockFilter);
+		
+		assertEquals(4, newVersion);
+		
 		verify(mockIndexDao).executeInWriteTransaction(any());
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
 		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);

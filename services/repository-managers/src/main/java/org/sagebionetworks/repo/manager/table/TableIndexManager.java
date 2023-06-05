@@ -178,7 +178,7 @@ public interface TableIndexManager {
 	 * 
 	 * @param scopeType
 	 * @param currentSchema
-	 * @return View CRC32
+	 * @return The new version of the view
 	 */
 	long populateViewFromEntityReplication(Long viewId, ViewScopeType scopeType, List<ColumnModel> currentSchema);
 	
@@ -239,8 +239,9 @@ public interface TableIndexManager {
 	 * @param currentSchema      The current schema of the view.
 	 * @param filter
 	 * @param provider
+	 * @return The new version of the view
 	 */
-	void updateViewRowsInTransaction(IndexDescription index, ViewScopeType scopeType, List<ColumnModel> currentSchema,
+	long updateViewRowsInTransaction(IndexDescription index, ViewScopeType scopeType, List<ColumnModel> currentSchema,
 			ViewFilter filter);
 
 	/**

@@ -532,7 +532,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		}
 
 		// Returns the next version of the view
-		return getCurrentVersionOfIndex(IdAndVersion.newBuilder().setId(viewId).build()) + 1;
+		return getNextVersionForView(IdAndVersion.newBuilder().setId(viewId).build());
+	}
+	
+	long getNextVersionForView(IdAndVersion viewId) {
+		return getCurrentVersionOfIndex(viewId) + 1;
 	}
 		
 	@Override
@@ -888,7 +892,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public void updateViewRowsInTransaction(IndexDescription index, ViewScopeType scopeType,
+	public long updateViewRowsInTransaction(IndexDescription index, ViewScopeType scopeType,
 			List<ColumnModel> currentSchema, ViewFilter filter) {
 		ValidateArgument.required(index, "index");
 		ValidateArgument.required(scopeType, "scopeType");
@@ -919,6 +923,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			}
 			return null;
 		});
+		
+		return getNextVersionForView(viewId);
 	}
 	
 	void determineCauseOfReplicationFailure(Exception exception, List<ColumnModel> currentSchema,

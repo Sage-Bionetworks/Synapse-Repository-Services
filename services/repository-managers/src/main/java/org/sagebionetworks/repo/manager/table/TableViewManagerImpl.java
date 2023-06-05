@@ -443,8 +443,9 @@ public class TableViewManagerImpl implements TableViewManager {
 				
 				if (!rowsIdsWithChanges.isEmpty()) {
 					// update these rows in a new transaction.
-					indexManager.updateViewRowsInTransaction(indexDescription, scopeType, currentSchema, deltaFilter);
+					long newVersion = indexManager.updateViewRowsInTransaction(indexDescription, scopeType, currentSchema, deltaFilter);
 					previousPageRowIdsWithChanges = rowsIdsWithChanges;
+					indexManager.setIndexVersion(viewId, newVersion);
 					tableManagerSupport.updateChangedOnIfAvailable(viewId);
 				}
 			} while (rowsIdsWithChanges.size() >= pageSize);

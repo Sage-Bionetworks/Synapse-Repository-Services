@@ -1322,7 +1322,7 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(rowsToUpdate);
-
+		when(mockIndexManager.updateViewRowsInTransaction(any(), any(), any(), any())).thenReturn(101L);
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
 				allContainersInScope);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
@@ -1335,6 +1335,7 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 		verify(mockTableManagerSupport).updateChangedOnIfAvailable(idAndVersion);
+		
 		verify(mockIndexManager, times(2)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
 	
@@ -1409,7 +1410,8 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne);
-
+		when(mockIndexManager.updateViewRowsInTransaction(any(), any(), any(), any())).thenReturn(101L);
+		
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
 				allContainersInScope);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
@@ -1420,6 +1422,7 @@ public class TableViewManagerImplTest {
 				filter.newBuilder().addLimitObjectids(pageOne).build());
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
+		verify(mockIndexManager).setIndexVersion(idAndVersion, 101L);
 		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
 		verify(mockIndexManager, times(1)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
@@ -1439,6 +1442,7 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne);
+		when(mockIndexManager.updateViewRowsInTransaction(any(), any(), any(), any())).thenReturn(101L);
 
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
 				allContainersInScope);
@@ -1450,6 +1454,7 @@ public class TableViewManagerImplTest {
 				filter.newBuilder().addLimitObjectids(pageOne).build());
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
+		verify(mockIndexManager).setIndexVersion(idAndVersion, 101L);
 		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
 		verify(mockIndexManager, times(2)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
@@ -1468,7 +1473,8 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne);
-
+		when(mockIndexManager.updateViewRowsInTransaction(any(), any(), any(), any())).thenReturn(101L);
+		
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
 				allContainersInScope);
 		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
@@ -1479,6 +1485,7 @@ public class TableViewManagerImplTest {
 				filter.newBuilder().addLimitObjectids(pageOne).build());
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
+		verify(mockIndexManager).setIndexVersion(idAndVersion, 101L);
 		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
 		verify(mockIndexManager, times(2)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
@@ -1499,6 +1506,7 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne, pageTwo);
+		when(mockIndexManager.updateViewRowsInTransaction(any(), any(), any(), any())).thenReturn(101L, 102L);
 
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
 				allContainersInScope);
@@ -1512,6 +1520,8 @@ public class TableViewManagerImplTest {
 				filter.newBuilder().addLimitObjectids(pageTwo).build());
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
+		verify(mockIndexManager).setIndexVersion(idAndVersion, 101L);
+		verify(mockIndexManager).setIndexVersion(idAndVersion, 102L);
 		verify(mockTableManagerSupport, times(2)).updateChangedOnIfAvailable(idAndVersion);
 		verify(mockIndexManager, times(3)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
@@ -1522,7 +1532,8 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-
+		when(mockIndexManager.updateViewRowsInTransaction(any(), any(), any(), any())).thenReturn(101L);
+		
 		Set<Long> pageOne = Sets.newHashSet(101L, 102L);
 		Set<Long> pageTwo = Sets.newHashSet(103L, 104L);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
@@ -1545,6 +1556,7 @@ public class TableViewManagerImplTest {
 				filter.newBuilder().addLimitObjectids(pageTwo).build());
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
+		verify(mockIndexManager).setIndexVersion(idAndVersion, 101L);
 		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
 		verify(mockIndexManager, times(1)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
@@ -1565,6 +1577,7 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne, pageTwo);
+		when(mockIndexManager.updateViewRowsInTransaction(any(), any(), any(), any())).thenReturn(101L);
 		
 		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
 				allContainersInScope);
@@ -1580,6 +1593,7 @@ public class TableViewManagerImplTest {
 				filter.newBuilder().addLimitObjectids(pageTwo).build());
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
+		verify(mockIndexManager).setIndexVersion(idAndVersion, 101L);
 		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
 		verify(mockIndexManager, times(2)).getOutOfDateRowsForView(idAndVersion, filter, pageSize);
 	}
