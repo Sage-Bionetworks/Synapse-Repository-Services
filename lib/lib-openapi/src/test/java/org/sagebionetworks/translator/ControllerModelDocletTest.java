@@ -82,6 +82,7 @@ public class ControllerModelDocletTest {
 		assertNotNull(is);
 		String jsonTxt = IOUtils.toString(is, "UTF-8");
 		generatedOpenAPISpec = new JSONObject(jsonTxt);
+		System.out.println("generated open api spec " + generatedOpenAPISpec.toString(5));
 	}
 	
 	@Test
