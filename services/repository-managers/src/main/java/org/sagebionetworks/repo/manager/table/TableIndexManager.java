@@ -248,8 +248,9 @@ public interface TableIndexManager {
 	 * Ensure the benefactor IDs for the given view snapshot are up-to-date.
 	 * 
 	 * @param viewId
+	 * @return True if any benefactor was updated, false otherwise
 	 */
-	void refreshViewBenefactors(IdAndVersion viewId);
+	boolean refreshViewBenefactors(IdAndVersion viewId);
 
 	/**
 	 * Update the object replication for the given object data.

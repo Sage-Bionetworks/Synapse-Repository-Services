@@ -1423,11 +1423,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void refreshViewBenefactors(IdAndVersion viewId, ReplicationType mainType) {
+	public boolean refreshViewBenefactors(IdAndVersion viewId, ReplicationType mainType) {
 		ValidateArgument.required(viewId, "viewId");
 		ValidateArgument.required(mainType, "mainType");
 		String sql = SQLUtils.generateSqlToRefreshViewBenefactors(viewId);
-		template.update(sql, mainType.name());
+		return template.update(sql, mainType.name()) > 0;
 	}
 
 	@Override

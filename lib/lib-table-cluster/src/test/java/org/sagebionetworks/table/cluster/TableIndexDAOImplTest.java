@@ -4658,7 +4658,9 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1));
 		
 		// call under test
-		tableIndexDAO.refreshViewBenefactors(tableId, mainType);
+		boolean result = tableIndexDAO.refreshViewBenefactors(tableId, mainType);
+		
+		assertTrue(result);
 		
 		// The benefactors should be updated.
 		results = tableIndexDAO.query(mockProgressCallback, query);
@@ -4666,6 +4668,64 @@ public class TableIndexDAOImplTest {
 		// file one should change while file two should remain the same.
 		assertEquals(Lists.newArrayList(file1.getId().toString(),file1.getBenefactorId().toString()), results.getRows().get(0).getValues());
 		assertEquals(Lists.newArrayList(file2.getId().toString(),file2.getBenefactorId().toString()), results.getRows().get(1).getValues());
+	}
+	
+	@Test
+	public void testRefreshViewBenefactorsWithNoChanges() throws ParseException{
+		tableId = IdAndVersion.parse("syn123");
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteTable(tableId);
+		
+		// setup some hierarchy.
+		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO(file1);
+		double1.setKey("foo");
+		double1.setValue("NaN");
+		double1.setType(AnnotationType.DOUBLE);
+		file1.setAnnotations(Arrays.asList(double1));
+		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO(file2);
+		double2.setKey("foo");
+		double2.setValue("Infinity");
+		double2.setType(AnnotationType.DOUBLE);
+		file2.setAnnotations(Arrays.asList(double2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
+		
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
+
+		// both parents
+		Set<Long> scope = Set.of(file1.getParentId(), file2.getParentId());
+		
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
+
+		createOrUpdateTable(schema, indexDescription);
+		
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
+		
+		List<Row> expectedRows = List.of(
+			new Row().setRowId(2L).setVersionNumber(2L).setValues(List.of(file1.getId().toString(),file1.getBenefactorId().toString())),
+			new Row().setRowId(3L).setVersionNumber(2L).setValues(List.of(file2.getId().toString(),file2.getBenefactorId().toString()))
+		);
+		
+		QueryTranslator query = QueryTranslator.builder("select ROW_ID, ROW_BENEFACTOR from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		
+		assertEquals(expectedRows, results.getRows());
+				
+		// call under test
+		boolean result = tableIndexDAO.refreshViewBenefactors(tableId, mainType);
+		
+		assertFalse(result);
+		
+		// No changes
+		assertEquals(expectedRows, tableIndexDAO.query(mockProgressCallback, query).getRows());
 	}
 	
 	@Test

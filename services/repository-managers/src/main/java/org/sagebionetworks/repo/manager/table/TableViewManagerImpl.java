@@ -399,7 +399,9 @@ public class TableViewManagerImpl implements TableViewManager {
 	void refreshBenefactorsForViewSnapshot(IdAndVersion viewId) {
 		ValidateArgument.required(viewId, "viewId");
 		TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
-		indexManager.refreshViewBenefactors(viewId);
+		if (indexManager.refreshViewBenefactors(viewId)) {
+			tableManagerSupport.updateChangedOnIfAvailable(viewId);
+		}
 	}
 	
 	

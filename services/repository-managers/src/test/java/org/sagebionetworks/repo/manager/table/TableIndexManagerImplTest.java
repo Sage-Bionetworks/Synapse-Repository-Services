@@ -2373,8 +2373,28 @@ public class TableIndexManagerImplTest {
 	public void testRefreshViewBenefactors() {
 		IdAndVersion viewId = IdAndVersion.parse("syn123");
 		when(mockManagerSupport.getViewScopeType(any())).thenReturn(scopeType);
+		when(mockIndexDao.refreshViewBenefactors(any(), any())).thenReturn(true);
+		
 		// call under test
-		manager.refreshViewBenefactors(viewId);
+		boolean result = manager.refreshViewBenefactors(viewId);
+		
+		assertTrue(result);
+		
+		verify(mockManagerSupport).getViewScopeType(viewId);
+		verify(mockIndexDao).refreshViewBenefactors(viewId, scopeType.getObjectType().getMainType());
+	}
+	
+	@Test
+	public void testRefreshViewBenefactorsWithNoChanges() {
+		IdAndVersion viewId = IdAndVersion.parse("syn123");
+		when(mockManagerSupport.getViewScopeType(any())).thenReturn(scopeType);
+		when(mockIndexDao.refreshViewBenefactors(any(), any())).thenReturn(false);
+		
+		// call under test
+		boolean result = manager.refreshViewBenefactors(viewId);
+		
+		assertFalse(result);
+		
 		verify(mockManagerSupport).getViewScopeType(viewId);
 		verify(mockIndexDao).refreshViewBenefactors(viewId, scopeType.getObjectType().getMainType());
 	}

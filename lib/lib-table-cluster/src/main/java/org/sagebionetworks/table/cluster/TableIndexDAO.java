@@ -571,8 +571,9 @@ public interface TableIndexDAO {
 	 * object replication.
 	 * 
 	 * @param viewId
+	 * @return True if any benefactor was updated, false otherwise
 	 */
-	void refreshViewBenefactors(IdAndVersion viewId, ReplicationType mainType);
+	boolean refreshViewBenefactors(IdAndVersion viewId, ReplicationType mainType);
 
 	/**
 	 * Get a single page of IdAndChecksums from the replication table using the

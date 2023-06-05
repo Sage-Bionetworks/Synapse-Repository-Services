@@ -1699,11 +1699,23 @@ public class TableViewManagerImplTest {
 	}
 	
 	@Test
-	public void testRefreshBenefactorsForViewSnapshot() {
+	public void testRefreshBenefactorsForViewSnapshotWithChanges() {
 		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockIndexManager);
+		when(mockIndexManager.refreshViewBenefactors(any())).thenReturn(true);
 		// call under test
 		manager.refreshBenefactorsForViewSnapshot(idAndVersion);
 		verify(mockIndexManager).refreshViewBenefactors(idAndVersion);
+		verify(mockTableManagerSupport).updateChangedOnIfAvailable(idAndVersion);
+	}
+	
+	@Test
+	public void testRefreshBenefactorsForViewSnapshotWithNoChanges() {
+		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockIndexManager);
+		when(mockIndexManager.refreshViewBenefactors(any())).thenReturn(false);
+		// call under test
+		manager.refreshBenefactorsForViewSnapshot(idAndVersion);
+		verify(mockIndexManager).refreshViewBenefactors(idAndVersion);
+		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 	
 	@Test

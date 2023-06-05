@@ -978,10 +978,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 
 	@Override
-	public void refreshViewBenefactors(final IdAndVersion viewId) {
+	public boolean refreshViewBenefactors(final IdAndVersion viewId) {
 		ValidateArgument.required(viewId, "viewId");
 		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
-		tableIndexDao.refreshViewBenefactors(viewId, scopeType.getObjectType().getMainType());
+		return tableIndexDao.refreshViewBenefactors(viewId, scopeType.getObjectType().getMainType());
 	}
 	
 	@Override
