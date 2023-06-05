@@ -530,9 +530,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			// if the copy failed. Attempt to determine the cause.
 			determineCauseOfReplicationFailure(e, currentSchema, provider, scopeType.getTypeMask(), filter);
 		}
-		
-		// calculate the new CRC32;
-		return tableIndexDao.calculateCRC32ofTableView(viewId);
+
+		// Returns the next version of the view
+		return getCurrentVersionOfIndex(IdAndVersion.newBuilder().setId(viewId).build()) + 1;
 	}
 		
 	@Override

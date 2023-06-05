@@ -27,7 +27,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_SEARCH_CONTENT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
-import static org.sagebionetworks.repo.model.table.TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE;
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SCHEMA_HASH;
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SINGLE_KEY;
@@ -1604,19 +1603,7 @@ public class SQLUtils {
 			builder.append(meta.getColumnNameForId());
 		}
 	}
-	
-	/**
-	 * Create the SQL used to calculate the CRC32 of a table view.
-	 * 
-	 * @param viewId
-	 * @param etagColumnId
-	 * @return
-	 */
-	public static String buildTableViewCRC32Sql(Long viewId){
-		String tableName = getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableIndexType.INDEX);
-		return String.format(SQL_TABLE_VIEW_CRC_32_TEMPLATE, tableName);
-	}
-	
+		
 	/**
 	 * 
 	 * @param refs

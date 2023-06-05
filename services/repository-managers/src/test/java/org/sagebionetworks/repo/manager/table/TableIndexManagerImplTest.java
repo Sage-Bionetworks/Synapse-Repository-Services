@@ -159,7 +159,6 @@ public class TableIndexManagerImplTest {
 	private List<ColumnModel> schema;
 	private String schemaMD5Hex;
 	private List<SelectColumn> selectColumns;
-	private Long crc32;
 
 	private Grouping groupOne;
 	private Grouping groupTwo;
@@ -213,8 +212,6 @@ public class TableIndexManagerImplTest {
 		Iterator<Grouping> it = sparseChangeSet.groupByValidValues().iterator();
 		groupOne = it.next();
 		groupTwo = it.next();
-
-		crc32 = 5678L;
 
 		containerIds = Set.of(
 			IdAndVersion.parse("1"),
@@ -704,18 +701,17 @@ public class TableIndexManagerImplTest {
 
 	@Test
 	public void testPopulateViewFromEntityReplication() {
-		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(0L);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getViewFilter(tableId.getId())).thenReturn(mockFilter);
 		
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 
 		// call under test
-		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
-		assertEquals(crc32, resultCrc);
+		Long version = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
+		assertEquals(1L, version);
 		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
-		// the CRC should be calculated with the etag column.
-		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(tableId);
 	}
 
 	/**
@@ -763,17 +759,16 @@ public class TableIndexManagerImplTest {
 
 	@Test
 	public void testPopulateViewFromEntityReplicationWithProgress() throws Exception {
-		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(0L);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getViewFilter(tableId.getId())).thenReturn(mockFilter);
 
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
-		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
-		assertEquals(crc32, resultCrc);
+		Long version = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
+		assertEquals(1L, version);
 		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
-		// the CRC should be calculated with the etag column.
-		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(tableId);
 	}
 
 	@Test

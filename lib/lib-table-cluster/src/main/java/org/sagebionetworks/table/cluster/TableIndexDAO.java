@@ -452,16 +452,6 @@ public interface TableIndexDAO {
 			ObjectFieldTypeMapper fieldTypeMapper);
 
 	/**
-	 * Calculate the Cyclic-Redundancy-Check (CRC) of a table view's concatenation
-	 * of ROW_ID + ETAG. Used to determine if a view is synchronized with the truth.
-	 * 
-	 * @param viewId
-	 * 
-	 * @return
-	 */
-	long calculateCRC32ofTableView(Long viewId);
-
-	/**
 	 * Get the distinct possible ColumnModels for the given scope filter
 	 * 
 	 * @param scopeFilter

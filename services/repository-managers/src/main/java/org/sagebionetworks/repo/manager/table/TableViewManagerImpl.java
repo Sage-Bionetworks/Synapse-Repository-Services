@@ -503,19 +503,20 @@ public class TableViewManagerImpl implements TableViewManager {
 			
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 			
-			Long viewCRC = null;
-			if(idAndVersion.getVersion().isPresent()) {
-				viewCRC = populateViewFromSnapshot(indexDescription, indexManager);
-			}else {
-				viewCRC = populateViewIndexFromReplication(idAndVersion, indexManager, viewSchema);
+			Long viewVersion = null;
+			
+			if (idAndVersion.getVersion().isPresent()) {
+				viewVersion = populateViewFromSnapshot(indexDescription, indexManager);
+			} else {
+				viewVersion = populateViewIndexFromReplication(idAndVersion, indexManager, viewSchema);
 			}
 			
 			// Now build the secondary indicies
 			indexManager.buildTableIndexIndices(indexDescription, viewSchema);
 			
-			// both the CRC and schema MD5 are used to determine if the view is up-to-date. 
-			// The schema MD5 is already set when resetting the index, we use the CRC of the view as the "version" of the index
-			indexManager.setIndexVersion(idAndVersion, viewCRC);
+			// both the version and schema MD5 are used to determine if the view is up-to-date. 
+			// The schema MD5 is already set when resetting the index
+			indexManager.setIndexVersion(idAndVersion, viewVersion);
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
 			log.info(String.format("Set view: '%s' to AVAILABLE.", idAndVersion.toString()));

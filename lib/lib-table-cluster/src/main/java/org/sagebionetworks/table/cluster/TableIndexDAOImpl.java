@@ -1067,16 +1067,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return dto;
 	}
 	
-	@Override
-	public long calculateCRC32ofTableView(Long viewId){
-		String sql = SQLUtils.buildTableViewCRC32Sql(viewId);
-		Long result = this.template.queryForObject(sql, Long.class);
-		if(result == null){
-			return -1L;
-		}
-		return result;
-	}
-
 	/***
 	 * Get the maximum number of elements in a list for each annotation column
 	 * @param mainType

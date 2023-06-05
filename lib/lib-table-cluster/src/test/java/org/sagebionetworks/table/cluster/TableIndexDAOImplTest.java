@@ -2429,9 +2429,6 @@ public class TableIndexDAOImplTest {
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
-		// Check the CRC of the view
-		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId.getId());
-		assertEquals(381255304L, crc32);
 	}
 
 	@Test
@@ -2478,10 +2475,6 @@ public class TableIndexDAOImplTest {
 		assertEquals(2, result.getRows().size());
 		assertEquals(Collections.singletonList("[\"NaN\", \"1.2\", \"Infinity\"]"), result.getRows().get(0).getValues());
 		assertEquals(Collections.singletonList("[\"Infinity\", \"222.222\"]"), result.getRows().get(1).getValues());
-
-		// Check the CRC of the view
-		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId.getId());
-		assertEquals(381255304L, crc32);
 	}
 	
 	/*
@@ -2585,9 +2578,6 @@ public class TableIndexDAOImplTest {
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(0, count);
-		// Check the CRC of the view
-		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId.getId());
-		assertEquals(-1L, crc32);
 	}
 	
 	@Test
