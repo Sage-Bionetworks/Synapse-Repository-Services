@@ -181,15 +181,21 @@ public class FileEventRecordWorkerIntegrationTest {
                 continue;
             }
             try (S3ObjectInputStream s3ObjectInputStream = s3Client.getObject(BUCKET_NAME, objectSummary.getKey()).getObjectContent();
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(
                     new GZIPInputStream(s3ObjectInputStream)))) {
-                String record;
-                while((record =reader.readLine())!=null)
-                {
-                    if (record.contains("\"fileHandleId\":\"" + fileHandleId + "\"")) {
-                        return true;
+                try{
+                    String record;
+                    while((record =reader.readLine())!=null)
+                    {
+                        if (record.contains("\"fileHandleId\":\"" + fileHandleId + "\"")) {
+                            return true;
+                        }
                     }
                 }
+                finally {
+                    s3ObjectInputStream.abort();
+                }
+
             }
         }
         return false;
