@@ -463,6 +463,8 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
 		
 		RowReferenceSet results = manager.appendRows(user, tableId, set, mockTransactionContext);
 		assertNotNull(results);
@@ -505,7 +507,9 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
+
 		RowReferenceSet results = manager.appendPartialRows(user, tableId, partialSet, mockTransactionContext);
 		assertNotNull(results);
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
@@ -552,7 +556,9 @@ public class TableEntityManagerTest {
 		setUserAsFileHandleCreator();
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
+
 		RowReferenceSet results = new RowReferenceSet();
 		TableUpdateResponse response = manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(), "etag", results, mockTransactionContext);
 		assertNotNull(response);
@@ -641,7 +647,8 @@ public class TableEntityManagerTest {
 		setUserAsFileHandleCreator();
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
 		// calculate the actual size of the first row
 		int actualSizeFristRowBytes = TableModelUtils.calculateActualRowSize(sparseChangeSet.writeToDto().getRows().get(0));
 		// With this max, there should be three batches (4,8,2)
@@ -872,6 +879,8 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
 
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
@@ -1025,6 +1034,8 @@ public class TableEntityManagerTest {
 		
 		// Start in read-write then go to read-only
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE, StatusEnum.READ_WRITE, StatusEnum.READ_ONLY);
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
 
 		// three batches with this size
 		manager.setMaxBytesPerChangeSet(300);
@@ -1045,7 +1056,8 @@ public class TableEntityManagerTest {
 		setUserAsFileHandleCreator();
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
 		// Start in read-write then go to down
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE, StatusEnum.READ_WRITE, StatusEnum.DOWN);
 		// three batches with this size
@@ -1369,7 +1381,9 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
+
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
 		request.setToAppend(partialSet);
 		// call under test.
@@ -1422,7 +1436,9 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
+
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
 		request.setToAppend(partialSet);
 		// call under test
@@ -1443,7 +1459,9 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
+
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
 		request.setToAppend(set);
 		// call under test

@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -68,6 +69,8 @@ import static org.sagebionetworks.repo.model.file.FileHandleAssociateType.TableE
 
 @ExtendWith(MockitoExtension.class)
 public class FileHandlePackageManagerImplTest {
+	private static final String STACK = "stack";
+	private static final String INSTANCE = "instance";
 
 	@Mock
 	private FileHandleDao mockFileHandleDao;
@@ -85,6 +88,8 @@ public class FileHandlePackageManagerImplTest {
 	private ZipEntryNameProvider mockZipEntryNameProvider;
 	@Mock
 	private TransactionalMessenger messenger;
+	@Mock
+	StackConfiguration mockStackConfig;
 	@Captor
 	private ArgumentCaptor<Set<String>> filesInZipCaptor;
 	@Captor
@@ -659,6 +664,8 @@ public class FileHandlePackageManagerImplTest {
 		FileDownloadSummary summary = new FileDownloadSummary().setFileHandleId("11").setAssociateObjectId("syn123")
 				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setStatus(FileDownloadStatus.SUCCESS);
 		summaryResults = Arrays.asList(summary);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
+		when(mockStackConfig.getStack()).thenReturn(STACK);
 		
 		// call under test
 		fileHandleSupportSpy.collectDownloadStatistics(userInfo.getId(), summaryResults);

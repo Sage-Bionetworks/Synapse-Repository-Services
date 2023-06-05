@@ -878,6 +878,8 @@ public class FileHandleManagerImplTest {
 
 		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).
 		thenReturn(Collections.singletonList(authorizationResult));
+		when(mockStackConfig.getStack()).thenReturn(STACK);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
 		
 		// method under test
 		String redirect = manager.getRedirectURLForFileHandle(mockUser,
