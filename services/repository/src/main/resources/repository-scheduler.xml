@@ -18,7 +18,6 @@
 		<ref bean="throttleRulesCacheTrigger" />
 		<ref bean="objectRecordQueueTrigger" />
 		<ref bean="memoryLoggerTrigger" />
-		<ref bean="eventsQueueTrigger" />
 	</util:list>
 
 	<!-- This is a shared scheduler-->

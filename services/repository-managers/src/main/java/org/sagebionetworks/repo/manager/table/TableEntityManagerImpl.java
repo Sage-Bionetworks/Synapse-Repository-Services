@@ -1,28 +1,14 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.events.EventsCollector;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
+import org.sagebionetworks.repo.manager.file.FileEventUtils;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -41,7 +27,10 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
+import org.sagebionetworks.repo.model.file.FileEvent;
+import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -92,8 +81,19 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class TableEntityManagerImpl implements TableEntityManager {
 	
@@ -132,14 +132,14 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Autowired
 	private NodeManager nodeManager;
 	@Autowired
-	private EventsCollector statisticsCollector;
-	@Autowired
 	private TableTransactionManager transactionManager;
 	@Autowired
 	private TableSnapshotDao tableSnapshotDao;
 	@Autowired
 	private StackConfiguration config;
-	
+	@Autowired
+	private TransactionalMessenger messenger;
+
 	/**
 	 * Injected via spring
 	 */
@@ -369,15 +369,14 @@ public class TableEntityManagerImpl implements TableEntityManager {
  		final Set<Long> newFileIds = getFileHandleIdsNotAssociatedWithTable(tableId, fileIdsInSet);
  		
  		final Long userId = user.getId();
- 		
- 		List<StatisticsFileEvent> uploadEvents = newFileIds.stream().map(fileHandleId -> 
-			StatisticsFileEventUtils.buildFileUploadEvent(userId, fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity)
-		).collect(Collectors.toList());
-		
-		if (!uploadEvents.isEmpty()) {
-			statisticsCollector.collectEvents(uploadEvents);
-		}
-		
+
+		List<FileEvent> uploadFileEvents = newFileIds.stream().map(fileHandleId ->
+						FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId,
+								fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity, config.getStack(), config.getStackInstance()))
+				.collect(Collectors.toList());
+
+		uploadFileEvents.forEach(messenger::publishMessageAfterCommit);
+
 		final boolean hasFileRefs = !newFileIds.isEmpty();
 		
 		tableRowTruthDao.appendRowSetToTable(userId.toString(), tableId, range.getEtag(), range.getVersionNumber(), columns, delta.writeToDto(), txContext.getTransactionId(), hasFileRefs);

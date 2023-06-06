@@ -1,40 +1,10 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyListOf;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-
+import au.com.bytecode.opencsv.CSVReader;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,7 +22,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.events.EventsCollector;
+import org.sagebionetworks.repo.manager.file.FileEventUtils;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -73,6 +43,10 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
+import org.sagebionetworks.repo.model.file.FileEvent;
+import org.sagebionetworks.repo.model.file.FileEventType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -125,16 +99,45 @@ import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 
-import au.com.bytecode.opencsv.CSVReader;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyListOf;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TableEntityManagerTest {
-	
+	private static final String STACK = "stack";
+	private static final String INSTANCE = "instance";
 	@Mock
 	private ProgressCallback mockProgressCallback;
 	@Mock
@@ -164,8 +167,6 @@ public class TableEntityManagerTest {
 	@Mock
 	private NodeManager mockNodeManager;
 	@Mock
-	private EventsCollector mockStatisticsCollector;
-	@Mock
 	private TableTransactionManager mockTransactionManager;
 	@Mock
 	private TableTransactionContext mockTransactionContext;
@@ -173,7 +174,9 @@ public class TableEntityManagerTest {
 	private TableSnapshotDao mockTableSnapshotDao;
 	@Mock
 	private StackConfiguration mockConfig;
-	
+	@Mock
+	private TransactionalMessenger messenger;
+
 	@InjectMocks
 	private TableEntityManagerImpl manager;
 	
@@ -181,6 +184,8 @@ public class TableEntityManagerTest {
 	
 	@Captor
 	private ArgumentCaptor<List<String>> stringListCaptor;
+	@Captor
+	private ArgumentCaptor<FileEvent> fileEventCaptor;
 
 	private List<ColumnModel> models;
 	
@@ -211,7 +216,7 @@ public class TableEntityManagerTest {
 	private List<ColumnChange> changes;
 	private IdRange range2;
 	private IdRange range3;
-	
+
 	private LockContext expectedLockContext;
 	
 	@BeforeEach
@@ -255,7 +260,7 @@ public class TableEntityManagerTest {
 		refSet.setHeaders(TableModelUtils.getSelectColumns(models));
 		refSet.setRows(new LinkedList<RowReference>());
 		refSet.setEtag("etag123");
-		
+
 		status = new TableStatus();
 		status.setTableId(tableId);
 		status.setState(TableState.PROCESSING);
@@ -307,7 +312,7 @@ public class TableEntityManagerTest {
 		snapshotRequest.setSnapshotLabel("a new label");
 		
 		managerSpy = Mockito.spy(manager);
-		
+
 		expectedLockContext = new LockContext(ContextType.TableUpdate, idAndVersion);
 	}
 
@@ -395,7 +400,8 @@ public class TableEntityManagerTest {
 		setUserAsFileHandleCreator();
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTransactionContext.getTransactionId()).thenReturn(transactionId);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
 		// assign a rowId and version to trigger a row level conflict test.
 		rawSet.getRows().get(0).setRowId(1L);
 		rawSet.getRows().get(0).setVersionNumber(0L);
@@ -433,7 +439,20 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao).listRowSetsKeysForTableGreaterThanVersion(tableId, 0L);
 		// save the row set
 		verify(mockTruthDao).appendRowSetToTable(""+user.getId(), tableId, range.getEtag(), range.getVersionNumber(), models, sparseChangeSet.writeToDto(), transactionId, /* hasFileRefs */ true);
-		verify(mockStatisticsCollector, times(1)).collectEvents(any(List.class));
+		verify(messenger, times(rowCount)).publishMessageAfterCommit(fileEventCaptor.capture());
+		List<FileEvent> fileEvents = fileEventCaptor.getAllValues();
+		assertEquals(fileEvents.size(), rowCount);
+		List<Long> fileHandles = new ArrayList<>(sparseChangeSet.getFileHandleIdsInSparseChangeSet());
+		List<FileEvent> expectedFileEvents =new ArrayList<>();
+		for (int i = 0; i < rowCount; i++) {
+			assertNotNull(fileEvents.get(i).getTimestamp());
+			FileEvent expected = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, user.getId(),
+							String.valueOf(fileHandles.get(i)), sparseChangeSet.getTableId(),
+							FileHandleAssociateType.TableEntity, STACK, INSTANCE)
+					.setTimestamp(fileEvents.get(i).getTimestamp());
+			expectedFileEvents.add(expected);
+		}
+		assertEquals(expectedFileEvents, fileEvents);
 	}
 	
 	@Test
@@ -444,6 +463,8 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
 		
 		RowReferenceSet results = manager.appendRows(user, tableId, set, mockTransactionContext);
 		assertNotNull(results);
@@ -486,7 +507,9 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
+
 		RowReferenceSet results = manager.appendPartialRows(user, tableId, partialSet, mockTransactionContext);
 		assertNotNull(results);
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
@@ -533,7 +556,9 @@ public class TableEntityManagerTest {
 		setUserAsFileHandleCreator();
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
+
 		RowReferenceSet results = new RowReferenceSet();
 		TableUpdateResponse response = manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(), "etag", results, mockTransactionContext);
 		assertNotNull(response);
@@ -622,7 +647,8 @@ public class TableEntityManagerTest {
 		setUserAsFileHandleCreator();
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
 		// calculate the actual size of the first row
 		int actualSizeFristRowBytes = TableModelUtils.calculateActualRowSize(sparseChangeSet.writeToDto().getRows().get(0));
 		// With this max, there should be three batches (4,8,2)
@@ -767,7 +793,9 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
+
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
 		replace.setHeaders(TableModelUtils.getSelectColumns(models));
@@ -784,7 +812,7 @@ public class TableEntityManagerTest {
 		replaceRows.get(1).getValues().set(ColumnType.FILEHANDLEID.ordinal(), null);
 		// unowned, but unchanged replaceRows[2]
 		replace.setRows(replaceRows);
-		
+
 		// call under test
 		manager.appendRows(user, tableId, replace, mockTransactionContext);
 
@@ -792,7 +820,25 @@ public class TableEntityManagerTest {
 
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
-		verify(mockStatisticsCollector, times(1)).collectEvents(any(List.class));
+		verify(messenger, times(2)).publishMessageAfterCommit(fileEventCaptor.capture());
+		List<FileEvent> fileEvents = fileEventCaptor.getAllValues();
+		List<String> fileHandlesList = new ArrayList<>();
+		replaceRows.forEach(row -> {
+			String fileHandleId = row.getValues().get(ColumnType.FILEHANDLEID.ordinal());
+			if (fileHandleId != null) {
+				fileHandlesList.add(fileHandleId);
+			}
+		});
+		assertEquals(fileEvents.size(), 2);
+		List<FileEvent> expectedFileEvents = new ArrayList<>();
+		for (int i = 0; i < 2; i++) {
+			assertNotNull(fileEvents.get(i).getTimestamp());
+			FileEvent expected = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, user.getId(),
+							String.valueOf(fileHandlesList.get(i)), tableId, FileHandleAssociateType.TableEntity, STACK, INSTANCE)
+					.setTimestamp(fileEvents.get(i).getTimestamp());
+			expectedFileEvents.add(expected);
+		}
+		assertEquals(expectedFileEvents, fileEvents);
 	}
 	
 	@Test
@@ -822,7 +868,7 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong(), eq(false));
 
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
-		verify(mockStatisticsCollector, never()).collectEvents(any(List.class));
+		verifyZeroInteractions(messenger);
 	}
 
 	@Test
@@ -833,6 +879,8 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
 
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
@@ -990,6 +1038,8 @@ public class TableEntityManagerTest {
 		
 		// Start in read-write then go to read-only
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE, StatusEnum.READ_WRITE, StatusEnum.READ_ONLY);
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
 
 		// three batches with this size
 		manager.setMaxBytesPerChangeSet(300);
@@ -1010,7 +1060,8 @@ public class TableEntityManagerTest {
 		setUserAsFileHandleCreator();
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
 		// Start in read-write then go to down
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE, StatusEnum.READ_WRITE, StatusEnum.DOWN);
 		// three batches with this size
@@ -1097,7 +1148,7 @@ public class TableEntityManagerTest {
 			// call under test.
 			manager.tableUpdated(user, schema, tableId, false);
 		});
-		
+
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), eq(expectedLockContext), eq(idAndVersion), any());
 	}
 	
@@ -1334,7 +1385,9 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
+
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
 		request.setToAppend(partialSet);
 		// call under test.
@@ -1387,7 +1440,9 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
+
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
 		request.setToAppend(partialSet);
 		// call under test
@@ -1408,7 +1463,9 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
 		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
-		
+		when(mockConfig.getStack()).thenReturn(STACK);
+		when(mockConfig.getStackInstance()).thenReturn(INSTANCE);
+
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
 		request.setToAppend(set);
 		// call under test

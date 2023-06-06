@@ -165,6 +165,10 @@
         {
         	"name": "DATA_ACCESS_SUBMISSION_EVENT",
         	"description": "An event fired when a user submits a data access submission"
+        },
+        {
+            "name": "FILE_EVENT",
+            "description": "An event fired when a user uploads or downloads the file"
         }
     ]
 }

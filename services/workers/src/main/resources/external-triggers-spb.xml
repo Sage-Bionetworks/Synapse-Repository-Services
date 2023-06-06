@@ -24,19 +24,6 @@
 		<property name="startDelay" value="500" />
 		<property name="repeatInterval" value="10" />
 	</bean>
-	
-	<!-- This trigger pushes the collected synapse events to kinesis -->
-	<bean id="eventsQueueTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
-		<property name="jobDetail">
-			<bean
-				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="eventsCollectorImpl" />
-				<property name="targetMethod" value="flush" />
-				<property name="concurrent" value="false" />
-			</bean>
-		</property>
-		<property name="startDelay" value="200" />
-		<property name="repeatInterval" value="5000" />
-	</bean>
+
 
 </beans>

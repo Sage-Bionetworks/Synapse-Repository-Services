@@ -1,5 +1,51 @@
 package org.sagebionetworks.repo.manager.file;
 
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.google.common.collect.Sets;
+import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileConstants;
+import org.sagebionetworks.repo.model.file.FileDownloadCode;
+import org.sagebionetworks.repo.model.file.FileDownloadStatus;
+import org.sagebionetworks.repo.model.file.FileDownloadSummary;
+import org.sagebionetworks.repo.model.file.FileEvent;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.ZipFileFormat;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.web.NotFoundException;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -21,54 +67,10 @@ import static org.sagebionetworks.repo.manager.file.FileHandlePackageManagerImpl
 import static org.sagebionetworks.repo.model.file.FileHandleAssociateType.FileEntity;
 import static org.sagebionetworks.repo.model.file.FileHandleAssociateType.TableEntity;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
-
-import org.apache.commons.io.IOUtils;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Spy;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.events.EventsCollector;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
-import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
-import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
-import org.sagebionetworks.repo.model.file.ExternalFileHandle;
-import org.sagebionetworks.repo.model.file.FileConstants;
-import org.sagebionetworks.repo.model.file.FileDownloadCode;
-import org.sagebionetworks.repo.model.file.FileDownloadStatus;
-import org.sagebionetworks.repo.model.file.FileDownloadSummary;
-import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.ZipFileFormat;
-import org.sagebionetworks.repo.model.jdo.NameValidation;
-import org.sagebionetworks.repo.web.NotFoundException;
-
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.google.common.collect.Sets;
-
 @ExtendWith(MockitoExtension.class)
 public class FileHandlePackageManagerImplTest {
+	private static final String STACK = "stack";
+	private static final String INSTANCE = "instance";
 
 	@Mock
 	private FileHandleDao mockFileHandleDao;
@@ -85,13 +87,15 @@ public class FileHandlePackageManagerImplTest {
 	@Mock
 	private ZipEntryNameProvider mockZipEntryNameProvider;
 	@Mock
-	private EventsCollector mockStatisticsCollector;
+	private TransactionalMessenger messenger;
+	@Mock
+	StackConfiguration mockStackConfig;
 	@Captor
 	private ArgumentCaptor<Set<String>> filesInZipCaptor;
 	@Captor
 	private ArgumentCaptor<ZipEntryNameProvider> zipEntryNameProviderCaptor;
 	@Captor
-	private ArgumentCaptor<List<StatisticsFileEvent>> statisticsFileEventCaptor;
+	private ArgumentCaptor<FileEvent> fileRecordEventCaptor;
 
 	@Spy
 	@InjectMocks
@@ -660,19 +664,19 @@ public class FileHandlePackageManagerImplTest {
 		FileDownloadSummary summary = new FileDownloadSummary().setFileHandleId("11").setAssociateObjectId("syn123")
 				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setStatus(FileDownloadStatus.SUCCESS);
 		summaryResults = Arrays.asList(summary);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
+		when(mockStackConfig.getStack()).thenReturn(STACK);
 		
 		// call under test
 		fileHandleSupportSpy.collectDownloadStatistics(userInfo.getId(), summaryResults);
-		
-		verify(mockStatisticsCollector).collectEvents(statisticsFileEventCaptor.capture());
-		List<StatisticsFileEvent> value = statisticsFileEventCaptor.getValue();
-		assertNotNull(value);
-		assertEquals(1, value.size());
-		StatisticsFileEvent event = value.get(0);
-		assertNotNull(event.getTimestamp());
-		assertEquals(summary.getAssociateObjectId(), event.getAssociationId());
-		assertEquals(summary.getAssociateObjectType(), event.getAssociationType());
-		assertEquals(summary.getFileHandleId(), event.getFileHandleId());
+
+		verify(messenger).publishMessageAfterCommit(fileRecordEventCaptor.capture());
+		FileEvent fileEvent = fileRecordEventCaptor.getValue();
+		assertNotNull(fileEvent);
+		assertNotNull(fileEvent.getTimestamp());
+		assertEquals(summary.getAssociateObjectId(), fileEvent.getAssociateId());
+		assertEquals(summary.getAssociateObjectType(), fileEvent.getAssociateType());
+		assertEquals(summary.getFileHandleId(), fileEvent.getFileHandleId());
 	}
 	
 	@Test
@@ -683,8 +687,8 @@ public class FileHandlePackageManagerImplTest {
 		
 		// call under test
 		fileHandleSupportSpy.collectDownloadStatistics(userInfo.getId(), summaryResults);
-		
-		verify(mockStatisticsCollector, never()).collectEvents(any());
+
+		verifyNoMoreInteractions(messenger);
 	}
 	
 	@Test

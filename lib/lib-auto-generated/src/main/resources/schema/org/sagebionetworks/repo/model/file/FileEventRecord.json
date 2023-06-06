@@ -1,0 +1,30 @@
+{
+    "description": "File record for file upload and download events",
+    "properties": {
+        "userId": {
+            "type": "integer",
+            "description": "The Id of user who initiated the file event.",
+            "required": true
+        },
+        "projectId": {
+            "type": "integer",
+            "description": "The project Id of file.",
+            "required": true
+        },
+        "fileHandleId": {
+            "type": "string",
+            "description": "The filehandle Id of file.",
+            "required": true
+        },
+        "associateType": {
+            "$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociateType",
+            "description": "The association type of filehandle.",
+            "required": true
+        },
+        "associateId": {
+            "type": "string",
+            "description": "The association Id of filehandle.",
+            "required": true
+        }
+    }
+}
