@@ -35,7 +35,8 @@ public class ControllerModelDoclet implements Doclet {
 			Class c = Class.forName(serverSideFactoryPath);
 			Method method = c.getMethod("getKeySetIterator", null);
 			Iterator<String> concreteClassnames = (Iterator<String>) method.invoke(c.getDeclaredConstructor().newInstance(), null);
-			
+			System.out.println("concrete class names: " + concreteClassnames);
+
 			ControllersToOpenAPIJsonTranslator translator = new ControllersToOpenAPIJsonTranslator();
 			JSONObject openAPIJson = translator.translate(env, concreteClassnames);
 			

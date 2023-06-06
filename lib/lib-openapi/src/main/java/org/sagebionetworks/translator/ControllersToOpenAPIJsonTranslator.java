@@ -25,7 +25,10 @@ public class ControllersToOpenAPIJsonTranslator {
 		
 		Map<String, ObjectSchema> classNameToObjectSchema = objectSchemaUtils.getConcreteClasses(concreteClassNames);
 		List<ControllerModel> controllerModels = new ControllerToControllerModelTranslator().extractControllerModels(env, classNameToObjectSchema);
+		System.out.println("class name to ObjectSchema keys " + classNameToObjectSchema.keySet());
+		System.out.println("controller models " + controllerModels);
 		Map<String, JsonSchema> classNameToJsonSchema = objectSchemaUtils.getClassNameToJsonSchema(classNameToObjectSchema);
+		System.out.println("class name to JsonSchema keys " + classNameToObjectSchema.keySet());
 
 		return new ControllerModelsToOpenAPIModelTranslator(classNameToJsonSchema).translate(controllerModels).generateJSON();
 	}
