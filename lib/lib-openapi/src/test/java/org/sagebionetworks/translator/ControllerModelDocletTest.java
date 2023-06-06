@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.tools.DocumentationTool;
 import javax.tools.ToolProvider;
@@ -56,7 +59,7 @@ public class ControllerModelDocletTest {
 	}
 
 	public static void startDoclet() throws Exception {
-		final String serverSideFactoryPath = "org.sagebionetworks.openapi.server.ServerSideOnlyFactoryExample";
+		final String serverSideFactoryPath = "org.sagebionetworks.openapi.server.ServerSideOnlyFactory";
 		final String controllersPackageName = "controller";
 		final String targetFilePath = outputDirectory + "/GeneratedOpenAPISpec.json";
 		
@@ -78,11 +81,14 @@ public class ControllerModelDocletTest {
 		docTool.run(System.in, System.out, System.err, docletArgs);
 		
 		// get the resulting json generated
-		InputStream is = ControllerModelDoclet.class.getClassLoader().getResourceAsStream("GeneratedOpenAPISpec.json");
-		assertNotNull(is);
-		String jsonTxt = IOUtils.toString(is, "UTF-8");
-		generatedOpenAPISpec = new JSONObject(jsonTxt);
-		System.out.println("generated open api spec " + generatedOpenAPISpec.toString(5));
+		try (InputStream is = ControllerModelDoclet.class.getClassLoader().getResourceAsStream("GeneratedOpenAPISpec.json")) {
+			assertNotNull(is);
+			String jsonTxt = IOUtils.toString(is, StandardCharsets.UTF_8);
+			generatedOpenAPISpec = new JSONObject(jsonTxt);
+			System.out.println("generated open api spec " + generatedOpenAPISpec.toString(5));
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	@Test
@@ -163,7 +169,6 @@ public class ControllerModelDocletTest {
 		assertEquals("the Pet associated with 'name'.", responseStatusCode.getString("description"));
 		JSONObject content = responseStatusCode.getJSONObject("content");
 		JSONObject contentType = content.getJSONObject("application/json");
-		System.out.println("content type JSONObject: " + contentType.toString(5));
 		JSONObject responseSchema = contentType.getJSONObject("schema");
 
 		// test to see if Pet interface is represented correctly as the return type.
@@ -178,21 +183,15 @@ public class ControllerModelDocletTest {
 		// test to see if the oneof property is being set correctly.
 		JSONArray oneOf = responseSchema.getJSONArray("oneOf");
 		assertTrue(oneOf.length() == 3);
-		boolean foundHusky = false;
-		boolean foundPoodle = false;
-		boolean foundCat = false;
+		Set<String> references = new HashSet<>();
 		for (int i = 0; i < oneOf.length(); i++) {
 			JSONObject reference = oneOf.getJSONObject(i);
 			String ref = reference.getString("$ref");
-			if (ref.equals("#/components/org.sagebionetworks.openapi.pet.Husky")) {
-				foundHusky = true;
-			} else if (ref.equals("#/components/org.sagebionetworks.openapi.pet.Poodle")) {
-				foundPoodle = true;
-			} else if (ref.equals("#/components/org.sagebionetworks.openapi.pet.Cat")) {
-				foundCat = true;
-			}
+			references.add(ref);
 		}
-		assertTrue(foundHusky && foundPoodle && foundCat);
+		assertTrue(references.contains("#/components/org.sagebionetworks.openapi.pet.Husky"));
+		assertTrue(references.contains("#/components/org.sagebionetworks.openapi.pet.Poodle"));
+		assertTrue(references.contains("#/components/org.sagebionetworks.openapi.pet.Cat"));
 	}
 	
 	@Test
@@ -205,7 +204,6 @@ public class ControllerModelDocletTest {
 		assertEquals(true, requestBody.getBoolean("required"));
 		JSONObject content = requestBody.getJSONObject("content");
 		JSONObject contentType = content.getJSONObject("application/json");
-		System.out.println("content type JSONObject: " + contentType.toString(5));
 		JSONObject schema = contentType.getJSONObject("schema");
 		
 		assertEquals("object", schema.getString("type"));

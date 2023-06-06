@@ -1,7 +1,7 @@
 package org.sagebionetworks.translator;
 
 import java.io.FileWriter;
-import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -13,9 +13,6 @@ import javax.lang.model.SourceVersion;
 import javax.tools.Diagnostic.Kind;
 
 import org.json.JSONObject;
-
-import org.sagebionetworks.openapi.server.ServerSideOnlyFactoryExample;
-import org.sagebionetworks.server.ServerSideOnlyFactory;
 
 import jdk.javadoc.doclet.Doclet;
 import jdk.javadoc.doclet.DocletEnvironment;
@@ -35,28 +32,20 @@ public class ControllerModelDoclet implements Doclet {
 	public boolean run(DocletEnvironment env) {
 		try {
 			// load ServerSideOnlyFactory based on class path passed in
-			Class<?> clazz = Class.forName(serverSideFactoryPath);
-			Constructor<?> constructor = clazz.getConstructor();
-			Iterator<String> concreteClassnames;
-			if (serverSideFactoryPath.equals("org.sagebionetworks.openapi.server.ServerSideOnlyFactoryExample")) {
-				ServerSideOnlyFactoryExample serverSideOnlyFactoryExample = (ServerSideOnlyFactoryExample) constructor.newInstance();
-				concreteClassnames = serverSideOnlyFactoryExample.getKeySetIterator();
-			} else {
-				ServerSideOnlyFactory serverSideOnlyFactory = (ServerSideOnlyFactory) constructor.newInstance();
-				concreteClassnames = serverSideOnlyFactory.getKeySetIterator();
-			}
-
+			Class c = Class.forName(serverSideFactoryPath);
+			Method method = c.getMethod("getKeySetIterator", null);
+			Iterator<String> concreteClassnames = (Iterator<String>) method.invoke(c.getDeclaredConstructor().newInstance(), null);
+			
 			ControllersToOpenAPIJsonTranslator translator = new ControllersToOpenAPIJsonTranslator();
 			JSONObject openAPIJson = translator.translate(env, concreteClassnames);
 			
 			// write resulting json to file
-			FileWriter fileWriter = new FileWriter(targetFile, false);
-			fileWriter.write(openAPIJson.toString(5));
-			fileWriter.close();
-			return true;
+			try (FileWriter fileWriter = new FileWriter(targetFile, false)) {
+				fileWriter.write(openAPIJson.toString(5));
+				return true;
+			}
 		} catch (Exception e) {
-			e.printStackTrace();
-			return false;
+			throw new RuntimeException(e);
 		}
 	}
 
@@ -76,7 +65,7 @@ public class ControllerModelDoclet implements Doclet {
 
 			@Override
 			public String getDescription() {
-				return "file to output the OpenAPI json.";
+				return "The absolute path of the out file";
 			}
 
 			@Override
@@ -111,7 +100,7 @@ public class ControllerModelDoclet implements Doclet {
 
 			@Override
 			public String getDescription() {
-				return "The class path of the server side factory to be used.";
+				return "The full package name of the server-side class.";
 			}
 
 			@Override
@@ -126,7 +115,7 @@ public class ControllerModelDoclet implements Doclet {
 
 			@Override
 			public String getParameters() {
-				return "server side factory path";
+				return "server-side factory full package name.";
 			}
 
 			@Override

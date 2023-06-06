@@ -21,7 +21,7 @@ import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.velocity.schema.TypeReference;
-import org.sagebionetworks.openapi.server.ServerSideOnlyFactoryExample;
+import org.sagebionetworks.openapi.server.ServerSideOnlyFactory;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -39,7 +39,7 @@ public class ObjectSchemaUtilsTest {
 	
 	@Test
 	public void testGetConcreteClasses() {
-		ServerSideOnlyFactoryExample autoGen = new ServerSideOnlyFactoryExample();
+		ServerSideOnlyFactory autoGen = new ServerSideOnlyFactory();
 		Map<String, ObjectSchema> expected = new HashMap<>();
 		Iterator<String> keySet = autoGen.getKeySetIterator();
 		while (keySet.hasNext()) {

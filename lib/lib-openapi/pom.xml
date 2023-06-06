@@ -98,7 +98,7 @@
 						<configuration>
 							<sourceDirectory>src/main/resources/schema</sourceDirectory>
 							<outputDirectory>target/auto-generated-pojos</outputDirectory>
-							<createRegister>org.sagebionetworks.openapi.server.ServerSideOnlyFactoryExample</createRegister>
+							<createRegister>org.sagebionetworks.openapi.server.ServerSideOnlyFactory</createRegister>
 						</configuration>
 					</execution>
 				</executions>
