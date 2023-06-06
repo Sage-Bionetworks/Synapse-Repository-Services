@@ -272,15 +272,21 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public boolean isIndexSynchronizedWithTruth(IdAndVersion idAndVersion) {
-		// MD5 of the table's schema
-		String truthSchemaMD5Hex = getSchemaMD5Hex(idAndVersion);
+		// Table's schema
+		List<String> truthSchemaIds = columnModelManager.getColumnIdsForTable(idAndVersion);
 		// get the truth version
 		long truthLastVersion = getTableVersion(idAndVersion);
 		// get the search flag for the node
 		boolean truthSearchEnabled = isTableSearchEnabled(idAndVersion);
 		// compare the truth with the index.
-		return tableConnectionFactory.getConnection(idAndVersion).doesIndexStateMatch(idAndVersion, truthLastVersion,
-				truthSchemaMD5Hex, truthSearchEnabled);
+		return isIndexSynchronized(idAndVersion, truthSchemaIds, truthLastVersion, truthSearchEnabled);
+	}
+	
+	@Override
+	public boolean isIndexSynchronized(IdAndVersion idAndVersion, List<String> schemaIds, long version, boolean isSearchEnabled) {
+		// MD5 of the table's schema
+		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(schemaIds);
+		return tableConnectionFactory.getConnection(idAndVersion).doesIndexStateMatch(idAndVersion, version, schemaMD5Hex, isSearchEnabled);
 	}
 
 	/*
@@ -319,19 +325,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public void setTableDeleted(IdAndVersion idAndVersion, ObjectType tableType) {
 		transactionalMessenger.sendDeleteMessageAfterCommit(idAndVersion.getId().toString(), tableType);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.repo.manager.table.TableManagerSupport#getSchemaMD5Hex(
-	 * java.lang.String)
-	 */
-	@Override
-	public String getSchemaMD5Hex(IdAndVersion idAndVersion) {
-		List<String> columnIds = columnModelManager.getColumnIdsForTable(idAndVersion);
-		return TableModelUtils.createSchemaMD5Hex(columnIds);
 	}
 
 	@Override

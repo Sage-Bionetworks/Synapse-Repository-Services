@@ -417,6 +417,15 @@ public class TableManagerSupportTest {
 		assertTrue(manager.isIndexSynchronizedWithTruth(idAndVersion));
 	}
 	
+	@Test
+	public void testIsIndexSynchronized(){
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.doesIndexStateMatch(any(), anyLong(), any(), anyBoolean())).thenReturn(true);
+		
+		assertTrue(manager.isIndexSynchronized(idAndVersion, columnIds, 3L, true));
+		
+		verify(mockTableIndexDAO).doesIndexStateMatch(idAndVersion, 3L, schemaMD5Hex, true);
+	}
 	
 	/**
 	 * The node is available, the table status is available and the index is synchronized.
@@ -518,14 +527,6 @@ public class TableManagerSupportTest {
 		// call under test
 		boolean workRequired = manager.isIndexWorkRequired(idAndVersion);
 		assertTrue(workRequired);
-	}
-	
-	@Test
-	public void testGetSchemaMD5Hex() {
-		when(mockColumnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(columnIds);
-
-		String md5 = manager.getSchemaMD5Hex(idAndVersion);
-		assertEquals(schemaMD5Hex, md5);
 	}
 
 	@Test

@@ -335,5 +335,11 @@ public interface TableIndexManager {
 	 * @param replacement
 	 */
 	void swapTableIndex(IndexDescription source, IndexDescription target);
+
+	/**
+	 * @param index
+	 * @return A version representing the sum of the current versions of all the dependencies for the given index
+	 */
+	long getVersionFromIndexDependencies(IndexDescription index);
 	
 }

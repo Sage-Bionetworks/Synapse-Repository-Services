@@ -1236,8 +1236,15 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		return tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
 			String insertSql = SQLTranslatorUtils.createMaterializedViewInsertSql(viewSchema, definingSql.getOutputSQL(), indexDescription);
 			tableIndexDao.update(insertSql, definingSql.getParameters());
-			return 1L;
+			return getVersionFromIndexDependencies(indexDescription);
 		});
+	}
+	
+	@Override
+	public long getVersionFromIndexDependencies(IndexDescription index) {
+		return index.getDependencies().stream()
+			.map(IndexDescription::getIdAndVersion)
+			.collect(Collectors.summingLong(this::getCurrentVersionOfIndex));
 	}
 	
 	@Override

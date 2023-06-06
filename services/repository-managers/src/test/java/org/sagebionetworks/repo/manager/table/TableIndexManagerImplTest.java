@@ -79,6 +79,7 @@ import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
@@ -101,6 +102,7 @@ import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -3344,16 +3346,106 @@ public class TableIndexManagerImplTest {
 		
 		verify(mockIndexDao).swapTableIndex(source.getIdAndVersion(), target.getIdAndVersion());
 	}
+	
+	@Test
+	public void testGetVersionFromDependencies() {
+		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
+			new TableIndexDescription(IdAndVersion.parse("456")),
+			new ViewIndexDescription(IdAndVersion.parse("789"), TableType.entityview)
+		));
+		
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(10L, 12L);
+		
+		// Call under test
+		long result = manager.getVersionFromIndexDependencies(index);
+		
+		assertEquals(22, result);
+
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(IdAndVersion.parse("456"));
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(IdAndVersion.parse("789"));
+		
+	}
+	
+	@Test
+	public void testGetVersionFromDependenciesOutOfBound() {
+		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
+			new TableIndexDescription(IdAndVersion.parse("456")),
+			new ViewIndexDescription(IdAndVersion.parse("789"), TableType.entityview)
+		));
+		
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(Long.MAX_VALUE, 12L);
+		
+		// Call under test
+		long result = manager.getVersionFromIndexDependencies(index);
+		
+		assertEquals(Long.MIN_VALUE + 12 - 1 , result);
+
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(IdAndVersion.parse("456"));
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(IdAndVersion.parse("789"));
+		
+	}
+	
+	@Test
+	public void testGetVersionFromDependenciesWithNoDependencies() {
+		IndexDescription index = new TableIndexDescription(tableId);
+		
+		// Call under test
+		long result = manager.getVersionFromIndexDependencies(index);
+		
+		assertEquals(0, result);
+		
+		verifyZeroInteractions(mockIndexDao);
+		
+	}
+	
+	@Test
+	public void testPopulateMaterializedViewFromDefiningSql() {
+		
+		setupExecuteInWriteTransaction();
+		
+		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
+			new TableIndexDescription(IdAndVersion.parse("456")),
+			new ViewIndexDescription(IdAndVersion.parse("789"), TableType.entityview)
+		));
+		
+		when(mockManagerSupport.getTableSchema(any())).thenReturn(
+			List.of(TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING)), // 456 schema
+			List.of(TableModelTestUtils.createColumn(101L, "anInteger", ColumnType.INTEGER)) // 789 schema
+		);
+		
+		// Mat view schema
+		schema = List.of(
+			TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING), 
+			TableModelTestUtils.createColumn(101L, "anInteger", ColumnType.INTEGER)
+		);
+		
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(10L, 12L);
+		
+		QueryTranslator defininqSql = QueryTranslator.builder()
+				.sql("SELECT * from syn456 join syn789")
+				.schemaProvider(mockManagerSupport)
+				.sqlContext(SqlContext.build)
+				.indexDescription(index)
+			.build();
+		
+		// Call under test
+		long result =  manager.populateMaterializedViewFromDefiningSql(schema, defininqSql);
+		
+		assertEquals(22, result);
+		
+		verify(mockIndexDao).update("INSERT INTO T123 (_C99_,_C101_,ROW_BENEFACTOR_T789) SELECT _A0._C99_, _A1._C101_, IFNULL(_A1.ROW_BENEFACTOR,-1) FROM T456 _A0 JOIN T789 _A1", Collections.emptyMap());
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(IdAndVersion.parse("456"));
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(IdAndVersion.parse("789"));
+	}
 			
 	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {
 		// When a write transaction callback is used, we need to call the callback.
-		doAnswer(new Answer<Void>() {
+		doAnswer(new Answer<Object>() {
 			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
+			public Object answer(InvocationOnMock invocation) throws Throwable {
 				TransactionCallback callback = (TransactionCallback) invocation.getArguments()[0];
-				callback.doInTransaction(mockTransactionStatus);
-				return null;
+				return callback.doInTransaction(mockTransactionStatus);
 			}
 		}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
 	}

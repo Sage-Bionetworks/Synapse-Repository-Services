@@ -885,8 +885,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		assertEquals(numberOfFiles, fileIdsOne.size());
 
 		List<Entity> twoEntities = createProjectHierachy(numberOfFiles);
-		Project projectTwo = twoEntities.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst()
-				.get();
+		
 		List<String> fileIdsTwo = twoEntities.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
 				.collect(Collectors.toList());
 		assertEquals(numberOfFiles, fileIdsTwo.size());
@@ -1025,7 +1024,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 
 		tableManager.tableUpdated(adminUserInfo, TableModelUtils.getIds(schema), tableId.toString(), false);
 		
-		List<Row> expectedRows = Arrays.asList(
+		List<Row> updatedRows = Arrays.asList(
 			new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList("string0")),
 			new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList("string1"))
 		);
@@ -1034,23 +1033,108 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			// While querying the materialized view, the status should always be available
 			assertEquals(TableState.AVAILABLE, tableManagerSupport.getTableStatusState(materializedViewId).orElse(null));
 			// Eventually the materialized view will be updated
-			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+			assertEquals(updatedRows, results.getQueryResult().getQueryResults().getRows());
 			// The last changedOn should be updated
 			assertNotEquals(initialChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
 		}, MAX_WAIT_MS);
 		
 		Date lastChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);
 		 
-		// We emulate another update, the index should be eventually replaced again 
+		// We emulate another update, the index should not be replaced since the view is up to date
 		tableManagerSupport.triggerIndexUpdate(materializedViewId);
+		
+		// Sleep to let the worker process the message
+		Thread.sleep(5_000);
 		
 		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + materializedViewId.toString() + " order by ROW_ID asc", (results) -> {
 			// While querying the materialized view, the status should always be available
 			assertEquals(TableState.AVAILABLE, tableManagerSupport.getTableStatusState(materializedViewId).orElse(null));
 			// Eventually the materialized view will be updated
-			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+			assertEquals(updatedRows, results.getQueryResult().getQueryResults().getRows());
+			// The last changedOn should not be updated
+			assertEquals(lastChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
+		}, MAX_WAIT_MS);
+	}
+	
+	@Test
+	public void testMaterializedViewUpdateWithAvailableStateAndUpdatedAvailableView() throws Exception {
+		int numberOfFiles = 2;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		String projectId = entites.iterator().next().getId();
+		
+		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
+				.collect(Collectors.toList());
+
+		List<PatientData> patientData = List.of(
+			new PatientData().withCode("abc").withPatientId(111L),
+			new PatientData().withCode("def").withPatientId(222L)
+		);
+
+		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
+		IdAndVersion tableId = createTableWithPatientIds(projectId, patientData);
+
+		String definingSql = String.format("select v.id, p.patientId, p.code from %s v join %s p on (v.patientId = p.patientId)", viewId.toString(), tableId.toString());
+
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
+
+		String materializedQuery = "select * from " + materializedViewId.toString() + " order by \"v.id\" asc";
+
+		List<Row> initialRows = List.of(
+			new Row().setRowId(1L).setVersionNumber(0L).setValues(List.of(fileIds.get(0), "111", "abc")),
+			new Row().setRowId(2L).setVersionNumber(0L).setValues(List.of(fileIds.get(1), "222", "def"))
+		);
+
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(initialRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		
+		Date initialChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);
+		
+		// Now we change the view data and trigger an update
+		
+		String fileId = fileIds.iterator().next();
+		
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		
+		annos.getAnnotations().remove("patientId");
+		
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		// Trigger the update of the view, this will update the available view
+		asyncHelper.assertQueryResult(adminUserInfo, "SELECT COUNT(*) FROM " + viewId + " WHERE patientId IS NOT NULL", (results) -> {
+			assertEquals(List.of("1"), results.getQueryResult().getQueryResults().getRows().iterator().next().getValues());
+		}, MAX_WAIT_MS);
+		
+		List<Row> updatedRows = List.of(
+			new Row().setRowId(1L).setVersionNumber(0L).setValues(List.of(fileIds.get(1), "222", "def"))
+		);
+		
+		// Verifies that the update propagated
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + materializedViewId.toString() + " order by ROW_ID asc", (results) -> {
+			// While querying the materialized view, the status should always be available
+			assertEquals(TableState.AVAILABLE, tableManagerSupport.getTableStatusState(materializedViewId).orElse(null));
+			// Eventually the materialized view will be updated
+			assertEquals(updatedRows, results.getQueryResult().getQueryResults().getRows());
 			// The last changedOn should be updated
-			assertNotEquals(lastChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
+			assertNotEquals(initialChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
+		}, MAX_WAIT_MS);
+		
+		Date lastChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);		
+		
+		// We emulate another update to the depending view, the index should not be replaced since the view is up to date
+		tableManagerSupport.triggerIndexUpdate(viewId);
+
+		// Sleep to let the worker process the message
+		Thread.sleep(5_000);
+		
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + materializedViewId.toString() + " order by ROW_ID asc", (results) -> {
+			// While querying the materialized view, the status should always be available
+			assertEquals(TableState.AVAILABLE, tableManagerSupport.getTableStatusState(materializedViewId).orElse(null));
+			// Eventually the materialized view will be updated
+			assertEquals(updatedRows, results.getQueryResult().getQueryResults().getRows());
+			// The last changedOn should not be updated
+			assertEquals(lastChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
 		}, MAX_WAIT_MS);
 	}
 
