@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -178,7 +179,7 @@ public interface TableIndexManager {
 	 * 
 	 * @param scopeType
 	 * @param currentSchema
-	 * @return View CRC32
+	 * @return The new version of the view
 	 */
 	long populateViewFromEntityReplication(Long viewId, ViewScopeType scopeType, List<ColumnModel> currentSchema);
 	
@@ -239,16 +240,18 @@ public interface TableIndexManager {
 	 * @param currentSchema      The current schema of the view.
 	 * @param filter
 	 * @param provider
+	 * @return The new version of the view
 	 */
-	void updateViewRowsInTransaction(IndexDescription index, ViewScopeType scopeType, List<ColumnModel> currentSchema,
+	long updateViewRowsInTransaction(IndexDescription index, ViewScopeType scopeType, List<ColumnModel> currentSchema,
 			ViewFilter filter);
 
 	/**
 	 * Ensure the benefactor IDs for the given view snapshot are up-to-date.
 	 * 
 	 * @param viewId
+	 * @return An optional containing the next version of the view if any benefactor changed, empty otherwise
 	 */
-	void refreshViewBenefactors(IdAndVersion viewId);
+	Optional<Long> refreshViewBenefactors(IdAndVersion viewId);
 
 	/**
 	 * Update the object replication for the given object data.
@@ -332,5 +335,11 @@ public interface TableIndexManager {
 	 * @param replacement
 	 */
 	void swapTableIndex(IndexDescription source, IndexDescription target);
+
+	/**
+	 * @param index
+	 * @return A version representing the sum of the current versions of all the dependencies for the given index
+	 */
+	long getVersionFromIndexDependencies(IndexDescription index);
 	
 }

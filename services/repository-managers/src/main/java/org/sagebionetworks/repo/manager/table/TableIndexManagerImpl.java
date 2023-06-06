@@ -530,9 +530,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			// if the copy failed. Attempt to determine the cause.
 			determineCauseOfReplicationFailure(e, currentSchema, provider, scopeType.getTypeMask(), filter);
 		}
-		
-		// calculate the new CRC32;
-		return tableIndexDao.calculateCRC32ofTableView(viewId);
+
+		// Returns the next version of the view
+		return getNextVersionForView(IdAndVersion.newBuilder().setId(viewId).build());
+	}
+	
+	long getNextVersionForView(IdAndVersion viewId) {
+		return getCurrentVersionOfIndex(viewId) + 1;
 	}
 		
 	@Override
@@ -888,7 +892,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public void updateViewRowsInTransaction(IndexDescription index, ViewScopeType scopeType,
+	public long updateViewRowsInTransaction(IndexDescription index, ViewScopeType scopeType,
 			List<ColumnModel> currentSchema, ViewFilter filter) {
 		ValidateArgument.required(index, "index");
 		ValidateArgument.required(scopeType, "scopeType");
@@ -919,6 +923,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			}
 			return null;
 		});
+		
+		return getNextVersionForView(viewId);
 	}
 	
 	void determineCauseOfReplicationFailure(Exception exception, List<ColumnModel> currentSchema,
@@ -972,10 +978,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 
 	@Override
-	public void refreshViewBenefactors(final IdAndVersion viewId) {
+	public Optional<Long> refreshViewBenefactors(final IdAndVersion viewId) {
 		ValidateArgument.required(viewId, "viewId");
 		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
-		tableIndexDao.refreshViewBenefactors(viewId, scopeType.getObjectType().getMainType());
+		if (tableIndexDao.refreshViewBenefactors(viewId, scopeType.getObjectType().getMainType())) {
+			return Optional.of(getNextVersionForView(viewId));
+		}
+		return Optional.empty();
 	}
 	
 	@Override
@@ -1227,8 +1236,15 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		return tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
 			String insertSql = SQLTranslatorUtils.createMaterializedViewInsertSql(viewSchema, definingSql.getOutputSQL(), indexDescription);
 			tableIndexDao.update(insertSql, definingSql.getParameters());
-			return 1L;
+			return getVersionFromIndexDependencies(indexDescription);
 		});
+	}
+	
+	@Override
+	public long getVersionFromIndexDependencies(IndexDescription index) {
+		return index.getDependencies().stream()
+			.map(IndexDescription::getIdAndVersion)
+			.collect(Collectors.summingLong(this::getCurrentVersionOfIndex));
 	}
 	
 	@Override

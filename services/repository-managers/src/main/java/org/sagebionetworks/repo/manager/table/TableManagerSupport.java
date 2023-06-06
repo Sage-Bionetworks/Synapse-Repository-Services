@@ -127,6 +127,13 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @return
 	 */
 	boolean isIndexSynchronizedWithTruth(IdAndVersion tableId);
+	
+	/**
+	 * Is the table's index synchronized with the given schema, version and search state?
+	 * @param tableId
+	 * @return
+	 */
+	boolean isIndexSynchronized(IdAndVersion tableId, List<String> schemaIds, long version, boolean isSearchEnabled);
 
 	/**
 	 * Index work is required if the index is out-of-synch with the truth or the
@@ -150,14 +157,6 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @param deletedId
 	 */
 	void setTableDeleted(IdAndVersion deletedId, ObjectType tableType);
-
-	/**
-	 * The MD5 hex of a table's schema.
-	 * 
-	 * @param tableId
-	 * @return
-	 */
-	String getSchemaMD5Hex(IdAndVersion tableId);
 
 	/**
 	 * Get the version of the given table. This is can be different for each table

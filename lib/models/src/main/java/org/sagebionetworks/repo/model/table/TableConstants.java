@@ -8,7 +8,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 public class TableConstants {
 
@@ -266,13 +265,7 @@ public class TableConstants {
 	
 	public static final String OBJECT_REPLICATION_ALIAS = "R";
 	public static final String ANNOTATION_REPLICATION_ALIAS = "A";
-	
-	// template to calculate CRC32 of a table view.
-	public static final String SQL_TABLE_VIEW_CRC_32_TEMPLATE = 
-			"SELECT"
-			+ " SUM(CRC32(CONCAT("
-					+ROW_ID+", '-', "+ROW_ETAG+", '-', "+ROW_BENEFACTOR+"))) FROM %1$s";
-	
+		
 	// ANNOTATION_REPLICATION
 	public static final String ANNOTATION_REPLICATION_TABLE 				="ANNOTATION_REPLICATION";
 	public static final String ANNOTATION_REPLICATION_COL_OBJECT_TYPE		="OBJECT_TYPE";

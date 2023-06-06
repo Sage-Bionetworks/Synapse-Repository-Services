@@ -902,15 +902,13 @@ public class MaterializedViewManagerImplTest {
 		doAnswer(invocation -> {
 			ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
 			ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[2];
-			runner.call(callback);
-			return null;
+			return runner.call(callback);
 		}).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(), any(), any(), any(IdAndVersion.class));
 		
 		doAnswer(invocation -> {
 			ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
 			ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[3];
-			runner.call(callback);
-			return null;
+			return runner.call(callback);
 		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), any(), any(IdAndVersion.class), any());
 
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
@@ -926,10 +924,12 @@ public class MaterializedViewManagerImplTest {
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn456Schema);		
 		when(mockColumnModelManager.createColumnModel(any())).thenReturn(syn123Schema.get(0), syn123Schema.get(1), syn456Schema.get(0), syn456Schema.get(1));
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
+		when(mockTableIndexManager.getVersionFromIndexDependencies(any())).thenReturn(10L);
 		when(mockTableManagerSupport.isTableSearchEnabled(any())).thenReturn(false);
+		when(mockTableManagerSupport.isIndexSynchronized(any(), any(), anyLong(), anyBoolean())).thenReturn(false);
 		doNothing().when(managerSpy).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(any(), any(), anyBoolean());
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.AVAILABLE));
-		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
 		doNothing().when(mockTableIndexManager).swapTableIndex(any(), any());
 		when(mockColumnModelManager.bindColumnsToVersionOfObject(any(), any())).thenReturn(syn123Schema);
 		
@@ -946,7 +946,9 @@ public class MaterializedViewManagerImplTest {
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[1]);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), any(), eq(dependentIdAndVersions[0]), eq(dependentIdAndVersions[1]));
+		verify(mockTableIndexManager).getVersionFromIndexDependencies(indexDescription);
 		verify(mockTableManagerSupport).isTableSearchEnabled(idAndVersion);
+		verify(mockTableManagerSupport).isIndexSynchronized(idAndVersion, List.of("111", "222", "333", "444"), 10, false);
 		verify(managerSpy).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(queryCaptor.capture(), eq(viewSchema), eq(false));
 		
 		QueryTranslator query = queryCaptor.getValue();
@@ -962,12 +964,54 @@ public class MaterializedViewManagerImplTest {
 	}
 	
 	@Test
+	public void testRebuildAvailableViewHoldingTemporaryExclusiveLockWithIndexSynchronized() throws Exception {		
+		doAnswer(invocation -> {
+			ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
+			ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[2];
+			return runner.call(callback);
+		}).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(), any(), any(), any(IdAndVersion.class));
+		
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
+		
+		List<ColumnModel> syn456Schema = List.of(
+			TableModelTestUtils.createColumn(333L, "c", ColumnType.INTEGER),
+			TableModelTestUtils.createColumn(444L, "d", ColumnType.STRING_LIST)
+		);
+		
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.of("select * from syn123 join syn456"));
+		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn456Schema);		
+		when(mockColumnModelManager.createColumnModel(any())).thenReturn(syn123Schema.get(0), syn123Schema.get(1), syn456Schema.get(0), syn456Schema.get(1));
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
+		when(mockTableIndexManager.getVersionFromIndexDependencies(any())).thenReturn(10L);
+		when(mockTableManagerSupport.isTableSearchEnabled(any())).thenReturn(false);
+		when(mockTableManagerSupport.isIndexSynchronized(any(), any(), anyLong(), anyBoolean())).thenReturn(true);
+		
+		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456") };
+
+		// call under test
+		managerSpy.rebuildAvailableViewHoldingTemporaryExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion, temporaryId);
+
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
+		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[0]);
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[1]);
+		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), any(), eq(dependentIdAndVersions[0]), eq(dependentIdAndVersions[1]));
+		verify(mockTableIndexManager).getVersionFromIndexDependencies(indexDescription);
+		verify(mockTableManagerSupport).isTableSearchEnabled(idAndVersion);
+		verify(mockTableManagerSupport).isIndexSynchronized(idAndVersion, List.of("111", "222", "333", "444"), 10, false);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockTableIndexManager);
+		
+	}
+	
+	@Test
 	public void testRebuildAvailableViewHoldingTemporaryExclusiveLockWithNonAvailableState() throws Exception {
 		doAnswer(invocation -> {
 			ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
 			ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[2];
-			runner.call(callback);
-			return null;
+			return runner.call(callback);
 		}).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(), any(), any(), any(IdAndVersion.class));
 		
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
@@ -983,7 +1027,10 @@ public class MaterializedViewManagerImplTest {
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn456Schema);		
 		when(mockColumnModelManager.createColumnModel(any())).thenReturn(syn123Schema.get(0), syn123Schema.get(1), syn456Schema.get(0), syn456Schema.get(1));
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
+		when(mockTableIndexManager.getVersionFromIndexDependencies(any())).thenReturn(10L);
 		when(mockTableManagerSupport.isTableSearchEnabled(any())).thenReturn(false);
+		when(mockTableManagerSupport.isIndexSynchronized(any(), any(), anyLong(), anyBoolean())).thenReturn(false);
 		doNothing().when(managerSpy).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(any(), any(), anyBoolean());
 		when(mockTableManagerSupport.getTableStatusState(any())).thenReturn(Optional.of(TableState.PROCESSING));
 		
@@ -1000,7 +1047,9 @@ public class MaterializedViewManagerImplTest {
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[1]);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), any(), eq(dependentIdAndVersions[0]), eq(dependentIdAndVersions[1]));
+		verify(mockTableIndexManager).getVersionFromIndexDependencies(indexDescription);
 		verify(mockTableManagerSupport).isTableSearchEnabled(idAndVersion);
+		verify(mockTableManagerSupport).isIndexSynchronized(idAndVersion, List.of("111", "222", "333", "444"), 10, false);
 		verify(managerSpy).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(queryCaptor.capture(), eq(viewSchema), eq(false));
 		
 		QueryTranslator query = queryCaptor.getValue();
@@ -1045,7 +1094,7 @@ public class MaterializedViewManagerImplTest {
 	}
 		
 	@Test
-	public void testRebuildAvailableViewHoldingTemporaryExclusiveLockWithNonExclusiveLockNonAvailable() throws Exception {
+	public void testRebuildAvailableViewHoldingTemporaryExclusiveLockWithNonExclusiveLockUnavailable() throws Exception {
 		idAndVersion = IdAndVersion.parse("syn123");
 		IdAndVersion temporaryId = IdAndVersion.parse("syn-123");
 

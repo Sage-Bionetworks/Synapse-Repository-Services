@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -60,7 +59,6 @@ import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
@@ -70,7 +68,6 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.ReplicationType;
-import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -82,6 +79,7 @@ import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
+import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
@@ -104,6 +102,7 @@ import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -157,9 +156,6 @@ public class TableIndexManagerImplTest {
 	private Long versionNumber;
 	private SparseChangeSet sparseChangeSet;
 	private List<ColumnModel> schema;
-	private String schemaMD5Hex;
-	private List<SelectColumn> selectColumns;
-	private Long crc32;
 
 	private Grouping groupOne;
 	private Grouping groupTwo;
@@ -170,7 +166,6 @@ public class TableIndexManagerImplTest {
 	private NextPageToken nextPageToken;
 	private String tokenString;
 	private List<String> scopeSynIds;
-	private Set<Long> scopeIds;
 	private ViewScope scope;
 
 	private ViewObjectType objectType;
@@ -194,10 +189,7 @@ public class TableIndexManagerImplTest {
 		versionNumber = 99L;
 		schema = Arrays.asList(TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
 				TableModelTestUtils.createColumn(101L, "aFile", ColumnType.FILEHANDLEID));
-		schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(TableModelUtils.getIds(schema));
-		selectColumns = Arrays.asList(TableModelTestUtils.createSelectColumn(99L, "aString", ColumnType.STRING),
-				TableModelTestUtils.createSelectColumn(101L, "aFile", ColumnType.FILEHANDLEID));
-
+		
 		sparseChangeSet = new SparseChangeSet(tableId.toString(), schema);
 		SparseRow row = sparseChangeSet.addEmptyRow();
 		row.setRowId(0L);
@@ -214,8 +206,6 @@ public class TableIndexManagerImplTest {
 		groupOne = it.next();
 		groupTwo = it.next();
 
-		crc32 = 5678L;
-
 		containerIds = Set.of(
 			IdAndVersion.parse("1"),
 			IdAndVersion.parse("2"),
@@ -227,7 +217,6 @@ public class TableIndexManagerImplTest {
 		nextPageToken = new NextPageToken(limit, offset);
 		tokenString = nextPageToken.toToken();
 		scopeSynIds = List.of("syn123", "syn345");
-		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scopeSynIds));
 
 		scope = new ViewScope();
 		scope.setScope(scopeSynIds);
@@ -324,8 +313,6 @@ public class TableIndexManagerImplTest {
 		// no files in the schema
 		schema = Arrays.asList(TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
 				TableModelTestUtils.createColumn(101L, "moreStrings", ColumnType.STRING));
-		selectColumns = Arrays.asList(TableModelTestUtils.createSelectColumn(99L, "aString", ColumnType.STRING),
-				TableModelTestUtils.createSelectColumn(101L, "moreStrings", ColumnType.STRING));
 		sparseChangeSet = new SparseChangeSet(tableId.toString(), schema);
 		SparseRow row = sparseChangeSet.addEmptyRow();
 		row.setRowId(0L);
@@ -704,18 +691,17 @@ public class TableIndexManagerImplTest {
 
 	@Test
 	public void testPopulateViewFromEntityReplication() {
-		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(0L);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getViewFilter(tableId.getId())).thenReturn(mockFilter);
 		
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 
 		// call under test
-		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
-		assertEquals(crc32, resultCrc);
+		Long version = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
+		assertEquals(1L, version);
 		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
-		// the CRC should be calculated with the etag column.
-		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(tableId);
 	}
 
 	/**
@@ -763,17 +749,16 @@ public class TableIndexManagerImplTest {
 
 	@Test
 	public void testPopulateViewFromEntityReplicationWithProgress() throws Exception {
-		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(0L);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getViewFilter(tableId.getId())).thenReturn(mockFilter);
 
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
-		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
-		assertEquals(crc32, resultCrc);
+		Long version = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
+		assertEquals(1L, version);
 		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
-		// the CRC should be calculated with the etag column.
-		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(tableId);
 	}
 
 	@Test
@@ -1690,11 +1675,14 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockFilter.getLimitObjectIds()).thenReturn(Optional.of(rowsIdsWithChanges));
 		when(mockIndexDao.isSearchEnabled(any())).thenReturn(false);
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(3L);
 
 		IndexDescription indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		
 		// call under test
-		managerSpy.updateViewRowsInTransaction(indexDescription, scopeType, schema, mockFilter);
+		long newVersion = managerSpy.updateViewRowsInTransaction(indexDescription, scopeType, schema, mockFilter);
+		
+		assertEquals(4, newVersion);
 
 		verify(mockIndexDao).executeInWriteTransaction(any());
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
@@ -1712,6 +1700,7 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockFilter.getLimitObjectIds()).thenReturn(Optional.of(rowsIdsWithChanges));
 		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(3L);
 		doReturn(schema).when(managerSpy).getSchemaForSearchIndex(any());
 		List<TableRowData> mockedData = Mockito.mock(List.class);
 		when(mockIndexDao.getTableDataForRowIds(any(), any(), any())).thenReturn(mockedData);
@@ -1721,8 +1710,10 @@ public class TableIndexManagerImplTest {
 		IndexDescription indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 		
 		// call under test
-		managerSpy.updateViewRowsInTransaction(indexDescription, scopeType, schema, mockFilter);
-
+		long newVersion = managerSpy.updateViewRowsInTransaction(indexDescription, scopeType, schema, mockFilter);
+		
+		assertEquals(4, newVersion);
+		
 		verify(mockIndexDao).executeInWriteTransaction(any());
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
 		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
@@ -2384,8 +2375,29 @@ public class TableIndexManagerImplTest {
 	public void testRefreshViewBenefactors() {
 		IdAndVersion viewId = IdAndVersion.parse("syn123");
 		when(mockManagerSupport.getViewScopeType(any())).thenReturn(scopeType);
+		when(mockIndexDao.refreshViewBenefactors(any(), any())).thenReturn(true);
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(100L);
+		
 		// call under test
-		manager.refreshViewBenefactors(viewId);
+		Optional<Long> result = manager.refreshViewBenefactors(viewId);
+		
+		assertEquals(Optional.of(101L), result);
+		
+		verify(mockManagerSupport).getViewScopeType(viewId);
+		verify(mockIndexDao).refreshViewBenefactors(viewId, scopeType.getObjectType().getMainType());
+	}
+	
+	@Test
+	public void testRefreshViewBenefactorsWithNoChanges() {
+		IdAndVersion viewId = IdAndVersion.parse("syn123");
+		when(mockManagerSupport.getViewScopeType(any())).thenReturn(scopeType);
+		when(mockIndexDao.refreshViewBenefactors(any(), any())).thenReturn(false);
+		
+		// call under test
+		Optional<Long> result = manager.refreshViewBenefactors(viewId);
+		
+		assertEquals(Optional.empty(), result);
+		
 		verify(mockManagerSupport).getViewScopeType(viewId);
 		verify(mockIndexDao).refreshViewBenefactors(viewId, scopeType.getObjectType().getMainType());
 	}
@@ -3334,16 +3346,106 @@ public class TableIndexManagerImplTest {
 		
 		verify(mockIndexDao).swapTableIndex(source.getIdAndVersion(), target.getIdAndVersion());
 	}
+	
+	@Test
+	public void testGetVersionFromDependencies() {
+		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
+			new TableIndexDescription(IdAndVersion.parse("456")),
+			new ViewIndexDescription(IdAndVersion.parse("789"), TableType.entityview)
+		));
+		
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(10L, 12L);
+		
+		// Call under test
+		long result = manager.getVersionFromIndexDependencies(index);
+		
+		assertEquals(22, result);
+
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(IdAndVersion.parse("456"));
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(IdAndVersion.parse("789"));
+		
+	}
+	
+	@Test
+	public void testGetVersionFromDependenciesOutOfBound() {
+		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
+			new TableIndexDescription(IdAndVersion.parse("456")),
+			new ViewIndexDescription(IdAndVersion.parse("789"), TableType.entityview)
+		));
+		
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(Long.MAX_VALUE, 12L);
+		
+		// Call under test
+		long result = manager.getVersionFromIndexDependencies(index);
+		
+		assertEquals(Long.MIN_VALUE + 12 - 1 , result);
+
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(IdAndVersion.parse("456"));
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(IdAndVersion.parse("789"));
+		
+	}
+	
+	@Test
+	public void testGetVersionFromDependenciesWithNoDependencies() {
+		IndexDescription index = new TableIndexDescription(tableId);
+		
+		// Call under test
+		long result = manager.getVersionFromIndexDependencies(index);
+		
+		assertEquals(0, result);
+		
+		verifyZeroInteractions(mockIndexDao);
+		
+	}
+	
+	@Test
+	public void testPopulateMaterializedViewFromDefiningSql() {
+		
+		setupExecuteInWriteTransaction();
+		
+		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
+			new TableIndexDescription(IdAndVersion.parse("456")),
+			new ViewIndexDescription(IdAndVersion.parse("789"), TableType.entityview)
+		));
+		
+		when(mockManagerSupport.getTableSchema(any())).thenReturn(
+			List.of(TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING)), // 456 schema
+			List.of(TableModelTestUtils.createColumn(101L, "anInteger", ColumnType.INTEGER)) // 789 schema
+		);
+		
+		// Mat view schema
+		schema = List.of(
+			TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING), 
+			TableModelTestUtils.createColumn(101L, "anInteger", ColumnType.INTEGER)
+		);
+		
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(10L, 12L);
+		
+		QueryTranslator defininqSql = QueryTranslator.builder()
+				.sql("SELECT * from syn456 join syn789")
+				.schemaProvider(mockManagerSupport)
+				.sqlContext(SqlContext.build)
+				.indexDescription(index)
+			.build();
+		
+		// Call under test
+		long result =  manager.populateMaterializedViewFromDefiningSql(schema, defininqSql);
+		
+		assertEquals(22, result);
+		
+		verify(mockIndexDao).update("INSERT INTO T123 (_C99_,_C101_,ROW_BENEFACTOR_T789) SELECT _A0._C99_, _A1._C101_, IFNULL(_A1.ROW_BENEFACTOR,-1) FROM T456 _A0 JOIN T789 _A1", Collections.emptyMap());
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(IdAndVersion.parse("456"));
+		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(IdAndVersion.parse("789"));
+	}
 			
 	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {
 		// When a write transaction callback is used, we need to call the callback.
-		doAnswer(new Answer<Void>() {
+		doAnswer(new Answer<Object>() {
 			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
+			public Object answer(InvocationOnMock invocation) throws Throwable {
 				TransactionCallback callback = (TransactionCallback) invocation.getArguments()[0];
-				callback.doInTransaction(mockTransactionStatus);
-				return null;
+				return callback.doInTransaction(mockTransactionStatus);
 			}
 		}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
 	}

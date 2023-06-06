@@ -2059,12 +2059,6 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testBuildTableViewCRC32Sql(){
-		String sql = SQLUtils.buildTableViewCRC32Sql(viewId);
-		assertEquals("SELECT SUM(CRC32(CONCAT(ROW_ID, '-', ROW_ETAG, '-', ROW_BENEFACTOR))) FROM T123", sql);
-	}
-
-	@Test
 	public void testBuildSelectRowIds(){
 		RowReference ref1 = new RowReference();
 		ref1.setRowId(222L);

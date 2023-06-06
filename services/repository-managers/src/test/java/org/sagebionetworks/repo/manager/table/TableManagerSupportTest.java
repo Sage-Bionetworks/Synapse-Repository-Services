@@ -417,6 +417,15 @@ public class TableManagerSupportTest {
 		assertTrue(manager.isIndexSynchronizedWithTruth(idAndVersion));
 	}
 	
+	@Test
+	public void testIsIndexSynchronized(){
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.doesIndexStateMatch(any(), anyLong(), any(), anyBoolean())).thenReturn(true);
+		
+		assertTrue(manager.isIndexSynchronized(idAndVersion, columnIds, 3L, true));
+		
+		verify(mockTableIndexDAO).doesIndexStateMatch(idAndVersion, 3L, schemaMD5Hex, true);
+	}
 	
 	/**
 	 * The node is available, the table status is available and the index is synchronized.
@@ -519,14 +528,6 @@ public class TableManagerSupportTest {
 		boolean workRequired = manager.isIndexWorkRequired(idAndVersion);
 		assertTrue(workRequired);
 	}
-	
-	@Test
-	public void testGetSchemaMD5Hex() {
-		when(mockColumnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(columnIds);
-
-		String md5 = manager.getSchemaMD5Hex(idAndVersion);
-		assertEquals(schemaMD5Hex, md5);
-	}
 
 	@Test
 	public void testGetTableTypeTable() {
@@ -602,31 +603,6 @@ public class TableManagerSupportTest {
 		verify(mockMetadataIndexProvider).validateScopeAndType(scopeType.getTypeMask(), scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
 	
-	
-	@Test
-	public void testGetCurrentViewIndexStateNumber() throws LimitExceededException{
-		Long expectedNumber = 123L;
-		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(idAndVersion)).thenReturn(expectedNumber);
-		// call under test
-		Long viewNumer = manager.getCurrentViewIndexStateNumber(idAndVersion);
-		assertEquals(expectedNumber, viewNumer);
-		verify(mockTableIndexDAO).getMaxCurrentCompleteVersionForTable(idAndVersion);
-		verify(mockViewSnapshotDao, never()).getSnapshot(any(IdAndVersion.class));
-	}
-	
-	@Test
-	public void testGetCurrentViewIndexStateNumberWithVersion(){
-		idAndVersion = IdAndVersion.parse("syn123.45");
-		Long snapshotId = 33L;
-		when(mockViewSnapshotDao.getSnapshotId(idAndVersion)).thenReturn(snapshotId);
-		// call under test
-		Long result = manager.getCurrentViewIndexStateNumber(idAndVersion);
-		assertEquals(snapshotId, result);
-		verify(mockTableIndexDAO, never()).getMaxCurrentCompleteVersionForTable(any(IdAndVersion.class));
-		verify(mockViewSnapshotDao).getSnapshotId(idAndVersion);
-	}
-
 	@Test
 	public void testGetTableVersionForTableEntityNoVersion() {
 		idAndVersion = IdAndVersion.parse("syn123");

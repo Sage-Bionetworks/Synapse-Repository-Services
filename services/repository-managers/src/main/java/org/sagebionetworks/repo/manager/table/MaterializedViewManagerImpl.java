@@ -273,27 +273,44 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			
 			LOG.info("Building temporary materialized view index " + temporaryId);
 			
+			TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
+			
 			// continue with a read lock on each dependent table.
-			tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, parentContext, (ProgressCallback innerCallback) -> {
-				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(sqlQuery, schema, tableManagerSupport.isTableSearchEnabled(idAndVersion));
-				return null;
+			boolean isUpToDate = tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, parentContext, (ProgressCallback innerCallback) -> {
+				List<String> schemaIds = schema.stream().map(ColumnModel::getId).collect(Collectors.toList());
+				long version = indexManager.getVersionFromIndexDependencies(currentIndex);
+				boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(idAndVersion);
+				
+				// Before rebuilding the view, we check if any dependency was updated
+				if (tableManagerSupport.isIndexSynchronized(idAndVersion, schemaIds, version, isSearchEnabled)) {
+					return true;
+				}
+				
+				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(sqlQuery, schema, isSearchEnabled);
+
+				return false;
 			}, dependentArray);
 			
-			
-			// Now we switch the temporary index to the real index, we try to acquire an exclusive lock so that readers are temporarily blocked during this operation
+			if (isUpToDate) {
+				LOG.info("Will skip rebuilding AVAILABLE materialized view " + idAndVersion + ". The index is up to date.");
+				return;
+			}
 			
 			// If the table is not available anymore there is no need to switch since another process triggered a processing of the table
-			if (TableState.AVAILABLE == tableManagerSupport.getTableStatusState(idAndVersion).orElse(null)) {
-				LOG.info("Updating materialized view index " + idAndVersion + " from temporary index " + temporaryId);
-				
-				tableManagerSupport.tryRunWithTableExclusiveLock(callback, parentContext, idAndVersion, (innerCallback) -> {
-					TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
-					indexManager.swapTableIndex(temporaryIndex, currentIndex);
-					columModelManager.bindColumnsToVersionOfObject(schema.stream().map(ColumnModel::getId).collect(Collectors.toList()), idAndVersion);
-					tableManagerSupport.updateChangedOnIfAvailable(idAndVersion);
-					return null;
-				});
+			if (TableState.AVAILABLE != tableManagerSupport.getTableStatusState(idAndVersion).orElse(null)) {
+				LOG.info("Will skip swapping materialized view " + idAndVersion + " index from temporary index " + temporaryId + ". The view is NOT AVAILABLE anymore.");
+				return;
 			}
+			
+			LOG.info("Updating materialized view index " + idAndVersion + " from temporary index " + temporaryId);			
+			
+			// Now we switch the temporary index to the real index, we try to acquire an exclusive lock so that readers are temporarily blocked during this operation
+			tableManagerSupport.tryRunWithTableExclusiveLock(callback, parentContext, idAndVersion, (innerCallback) -> {
+				indexManager.swapTableIndex(temporaryIndex, currentIndex);
+				columModelManager.bindColumnsToVersionOfObject(schema.stream().map(ColumnModel::getId).collect(Collectors.toList()), idAndVersion);
+				tableManagerSupport.updateChangedOnIfAvailable(idAndVersion);
+				return null;
+			});
 			
 		} catch (RecoverableMessageException e) {
 			throw e;
@@ -320,14 +337,14 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		
 		List<ColumnModel> viewSchema = indexManager.resetTableIndex(definingSql.getIndexDescription(), schema, isSearchEnabled);
 		
-		Long viewCRC = indexManager.populateMaterializedViewFromDefiningSql(viewSchema, definingSql);
+		Long viewVersion = indexManager.populateMaterializedViewFromDefiningSql(viewSchema, definingSql);
 		
 		// Now build the secondary indicies
 		indexManager.buildTableIndexIndices(definingSql.getIndexDescription(), viewSchema);
 		
-		// both the CRC and schema MD5 are used to determine if the view is up-to-date.
-		// The schema MD5 is already set when resetting the index, we use the CRC of the view as the "version" of the index
-		indexManager.setIndexVersion(idAndVersion, viewCRC);
+		// both the version and schema MD5 are used to determine if the view is up-to-date.
+		// The schema MD5 is already set when resetting the index
+		indexManager.setIndexVersion(idAndVersion, viewVersion);
 		
 		// Attempt to set the table to complete.
 		tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
