@@ -30,6 +30,7 @@ public class ObjectSchemaUtils {
 		while (concreteClassNames.hasNext()) {
 			String className = concreteClassNames.next();
 			ObjectSchema schema = SchemaUtils.getSchema(className);
+			System.out.println("Schema for class " + className + " is " + schema.toString());
 			SchemaUtils.recursiveAddTypes(classNameToObjectSchema, className, schema);
 		}
 		return classNameToObjectSchema;
