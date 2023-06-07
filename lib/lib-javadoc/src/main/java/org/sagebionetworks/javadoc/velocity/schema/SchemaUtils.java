@@ -206,6 +206,7 @@ public class SchemaUtils {
 				System.out.println("Resulting json for " + name + " is: " + json);
 			} catch (IllegalArgumentException e) {
 				System.out.println("in catch for class " + name);
+				e.printStackTrace();
 				if(!clazz.isInterface()) {
 					JSONEntity entity = clazz.newInstance();
 					if(entity instanceof HasEffectiveSchema) {
