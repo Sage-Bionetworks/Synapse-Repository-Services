@@ -29,9 +29,11 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.IndexDescriptionLookup;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -46,10 +48,12 @@ import com.google.common.collect.Maps;
 public class QueryTranslatorTest {
 	
 	@Mock
-	SchemaProvider mockSchemaProvider;
+	private SchemaProvider mockSchemaProvider;
+	@Mock
+	private IndexDescriptionLookup mockIndexDescriptionLookup;
 
-	Map<String, ColumnModel> columnNameToModelMap;
-	List<ColumnModel> tableSchema;
+	private Map<String, ColumnModel> columnNameToModelMap;
+	private List<ColumnModel> tableSchema;
 
 	private static final String DOUBLE_COLUMN = "CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END";
 	private static final String STAR_COLUMNS = "_C111_, _C222_, _C333_, _C444_, _C555_, _C666_, " + DOUBLE_COLUMN
@@ -1973,5 +1977,114 @@ public class QueryTranslatorTest {
 		SelectColumn expectedSelect = new SelectColumn().setName("aDouble").setColumnType(ColumnType.DOUBLE)
 				.setId("777");
 		assertEquals(List.of(expectedSelect), select);
+	}
+	
+	@Test
+	public void testVirtualTableCTE() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+		when(mockSchemaProvider.getTableSchema(tableId))
+				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		when(mockSchemaProvider.getTableSchema(cte))
+		.thenReturn(List.of(columnNameToModelMap.get("inttype"), columnNameToModelMap.get("foo_bar")));
+		
+		when(mockSchemaProvider.getColumnModel("888")).thenReturn(columnNameToModelMap.get("inttype"));
+		when(mockSchemaProvider.getColumnModel("444")).thenReturn(columnNameToModelMap.get("foo_bar"));
+		
+		when(mockIndexDescriptionLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(tableId));
+
+		String definingSql = "select CAST(foo as 888), CAST(bar as 444) from syn1";
+		IndexDescription indexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
+
+		sql = "select * from syn2 where inttype > 2";
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
+		
+		assertEquals("WITH T2 (_C888_, _C444_) AS "
+				+ "(SELECT CAST(_C111_ AS SIGNED), CAST(_C333_ AS CHAR) FROM T1)"
+				+ " SELECT _C888_, _C444_ FROM T2 WHERE _C888_ > :b0", query.getOutputSQL());
+		List<SelectColumn> select = query.getSelectColumns();
+		List<SelectColumn> expectedSelect = List
+				.of(new SelectColumn().setName("inttype").setColumnType(ColumnType.INTEGER).setId("888"),
+						new SelectColumn().setName("foo_bar").setColumnType(ColumnType.STRING).setId("444"));
+		assertEquals(expectedSelect, select);
+		
+		Map<String, Object> expectedParams = new HashMap<>(4);
+		expectedParams.put("b0", 2L);
+		assertEquals(expectedParams, query.getParameters());
+	}
+	
+	@Test
+	public void testVirtualTableCTEWithComplex() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+		when(mockSchemaProvider.getTableSchema(tableId))
+				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		when(mockSchemaProvider.getTableSchema(cte))
+		.thenReturn(List.of(columnNameToModelMap.get("inttype"), columnNameToModelMap.get("foo_bar")));
+		
+		when(mockSchemaProvider.getColumnModel("888")).thenReturn(columnNameToModelMap.get("inttype"));
+		when(mockSchemaProvider.getColumnModel("444")).thenReturn(columnNameToModelMap.get("foo_bar"));
+		
+		when(mockIndexDescriptionLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(tableId));
+
+		String definingSql = "select CAST(foo as 888), CAST(bar as 444) from syn1";
+		IndexDescription indexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
+
+		sql = "select inttype, count(foo_bar) from syn2 where inttype > 2 group by inttype";
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
+		
+		assertEquals("WITH T2 (_C888_, _C444_) AS "
+				+ "(SELECT CAST(_C111_ AS SIGNED), CAST(_C333_ AS CHAR) FROM T1)"
+				+ " SELECT _C888_, COUNT(_C444_) FROM T2 WHERE _C888_ > :b0 GROUP BY _C888_", query.getOutputSQL());
+	}
+	
+	@Test
+	public void testVirtualTableCTEWithUnion() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+		when(mockSchemaProvider.getTableSchema(tableId))
+				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		when(mockSchemaProvider.getTableSchema(cte))
+		.thenReturn(List.of(columnNameToModelMap.get("inttype"), columnNameToModelMap.get("foo_bar")));
+				
+		when(mockIndexDescriptionLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(tableId));
+
+		String definingSql = "select CAST(foo as 888), CAST(bar as 444) from syn1";
+		IndexDescription indexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
+
+		sql = "select * from syn2 union select * from syn1";
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+					.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
+		}).getMessage();
+		assertEquals(TableConstants.UNION_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
+	}
+	
+	@Test
+	public void testVirtualTableCTEWithJoin() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+		when(mockSchemaProvider.getTableSchema(tableId))
+				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		when(mockSchemaProvider.getTableSchema(cte))
+		.thenReturn(List.of(columnNameToModelMap.get("inttype"), columnNameToModelMap.get("foo_bar")));
+				
+		when(mockIndexDescriptionLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(tableId));
+
+		String definingSql = "select CAST(foo as 888), CAST(bar as 444) from syn1";
+		IndexDescription indexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
+
+		sql = "select * from syn2 a join syn2 b on (a.id= b.id)";
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+					.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
+		}).getMessage();
+		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
 }

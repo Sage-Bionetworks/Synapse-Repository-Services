@@ -2,6 +2,7 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * QueryExpression ::= [ WITH {@link WithListElement} ( <comma> {@link WithListElement} )* ] {@link NonJoinQueryExpression}
@@ -33,6 +34,18 @@ public class QueryExpression extends SQLElement implements HasSqlContext {
 	public void setSqlContext(SqlContext context) {
 		this.sqlContext = context;
 	}
+	
+	public Optional<List<WithListElement>> getWithListElements(){
+		if(this.withListElements == null || this.withListElements.isEmpty()) {
+			return Optional.empty();
+		}else {
+			return Optional.of(withListElements);
+		}
+	}
+
+	public NonJoinQueryExpression getNonJoinQueryExpression() {
+		return nonJoinQueryExpression;
+	}
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
@@ -53,10 +66,10 @@ public class QueryExpression extends SQLElement implements HasSqlContext {
 	@Override
 	public Iterable<Element> getChildren() {
 		List<Element> list = new LinkedList<>();
+		list.add(nonJoinQueryExpression);
 		if(this.withListElements != null) {
 			list.addAll(withListElements);
 		}
-		list.add(nonJoinQueryExpression);
 		return list;
 	}
 

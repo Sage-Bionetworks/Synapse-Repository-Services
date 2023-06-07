@@ -12,18 +12,26 @@ package org.sagebionetworks.table.query.model;
  *      List Element List</a>
  *
  */
-public class WithListElement extends SQLElement {
+public class WithListElement extends SQLElement  {
 
-	private final Identifier identifier;
-	private final ColumnList columnList;
+	private final ReplaceableBox<Identifier> identifier;
+	private ColumnList columnList;
 	private final NonJoinQueryExpression nonJoinQueryExpression;
 	
 	public WithListElement(Identifier identifier, ColumnList columnList,
 			NonJoinQueryExpression nonJoinQueryExpression) {
 		super();
-		this.identifier = identifier;
+		this.identifier = new ReplaceableBox<>(identifier);
 		this.columnList = columnList;
 		this.nonJoinQueryExpression = nonJoinQueryExpression;
+	}
+
+	public Identifier getIdentifier() {
+		return identifier.getChild();
+	}
+	
+	public ColumnList getColumnList() {
+		return columnList;
 	}
 
 	@Override
@@ -41,6 +49,11 @@ public class WithListElement extends SQLElement {
 	@Override
 	public Iterable<Element> getChildren() {
 		return SQLElement.buildChildren(identifier, columnList, nonJoinQueryExpression);
+	}
+
+	public void setColumnList(ColumnList cl) {
+		this.columnList = cl;
+		this.recursiveSetParent();
 	}
 
 }

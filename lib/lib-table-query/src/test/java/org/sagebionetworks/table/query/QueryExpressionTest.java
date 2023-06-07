@@ -25,7 +25,9 @@ public class QueryExpressionTest {
 		QueryExpression element = new TableQueryParser(
 				"with cte as (select * from syn1), cte2(a,b,c) as (select * from syn2) select * from cte union select * from cte2")
 				.queryExpression();
-		assertEquals("WITH cte AS (SELECT * FROM syn1), cte2 (a, b, c) AS (SELECT * FROM syn2) SELECT * FROM cte UNION SELECT * FROM cte2", element.toSql());
+		assertEquals(
+				"WITH cte AS (SELECT * FROM syn1), cte2 (a, b, c) AS (SELECT * FROM syn2) SELECT * FROM cte UNION SELECT * FROM cte2",
+				element.toSql());
 	}
 
 }

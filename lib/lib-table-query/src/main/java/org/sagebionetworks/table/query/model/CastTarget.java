@@ -6,7 +6,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
  * <cast target> ::= {@link ColumnType } | {@link UnsignedInteger} 
  *
  */
-public class CastTarget extends SQLElement implements Replaceable<CastTarget>, HasFunctionReturnType {
+public class CastTarget extends SQLElement implements Replaceable<CastTarget> {
 	
 	private final ColumnType type;
 	private final UnsignedInteger columnId;
@@ -55,12 +55,6 @@ public class CastTarget extends SQLElement implements Replaceable<CastTarget>, H
 
 	public UnsignedInteger getColumnId() {
 		return columnId;
-	}
-
-	@Override
-	public FunctionReturnType getFunctionReturnType() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 }

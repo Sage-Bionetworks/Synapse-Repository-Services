@@ -25,6 +25,7 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
+import org.sagebionetworks.table.query.model.WithListElement;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -117,24 +118,27 @@ public class QueryTranslator {
 			} else {
 				this.sqlContext = sqlContextIn;
 			}
-			QueryExpression transformedModel = new TableQueryParser(startingSql).queryExpression();
+			QueryExpression transformedModel = new TableQueryParser(indexDescription.preprocessQuery(startingSql)).queryExpression();
 			transformedModel.setSqlContext(this.sqlContext);
 			
 			List<QueryPart> parts = transformedModel.stream(QuerySpecification.class).map((q)-> new QueryPart(q, schemaProvider)).collect(Collectors.toList());
 			
 			distinctTableIds = parts.stream().flatMap(p->p.getMapper().getTableIds().stream()).collect(Collectors.toCollection(LinkedHashSet::new));
 			
-			QueryPart firstPart = parts.get(0);
+			QueryPart selectDefiningPart = parts.get(0);
 			
-			tableSchema = firstPart.getMapper().getUnionOfAllTableSchemas();
+			tableSchema = selectDefiningPart.getMapper().getUnionOfAllTableSchemas();
 			
 			if(!SqlContext.build.equals(this.sqlContext)) {
-				if(parts.size() > 1) {
+				int maxParts = transformedModel.getWithListElements().isPresent() ? 2 : 1;
+				if(parts.size() > maxParts) {
 					throw new IllegalArgumentException(TableConstants.UNION_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
 				}
-				if(firstPart.getMapper().getTableIds().size() > 1) {
-					throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
-				}
+				parts.stream().forEach((p)->{
+					if(p.getMapper().getTableIds().size() > 1) {
+						throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
+					}
+				});
 			}
 
 			this.indexDescription = indexDescription;
@@ -148,7 +152,7 @@ public class QueryTranslator {
 			// This map will contain all of the
 			this.parameters = new HashMap<String, Object>();
 
-			List<ColumnModel> unionOfSchemas = firstPart.getMapper().getUnionOfAllTableSchemas();
+			List<ColumnModel> unionOfSchemas = selectDefiningPart.getMapper().getUnionOfAllTableSchemas();
 
 
 			List<List<ColumnModel>> partsSelectSchemas = new ArrayList<>(parts.size());
@@ -158,20 +162,28 @@ public class QueryTranslator {
 			}
 			this.schemaOfSelect = SQLTranslatorUtils.createSchemaOfSelect(partsSelectSchemas);
 			
+			transformedModel.getWithListElements().ifPresent((withListElements)->{
+				if(withListElements.size() != 1) {
+					throw new IllegalArgumentException("A CTE must have one and only one inner query.");
+				}
+				WithListElement wle = withListElements.get(0);
+				SQLTranslatorUtils.translateWithListElement(wle, schemaProvider);
+			});
+			
 			// Track if this is an aggregate query.
 			this.isAggregatedResult = transformedModel.hasAnyAggregateElements();
 			this.includesRowIdAndVersion = !this.isAggregatedResult;
 			// Build headers that describe how the client should read the results of this
 			// query.
-			this.selectColumns = SQLTranslatorUtils.getSelectColumns(firstPart.getQuerySpecification().getSelectList(), firstPart.getMapper(),
+			this.selectColumns = SQLTranslatorUtils.getSelectColumns(selectDefiningPart.getQuerySpecification().getSelectList(), selectDefiningPart.getMapper(),
 					this.isAggregatedResult);
 			// Maximum row size is a function of both the select clause and schema.
 			this.maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(selectColumns, TableModelUtils.createColumnNameToModelMap(unionOfSchemas));
 
 			if (maxBytesPerPage != null) {
 				this.maxRowsPerPage = Math.max(1, maxBytesPerPage / this.maxRowSizeBytes);
-				firstPart.getQuerySpecification().getTableExpression().replacePagination(
-						SqlElementUtils.limitMaxRowsPerPage(firstPart.getQuerySpecification().getTableExpression().getPagination(), maxRowsPerPage));
+				selectDefiningPart.getQuerySpecification().getTableExpression().replacePagination(
+						SqlElementUtils.limitMaxRowsPerPage(selectDefiningPart.getQuerySpecification().getTableExpression().getPagination(), maxRowsPerPage));
 			}
 
 			// Does the query contain any text_matches elements?
@@ -200,7 +212,7 @@ public class QueryTranslator {
 		private final QuerySpecification querySpecification;
 		private final TableAndColumnMapper mapper;
 		
-		public QueryPart(QuerySpecification querySpecification, SchemaProvider provider) {
+		QueryPart(QuerySpecification querySpecification, SchemaProvider provider) {
 			super();
 			this.querySpecification = querySpecification;
 			this.mapper = new TableAndColumnMapper(querySpecification, provider);

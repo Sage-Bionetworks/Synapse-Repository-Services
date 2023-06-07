@@ -13,7 +13,7 @@ import java.util.List;
  *
  * 
  */
-public class ColumnList extends SQLElement {
+public class ColumnList extends SQLElement implements Replaceable<ColumnList> {
 
 	private final List<Identifier> identifiers;
 

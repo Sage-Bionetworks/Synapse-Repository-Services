@@ -58,6 +58,15 @@ public interface IndexDescription extends Comparable<IndexDescription> {
 	default boolean addRowIdToSearchIndex() {
 		return false;
 	}
+	
+	/**
+	 * Pre-process the given runtime-query and return a new query to be run in its place.
+	 * @param sql
+	 * @return
+	 */
+	default String preprocessQuery(String sql) {
+		return sql;
+	}
 
 	/**
 	 * Default @Comparable based on IdAndVersion.
