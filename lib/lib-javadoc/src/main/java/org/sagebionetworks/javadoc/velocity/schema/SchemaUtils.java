@@ -218,6 +218,7 @@ public class SchemaUtils {
 			if(!json.startsWith("{")) return null;
 			return json;
 		} catch (Exception e) {
+			e.printStackTrace();
 			return null;
 		}
 	}
