@@ -199,10 +199,13 @@ public class SchemaUtils {
 		Class<JSONEntity> clazz;
 		try {
 			clazz = (Class<JSONEntity>) Class.forName(name);
+			System.out.println("clazz for classname " + name + " is " + clazz.toString());
 			String json = null;
 			try {
 				json = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(clazz);
+				System.out.println("Resulting json for " + name + " is: " + json);
 			} catch (IllegalArgumentException e) {
+				System.out.println("in catch for class " + name);
 				if(!clazz.isInterface()) {
 					JSONEntity entity = clazz.newInstance();
 					if(entity instanceof HasEffectiveSchema) {
@@ -228,6 +231,7 @@ public class SchemaUtils {
 	public static ObjectSchema getSchema(String name) {
 		String json = null;
 		try {
+			// this is returning null?
 			json = getEffectiveSchema(name);
 			if(json == null) return null;
 			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl(json);
