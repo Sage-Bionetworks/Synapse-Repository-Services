@@ -71,7 +71,7 @@
 		<!-- This file is used to provide classpath information to the test javadoc 
 			tool -->
 		<auto.generated.classpath>${project.build.directory}/gen/auto-generated-classpath.txt</auto.generated.classpath>
-		<test.javadoc.output.directory>${project.build.directory}/javadoc</test.javadoc.output.directory>
+		<test.javadoc.output.directory>${project.build.directory}/test-classes</test.javadoc.output.directory>
 	</properties>
 	<build>
 		<resources>
@@ -136,6 +136,9 @@
 							<value>${test.javadoc.output.directory}</value>
 						</property>
 					</systemProperties>
+					<additionalClasspathElements>
+						<additionalClasspathElement>${project.build.directory}/auto-generated-pojos</additionalClasspathElement>
+					</additionalClasspathElements>
 				</configuration>
 			</plugin>
 		</plugins>

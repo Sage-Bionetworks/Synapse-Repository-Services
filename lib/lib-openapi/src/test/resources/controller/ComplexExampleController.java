@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.sagebionetworks.openapi.pet.*;
 
 /**
- *  This exists to test translating for complex types.
+ * This controller is used to test translating for complex types.
  * @author lli
  *
  */
@@ -29,7 +29,7 @@ public class ComplexExampleController {
 	 * @return the Pet associated with 'name'.
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/pet/{petName}", method = RequestMethod.GET)
+	@RequestMapping(value = "/complex-pet/{petName}", method = RequestMethod.GET)
 	public @ResponseBody Pet getPet(@PathVariable String petName) {
 		return petNameToPet.get(petName);
 	}
@@ -42,7 +42,7 @@ public class ComplexExampleController {
 	 * @return the name of the Dog that was added
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/pet/dog/{name}", method = RequestMethod.POST)
+	@RequestMapping(value = "/complex-pet/dog/{name}", method = RequestMethod.POST)
 	public @ResponseBody String addDog(@PathVariable String name, @RequestBody Dog dog) {
 		petNameToPet.put(name, dog);
 		return name;
@@ -56,7 +56,7 @@ public class ComplexExampleController {
 	 * @return the name of the cat that was added
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/pet/cat/{name}", method = RequestMethod.POST)
+	@RequestMapping(value = "/complex-pet/cat/{name}", method = RequestMethod.POST)
 	public @ResponseBody String addCat(@PathVariable String name, @RequestBody Cat cat) {
 		petNameToPet.put(name, cat);
 		return name;

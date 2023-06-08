@@ -378,7 +378,7 @@ public class ControllerToControllerModelTranslator {
 		ObjectSchema schema;
 		try {
 			// We can use empty json object because we only need the type to translate to JsonSchema later.
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl("{}");
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 			schema = new ObjectSchemaImpl(adpater);
 		} catch (Exception e) {
 			throw new RuntimeException("Error generating ObjectSchema for type " + type);
