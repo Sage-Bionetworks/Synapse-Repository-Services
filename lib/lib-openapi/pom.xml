@@ -136,6 +136,9 @@
 							<value>${test.javadoc.output.directory}</value>
 						</property>
 					</systemProperties>
+					<additionalClasspathElements>
+						<additionalClasspathElement>${project.build.directory}/auto-generated-pojos</additionalClasspathElement>
+					</additionalClasspathElements>
 				</configuration>
 			</plugin>
 		</plugins>
