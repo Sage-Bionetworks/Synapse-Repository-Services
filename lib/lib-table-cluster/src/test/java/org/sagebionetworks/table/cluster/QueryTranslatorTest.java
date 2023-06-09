@@ -113,6 +113,7 @@ public class QueryTranslatorTest {
 		assertNotNull(translator.getSelectColumns());
 		assertEquals(translator.getSelectColumns().size(), 10);
 		assertEquals(TableModelUtils.getSelectColumns(this.tableSchema), translator.getSelectColumns());
+		assertEquals("syn123", translator.getSingleTableId().get());
 	}
 
 	@Test
@@ -2013,6 +2014,7 @@ public class QueryTranslatorTest {
 		Map<String, Object> expectedParams = new HashMap<>(4);
 		expectedParams.put("b0", 2L);
 		assertEquals(expectedParams, query.getParameters());
+		assertEquals("syn2", query.getSingleTableId().get());
 	}
 	
 	@Test

@@ -306,7 +306,7 @@ public class QueryTranslator {
 	 */
 	public Optional<String> getSingleTableId() {
 		int maxParts = isCommonTableExpression ? 2 : 1;
-		if (distinctTableIds.size() < maxParts) {
+		if (distinctTableIds.size() <= maxParts) {
 			return Optional.of(distinctTableIds.iterator().next().toString());
 		} else {
 			return Optional.empty();
