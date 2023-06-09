@@ -4,10 +4,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -34,16 +35,9 @@ public class VirtualTableManagerImpl implements VirtualTableManager {
 		String definingSql = virtualTable.getDefiningSQL();
 
 		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the virtual table");
-
-		QuerySpecification querySpecification;
-
-		try {
-			querySpecification = TableQueryParser.parserQuery(definingSql);
-		} catch (ParseException e) {
-			throw new IllegalArgumentException(e.getMessage(), e);
-		}
-
-		querySpecification.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
+		// This constructor will do deeper validation...
+		new VirtualTableIndexDescription(KeyFactory.idAndVersion(virtualTable.getId(), virtualTable.getVersionNumber()),
+				definingSql, tableManagerSupport);
 
 	}
 

@@ -16,10 +16,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.VirtualTable;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 
@@ -35,17 +37,24 @@ public class VirtualTableManagerImplTest {
 	private ColumnModelManager mockColumnModelManager;
 	@Mock
 	private TableManagerSupport mockTableManagerSupport;
+	@Mock
+	private IndexDescription mockIndexDescription;
 
 	@Test
 	public void testValidate() {
 		String sql = "SELECT * FROM syn123";
 
 		when(mockTable.getDefiningSQL()).thenReturn(sql);
+		when(mockTable.getId()).thenReturn("syn456");
+		when(mockIndexDescription.getTableType()).thenReturn(TableType.table);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(mockIndexDescription);
 
 		// Call under test
 		manager.validate(mockTable);
 
 		verify(mockTable).getDefiningSQL();
+		verify(mockIndexDescription).getTableType();
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn123"));
 	}
 
 	@Test
@@ -98,6 +107,7 @@ public class VirtualTableManagerImplTest {
 		String sql = "invalid SQL";
 
 		when(mockTable.getDefiningSQL()).thenReturn(sql);
+		when(mockTable.getId()).thenReturn("syn456");
 
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
@@ -105,8 +115,6 @@ public class VirtualTableManagerImplTest {
 		});
 
 		assertTrue(ex.getCause() instanceof ParseException);
-
-		assertTrue(ex.getMessage().startsWith("Encountered \" <regular_identifier> \"invalid"));
 		verify(mockTable).getDefiningSQL();
 	}
 
@@ -115,6 +123,7 @@ public class VirtualTableManagerImplTest {
 		String sql = "SELECT foo";
 
 		when(mockTable.getDefiningSQL()).thenReturn(sql);
+		when(mockTable.getId()).thenReturn("syn456");
 
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
@@ -122,16 +131,15 @@ public class VirtualTableManagerImplTest {
 		});
 
 		assertTrue(ex.getCause() instanceof ParseException);
-
-		assertTrue(ex.getMessage().startsWith("Encountered \"<EOF>\" at line 1, column 10."));
 		verify(mockTable).getDefiningSQL();
 	}
 
 	@Test
 	public void testValidateWithWithUnsupportedJoin() {
-		String sql = "SELECT * FROM table1 JOIN table2";
+		String sql = "SELECT * FROM syn1 JOIN syn2";
 
 		when(mockTable.getDefiningSQL()).thenReturn(sql);
+		when(mockTable.getId()).thenReturn("syn456");
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test

@@ -208,14 +208,16 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		// lookup the table type.
 		ObjectType tableType = getTableObjectType(idAndVersion);
+		
+		// we get here, if the index for this table is not (yet?) being build. We need
+		// to kick off the
+		// building of the index and report the table as unavailable
+		String resestToken = tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
+		
 		if (ObjectType.VIRTUAL_TABLE.equals(tableType)) {
-			tableStatusDAO.attemptToSetTableStatusToAvailable(idAndVersion,
-					tableStatusDAO.resetTableStatusToProcessing(idAndVersion), "fixed");
+			// Since a VirtualTable does not have an index it is automatically set to available.
+			tableStatusDAO.attemptToSetTableStatusToAvailable(idAndVersion,	resestToken, "fixed");
 		}else {
-			// we get here, if the index for this table is not (yet?) being build. We need
-			// to kick off the
-			// building of the index and report the table as unavailable
-			tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
 			// notify all listeners.
 			transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObjectId(idAndVersion.getId().toString())
 					.withObjectVersion(idAndVersion.getVersion().orElse(null)).withObjectType(tableType)

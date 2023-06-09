@@ -2,10 +2,12 @@ package org.sagebionetworks.table.cluster.description;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.SqlContext;
@@ -29,12 +31,21 @@ public class VirtualTableIndexDescription implements IndexDescription {
 			List<IdAndVersion> sourceIds = new TableQueryParser(definingSql).queryExpression()
 					.stream(TableNameCorrelation.class).map((tnc) -> IdAndVersion.parse(tnc.toSql()))
 					.collect(Collectors.toList());
+			if(sourceIds.size() != 1) {
+				throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
+			}
 			sourceIds.stream().filter(s -> s.equals(idAndVersion)).findFirst().ifPresent(s -> {
 				throw new IllegalArgumentException("Defining SQL cannot reference itself");
 			});
 			sources = sourceIds.stream().map((id) -> lookup.getIndexDescription(id)).collect(Collectors.toList());
+			sources.stream().map(IndexDescription::getTableType).filter(Predicate.not(TableType.table::equals))
+					.findFirst().ifPresent((t) -> {
+						throw new IllegalArgumentException(String.format(
+								"The definingSql of a VirtualTable cannot reference a/an: '%s' at this time.",
+								t.name()));
+					});
 		} catch (ParseException e) {
-			throw new RuntimeException(e);
+			throw new IllegalArgumentException(e);
 		}
 	}
 

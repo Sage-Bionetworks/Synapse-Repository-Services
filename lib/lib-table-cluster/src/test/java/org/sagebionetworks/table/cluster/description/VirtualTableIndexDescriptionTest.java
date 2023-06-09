@@ -16,38 +16,63 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.TableConstants;
 
 @ExtendWith(MockitoExtension.class)
 public class VirtualTableIndexDescriptionTest {
 	
 	@Mock
 	private IndexDescriptionLookup mockLookup;
+	@Mock
+	private IndexDescription mockIndexDescription;
 	
 	private IdAndVersion idAndVersion;
 	private String definingSql;
-	private IndexDescription sourceIndexDescription;
 	
 	@BeforeEach
 	public void before() {
 		idAndVersion = IdAndVersion.parse("syn1");
 		definingSql = "select * from syn2";
-		sourceIndexDescription = new TableIndexDescription(IdAndVersion.parse("syn2"));
 	}
 
 	@Test
 	public void testConstructor() {
-		when(mockLookup.getIndexDescription(any())).thenReturn(sourceIndexDescription);
+		when(mockLookup.getIndexDescription(any())).thenReturn(mockIndexDescription);
+		when(mockIndexDescription.getTableType()).thenReturn(TableType.table);
 		
 		// call under test
 		VirtualTableIndexDescription vtd = new VirtualTableIndexDescription(idAndVersion, definingSql, mockLookup);
 		
 		assertEquals(idAndVersion, vtd.getIdAndVersion());
 		assertEquals(TableType.virtualtable, vtd.getTableType());
-		assertEquals(List.of(sourceIndexDescription), vtd.getDependencies());
+		assertEquals(List.of(mockIndexDescription), vtd.getDependencies());
 		assertEquals("WITH syn1 AS (select * from syn2) select * from syn1", vtd.preprocessQuery("select * from syn1"));
 		
 		verify(mockLookup).getIndexDescription(IdAndVersion.parse("syn2"));
 		
+	}
+	
+	@Test
+	public void testConstructorWithNonTableDependency() {
+		when(mockLookup.getIndexDescription(any())).thenReturn(mockIndexDescription);
+		when(mockIndexDescription.getTableType()).thenReturn(TableType.entityview);
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			new VirtualTableIndexDescription(idAndVersion, definingSql, mockLookup);
+		}).getMessage();
+		assertEquals("The definingSql of a VirtualTable cannot reference a/an: 'entityview' at this time.", message);
+	}
+	
+	@Test
+	public void testConstructorWithJoin() {
+		definingSql = "select * from syn2 join syn2 on syn2.id = syn2.id";
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			new VirtualTableIndexDescription(idAndVersion, definingSql, mockLookup);
+		}).getMessage();
+		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
 	
 	@Test

@@ -921,6 +921,24 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
+	public void testSetTableToProcessingAndTriggerUpdateWithVirtualTable() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
+		String resetToken = "a reset token";
+		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(resetToken);
+		EntityType type = EntityType.virtualtable;
+		when(mockNodeDao.getNodeTypeById("123")).thenReturn(type);
+		TableStatus status = new TableStatus();
+		status.setResetToken(resetToken);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
+		// call under test
+		TableStatus resultStatus = manager.setTableToProcessingAndTriggerUpdate(idAndVersion);
+		assertEquals(status, resultStatus);
+		verifyZeroInteractions(mockTransactionalMessenger);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
+		verify(mockTableStatusDAO).attemptToSetTableStatusToAvailable(idAndVersion, resetToken, "fixed");
+	}
+	
+	@Test
 	public void testIsTableIndexStateInvalidWithNoEtag() {
 		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
 		when(mockTableStatusDAO.getLastChangeEtag(any())).thenReturn(Optional.empty());
