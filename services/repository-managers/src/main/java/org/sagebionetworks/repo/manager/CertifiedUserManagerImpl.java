@@ -54,8 +54,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	
 	private static final String UTF_8 = "UTF-8";
-	public static final String QUESTIONNAIRE_PROPERTIES_FILE = "certifiedUsersTestDefault_v4.json";
-	public static final String S3_QUESTIONNAIRE_KEY = "repository-managers."+QUESTIONNAIRE_PROPERTIES_FILE;
+	public static final String QUESTIONNAIRE_PROPERTIES_FILE = "certifiedUsersTestDefault.json";
+	public static final String S3_QUESTIONNAIRE_KEY = "repository-managers.certifiedUsersTest_v5.json";
 	
 	@Autowired
 	private AmazonS3Utility s3Utility;	
@@ -147,7 +147,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 					if (tq.getAnswer()==null)
 						errorMessages.add("No answer provided for "+q.getPrompt());
 				} else {
-					errorMessages.add("Unexpected questions type "+QUESTIONNAIRE_PROPERTIES_FILE.getClass());
+					errorMessages.add("Unexpected questions type "+q.getClass());
 				}
 			}
 		}	
