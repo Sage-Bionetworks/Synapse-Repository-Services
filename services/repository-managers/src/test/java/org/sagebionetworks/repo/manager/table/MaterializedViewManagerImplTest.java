@@ -31,6 +31,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -81,6 +82,9 @@ public class MaterializedViewManagerImplTest {
 
 	@Mock
 	private MaterializedView mockView;
+	
+	@Mock
+	private NodeDAO mockNodeDAO;
 
 	private IdAndVersion idAndVersion = IdAndVersion.parse("syn123.1");
 
@@ -647,7 +651,7 @@ public class MaterializedViewManagerImplTest {
 			return null;
 		}).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(), any(), any(), any(IdAndVersion.class));
 		
-		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.of("select * from syn456"));
+		when(mockNodeDAO.getDefiningSql(any())).thenReturn(Optional.of("select * from syn456"));
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema); 
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
@@ -661,7 +665,7 @@ public class MaterializedViewManagerImplTest {
 		// call under test
 		managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion);
 		
-		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
+		verify(mockNodeDAO).getDefiningSql(idAndVersion);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryTranslator.class));
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersion);
 		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), eq(expectedLockContext), any(), eq( dependentIdAndVersion));
@@ -689,7 +693,7 @@ public class MaterializedViewManagerImplTest {
 			return null;
 		}).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(), any(), any(), any(IdAndVersion.class));
 
-		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any()))
+		when(mockNodeDAO.getDefiningSql(any()))
 				.thenReturn(Optional.of("select * from syn456 join syn789"));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
@@ -704,7 +708,7 @@ public class MaterializedViewManagerImplTest {
 		// call under test
 		managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion);
 
-		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
+		verify(mockNodeDAO).getDefiningSql(idAndVersion);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryTranslator.class));
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[0]);
@@ -718,7 +722,7 @@ public class MaterializedViewManagerImplTest {
 	public void testCreateOrRebuildViewHoldingExclusiveLockWithMultipleDependenciesWithUnavailable() throws Exception {
 		idAndVersion = IdAndVersion.parse("syn123");
 
-		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any()))
+		when(mockNodeDAO.getDefiningSql(any()))
 				.thenReturn(Optional.of("select * from syn456 join syn789"));
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema);
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
@@ -734,7 +738,7 @@ public class MaterializedViewManagerImplTest {
 			// call under test
 			managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion);
 		});
-		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
+		verify(mockNodeDAO).getDefiningSql(idAndVersion);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryTranslator.class));
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[0]);
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[1]);
@@ -746,7 +750,7 @@ public class MaterializedViewManagerImplTest {
 	public void testCreateOrRebuildViewHoldingExclusiveLockWithMultipleDependenciesWithProcessingFailed() throws Exception {
 		idAndVersion = IdAndVersion.parse("syn123");
 
-		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any()))
+		when(mockNodeDAO.getDefiningSql(any()))
 				.thenReturn(Optional.of("select * from syn456 join syn789"));
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema);
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
@@ -765,7 +769,7 @@ public class MaterializedViewManagerImplTest {
 		
 		assertEquals("Cannot build materialized view syn123, the dependent table syn789 failed to build", result);
 		
-		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
+		verify(mockNodeDAO).getDefiningSql(idAndVersion);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryTranslator.class));
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[0]);
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[1]);
@@ -777,7 +781,7 @@ public class MaterializedViewManagerImplTest {
 	public void testCreateOrRebuildViewHoldingExclusiveLockWithNoDefiningSql() throws Exception {
 		idAndVersion = IdAndVersion.parse("syn123");
 		
-		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.empty());
+		when(mockNodeDAO.getDefiningSql(any())).thenReturn(Optional.empty());
 		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
@@ -785,7 +789,7 @@ public class MaterializedViewManagerImplTest {
 		}).getMessage();
 		assertEquals("No defining SQL for: syn123", message);
 		
-		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(any());
+		verify(mockNodeDAO).getDefiningSql(any());
 		verify(mockColumnModelManager, never()).bindColumnsToVersionOfObject(any(), any());
 		verify(mockTableManagerSupport, never()).tryRunWithTableNonExclusiveLock(any(), any(), any(), any(IdAndVersion.class));
 		verify(managerSpy, never()).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(eq(idAndVersion), any());

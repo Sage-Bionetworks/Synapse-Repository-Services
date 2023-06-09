@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.stereotype.Service;
@@ -31,21 +32,20 @@ public class VirtualTableMetadataProvider implements
 	@Override
 	public void addTypeSpecificMetadata(VirtualTable entity, UserInfo user, EventType eventType)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		// TODO: Add to schema to the column ids
-		
+		entity.setColumnIds(manager.getSchemaIds(KeyFactory.idAndVersion(entity.getId(), entity.getVersionNumber())));
 	}
 
 	@Override
 	public void entityUpdated(UserInfo userInfo, VirtualTable entity, boolean wasNewVersionCreated) {
-		// TODO: Compute and bind the schema of the table
-		
+		if (wasNewVersionCreated) {
+			throw new IllegalArgumentException("A VirtualTable version can only be created by creating a snapshot.");
+		}
+		manager.registerDefiningSql(KeyFactory.idAndVersion(entity.getId(), entity.getVersionNumber()), entity.getDefiningSQL());
 	}
 
 	@Override
 	public void entityCreated(UserInfo userInfo, VirtualTable entity) {
-		// TODO: Compute and bind the schema of the table
+		manager.registerDefiningSql(KeyFactory.idAndVersion(entity.getId(), entity.getVersionNumber()), entity.getDefiningSQL());
 	}
-
-	
 
 }

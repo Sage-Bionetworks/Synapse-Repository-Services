@@ -1,17 +1,31 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.VirtualTable;
+import org.sagebionetworks.table.cluster.QueryTranslator;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SqlContext;
+import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
 @Service
 public class VirtualTableManagerImpl implements VirtualTableManager {
 
-	public VirtualTableManagerImpl() {}
+	private final ColumnModelManager columModelManager;
+	private final TableManagerSupport tableManagerSupport;
+
+	public VirtualTableManagerImpl(ColumnModelManager columModelManager, TableManagerSupport tableManagerSupport) {
+		this.columModelManager = columModelManager;
+		this.tableManagerSupport = tableManagerSupport;
+	}
 
 	@Override
 	public void validate(VirtualTable virtualTable) {
@@ -28,9 +42,38 @@ public class VirtualTableManagerImpl implements VirtualTableManager {
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
-		
+
 		querySpecification.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 
+	}
+
+	@Override
+	public List<String> getSchemaIds(IdAndVersion idAndVersion) {
+		return columModelManager.getColumnIdsForTable(idAndVersion);
+	}
+
+	@Override
+	public void registerDefiningSql(IdAndVersion id, String definingSQL) {
+		ValidateArgument.required(id, "table Id");
+		ValidateArgument.required(definingSQL, "definingSQL");
+		try {
+			QuerySpecification querySpec = new TableQueryParser(definingSQL).querySpecificationEOF();
+			List<IdAndVersion> definingIds = querySpec.stream(TableNameCorrelation.class)
+					.map(s -> IdAndVersion.parse(s.toSql())).collect(Collectors.toList());
+			if(definingIds.size() != 1) {
+				throw new IllegalArgumentException("The defining SQL can only reference one table/view");
+			}
+			IndexDescription definingIndexDescription = tableManagerSupport.getIndexDescription(definingIds.get(0));
+			
+			QueryTranslator sqlQuery = QueryTranslator.builder().sql(definingSQL)
+					.schemaProvider(columModelManager).sqlContext(SqlContext.query).indexDescription(definingIndexDescription)
+					.build();
+			List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
+					.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());
+			columModelManager.bindColumnsToVersionOfObject(schemaIds, id);
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
 	}
 
 }

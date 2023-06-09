@@ -34,7 +34,7 @@ public class TableQueryParser {
 	public static QuerySpecification parserQuery(String query)
 			throws ParseException {
 		TableQueryParser parser = new TableQueryParser(new StringReader(query));
-		return parser.querySpecification();
+		return parser.querySpecificationEOF();
 	}
 }
 
@@ -610,8 +610,15 @@ QuerySpecification querySpecification():
 	TableExpression tableExpression = null;
 }
 {
-	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression() [ <EOF> ]
+	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression()
 	{ return new QuerySpecification(setQuantifier, selectList, tableExpression); }
+}
+QuerySpecification querySpecificationEOF():
+{
+	QuerySpecification querySpecification = null;
+}
+{
+	querySpecification = querySpecification() <EOF> { return querySpecification; }
 }
 SelectList selectList():
 {
@@ -661,11 +668,8 @@ TableExpression tableExpression():
 	fromClause  = fromClause()
 	[ whereClause = whereClause() ]
 	[ groupByClause = groupByClause() ]
-	[
-		[ orderByClause = orderByClause() ]
-		[ pagination = pagination() ]
-	 	<EOF>
-	 ]
+	[ orderByClause = orderByClause() ]
+	[ pagination = pagination() ]
 	{ return new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination); }
 }
 FromClause fromClause():

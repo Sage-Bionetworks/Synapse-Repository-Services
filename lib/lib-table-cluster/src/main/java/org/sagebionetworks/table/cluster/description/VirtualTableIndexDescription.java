@@ -22,13 +22,17 @@ public class VirtualTableIndexDescription implements IndexDescription {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		ValidateArgument.required(definingSql, "definingSql");
 		ValidateArgument.required(lookup, "IndexDescriptionLookup");
-		
+
 		this.idAndVersion = idAndVersion;
 		this.definingSql = definingSql;
 		try {
-			sources = new TableQueryParser(definingSql).queryExpression().stream(TableNameCorrelation.class)
-					.map((tnc) -> IdAndVersion.parse(tnc.toSql())).map((id) -> lookup.getIndexDescription(id))
+			List<IdAndVersion> sourceIds = new TableQueryParser(definingSql).queryExpression()
+					.stream(TableNameCorrelation.class).map((tnc) -> IdAndVersion.parse(tnc.toSql()))
 					.collect(Collectors.toList());
+			sourceIds.stream().filter(s -> s.equals(idAndVersion)).findFirst().ifPresent(s -> {
+				throw new IllegalArgumentException("Defining SQL cannot reference itself");
+			});
+			sources = sourceIds.stream().map((id) -> lookup.getIndexDescription(id)).collect(Collectors.toList());
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}

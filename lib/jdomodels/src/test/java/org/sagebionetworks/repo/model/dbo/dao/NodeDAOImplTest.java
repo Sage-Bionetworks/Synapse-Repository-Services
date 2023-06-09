@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaTestHelper;
 import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -5370,5 +5371,127 @@ public class NodeDAOImplTest {
 		FileSummary fileSummary = nodeDao.getFileSummary(Collections.singletonList(new EntityRef().setEntityId(null).setVersionNumber(1L)));
 		assertEquals(expectedFileSummary, fileSummary);
 	}
+	
+	@Test
+	public void testGetGetDefiningSqlForCurrentVersion() {
+		String sql = "select * from syn123";
+		Node materializedView = nodeDaoHelper.create(n -> {
+			n.setName("materializedView");
+			n.setNodeType(EntityType.materializedview);
+			n.setDefiningSQL(sql);
+		});
+		IdAndVersion idAndVersion = IdAndVersion.parse(materializedView.getId());
+		// call under test
+		assertEquals(Optional.of(sql), nodeDao.getDefiningSqlForCurrentVersion(idAndVersion.getId()));
+	}
 
+	@Test
+	public void testGetDefiningSqlForCurrentVersionWithDoesNotExist() {
+		// call under test
+		assertEquals(Optional.empty(), nodeDao.getDefiningSqlForCurrentVersion(123L));
+	}
+
+	@Test
+	public void testGetDefiningSqlForCurrentVersionWithNullSql() {
+		Node materializedView = nodeDaoHelper.create(n -> {
+			n.setName("materializedView");
+			n.setNodeType(EntityType.materializedview);
+			n.setDefiningSQL(null);
+		});
+		IdAndVersion idAndVersion = IdAndVersion.parse(materializedView.getId());
+		// call under test
+		assertEquals(Optional.empty(), nodeDao.getDefiningSqlForCurrentVersion(idAndVersion.getId()));
+	}
+	
+	@Test
+	public void testGetDefiningSqlForCurrentVersionWithNullId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			nodeDao.getDefiningSqlForCurrentVersion(null);
+		}).getMessage();
+		assertEquals("id is required.", message);
+	}
+
+	// with version
+	@Test
+	public void testGetDefiningSqlForVersion() {
+		String sql = "select * from syn123";
+		Node materializedView = nodeDaoHelper.create(n -> {
+			n.setName("materializedView");
+			n.setNodeType(EntityType.materializedview);
+			n.setDefiningSQL(sql);
+		});
+		IdAndVersion idAndVersion = KeyFactory.idAndVersion(materializedView.getId(),
+				materializedView.getVersionNumber());
+		// call under test
+		assertEquals(Optional.of(sql),
+				nodeDao.getDefiningSqlForVersion(idAndVersion.getId(), idAndVersion.getVersion().get()));
+	}
+
+	@Test
+	public void testGetDefiningSqlForVersionWithDoesNotExist() {
+		// call under test
+		assertEquals(Optional.empty(), nodeDao.getDefiningSqlForVersion(123L, 3L));
+	}
+
+	@Test
+	public void testGetDefiningSqlForVersionWithNullSql() {
+		Node materializedView = nodeDaoHelper.create(n -> {
+			n.setName("materializedView");
+			n.setNodeType(EntityType.materializedview);
+			n.setDefiningSQL(null);
+		});
+		IdAndVersion idAndVersion = KeyFactory.idAndVersion(materializedView.getId(),
+				materializedView.getVersionNumber());
+		// call under test
+		assertEquals(Optional.empty(),
+				nodeDao.getDefiningSqlForVersion(idAndVersion.getId(), idAndVersion.getVersion().get()));
+	}
+
+	@Test
+	public void testGetDefiningSqlForVersionWithNullId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			nodeDao.getDefiningSqlForVersion(null, 1L);
+		}).getMessage();
+		assertEquals("id is required.", message);
+	}
+
+	@Test
+	public void testGetDefiningSqlForVersionWithNullVersion() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			nodeDao.getDefiningSqlForVersion(123L, null);
+		}).getMessage();
+		assertEquals("version is required.", message);
+	}
+
+	@Test
+	public void testGetDefiningSqlWithMultipleVersion() {
+		Node view = nodeDaoHelper.create(n -> {
+			n.setName("materializedView");
+			n.setNodeType(EntityType.materializedview);
+			n.setDefiningSQL("select one from syn123");
+		});
+		view.setVersionLabel("two");
+		view.setVersionNumber(2L);
+		view.setDefiningSQL("select two from syn123");
+		nodeDao.createNewVersion(view);
+
+		view.setVersionLabel("three");
+		view.setVersionNumber(3L);
+		view.setDefiningSQL("select three from syn123");
+		nodeDao.createNewVersion(view);
+
+		// call under test
+		assertEquals(Optional.of("select three from syn123"),
+				nodeDao.getDefiningSql(IdAndVersion.parse(view.getId())));
+		assertEquals(Optional.of("select three from syn123"),
+				nodeDao.getDefiningSql(IdAndVersion.parse(view.getId() + ".3")));
+		assertEquals(Optional.of("select two from syn123"),
+				nodeDao.getDefiningSql(IdAndVersion.parse(view.getId() + ".2")));
+		assertEquals(Optional.of("select one from syn123"),
+				nodeDao.getDefiningSql(IdAndVersion.parse(view.getId() + ".1")));
+	}
+	
 }

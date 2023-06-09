@@ -60,6 +60,7 @@ import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.FileProvider;
@@ -207,14 +208,19 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		// lookup the table type.
 		ObjectType tableType = getTableObjectType(idAndVersion);
-		// we get here, if the index for this table is not (yet?) being build. We need
-		// to kick off the
-		// building of the index and report the table as unavailable
-		tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
-		// notify all listeners.
-		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObjectId(idAndVersion.getId().toString())
-				.withObjectVersion(idAndVersion.getVersion().orElse(null)).withObjectType(tableType)
-				.withChangeType(ChangeType.UPDATE));
+		if (ObjectType.VIRTUAL_TABLE.equals(tableType)) {
+			tableStatusDAO.attemptToSetTableStatusToAvailable(idAndVersion,
+					tableStatusDAO.resetTableStatusToProcessing(idAndVersion), "fixed");
+		}else {
+			// we get here, if the index for this table is not (yet?) being build. We need
+			// to kick off the
+			// building of the index and report the table as unavailable
+			tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
+			// notify all listeners.
+			transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObjectId(idAndVersion.getId().toString())
+					.withObjectVersion(idAndVersion.getVersion().orElse(null)).withObjectType(tableType)
+					.withChangeType(ChangeType.UPDATE));
+		}
 		// status should exist now
 		return tableStatusDAO.getTableStatus(idAndVersion);
 	}
@@ -646,6 +652,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			return new MaterializedViewIndexDescription(idAndVersion,
 					materializedViewDao.getSourceTablesIds(idAndVersion).stream()
 							.map(childId -> getIndexDescription(childId)).collect(Collectors.toList()));
+		case virtualtable:
+			return new VirtualTableIndexDescription(idAndVersion, nodeDao.getDefiningSql(idAndVersion).get(), this);
 		default:
 			throw new IllegalArgumentException("Unexpected type for entity with id " + idAndVersion.toString() + ": "
 					+ type + " (expected a table or view type)");

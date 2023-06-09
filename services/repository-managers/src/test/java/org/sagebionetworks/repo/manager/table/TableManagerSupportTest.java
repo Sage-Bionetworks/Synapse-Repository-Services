@@ -1078,6 +1078,28 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
+	public void testGetIndexDescriptionWithVirtualTable() {
+		IdAndVersion virtualTableId = IdAndVersion.parse("syn111");
+
+		String definingSql = "select * from syn222";
+		when(mockNodeDao.getDefiningSql(any())).thenReturn(Optional.of(definingSql));
+		IdAndVersion refId = IdAndVersion.parse("syn222");
+		when(mockNodeDao.getNodeTypeById(virtualTableId.getId().toString())).thenReturn(EntityType.virtualtable);
+		when(mockNodeDao.getNodeTypeById(refId.getId().toString())).thenReturn(EntityType.table);
+		
+		// call under test
+		IndexDescription result = managerSpy.getIndexDescription(virtualTableId);
+		
+		assertEquals(TableType.virtualtable, result.getTableType());
+		assertEquals(virtualTableId, result.getIdAndVersion());
+		
+		verify(mockNodeDao).getNodeTypeById(virtualTableId.getId().toString());
+		verify(mockNodeDao).getNodeTypeById(refId.getId().toString());
+		verify(mockNodeDao).getDefiningSql(virtualTableId);
+		verify(managerSpy).getIndexDescription(refId);
+	}
+	
+	@Test
 	public void testGetIndexDescriptionWithUnsupportedType() {
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.folder);
 		String message = assertThrows(IllegalArgumentException.class, ()->{

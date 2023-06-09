@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.manager.table.MaterializedViewManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
+import org.sagebionetworks.repo.manager.table.VirtualTableManager;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileSummary;
@@ -45,6 +46,7 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -255,6 +257,8 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	private StackStatusDao stackStatusDao;
 	@Autowired
 	private NodeDAO nodeDAO;
+	@Autowired
+	private VirtualTableManager virtualTableManager;
 	
 	@Override
 	public <R extends AsynchronousRequestBody, T extends AsynchronousResponseBody> AsyncJobResponse<T> assertJobResponse(
@@ -533,6 +537,22 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		materializedViewManager.registerSourceTables(KeyFactory.idAndVersion(materializedViewId, null), sql);
 		
 		return entityManager.getEntity(user, materializedViewId, MaterializedView.class);
+	}
+	
+	@Override
+	public VirtualTable createVirtualTable(UserInfo user, String parentId, String sql) {
+		VirtualTable virtualTable = new VirtualTable();
+		virtualTable.setName(UUID.randomUUID().toString());
+		virtualTable.setDefiningSQL(sql);
+		virtualTable.setParentId(parentId);
+		
+		String id = entityManager.createEntity(user, virtualTable, null);
+		IdAndVersion idAndVersion = KeyFactory.idAndVersion(id, null);
+		virtualTableManager.registerDefiningSql(idAndVersion, sql);
+		
+		VirtualTable vt =  entityManager.getEntity(user, id, VirtualTable.class);
+		vt.setColumnIds(virtualTableManager.getSchemaIds(idAndVersion));
+		return vt;
 	}
 
 	/**

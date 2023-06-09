@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.VirtualTable;
 
 import java.io.IOException;
 import java.util.List;
@@ -222,6 +223,16 @@ public interface AsynchronousJobWorkerHelper {
 	 * @return
 	 */
 	MaterializedView createMaterializedView(UserInfo user, String parentId, String sql, boolean searchEnabled);
+	
+	/**
+	 * Create a new VirtualTable.
+	 * 
+	 * @param user
+	 * @param parentId
+	 * @param sql
+	 * @return
+	 */
+	VirtualTable createVirtualTable(UserInfo user, String parentId, String sql);
 
 
 	/**

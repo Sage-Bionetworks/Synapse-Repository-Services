@@ -99,6 +99,8 @@ public class QueryTranslator {
 	private final LinkedHashSet<IdAndVersion> distinctTableIds;
 	
 	private final List<ColumnModel> tableSchema;
+	
+	private boolean isCommonTableExpression;
 
 	/**
 	 * @param tableId
@@ -118,26 +120,27 @@ public class QueryTranslator {
 			} else {
 				this.sqlContext = sqlContextIn;
 			}
-			QueryExpression transformedModel = new TableQueryParser(indexDescription.preprocessQuery(startingSql)).queryExpression();
+			String preprocessedSql = indexDescription.preprocessQuery(startingSql);
+			QueryExpression transformedModel = new TableQueryParser(preprocessedSql).queryExpression();
 			transformedModel.setSqlContext(this.sqlContext);
 			
 			List<QueryPart> parts = transformedModel.stream(QuerySpecification.class).map((q)-> new QueryPart(q, schemaProvider)).collect(Collectors.toList());
 			
 			distinctTableIds = parts.stream().flatMap(p->p.getMapper().getTableIds().stream()).collect(Collectors.toCollection(LinkedHashSet::new));
 			
-			QueryPart selectDefiningPart = parts.get(0);
+			QueryPart firstPart = parts.get(0);
 			
-			tableSchema = selectDefiningPart.getMapper().getUnionOfAllTableSchemas();
+			tableSchema = firstPart.getMapper().getUnionOfAllTableSchemas();
 			
-			if(!SqlContext.build.equals(this.sqlContext)) {
-				int maxParts = transformedModel.getWithListElements().isPresent() ? 2 : 1;
-				if(parts.size() > maxParts) {
+			isCommonTableExpression = transformedModel.getWithListElements().isPresent();
+			
+			if (!SqlContext.build.equals(this.sqlContext)) {
+				int maxParts = isCommonTableExpression ? 2 : 1;
+				if (parts.size() > maxParts) {
 					throw new IllegalArgumentException(TableConstants.UNION_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
 				}
-				parts.stream().forEach((p)->{
-					if(p.getMapper().getTableIds().size() > 1) {
-						throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
-					}
+				parts.stream().filter(p -> p.getMapper().getTableIds().size() > 1).findFirst().ifPresent((p) -> {
+					throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
 				});
 			}
 
@@ -152,7 +155,7 @@ public class QueryTranslator {
 			// This map will contain all of the
 			this.parameters = new HashMap<String, Object>();
 
-			List<ColumnModel> unionOfSchemas = selectDefiningPart.getMapper().getUnionOfAllTableSchemas();
+			List<ColumnModel> unionOfSchemas = firstPart.getMapper().getUnionOfAllTableSchemas();
 
 
 			List<List<ColumnModel>> partsSelectSchemas = new ArrayList<>(parts.size());
@@ -175,15 +178,15 @@ public class QueryTranslator {
 			this.includesRowIdAndVersion = !this.isAggregatedResult;
 			// Build headers that describe how the client should read the results of this
 			// query.
-			this.selectColumns = SQLTranslatorUtils.getSelectColumns(selectDefiningPart.getQuerySpecification().getSelectList(), selectDefiningPart.getMapper(),
+			this.selectColumns = SQLTranslatorUtils.getSelectColumns(firstPart.getQuerySpecification().getSelectList(), firstPart.getMapper(),
 					this.isAggregatedResult);
 			// Maximum row size is a function of both the select clause and schema.
 			this.maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(selectColumns, TableModelUtils.createColumnNameToModelMap(unionOfSchemas));
 
 			if (maxBytesPerPage != null) {
 				this.maxRowsPerPage = Math.max(1, maxBytesPerPage / this.maxRowSizeBytes);
-				selectDefiningPart.getQuerySpecification().getTableExpression().replacePagination(
-						SqlElementUtils.limitMaxRowsPerPage(selectDefiningPart.getQuerySpecification().getTableExpression().getPagination(), maxRowsPerPage));
+				firstPart.getQuerySpecification().getTableExpression().replacePagination(
+						SqlElementUtils.limitMaxRowsPerPage(firstPart.getQuerySpecification().getTableExpression().getPagination(), maxRowsPerPage));
 			}
 
 			// Does the query contain any text_matches elements?
@@ -302,7 +305,8 @@ public class QueryTranslator {
 	 * @return
 	 */
 	public Optional<String> getSingleTableId() {
-		if (distinctTableIds.size() == 1) {
+		int maxParts = isCommonTableExpression ? 2 : 1;
+		if (distinctTableIds.size() < maxParts) {
 			return Optional.of(distinctTableIds.iterator().next().toString());
 		} else {
 			return Optional.empty();

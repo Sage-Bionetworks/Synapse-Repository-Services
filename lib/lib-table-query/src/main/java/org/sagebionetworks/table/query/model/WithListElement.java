@@ -24,6 +24,7 @@ public class WithListElement extends SQLElement  {
 		this.identifier = new ReplaceableBox<>(identifier);
 		this.columnList = columnList;
 		this.nonJoinQueryExpression = nonJoinQueryExpression;
+		recursiveSetParent();
 	}
 
 	public Identifier getIdentifier() {

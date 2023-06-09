@@ -66,6 +66,11 @@ public class QueryExpression extends SQLElement implements HasSqlContext {
 	@Override
 	public Iterable<Element> getChildren() {
 		List<Element> list = new LinkedList<>();
+		/*
+		 * Note: The query translator assumes that the first QueryExpression found
+		 * defines the schema of the select. By adding nonJoinQueryExpression to the
+		 * list we accommodate that assumption.
+		 */
 		list.add(nonJoinQueryExpression);
 		if(this.withListElements != null) {
 			list.addAll(withListElements);

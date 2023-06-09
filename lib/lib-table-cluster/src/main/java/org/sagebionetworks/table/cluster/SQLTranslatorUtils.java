@@ -1231,6 +1231,11 @@ public class SQLTranslatorUtils {
 		return String.format("INSERT INTO %s (%s) %s", tableName, joiner.toString(), outputSQL);
 	}
 
+	/**
+	 * Translate the {@link Identifier} and {@link ColumnList} within the provided {@link WithListElement}.
+	 * @param wle
+	 * @param schemaProvider
+	 */
 	public static void translateWithListElement(WithListElement wle, SchemaProvider schemaProvider) {
 		try {
 			IdAndVersion idAndVersion = IdAndVersion.parse(wle.getIdentifier().toSql());

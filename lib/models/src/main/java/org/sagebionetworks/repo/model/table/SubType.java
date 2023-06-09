@@ -17,5 +17,6 @@ public enum SubType {
 	table,
 	dataset,
 	datasetcollection,
-	materializedview
+	materializedview,
+	virtualtable
 }

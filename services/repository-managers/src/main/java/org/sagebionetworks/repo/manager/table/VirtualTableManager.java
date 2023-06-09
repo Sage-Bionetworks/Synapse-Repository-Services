@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.List;
+
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.VirtualTable;
 
 /**
@@ -13,5 +16,14 @@ public interface VirtualTableManager {
 	 * @param materializedView
 	 */
 	void validate(VirtualTable virtualTable);
+
+	/**
+	 * Get the column IDs for this VT's schema.
+	 * @param idAndVersion
+	 * @return
+	 */
+	List<String> getSchemaIds(IdAndVersion idAndVersion);
+
+	void registerDefiningSql(IdAndVersion id, String definingSQL);
 
 }

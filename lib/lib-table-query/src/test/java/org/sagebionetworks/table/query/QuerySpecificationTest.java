@@ -110,5 +110,24 @@ public class QuerySpecificationTest {
 		assertTrue(message.contains("Encountered \"<EOF>\" at line 1, column 8."));
 		assertTrue(message.contains("\"FROM\""));	
 	}
+	
+	@Test
+	public void testQuerySpecificationEOF() {
+		String message = assertThrows(ParseException.class, () -> {			
+			new TableQueryParser("select * from syn123 this is random junk").querySpecificationEOF();
+		}).getMessage();
+		assertTrue(message.contains("Encountered \" \"IS\""));
+		assertTrue(message.contains("Was expecting one of:"));
+		assertTrue(message.contains("<EOF>"));
+	}
 
+	@Test
+	public void testQuerySpecificationEOFWithStaticCall() {
+		String message = assertThrows(ParseException.class, () -> {			
+			TableQueryParser.parserQuery("select * from syn123 this is random junk");
+		}).getMessage();
+		assertTrue(message.contains("Encountered \" \"IS\""));
+		assertTrue(message.contains("Was expecting one of:"));
+		assertTrue(message.contains("<EOF>"));
+	}
 }
