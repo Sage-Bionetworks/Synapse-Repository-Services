@@ -655,6 +655,19 @@ public class EntityServiceImplAutowiredTest  {
 	
 	@Test
 	public void testVirtualTableCRUD() {
+		
+		// create a schema for the referenced tabled.
+		ColumnModel foo = new ColumnModel();
+		foo.setColumnType(ColumnType.INTEGER);
+		foo.setName("foo");
+		foo = columnModelManager.createColumnModel(adminUserInfo, foo);
+		
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(Arrays.asList(foo.getId()));
+		table = entityService.createEntity(adminUserId, table, null);
+		
 		boolean newVersion = false;
 		String activityId = null;
 
@@ -662,7 +675,7 @@ public class EntityServiceImplAutowiredTest  {
 
 		virtualTable.setName("virtualTable");
 		virtualTable.setParentId(project.getId());
-		virtualTable.setDefiningSQL("SELECT * FROM syn123");
+		virtualTable.setDefiningSQL("SELECT * FROM "+ table.getId());
 
 		// call under test (create and get)
 		virtualTable = entityService.createEntity(adminUserId, virtualTable, activityId);
