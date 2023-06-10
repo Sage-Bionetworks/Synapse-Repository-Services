@@ -2,10 +2,10 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -18,7 +18,6 @@ import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -26,12 +25,15 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
@@ -53,9 +55,6 @@ public class VirtualTableIntegrationTest {
 	
 	@Autowired
 	private AsynchronousJobWorkerHelper asyncHelper;
-	
-	@Autowired
-	private TableManagerSupport tableManagerSupport;
 
 	@Autowired
 	private EntityManager entityManager;
@@ -97,7 +96,6 @@ public class VirtualTableIntegrationTest {
 
 		List<Entity> entitites = createProjectHierachy();
 		Project project = (Project) entitites.get(0);
-		Folder folderOne = (Folder) entitites.get(1);
 
 		List<ColumnModel> tableSchema = List.of(
 				new ColumnModel().setName("foo").setColumnType(ColumnType.STRING).setMaximumSize(50L),
@@ -128,12 +126,27 @@ public class VirtualTableIntegrationTest {
 		VirtualTable virtualTable = asyncHelper.createVirtualTable(adminUserInfo, project.getId(), definingSql);
 		assertEquals(List.of(tableSchema.get(0).getId(), barSum.getId()), virtualTable.getColumnIds());
 		
+		Query query = new Query();
+		query.setSql("select * from " + virtualTable.getId());
+		query.setIncludeEntityEtag(false);
 		
-		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + virtualTable.getId(), (results) -> {
+		QueryOptions options = new QueryOptions()
+				.withRunQuery(true)
+				.withRunCount(false)
+				.withReturnFacets(false)
+				.withReturnColumnModels(true);
+		
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
 			assertEquals(List.of(new Row().setValues(List.of("a", "6")), new Row().setValues(List.of("b", "18"))),
 					results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
-
+		
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			asyncHelper.assertQueryResult(userInfo, query, options, (results) -> {
+				// should fail
+			}, MAX_WAIT_MS);
+		}).getMessage();
+		assertEquals("You lack DOWNLOAD access to the requested entity.", message);
 	}
 	
 	void appendRowsToTable(List<ColumnModel> schema, String tableId, List<Row> rows)
