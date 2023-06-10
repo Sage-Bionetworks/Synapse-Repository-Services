@@ -56,6 +56,24 @@ public class VirtualTableManagerImplTest {
 		verify(mockIndexDescription).getTableType();
 		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn123"));
 	}
+	
+	@Test
+	public void testValidateWithNullId() {
+		String sql = "SELECT * FROM syn123";
+
+		when(mockTable.getDefiningSQL()).thenReturn(sql);
+		// a new VT will not have an ID
+		when(mockTable.getId()).thenReturn(null);
+		when(mockIndexDescription.getTableType()).thenReturn(TableType.table);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(mockIndexDescription);
+
+		// Call under test
+		manager.validate(mockTable);
+
+		verify(mockTable).getDefiningSQL();
+		verify(mockIndexDescription).getTableType();
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn123"));
+	}
 
 	@Test
 	public void testValidateWithNullSQL() {

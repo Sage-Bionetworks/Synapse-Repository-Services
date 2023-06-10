@@ -8,7 +8,6 @@ import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableUpdateRequestManager;
 import org.sagebionetworks.repo.manager.table.TableUpdateRequestManagerProvider;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.TableType;

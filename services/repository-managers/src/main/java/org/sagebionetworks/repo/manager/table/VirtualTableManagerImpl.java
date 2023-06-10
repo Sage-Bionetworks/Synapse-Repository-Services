@@ -35,8 +35,9 @@ public class VirtualTableManagerImpl implements VirtualTableManager {
 		String definingSql = virtualTable.getDefiningSQL();
 
 		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the virtual table");
+		String id = virtualTable.getId() != null? virtualTable.getId() : "syn1";
 		// This constructor will do deeper validation...
-		new VirtualTableIndexDescription(KeyFactory.idAndVersion(virtualTable.getId(), virtualTable.getVersionNumber()),
+		new VirtualTableIndexDescription(KeyFactory.idAndVersion(id, virtualTable.getVersionNumber()),
 				definingSql, tableManagerSupport);
 
 	}
