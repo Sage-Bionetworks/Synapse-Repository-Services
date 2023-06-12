@@ -1,11 +1,9 @@
 package org.sagebionetworks.repo.model.message;
 
-import java.time.Instant;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.collections.Transform;
@@ -20,10 +18,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
+import java.time.Instant;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -129,18 +128,22 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 				changeMessage.setChangeNumber(-1L);
 			}
 		}
-		
-		assertActiveSynchronization();
-		
-		transactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-			@Override
-			public void afterCommit() {
-				for (TransactionalMessengerObserver observer: observers) {
-					observer.fireLocalStackMessage(message);
+
+		if (transactionSynchronizationManager.isSynchronizationActive()) {
+
+			transactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+				@Override
+				public void afterCommit() {
+					for (TransactionalMessengerObserver observer : observers) {
+						observer.fireLocalStackMessage(message);
+					}
 				}
+			});
+		} else {
+			for (TransactionalMessengerObserver observer : observers) {
+				observer.fireLocalStackMessage(message);
 			}
-		});
-		
+		}
 	}
 
 	private <T extends Message> void appendToBoundMessages(T message) {

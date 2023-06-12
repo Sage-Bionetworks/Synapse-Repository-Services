@@ -399,7 +399,11 @@ public class TableViewManagerImpl implements TableViewManager {
 	void refreshBenefactorsForViewSnapshot(IdAndVersion viewId) {
 		ValidateArgument.required(viewId, "viewId");
 		TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
-		indexManager.refreshViewBenefactors(viewId);
+		indexManager.refreshViewBenefactors(viewId).ifPresent( nextVersion -> {		
+			// We update the version so that any materialized view depending on the snapshot will detect the change
+			indexManager.setIndexVersion(viewId, nextVersion);
+			tableManagerSupport.updateChangedOnIfAvailable(viewId);
+		});
 	}
 	
 	
@@ -443,8 +447,9 @@ public class TableViewManagerImpl implements TableViewManager {
 				
 				if (!rowsIdsWithChanges.isEmpty()) {
 					// update these rows in a new transaction.
-					indexManager.updateViewRowsInTransaction(indexDescription, scopeType, currentSchema, deltaFilter);
+					long newVersion = indexManager.updateViewRowsInTransaction(indexDescription, scopeType, currentSchema, deltaFilter);
 					previousPageRowIdsWithChanges = rowsIdsWithChanges;
+					indexManager.setIndexVersion(viewId, newVersion);
 					tableManagerSupport.updateChangedOnIfAvailable(viewId);
 				}
 			} while (rowsIdsWithChanges.size() >= pageSize);
@@ -503,19 +508,20 @@ public class TableViewManagerImpl implements TableViewManager {
 			
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 			
-			Long viewCRC = null;
-			if(idAndVersion.getVersion().isPresent()) {
-				viewCRC = populateViewFromSnapshot(indexDescription, indexManager);
-			}else {
-				viewCRC = populateViewIndexFromReplication(idAndVersion, indexManager, viewSchema);
+			Long viewVersion = null;
+			
+			if (idAndVersion.getVersion().isPresent()) {
+				viewVersion = populateViewFromSnapshot(indexDescription, indexManager);
+			} else {
+				viewVersion = populateViewIndexFromReplication(idAndVersion, indexManager, viewSchema);
 			}
 			
 			// Now build the secondary indicies
 			indexManager.buildTableIndexIndices(indexDescription, viewSchema);
 			
-			// both the CRC and schema MD5 are used to determine if the view is up-to-date. 
-			// The schema MD5 is already set when resetting the index, we use the CRC of the view as the "version" of the index
-			indexManager.setIndexVersion(idAndVersion, viewCRC);
+			// both the version and schema MD5 are used to determine if the view is up-to-date. 
+			// The schema MD5 is already set when resetting the index
+			indexManager.setIndexVersion(idAndVersion, viewVersion);
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
 			log.info(String.format("Set view: '%s' to AVAILABLE.", idAndVersion.toString()));
@@ -562,10 +568,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		tableManagerSupport.restoreTableIndexFromS3(idAndVersion, snapshot.getBucket(), snapshot.getKey());
 		
 		// ensure the latest benefactors are used.
-		indexManager.refreshViewBenefactors(idAndVersion);
-		
-		return snapshot.getSnapshotId();
-		
+		return indexManager.refreshViewBenefactors(idAndVersion).orElse(0L);
 	}
 		
 	void validateViewForSnapshot(IdAndVersion idAndVersion) throws TableUnavailableException {

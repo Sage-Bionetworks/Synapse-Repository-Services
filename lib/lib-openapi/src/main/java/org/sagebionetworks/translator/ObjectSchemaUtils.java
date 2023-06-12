@@ -11,7 +11,6 @@ import java.util.Set;
 
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.velocity.schema.TypeReference;
-import org.sagebionetworks.openapi.server.ServerSideOnlyFactory;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -23,14 +22,13 @@ public class ObjectSchemaUtils {
 	 * Generates a mapping of class id to an ObjectSchema that represents that class.
 	 * Starts out with all of the concrete classes found in `autoGen`
 	 * 
-	 * @param autoGen - the ServerSideOnlyFactory whose class id's represent all concrete classes.
+	 * @param concreteClassNames - the iterator whose values represent ids of all concrete classes.
 	 * @return a mapping of concrete classes between class id to an ObjectSchema that represents it.
 	 */
-	public Map<String, ObjectSchema> getConcreteClasses(ServerSideOnlyFactory autoGen) {
+	public Map<String, ObjectSchema> getConcreteClasses(Iterator<String> concreteClassNames) {
 		Map<String, ObjectSchema> classNameToObjectSchema = new HashMap<>();
-		Iterator<String> keySet = autoGen.getKeySetIterator();
-		while (keySet.hasNext()) {
-			String className = keySet.next();
+		while (concreteClassNames.hasNext()) {
+			String className = concreteClassNames.next();
 			ObjectSchema schema = SchemaUtils.getSchema(className);
 			SchemaUtils.recursiveAddTypes(classNameToObjectSchema, className, schema);
 		}
@@ -84,10 +82,10 @@ public class ObjectSchemaUtils {
 	Map<String, JsonSchema> translatePropertiesFromObjectSchema(Map<String, ObjectSchema> properties) {
 		ValidateArgument.required(properties, "properties");
 		Map<String, JsonSchema> result = new LinkedHashMap<>();
-		for (String className : properties.keySet()) {
+		for (String key : properties.keySet()) {
 			// TODO: here we should check if the class is primitive, if it is, then output the JsonSchema, otherwise
 			// 		 create a JsonSchema that is just a ref.
-			result.put(className, translateObjectSchemaToJsonSchema(properties.get(className)));
+			result.put(key, translateObjectSchemaToJsonSchema(properties.get(key)));
 		}
 		return result;
 	}

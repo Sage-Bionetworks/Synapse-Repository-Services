@@ -1,44 +1,56 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.mail.Folder;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.events.EventsCollector;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.file.FileEventUtils;
 import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.FileEvent;
+import org.sagebionetworks.repo.model.file.FileEventType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+
+import javax.mail.Folder;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class FileEntityMetadataProviderTest {
 	private static final String FILE_HANDLE_ID = "file-handle-id";
 	private static final String PARENT_ENTITY_ID = "parent-entity-id";
+	private static final String STACK = "stack";
+	private static final String INSTANCE = "instance";
 
 	@Mock
-	private EventsCollector mockStatisticsCollector;
+	private TransactionalMessenger messenger;
 
 	@Mock
 	private StsManager mockStsManager;
+	@Mock
+	private StackConfiguration configuration;
 
 	@InjectMocks
 	private FileEntityMetadataProvider provider;
+	@Captor
+	private ArgumentCaptor<FileEvent> fileEventCaptor;
 
 	private FileEntity fileEntity;
 	private UserInfo userInfo;
@@ -133,21 +145,37 @@ public class FileEntityMetadataProviderTest {
 
 	@Test
 	public void testEntityCreated() {
+		when(configuration.getStack()).thenReturn(STACK);
+		when(configuration.getStackInstance()).thenReturn(INSTANCE);
 		fileEntity.setDataFileHandleId("1");
 		provider.entityCreated(userInfo, fileEntity);
-		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
+		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
+		FileEvent actualEvent = fileEventCaptor.getValue();
+		assertNotNull(actualEvent.getTimestamp());
+		FileEvent expectedEvent = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userInfo.getId(),
+				fileEntity.getDataFileHandleId(), fileEntity.getId(), FileHandleAssociateType.FileEntity, STACK, INSTANCE);
+		expectedEvent.setTimestamp(actualEvent.getTimestamp());
+		assertEquals(expectedEvent, actualEvent);
 	}
 
 	@Test
 	public void testEntityUpdatedWithNewVersion() {
+		when(configuration.getStack()).thenReturn(STACK);
+		when(configuration.getStackInstance()).thenReturn(INSTANCE);
 		fileEntity.setDataFileHandleId("1");
 		provider.entityUpdated(userInfo, fileEntity, true);
-		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
+		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
+		FileEvent actualEvent = fileEventCaptor.getValue();
+		assertNotNull(actualEvent.getTimestamp());
+		FileEvent expectedEvent = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userInfo.getId(),
+				fileEntity.getDataFileHandleId(), fileEntity.getId(), FileHandleAssociateType.FileEntity, STACK, INSTANCE);
+		expectedEvent.setTimestamp(actualEvent.getTimestamp());
+		assertEquals(expectedEvent, actualEvent);
 	}
 
 	@Test
 	public void testEntityUpdatedWithoutNewVersion() {
 		provider.entityUpdated(userInfo, fileEntity, false);
-		verify(mockStatisticsCollector, never()).collectEvent(any());
+		verifyZeroInteractions(messenger);
 	}
 }

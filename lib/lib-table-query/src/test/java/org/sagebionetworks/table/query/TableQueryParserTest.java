@@ -494,7 +494,7 @@ public class TableQueryParserTest {
 		QueryExpression element = new TableQueryParser("select * from syn123 union select * from syn456").queryExpression();
 		assertEquals("SELECT * FROM syn123 UNION SELECT * FROM syn456", element.toSql());
 	}
-
+	
 	@Test
 	public void testQueryExpressionWithMultipleUnion() throws ParseException {
 		QueryExpression element = new TableQueryParser(

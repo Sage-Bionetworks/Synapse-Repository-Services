@@ -18,6 +18,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CUR_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_DESCRIPTION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_BUCKET;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_ID;
@@ -29,7 +30,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_DESCRIPTION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_VERSION;
@@ -53,6 +53,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -69,6 +70,7 @@ import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.IdAndChecksum;
@@ -225,6 +227,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static final String KEY = "Key";
 	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
+	private static final String STALE_TABLE_PREFIX = "STALE_";
 
 	private static final RowMapper<DatabaseColumnInfo> DB_COL_INFO_MAPPER = (rs, rowNum) -> {
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
@@ -612,7 +615,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				.collect(Collectors.toSet());
 	}
 
-	private List<String> getMultivalueColumnIndexTableNames(IdAndVersion tableId, boolean alterTemp){
+	List<String> getMultivalueColumnIndexTableNames(IdAndVersion tableId, boolean alterTemp){
 		String multiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId, alterTemp);
 		return template.queryForList("SHOW TABLES LIKE '"+multiValueTableNamePrefix+"%'", String.class);
 	}
@@ -1064,16 +1067,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return dto;
 	}
 	
-	@Override
-	public long calculateCRC32ofTableView(Long viewId){
-		String sql = SQLUtils.buildTableViewCRC32Sql(viewId);
-		Long result = this.template.queryForObject(sql, Long.class);
-		if(result == null){
-			return -1L;
-		}
-		return result;
-	}
-
 	/***
 	 * Get the maximum number of elements in a list for each annotation column
 	 * @param mainType
@@ -1430,11 +1423,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void refreshViewBenefactors(IdAndVersion viewId, ReplicationType mainType) {
+	public boolean refreshViewBenefactors(IdAndVersion viewId, ReplicationType mainType) {
 		ValidateArgument.required(viewId, "viewId");
 		ValidateArgument.required(mainType, "mainType");
 		String sql = SQLUtils.generateSqlToRefreshViewBenefactors(viewId);
-		template.update(sql, mainType.name());
+		return template.update(sql, mainType.name()) > 0;
 	}
 
 	@Override
@@ -1612,6 +1605,64 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void update(String sql, Map<String, Object> parameters) {
 		namedTemplate.update(sql, parameters);
+	}
+	
+	@Override
+	public void swapTableIndex(IdAndVersion sourceIndexId, IdAndVersion targetIndexId) {
+		ValidateArgument.required(sourceIndexId, "sourceIndexId");
+		ValidateArgument.required(targetIndexId, "targetIndexId");
+		ValidateArgument.requirement(!sourceIndexId.equals(targetIndexId), "The source index id and the target index id cannot be the same");
+		
+		String randomPrefix = STALE_TABLE_PREFIX + RandomStringUtils.randomAlphanumeric(8) + "_";
+		StringBuilder sqlBuilder = new StringBuilder("RENAME TABLE ");
+		
+		// First rename the main index tables
+		Arrays.stream(TableIndexType.values()).forEach( indexType -> {
+			String targetTableName = SQLUtils.getTableNameForId(targetIndexId, indexType);
+			String sourceTableName = SQLUtils.getTableNameForId(sourceIndexId, indexType);
+			String tmpTableName = randomPrefix + targetTableName;
+			
+			// First rename the target index to a random name
+			sqlBuilder.append(targetTableName).append(" TO ").append(tmpTableName).append(",");
+			// Now rename the source index to the target index
+			sqlBuilder.append(sourceTableName).append(" TO ").append(targetTableName).append(",");
+			// Now rename the random name to the source index
+			sqlBuilder.append(tmpTableName).append(" TO ").append(sourceTableName).append(",");
+		});
+			
+		// Now we also swap the multi value tables
+		
+		List<String> targetMultiValueTableNames = getMultivalueColumnIndexTableNames(targetIndexId, false);
+		List<String> tmpMultiValueTableNames = new ArrayList<>(targetMultiValueTableNames.size());
+		
+		// First rename the target MV tables to random table names
+		targetMultiValueTableNames.forEach( targetTableName -> {
+			String tmpTableName = randomPrefix + targetTableName;
+			sqlBuilder.append(targetTableName).append(" TO ").append(tmpTableName).append(",");
+			tmpMultiValueTableNames.add(tmpTableName);
+		});
+		
+		// We can now rename the source tables into the target
+		List<String> sourceMultiValueTableNames = getMultivalueColumnIndexTableNames(sourceIndexId, false);
+		
+		String sourceMultiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(sourceIndexId, false);
+		String targetMultiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(targetIndexId, false);
+		
+		// Now we also rename the source MV tables into the target index
+		sourceMultiValueTableNames.forEach( sourceTableName -> {
+			String targetTableName = sourceTableName.replace(sourceMultiValueTableNamePrefix, targetMultiValueTableNamePrefix);
+			sqlBuilder.append(sourceTableName).append(" TO ").append(targetTableName).append(",");
+		});
+		
+		// We can now rename all the tmp tables to the source index prefix
+		tmpMultiValueTableNames.forEach( tmpTableName -> {
+			String sourceTableName = tmpTableName.replace(randomPrefix, "").replace(targetMultiValueTableNamePrefix, sourceMultiValueTableNamePrefix);
+			sqlBuilder.append(tmpTableName).append(" TO ").append(sourceTableName).append(",");
+		});
+		
+		sqlBuilder.deleteCharAt(sqlBuilder.length() - 1);
+	
+		template.update(sqlBuilder.toString());
 	}
 	
 }

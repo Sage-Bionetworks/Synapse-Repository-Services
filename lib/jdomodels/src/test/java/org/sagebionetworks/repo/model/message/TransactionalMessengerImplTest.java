@@ -1,21 +1,5 @@
 package org.sagebionetworks.repo.model.message;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +13,22 @@ import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ThreadLocalProvider;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit (mocked) test for TransactionalMessengerImpl.
@@ -50,6 +50,8 @@ public class TransactionalMessengerImplTest {
 	
 	@Mock
 	private LocalStackMessage mockLocalMessage;
+	@Mock
+	private TransactionSynchronizationProxyStub stub;
 	
 	@BeforeEach
 	public void before(){
@@ -229,6 +231,21 @@ public class TransactionalMessengerImplTest {
 		// Simulate the after commit
 		stubProxy.getSynchronizations().get(0).afterCommit();
 		
+		verify(mockObserver).fireLocalStackMessage(mockLocalMessage);
+	}
+
+	@Test
+	public void testPublishMessageAfterCommitWithoutTransaction() {
+		when(mockLocalMessage.getObjectId()).thenReturn("123");
+		when(mockLocalMessage.getObjectType()).thenReturn(ObjectType.ENTITY);
+		when(mockLocalMessage.getTimestamp()).thenReturn(new Date());
+		messenger = new TransactionalMessengerImpl(mockChangeDAO, stub);
+		messenger.registerObserver(mockObserver);
+		when(stub.isSynchronizationActive()).thenReturn(false);
+
+		// Call under test
+		messenger.publishMessageAfterCommit(mockLocalMessage);
+
 		verify(mockObserver).fireLocalStackMessage(mockLocalMessage);
 	}
 

@@ -1,10 +1,5 @@
 package org.sagebionetworks.aws;
 
-import java.io.File;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.List;
-
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
@@ -24,6 +19,8 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -35,6 +32,11 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.Tag;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
+
+import java.io.File;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.List;
 
 /*
  * 
@@ -70,6 +72,9 @@ public interface SynapseS3Client {
 			throws SdkClientException, AmazonServiceException;
 	
 	ObjectListing listObjects(ListObjectsRequest listObjectsRequest)
+			throws SdkClientException, AmazonServiceException;
+
+	ListObjectsV2Result listObjectsV2(ListObjectsV2Request listObjectsV2Request)
 			throws SdkClientException, AmazonServiceException;
 
 	Bucket createBucket(String bucketName)

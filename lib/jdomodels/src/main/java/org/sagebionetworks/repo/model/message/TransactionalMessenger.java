@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.model.message;
 
-import java.util.List;
-
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
+
+import java.util.List;
 
 /**
  * Sends messages as part of a transaction.
@@ -50,7 +50,8 @@ public interface TransactionalMessenger {
 	void sendMessageAfterCommit(ChangeMessage message);
 	
 	/**
-	 * Publishes the given message to its observers directly after the current transaction commits. If the timestamp is not set it will be automatically be assigned.
+	 * Publishes the given message to its observers, If there is a transaction then after the current transaction commits otherwise directly.
+	 * If the timestamp is not set it will be automatically be assigned.
 	 * 
 	 * In case of a {@link LocalStackChangeMesssage} the change number is automatically populated with a -1 if not supplied.
 	 * 

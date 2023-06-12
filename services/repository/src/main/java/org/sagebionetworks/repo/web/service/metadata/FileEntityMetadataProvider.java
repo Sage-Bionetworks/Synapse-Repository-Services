@@ -1,15 +1,17 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import org.sagebionetworks.repo.manager.events.EventsCollector;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.file.FileEventUtils;
 import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.FileEvent;
+import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,10 +23,11 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 	private static final String FILE_NAME_OVERRIDE_DEPRECATED_REASON = "fileNameOverride field is deprecated and should not be set.";
 
 	@Autowired
-	private EventsCollector statisticsCollector;
-
-	@Autowired
 	private StsManager stsManager;
+	@Autowired
+	private TransactionalMessenger messenger;
+	@Autowired
+	private StackConfiguration configuration;
 
 	@Override
 	public void validateEntity(FileEntity entity, EntityEvent event)
@@ -59,8 +62,8 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 	}
 
 	private void sendFileUploadEvent(Long userId, FileEntity entity) {
-		StatisticsFileEvent event = StatisticsFileEventUtils.buildFileUploadEvent(userId, entity.getDataFileHandleId(),
-				entity.getId(), FileHandleAssociateType.FileEntity);
-		statisticsCollector.collectEvent(event);
+		FileEvent fileEvent = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, userId, entity.getDataFileHandleId(),
+				entity.getId(), FileHandleAssociateType.FileEntity, configuration.getStack(), configuration.getStackInstance());
+		messenger.publishMessageAfterCommit(fileEvent);
 	}
 }

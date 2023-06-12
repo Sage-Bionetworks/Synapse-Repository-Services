@@ -1,5 +1,113 @@
 package org.sagebionetworks.repo.manager.file;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.SdkClientException;
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.StorageClass;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.Upload;
+import com.amazonaws.services.s3.transfer.model.UploadResult;
+import com.amazonaws.util.BinaryUtils;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.HttpMethod;
+import com.google.cloud.storage.StorageException;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.audit.dao.ObjectRecordBatch;
+import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.cloudwatch.ProfileData;
+import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
+import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
+import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.audit.ObjectRecord;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalGoogleCloudUploadDestination;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
+import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
+import org.sagebionetworks.repo.model.file.FileEvent;
+import org.sagebionetworks.repo.model.file.FileEventType;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
+import org.sagebionetworks.repo.model.file.FileResult;
+import org.sagebionetworks.repo.model.file.FileResultFailureCode;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.S3UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.upload.multipart.MultipartUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -24,112 +132,6 @@ import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.FILE_HANDLE_COPY_RECORD_TYPE;
 import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.MAX_REQUESTS_PER_CALL;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Spy;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.audit.dao.ObjectRecordBatch;
-import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.cloudwatch.Consumer;
-import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.ProjectSettingsManager;
-import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
-import org.sagebionetworks.repo.manager.events.EventsCollector;
-import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.StorageLocationDAO;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.audit.ObjectRecord;
-import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
-import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
-import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
-import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
-import org.sagebionetworks.repo.model.file.BatchFileRequest;
-import org.sagebionetworks.repo.model.file.BatchFileResult;
-import org.sagebionetworks.repo.model.file.ExternalFileHandle;
-import org.sagebionetworks.repo.model.file.ExternalGoogleCloudUploadDestination;
-import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
-import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
-import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
-import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
-import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
-import org.sagebionetworks.repo.model.file.FileHandleStatus;
-import org.sagebionetworks.repo.model.file.FileResult;
-import org.sagebionetworks.repo.model.file.FileResultFailureCode;
-import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
-import org.sagebionetworks.repo.model.file.ProxyFileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.S3UploadDestination;
-import org.sagebionetworks.repo.model.file.UploadDestination;
-import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
-import org.sagebionetworks.repo.model.file.UploadType;
-import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
-import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.upload.multipart.MultipartUtils;
-
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.SdkClientException;
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.StorageClass;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.Upload;
-import com.amazonaws.services.s3.transfer.model.UploadResult;
-import com.amazonaws.util.BinaryUtils;
-import com.google.cloud.storage.Blob;
-import com.google.cloud.storage.HttpMethod;
-import com.google.cloud.storage.StorageException;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-
 /**
  * A unit test for the FileUploadManagerImpl.
  * 
@@ -141,6 +143,8 @@ public class FileHandleManagerImplTest {
 	private static final String BANNER = "dummy banner text";
 	private static final String BASE_KEY = "some-base-key";
 	private static final String PARENT_ENTITY_ID = "syn123";
+	private static final String STACK = "stack";
+	private static final String INSTANCE = "instance";
 
 	@Mock
 	FileHandleDao mockFileHandleDao;
@@ -158,8 +162,6 @@ public class FileHandleManagerImplTest {
 	IdGenerator mockIdGenerator;
 	@Mock
 	ProjectSettingsManager mockProjectSettingsManager;
-	@Mock
-	EventsCollector mockStatisticsCollector;
 	
 	@Mock
 	StackConfiguration mockStackConfig;
@@ -182,6 +184,10 @@ public class FileHandleManagerImplTest {
 	
 	@Mock
 	ObjectMetadata mockObjectMeta;
+	@Mock
+	TransactionalMessenger messenger;
+	@Captor
+	private ArgumentCaptor<FileEvent> fileEventCaptor;
 
 	UserInfo mockUser;
 	UserInfo anonymousUser;
@@ -768,8 +774,7 @@ public class FileHandleManagerImplTest {
 		
 		verify(mockAuthorizationManager, never()).canDownLoadFile(any(UserInfo.class), any(List.class));
 		// Verifies that download stats are not sent
-		verify(mockStatisticsCollector, never()).collectEvent(any());
-		
+		verifyZeroInteractions(messenger);
 		assertEquals(expectedURL, redirectURL);
 	}
 	
@@ -802,16 +807,20 @@ public class FileHandleManagerImplTest {
 
 		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).
 		thenReturn(Collections.singletonList(authorizationResult));
+		when(mockStackConfig.getStack()).thenReturn(STACK);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
 		
 		FileHandleUrlRequest request = new FileHandleUrlRequest(mockUser, s3FileHandle.getId())
 				.withAssociation(association.getAssociateObjectType(), association.getAssociateObjectId());
 		
 		String redirectURL = manager.getRedirectURLForFileHandle(request);
-		
 		verify(mockAuthorizationManager, times(1)).canDownLoadFile(mockUser, associations);
 		// Verifies that download stats are sent
-		verify(mockStatisticsCollector, times(1)).collectEvent(any());
-		
+		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
+		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		assertNotNull(actualFileEvent.getTimestamp());
+		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, association);
+		assertEquals(expectedFileEvent, actualFileEvent);
 		assertEquals(expectedURL, redirectURL);
 	}
 	
@@ -869,6 +878,8 @@ public class FileHandleManagerImplTest {
 
 		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).
 		thenReturn(Collections.singletonList(authorizationResult));
+		when(mockStackConfig.getStack()).thenReturn(STACK);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
 		
 		// method under test
 		String redirect = manager.getRedirectURLForFileHandle(mockUser,
@@ -1642,7 +1653,6 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
 		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
-
 		FileHandle fh2 = new S3FileHandle();
 		fh2.setId(fha2.getFileHandleId());
 		fh2.setStatus(FileHandleStatus.AVAILABLE);
@@ -1651,7 +1661,8 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.getAllFileHandlesBatch(any())).thenReturn(handleMap);
 
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
-
+		when(mockStackConfig.getStack()).thenReturn(STACK);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1690,8 +1701,11 @@ public class FileHandleManagerImplTest {
 		verify(mockS3Client).generatePresignedUrl(any(GeneratePresignedUrlRequest.class));
 		
 		// Verifies that download stats are sent
-		verify(mockStatisticsCollector, times(1)).collectEvents(any());
-		
+		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
+		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		assertNotNull(actualFileEvent.getTimestamp());
+		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		assertEquals(expectedFileEvent, actualFileEvent);
 		// Verify a download record is created for the success case.
 		ArgumentCaptor<ObjectRecordBatch> batchCapture = ArgumentCaptor.forClass(ObjectRecordBatch.class);
 		verify(mockObjectRecordQueue).pushObjectRecordBatch(batchCapture.capture());
@@ -1715,7 +1729,6 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
 		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
-
 		FileHandle fh2 = new S3FileHandle();
 		fh2.setId(fha2.getFileHandleId());
 		fh2.setStatus(FileHandleStatus.AVAILABLE);
@@ -1724,7 +1737,8 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.getAllFileHandlesBatch(any())).thenReturn(handleMap);
 
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
-
+		when(mockStackConfig.getStack()).thenReturn(STACK);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1742,7 +1756,11 @@ public class FileHandleManagerImplTest {
 		// a batch of records should be pushed.
 		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are sent
-		verify(mockStatisticsCollector, times(1)).collectEvents(any());
+		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
+		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		assertNotNull(actualFileEvent.getTimestamp());
+		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		assertEquals(expectedFileEvent, actualFileEvent);
 	}
 
 	@Test
@@ -1765,7 +1783,8 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.getAllFileHandlesBatch(any())).thenReturn(handleMap);
 
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
-
+		when(mockStackConfig.getStack()).thenReturn(STACK);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1783,7 +1802,11 @@ public class FileHandleManagerImplTest {
 		// a batch of records should be pushed.
 		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are sent
-		verify(mockStatisticsCollector, times(1)).collectEvents(any());
+		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
+		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		assertNotNull(actualFileEvent.getTimestamp());
+		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		assertEquals(expectedFileEvent, actualFileEvent);
 	}
 
 	@Test
@@ -1826,7 +1849,7 @@ public class FileHandleManagerImplTest {
 		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		verify(mockFileHandleDao, times(2)).getAllFileHandlesBatch(any(Iterable.class));
 		// Verifies that download stats are never sent
-		verify(mockStatisticsCollector, never()).collectEvents(any());
+		verifyZeroInteractions(messenger);
 	}
 
 	@Test
@@ -1866,7 +1889,7 @@ public class FileHandleManagerImplTest {
 		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		verify(mockFileHandleDao).getAllFileHandlesBatch(any(Iterable.class));
 		// Verifies that download stats are never sent
-		verify(mockStatisticsCollector, never()).collectEvents(any());
+		verifyZeroInteractions(messenger);
 	}
 
 	@Test
@@ -1901,8 +1924,8 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getPreSignedURL());
 		// no downloads should be pushed since no urls were returned.
 		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
-		// Verifies that download stats are never sent
-		verify(mockStatisticsCollector, never()).collectEvents(any());
+		// Verifies that download stats are never sent);
+		verifyZeroInteractions(messenger);
 	}
 
 	@Test
@@ -1938,7 +1961,7 @@ public class FileHandleManagerImplTest {
 		// no downloads should be pushed since no urls were returned.
 		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are never sent
-		verify(mockStatisticsCollector, never()).collectEvents(any());
+		verifyZeroInteractions(messenger);
 	}
 	
 	@Test
@@ -2013,7 +2036,7 @@ public class FileHandleManagerImplTest {
 		// no records pushed
 		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are never sent
-		verify(mockStatisticsCollector, never()).collectEvents(any());
+		verifyZeroInteractions(messenger);
 	}
 
 
@@ -2040,7 +2063,8 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
 		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
-
+		when(mockStackConfig.getStack()).thenReturn(STACK);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -2058,7 +2082,65 @@ public class FileHandleManagerImplTest {
 
 		verify(mockObjectRecordQueue, times(1)).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));
-		verify(mockStatisticsCollector, times(1)).collectEvents(any());
+		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
+		FileEvent actualFileEvent = fileEventCaptor.getValue();
+		assertNotNull(actualFileEvent.getTimestamp());
+		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		assertEquals(expectedFileEvent, actualFileEvent);
+	}
+
+	@Test
+	public void testGetFileHandleAndUrlBatchPreSignedURLForMultipleExternalObjectStore() {
+		batchRequest.setIncludeFileHandles(false);
+		batchRequest.setIncludePreSignedURLs(true);
+		batchRequest.setIncludePreviewPreSignedURLs(false);
+		ExternalObjectStoreFileHandle fh1 = new ExternalObjectStoreFileHandle();
+		fh1.setEndpointUrl("https://s3.amazonaws.com");
+		fh1.setBucket("some.bucket.name");
+		fh1.setFileKey("somepath/file.txt");
+
+		fh1.setId(fha2.getFileHandleId());
+		fh1.setStatus(FileHandleStatus.AVAILABLE);
+
+		ExternalObjectStoreFileHandle fh2 = new ExternalObjectStoreFileHandle();
+		fh2.setEndpointUrl("https://s3.amazonaws.com");
+		fh2.setBucket("some.bucket.name");
+		fh2.setFileKey("somepath/file.txt");
+
+		fh2.setId(fha1.getFileHandleId());
+		fh2.setStatus(FileHandleStatus.AVAILABLE);
+
+		Map<String, FileHandle> handleMap = new HashMap<String, FileHandle>();
+		handleMap.put(fh1.getId(), fh1);
+		handleMap.put(fh2.getId(), fh2);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any(Iterable.class))).thenReturn(handleMap);
+
+		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.authorized());
+		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
+		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2);
+		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+		when(mockStackConfig.getStack()).thenReturn(STACK);
+		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
+		// call under test
+		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(2, results.getRequestedFiles().size());
+
+		verify(mockObjectRecordQueue, times(1)).pushObjectRecordBatch(any(ObjectRecordBatch.class));
+		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));
+		verify(messenger, times(2)).publishMessageAfterCommit(fileEventCaptor.capture());
+		List<FileEvent> fileEvents = fileEventCaptor.getAllValues();
+		FileEvent actualFileEventOne = fileEvents.get(0);
+		assertNotNull(actualFileEventOne.getTimestamp());
+		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEventOne.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha1);
+		assertEquals(expectedFileEvent, actualFileEventOne);
+		FileEvent actualFileEventTwo = fileEvents.get(1);
+		assertNotNull(actualFileEventTwo.getTimestamp());
+		FileEvent expectedFileEventTwo = getFileEvent(mockUser.getId(), actualFileEventTwo.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		assertEquals(expectedFileEventTwo, actualFileEventTwo);
+
+
 	}
 
 	/**
@@ -2618,5 +2700,11 @@ public class FileHandleManagerImplTest {
 			temp.delete();
 		}
 		
+	}
+
+	private FileEvent getFileEvent(long userId, Date timestamp, FileEventType fileHandleType, FileHandleAssociation fileHandleAssociation) {
+		FileEvent expectedFileEvent = FileEventUtils.buildFileEvent(fileHandleType, userId, fileHandleAssociation, STACK, INSTANCE);
+		expectedFileEvent.setTimestamp(timestamp);
+		return expectedFileEvent;
 	}
 }

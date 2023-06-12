@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -9,6 +10,7 @@ import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createRe
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -23,7 +25,6 @@ import org.sagebionetworks.AsynchronousJobWorkerHelperImpl.AsyncJobResponse;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.MaterializedViewManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
@@ -66,6 +67,7 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -105,9 +107,6 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 
 	@Autowired
 	private AsynchronousJobWorkerHelper asyncHelper;
-
-	@Autowired
-	private MaterializedViewManager materializedViewManager;
 
 	@Autowired
 	private TableEntityManager tableManager;
@@ -151,21 +150,13 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 						&& projectId.equals(entityManager.getEntityHeader(adminUserInfo, e.getId()).getBenefactorId()))
 				.map(e -> e.getId()).collect(Collectors.toList());
 		assertEquals(3, fileIdsUserCanSee.size());
-
+		
 		// Currently do not support doubles so the double key is excluded.
 		String definingSql = "select id, stringKey, longKey, doubleKey, dateKey, booleanKey from " + view.getId();
 
-		MaterializedView materializedView = entityManager
-				.getEntity(adminUserInfo,
-						entityManager
-								.createEntity(adminUserInfo,
-										new MaterializedView().setName("aMaterializedView")
-												.setParentId(view.getParentId()).setDefiningSQL(definingSql),
-										null),
-						MaterializedView.class);
-		materializedViewManager.registerSourceTables(IdAndVersion.parse(materializedView.getId()), definingSql);
+		IdAndVersion viewId = createMaterializedView(view.getParentId(), definingSql);
 
-		String finalSql = "select * from " + materializedView.getId() + " order by id asc";
+		String finalSql = "select * from " + viewId + " order by id asc";
 
 		List<Row> expectedRows = Arrays.asList(
 				new Row().setRowId(1L).setVersionNumber(0L)
@@ -204,13 +195,9 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			// Currently do not support doubles so the double key is excluded.
 			String definingSql = "select id, stringKey, longKey, doubleKey, dateKey, booleanKey from " + view.getId();
 
-			MaterializedView materializedView = entityManager.getEntity(adminUserInfo,
-					entityManager.createEntity(adminUserInfo, new MaterializedView().setName("aMaterializedView")
-							.setParentId(view.getParentId()).setDefiningSQL(definingSql), null),
-					MaterializedView.class);
-			IdAndVersion matViewId = IdAndVersion.parse(materializedView.getId());
-			materializedViewManager.registerSourceTables(matViewId, definingSql);
-			asyncHelper.waitForTableOrViewToBeAvailable(matViewId, MAX_WAIT_MS);
+			IdAndVersion viewId = createMaterializedView(view.getParentId(), definingSql);
+			
+			asyncHelper.waitForTableOrViewToBeAvailable(viewId, MAX_WAIT_MS);
 			return 0;
 		});
 	}
@@ -898,8 +885,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		assertEquals(numberOfFiles, fileIdsOne.size());
 
 		List<Entity> twoEntities = createProjectHierachy(numberOfFiles);
-		Project projectTwo = twoEntities.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst()
-				.get();
+		
 		List<String> fileIdsTwo = twoEntities.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
 				.collect(Collectors.toList());
 		assertEquals(numberOfFiles, fileIdsTwo.size());
@@ -1007,6 +993,149 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertEquals(expected, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 
+	}
+	
+	@Test
+	public void testMaterializedViewUpdateWithAvailableState() throws Exception {
+		String projectId = createProject();
+
+		IdAndVersion tableId = createTable(projectId);
+
+		String definingSql = "select * from " + tableId.toString();
+
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
+
+		// Wait for the materialized view to become available
+		List<Row> initialRows = Arrays.asList(
+			new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList("string0", "103000", "682003.12", "false")),
+			new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList("string1", "103001", "682006.53", "true"))
+		);
+
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + materializedViewId.toString() + " order by ROW_ID asc", (results) -> {
+			assertEquals(initialRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		
+		Date initialChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);
+		
+		// Now trigger an update of the dependent table changing its schema
+		List<ColumnModel> schema = List.of(
+			columnModelManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING).setName("aString"))
+		);
+
+		tableManager.tableUpdated(adminUserInfo, TableModelUtils.getIds(schema), tableId.toString(), false);
+		
+		List<Row> updatedRows = Arrays.asList(
+			new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList("string0")),
+			new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList("string1"))
+		);
+		
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + materializedViewId.toString() + " order by ROW_ID asc", (results) -> {
+			// While querying the materialized view, the status should always be available
+			assertEquals(TableState.AVAILABLE, tableManagerSupport.getTableStatusState(materializedViewId).orElse(null));
+			// Eventually the materialized view will be updated
+			assertEquals(updatedRows, results.getQueryResult().getQueryResults().getRows());
+			// The last changedOn should be updated
+			assertNotEquals(initialChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
+		}, MAX_WAIT_MS);
+		
+		Date lastChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);
+		 
+		// We emulate another update, the index should not be replaced since the view is up to date
+		tableManagerSupport.triggerIndexUpdate(materializedViewId);
+		
+		// Sleep to let the worker process the message
+		Thread.sleep(5_000);
+		
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + materializedViewId.toString() + " order by ROW_ID asc", (results) -> {
+			// While querying the materialized view, the status should always be available
+			assertEquals(TableState.AVAILABLE, tableManagerSupport.getTableStatusState(materializedViewId).orElse(null));
+			// Eventually the materialized view will be updated
+			assertEquals(updatedRows, results.getQueryResult().getQueryResults().getRows());
+			// The last changedOn should not be updated
+			assertEquals(lastChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
+		}, MAX_WAIT_MS);
+	}
+	
+	@Test
+	public void testMaterializedViewUpdateWithAvailableStateAndUpdatedAvailableView() throws Exception {
+		int numberOfFiles = 2;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		String projectId = entites.iterator().next().getId();
+		
+		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
+				.collect(Collectors.toList());
+
+		List<PatientData> patientData = List.of(
+			new PatientData().withCode("abc").withPatientId(111L),
+			new PatientData().withCode("def").withPatientId(222L)
+		);
+
+		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
+		IdAndVersion tableId = createTableWithPatientIds(projectId, patientData);
+
+		String definingSql = String.format("select v.id, p.patientId, p.code from %s v join %s p on (v.patientId = p.patientId)", viewId.toString(), tableId.toString());
+
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
+
+		String materializedQuery = "select * from " + materializedViewId.toString() + " order by \"v.id\" asc";
+
+		List<Row> initialRows = List.of(
+			new Row().setRowId(1L).setVersionNumber(0L).setValues(List.of(fileIds.get(0), "111", "abc")),
+			new Row().setRowId(2L).setVersionNumber(0L).setValues(List.of(fileIds.get(1), "222", "def"))
+		);
+
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(initialRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		
+		Date initialChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);
+		
+		// Now we change the view data and trigger an update
+		
+		String fileId = fileIds.iterator().next();
+		
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		
+		annos.getAnnotations().remove("patientId");
+		
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		// Trigger the update of the view, this will update the available view
+		asyncHelper.assertQueryResult(adminUserInfo, "SELECT COUNT(*) FROM " + viewId + " WHERE patientId IS NOT NULL", (results) -> {
+			assertEquals(List.of("1"), results.getQueryResult().getQueryResults().getRows().iterator().next().getValues());
+		}, MAX_WAIT_MS);
+		
+		List<Row> updatedRows = List.of(
+			new Row().setRowId(1L).setVersionNumber(0L).setValues(List.of(fileIds.get(1), "222", "def"))
+		);
+		
+		// Verifies that the update propagated
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + materializedViewId.toString() + " order by ROW_ID asc", (results) -> {
+			// While querying the materialized view, the status should always be available
+			assertEquals(TableState.AVAILABLE, tableManagerSupport.getTableStatusState(materializedViewId).orElse(null));
+			// Eventually the materialized view will be updated
+			assertEquals(updatedRows, results.getQueryResult().getQueryResults().getRows());
+			// The last changedOn should be updated
+			assertNotEquals(initialChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
+		}, MAX_WAIT_MS);
+		
+		Date lastChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);		
+		
+		// We emulate another update to the depending view, the index should not be replaced since the view is up to date
+		tableManagerSupport.triggerIndexUpdate(viewId);
+
+		// Sleep to let the worker process the message
+		Thread.sleep(5_000);
+		
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + materializedViewId.toString() + " order by ROW_ID asc", (results) -> {
+			// While querying the materialized view, the status should always be available
+			assertEquals(TableState.AVAILABLE, tableManagerSupport.getTableStatusState(materializedViewId).orElse(null));
+			// Eventually the materialized view will be updated
+			assertEquals(updatedRows, results.getQueryResult().getQueryResults().getRows());
+			// The last changedOn should not be updated
+			assertEquals(lastChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
+		}, MAX_WAIT_MS);
 	}
 
 	/**

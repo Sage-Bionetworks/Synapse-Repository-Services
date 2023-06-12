@@ -1,11 +1,11 @@
 package org.sagebionetworks.translator;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.json.JSONObject;
 import org.sagebionetworks.controller.model.ControllerModel;
-import org.sagebionetworks.openapi.server.ServerSideOnlyFactory;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.schema.ObjectSchema;
 
@@ -20,10 +20,10 @@ public class ControllersToOpenAPIJsonTranslator {
 	 * @param env the doclet environment
 	 * @return JSONObject that represents all of the controllers.
 	 */
-	public JSONObject translate(DocletEnvironment env) {
+	public JSONObject translate(DocletEnvironment env, Iterator<String> concreteClassNames) {
 		ObjectSchemaUtils objectSchemaUtils = new ObjectSchemaUtils();
 		
-		Map<String, ObjectSchema> classNameToObjectSchema = objectSchemaUtils.getConcreteClasses(new ServerSideOnlyFactory());
+		Map<String, ObjectSchema> classNameToObjectSchema = objectSchemaUtils.getConcreteClasses(concreteClassNames);
 		List<ControllerModel> controllerModels = new ControllerToControllerModelTranslator().extractControllerModels(env, classNameToObjectSchema);
 		Map<String, JsonSchema> classNameToJsonSchema = objectSchemaUtils.getClassNameToJsonSchema(classNameToObjectSchema);
 

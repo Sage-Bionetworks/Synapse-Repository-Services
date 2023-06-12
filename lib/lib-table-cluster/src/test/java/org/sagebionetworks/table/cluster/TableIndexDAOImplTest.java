@@ -94,6 +94,7 @@ import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -145,7 +146,7 @@ public class TableIndexDAOImplTest {
 		// First get a connection for this table
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
 		tableIndexDAO.deleteTable(tableId);
-		tableIndexDAO.truncateIndex();		
+		tableIndexDAO.truncateIndex();
 		indexDescription = new TableIndexDescription(tableId);
 		userId = 1L;
 		fieldTypeMapper = new ObjectFieldTypeMapper() {
@@ -171,6 +172,7 @@ public class TableIndexDAOImplTest {
 			}
 		};
 		subTypes = Set.of(SubType.file);
+		
 	}
 
 	@AfterEach
@@ -189,17 +191,17 @@ public class TableIndexDAOImplTest {
 	 * @param tableId
 	 */
 	public boolean createOrUpdateTable(List<ColumnModel> newSchema, IndexDescription indexDescription){
-		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(tableId);
+		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion());
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
 		boolean alterTemp = false;
 		// Ensure all all updated columns actually exist.
 		changes = SQLUtils.matchChangesToCurrentInfo(currentSchema, changes);
-		boolean altered = tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
+		boolean altered = tableIndexDAO.alterTableAsNeeded(indexDescription.getIdAndVersion(), changes, alterTemp);
 
 		for(ColumnModel columnModel : newSchema){
 			if(ColumnTypeListMappings.isList(columnModel.getColumnType())){
-				tableIndexDAO.createMultivalueColumnIndexTable(tableId, columnModel, false);
+				tableIndexDAO.createMultivalueColumnIndexTable(indexDescription.getIdAndVersion(), columnModel, false);
 			}
 		}
 
@@ -2427,9 +2429,6 @@ public class TableIndexDAOImplTest {
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
-		// Check the CRC of the view
-		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId.getId());
-		assertEquals(381255304L, crc32);
 	}
 
 	@Test
@@ -2476,10 +2475,6 @@ public class TableIndexDAOImplTest {
 		assertEquals(2, result.getRows().size());
 		assertEquals(Collections.singletonList("[\"NaN\", \"1.2\", \"Infinity\"]"), result.getRows().get(0).getValues());
 		assertEquals(Collections.singletonList("[\"Infinity\", \"222.222\"]"), result.getRows().get(1).getValues());
-
-		// Check the CRC of the view
-		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId.getId());
-		assertEquals(381255304L, crc32);
 	}
 	
 	/*
@@ -2583,9 +2578,6 @@ public class TableIndexDAOImplTest {
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(0, count);
-		// Check the CRC of the view
-		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId.getId());
-		assertEquals(-1L, crc32);
 	}
 	
 	@Test
@@ -4385,7 +4377,7 @@ public class TableIndexDAOImplTest {
 	 * @return
 	 */
 	Long countRowsInMultiValueIndex(IdAndVersion idAndversion, String columnId) {
-		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId);
+		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(idAndversion, columnId);
 		return tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap());
 	}
 
@@ -4666,7 +4658,9 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1));
 		
 		// call under test
-		tableIndexDAO.refreshViewBenefactors(tableId, mainType);
+		boolean result = tableIndexDAO.refreshViewBenefactors(tableId, mainType);
+		
+		assertTrue(result);
 		
 		// The benefactors should be updated.
 		results = tableIndexDAO.query(mockProgressCallback, query);
@@ -4674,6 +4668,64 @@ public class TableIndexDAOImplTest {
 		// file one should change while file two should remain the same.
 		assertEquals(Lists.newArrayList(file1.getId().toString(),file1.getBenefactorId().toString()), results.getRows().get(0).getValues());
 		assertEquals(Lists.newArrayList(file2.getId().toString(),file2.getBenefactorId().toString()), results.getRows().get(1).getValues());
+	}
+	
+	@Test
+	public void testRefreshViewBenefactorsWithNoChanges() throws ParseException{
+		tableId = IdAndVersion.parse("syn123");
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteTable(tableId);
+		
+		// setup some hierarchy.
+		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO(file1);
+		double1.setKey("foo");
+		double1.setValue("NaN");
+		double1.setType(AnnotationType.DOUBLE);
+		file1.setAnnotations(Arrays.asList(double1));
+		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO(file2);
+		double2.setKey("foo");
+		double2.setValue("Infinity");
+		double2.setType(AnnotationType.DOUBLE);
+		file2.setAnnotations(Arrays.asList(double2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
+		
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
+
+		// both parents
+		Set<Long> scope = Set.of(file1.getParentId(), file2.getParentId());
+		
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
+
+		createOrUpdateTable(schema, indexDescription);
+		
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
+		
+		List<Row> expectedRows = List.of(
+			new Row().setRowId(2L).setVersionNumber(2L).setValues(List.of(file1.getId().toString(),file1.getBenefactorId().toString())),
+			new Row().setRowId(3L).setVersionNumber(2L).setValues(List.of(file2.getId().toString(),file2.getBenefactorId().toString()))
+		);
+		
+		QueryTranslator query = QueryTranslator.builder("select ROW_ID, ROW_BENEFACTOR from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		
+		assertEquals(expectedRows, results.getRows());
+				
+		// call under test
+		boolean result = tableIndexDAO.refreshViewBenefactors(tableId, mainType);
+		
+		assertFalse(result);
+		
+		// No changes
+		assertEquals(expectedRows, tableIndexDAO.query(mockProgressCallback, query).getRows());
 	}
 	
 	@Test
@@ -5207,7 +5259,130 @@ public class TableIndexDAOImplTest {
 		}).getMessage();
 		assertEquals("newSchema is required.",message);
 	}
-
+	
+	@Test
+	public void testSwapTableIndex() {
+		// Create the first table
+		List<ColumnModel> schemaOne = List.of(
+			TableModelTestUtils.createColumn(1L, "foo", ColumnType.DOUBLE),
+			TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING_LIST),
+			TableModelTestUtils.createColumn(3L, "barList", ColumnType.INTEGER_LIST)
+		);
+		
+		createOrUpdateTable(schemaOne, indexDescription);
+		tableIndexDAO.createSecondaryTables(indexDescription.getIdAndVersion());
+		
+		// Now add some data
+		RowSet set = new RowSet()
+			.setRows(TableModelTestUtils.createRows(schemaOne, 2))
+			.setHeaders(TableModelUtils.getSelectColumns(schemaOne))
+			.setTableId(indexDescription.getIdAndVersion().toString());
+		
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, new IdRange().setMinimumId(100L).setMaximumId(200L).setVersionNumber(3L));
+		
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(indexDescription.getIdAndVersion(), set, schemaOne);
+		
+		schemaOne.stream().filter( m -> ColumnTypeListMappings.isList(m.getColumnType())).forEach( column -> {			
+			tableIndexDAO.populateListColumnIndexTable(indexDescription.getIdAndVersion(), column, null, false);
+		});
+		
+		// Create another table
+		IndexDescription sourceIndexDescription = new TableIndexDescription(IdAndVersion.parse("456"));
+		
+		List<ColumnModel> schemaTwo = List.of(
+			TableModelTestUtils.createColumn(3L, "foo", ColumnType.INTEGER),
+			TableModelTestUtils.createColumn(4L, "bar", ColumnType.STRING),
+			TableModelTestUtils.createColumn(5L, "fooList", ColumnType.INTEGER_LIST),
+			TableModelTestUtils.createColumn(6L, "barList", ColumnType.STRING_LIST)
+		);
+		
+		tableIndexDAO.deleteTable(sourceIndexDescription.getIdAndVersion());
+		createOrUpdateTable(schemaTwo, sourceIndexDescription);
+		tableIndexDAO.createSecondaryTables(sourceIndexDescription.getIdAndVersion());
+		
+		set = new RowSet()
+			.setRows(TableModelTestUtils.createRows(schemaTwo, 3))
+			.setHeaders(TableModelUtils.getSelectColumns(schemaTwo))
+			.setTableId(sourceIndexDescription.getIdAndVersion().toString());
+		
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, new IdRange().setMinimumId(100L).setMaximumId(200L).setVersionNumber(4L));
+		
+		createOrUpdateOrDeleteRows(sourceIndexDescription.getIdAndVersion(), set, schemaTwo);
+		
+		schemaTwo.stream().filter( m -> ColumnTypeListMappings.isList(m.getColumnType())).forEach( column -> {			
+			tableIndexDAO.populateListColumnIndexTable(sourceIndexDescription.getIdAndVersion(), column, null, false);
+		});
+		
+		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_DBL_C1_", "_C2_", "_C3_"), 
+			tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
+		);
+		
+		assertEquals(Set.of(2L, 3L), 
+			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(indexDescription.getIdAndVersion())
+		);
+		
+		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C4_", "_C5_", "_C6_"), 
+			tableIndexDAO.getDatabaseInfo(sourceIndexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
+		);
+		
+		assertEquals(Set.of(5L, 6L), 
+			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(sourceIndexDescription.getIdAndVersion())
+		);
+		
+		assertEquals(2L, tableIndexDAO.getRowCountForTable(indexDescription.getIdAndVersion()));
+		assertEquals(3L, tableIndexDAO.getRowCountForTable(sourceIndexDescription.getIdAndVersion()));
+		
+		assertEquals(4L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "2"));
+		assertEquals(2L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "3"));
+		assertEquals(3L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "5"));
+		assertEquals(6L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "6"));
+				
+		// Call under test
+		tableIndexDAO.swapTableIndex(sourceIndexDescription.getIdAndVersion(), indexDescription.getIdAndVersion());
+		
+		assertEquals(3L, tableIndexDAO.getRowCountForTable(indexDescription.getIdAndVersion()));
+		assertEquals(2L, tableIndexDAO.getRowCountForTable(sourceIndexDescription.getIdAndVersion()));
+		
+		assertEquals(3L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "5"));
+		assertEquals(6L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "6"));
+		assertEquals(4L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "2"));
+		assertEquals(2L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "3"));
+		
+		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C4_", "_C5_", "_C6_"), 
+			tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
+		);
+		
+		assertEquals(Set.of(5L, 6L), 
+			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(indexDescription.getIdAndVersion())
+		);
+		
+		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_DBL_C1_", "_C2_", "_C3_"), 
+			tableIndexDAO.getDatabaseInfo(sourceIndexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
+		);
+		
+		assertEquals(Set.of(2L, 3L), 
+			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(sourceIndexDescription.getIdAndVersion())
+		);
+		
+		JdbcTemplate jdbcTemplate = tableIndexDAO.getConnection();
+		
+		Set<String> renamedMultiValueTables = Set.of("2", "3").stream()
+			.map(id -> SQLUtils.getTableNameForMultiValueColumnIndex(sourceIndexDescription.getIdAndVersion(), id)).collect(Collectors.toSet());
+				
+		// Makes sure the FK constraints were renamed as well, each renamed table will have one renamed FK
+		Set<String> expectedForeignKeys = renamedMultiValueTables.stream()
+			.map(t ->SQLUtils.getMultiValueIndexTableForeignKeyConstraintName(t))
+			.collect(Collectors.toSet());
+		
+		Set<String> renamedForeignKeys = Set.copyOf(jdbcTemplate.queryForList("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE "
+			+ "TABLE_NAME IN(" + String.join(",", renamedMultiValueTables.stream().map(t-> "'" + t + "'").collect(Collectors.toList())) + ") AND REFERENCED_COLUMN_NAME = 'ROW_ID'", String.class)
+		);
+		
+		assertEquals(expectedForeignKeys, renamedForeignKeys);
+		
+		tableIndexDAO.deleteTable(sourceIndexDescription.getIdAndVersion());
+	}
 	
 	/**
 	 * Helper to create a schema provider for the given schema.

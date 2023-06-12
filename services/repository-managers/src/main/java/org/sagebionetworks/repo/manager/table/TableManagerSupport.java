@@ -128,6 +128,13 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 	 * @return
 	 */
 	boolean isIndexSynchronizedWithTruth(IdAndVersion tableId);
+	
+	/**
+	 * Is the table's index synchronized with the given schema, version and search state?
+	 * @param tableId
+	 * @return
+	 */
+	boolean isIndexSynchronized(IdAndVersion tableId, List<String> schemaIds, long version, boolean isSearchEnabled);
 
 	/**
 	 * Index work is required if the index is out-of-synch with the truth or the
@@ -153,14 +160,6 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 	void setTableDeleted(IdAndVersion deletedId, ObjectType tableType);
 
 	/**
-	 * The MD5 hex of a table's schema.
-	 * 
-	 * @param tableId
-	 * @return
-	 */
-	String getSchemaMD5Hex(IdAndVersion tableId);
-
-	/**
 	 * Get the version of the given table. This is can be different for each table
 	 * type. The value is used to indicate the current state of a table's truth.
 	 * 
@@ -184,14 +183,6 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 	 * @return
 	 */
 	ObjectType getTableObjectType(IdAndVersion tableId);
-
-	/**
-	 * Get the number currently associated with a view, for consistency checks.
-	 * 
-	 * @param table
-	 * @return
-	 */
-	Long getViewStateNumber(IdAndVersion table);
 
 	/**
 	 * <p>
@@ -445,6 +436,12 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 	 * @return The most recent snapshot that exists for the table with the given id and version. A previous snapshot might be returned.
 	 */
 	Optional<TableSnapshot> getMostRecentTableSnapshot(IdAndVersion idAndVersion);
-
+	
+	/**
+	 * Sends a message to trigger an update for the table with the given id, this will not modify the status of the table
+	 * 
+	 * @param idAndVersion
+	 */
+	void triggerIndexUpdate(IdAndVersion idAndVersion);
 
 }

@@ -1,11 +1,14 @@
 package org.sagebionetworks.worker.config;
 
+import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManager;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentWorkerStack;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.file.worker.FileHandleAssociationScanRangeWorker;
 import org.sagebionetworks.file.worker.FileHandleKeysArchiveWorker;
+import org.sagebionetworks.file.worker.FileEventRecordWorker;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.ses.workers.SESNotificationWorker;
 import org.sagebionetworks.table.worker.MaterializedViewSourceUpdateWorker;
@@ -18,9 +21,6 @@ import org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConf
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.quartz.SimpleTriggerFactoryBean;
-
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Configuration for workers that are driven by generic SQS messages (For {@link ChangeMessage} driven workers see {@link ChangeMessageWorkersConfig})
@@ -163,4 +163,26 @@ public class MessageDrivenWorkersConfig {
 		.build();
 	}
 
+	@Bean
+	public SimpleTriggerFactoryBean fileEventRecordWorkerTrigger(FileEventRecordWorker fileEventRecordWorker) {
+
+		String queueName = stackConfig.getQueueName("FILE_EVENT_RECORDS");
+		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, fileEventRecordWorker);
+
+		return new WorkerTriggerBuilder()
+				.withStack(ConcurrentWorkerStack.builder()
+						.withSemaphoreLockKey("fileEventRecordWorker")
+						.withSemaphoreMaxLockCount(5)
+						.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
+						.withMaxThreadsPerMachine(1)
+						.withSingleton(concurrentStackManager)
+						.withCanRunInReadOnly(true)
+						.withQueueName(queueName)
+						.withWorker(worker)
+						.build()
+				)
+				.withRepeatInterval(934)
+				.withStartDelay(578)
+				.build();
+	}
 }

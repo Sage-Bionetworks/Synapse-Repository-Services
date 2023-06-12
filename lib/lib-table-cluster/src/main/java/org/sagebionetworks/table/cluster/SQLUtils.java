@@ -27,7 +27,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_SEARCH_CONTENT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
-import static org.sagebionetworks.repo.model.table.TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE;
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SCHEMA_HASH;
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SINGLE_KEY;
@@ -250,8 +249,14 @@ public class SQLUtils {
 
 	private static void appendTableNameForId(IdAndVersion id, TableIndexType type, StringBuilder builder) {
 		builder.append(TABLE_PREFIX);
-		builder.append(id.getId());
-		if(id.getVersion().isPresent()) {
+		if (id.getId() < 0) {
+			// When the id is negative the "-" sign can break some queries since we do not enquote the table name
+			builder.append("__");
+			builder.append(-id.getId());
+		} else {
+			builder.append(id.getId());
+		}
+		if (id.getVersion().isPresent()) {
 			builder.append("_").append(id.getVersion().get());
 		}
 		builder.append(type.getTablePostFix());
@@ -754,7 +759,7 @@ public class SQLUtils {
 				" DROP INDEX " + oldColumnName + "_IDX," +
 
 				//modify the row_id column which references the main table's row_ids
-				" DROP FOREIGN KEY " + tableName + "_FK" + "," +
+				" DROP FOREIGN KEY " + getMultiValueIndexTableForeignKeyConstraintName(tableName) + "," +
 				" RENAME COLUMN " + oldRowRefName + " TO " + newRowRefName + "," +
 				" ADD " + getMultiValueIndexTableForeignKeyConstraint(parentTableName,newTableName,newRowRefName)+
 
@@ -1598,19 +1603,7 @@ public class SQLUtils {
 			builder.append(meta.getColumnNameForId());
 		}
 	}
-	
-	/**
-	 * Create the SQL used to calculate the CRC32 of a table view.
-	 * 
-	 * @param viewId
-	 * @param etagColumnId
-	 * @return
-	 */
-	public static String buildTableViewCRC32Sql(Long viewId){
-		String tableName = getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableIndexType.INDEX);
-		return String.format(SQL_TABLE_VIEW_CRC_32_TEMPLATE, tableName);
-	}
-	
+		
 	/**
 	 * 
 	 * @param refs
@@ -1961,7 +1954,12 @@ public class SQLUtils {
 	}
 
 	private static String getMultiValueIndexTableForeignKeyConstraint(String parentTable, String columnIndexTableName, String rowIdRefColumnName) {
-		return "CONSTRAINT " + columnIndexTableName + "_FK" + " FOREIGN KEY (" + rowIdRefColumnName + ") REFERENCES " + parentTable + "(" + ROW_ID + ") ON DELETE CASCADE";
+		return "CONSTRAINT " + getMultiValueIndexTableForeignKeyConstraintName(columnIndexTableName) + " FOREIGN KEY (" + rowIdRefColumnName + ") REFERENCES " + parentTable + "(" + ROW_ID + ") ON DELETE CASCADE";
+	}
+	
+	static String getMultiValueIndexTableForeignKeyConstraintName(String columnIndexTableName) {
+		// Note: the pattern tableName + _ibfk_ is important so that when renaming the table the FK is renamed automatically (See https://dev.mysql.com/doc/refman/8.0/en/rename-table.html)
+		return columnIndexTableName + "_ibfk_FK";
 	}
 
 	/**

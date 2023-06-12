@@ -25,16 +25,9 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
-import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
-import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
-import org.sagebionetworks.table.cluster.search.TableRowSearchProcessor;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -42,24 +35,9 @@ import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class TableIndexDAOImplUnitTest {
-	@Mock
-	private DataSourceTransactionManager mockTransactionManager;
-	@Mock
-	private TransactionTemplate mockWriteTransactionTemplate;
-	@Mock
-	private TransactionTemplate mockReadTransactionTemplate;
-	@Mock
-	private JdbcTemplate mockTemplate;
-	@Mock
-	private NamedParameterJdbcTemplate mockNamedTemplate;
-	@Mock
-	private ObjectFieldTypeMapper mockFieldTypeMapper;
+	
 	@Mock
 	private ObjectFieldModelResolverFactory mockObjectFieldResolverFactory;
-	@Mock
-	private ObjectFieldModelResolver mockObjectFieldResolver;
-	@Mock
-	private TableRowSearchProcessor mockSearchProcessor;
 	
 	@Spy
 	@InjectMocks
