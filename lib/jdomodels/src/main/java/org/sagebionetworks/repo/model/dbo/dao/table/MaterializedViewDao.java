@@ -39,11 +39,4 @@ public interface MaterializedViewDao {
 	 */
 	List<IdAndVersion> getMaterializedViewIdsPage(IdAndVersion sourceTableId, long limit, long offset);
 	
-	/**
-	 * Get the defining SQL for the given MaterializedView.
-	 * @param id
-	 * @return Optional.empty if the given ID does not belong to a materialized view.
-	 */
-	Optional<String> getMaterializedViewDefiningSql(IdAndVersion id);
-	
 }

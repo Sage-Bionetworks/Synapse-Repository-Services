@@ -25,6 +25,7 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
+import org.sagebionetworks.table.query.model.WithListElement;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -98,6 +99,8 @@ public class QueryTranslator {
 	private final LinkedHashSet<IdAndVersion> distinctTableIds;
 	
 	private final List<ColumnModel> tableSchema;
+	
+	private boolean isCommonTableExpression;
 
 	/**
 	 * @param tableId
@@ -117,7 +120,8 @@ public class QueryTranslator {
 			} else {
 				this.sqlContext = sqlContextIn;
 			}
-			QueryExpression transformedModel = new TableQueryParser(startingSql).queryExpression();
+			String preprocessedSql = indexDescription.preprocessQuery(startingSql);
+			QueryExpression transformedModel = new TableQueryParser(preprocessedSql).queryExpression();
 			transformedModel.setSqlContext(this.sqlContext);
 			
 			List<QueryPart> parts = transformedModel.stream(QuerySpecification.class).map((q)-> new QueryPart(q, schemaProvider)).collect(Collectors.toList());
@@ -128,13 +132,16 @@ public class QueryTranslator {
 			
 			tableSchema = firstPart.getMapper().getUnionOfAllTableSchemas();
 			
-			if(!SqlContext.build.equals(this.sqlContext)) {
-				if(parts.size() > 1) {
+			isCommonTableExpression = transformedModel.getWithListElements().isPresent();
+			
+			if (!SqlContext.build.equals(this.sqlContext)) {
+				int maxParts = isCommonTableExpression ? 2 : 1;
+				if (parts.size() > maxParts) {
 					throw new IllegalArgumentException(TableConstants.UNION_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
 				}
-				if(firstPart.getMapper().getTableIds().size() > 1) {
+				parts.stream().filter(p -> p.getMapper().getTableIds().size() > 1).findFirst().ifPresent((p) -> {
 					throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
-				}
+				});
 			}
 
 			this.indexDescription = indexDescription;
@@ -157,6 +164,14 @@ public class QueryTranslator {
 				partsSelectSchemas.add(schema);
 			}
 			this.schemaOfSelect = SQLTranslatorUtils.createSchemaOfSelect(partsSelectSchemas);
+			
+			transformedModel.getWithListElements().ifPresent((withListElements)->{
+				if(withListElements.size() != 1) {
+					throw new IllegalArgumentException("A CTE must have one and only one inner query.");
+				}
+				WithListElement wle = withListElements.get(0);
+				SQLTranslatorUtils.translateWithListElement(wle, schemaProvider);
+			});
 			
 			// Track if this is an aggregate query.
 			this.isAggregatedResult = transformedModel.hasAnyAggregateElements();
@@ -200,7 +215,7 @@ public class QueryTranslator {
 		private final QuerySpecification querySpecification;
 		private final TableAndColumnMapper mapper;
 		
-		public QueryPart(QuerySpecification querySpecification, SchemaProvider provider) {
+		QueryPart(QuerySpecification querySpecification, SchemaProvider provider) {
 			super();
 			this.querySpecification = querySpecification;
 			this.mapper = new TableAndColumnMapper(querySpecification, provider);
@@ -290,7 +305,8 @@ public class QueryTranslator {
 	 * @return
 	 */
 	public Optional<String> getSingleTableId() {
-		if (distinctTableIds.size() == 1) {
+		int maxParts = isCommonTableExpression ? 2 : 1;
+		if (distinctTableIds.size() <= maxParts) {
 			return Optional.of(distinctTableIds.iterator().next().toString());
 		} else {
 			return Optional.empty();

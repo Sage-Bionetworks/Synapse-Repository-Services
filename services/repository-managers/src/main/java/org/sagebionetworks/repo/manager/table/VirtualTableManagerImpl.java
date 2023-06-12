@@ -1,17 +1,32 @@
 package org.sagebionetworks.repo.manager.table;
 
-import org.sagebionetworks.repo.model.table.TableConstants;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.VirtualTable;
+import org.sagebionetworks.table.cluster.QueryTranslator;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SqlContext;
+import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
 @Service
 public class VirtualTableManagerImpl implements VirtualTableManager {
 
-	public VirtualTableManagerImpl() {}
+	private final ColumnModelManager columModelManager;
+	private final TableManagerSupport tableManagerSupport;
+
+	public VirtualTableManagerImpl(ColumnModelManager columModelManager, TableManagerSupport tableManagerSupport) {
+		this.columModelManager = columModelManager;
+		this.tableManagerSupport = tableManagerSupport;
+	}
 
 	@Override
 	public void validate(VirtualTable virtualTable) {
@@ -20,17 +35,40 @@ public class VirtualTableManagerImpl implements VirtualTableManager {
 		String definingSql = virtualTable.getDefiningSQL();
 
 		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the virtual table");
+		String id = virtualTable.getId() != null? virtualTable.getId() : "syn1";
+		// This constructor will do deeper validation...
+		new VirtualTableIndexDescription(KeyFactory.idAndVersion(id, virtualTable.getVersionNumber()),
+				definingSql, tableManagerSupport);
 
-		QuerySpecification querySpecification;
+	}
 
+	@Override
+	public List<String> getSchemaIds(IdAndVersion idAndVersion) {
+		return columModelManager.getColumnIdsForTable(idAndVersion);
+	}
+
+	@Override
+	public void registerDefiningSql(IdAndVersion id, String definingSQL) {
+		ValidateArgument.required(id, "table Id");
+		ValidateArgument.required(definingSQL, "definingSQL");
 		try {
-			querySpecification = TableQueryParser.parserQuery(definingSql);
+			QuerySpecification querySpec = new TableQueryParser(definingSQL).querySpecificationEOF();
+			List<IdAndVersion> definingIds = querySpec.stream(TableNameCorrelation.class)
+					.map(s -> IdAndVersion.parse(s.toSql())).collect(Collectors.toList());
+			if(definingIds.size() != 1) {
+				throw new IllegalArgumentException("The defining SQL can only reference one table/view");
+			}
+			IndexDescription definingIndexDescription = tableManagerSupport.getIndexDescription(definingIds.get(0));
+			
+			QueryTranslator sqlQuery = QueryTranslator.builder().sql(definingSQL)
+					.schemaProvider(columModelManager).sqlContext(SqlContext.query).indexDescription(definingIndexDescription)
+					.build();
+			List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
+					.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());
+			columModelManager.bindColumnsToVersionOfObject(schemaIds, id);
 		} catch (ParseException e) {
-			throw new IllegalArgumentException(e.getMessage(), e);
+			throw new IllegalArgumentException(e);
 		}
-		
-		querySpecification.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
-
 	}
 
 }

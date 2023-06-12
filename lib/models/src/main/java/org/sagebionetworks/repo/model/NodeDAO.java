@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -698,5 +699,12 @@ public interface NodeDAO {
 	 * @return FileSummary
 	 */
 	FileSummary getFileSummary(List<EntityRef> entityRefs);
+	
+	/**
+	 * Get the defining SQL, if it exits, for the given ID.
+	 * @param idAndVersion
+	 * @return
+	 */
+	Optional<String> getDefiningSql(IdAndVersion idAndVersion);
 
 }

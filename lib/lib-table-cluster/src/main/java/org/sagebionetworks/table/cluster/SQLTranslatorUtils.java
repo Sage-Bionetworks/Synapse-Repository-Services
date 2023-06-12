@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
@@ -52,6 +53,7 @@ import org.sagebionetworks.table.query.model.CastTarget;
 import org.sagebionetworks.table.query.model.CharacterFactor;
 import org.sagebionetworks.table.query.model.CharacterPrimary;
 import org.sagebionetworks.table.query.model.CharacterValueExpression;
+import org.sagebionetworks.table.query.model.ColumnList;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
@@ -95,6 +97,7 @@ import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
+import org.sagebionetworks.table.query.model.WithListElement;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -1226,5 +1229,27 @@ public class SQLTranslatorUtils {
 			joiner.add(benDesc.getBenefactorColumnName());
 		}
 		return String.format("INSERT INTO %s (%s) %s", tableName, joiner.toString(), outputSQL);
+	}
+
+	/**
+	 * Translate the {@link Identifier} and {@link ColumnList} within the provided {@link WithListElement}.
+	 * @param wle
+	 * @param schemaProvider
+	 */
+	public static void translateWithListElement(WithListElement wle, SchemaProvider schemaProvider) {
+		try {
+			IdAndVersion idAndVersion = IdAndVersion.parse(wle.getIdentifier().toSql());
+			List<ColumnModel> schema = schemaProvider.getTableSchema(idAndVersion);
+			String t = SQLUtils.getTableNameForId(idAndVersion, TableIndexType.INDEX);
+			wle.getIdentifier().replaceElement(new TableQueryParser(t).identifier());
+			StringJoiner joiner = new StringJoiner(",");
+			for(ColumnModel cm: schema) {
+				joiner.add( new SchemaColumnTranslationReference(cm).getTranslatedColumnName());
+			}
+			ColumnList cl = new TableQueryParser(String.format("(%s)", joiner.toString())).columnList();
+			wle.setColumnList(cl);
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }

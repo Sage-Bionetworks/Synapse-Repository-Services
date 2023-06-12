@@ -530,15 +530,6 @@ public class TableQueryParserTest {
 	}
 
 	@Test
-	public void testQueryExpressionWithUnionAndOrderNotLastQuery() throws ParseException {
-		String message = assertThrows(ParseException.class, () -> {
-			new TableQueryParser("select * from syn111 order by foo union select * from syn222").queryExpression();
-		}).getMessage();
-		assertTrue(message.contains("Was expecting"));
-		assertTrue(message.contains("<EOF>"));
-	}
-
-	@Test
 	public void testQueryExpressionWithUnionAndOrderLastQuery() throws ParseException {
 		QueryExpression element = new TableQueryParser("select * from syn111 union select * from syn222 order by foo")
 				.queryExpression();
@@ -546,29 +537,10 @@ public class TableQueryParserTest {
 	}
 
 	@Test
-	public void testQueryExpressionWithUnionAndPaginationNotLastQuery() throws ParseException {
-		String message = assertThrows(ParseException.class, () -> {
-			new TableQueryParser("select * from syn111 limit 10 offset 1 union select * from syn222").queryExpression();
-		}).getMessage();
-		assertTrue(message.contains("Was expecting"));
-		assertTrue(message.contains("<EOF>"));
-	}
-
-	@Test
 	public void testQueryExpressionWithUnionAndPaginationLastQuery() throws ParseException {
 		QueryExpression element = new TableQueryParser(
 				"select * from syn111 union select * from syn222 limit 10 offset 1").queryExpression();
 		assertEquals("SELECT * FROM syn111 UNION SELECT * FROM syn222 LIMIT 10 OFFSET 1", element.toSql());
-	}
-
-	@Test
-	public void testQueryExpressionWithUnionAndOrderByPaginationNotLastQuery() throws ParseException {
-		String message = assertThrows(ParseException.class, () -> {
-			new TableQueryParser("select * from syn111 order by foo limit 10 offset 1 union select * from syn222")
-					.queryExpression();
-		}).getMessage();
-		assertTrue(message.contains("Was expecting"));
-		assertTrue(message.contains("<EOF>"));
 	}
 
 	@Test
@@ -590,6 +562,16 @@ public class TableQueryParserTest {
 		QueryExpression element = new TableQueryParser(
 				"select cast(foo as integer) from syn123").queryExpression();
 		assertEquals("SELECT CAST(foo AS INTEGER) FROM syn123", element.toSql());
+	}
+	
+	@Test
+	public void testCTE() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"WITH syn2 AS (select foo, cast(sum(bar) as 22) from syn1 group by foo order by foo) SELECT * FROM syn1")
+				.queryExpression();
+		assertEquals(
+				"WITH syn2 AS (SELECT foo, CAST(SUM(bar) AS 22) FROM syn1 GROUP BY foo ORDER BY foo) SELECT * FROM syn1",
+				element.toSql());
 	}
 
 }

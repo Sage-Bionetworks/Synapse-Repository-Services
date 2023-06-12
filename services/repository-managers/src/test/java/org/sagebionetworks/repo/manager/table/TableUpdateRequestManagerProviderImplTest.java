@@ -19,8 +19,8 @@ public class TableUpdateRequestManagerProviderImplTest {
 	@Test
 	public void testAllTypes() {
 		for (TableType type : TableType.values()) {
-			// We do not support updates from a materialized view yet
-			if (TableType.materializedview.equals(type)) {
+			// We do not support updates from a materialized view or virtual tables yet
+			if (TableType.materializedview.equals(type) || TableType.virtualtable.equals(type)) {
 				continue;
 			}
 			assertNotNull(provider.getUpdateRequestManagerForType(type));

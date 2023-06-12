@@ -20,7 +20,8 @@ public enum TableType {
 	submissionview(ObjectType.ENTITY_VIEW),
 	dataset(ObjectType.ENTITY_VIEW),
 	datasetcollection(ObjectType.ENTITY_VIEW),
-	materializedview(ObjectType.MATERIALIZED_VIEW);
+	materializedview(ObjectType.MATERIALIZED_VIEW),
+	virtualtable(ObjectType.VIRTUAL_TABLE);
 
 	// There is worker which handle each object type.This Object type should match expected type.
 	// entityview, submissionview, dataset, datasetcollection is handled by same worker.

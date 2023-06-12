@@ -13,6 +13,7 @@ package org.sagebionetworks.table.query;
 import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ArrayList;
 
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.query.model.*;
@@ -33,7 +34,7 @@ public class TableQueryParser {
 	public static QuerySpecification parserQuery(String query)
 			throws ParseException {
 		TableQueryParser parser = new TableQueryParser(new StringReader(query));
-		return parser.querySpecification();
+		return parser.querySpecificationEOF();
 	}
 }
 
@@ -208,6 +209,7 @@ TOKEN [IGNORE_CASE]: {
 | < then: "THEN">
 | < _else: "ELSE">
 | < cast: "CAST">
+| < with: "WITH">
 }
 
 /* Aggregate functions */
@@ -363,10 +365,17 @@ TOKEN: {
 }
 QueryExpression queryExpression():
 {
+	WithListElement withListElement = null;
+	List<WithListElement> withListElements = new ArrayList();
 	NonJoinQueryExpression nonJoinQueryExpression = null;
 }
 {
-  nonJoinQueryExpression = nonJoinQueryExpression() <EOF> { return new QueryExpression(nonJoinQueryExpression); }
+	[ 
+		<with> withListElement = withListElement() { withListElements.add(withListElement); }
+		( <comma> withListElement = withListElement() { withListElements.add(withListElement); } )* 
+	]
+ 	nonJoinQueryExpression = nonJoinQueryExpression() <EOF>
+   { return new QueryExpression(withListElements, nonJoinQueryExpression); }
 }
 NonJoinQueryExpression nonJoinQueryExpression():
 {
@@ -601,8 +610,15 @@ QuerySpecification querySpecification():
 	TableExpression tableExpression = null;
 }
 {
-	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression() [ <EOF> ]
+	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression()
 	{ return new QuerySpecification(setQuantifier, selectList, tableExpression); }
+}
+QuerySpecification querySpecificationEOF():
+{
+	QuerySpecification querySpecification = null;
+}
+{
+	querySpecification = querySpecification() <EOF> { return querySpecification; }
 }
 SelectList selectList():
 {
@@ -652,11 +668,8 @@ TableExpression tableExpression():
 	fromClause  = fromClause()
 	[ whereClause = whereClause() ]
 	[ groupByClause = groupByClause() ]
-	[
-		[ orderByClause = orderByClause() ]
-		[ pagination = pagination() ]
-	 	<EOF>
-	 ]
+	[ orderByClause = orderByClause() ]
+	[ pagination = pagination() ]
 	{ return new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination); }
 }
 FromClause fromClause():
@@ -1502,4 +1515,29 @@ CastTarget castTarget():
 {
 	columnType = columnType() { return new CastTarget(columnType); }
 	| unsignedInteger = unsignedInteger() { return new CastTarget(unsignedInteger); }
+}
+ColumnList columnList():
+{
+	Identifier identifier = null;
+	ColumnList columnList = new ColumnList();
+}
+{
+	<left_paren> 
+		identifier = identifier() { columnList.addIdentifier(identifier);	}
+		( <comma> identifier = identifier() { columnList.addIdentifier(identifier);	} )*
+	<right_paren>
+	{ return columnList; }
+}
+WithListElement withListElement():
+{
+	Identifier identifier = null;
+	ColumnList columnList = null;
+	NonJoinQueryExpression nonJoinQueryExpression = null;
+}
+{
+	identifier = identifier() [ columnList = columnList() ] <as> 
+	<left_paren>
+		nonJoinQueryExpression = nonJoinQueryExpression()
+	<right_paren>
+	{ return new WithListElement(identifier, columnList, nonJoinQueryExpression); }
 }

@@ -1,12 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
@@ -14,7 +12,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.helper.NodeDaoObjectHelper;
@@ -358,154 +355,6 @@ public class MaterializedViewDaoImplTest {
 		assertEquals(expected, result);
 	}
 
-	@Test
-	public void testgetMaterializedViewDefiningSqlForCurrentVersion() {
-		String sql = "select * from syn123";
-		Node materializedView = nodeHelper.create(n -> {
-			n.setName("materializedView");
-			n.setNodeType(EntityType.materializedview);
-			n.setDefiningSQL(sql);
-		});
-		IdAndVersion idAndVersion = IdAndVersion.parse(materializedView.getId());
-		// call under test
-		assertEquals(Optional.of(sql), dao.getMaterializedViewDefiningSqlForCurrentVersion(idAndVersion.getId()));
-	}
 
-	@Test
-	public void testgetMaterializedViewDefiningSqlForCurrentVersionWithDoesNotExist() {
-		// call under test
-		assertEquals(Optional.empty(), dao.getMaterializedViewDefiningSqlForCurrentVersion(123L));
-	}
-
-	@Test
-	public void testGetMaterializedViewDefiningSqlForCurrentVersionWithNullSql() {
-		Node materializedView = nodeHelper.create(n -> {
-			n.setName("materializedView");
-			n.setNodeType(EntityType.materializedview);
-			n.setDefiningSQL(null);
-		});
-		IdAndVersion idAndVersion = IdAndVersion.parse(materializedView.getId());
-		// call under test
-		assertEquals(Optional.empty(), dao.getMaterializedViewDefiningSqlForCurrentVersion(idAndVersion.getId()));
-	}
-
-	@Test
-	public void testGetMaterializedViewDefiningSqlForCurrentVersionWithWrongNodeType() {
-		String sql = "select * from syn123";
-		Node materializedView = nodeHelper.create(n -> {
-			n.setName("materializedView");
-			n.setNodeType(EntityType.dataset);
-			n.setDefiningSQL(sql);
-		});
-		IdAndVersion idAndVersion = IdAndVersion.parse(materializedView.getId());
-		// call under test
-		assertEquals(Optional.empty(), dao.getMaterializedViewDefiningSqlForCurrentVersion(idAndVersion.getId()));
-	}
-
-	@Test
-	public void testGetMaterializedViewDefiningSqlForCurrentVersionWithNullId() {
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			dao.getMaterializedViewDefiningSqlForCurrentVersion(null);
-		}).getMessage();
-		assertEquals("id is required.", message);
-	}
-
-	// with version
-	@Test
-	public void testGetMaterializedViewDefiningSqlForVersion() {
-		String sql = "select * from syn123";
-		Node materializedView = nodeHelper.create(n -> {
-			n.setName("materializedView");
-			n.setNodeType(EntityType.materializedview);
-			n.setDefiningSQL(sql);
-		});
-		IdAndVersion idAndVersion = KeyFactory.idAndVersion(materializedView.getId(),
-				materializedView.getVersionNumber());
-		// call under test
-		assertEquals(Optional.of(sql),
-				dao.getMaterializedViewDefiningSqlForVersion(idAndVersion.getId(), idAndVersion.getVersion().get()));
-	}
-
-	@Test
-	public void testGetMaterializedViewDefiningSqlForVersionWithDoesNotExist() {
-		// call under test
-		assertEquals(Optional.empty(), dao.getMaterializedViewDefiningSqlForVersion(123L, 3L));
-	}
-
-	@Test
-	public void testgetMaterializedViewDefiningSqlForVersionWithNullSql() {
-		Node materializedView = nodeHelper.create(n -> {
-			n.setName("materializedView");
-			n.setNodeType(EntityType.materializedview);
-			n.setDefiningSQL(null);
-		});
-		IdAndVersion idAndVersion = KeyFactory.idAndVersion(materializedView.getId(),
-				materializedView.getVersionNumber());
-		// call under test
-		assertEquals(Optional.empty(),
-				dao.getMaterializedViewDefiningSqlForVersion(idAndVersion.getId(), idAndVersion.getVersion().get()));
-	}
-
-	@Test
-	public void testGetMaterializedViewDefiningSqlForVersionWithWrongNodeType() {
-		String sql = "select * from syn123";
-		Node materializedView = nodeHelper.create(n -> {
-			n.setName("materializedView");
-			n.setNodeType(EntityType.dataset);
-			n.setDefiningSQL(sql);
-		});
-		IdAndVersion idAndVersion = KeyFactory.idAndVersion(materializedView.getId(),
-				materializedView.getVersionNumber());
-		// call under test
-		assertEquals(Optional.empty(),
-				dao.getMaterializedViewDefiningSqlForVersion(idAndVersion.getId(), idAndVersion.getVersion().get()));
-	}
-
-	@Test
-	public void testgetMaterializedViewDefiningSqlForVersionWithNullId() {
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			dao.getMaterializedViewDefiningSqlForVersion(null, 1L);
-		}).getMessage();
-		assertEquals("id is required.", message);
-	}
-
-	@Test
-	public void testgetMaterializedViewDefiningSqlForVersionWithNullVersion() {
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			dao.getMaterializedViewDefiningSqlForVersion(123L, null);
-		}).getMessage();
-		assertEquals("version is required.", message);
-	}
-
-	@Test
-	public void testGetMaterializedViewDefiningSqlWithMultipleVersion() {
-		Node view = nodeHelper.create(n -> {
-			n.setName("materializedView");
-			n.setNodeType(EntityType.materializedview);
-			n.setDefiningSQL("select one from syn123");
-		});
-		view.setVersionLabel("two");
-		view.setVersionNumber(2L);
-		view.setDefiningSQL("select two from syn123");
-		nodeDao.createNewVersion(view);
-
-		view.setVersionLabel("three");
-		view.setVersionNumber(3L);
-		view.setDefiningSQL("select three from syn123");
-		nodeDao.createNewVersion(view);
-
-		// call under test
-		assertEquals(Optional.of("select three from syn123"),
-				dao.getMaterializedViewDefiningSql(IdAndVersion.parse(view.getId())));
-		assertEquals(Optional.of("select three from syn123"),
-				dao.getMaterializedViewDefiningSql(IdAndVersion.parse(view.getId() + ".3")));
-		assertEquals(Optional.of("select two from syn123"),
-				dao.getMaterializedViewDefiningSql(IdAndVersion.parse(view.getId() + ".2")));
-		assertEquals(Optional.of("select one from syn123"),
-				dao.getMaterializedViewDefiningSql(IdAndVersion.parse(view.getId() + ".1")));
-	}
 
 }

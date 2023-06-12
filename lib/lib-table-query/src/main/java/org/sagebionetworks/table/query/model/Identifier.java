@@ -3,7 +3,7 @@ package org.sagebionetworks.table.query.model;
 /**
  * Identifier ::= [ <introducer><character set specification> ] {@link ActualIdentifier}
  */
-public class Identifier extends SQLElement {
+public class Identifier extends SQLElement implements Replaceable<Identifier> {
 
 
 	ActualIdentifier actualIdentifier;

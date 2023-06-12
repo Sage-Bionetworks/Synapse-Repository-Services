@@ -87,6 +87,7 @@ import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
+import org.sagebionetworks.table.query.model.WithListElement;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 import com.google.common.collect.ImmutableMap;
@@ -3767,5 +3768,17 @@ public class SQLTranslatorUtilsTest {
 		List<ColumnModel> expected = List.of(
 				new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumListLength(null));
 		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testTranslateWithListElement() throws ParseException {
+		WithListElement element = new TableQueryParser("syn123 as (select * from syn456)").withListElement();
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		// call under test
+		SQLTranslatorUtils.translateWithListElement(element, mockSchemaProvider);
+
+		assertEquals("T123 (_C111_, _C222_, _C333_, _C444_, _C555_, _C777_, _C888_, _C999_) AS (SELECT * FROM syn456)",
+				element.toSql());
+		verify(mockSchemaProvider).getTableSchema(IdAndVersion.parse("syn123"));
 	}
 }

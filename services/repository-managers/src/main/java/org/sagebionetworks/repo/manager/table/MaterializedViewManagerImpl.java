@@ -9,6 +9,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -48,16 +49,18 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	final private TableManagerSupport tableManagerSupport;
 	final private TableIndexConnectionFactory connectionFactory;
 	final private MaterializedViewDao materializedViewDao;
+	final private NodeDAO nodeDao;
 
 	@Autowired
 	public MaterializedViewManagerImpl(ColumnModelManager columModelManager, 
 			TableManagerSupport tableManagerSupport, 
 			TableIndexConnectionFactory connectionFactory,
-			MaterializedViewDao materializedViewDao) {
+			MaterializedViewDao materializedViewDa, NodeDAO nodeDAO) {
 		this.columModelManager = columModelManager;
 		this.tableManagerSupport = tableManagerSupport;
 		this.connectionFactory = connectionFactory;
-		this.materializedViewDao = materializedViewDao;
+		this.materializedViewDao = materializedViewDa;
+		this.nodeDao = nodeDAO;
 	}
 
 	@Override
@@ -214,8 +217,8 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		try {
 			
 			IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
-				
-			String definingSql = materializedViewDao.getMaterializedViewDefiningSql(idAndVersion)
+	
+			String definingSql = nodeDao.getDefiningSql(idAndVersion)
 					.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));
 			
 			QueryTranslator sqlQuery = QueryTranslator.builder()
@@ -255,7 +258,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			// Note: The dependencies must match the current index dependencies, if that was not true then the view would be rebuilt from scratch
 			IndexDescription temporaryIndex = new MaterializedViewIndexDescription(temporaryId, currentIndex.getDependencies());
 			
-			String definingSql = materializedViewDao.getMaterializedViewDefiningSql(idAndVersion)
+			String definingSql = nodeDao.getDefiningSql(idAndVersion)
 				.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));
 			
 			QueryTranslator sqlQuery = QueryTranslator.builder()

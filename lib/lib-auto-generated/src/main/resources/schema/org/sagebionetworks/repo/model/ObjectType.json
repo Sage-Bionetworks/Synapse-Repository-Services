@@ -159,6 +159,10 @@
             "description": "A materialized view is defined by SQL run against one or more tables/views"
         },
         {
+            "name": "VIRTUAL_TABLE",
+            "description": "A virtual table is a common table expression that references one or more tables/views"
+        },
+        {
         	"name": "TABLE_STATUS_EVENT",
         	"description": "A change in the table status"
         },

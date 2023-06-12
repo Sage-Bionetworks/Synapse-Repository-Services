@@ -2308,4 +2308,40 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Map<String, List<Long[]>> namedParameters = Collections.singletonMap("pairs", specificIdVersionPairs);
 		return namedParameterJdbcTemplate.queryForObject(SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION, namedParameters, FILE_SUMMARY_ROW_MAPPER);
 	}
+
+	@Override
+	public Optional<String> getDefiningSql(IdAndVersion id) {
+		ValidateArgument.required(id, "idAndVersion");
+		if (id.getVersion().isPresent()) {
+			return getDefiningSqlForVersion(id.getId(), id.getVersion().get());
+		} else {
+			return getDefiningSqlForCurrentVersion(id.getId());
+		}
+	}
+	
+	Optional<String> getDefiningSqlForVersion(Long id, Long versionNumber) {
+		ValidateArgument.required(id, "id");
+		ValidateArgument.required(versionNumber, "version");
+		try {
+			String sql = "SELECT R." + COL_REVISION_DEFINING_SQL + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION
+					+ " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + ") WHERE  N." + COL_NODE_ID
+					+ " = ? AND R." + COL_REVISION_NUMBER + " = ?";
+			return Optional.ofNullable(jdbcTemplate.queryForObject(sql, String.class, id, versionNumber));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+
+	Optional<String> getDefiningSqlForCurrentVersion(Long id) {
+		ValidateArgument.required(id, "id");
+		try {
+			String sql = "SELECT R." + COL_REVISION_DEFINING_SQL + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION
+					+ " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + " AND N." + COL_NODE_CURRENT_REV
+					+ " = R." + COL_REVISION_NUMBER + ") WHERE N." + COL_NODE_ID + " = ?";
+			return Optional.ofNullable(jdbcTemplate.queryForObject(sql, String.class, id));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+	
 }

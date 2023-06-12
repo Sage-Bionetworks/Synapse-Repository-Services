@@ -24,13 +24,14 @@ import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.IndexDescriptionLookup;
 
 /**
  * Low-level support for all of the table managers. Contains low-level business
  * logic common to all table managers.
  *
  */
-public interface TableManagerSupport extends SchemaProvider {
+public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLookup {
 
 	/**
 	 * Get the status of a table. This method is guaranteed to return a table's
@@ -405,13 +406,6 @@ public interface TableManagerSupport extends SchemaProvider {
 	 */
 	long getTableSchemaCount(IdAndVersion idAndVersion);
 	
-	/**
-	 * Get the index description for the given table/view.
-	 * @param idAndVersion
-	 * @return
-	 */
-	IndexDescription getIndexDescription(IdAndVersion idAndVersion);
-
 	/**
 	 * @param idAndVersion
 	 * @return True if full text search is enabled for the table with the given version

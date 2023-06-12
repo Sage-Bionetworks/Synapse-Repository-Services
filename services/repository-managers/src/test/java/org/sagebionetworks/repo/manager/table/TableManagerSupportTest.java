@@ -897,6 +897,24 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
+	public void testSetTableToProcessingAndTriggerUpdateWithVirtualTable() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
+		String resetToken = "a reset token";
+		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(resetToken);
+		EntityType type = EntityType.virtualtable;
+		when(mockNodeDao.getNodeTypeById("123")).thenReturn(type);
+		TableStatus status = new TableStatus();
+		status.setResetToken(resetToken);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
+		// call under test
+		TableStatus resultStatus = manager.setTableToProcessingAndTriggerUpdate(idAndVersion);
+		assertEquals(status, resultStatus);
+		verifyZeroInteractions(mockTransactionalMessenger);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
+		verify(mockTableStatusDAO).attemptToSetTableStatusToAvailable(idAndVersion, resetToken, "fixed");
+	}
+	
+	@Test
 	public void testIsTableIndexStateInvalidWithNoEtag() {
 		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
 		when(mockTableStatusDAO.getLastChangeEtag(any())).thenReturn(Optional.empty());
@@ -1051,6 +1069,28 @@ public class TableManagerSupportTest {
 		verify(mockNodeDao).getNodeTypeById(submissionViewId.getId().toString());
 		verify(mockNodeDao, times(4)).getNodeTypeById(any());
 		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+	}
+	
+	@Test
+	public void testGetIndexDescriptionWithVirtualTable() {
+		IdAndVersion virtualTableId = IdAndVersion.parse("syn111");
+
+		String definingSql = "select * from syn222";
+		when(mockNodeDao.getDefiningSql(any())).thenReturn(Optional.of(definingSql));
+		IdAndVersion refId = IdAndVersion.parse("syn222");
+		when(mockNodeDao.getNodeTypeById(virtualTableId.getId().toString())).thenReturn(EntityType.virtualtable);
+		when(mockNodeDao.getNodeTypeById(refId.getId().toString())).thenReturn(EntityType.table);
+		
+		// call under test
+		IndexDescription result = managerSpy.getIndexDescription(virtualTableId);
+		
+		assertEquals(TableType.virtualtable, result.getTableType());
+		assertEquals(virtualTableId, result.getIdAndVersion());
+		
+		verify(mockNodeDao).getNodeTypeById(virtualTableId.getId().toString());
+		verify(mockNodeDao).getNodeTypeById(refId.getId().toString());
+		verify(mockNodeDao).getDefiningSql(virtualTableId);
+		verify(managerSpy).getIndexDescription(refId);
 	}
 	
 	@Test

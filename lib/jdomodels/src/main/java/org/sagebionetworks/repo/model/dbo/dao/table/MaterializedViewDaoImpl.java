@@ -6,16 +6,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MV_TABLE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MV_TABLES_MV_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MV_TABLES_SOURCE_TABLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MV_TABLES_SOURCE_TABLE_VERSION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DEFINING_SQL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MV_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MV_TABLES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -23,18 +15,13 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.entity.IdAndVersionBuilder;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -149,43 +136,4 @@ public class MaterializedViewDaoImpl implements MaterializedViewDao {
 		return materializedViewIds;
 	}
 	
-	Optional<String> getMaterializedViewDefiningSqlForVersion(Long id, Long versionNumber) {
-		ValidateArgument.required(id, "id");
-		ValidateArgument.required(versionNumber, "version");
-		try {
-			String sql = "SELECT R." + COL_REVISION_DEFINING_SQL + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION
-					+ " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + ") WHERE N." + COL_NODE_TYPE
-					+ " = ? AND N." + COL_NODE_ID + " = ? AND R."+COL_REVISION_NUMBER+" = ?";
-			return Optional.ofNullable(jdbcTemplate.getJdbcTemplate().queryForObject(sql, String.class,
-					EntityType.materializedview.name(), id, versionNumber));
-		} catch (EmptyResultDataAccessException e) {
-			return Optional.empty();
-		}
-	}
-
-	Optional<String> getMaterializedViewDefiningSqlForCurrentVersion(Long id) {
-		ValidateArgument.required(id, "id");
-		try {
-			String sql = "SELECT R." + COL_REVISION_DEFINING_SQL + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION
-					+ " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + " AND N." + COL_NODE_CURRENT_REV
-					+ " = R." + COL_REVISION_NUMBER + ") WHERE N." + COL_NODE_TYPE + " = ? AND N." + COL_NODE_ID
-					+ " = ?";
-			return Optional.ofNullable(jdbcTemplate.getJdbcTemplate().queryForObject(sql, String.class,
-					EntityType.materializedview.name(), id));
-		} catch (EmptyResultDataAccessException e) {
-			return Optional.empty();
-		}
-	}
-	
-	@Override
-	public Optional<String> getMaterializedViewDefiningSql(IdAndVersion id) {
-		ValidateArgument.required(id, "id");
-		if (id.getVersion().isPresent()) {
-			return getMaterializedViewDefiningSqlForVersion(id.getId(), id.getVersion().get());
-		} else {
-			return getMaterializedViewDefiningSqlForCurrentVersion(id.getId());
-		}
-	}
-
-
 }
