@@ -51,7 +51,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class VirtualTableIntegrationTest {
 	
-	public static final Long MAX_WAIT_MS = 30_000L;
+	public static final Long MAX_WAIT_MS = 300_000L;
 	
 	@Autowired
 	private AsynchronousJobWorkerHelper asyncHelper;
@@ -101,6 +101,7 @@ public class VirtualTableIntegrationTest {
 				new ColumnModel().setName("foo").setColumnType(ColumnType.STRING).setMaximumSize(50L),
 				new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER));
 		tableSchema = columnModelManager.createColumnModels(adminUserInfo, tableSchema);
+		ColumnModel foo = tableSchema.get(0);
 
 		TableEntity table = asyncHelper.createTable(adminUserInfo, "sometable", project.getId(),
 				tableSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()), false);
@@ -132,13 +133,15 @@ public class VirtualTableIntegrationTest {
 		
 		QueryOptions options = new QueryOptions()
 				.withRunQuery(true)
-				.withRunCount(false)
+				.withRunCount(true)
 				.withReturnFacets(false)
 				.withReturnColumnModels(true);
 		
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
 			assertEquals(List.of(new Row().setValues(List.of("a", "6")), new Row().setValues(List.of("b", "18"))),
 					results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum), results.getColumnModels());
+			assertEquals(2L, results.getQueryCount());
 		}, MAX_WAIT_MS);
 		
 		String message = assertThrows(UnauthorizedException.class, ()->{
