@@ -51,7 +51,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class VirtualTableIntegrationTest {
 	
-	public static final Long MAX_WAIT_MS = 300_000L;
+	public static final Long MAX_WAIT_MS = 30_000L;
 	
 	@Autowired
 	private AsynchronousJobWorkerHelper asyncHelper;
