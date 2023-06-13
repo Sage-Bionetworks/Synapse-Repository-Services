@@ -150,6 +150,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public TableStatus getTableStatusOrCreateIfNotExists(IdAndVersion idAndVersion) throws NotFoundException {
 		try {
+			ObjectType tableType = getTableObjectType(idAndVersion);
+			if(ObjectType.VIRTUAL_TABLE.equals(tableType)) {
+				// A virtual table has no index
+				return new TableStatus().setState(TableState.AVAILABLE);
+			}
+			
 			TableStatus status = tableStatusDAO.getTableStatus(idAndVersion);
 			if (!TableState.AVAILABLE.equals(status.getState())) {
 				// Processing or Failed.
@@ -209,15 +215,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// we get here, if the index for this table is not (yet?) being build. We need
 		// to kick off the
 		// building of the index and report the table as unavailable
-		String resestToken = tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
+		tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
 		
-		if (ObjectType.VIRTUAL_TABLE.equals(tableType)) {
-			// Since a VirtualTable does not have an index it is automatically set to available.
-			tableStatusDAO.attemptToSetTableStatusToAvailable(idAndVersion,	resestToken, "fixed");
-		}else {
-			// notify all listeners.
-			triggerIndexUpdate(tableType, idAndVersion);
-		}
+		// notify all listeners.
+		triggerIndexUpdate(tableType, idAndVersion);
 		// status should exist now
 		return tableStatusDAO.getTableStatus(idAndVersion);
 	}

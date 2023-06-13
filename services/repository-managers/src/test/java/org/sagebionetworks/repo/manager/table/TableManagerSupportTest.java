@@ -331,7 +331,8 @@ public class TableManagerSupportTest {
 	 */
 	@Test
 	public void testGetTableStatusOrCreateIfNotExistsStatusNotFoundTableDoesNotExist() throws Exception {
-		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);		
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);	
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		// Available
 		status.setState(TableState.PROCESSING);
 		// Setup a case where the first time the status does not exists, but does exist the second call.
@@ -355,6 +356,7 @@ public class TableManagerSupportTest {
 		// Available
 		status.setState(TableState.PROCESSING);
 		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		// not expired
 		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
 		// call under test
@@ -386,6 +388,15 @@ public class TableManagerSupportTest {
 		verify(mockTransactionalMessenger)
 		.sendMessageAfterCommit(new MessageToSend().withObjectId(tableId).withObjectType(ObjectType.TABLE)
 				.withChangeType(ChangeType.UPDATE).withObjectVersion(null));
+	}
+	
+	@Test
+	public void testGetTableStatusOrCraeteIfNotExistsWithVirtualTable() {
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.virtualtable);
+		// call under test
+		TableStatus status = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
+		assertEquals(new TableStatus().setState(TableState.AVAILABLE), status);
+		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
 	}
 
 
@@ -896,23 +907,6 @@ public class TableManagerSupportTest {
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 	}
 	
-	@Test
-	public void testSetTableToProcessingAndTriggerUpdateWithVirtualTable() {
-		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
-		String resetToken = "a reset token";
-		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(resetToken);
-		EntityType type = EntityType.virtualtable;
-		when(mockNodeDao.getNodeTypeById("123")).thenReturn(type);
-		TableStatus status = new TableStatus();
-		status.setResetToken(resetToken);
-		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
-		// call under test
-		TableStatus resultStatus = manager.setTableToProcessingAndTriggerUpdate(idAndVersion);
-		assertEquals(status, resultStatus);
-		verifyZeroInteractions(mockTransactionalMessenger);
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
-		verify(mockTableStatusDAO).attemptToSetTableStatusToAvailable(idAndVersion, resetToken, "fixed");
-	}
 	
 	@Test
 	public void testIsTableIndexStateInvalidWithNoEtag() {
