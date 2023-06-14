@@ -2089,4 +2089,22 @@ public class QueryTranslatorTest {
 		}).getMessage();
 		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
+	
+	@Test
+	public void testTranslateGroup_concatWithMultipleColumns() {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		
+		QueryTranslator translator = QueryTranslator.builder("select foo, group_concat(distinct bar, foo_bar) from syn123 group by foo", mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
+		assertEquals("SELECT _C111_, GROUP_CONCAT(DISTINCT _C333_, _C444_) FROM T123 GROUP BY _C111_", translator.getOutputSQL());
+
+	}
+	
+	@Test
+	public void testTranslateCountDistinctWithMultipleColumns() {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		
+		QueryTranslator translator = QueryTranslator.builder("select count(distinct bar, foo_bar) from syn123", mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
+		assertEquals("SELECT COUNT(DISTINCT _C333_, _C444_) FROM T123", translator.getOutputSQL());
+
+	}
 }

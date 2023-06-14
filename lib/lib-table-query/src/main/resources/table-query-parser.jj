@@ -786,18 +786,18 @@ SetFunctionSpecification generalSetFunction():
 {
 	SetFunctionType setFunctionType = null;
 	SetQuantifier setQuantifier = null;
-	ValueExpression valueExpression = null;
+	ValueExpressionList valueExpressionList = null;
 	OrderByClause orderByClause = null;
 	Separator separatorClause = null;
 }
 {
 	setFunctionType = setFunctionType()
 	<left_paren>
-	 [ setQuantifier = setQuantifier() ] valueExpression = valueExpression()
+	 [ setQuantifier = setQuantifier() ] valueExpressionList = valueExpressionList()
 	 [ orderByClause = orderByClause() ]
 	 [ separatorClause = separatorClause() ]
 	<right_paren>
-	{ return new SetFunctionSpecification(setFunctionType, setQuantifier, valueExpression, orderByClause, separatorClause);}
+	{ return new SetFunctionSpecification(setFunctionType, setQuantifier, valueExpressionList, orderByClause, separatorClause);}
 }
 SetFunctionType setFunctionType():
 {
@@ -1092,6 +1092,16 @@ ValueExpression valueExpression():
 }
 {
 	numericValueExpression = numericValueExpression() { return new ValueExpression(numericValueExpression); }
+}
+ValueExpressionList valueExpressionList():
+{
+	ValueExpressionList list = new ValueExpressionList();
+	ValueExpression valueExpression = null;
+}
+{
+	valueExpression = valueExpression() { list.addValueExpression(valueExpression); }
+	( <comma> valueExpression = valueExpression() { list.addValueExpression(valueExpression); } )*
+	{ return list; }
 }
 /**
 * The reference BNF definition for numericValueExpression() is "left recursive"
