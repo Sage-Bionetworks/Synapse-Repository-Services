@@ -13,6 +13,7 @@ import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUER
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_RESULTS;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_SELECT_COLUMNS;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_SUM_FILE_SIZES;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_ACTIONS_REQUIRED;
 
 public class QueryOptionsTest {
 	
@@ -47,7 +48,7 @@ public class QueryOptionsTest {
 	@Test
 	public void testWithMaskAllValues() {
 		QueryOptions options = new QueryOptions();
-		Long partsMask = 255L;
+		Long partsMask = 1023L;
 		// call under test
 		options.withMask(partsMask);
 		boolean expectedValue = true;
@@ -153,6 +154,17 @@ public class QueryOptionsTest {
 	}
 	
 	@Test
+	public void testReturnActionsRequired() {
+		// call under test
+		QueryOptions options = new QueryOptions().withMask(BUNDLE_MASK_ACTIONS_REQUIRED);
+		assertTrue(options.returnActionsRequired());
+		// the rest of the values should be false
+		options.withReturnActionsRequired(false);
+		boolean expectedValue = false;
+		assertAll(expectedValue, options);
+	}
+	
+	@Test
 	public void testGetMaskNone() {
 		QueryOptions options = new QueryOptions();
 		// call under test
@@ -226,6 +238,14 @@ public class QueryOptionsTest {
 	}
 	
 	@Test
+	public void testGetMaskReturnActionsRequired() {
+		QueryOptions options = new QueryOptions().withReturnActionsRequired(true);
+		// call under test
+		long mask = options.getPartMask();
+		assertEquals(QueryOptions.BUNDLE_MASK_ACTIONS_REQUIRED, mask);
+	}
+	
+	@Test
 	public void testReturnLastUpdatedOn() {
 		QueryOptions options = new QueryOptions().withReturnLastUpdatedOn(true);
 		// call under test
@@ -258,6 +278,8 @@ public class QueryOptionsTest {
 		assertEquals(value, options.returnFacets());
 		assertEquals(value, options.runSumFileSizes());
 		assertEquals(value, options.returnLastUpdatedOn());
+		assertEquals(value, options.returnCombinedSql());
+		assertEquals(value, options.returnActionsRequired());
 	}
 
 }

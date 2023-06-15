@@ -876,11 +876,14 @@ public class TableController {
 	 * <li>The Table Columns <i>(columnModels)</i> = 0x10</li>
 	 * <li>Facet statistics for each faceted column <i>(facetStatistics)</i> = 0x20</li>
 	 * <li>The sum of the file sizes <i>(sumFileSizesBytes)</i> = 0x40</li>
+	 * <li>The last updated on date of the table <i>(lastUpdatedOn)</i> = 0x80</li>
+	 * <li>The SQL that combines the input query and the additional filters <i>(combinedSql)</i> = 0x100</li>
+	 * <li>The list of actions required to download any file that appears in the query <i>(actionsRequired)</i> = 0x200</li>
 	 * </ul>
 	 * </p>
 	 * <p>
 	 * For example, to request all parts, the request mask value should be: <br>
-	 * 0x1 OR 0x2 OR 0x4 OR 0x8 OR 0x10 OR 0x20 OR 0x40 = 0x7F.
+	 * 0x1 OR 0x2 OR 0x4 OR 0x8 OR 0x10 OR 0x20 OR 0x40 OR 0x80 OR 0x100 OR 0x200 = 0x3FF.
 	 * </p>
 	 * <p>
 	 * Note: The caller must have the <a

@@ -11,6 +11,7 @@ public class QueryOptions {
 	public static final long BUNDLE_MASK_SUM_FILE_SIZES = 0x40;
 	public static final long BUNDLE_MASK_LAST_UPDATED_ON = 0x80;
 	public static final long BUNDLE_MASK_COMBINED_SQL = 0x100;
+	public static final long BUNDLE_MASK_ACTIONS_REQUIRED = 0x200;
 
 	boolean runQuery;
 	boolean runCount;
@@ -21,6 +22,7 @@ public class QueryOptions {
 	boolean runSumFileSizes;
 	boolean returnLastUpdatedOn;
 	boolean returnCombinedSql;
+	boolean returnActionsRequired;
 	
 	public QueryOptions() {
 		// all default to false
@@ -33,6 +35,7 @@ public class QueryOptions {
 		this.runSumFileSizes = false;
 		this.returnLastUpdatedOn = false;
 		this.returnCombinedSql = false;
+		this.returnActionsRequired = false;
 	}
 
 	public boolean runQuery() {
@@ -69,6 +72,10 @@ public class QueryOptions {
 
 	public boolean returnCombinedSql() {
 		return this.returnCombinedSql;
+	}
+	
+	public boolean returnActionsRequired() {
+		return this.returnActionsRequired;
 	}
 
 	public QueryOptions withRunQuery(boolean runQuery) {
@@ -115,7 +122,12 @@ public class QueryOptions {
 		this.returnCombinedSql = returnCombinedSql;
 		return this;
 	}
-
+	
+	public QueryOptions withReturnActionsRequired(boolean returnActionsRequired) {
+		this.returnActionsRequired = returnActionsRequired;
+		return this;
+	}
+ 
 	public QueryOptions withMask(Long partMaskIn) {
 		final long partMask = partMaskIn != null ? partMaskIn : -1L;// default all.
 		this.runQuery = ((partMask & BUNDLE_MASK_QUERY_RESULTS) != 0);
@@ -127,6 +139,7 @@ public class QueryOptions {
 		this.runSumFileSizes = ((partMask & BUNDLE_MASK_SUM_FILE_SIZES) != 0);
 		this.returnLastUpdatedOn = ((partMask & BUNDLE_MASK_LAST_UPDATED_ON) != 0);
 		this.returnCombinedSql = ((partMask & BUNDLE_MASK_COMBINED_SQL) !=0 );
+		this.returnActionsRequired = ((partMask & BUNDLE_MASK_ACTIONS_REQUIRED) !=0 );
 		return this;
 	}
 	
@@ -164,6 +177,9 @@ public class QueryOptions {
 		if(this.returnCombinedSql) {
 			partMask = partMask | BUNDLE_MASK_COMBINED_SQL;
 		}
+		if (this.returnActionsRequired) {
+			partMask = partMask | BUNDLE_MASK_ACTIONS_REQUIRED;
+		}
 		return partMask;
 	}
 
@@ -180,6 +196,7 @@ public class QueryOptions {
 		result = prime * result + (runQuery ? 1231 : 1237);
 		result = prime * result + (runSumFileSizes ? 1231 : 1237);
 		result = prime * result + (returnCombinedSql ? 1231 : 1237);
+		result = prime * result + (returnActionsRequired ? 1231 : 1237);
 		return result;
 	}
 
@@ -210,15 +227,17 @@ public class QueryOptions {
 			return false;
 		if(returnCombinedSql != other.returnCombinedSql)
 			return false;
+		if(returnActionsRequired != other.returnActionsRequired)
+			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "QueryOptions [runQuery=" + runQuery + ", runCount=" + runCount + ", returnSelectColumns="
-				+ returnSelectColumns + ", returnMaxRowsPerPage=" + returnMaxRowsPerPage + ", returnColumnModels="
-				+ returnColumnModels + ", returnFacets=" + returnFacets + ", runSumFileSizes=" + runSumFileSizes
-				+ ", returnLastUpdatedOn=" + returnLastUpdatedOn + ", returnCombinedSql=" + returnCombinedSql +"]";
+		return "QueryOptions [runQuery=" + runQuery + ", runCount=" + runCount + ", returnSelectColumns=" + returnSelectColumns
+				+ ", returnMaxRowsPerPage=" + returnMaxRowsPerPage + ", returnColumnModels=" + returnColumnModels + ", returnFacets="
+				+ returnFacets + ", runSumFileSizes=" + runSumFileSizes + ", returnLastUpdatedOn=" + returnLastUpdatedOn
+				+ ", returnCombinedSql=" + returnCombinedSql + ", returnActionsRequired=" + returnActionsRequired + "]";
 	}
 
 }
