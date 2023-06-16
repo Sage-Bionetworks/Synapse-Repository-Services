@@ -48,7 +48,7 @@ public class ValueExpressionPrimary extends SimpleBranch implements HasReference
 				return null;
 			}else{
 				// first unquoted value starting at the value expression.
-				return setFunctionSpecification.getValueExpression().getFirstElementOfType(ColumnNameReference.class);
+				return setFunctionSpecification.getFirstElementOfType(ColumnNameReference.class);
 			}
 		}else{
 			// This is not a function so get the first unquoted.

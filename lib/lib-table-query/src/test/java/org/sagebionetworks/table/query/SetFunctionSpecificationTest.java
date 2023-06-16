@@ -170,7 +170,7 @@ public class SetFunctionSpecificationTest {
 	public void testGetChildren() throws ParseException {
 		SetFunctionSpecification element = new TableQueryParser(
 				"group_concat(distinct one order by foo asc separator '#')").generalSetFunction();
-		assertEquals(Arrays.asList(element.getValueExpression(), element.getOrderByClause(), element.getSeparator()),
+		assertEquals(Arrays.asList(element.getValueExpressionList(), element.getOrderByClause(), element.getSeparator()),
 				element.getChildren());
 	}
 

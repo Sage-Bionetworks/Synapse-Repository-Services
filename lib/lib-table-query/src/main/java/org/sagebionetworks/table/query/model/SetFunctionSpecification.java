@@ -8,7 +8,7 @@ public class SetFunctionSpecification extends SQLElement implements HasAggregate
 	Boolean countAsterisk;
 	SetFunctionType setFunctionType;
 	SetQuantifier setQuantifier;
-	ValueExpression valueExpression;
+	ValueExpressionList valueExpressionList;
 	OrderByClause orderByClause;
 	Separator separator;
 	
@@ -18,10 +18,10 @@ public class SetFunctionSpecification extends SQLElement implements HasAggregate
 	}
 	
 	public SetFunctionSpecification(SetFunctionType setFunctionType, SetQuantifier setQuantifier,
-			ValueExpression valueExpression, OrderByClause orderByClause, Separator separator) {
+			ValueExpressionList valueExpressionList, OrderByClause orderByClause, Separator separator) {
 		this.setFunctionType = setFunctionType;
 		this.setQuantifier = setQuantifier;
-		this.valueExpression = valueExpression;
+		this.valueExpressionList = valueExpressionList;
 		this.orderByClause = orderByClause;
 		this.separator = separator;
 	}
@@ -38,8 +38,8 @@ public class SetFunctionSpecification extends SQLElement implements HasAggregate
 		return setQuantifier;
 	}
 
-	public ValueExpression getValueExpression() {
-		return valueExpression;
+	public ValueExpressionList getValueExpressionList() {
+		return valueExpressionList;
 	}
 	
 	public OrderByClause getOrderByClause() {
@@ -61,7 +61,7 @@ public class SetFunctionSpecification extends SQLElement implements HasAggregate
 				builder.append(setQuantifier.name());
 				builder.append(" ");
 			}
-			valueExpression.toSql(builder, parameters);
+			valueExpressionList.toSql(builder, parameters);
 			if(orderByClause != null) {
 				builder.append(" ");
 				orderByClause.toSql(builder, parameters);
@@ -76,7 +76,7 @@ public class SetFunctionSpecification extends SQLElement implements HasAggregate
 	
 	@Override
 	public Iterable<Element> getChildren() {
-		return SQLElement.buildChildren(valueExpression, orderByClause, separator);
+		return SQLElement.buildChildren(valueExpressionList, orderByClause, separator);
 	}
 
 	@Override
