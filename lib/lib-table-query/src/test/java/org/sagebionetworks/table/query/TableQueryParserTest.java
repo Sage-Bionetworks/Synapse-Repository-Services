@@ -358,11 +358,10 @@ public class TableQueryParserTest {
 	 * See PLFM-3878
 	 * @throws ParseException 
 	 */
+	@Test
 	public void testCountDistinctMultipleColumns() throws ParseException{
 		QuerySpecification element = TableQueryParser.parserQuery("select count(distinct one, two) from SyN456");
-		assertNotNull(element);
-		String sql = toSQL(element);
-		assertEquals("", sql);
+		assertEquals("SELECT COUNT(DISTINCT one, two) FROM syn456", element.toSql());
 	}
 	
 	/**
@@ -401,6 +400,14 @@ public class TableQueryParserTest {
 		QuerySpecification element = TableQueryParser.parserQuery(
 				"select foo, group_concat(distinct bar order by bar desc separator '#') from syn123 group by foo");
 		assertEquals("SELECT foo, GROUP_CONCAT(DISTINCT bar ORDER BY bar DESC SEPARATOR '#') FROM syn123 GROUP BY foo",
+				element.toSql());
+	}
+	
+	@Test
+	public void testGroupConcatWithMultipleColumns() throws ParseException {
+		QuerySpecification element = TableQueryParser.parserQuery(
+				"select foo, group_concat(distinct bar, foo order by bar desc separator '#') from syn123 group by foo");
+		assertEquals("SELECT foo, GROUP_CONCAT(DISTINCT bar, foo ORDER BY bar DESC SEPARATOR '#') FROM syn123 GROUP BY foo",
 				element.toSql());
 	}
 	
@@ -573,5 +580,5 @@ public class TableQueryParserTest {
 				"WITH syn2 AS (SELECT foo, CAST(SUM(bar) AS 22) FROM syn1 GROUP BY foo ORDER BY foo) SELECT * FROM syn1",
 				element.toSql());
 	}
-
+	
 }

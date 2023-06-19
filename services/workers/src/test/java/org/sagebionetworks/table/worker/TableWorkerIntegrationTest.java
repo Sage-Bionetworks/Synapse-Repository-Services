@@ -103,6 +103,7 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -3618,6 +3619,25 @@ public class TableWorkerIntegrationTest {
 			assertEquals(List.of("2","1","1"), result.getQueryResults().getRows().get(1).getValues());
 			assertEquals(List.of("3","0","2"), result.getQueryResults().getRows().get(2).getValues());
 		});
+	}
+	
+	/**
+	 * This is a test added for PLFM-7826
+	 */
+	@Test
+	public void testQueryWithEndOfFile() throws Exception {
+		schema = columnManager.createColumnModels(adminUserInfo,
+				List.of(new ColumnModel().setName("foo").setColumnType(ColumnType.INTEGER),
+						new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER)));
+		createTableWithSchema();
+		String sql = String.format("SELECT foo, sum(bar) as b FROM %s GROUP BY foo HAVING b > 1000", tableId);
+		String message = assertThrows(IllegalArgumentException.class,()->{
+			waitForConsistentQuery(adminUserInfo, sql, null, null, (result) -> {
+
+			});
+		}).getMessage();
+		assertTrue(message.contains("Encountered \" <regular_identifier> \"HAVING \"\""));
+
 	}
 	
 	

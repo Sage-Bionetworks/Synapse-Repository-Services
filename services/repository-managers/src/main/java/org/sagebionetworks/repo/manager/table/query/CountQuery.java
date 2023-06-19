@@ -21,7 +21,7 @@ public class CountQuery {
 
 	private final BasicQuery countQuery;
 	private final Pagination originalPagination;
-	
+
 	public CountQuery(QueryContext expansion) {
 		ValidateArgument.required(expansion, "expansion");
 
@@ -33,15 +33,14 @@ public class CountQuery {
 
 			QuerySpecification model = new TableQueryParser(combined.getCombinedSql()).querySpecification();
 			originalPagination = model.getFirstElementOfType(Pagination.class);
-			QueryTranslator sqlQuery = QueryTranslator.builder(combined.getCombinedSql(), expansion.getUserId())
-					.schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription())
-					.build();
 
-			// if a count cannot be run then this will be null.
-			countQuery = SqlElementUtils
-					.createCountSql(sqlQuery.getTranslatedModel().getFirstElementOfType(QuerySpecification.class))
-					.map(counSql -> {
-						return new BasicQuery(counSql, sqlQuery.getParameters());
+			countQuery =  SqlElementUtils.createCountSql(model).map((c)->{
+				QueryTranslator sqlQuery = QueryTranslator.builder(c, expansion.getUserId())
+						.schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription())
+						.build();
+				return new BasicQuery(
+						sqlQuery.getTranslatedModel().toSql(),
+						sqlQuery.getParameters());
 			}).orElse(null);
 
 		} catch (ParseException e) {
