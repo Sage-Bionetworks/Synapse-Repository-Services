@@ -3,13 +3,16 @@ package org.sagebionetworks.openapi.datamodel.pathinfo;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Represents the schema of a content type.
  * @author lli
  *
  */
-public class Schema {
+public class Schema implements JSONEntity {
 	private JsonSchema schema;
 
 	public JsonSchema getSchema() {
@@ -41,5 +44,19 @@ public class Schema {
 	@Override
 	public String toString() {
 		return "Schema [schema=" + schema + "]";
+	}
+
+	@Override
+	public JSONObjectAdapter initializeFromJSONObject(JSONObjectAdapter toInitFrom) throws JSONObjectAdapterException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter writeTo) throws JSONObjectAdapterException {
+		if (schema == null) {
+			throw new IllegalArgumentException("The 'schema' field must not be null.");
+		}
+		writeTo.put("schema", this.schema.writeToJSONObject(writeTo.createNew()));
+		return writeTo;
 	}
 }

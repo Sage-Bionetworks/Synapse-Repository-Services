@@ -43,7 +43,7 @@ public class ComplexExampleController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/complex-pet/dog/{name}", method = RequestMethod.POST)
-	public @ResponseBody String addDog(@PathVariable String name, @RequestBody Dog dog) {
+	public @ResponseBody String addDog(@PathVariable String name, @RequestBody Poodle dog) {
 		petNameToPet.put(name, dog);
 		return name;
 	}

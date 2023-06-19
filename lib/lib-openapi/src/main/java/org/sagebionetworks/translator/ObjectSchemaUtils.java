@@ -82,10 +82,21 @@ public class ObjectSchemaUtils {
 	Map<String, JsonSchema> translatePropertiesFromObjectSchema(Map<String, ObjectSchema> properties) {
 		ValidateArgument.required(properties, "properties");
 		Map<String, JsonSchema> result = new LinkedHashMap<>();
-		for (String key : properties.keySet()) {
-			// TODO: here we should check if the class is primitive, if it is, then output the JsonSchema, otherwise
-			// 		 create a JsonSchema that is just a ref.
-			result.put(key, translateObjectSchemaToJsonSchema(properties.get(key)));
+		for (String propertyName : properties.keySet()) {
+			ObjectSchema schema = properties.get(propertyName);
+			TYPE schemaType = properties.get(propertyName).getType();
+			if (schemaType == null) {
+				throw new IllegalArgumentException("Schema type is null for " + schema);
+			}
+			if (isPrimitive(schemaType)) {
+				result.put(propertyName, getSchemaForPrimitiveType(schema.getType()));
+			} else {
+				// if the class is not primitive, then generate a JsonSchema that has the 'ref' property 
+				// which references the object in the components section of the OpenAPI spec.
+				JsonSchema jsonSchema = new JsonSchema();
+				jsonSchema.set$ref(getPathInComponents(schema.getId()));
+				result.put(propertyName, jsonSchema);
+			}
 		}
 		return result;
 	}
@@ -117,12 +128,24 @@ public class ObjectSchemaUtils {
 						throw new IllegalArgumentException("Implementation of " + className + " interface with name " + id + " was not found.");
 					}
 					JsonSchema newSchema = new JsonSchema();
-					newSchema.set$ref("#/components/" + id);
+					newSchema.set$ref(getPathInComponents(id));
 					oneOf.add(newSchema);
 				}
 				classNameToJsonSchema.get(className).setOneOf(oneOf);
 			}
 		}
+	}
+	
+	/**
+	 * Generated the path to a class name that exists in the "components"
+	 * section of the OpenAPI specification.
+	 * 
+	 * @param className the className in question
+	 * @return the path in the componenets section where the className exists.
+	 */
+	String getPathInComponents(String className) {
+		ValidateArgument.required(className, "className");
+		return "#/components/schemas/" + className;
 	}
 	
 	/**

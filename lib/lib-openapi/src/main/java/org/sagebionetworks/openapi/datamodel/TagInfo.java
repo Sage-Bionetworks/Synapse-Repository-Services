@@ -2,12 +2,16 @@ package org.sagebionetworks.openapi.datamodel;
 
 import java.util.Objects;
 
+import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+
 /**
  * Provides information regarding the Controllers in the API.
  * @author lli
  *
  */
-public class TagInfo {
+public class TagInfo implements JSONEntity {
 	private String name;
 	private String description;
 	
@@ -49,5 +53,22 @@ public class TagInfo {
 	@Override
 	public String toString() {
 		return "TagInfo [name=" + name + ", description=" + description + "]";
+	}
+
+	@Override
+	public JSONObjectAdapter initializeFromJSONObject(JSONObjectAdapter toInitFrom) throws JSONObjectAdapterException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter writeTo) throws JSONObjectAdapterException {
+		if (name == null) {
+			throw new IllegalArgumentException("The 'name' field is required.");
+		}
+		writeTo.put("name", name);
+		if (description != null) {
+			writeTo.put("description", description);
+		}
+		return writeTo;
 	}
 }

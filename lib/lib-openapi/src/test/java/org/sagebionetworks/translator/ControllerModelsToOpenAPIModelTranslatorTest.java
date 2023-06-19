@@ -40,7 +40,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 	private static final String DESCRIPTION = "DESCRIPTION";
 	private static final String MOCK_CLASS_NAME = "MOCK_CLASS_NAME";
 	private Map<String, JsonSchema> schemaMap;
-
+	
 	@BeforeEach
 	private void setUp() {
 		Map<String, JsonSchema> schemaMap = new HashMap<>();
@@ -61,22 +61,25 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 				.withMethods(methods).withDescription(DESCRIPTION);
 		ApiInfo apiInfo = new ApiInfo();
 		List<ServerInfo> servers = new ArrayList<>();
+		Map<String, Map<String, JsonSchema>> components = new LinkedHashMap<>();
 
 		Mockito.doNothing().when(translator).insertPaths(any(List.class), any(String.class), any(String.class),
 				any(Map.class));
 		Mockito.doReturn(apiInfo).when(translator).getApiInfo();
 		Mockito.doReturn(servers).when(translator).getServers();
+		Mockito.doReturn(components).when(translator).getComponents();
 
 		OpenAPISpecModel result = translator.translate(Arrays.asList(controllerModel));
 		List<TagInfo> tags = new ArrayList<>();
 		tags.add(new TagInfo().withDescription(DESCRIPTION).withName(displayName));
 		OpenAPISpecModel expected = new OpenAPISpecModel().withInfo(apiInfo).withOpenapi("3.0.1").withServers(servers)
-				.withComponents(null).withPaths(new LinkedHashMap<>()).withTags(tags);
+				.withComponents(components).withPaths(new LinkedHashMap<>()).withTags(tags);
 		assertEquals(expected, result);
 
 		Mockito.verify(translator).insertPaths(methods, basePath, displayName, result.getPaths());
 		Mockito.verify(translator).getApiInfo();
 		Mockito.verify(translator).getServers();
+		Mockito.verify(translator).getComponents();
 	}
 
 	@Test
@@ -87,7 +90,15 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		});
 		assertEquals("controllerModels is required.", exception.getMessage());
 	}
-
+	
+	@Test
+	public void testGetComponents() {
+		Map<String, Map<String, JsonSchema>> expectedComponents = new LinkedHashMap<>();
+		expectedComponents.put("schemas", schemaMap);
+		
+		// call under test
+		assertEquals(expectedComponents, translator.getComponents());
+	}
 	@Test
 	public void testGetApiInfo() {
 		ApiInfo expectedApiInfo = new ApiInfo().withTitle("Sample OpenAPI definition").withVersion("v1");
@@ -123,6 +134,35 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		Map<String, EndpointInfo> operationToEndpoint = new LinkedHashMap<>();
 		operationToEndpoint.put("get", endpointInfo);
 		expectedPaths.put(basePath + methodPath, operationToEndpoint);
+
+		assertEquals(expectedPaths, paths);
+		Mockito.verify(translator).getEndpointInfo(method, displayName);
+	}
+	
+	@Test
+	public void testInsertPathsWithoutStartingForwardSlash() {
+		List<MethodModel> methods = new ArrayList<>();
+		// missing "/" at the start of the base path
+		String basePath = "BASE_PATH";
+		String displayName = "DISPLAY_NAME";
+		Map<String, Map<String, EndpointInfo>> paths = new LinkedHashMap<>();
+
+		String methodPath = "/METHOD_PATH";
+		String observedMethodPath = "\"" + methodPath + "\"";
+		MethodModel method = new MethodModel().withPath(observedMethodPath).withOperation(Operation.get);
+		methods.add(method);
+
+		EndpointInfo endpointInfo = new EndpointInfo();
+		Mockito.doReturn(endpointInfo).when(translator).getEndpointInfo(any(MethodModel.class), any(String.class));
+
+		// call under test.
+		translator.insertPaths(methods, basePath, displayName, paths);
+
+		Map<String, Map<String, EndpointInfo>> expectedPaths = new LinkedHashMap<>();
+		Map<String, EndpointInfo> operationToEndpoint = new LinkedHashMap<>();
+		operationToEndpoint.put("get", endpointInfo);
+		// "/" should be added automatically
+		expectedPaths.put("/" + basePath + methodPath, operationToEndpoint);
 
 		assertEquals(expectedPaths, paths);
 		Mockito.verify(translator).getEndpointInfo(method, displayName);
@@ -303,13 +343,14 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 
 		Map<String, ResponseInfo> expectedResponses = new LinkedHashMap<>();
 		Map<String, Schema> contentTypeToSchema = new HashMap<>();
-		contentTypeToSchema.put("application/json", new Schema().withSchema(schemaMap.get(MOCK_CLASS_NAME)));
+		contentTypeToSchema.put("application/json", new Schema().withSchema(translator.getReferenceSchema(MOCK_CLASS_NAME)));
 		ResponseInfo responseInfo = new ResponseInfo().withDescription(DESCRIPTION).withContent(contentTypeToSchema);
 		String statusCode = "200";
 		expectedResponses.put(statusCode, responseInfo);
 
 		// call under test.
 		assertEquals(expectedResponses, translator.getResponses(input));
+		Mockito.verify(translator, Mockito.times(2)).getReferenceSchema(MOCK_CLASS_NAME);
 	}
 
 	@Test
@@ -326,11 +367,12 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		RequestBodyModel input = new RequestBodyModel().withDescription(DESCRIPTION).withId(MOCK_CLASS_NAME).withRequired(true);
 
 		Map<String, Schema> contentTypeToSchema = new LinkedHashMap<>();
-		contentTypeToSchema.put("application/json", new Schema().withSchema(schemaMap.get(MOCK_CLASS_NAME)));
+		contentTypeToSchema.put("application/json", new Schema().withSchema(translator.getReferenceSchema(MOCK_CLASS_NAME)));
 		RequestBodyInfo expected = new RequestBodyInfo().withRequired(true).withContent(contentTypeToSchema);
 
 		// call under test.
 		assertEquals(expected, translator.getRequestBodyInfo(input));
+		Mockito.verify(translator, Mockito.times(2)).getReferenceSchema(MOCK_CLASS_NAME);
 	}
 
 	@Test
@@ -364,11 +406,13 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 	@Test
 	public void testGetParameterInfo() {
 		ParameterModel input = new ParameterModel().withDescription(DESCRIPTION).withIn(ParameterLocation.query)
-				.withRequired(false);
-		ParameterInfo expected = new ParameterInfo().withDescription(DESCRIPTION).withIn("query").withRequired(false);
+				.withRequired(false).withId(MOCK_CLASS_NAME);
+		ParameterInfo expected = new ParameterInfo().withDescription(DESCRIPTION).withIn("query").withRequired(false)
+				.withSchema(translator.getReferenceSchema(MOCK_CLASS_NAME));
 
 		// call under test.
 		assertEquals(expected, translator.getParameterInfo(input));
+		Mockito.verify(translator, Mockito.times(2)).getReferenceSchema(MOCK_CLASS_NAME);
 	}
 
 	@Test

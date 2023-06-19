@@ -10,6 +10,10 @@
 		"isFluffy": {
 			"type": "boolean",
 			"description": "Describes if the poodle if fluffy."
+		},
+		"huskyType": {
+			"type": "object",
+			"$ref": "org.sagebionetworks.openapi.pet.Husky"
 		}
 	}
 }

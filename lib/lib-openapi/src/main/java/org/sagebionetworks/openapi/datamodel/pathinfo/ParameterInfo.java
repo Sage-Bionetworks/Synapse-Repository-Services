@@ -3,13 +3,16 @@ package org.sagebionetworks.openapi.datamodel.pathinfo;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Describes a single operation parameter.
  * @author lli
  *
  */
-public class ParameterInfo {
+public class ParameterInfo implements JSONEntity {
 	private String name;
 	private String in;
 	private boolean required;
@@ -84,5 +87,32 @@ public class ParameterInfo {
 	public String toString() {
 		return "ParameterInfo [name=" + name + ", in=" + in + ", required=" + required + ", description=" + description
 				+ ", schema=" + schema + "]";
+	}
+
+	@Override
+	public JSONObjectAdapter initializeFromJSONObject(JSONObjectAdapter toInitFrom) throws JSONObjectAdapterException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter writeTo) throws JSONObjectAdapterException {
+		if (name == null) {
+			throw new IllegalArgumentException("The 'name' field must not be null.");
+		}
+		if (in == null) {
+			throw new IllegalArgumentException("The 'in' field must not be null.");
+		}
+		writeTo.put("name", name);
+		writeTo.put("in", in);
+		if (required) {
+			writeTo.put("required", required);
+		}
+		if (description != null) {
+			writeTo.put("description", description);
+		}
+		if (schema != null) {
+			writeTo.put("schema", schema.writeToJSONObject(writeTo.createNew()));
+		}
+		return writeTo;
 	}
 }
