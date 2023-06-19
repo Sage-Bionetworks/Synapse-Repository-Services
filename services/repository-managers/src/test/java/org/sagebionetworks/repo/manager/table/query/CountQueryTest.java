@@ -210,8 +210,9 @@ public class CountQueryTest {
 		when(schemaProvider.getTableSchema(virtualId)).thenReturn(List.of(one, sum));
 		when(schemaProvider.getColumnModel("33")).thenReturn(sum);
 
+		String sql = indexDescription.preprocessQuery("select * from syn2");
 		QueryContext expantion = QueryContext.builder().setIndexDescription(indexDescription)
-				.setSchemaProvider(schemaProvider).setUserId(userId).setStartingSql("select * from syn2")
+				.setSchemaProvider(schemaProvider).setUserId(userId).setStartingSql(sql)
 				.setMaxRowsPerCall(100L).build();
 
 		// call under test

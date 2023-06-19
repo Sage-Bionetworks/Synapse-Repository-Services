@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.sagebionetworks.table.query.util.FacetUtils;
@@ -30,7 +31,8 @@ public class CombinedQuery {
 			List<SortItem> sortList, List<FacetColumnRequest> selectedFacets, List<QueryFilter> additionalFilters) {
 		super();
 		try {
-			QuerySpecification querySpecification = new TableQueryParser(query).querySpecification();
+			QueryExpression queryExpression = new TableQueryParser(query).queryExpression();
+			QuerySpecification querySpecification = queryExpression.getFirstElementOfType(QuerySpecification.class);
 			
 			this.tableAndColumnMapper = new TableAndColumnMapper(querySpecification, schemaProvider);
 
@@ -74,7 +76,7 @@ public class CombinedQuery {
 					SqlElementUtils.overridePagination(querySpecification.getTableExpression().getPagination(),
 							overrideOffset, overrideLimit));
 
-			this.combinedSql = querySpecification.toSql();
+			this.combinedSql = queryExpression.toSql();
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}

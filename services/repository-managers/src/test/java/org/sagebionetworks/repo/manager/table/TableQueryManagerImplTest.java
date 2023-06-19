@@ -1827,10 +1827,9 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(123L);
 		
 		// call under test
-		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
-		assertNotNull(filtered);
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123, -1 )", filtered.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123, -1 )", query.toSql());
 	}
 
 	@Test
@@ -1841,9 +1840,9 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(123L);
 		benefactorIds.add(-1l);
 
-		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
-		assertNotNull(filtered);
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123, -1 )", filtered.toSql());
+		// call under test
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123, -1 )", query.toSql());
 	}
 
 	@Test
@@ -1855,9 +1854,9 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(-1l);
 		benefactorIds.add(-1l);
 
-		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
-		assertNotNull(filtered);
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( -1, 456 )", filtered.toSql());
+		// call under test
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( -1, 456 )", query.toSql());
 	}
 
 	@Test
@@ -1868,9 +1867,9 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(-1l);
 		benefactorIds.add(-1l);
 
-		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
-		assertNotNull(filtered);
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( -1 )", filtered.toSql());
+		// call under test
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( -1 )", query.toSql());
 	}
 
 	@Test
@@ -1880,9 +1879,9 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(-1l);
 		benefactorIds.add(123L);
 
-		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
-		assertNotNull(filtered);
-		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1, 123 )", filtered.toSql());
+		// call under test
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1, 123 )", query.toSql());
 	}
 
 	@Test
@@ -1891,10 +1890,9 @@ public class TableQueryManagerImplTest {
 		final LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
 		benefactorIds.add(456L);
 		benefactorIds.add(123L);
-
-		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
-		assertNotNull(filtered);
-		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 456, 123, -1 )", filtered.toSql());
+		// call under test
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 456, 123, -1 )", query.toSql());
 	}
 
 	@Test
@@ -1904,10 +1902,10 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(-1l);
 		benefactorIds.add(-1l);
 		benefactorIds.add(-1l);
-
-		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
-		assertNotNull(filtered);
-		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1 )", filtered.toSql());
+		
+		// call under test
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1 )", query.toSql());
 	}
 
 
@@ -1920,10 +1918,9 @@ public class TableQueryManagerImplTest {
 		String benefactorColumnName = "BENEFACTOR_TWO";
 		
 		// call under test
-		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumnName);
-		assertNotNull(filtered);
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumnName);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND BENEFACTOR_TWO IN ( 456, 123, -1 )", filtered.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND BENEFACTOR_TWO IN ( 456, 123, -1 )", query.toSql());
 	}
 	
 	@Test
@@ -1935,10 +1932,9 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(123L);
 		
 		// call under test
-		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
-		assertNotNull(filtered);
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123, -1 )", filtered.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123, -1 )", query.toSql());
 	}
 	
 	/**
@@ -1961,10 +1957,9 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(123L);
 		
 		// call under test
-		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
-		assertNotNull(filtered);
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 > 0 OR i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123, -1 )", filtered.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 > 0 OR i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123, -1 )", query.toSql());
 	}
 	
 	@Test
@@ -1974,10 +1969,9 @@ public class TableQueryManagerImplTest {
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
 		benefactorIds.add(123L);
 		// call under test
-		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
-		assertNotNull(filtered);
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 123, -1 )", filtered.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 123, -1 )", query.toSql());
 	}
 
 	@Test
@@ -1985,11 +1979,10 @@ public class TableQueryManagerImplTest {
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
 		// call under test
-		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
-		assertNotNull(filtered);
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 
 		// should make filter always evaluate to false
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( -1 )", filtered.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( -1 )", query.toSql());
 
 	}
 	
@@ -1998,13 +1991,14 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
 		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		//return empty benefactors
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(new HashSet<Long>());
 		// call under test
-		QuerySpecification result = manager.addRowLevelFilter(user, query, indexDescription);
-		assertNotNull(result);
-		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1 )", result.toSql());
+		manager.addRowLevelFilter(user, query);
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1 )", query.toSql());
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 	}
 	
 	@Test
@@ -2012,7 +2006,7 @@ public class TableQueryManagerImplTest {
 		QuerySpecification query = new TableQueryParser("select * from syn123 join syn456").querySpecification();
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.addRowLevelFilter(user, query, new TableIndexDescription(idAndVersion));
+			manager.addRowLevelFilter(user, query);
 		}).getMessage();
 		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
@@ -2026,13 +2020,14 @@ public class TableQueryManagerImplTest {
 		//return empty benefactors
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenThrow(BadSqlGrammarException.class);
 		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		
 		// call under test
-		QuerySpecification result = manager.addRowLevelFilter(user, query, indexDescription);
+		manager.addRowLevelFilter(user, query);
 
 		//Throw table not existing should be treated same as not having benefactors.
-		assertNotNull(result);
-		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1 )", result.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1 )", query.toSql());
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 	}
 	
 	@Test
@@ -2041,14 +2036,16 @@ public class TableQueryManagerImplTest {
 		when(mockTableIndexDAO.getDistinctLongValues(any(), any())).thenReturn(benfactors);
 		when(mockTableManagerSupport.getAccessibleBenefactors(any(), any(), any())).thenReturn(subSet);
 		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		// call under test
-		QuerySpecification result = manager.addRowLevelFilter(user, query, indexDescription);
-		assertNotNull(result);
-		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 444, -1 )", result.toSql());
+		manager.addRowLevelFilter(user, query);
+
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 444, -1 )", query.toSql());
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR);
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, benfactors);
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 	}
 	
 	@Test
@@ -2062,16 +2059,17 @@ public class TableQueryManagerImplTest {
 				Sets.newHashSet(111L));
 		IdAndVersion viewOneId = IdAndVersion.parse("syn1");
 		IdAndVersion viewTwoId = IdAndVersion.parse("syn2");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion,
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion,		
 				Arrays.asList(
 						new ViewIndexDescription(viewOneId, TableType.entityview),
 						new ViewIndexDescription(viewTwoId, TableType.entityview)));
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 
 		QuerySpecification query = new TableQueryParser("select * from "+tableId).querySpecification();
 		// call under test
-		QuerySpecification result = manager.addRowLevelFilter(user, query, indexDescription);
-		assertNotNull(result);
-		assertEquals("SELECT * FROM syn123 WHERE ( ROW_BENEFACTOR_T1 IN ( 444, -1 ) ) AND ROW_BENEFACTOR_T2 IN ( -1, 111 )", result.toSql());
+		manager.addRowLevelFilter(user, query);
+
+		assertEquals("SELECT * FROM syn123 WHERE ( ROW_BENEFACTOR_T1 IN ( 444, -1 ) ) AND ROW_BENEFACTOR_T2 IN ( -1, 111 )", query.toSql());
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR_T1");
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR_T2");
 		verify(mockTableIndexDAO, times(2)).getDistinctLongValues(any(), any());
@@ -2079,19 +2077,22 @@ public class TableQueryManagerImplTest {
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, oneBenefactors);
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, twoBenefactors);
 		verify(mockTableManagerSupport, times(2)).getAccessibleBenefactors(any(), any(), any());
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 	}
 	
 	@Test
 	public void testAddRowLevelFilterWithTable() throws Exception {
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		// call under test
-		QuerySpecification result = manager.addRowLevelFilter(user, query, indexDescription);
-		assertNotNull(result);
-		assertEquals("SELECT i0 FROM syn123", result.toSql());
+		manager.addRowLevelFilter(user, query);
+
+		assertEquals("SELECT i0 FROM syn123", query.toSql());
 		verify(mockTableIndexDAO, never()).getDistinctLongValues(any(), any());
 		verify(mockTableManagerSupport, never()).getAccessibleBenefactors(any(), any(), any());
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 	}
 	
 	

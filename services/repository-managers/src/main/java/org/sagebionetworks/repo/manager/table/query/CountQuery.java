@@ -7,6 +7,7 @@ import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.Pagination;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -31,17 +32,29 @@ public class CountQuery {
 					.setSchemaProvider(expansion.getSchemaProvider()).setSelectedFacets(expansion.getSelectedFacets())
 					.build();
 
-			QuerySpecification model = new TableQueryParser(combined.getCombinedSql()).querySpecification();
+			QueryExpression queryExpression = new TableQueryParser(combined.getCombinedSql()).queryExpression();
+			QuerySpecification model = queryExpression.getFirstElementOfType(QuerySpecification.class);
 			originalPagination = model.getFirstElementOfType(Pagination.class);
-
-			countQuery =  SqlElementUtils.createCountSql(model).map((c)->{
-				QueryTranslator sqlQuery = QueryTranslator.builder(c, expansion.getUserId())
+			if(SqlElementUtils.createCountSql(model)) {
+				QueryTranslator sqlQuery = QueryTranslator.builder(queryExpression.toSql(), expansion.getUserId())
 						.schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription())
 						.build();
-				return new BasicQuery(
+				countQuery = new BasicQuery(
 						sqlQuery.getTranslatedModel().toSql(),
 						sqlQuery.getParameters());
-			}).orElse(null);
+			}else {
+				countQuery = null;
+			}
+
+//			countQuery =  SqlElementUtils.createCountSql(model).map((c)->{
+//				QuerySpecification newCount = new TableQueryParser(c).querySpecification();
+//				QueryTranslator sqlQuery = QueryTranslator.builder(c, expansion.getUserId())
+//						.schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription())
+//						.build();
+//				return new BasicQuery(
+//						sqlQuery.getTranslatedModel().toSql(),
+//						sqlQuery.getParameters());
+//			}).orElse(null);
 
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);

@@ -95,6 +95,14 @@ public class TableExpression extends SQLElement implements HasAggregate, HasSing
 	public void replaceWhere(WhereClause replacement) {
 		this.whereClause = Replaceable.prepareToReplace(this.whereClause, replacement, this);
 	}
+	
+	/**
+	 * Replace the existing GroupBy clause.
+	 * @param replacement
+	 */
+	public void replaceGroupBy(GroupByClause replacement) {
+		this.groupByClause = Replaceable.prepareToReplace(this.groupByClause, replacement, this);
+	}
 
 	@Override
 	public Optional<String> getSingleTableName() {

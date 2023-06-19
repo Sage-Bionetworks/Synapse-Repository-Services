@@ -1,9 +1,11 @@
 package org.sagebionetworks.table.query;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
 
@@ -271,35 +273,35 @@ public class SqlElementUtilsTest {
 	public void testCreateCountSqlNonAggregate() throws ParseException, SimpleAggregateQueryException {
 		QuerySpecification model = new TableQueryParser(
 				"select * from syn123 where bar < 1.0 order by foo, bar limit 2 offset 5").querySpecification();
-		String countSql = SqlElementUtils.createCountSql(model).get();
-		assertEquals("SELECT COUNT(*) FROM syn123 WHERE bar < 1.0", countSql);
+		assertTrue(SqlElementUtils.createCountSql(model));
+		assertEquals("SELECT COUNT(*) FROM syn123 WHERE bar < 1.0", model.toSql());
 	}
 
 	@Test
 	public void testCreateCountSqlGroupBy() throws ParseException, SimpleAggregateQueryException {
 		QuerySpecification model = new TableQueryParser("select foo, bar, count(*) from syn123 group by foo, bar")
 				.querySpecification();
-		String countSql = SqlElementUtils.createCountSql(model).get();
-		assertEquals("SELECT COUNT(DISTINCT foo, bar) FROM syn123", countSql);
+		assertTrue(SqlElementUtils.createCountSql(model));
+		assertEquals("SELECT COUNT(DISTINCT foo, bar) FROM syn123", model.toSql());
 	}
 
 	@Test
 	public void testCreateCountSqlDistinct() throws ParseException, SimpleAggregateQueryException {
 		QuerySpecification model = new TableQueryParser("select distinct foo, bar from syn123").querySpecification();
-		String countSql = SqlElementUtils.createCountSql(model).get();
-		assertEquals("SELECT COUNT(DISTINCT foo, bar) FROM syn123", countSql);
+		assertTrue(SqlElementUtils.createCountSql(model));
+		assertEquals("SELECT COUNT(DISTINCT foo, bar) FROM syn123", model.toSql());
 	}
 
 	@Test
 	public void testCreateCountSimpleAggregateCountStar() throws ParseException, SimpleAggregateQueryException {
 		QuerySpecification model = new TableQueryParser("select count(*) from syn123").querySpecification();
-		assertEquals(Optional.empty(), SqlElementUtils.createCountSql(model));
+		assertFalse(SqlElementUtils.createCountSql(model));
 	}
 
 	@Test
 	public void testCreateCountSimpleAggregateMultipleAggregate() throws ParseException, SimpleAggregateQueryException {
 		QuerySpecification model = new TableQueryParser("select sum(foo), max(bar) from syn123").querySpecification();
-		assertEquals(Optional.empty(), SqlElementUtils.createCountSql(model));
+		assertFalse(SqlElementUtils.createCountSql(model));
 	}
 
 	@Test
@@ -362,8 +364,8 @@ public class SqlElementUtilsTest {
 	@Test
 	public void testCreateCountSqlAsInGroupBy() throws Exception {
 		QuerySpecification model = new TableQueryParser("select foo as a from syn123 group by a").querySpecification();
-		String countSql = SqlElementUtils.createCountSql(model).get();
-		assertEquals("SELECT COUNT(DISTINCT foo) FROM syn123", countSql);
+		assertTrue(SqlElementUtils.createCountSql(model));
+		assertEquals("SELECT COUNT(DISTINCT foo) FROM syn123", model.toSql());
 	}
 
 	@Test
@@ -389,8 +391,8 @@ public class SqlElementUtilsTest {
 	@Test
 	public void testCreateCountSqlDistinctWithAs() throws Exception {
 		QuerySpecification model = new TableQueryParser("select distinct foo as a from syn123").querySpecification();
-		String countSql = SqlElementUtils.createCountSql(model).get();
-		assertEquals("SELECT COUNT(DISTINCT foo) FROM syn123", countSql);
+		assertTrue(SqlElementUtils.createCountSql(model));
+		assertEquals("SELECT COUNT(DISTINCT foo) FROM syn123", model.toSql());
 	}
 
 	@Test
