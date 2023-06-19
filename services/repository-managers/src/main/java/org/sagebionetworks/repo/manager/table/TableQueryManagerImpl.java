@@ -52,6 +52,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.Pagination;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.model.WhereClause;
@@ -200,12 +201,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if (count < 1L) {
 			throw new EmptyResultException("Table schema is empty for: " + tableId, tableId);
 		}
+		String preprocessedSql = indexDescription.preprocessQuery(query.getSql());
+		QueryExpression preprocessedModel = parserQueryQuerExpression(preprocessedSql);
+		for(QuerySpecification qs: preprocessedModel.createIterable(QuerySpecification.class)) {
+			// 4. Add row level filter as needed.
+			// Table views must have a row level filter applied to the query
+			addRowLevelFilter(user, qs);
+		}
 
-		// 4. Add row level filter as needed.
-		// Table views must have a row level filter applied to the query
-		model = addRowLevelFilter(user, model, indexDescription);
-
-		QueryContext expansion = QueryContext.builder().setStartingSql(model.toSql()).setUserId(user.getId())
+		QueryContext expansion = QueryContext.builder().setStartingSql(preprocessedModel.toSql()).setUserId(user.getId())
 				.setSchemaProvider(tableManagerSupport).setIndexDescription(indexDescription)
 				.setMaxBytesPerPage(maxBytesPerPage).setMaxRowsPerCall(MAX_ROWS_PER_CALL)
 				.setAdditionalFilters(query.getAdditionalFilters()).setSelectedFacets(query.getSelectedFacets())
@@ -596,6 +600,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throw new IllegalArgumentException(e);
 		}
 	}
+	
+	private QueryExpression parserQueryQuerExpression(String sql) {
+		try {
+			return new TableQueryParser(sql).queryExpression();
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
 
 	@Override
 	public Long getMaxRowsPerPage(List<ColumnModel> models) {
@@ -680,14 +692,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 */
-	QuerySpecification addRowLevelFilter(UserInfo user, QuerySpecification query, IndexDescription indexDescription)
+	void addRowLevelFilter(UserInfo user, QuerySpecification query)
 			throws NotFoundException, TableUnavailableException, TableFailedException {
 		String tableId = query.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
 		if(indexDescription.getBenefactors().isEmpty()) {
 			// with no benefactors nothing is needed.
-			return query;
+			return;
 		}
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		QuerySpecification resultQuery = query;
 		for(BenefactorDescription dependencyDesc: indexDescription.getBenefactors()) {
@@ -701,9 +714,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 			Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, dependencyDesc.getBenefactorType(), tableBenefactors);
 
-			resultQuery = buildBenefactorFilter(resultQuery, accessibleBenefactors, dependencyDesc.getBenefactorColumnName());
+			buildBenefactorFilter(resultQuery, accessibleBenefactors, dependencyDesc.getBenefactorColumnName());
 		}
-		return resultQuery;
 	}
 
     /**
@@ -715,7 +727,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
      * @return
      * @throws EmptyResultException
      */
-    public static QuerySpecification buildBenefactorFilter(QuerySpecification originalQuery,
+    public static void buildBenefactorFilter(QuerySpecification originalQuery,
                                                            Set<Long> accessibleBenefactors,
                                                            String benefactorColumnName) {
         ValidateArgument.required(originalQuery, "originalQuery");
@@ -726,7 +738,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
         // copy the original model
         try {
-            QuerySpecification modelCopy = new TableQueryParser(originalQuery.toSql()).querySpecification();
             WhereClause where = originalQuery.getTableExpression().getWhereClause();
             StringBuilder filterBuilder = new StringBuilder();
             filterBuilder.append("WHERE ");
@@ -746,9 +757,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
             // create the new where
             where = new TableQueryParser(filterBuilder.toString()).whereClause();
-            modelCopy.getTableExpression().replaceWhere(where);
-            // return a copy
-            return modelCopy;
+            originalQuery.getTableExpression().replaceWhere(where);
         } catch (ParseException e) {
             throw new RuntimeException(e);
         }
