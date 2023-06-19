@@ -66,6 +66,7 @@ import org.sagebionetworks.repo.model.table.ColumnMultiValueFunction;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
@@ -101,6 +102,7 @@ import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -568,6 +570,46 @@ public class TableQueryManagerImplTest {
 		assertEquals("SELECT COUNT(*) FROM T123 WHERE ROW_BENEFACTOR IN ( :b0, -:b1 )", results.getMainQuery().getTranslator().getOutputSQL());
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, benfactors);
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR);
+	}
+	
+	@Test
+	public void testQueryPreflightWithAuthorizationVirtualTable() throws Exception{
+	
+		// view setup
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IndexDescription viewIndexDescription = new ViewIndexDescription(viewId, TableType.entityview);
+		when(mockTableManagerSupport.getIndexDescription(viewId)).thenReturn(viewIndexDescription);
+		List<ColumnModel> viewSchema = List.of(new ColumnModel().setName("foo").setColumnType(ColumnType.INTEGER).setId("11"));
+		when(mockTableManagerSupport.getTableSchema(viewId)).thenReturn(viewSchema);
+		when(mockTableConnectionFactory.getConnection(viewId)).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.getDistinctLongValues(any(), any())).thenReturn(benfactors);
+		when(mockTableManagerSupport.getAccessibleBenefactors(any(), any(), any())).thenReturn(subSet);
+		
+		// virtual table setup
+		IdAndVersion virtualTableId = IdAndVersion.parse("syn2");
+		String definingSql = "select * from syn1";
+		IndexDescription virtualTableIndexDescription = new VirtualTableIndexDescription(virtualTableId, definingSql, mockTableManagerSupport);
+		when(mockTableManagerSupport.getIndexDescription(virtualTableId)).thenReturn(virtualTableIndexDescription);
+		List<ColumnModel> virtualSchema = List.of(new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER).setId("22"));
+		when(mockTableManagerSupport.getTableSchemaCount(virtualTableId)).thenReturn((long)virtualSchema.size());
+		when(mockTableManagerSupport.getTableSchema(virtualTableId)).thenReturn(virtualSchema);
+		
+		Query query = new Query();
+		query.setSql("select count(*) from syn2");
+		Long maxBytesPerPage = null;
+		// call under test
+		QueryTranslations results = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
+		
+		assertNotNull(results);
+		verify(mockTableManagerSupport, times(1)).validateTableReadAccess(any(), any());
+		verify(mockTableManagerSupport).validateTableReadAccess(user, virtualTableIndexDescription);
+		
+		// validate the benefactor filter is applied
+		assertEquals("WITH T2 (_C22_) AS "
+				+ "(SELECT _C11_ FROM T1 WHERE ROW_BENEFACTOR IN ( :b0, -:b1 ))"
+				+ " SELECT COUNT(*) FROM T2", results.getMainQuery().getTranslator().getOutputSQL());
+		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, benfactors);
+		verify(mockTableIndexDAO).getDistinctLongValues(viewId, TableConstants.ROW_BENEFACTOR);
 	}
 	
 	@Test

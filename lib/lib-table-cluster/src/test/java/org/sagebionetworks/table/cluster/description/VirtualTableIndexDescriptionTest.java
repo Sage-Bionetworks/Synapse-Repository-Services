@@ -38,7 +38,6 @@ public class VirtualTableIndexDescriptionTest {
 	@Test
 	public void testConstructor() {
 		when(mockLookup.getIndexDescription(any())).thenReturn(mockIndexDescription);
-		when(mockIndexDescription.getTableType()).thenReturn(TableType.table);
 		
 		// call under test
 		VirtualTableIndexDescription vtd = new VirtualTableIndexDescription(idAndVersion, definingSql, mockLookup);
@@ -50,18 +49,6 @@ public class VirtualTableIndexDescriptionTest {
 		
 		verify(mockLookup).getIndexDescription(IdAndVersion.parse("syn2"));
 		
-	}
-	
-	@Test
-	public void testConstructorWithNonTableDependency() {
-		when(mockLookup.getIndexDescription(any())).thenReturn(mockIndexDescription);
-		when(mockIndexDescription.getTableType()).thenReturn(TableType.entityview);
-		
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			new VirtualTableIndexDescription(idAndVersion, definingSql, mockLookup);
-		}).getMessage();
-		assertEquals("The definingSql of a VirtualTable cannot reference a/an: 'entityview' at this time.", message);
 	}
 	
 	@Test

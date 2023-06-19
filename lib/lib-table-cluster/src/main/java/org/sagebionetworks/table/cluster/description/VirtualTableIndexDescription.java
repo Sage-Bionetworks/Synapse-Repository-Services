@@ -38,12 +38,6 @@ public class VirtualTableIndexDescription implements IndexDescription {
 				throw new IllegalArgumentException("Defining SQL cannot reference itself");
 			});
 			sources = sourceIds.stream().map((id) -> lookup.getIndexDescription(id)).collect(Collectors.toList());
-//			sources.stream().map(IndexDescription::getTableType).filter(Predicate.not(TableType.table::equals))
-//					.findFirst().ifPresent((t) -> {
-//						throw new IllegalArgumentException(String.format(
-//								"The definingSql of a VirtualTable cannot reference a/an: '%s' at this time.",
-//								t.name()));
-//					});
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}

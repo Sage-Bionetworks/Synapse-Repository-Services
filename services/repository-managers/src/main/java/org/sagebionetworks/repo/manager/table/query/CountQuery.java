@@ -45,17 +45,6 @@ public class CountQuery {
 			}else {
 				countQuery = null;
 			}
-
-//			countQuery =  SqlElementUtils.createCountSql(model).map((c)->{
-//				QuerySpecification newCount = new TableQueryParser(c).querySpecification();
-//				QueryTranslator sqlQuery = QueryTranslator.builder(c, expansion.getUserId())
-//						.schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription())
-//						.build();
-//				return new BasicQuery(
-//						sqlQuery.getTranslatedModel().toSql(),
-//						sqlQuery.getParameters());
-//			}).orElse(null);
-
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}

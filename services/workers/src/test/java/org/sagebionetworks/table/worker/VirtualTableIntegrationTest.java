@@ -1,7 +1,6 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
@@ -46,7 +45,6 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -202,12 +200,6 @@ public class VirtualTableIntegrationTest {
 
 	}
 	
-	void printQueryResults(QueryResultBundle results){
-		System.out.println("Headers:");
-		results.getQueryResult().getQueryResults().getHeaders().forEach((h)->System.out.println(h));
-		System.out.println("Rows:");
-		results.getQueryResult().getQueryResults().getRows().forEach((r)->System.out.println(r.toString()));
-	}
 
 	void appendRowsToTable(List<ColumnModel> schema, String tableId, List<Row> rows)
 			throws AssertionError, AsynchJobFailedException {
