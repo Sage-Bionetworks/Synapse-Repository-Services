@@ -48,15 +48,11 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
-import org.sagebionetworks.repo.model.download.Action;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.AvailableFilter;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
-import org.sagebionetworks.repo.model.download.EnableTwoFa;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
-import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
-import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortField;
 import org.sagebionetworks.repo.model.file.FileConstants;
@@ -100,13 +96,19 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	private static final int BATCH_SIZE = 10000;
 
 	public static final Long NULL_VERSION_NUMBER = -1L;
-	
 
-	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
-	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	
+	private ActionsRequiredDaoImpl actionsRequiredDao;
+	
+	@Autowired
+	public DownloadListDAOImpl(NamedParameterJdbcTemplate namedJdbcTemplate) {
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
+		this.actionsRequiredDao = new ActionsRequiredDaoImpl(jdbcTemplate);
+	}
 
 	private static final RowMapper<DBODownloadList> LIST_MAPPER = new DBODownloadList().getTableMapping();
 	private static final RowMapper<DBODownloadListItem> LIST_ITEM_MAPPER = new DBODownloadListItem().getTableMapping();
@@ -141,27 +143,6 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		return stats;
 	};
 	
-	private static final RowMapper<ActionRequiredCount> ACTION_MAPPER = (ResultSet rs, int rowNum) -> {
-		ActionType type = ActionType.valueOf(rs.getString("ACTION_TYPE"));
-		Long actionId = rs.getLong("ACTION_ID");
-		Long count = rs.getLong("COUNT");
-		Action action = null;
-		switch (type) {
-		case ACCESS_REQUIREMENT:
-			action = new MeetAccessRequirement().setAccessRequirementId(actionId);
-			break;
-		case DOWNLOAD_PERMISSION:
-			action = new RequestDownload().setBenefactorId(actionId);
-			break;
-		case ENABLE_TWO_FA:
-			action = new EnableTwoFa().setAccessRequirementId(actionId);
-			break;
-		default:
-			throw new IllegalStateException("Unknown type: " + type.name());
-		}
-		return new ActionRequiredCount().setCount(count).setAction(action);
-	};
-
 	private static final RowMapper<JSONObject> JSON_OBJECT_MAPPER = (ResultSet rs, int rowNum) -> {
 		JSONObject json = new JSONObject();
 		for (ManifestKeys key : ManifestKeys.values()) {
@@ -340,7 +321,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			return Arrays.stream(items).map(i -> unorderedResults.stream().filter(u -> isMatch(i, u)).findFirst().get())
 					.collect(Collectors.toList());
 		} finally {
-			dropTemporaryTable(tempTableName);
+			actionsRequiredDao.dropTemporaryTable(tempTableName);
 		}
 	}
 
@@ -379,7 +360,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING);
 			return namedJdbcTemplate.query(sqlBuilder.toString(), params, RESULT_MAPPER);
 		} finally {
-			dropTemporaryTable(tempTableName);
+			actionsRequiredDao.dropTemporaryTable(tempTableName);
 		}
 	}
 
@@ -487,16 +468,6 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	}
 
 	/**
-	 * Drop the given temporary table by name.
-	 * 
-	 * @param tempTableName
-	 */
-	void dropTemporaryTable(String tempTableName) {
-		String sql = String.format("DROP TEMPORARY TABLE IF EXISTS %S ", tempTableName);
-		jdbcTemplate.update(sql);
-	}
-
-	/**
 	 * Create a temporary table containing all of the Entity IDs from the given
 	 * user's download list that the user can download.
 	 * 
@@ -601,49 +572,10 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING);
 			return namedJdbcTemplate.queryForObject(sql, params,STATS_MAPPER);
 		} finally {
-			dropTemporaryTable(tempTableName);
+			actionsRequiredDao.dropTemporaryTable(tempTableName);
 		}
 	}
-	
-	/**
-	 * Helper to add the given batch of entity IDs to a temporary table.
-	 * 
-	 * @param entityIdsToAdd
-	 * @param tableName
-	 */
-	void addBatchOfActionsToTempTable(FileActionRequired[] actions, String tableName) {
-		if (actions.length < 1) {
-			return;
-		}
-		String sql = String.format("INSERT IGNORE INTO %S (FILE_ID, ACTION_TYPE, ACTION_ID) VALUES (?,?,?)", tableName);
-		jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
-			@Override
-			public void setValues(PreparedStatement ps, int i) throws SQLException {
-				FileActionRequired required = actions[i];
-				int index = 0;
-				ps.setLong(++index, required.getFileId());
-				Action action = required.getAction();
-				if (action instanceof MeetAccessRequirement) {
-					ps.setString(++index, ActionType.ACCESS_REQUIREMENT.name());
-					ps.setLong(++index, ((MeetAccessRequirement) action).getAccessRequirementId());
-				} else if (action instanceof RequestDownload) {
-					ps.setString(++index, ActionType.DOWNLOAD_PERMISSION.name());
-					ps.setLong(++index, ((RequestDownload) action).getBenefactorId());
-				} else if (action instanceof EnableTwoFa) {
-					ps.setString(++index, ActionType.ENABLE_TWO_FA.name());
-					ps.setLong(++index, ((EnableTwoFa) action).getAccessRequirementId());
-				} else {
-					throw new IllegalStateException("Unknown action type: " + action.getClass().getName());
-				}
-			}
-
-			@Override
-			public int getBatchSize() {
-				return actions.length;
-			}
-		});
-	}
-	
+		
 	/**
 	 * Create a temporary table of all actions the user must
 	 * @param callback
@@ -653,24 +585,11 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	 */
 	String createTemporaryTableOfActionsRequired(EntityActionRequiredCallback callback, Long userId, int batchSize) {
 		String tableName = "U" + userId + "A";
-		String sql = String.format(TEMP_ACTION_REQUIRED_TEMPLATE,tableName);
-		jdbcTemplate.update(sql);
 
-		List<Long> batch = null;
-		long limit = batchSize;
-		long offset = 0L;
-		do {
-			batch = getBatchOfFileIdsFromUsersDownloadList(userId, limit, offset);
-			offset += limit;
-			if (batch.isEmpty()) {
-				break;
-			}
-			// Determine the sub-set that the user can actually download.
-			List<FileActionRequired> actions = callback.filter(batch);
-			// Add the sub-set to the temporary table.
-			addBatchOfActionsToTempTable(actions.toArray(new FileActionRequired[actions.size()]), tableName);
-		} while (batch.size() == batchSize);
-
+		FilesBatchProvider filesProvider  = (limit, offset) -> getBatchOfFileIdsFromUsersDownloadList(userId, limit, offset);
+		
+		actionsRequiredDao.createActionsRequiredTable(tableName, batchSize, filesProvider, callback);
+		
 		return tableName;
 	}
 
@@ -703,9 +622,9 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			params.addValue("principalId", userId);
 			params.addValue("limit", limit);
 			params.addValue("offset", offset);
-			return namedJdbcTemplate.query(sql, params, ACTION_MAPPER);
+			return namedJdbcTemplate.query(sql, params, ActionsRequiredDaoImpl.ACTION_MAPPER);
 		} finally {
-			dropTemporaryTable(tempTableName);
+			actionsRequiredDao.dropTemporaryTable(tempTableName);
 		}
 	}
 
