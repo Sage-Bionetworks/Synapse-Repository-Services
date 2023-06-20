@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.table;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -10,6 +11,9 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.table.query.ActionsRequiredQuery;
+import org.sagebionetworks.repo.manager.table.query.BasicQuery;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
@@ -19,6 +23,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableType;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
+import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
@@ -55,6 +61,8 @@ import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.model.WhereClause;
+import org.sagebionetworks.util.PaginationIterator;
+import org.sagebionetworks.util.PaginationProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -66,9 +74,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	public static final long MAX_ROWS_PER_CALL = 100;
 
 	@Autowired
-	TableManagerSupport tableManagerSupport;
+	private TableManagerSupport tableManagerSupport;
 	@Autowired
-	ConnectionFactory tableConnectionFactory;
+	private ConnectionFactory tableConnectionFactory;
+	@Autowired
+	private EntityAuthorizationManager entityAuthorizationManager;
 
 	/**
 	 * Injected via spring
@@ -205,12 +215,21 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// Table views must have a row level filter applied to the query
 		model = addRowLevelFilter(user, model, indexDescription);
 
-		QueryContext expansion = QueryContext.builder().setStartingSql(model.toSql()).setUserId(user.getId())
-				.setSchemaProvider(tableManagerSupport).setIndexDescription(indexDescription)
-				.setMaxBytesPerPage(maxBytesPerPage).setMaxRowsPerCall(MAX_ROWS_PER_CALL)
-				.setAdditionalFilters(query.getAdditionalFilters()).setSelectedFacets(query.getSelectedFacets())
-				.setLimit(query.getLimit()).setOffset(query.getOffset()).setSort(query.getSort())
-				.setIncludeEntityEtag(query.getIncludeEntityEtag()).build();
+		QueryContext expansion = QueryContext.builder()
+			.setStartingSql(model.toSql())
+			.setUserId(user.getId())
+			.setSchemaProvider(tableManagerSupport)
+			.setIndexDescription(indexDescription)
+			.setMaxBytesPerPage(maxBytesPerPage)
+			.setMaxRowsPerCall(MAX_ROWS_PER_CALL)
+			.setAdditionalFilters(query.getAdditionalFilters())
+			.setSelectedFacets(query.getSelectedFacets())
+			.setSelectFileColumn(query.getSelectFileColumn())
+			.setLimit(query.getLimit())
+			.setOffset(query.getOffset())
+			.setSort(query.getSort())
+			.setIncludeEntityEtag(query.getIncludeEntityEtag())
+		.build();
 
 		return new QueryTranslations(expansion, options);
 	}
@@ -355,7 +374,23 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			bundle.setLastUpdatedOn(lastUpdatedOn);
 		}
 
+		if (options.returnActionsRequired()) {
+			bundle.setActionsRequired(runActionsRequiredQuery(query.getActionsRequiredQuery()
+				.orElseThrow(()-> new IllegalStateException("Expected actions required query")), indexDao));
+		}
+		
 		return bundle;
+	}
+
+	List<ActionRequiredCount> runActionsRequiredQuery(ActionsRequiredQuery actionsRequiredQuery, TableIndexDAO indexDao) {
+		BasicQuery filesQuery = actionsRequiredQuery.getFileEntityQuery();
+
+		long batchSize = 10_000L;
+		
+	    
+		
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/**

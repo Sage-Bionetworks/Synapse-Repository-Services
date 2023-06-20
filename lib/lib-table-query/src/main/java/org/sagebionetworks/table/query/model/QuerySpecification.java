@@ -25,6 +25,12 @@ public class QuerySpecification extends SQLElement implements HasAggregate, HasS
 	public SetQuantifier getSetQuantifier() {
 		return setQuantifier;
 	}
+	
+	public QuerySpecification setSetQuantifier(SetQuantifier setQuantifier) {
+		this.setQuantifier = setQuantifier;
+		return this;
+	}
+	
 	public SelectList getSelectList() {
 		return selectList;
 	}

@@ -15,6 +15,7 @@ public class QueryTranslations {
 	private final FacetQueries facetQueries;
 	private final CountQuery countQuery;
 	private final SumFileSizesQuery sumFileSizesQuery;
+	private final ActionsRequiredQuery actionsRequiredQuery;
 
 	public QueryTranslations(QueryContext expansion, QueryOptions options) {
 		ValidateArgument.required(expansion, "expansion");
@@ -24,6 +25,7 @@ public class QueryTranslations {
 		facetQueries = options.returnFacets() ? new FacetQueries(expansion) : null;
 		countQuery = options.runCount() ? new CountQuery(expansion) : null;
 		sumFileSizesQuery = options.runSumFileSizes() ? new SumFileSizesQuery(expansion) : null;
+		actionsRequiredQuery = options.returnActionsRequired() ? new ActionsRequiredQuery(expansion) : null;
 	}
 
 	public MainQuery getMainQuery() {
@@ -42,4 +44,8 @@ public class QueryTranslations {
 		return Optional.ofNullable(sumFileSizesQuery);
 	}
 
+	public Optional<ActionsRequiredQuery> getActionsRequiredQuery() {
+		return Optional.ofNullable(actionsRequiredQuery);
+	}
+	
 }

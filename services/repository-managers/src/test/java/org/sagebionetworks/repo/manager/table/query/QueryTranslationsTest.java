@@ -57,8 +57,13 @@ public class QueryTranslationsTest {
 
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 
-		options = new QueryOptions().withRunQuery(true).withReturnFacets(true).withReturnMaxRowsPerPage(true)
-				.withRunCount(true).withRunSumFileSizes(true);
+		options = new QueryOptions()
+			.withRunQuery(true)
+			.withReturnFacets(true)
+			.withReturnMaxRowsPerPage(true)
+			.withRunCount(true)
+			.withRunSumFileSizes(true)
+			.withReturnActionsRequired(true);
 
 		startingSql = "select * from " + tableId;
 
@@ -83,6 +88,9 @@ public class QueryTranslationsTest {
 
 		assertNotNull(queries.getSumFileSizesQuery());
 		assertTrue(queries.getSumFileSizesQuery().isPresent());
+		
+		assertNotNull(queries.getActionsRequiredQuery());
+		assertTrue(queries.getActionsRequiredQuery().isPresent());
 
 	}
 
@@ -91,6 +99,7 @@ public class QueryTranslationsTest {
 		options.withRunCount(false);
 		options.withReturnFacets(false);
 		options.withRunSumFileSizes(false);
+		options.withReturnActionsRequired(false);
 
 		// call under test
 		QueryTranslations queries = new QueryTranslations(builder.build(), options);
@@ -105,6 +114,9 @@ public class QueryTranslationsTest {
 
 		assertNotNull(queries.getSumFileSizesQuery());
 		assertFalse(queries.getSumFileSizesQuery().isPresent());
+		
+		assertNotNull(queries.getActionsRequiredQuery());
+		assertFalse(queries.getActionsRequiredQuery().isPresent());
 
 	}
 
