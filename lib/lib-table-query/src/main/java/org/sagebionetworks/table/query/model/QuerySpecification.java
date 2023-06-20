@@ -74,6 +74,7 @@ public class QuerySpecification extends SQLElement implements HasAggregate, HasS
 
 	@Override
 	public void replaceChildren(SelectList replacement) {
-		this.selectList = replacement;
+		this.setQuantifier = null;
+		this.selectList = Replaceable.prepareToReplace(this.selectList, replacement, this);
 	}
 }

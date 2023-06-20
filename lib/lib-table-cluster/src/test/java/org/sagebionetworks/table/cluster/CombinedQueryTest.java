@@ -196,5 +196,22 @@ public class CombinedQueryTest {
 					.setOverrideOffset(overrideOffset).setSelectedFacets(selectedFacets).build();
 		});
 	}
+	
+	@Test
+	public void testGetCombinedSqlWithCTEAndAllOverrides() {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		// call under test
+		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
+				.setQuery("with syn2 as (select * from syn1) select * from syn2").setAdditionalFilters(additionalFilters).setSortList(sortList)
+				.setOverrideLimit(overrideLimit).setOverrideOffset(overrideOffset).setSelectedFacets(selectedFacets)
+				.build();
+
+		assertEquals(
+				"WITH syn2 AS (SELECT * FROM syn1) "
+				+ "SELECT * FROM syn2 WHERE ( ( \"foo\" LIKE 'one' OR \"foo\" LIKE 'two' ) )"
+				+ " AND ( ( ( \"bar\" HAS ( '1', '2', '3' ) ) ) ) "
+				+ "ORDER BY \"foo\" DESC LIMIT 99 OFFSET 2",
+				combined.getCombinedSql());
+	}
 
 }

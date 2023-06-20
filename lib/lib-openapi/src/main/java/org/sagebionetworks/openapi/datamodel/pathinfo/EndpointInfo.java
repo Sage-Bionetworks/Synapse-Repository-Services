@@ -4,12 +4,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
+import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+
 /**
  * Metadata about a specific endpoint.
  * @author lli
  *
  */
-public class EndpointInfo {
+public class EndpointInfo implements JSONEntity {
 	private List<String> tags;
 	private String operationId;
 	private List<ParameterInfo> parameters;
@@ -83,5 +88,65 @@ public class EndpointInfo {
 	public String toString() {
 		return "EndpointInfo [tags=" + tags + ", operationId=" + operationId + ", parameters=" + parameters
 				+ ", requestBody=" + requestBody + ", responses=" + responses + "]";
+	}
+	
+	@Override
+	public JSONObjectAdapter initializeFromJSONObject(JSONObjectAdapter toInitFrom) throws JSONObjectAdapterException {
+		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter writeTo) throws JSONObjectAdapterException {
+		if (this.responses == null) {
+			throw new IllegalArgumentException("Responses must not be null.");
+		}
+		if (this.responses.isEmpty()) {
+			throw new IllegalArgumentException("Responses must not be empty.");
+		}
+		
+		if (this.tags != null) {
+			JSONArrayAdapter tags = writeTo.createNewArray();
+			populateTags(tags);
+			writeTo.put("tags", tags);
+		}
+		
+		if (this.operationId != null) {
+			writeTo.put("operationId", operationId);
+		}
+		
+		if (this.parameters != null) {
+			JSONArrayAdapter parameters = writeTo.createNewArray();
+			populateParameters(parameters);
+			writeTo.put("parameters", parameters);
+		}
+		
+		if (this.requestBody != null) {
+			writeTo.put("requestBody", requestBody.writeToJSONObject(writeTo.createNew()));
+		}
+		
+		JSONObjectAdapter responses = writeTo.createNew();
+		populateResponses(responses);
+		writeTo.put("responses", responses);
+
+		return writeTo;
+	}
+	
+	void populateResponses(JSONObjectAdapter responses) throws JSONObjectAdapterException {
+		for (String responseCode : this.responses.keySet()) {
+			ResponseInfo respose = this.responses.get(responseCode);
+			responses.put(responseCode, respose.writeToJSONObject(responses.createNew()));
+		}
+	}
+	
+	void populateParameters(JSONArrayAdapter parameters) throws JSONObjectAdapterException {
+		for (int i = 0; i < this.parameters.size(); i++) {
+			parameters.put(i, this.parameters.get(i).writeToJSONObject(parameters.createNew()));
+		}
+	}
+	
+	void populateTags(JSONArrayAdapter tags) throws JSONObjectAdapterException {
+		for (int i = 0; i < this.tags.size(); i++) {
+			tags.put(i, this.tags.get(i));
+		}
 	}
 }

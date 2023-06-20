@@ -110,7 +110,7 @@ public class ControllerModelDocletTest {
 	@Test
 	public void testTagsIsCorrectInPath() {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
-		JSONObject pathObj = pathsObj.getJSONObject("repo/v1/complex-pet/{petName}");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/{petName}");
 		JSONObject operationObj = pathObj.getJSONObject("get");
 		
 		// test tags is correct
@@ -128,7 +128,7 @@ public class ControllerModelDocletTest {
 	@Test
 	public void testOperationIdIsCorrectInPath() {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
-		JSONObject pathObj = pathsObj.getJSONObject("repo/v1/complex-pet/{petName}");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/{petName}");
 		JSONObject operationObj = pathObj.getJSONObject("get");
 		
 		// test operationId is correct
@@ -138,7 +138,7 @@ public class ControllerModelDocletTest {
 	@Test
 	public void testParametersAreCorrectInPath() {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
-		JSONObject pathObj = pathsObj.getJSONObject("repo/v1/complex-pet/{petName}");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/{petName}");
 		JSONObject operationObj = pathObj.getJSONObject("get");
 		
 		// test parameters are correct
@@ -150,7 +150,7 @@ public class ControllerModelDocletTest {
 				assertEquals("path", param.getString("in"));
 				assertEquals(true, param.getBoolean("required"));
 				JSONObject schema = param.getJSONObject("schema");
-				assertEquals("string", schema.getString("type"));
+				assertEquals("#/components/schemas/java.lang.String", schema.getString("$ref"));
 				foundPetNameParam = true;
 			}
 		}
@@ -160,7 +160,7 @@ public class ControllerModelDocletTest {
 	@Test
 	public void testResponseObjectIsCorrectInPath() {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
-		JSONObject pathObj = pathsObj.getJSONObject("repo/v1/complex-pet/{petName}");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/{petName}");
 		JSONObject operationObj = pathObj.getJSONObject("get");
 		
 		// test response object is correct
@@ -172,32 +172,13 @@ public class ControllerModelDocletTest {
 		JSONObject responseSchema = contentType.getJSONObject("schema");
 
 		// test to see if Pet interface is represented correctly as the return type.
-		assertEquals("object", responseSchema.getString("type"));
-		assertEquals("This interface represents a pet.", responseSchema.getString("description"));
-		JSONObject responseSchemaProperties = responseSchema.getJSONObject("properties");
-		JSONObject responseSchemaNameProperty = responseSchemaProperties.getJSONObject("name");
-		assertEquals("string", responseSchemaNameProperty.getString("type"));
-		JSONObject responseSchemaHasTailProperty = responseSchemaProperties.getJSONObject("hasTail");
-		assertEquals("_boolean", responseSchemaHasTailProperty.getString("type"));
-		
-		// test to see if the oneof property is being set correctly.
-		JSONArray oneOf = responseSchema.getJSONArray("oneOf");
-		assertTrue(oneOf.length() == 3);
-		Set<String> references = new HashSet<>();
-		for (int i = 0; i < oneOf.length(); i++) {
-			JSONObject reference = oneOf.getJSONObject(i);
-			String ref = reference.getString("$ref");
-			references.add(ref);
-		}
-		assertTrue(references.contains("#/components/org.sagebionetworks.openapi.pet.Husky"));
-		assertTrue(references.contains("#/components/org.sagebionetworks.openapi.pet.Poodle"));
-		assertTrue(references.contains("#/components/org.sagebionetworks.openapi.pet.Cat"));
+		assertEquals("#/components/schemas/org.sagebionetworks.openapi.pet.Pet", responseSchema.getString("$ref"));
 	}
 	
 	@Test
 	public void testRequestBodyIsCorrectInPath() {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
-		JSONObject pathObj = pathsObj.getJSONObject("repo/v1/complex-pet/cat/{name}");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/cat/{name}");
 		JSONObject operationObj = pathObj.getJSONObject("post");
 
 		JSONObject requestBody = operationObj.getJSONObject("requestBody");
@@ -206,16 +187,34 @@ public class ControllerModelDocletTest {
 		JSONObject contentType = content.getJSONObject("application/json");
 		JSONObject schema = contentType.getJSONObject("schema");
 		
-		assertEquals("object", schema.getString("type"));
-		assertEquals("This class describes a Cat.", schema.getString("description"));
+		assertEquals("#/components/schemas/org.sagebionetworks.openapi.pet.Cat", schema.getString("$ref"));
+	}
+	
+	@Test
+	public void testSchemasGeneratedCorrectlyInComponents() {
+		JSONObject componentsObj = generatedOpenAPISpec.getJSONObject("components");
+		JSONObject schemasObj = componentsObj.getJSONObject("schemas");
+		JSONObject petInterface = schemasObj.getJSONObject("org.sagebionetworks.openapi.pet.Pet");
 		
-		JSONObject properties = schema.getJSONObject("properties");
-		JSONObject nameProperty = properties.getJSONObject("name");
-		assertEquals("string", nameProperty.getString("type"));
-		JSONObject hasTailProperty = properties.getJSONObject("hasTail");
-		assertEquals("_boolean", hasTailProperty.getString("type"));
-		JSONObject numWhiskersProperty = properties.getJSONObject("numWhiskers");
-		assertEquals("integer", numWhiskersProperty.getString("type"));
-		assertEquals("int32", numWhiskersProperty.getString("format"));
+		assertEquals("object", petInterface.getString("type"));
+		assertEquals("This interface represents a pet.", petInterface.getString("description"));
+		JSONObject petInterfaceProperties = petInterface.getJSONObject("properties");
+		JSONObject petInterfaceNameProperty = petInterfaceProperties.getJSONObject("name");
+		assertEquals("string", petInterfaceNameProperty.getString("type"));
+		JSONObject responseSchemaHasTailProperty = petInterfaceProperties.getJSONObject("hasTail");
+		assertEquals("boolean", responseSchemaHasTailProperty.getString("type"));
+		
+		// test to see if the oneof property is being set correctly.
+		JSONArray oneOf = petInterface.getJSONArray("oneOf");
+		assertTrue(oneOf.length() == 3);
+		Set<String> references = new HashSet<>();
+		for (int i = 0; i < oneOf.length(); i++) {
+			JSONObject reference = oneOf.getJSONObject(i);
+			String ref = reference.getString("$ref");
+			references.add(ref);
+		}
+		assertTrue(references.contains("#/components/schemas/org.sagebionetworks.openapi.pet.Husky"));
+		assertTrue(references.contains("#/components/schemas/org.sagebionetworks.openapi.pet.Poodle"));
+		assertTrue(references.contains("#/components/schemas/org.sagebionetworks.openapi.pet.Cat"));
 	}
 }

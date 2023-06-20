@@ -120,8 +120,7 @@ public class QueryTranslator {
 			} else {
 				this.sqlContext = sqlContextIn;
 			}
-			String preprocessedSql = indexDescription.preprocessQuery(startingSql);
-			QueryExpression transformedModel = new TableQueryParser(preprocessedSql).queryExpression();
+			QueryExpression transformedModel = new TableQueryParser(startingSql).queryExpression();
 			transformedModel.setSqlContext(this.sqlContext);
 			
 			List<QueryPart> parts = transformedModel.stream(QuerySpecification.class).map((q)-> new QueryPart(q, schemaProvider)).collect(Collectors.toList());

@@ -560,23 +560,16 @@ public class SqlElementUtils {
 	}
 	
 	/**
-	 * Create SQL that can be used for a count query from the given query model.
+	 * Modify the provided {@link QuerySpecification} to be a "count" query.  This involves
+	 * modifying the select and removing grouping, ordering and pagination.
 	 * 
-	 * @param transformedModel
-	 * @return
-	 * @throws SimpleAggregateQueryException Thrown when given query is a simple
-	 *                                       aggregate query that would return one
-	 *                                       row.
+	 * @param model
+	 * @return True if select of the provided model was modified to be count query.  False, when
+	 * the model cannot be modified (already an aggregate query that would return only one row).
+	 * 
 	 */
-	public static Optional<String> createCountSql(QuerySpecification model) {
-		TableExpression tableExpression = null;
-		FromClause fromClause = model.getTableExpression().getFromClause();
-		WhereClause whereClause = model.getTableExpression().getWhereClause();
-		GroupByClause groupByClause = null;
-		OrderByClause orderByClause = null;
-		Pagination pagination = null;
+	public static boolean createCountSql(QuerySpecification model) {
 		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT ");
 		// There are three cases
 		if (model.hasAnyAggregateElements()) {
 			// does this have a group by clause?
@@ -592,17 +585,21 @@ public class SqlElementUtils {
 				builder.append(createSelectWithoutAs(model.getSelectList()));
 				builder.append(")");
 			} else {
-				return Optional.empty();
+				return false;
 			}
 		} else {
 			// simple count *
 			builder.append("COUNT(*)");
 		}
-		// clear pagination, group by, order by
-		tableExpression = new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination);
-		builder.append(" ");
-		builder.append(tableExpression.toSql());
-		return Optional.of(builder.toString());
+		try {
+			model.replaceChildren(new TableQueryParser(builder.toString()).selectList());
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
+		model.getTableExpression().replacePagination(null);
+		model.getTableExpression().replaceGroupBy(null);
+		model.getTableExpression().replaceOrderBy(null);
+		return true;
 	}
 	
 	/**

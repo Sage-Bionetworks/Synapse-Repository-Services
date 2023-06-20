@@ -1239,11 +1239,11 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 				AnnotationsV2TestUtils.putAnnotations(annos, "booleanKey", Boolean.toString(i % 2 == 0),
 						AnnotationsValueType.BOOLEAN);
 				entityManager.updateAnnotations(adminUserInfo, file.getId(), annos);
-				file = entityManager.getEntity(adminUserInfo, file.getId(), FileEntity.class);
-				// each file needs to be replicated.
-				asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(file.getId()),
-						file.getEtag(), MAX_WAIT_MS);
 			}
+		}
+		
+		for(Entity e: entites){
+			asyncHelper.waitForEntityReplication(adminUserInfo, e.getId(), MAX_WAIT_MS);
 		}
 
 		return createView(entites.get(0).getId(), viewTypeMask, schema);
@@ -1298,11 +1298,11 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 						patientData.get(index % 2).getPatientId().toString(), AnnotationsValueType.LONG);
 				index++;
 				entityManager.updateAnnotations(adminUserInfo, file.getId(), annos);
-				file = entityManager.getEntity(adminUserInfo, file.getId(), FileEntity.class);
-				// each file needs to be replicated.
-				asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(file.getId()),
-						file.getEtag(), MAX_WAIT_MS);
 			}
+		}
+		
+		for(Entity e: entites){
+			asyncHelper.waitForEntityReplication(adminUserInfo, e.getId(), MAX_WAIT_MS);
 		}
 
 		EntityView view = createView(entites.get(0).getId(), viewTypeMask, schema);
@@ -1419,11 +1419,11 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 
 				index++;
 				entityManager.updateAnnotations(adminUserInfo, folder.getId(), annos);
-				folder = entityManager.getEntity(adminUserInfo, folder.getId(), Folder.class);
-				// each file needs to be replicated.
-				asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(folder.getId()),
-						folder.getEtag(), MAX_WAIT_MS);
 			}
+		}
+		
+		for(Entity e: entites){
+			asyncHelper.waitForEntityReplication(adminUserInfo, e.getId(), MAX_WAIT_MS);
 		}
 
 		EntityView view = createView(entites.get(0).getId(), viewTypeMask, schema);

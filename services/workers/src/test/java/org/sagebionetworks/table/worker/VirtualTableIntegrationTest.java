@@ -1,7 +1,6 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
@@ -14,7 +13,6 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
@@ -47,7 +45,6 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -168,7 +165,6 @@ public class VirtualTableIntegrationTest {
 		assertEquals("You lack DOWNLOAD access to the requested entity.", message);
 	}
 
-	@Disabled
 	@Test
 	public void testVirtualTableWithSourceView() throws Exception {
 		List<Entity> containers = createProjectHierachy();
@@ -190,19 +186,20 @@ public class VirtualTableIntegrationTest {
 		
 		VirtualTable virtualTable = asyncHelper.createVirtualTable(adminUserInfo, projectId, definingSql);
 		
-		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + virtualTable.getId(), (results) -> {
-			printQueryResults(results);
-			assertFalse(true);
+		String runtimeSql = "select count(*) from "+virtualTable.getId();
+		// admin should see all
+		asyncHelper.assertQueryResult(adminUserInfo, runtimeSql, (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("15"))),
+					results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		// user should only see the subset
+		asyncHelper.assertQueryResult(userInfo, runtimeSql, (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("10"))),
+					results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 
 	}
 	
-	void printQueryResults(QueryResultBundle results){
-		System.out.println("Headers:");
-		results.getQueryResult().getQueryResults().getHeaders().forEach((h)->System.out.println(h));
-		System.out.println("Rows:");
-		results.getQueryResult().getQueryResults().getRows().forEach((r)->System.out.print(r.toString()));
-	}
 
 	void appendRowsToTable(List<ColumnModel> schema, String tableId, List<Row> rows)
 			throws AssertionError, AsynchJobFailedException {
@@ -293,7 +290,7 @@ public class VirtualTableIntegrationTest {
 		List<ColumnModel> schema = tableManagerSupport.getDefaultTableViewColumns(ViewEntityType.entityview,
 				viewTypeMask);
 		schema.add(new ColumnModel().setName("stringKey").setColumnType(ColumnType.STRING).setMaximumSize(50L));
-		schema.add(new ColumnModel().setName("doubleKey").setColumnType(ColumnType.DOUBLE));
+//		schema.add(new ColumnModel().setName("doubleKey").setColumnType(ColumnType.DOUBLE));
 		schema.add(new ColumnModel().setName("longKey").setColumnType(ColumnType.INTEGER));
 		schema.add(new ColumnModel().setName("dateKey").setColumnType(ColumnType.DATE));
 		schema.add(new ColumnModel().setName("booleanKey").setColumnType(ColumnType.BOOLEAN));
@@ -313,10 +310,11 @@ public class VirtualTableIntegrationTest {
 			AnnotationsV2TestUtils.putAnnotations(annos, "booleanKey", Boolean.toString(i % 2 == 0),
 					AnnotationsValueType.BOOLEAN);
 			entityManager.updateAnnotations(adminUserInfo, file.getId(), annos);
-			file = entityManager.getEntity(adminUserInfo, file.getId(), FileEntity.class);
+		}
+		
+		for(FileEntity file: files) {
 			// each file needs to be replicated.
-			asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(file.getId()),
-					file.getEtag(), MAX_WAIT_MS);
+			asyncHelper.waitForEntityReplication(adminUserInfo, file.getId(), MAX_WAIT_MS);
 		}
 
 		List<String> scope = Arrays.asList(parentId);

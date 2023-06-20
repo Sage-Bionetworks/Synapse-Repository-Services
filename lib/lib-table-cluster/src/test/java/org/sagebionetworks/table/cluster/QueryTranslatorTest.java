@@ -1997,7 +1997,7 @@ public class QueryTranslatorTest {
 		String definingSql = "select CAST(foo as 888), CAST(bar as 444) from syn1";
 		IndexDescription indexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
 
-		sql = "select * from syn2 where inttype > 2";
+		sql = indexDescription.preprocessQuery("select * from syn2 where inttype > 2");
 		// call under test
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
@@ -2034,7 +2034,7 @@ public class QueryTranslatorTest {
 		String definingSql = "select CAST(foo as 888), CAST(bar as 444) from syn1";
 		IndexDescription indexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
 
-		sql = "select inttype, count(foo_bar) from syn2 where inttype > 2 group by inttype";
+		sql = indexDescription.preprocessQuery("select inttype, count(foo_bar) from syn2 where inttype > 2 group by inttype");
 		// call under test
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
@@ -2081,7 +2081,8 @@ public class QueryTranslatorTest {
 		String definingSql = "select CAST(foo as 888), CAST(bar as 444) from syn1";
 		IndexDescription indexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
 
-		sql = "select * from syn2 a join syn2 b on (a.id= b.id)";
+		sql = indexDescription.preprocessQuery("select * from syn2 a join syn2 b on (a.id= b.id)");
+		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
@@ -2106,5 +2107,35 @@ public class QueryTranslatorTest {
 		QueryTranslator translator = QueryTranslator.builder("select count(distinct bar, foo_bar) from syn123", mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals("SELECT COUNT(DISTINCT _C333_, _C444_) FROM T123", translator.getOutputSQL());
 
+	}
+	
+	@Test
+	public void testVirtualTableWithFileViewSource() {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+		
+		ColumnModel foo = new ColumnModel().setName("foo").setColumnType(ColumnType.STRING).setMaximumSize(40L).setId("11");
+		ColumnModel bar = new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER).setId("22");
+		ColumnModel sumBar = new ColumnModel().setName("sumBar").setColumnType(ColumnType.INTEGER).setId("33");
+		
+		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(foo, bar));
+		when(mockSchemaProvider.getTableSchema(cte)).thenReturn(List.of(foo, sumBar));
+		when(mockSchemaProvider.getColumnModel("33")).thenReturn(sumBar);
+
+		when(mockIndexDescriptionLookup.getIndexDescription(viewId)).thenReturn(new ViewIndexDescription(viewId, TableType.entityview));
+		
+		String definingSql = "select foo, sum(cast(bar as 33)) from syn1 group by foo";
+		IndexDescription indexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
+
+		sql = indexDescription.preprocessQuery("select * from syn2");
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
+		
+		assertEquals("WITH T2 (_C11_, _C33_) AS"
+				+ " (SELECT _C11_, SUM(CAST(_C22_ AS SIGNED)) FROM T1 GROUP BY _C11_)"
+				+ " SELECT _C11_, _C33_ FROM T2", query.getOutputSQL());
+		assertTrue(query.isAggregatedResult());
+		
 	}
 }
