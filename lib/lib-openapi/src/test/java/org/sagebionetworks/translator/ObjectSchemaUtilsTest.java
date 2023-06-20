@@ -168,7 +168,9 @@ public class ObjectSchemaUtilsTest {
 			JSONObjectAdapterImpl adpater1 = new JSONObjectAdapterImpl("{}");
 			JSONObjectAdapterImpl adpater2 = new JSONObjectAdapterImpl("{properties: {}}");
 			objectSchema1 = new ObjectSchemaImpl(adpater1);
+			objectSchema1.setType(TYPE.STRING);
 			objectSchema2 = new ObjectSchemaImpl(adpater2);
+			objectSchema2.setType(TYPE.INTEGER);
 		} catch (Exception e) {
 			// this should never happen
 			throw new RuntimeException("Error creating adapter for schema");
@@ -181,15 +183,71 @@ public class ObjectSchemaUtilsTest {
 		Mockito.doReturn(new JsonSchema()).when(util).translateObjectSchemaToJsonSchema(any(ObjectSchema.class));
 		
 		Map<String, JsonSchema> expected = new LinkedHashMap<>();
-		expected.put(className1, new JsonSchema());
-		expected.put(className2, new JsonSchema());
+		JsonSchema expectedSchema1 = new JsonSchema();
+		expectedSchema1.setType(Type.string);
+		JsonSchema expectedSchema2 = new JsonSchema();
+		expectedSchema2.setType(Type.integer);
+		expectedSchema2.setFormat("int32");
+		expected.put(className1, expectedSchema1);
+		expected.put(className2, expectedSchema2);
 		
 		// call under test
 		assertEquals(expected, util.translatePropertiesFromObjectSchema(properties));
-		Mockito.verify(util, Mockito.times(2)).translateObjectSchemaToJsonSchema(any(ObjectSchema.class));
+		Mockito.verify(util, Mockito.times(2)).getSchemaForPrimitiveType(any());
 		InOrder inOrder = Mockito.inOrder(util);
-		inOrder.verify(util).translateObjectSchemaToJsonSchema(objectSchema1);
-		inOrder.verify(util).translateObjectSchemaToJsonSchema(objectSchema2);
+		inOrder.verify(util).getSchemaForPrimitiveType(TYPE.STRING);
+		inOrder.verify(util).getSchemaForPrimitiveType(TYPE.INTEGER);
+	}
+	
+	@Test
+	public void testTranslatePropertiesFromObjectSchemaWithComplexType() {
+		ObjectSchema objectSchema;
+		try {
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+			objectSchema = new ObjectSchemaImpl(adpater);
+			objectSchema.setType(TYPE.ARRAY);
+			objectSchema.setId("MOCK_ID");
+		} catch (Exception e) {
+			// this should never happen
+			throw new RuntimeException("Error creating adapter for schema");
+		}
+		
+		Mockito.doReturn(false).when(util).isPrimitive(any());
+		Mockito.doReturn("MOCK_PATH").when(util).getPathInComponents(any());
+		
+		Map<String, ObjectSchema> properties = new LinkedHashMap<>();
+		properties.put("KEY", objectSchema);
+		
+		Map<String, JsonSchema> expected = new LinkedHashMap<>();
+		JsonSchema expectedSchema = new JsonSchema();
+		expectedSchema.set$ref("MOCK_PATH");
+		expected.put("KEY", expectedSchema);
+		
+		// call under test
+		assertEquals(expected, util.translatePropertiesFromObjectSchema(properties));
+		Mockito.verify(util).isPrimitive(TYPE.ARRAY);
+		Mockito.verify(util).getPathInComponents("MOCK_ID");
+	}
+	
+	@Test
+	public void testTranslatePropertiesFromObjectSchemaWithNullSchemaType() {
+		ObjectSchema objectSchema;
+		try {
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+			objectSchema = new ObjectSchemaImpl(adpater);
+			objectSchema.setType(null);
+		} catch (Exception e) {
+			// this should never happen
+			throw new RuntimeException("Error creating adapter for schema");
+		}
+
+		Map<String, ObjectSchema> properties = new LinkedHashMap<>();
+		properties.put("key", objectSchema);
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			util.translatePropertiesFromObjectSchema(properties);
+		});
+		assertEquals("Schema type is null for " + objectSchema.toString(), exception.getMessage());
 	}
 	
 	@Test
@@ -281,6 +339,21 @@ public class ObjectSchemaUtilsTest {
 		
 		assertEquals("Implementation of ClassName interface with name MOCK_ID was not found.", exception.getMessage());
 		Mockito.verify(util).getImplementers(className, interfaces);
+	}
+	
+	@Test
+	public void testGetPathInComponents() {
+		// call under test
+		assertEquals("#/components/schemas/CLASS_NAME", util.getPathInComponents("CLASS_NAME"));
+	}
+	
+	@Test
+	public void testGetPathInComponentsWithNull() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			util.getPathInComponents(null);
+		});
+		assertEquals("className is required.", exception.getMessage());
 	}
 	
 	@Test

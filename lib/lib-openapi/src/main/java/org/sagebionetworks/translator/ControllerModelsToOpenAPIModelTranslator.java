@@ -13,7 +13,6 @@ import org.sagebionetworks.controller.model.ParameterModel;
 import org.sagebionetworks.controller.model.RequestBodyModel;
 import org.sagebionetworks.controller.model.ResponseModel;
 import org.sagebionetworks.openapi.datamodel.ApiInfo;
-import org.sagebionetworks.openapi.datamodel.ComponentInfo;
 import org.sagebionetworks.openapi.datamodel.OpenAPISpecModel;
 import org.sagebionetworks.openapi.datamodel.ServerInfo;
 import org.sagebionetworks.openapi.datamodel.TagInfo;
@@ -31,7 +30,7 @@ public class ControllerModelsToOpenAPIModelTranslator {
 	public ControllerModelsToOpenAPIModelTranslator(Map<String, JsonSchema> classNameToJsonSchema) {
 		this.classNameToJsonSchema = classNameToJsonSchema;
 	}
-	
+		
 	/**
 	 * Translates a list of controller models to an OpenAPI model.
 	 * 
@@ -51,7 +50,18 @@ public class ControllerModelsToOpenAPIModelTranslator {
 			tags.add(new TagInfo().withDescription(description).withName(displayName));
 		}
 		return new OpenAPISpecModel().withInfo(getApiInfo()).withOpenapi("3.0.1").withServers(getServers())
-				.withComponents(null).withPaths(paths).withTags(tags);
+				.withComponents(getComponents()).withPaths(paths).withTags(tags);
+	}
+	
+	/**
+	 * Generates and returns the components section of the OpenAPI specification.
+	 * 
+	 * @return a nested map, from component_type (schemas, parameters) -> { class_name -> JsonSchema}.
+	 */
+	Map<String, Map<String, JsonSchema>> getComponents() {
+		Map<String, Map<String, JsonSchema>> components = new LinkedHashMap<>();
+		components.put("schemas", classNameToJsonSchema);
+		return components;
 	}
 
 	/**
@@ -93,6 +103,10 @@ public class ControllerModelsToOpenAPIModelTranslator {
 			// trim off the starting and ending quotation marks found in the path.
 			methodPath = methodPath.substring(1, methodPath.length() - 1);
 			String fullPath = basePath + methodPath;
+			// make sure the fullPath starts with a "/"
+			if (fullPath.charAt(0) != '/') {
+				fullPath = "/" + fullPath;
+			}
 			paths.putIfAbsent(fullPath, new LinkedHashMap<>());
 			insertOperationAndEndpointInfo(paths.get(fullPath), method, displayName);
 		}
@@ -137,6 +151,20 @@ public class ControllerModelsToOpenAPIModelTranslator {
 				.withResponses(getResponses(method.getResponse()));
 		return endpointInfo;
 	}
+	
+	/**
+	 * Generates a JsonSchema that is a reference to a class defined in 
+	 * the "components" section of the specification with class name of "id"
+	 * 
+	 * @param id the id of the class
+	 * @return JsonSchema that is a reference to class in "components"
+	 */
+	JsonSchema getReferenceSchema(String id) {
+		ValidateArgument.required(id, "id");
+		JsonSchema schema = new JsonSchema();
+		schema.set$ref("#/components/schemas/" + id);
+		return schema;
+	}
 
 	/**
 	 * Constructs and object that represents the responses of a method.
@@ -149,7 +177,7 @@ public class ControllerModelsToOpenAPIModelTranslator {
 		ValidateArgument.required(response, "response");
 		Map<String, ResponseInfo> responses = new LinkedHashMap<>();
 		Map<String, Schema> contentTypeToSchema = new HashMap<>();
-		contentTypeToSchema.put(response.getContentType(), new Schema().withSchema(classNameToJsonSchema.get(response.getId())));
+		contentTypeToSchema.put(response.getContentType(), new Schema().withSchema(getReferenceSchema(response.getId())));
 		ResponseInfo responseInfo = new ResponseInfo().withDescription(response.getDescription())
 				.withContent(contentTypeToSchema);
 
@@ -168,7 +196,7 @@ public class ControllerModelsToOpenAPIModelTranslator {
 		ValidateArgument.required(requestBody, "requestBody");
 		String contentType = "application/json";
 		Map<String, Schema> contentTypeToSchema = new LinkedHashMap<>();
-		contentTypeToSchema.put(contentType, new Schema().withSchema(classNameToJsonSchema.get(requestBody.getId())));
+		contentTypeToSchema.put(contentType, new Schema().withSchema(getReferenceSchema(requestBody.getId())));
 		return new RequestBodyInfo().withRequired(requestBody.isRequired()).withContent(contentTypeToSchema);
 	}
 
@@ -197,9 +225,10 @@ public class ControllerModelsToOpenAPIModelTranslator {
 	ParameterInfo getParameterInfo(ParameterModel parameter) {
 		ValidateArgument.required(parameter, "parameter");
 		ParameterInfo parameterInfo = new ParameterInfo();
+
 		parameterInfo.withName(parameter.getName()).withDescription(parameter.getDescription())
 				.withRequired(parameter.isRequired()).withIn(parameter.getIn().toString())
-				.withSchema(classNameToJsonSchema.get(parameter.getId()));
+				.withSchema(getReferenceSchema(parameter.getId()));
 		return parameterInfo;
 	}
 }

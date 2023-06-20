@@ -2,13 +2,17 @@ package org.sagebionetworks.openapi.datamodel;
 
 import java.util.Objects;
 
+import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+
 /**
  * Provides metadata about the API being described by the OpenAPI specification.
  * 
  * @author lli
  *
  */
-public class ApiInfo {
+public class ApiInfo implements JSONEntity {
 	private String title;
 	private String summary;
 	private String version;
@@ -61,5 +65,25 @@ public class ApiInfo {
 	@Override
 	public String toString() {
 		return "ApiInfo [title=" + title + ", summary=" + summary + ", version=" + version + "]";
+	}
+
+	@Override
+	public JSONObjectAdapter initializeFromJSONObject(JSONObjectAdapter toInitFrom) throws JSONObjectAdapterException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter writeTo) throws JSONObjectAdapterException {
+		if (title == null) {
+			throw new IllegalArgumentException("The 'title' is a required attribute of ApiInfo.");
+		}
+		writeTo.put("title", title);
+		if (version != null) {
+			writeTo.put("version", version);
+		}
+		if (summary != null) {
+			writeTo.put("summary", summary);
+		}
+		return writeTo;
 	}
 }
