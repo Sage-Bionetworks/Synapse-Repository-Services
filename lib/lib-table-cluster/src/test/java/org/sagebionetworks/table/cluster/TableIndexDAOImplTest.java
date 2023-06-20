@@ -5386,6 +5386,41 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteTable(sourceIndexDescription.getIdAndVersion());
 	}
 	
+	@Test
+	public void testQuerySingleColumn() {
+		List<ColumnModel> schemaOne = List.of(
+			TableModelTestUtils.createColumn(1L, "foo", ColumnType.ENTITYID),
+			TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING_LIST),
+			TableModelTestUtils.createColumn(3L, "barList", ColumnType.INTEGER_LIST)
+		);
+		
+		createOrUpdateTable(schemaOne, indexDescription);
+		tableIndexDAO.createSecondaryTables(indexDescription.getIdAndVersion());
+		
+		// Now add some data
+		RowSet set = new RowSet()
+			.setRows(TableModelTestUtils.createRows(schemaOne, 10))
+			.setHeaders(TableModelUtils.getSelectColumns(schemaOne))
+			.setTableId(indexDescription.getIdAndVersion().toString());
+		
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, new IdRange().setMinimumId(100L).setMaximumId(200L).setVersionNumber(3L));
+		
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(indexDescription.getIdAndVersion(), set, schemaOne);
+		
+		QueryTranslator query = QueryTranslator.builder("select distinct foo from " + tableId + " order by foo", schemaProvider(schemaOne), userId)
+			.indexDescription(new TableIndexDescription(tableId))
+			.build();
+		
+		List<Long> expected = List.of(
+			6000L, 6001L, 6002L, 6003L, 6004L
+		);
+		// Call under test
+		List<Long> result = tableIndexDAO.querySingleColumn(query.getOutputSQL(), query.getParameters(), Long.class, 5, 0);
+		
+		assertEquals(expected, result);
+	}
+	
 	/**
 	 * Helper to create a schema provider for the given schema.
 	 * @param schema

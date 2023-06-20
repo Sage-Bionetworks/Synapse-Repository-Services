@@ -45,8 +45,8 @@ public class ActionsRequiredQuery {
 			SelectList selectFileColumnList = new TableQueryParser(selectFileColumn.getName()).selectList();
 			OrderByClause orderBy = new OrderByClause(new TableQueryParser(selectFileColumn.getName()).sortSpecificationList());
 			
-			querySpec.setSetQuantifier(SetQuantifier.DISTINCT);
 			querySpec.getSelectList().replaceElement(selectFileColumnList);
+			querySpec.setSetQuantifier(SetQuantifier.DISTINCT);
 			querySpec.getTableExpression().replacePagination(null);
 			querySpec.getTableExpression().replaceOrderBy(orderBy);
 			

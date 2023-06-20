@@ -485,6 +485,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		});
 		return true;
 	}
+	
+	@Override
+	public <T> List<T> querySingleColumn(String sql, Map<String, ?> params, Class<T> columnType, long limit, long offset) {
+		return namedTemplate.queryForList(sql + " LIMIT " + limit + " OFFSET " + offset, params, columnType);
+	}
 
 	/*
 	 * (non-Javadoc)

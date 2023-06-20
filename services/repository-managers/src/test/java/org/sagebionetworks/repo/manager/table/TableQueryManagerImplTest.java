@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -49,6 +50,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
@@ -60,6 +62,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
+import org.sagebionetworks.repo.model.download.ActionRequiredCount;
+import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunction;
@@ -111,6 +116,8 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.jdbc.BadSqlGrammarException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -125,9 +132,13 @@ public class TableQueryManagerImplTest {
 	@Mock
 	private TableIndexDAO mockTableIndexDAO;
 	@Mock
+	private EntityAuthorizationManager mockAuthManager;
+	@Mock
 	private ProgressCallback mockProgressCallbackVoid;
 	@Mock
 	private ProgressCallback mockProgressCallback2;
+	@Mock
+	private JdbcTemplate mockJdbcTemplate;
 	@InjectMocks
 	private TableQueryManagerImpl manager;
 	
@@ -626,7 +637,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunCount(true);
 				QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user, mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(null, results.getColumnModels());
 		assertEquals(null, results.getSelectColumns());
@@ -642,7 +653,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withReturnColumnModels(true);
 				QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 	}
@@ -656,7 +667,7 @@ public class TableQueryManagerImplTest {
 				QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
 	}
@@ -679,7 +690,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId+" limit 11").build(), queryOptions);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(new Long(11), results.getQueryCount());
 	}
@@ -694,7 +705,7 @@ public class TableQueryManagerImplTest {
 		RowHandler rowHandler = new SinglePageRowHandler();
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(null, results.getColumnModels());
 		assertEquals(null, results.getSelectColumns());
@@ -718,7 +729,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunCount(true).withRunQuery(true);
 				QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(null, results.getColumnModels());
 		assertEquals(null, results.getSelectColumns());
@@ -742,7 +753,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withReturnLastUpdatedOn(true);
 				QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(lastUpdatedOn, results.getLastUpdatedOn());
 	}
@@ -772,7 +783,7 @@ public class TableQueryManagerImplTest {
 		
 		assertEquals(1, facetRequestList.size());
 		
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -806,7 +817,7 @@ public class TableQueryManagerImplTest {
 		
 		assertEquals(1, facetRequestList.size());
 		
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertNull(results.getColumnModels());
 		assertNull(results.getSelectColumns());
@@ -836,13 +847,52 @@ public class TableQueryManagerImplTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// call under test
-			manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
+			manager.queryAsStreamAfterAuthorization(user, mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		}).getMessage();
 		
 		assertEquals("Invalid use of TEXT_MATCHES. Full text search is not enabled on table syn123.", message);
 
 	}
 	
+	@Test
+	public void testQueryAsStreamAfterAuthorizationWithActionsRequired() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.getConnection()).thenReturn(mockJdbcTemplate);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		setupQueryCallback();
+		when(mockTableIndexDAO.executeInWriteTransaction(any())).thenAnswer(new Answer<Object>() {
+			@Override
+			public Object answer(InvocationOnMock invocation) throws Throwable {
+				return invocation.getArgument(0, TransactionCallback.class).doInTransaction(null);
+			}
+		});
+		
+		List<ActionRequiredCount> actions = List.of(new ActionRequiredCount().setCount(3L).setAction(new MeetAccessRequirement().setAccessRequirementId(345L)));
+		
+		when(mockTableIndexDAO.querySingleColumn(any(), any(), any(), anyLong(), anyLong())).thenReturn(List.of(1L, 2L, 3L), Collections.emptyList());
+		when(mockJdbcTemplate.query("SELECT ACTION_TYPE, ACTION_ID, COUNT(*) AS COUNT FROM AR_" + tableId.toString() + " GROUP BY ACTION_TYPE, ACTION_ID ORDER BY COUNT DESC LIMIT 50", ActionsRequiredDao.ACTION_MAPPER))
+			.thenReturn(actions);
+		
+		// non-null handler indicates the query should be run.
+		RowHandler rowHandler = new SinglePageRowHandler();
+		queryOptions = new QueryOptions().withRunQuery(true).withReturnActionsRequired(true);
+		ColumnModel entityColumn = models.stream().filter(c->c.getColumnType() == ColumnType.ENTITYID).findFirst().orElseThrow();
+		QueryContext context = queriesBuilder.setStartingSql("select * from " + tableId)
+			.setSelectFileColumn(Long.valueOf(entityColumn.getId()))
+			.build();
+		
+		QueryTranslations query = new QueryTranslations(context, queryOptions);
+		
+		// call under test
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		
+		assertEquals(actions, results.getActionsRequired());
+		
+		verify(mockTableIndexDAO).executeInWriteTransaction(any());
+		verify(mockTableIndexDAO).querySingleColumn("SELECT DISTINCT _C6_ FROM T123 ORDER BY _C6_", Collections.emptyMap(), Long.class, 10_000L, 0L);
+		verify(mockAuthManager).getActionsRequiredForDownload(user, List.of(1L, 2L, 3L));
+		
+	}
 	
 	@Test
 	public void testRunQueryAsStream() throws ParseException{
@@ -879,6 +929,7 @@ public class TableQueryManagerImplTest {
 		assertNotNull(results.getSumFileSizes());
 		assertFalse(results.getSumFileSizes().getGreaterThan());
 		assertEquals(new Long(0), results.getSumFileSizes().getSumFileSizesBytes());
+		assertTrue(results.getActionsRequired().isEmpty());
 	}
 	
 	@Test
@@ -892,6 +943,7 @@ public class TableQueryManagerImplTest {
 		assertEquals(null, results.getColumnModels());
 		assertEquals(null, results.getSelectColumns());
 		assertEquals(null, results.getSumFileSizes());
+		assertEquals(null, results.getActionsRequired());
 	}
 	
 	@Test

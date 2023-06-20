@@ -15,11 +15,11 @@ import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
-public class ActionsRequiredDaoImpl {
+public class ActionsRequiredDao {
 
-	static final String TEMP_ACTION_REQUIRED_TEMPLATE = DDLUtilsImpl.loadSQLFromClasspath("sql/TempActionRequired-ddl.sql");
+	public static final String TEMP_ACTION_REQUIRED_TEMPLATE = DDLUtilsImpl.loadSQLFromClasspath("sql/TempActionRequired-ddl.sql");
 	
-	static final RowMapper<ActionRequiredCount> ACTION_MAPPER = (ResultSet rs, int rowNum) -> {
+	public static final RowMapper<ActionRequiredCount> ACTION_MAPPER = (ResultSet rs, int rowNum) -> {
 		ActionType type = ActionType.valueOf(rs.getString("ACTION_TYPE"));
 		Long actionId = rs.getLong("ACTION_ID");
 		Long count = rs.getLong("COUNT");
@@ -40,13 +40,18 @@ public class ActionsRequiredDaoImpl {
 		return new ActionRequiredCount().setCount(count).setAction(action);
 	};
 	
+	private static String getTempTableName(long userId) {
+		return "U" + userId + "A";
+	}
+	
 	private JdbcTemplate jdbcTemplate;
 	
-	public ActionsRequiredDaoImpl(JdbcTemplate jdbcTemplate) {
+	public ActionsRequiredDao(JdbcTemplate jdbcTemplate) {
 		this.jdbcTemplate = jdbcTemplate;
 	}
 	
-	public void createActionsRequiredTable(String tableName, long batchSize, FilesBatchProvider filesProvider, EntityActionRequiredCallback callback) {
+	public String createActionsRequiredTable(long userId, long batchSize, FilesBatchProvider filesProvider, EntityActionRequiredCallback callback) {
+		String tableName = getTempTableName(userId);
 		jdbcTemplate.update(String.format(TEMP_ACTION_REQUIRED_TEMPLATE, tableName));
 		List<Long> batch = null;
 		long limit = batchSize;
@@ -62,16 +67,18 @@ public class ActionsRequiredDaoImpl {
 			// Add the sub-set to the temporary table.
 			addBatchOfActionsToTempTable(actions.toArray(new FileActionRequired[actions.size()]), tableName);
 		} while (batch.size() == batchSize);
+		
+		return tableName;
 	}
 	
-	public List<ActionRequiredCount> getActionsRequiredCount(String tableName, long limit) {
+	public List<ActionRequiredCount> getActionsRequiredCount(long userId, long limit) {
+		String tableName = getTempTableName(userId);
 		String sql = String.format("SELECT ACTION_TYPE, ACTION_ID, COUNT(*) AS COUNT FROM %s GROUP BY ACTION_TYPE, ACTION_ID ORDER BY COUNT DESC LIMIT %s", tableName, limit);
 		return jdbcTemplate.query(sql, ACTION_MAPPER);
 	}
 	
-	public void dropTemporaryTable(String tempTableName) {
-		String sql = String.format("DROP TEMPORARY TABLE IF EXISTS %S ", tempTableName);
-		jdbcTemplate.update(sql);
+	public void dropActionsRequiredTable(long userId) {
+		jdbcTemplate.update(String.format("DROP TEMPORARY TABLE IF EXISTS %S ", getTempTableName(userId)));
 	}
 	
 	private void addBatchOfActionsToTempTable(FileActionRequired[] actions, String tableName) {

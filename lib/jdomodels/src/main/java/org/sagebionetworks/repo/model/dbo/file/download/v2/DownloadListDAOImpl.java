@@ -101,13 +101,13 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	
-	private ActionsRequiredDaoImpl actionsRequiredDao;
+	private ActionsRequiredDao actionsRequiredDao;
 	
 	@Autowired
 	public DownloadListDAOImpl(NamedParameterJdbcTemplate namedJdbcTemplate) {
 		this.namedJdbcTemplate = namedJdbcTemplate;
 		this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
-		this.actionsRequiredDao = new ActionsRequiredDaoImpl(jdbcTemplate);
+		this.actionsRequiredDao = new ActionsRequiredDao(jdbcTemplate);
 	}
 
 	private static final RowMapper<DBODownloadList> LIST_MAPPER = new DBODownloadList().getTableMapping();
@@ -321,7 +321,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			return Arrays.stream(items).map(i -> unorderedResults.stream().filter(u -> isMatch(i, u)).findFirst().get())
 					.collect(Collectors.toList());
 		} finally {
-			actionsRequiredDao.dropTemporaryTable(tempTableName);
+			dropTemporaryTable(tempTableName);
 		}
 	}
 
@@ -360,7 +360,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING);
 			return namedJdbcTemplate.query(sqlBuilder.toString(), params, RESULT_MAPPER);
 		} finally {
-			actionsRequiredDao.dropTemporaryTable(tempTableName);
+			dropTemporaryTable(tempTableName);
 		}
 	}
 
@@ -467,6 +467,11 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		}
 	}
 
+	void dropTemporaryTable(String tempTableName) {
+		String sql = String.format("DROP TEMPORARY TABLE IF EXISTS %S ", tempTableName);
+		jdbcTemplate.update(sql);
+	}
+	
 	/**
 	 * Create a temporary table containing all of the Entity IDs from the given
 	 * user's download list that the user can download.
@@ -572,27 +577,10 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING);
 			return namedJdbcTemplate.queryForObject(sql, params,STATS_MAPPER);
 		} finally {
-			actionsRequiredDao.dropTemporaryTable(tempTableName);
+			dropTemporaryTable(tempTableName);
 		}
 	}
-		
-	/**
-	 * Create a temporary table of all actions the user must
-	 * @param callback
-	 * @param userId
-	 * @param batchSize
-	 * @return
-	 */
-	String createTemporaryTableOfActionsRequired(EntityActionRequiredCallback callback, Long userId, int batchSize) {
-		String tableName = "U" + userId + "A";
-
-		FilesBatchProvider filesProvider  = (limit, offset) -> getBatchOfFileIdsFromUsersDownloadList(userId, limit, offset);
-		
-		actionsRequiredDao.createActionsRequiredTable(tableName, batchSize, filesProvider, callback);
-		
-		return tableName;
-	}
-
+	
 	/**
 	 * Get a batch of file IDs from the user's download list.
 	 * @param userId
@@ -615,16 +603,19 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		/*
 		 * Build a temp table of all actions the user must take to gain access to files on their download list.
 		 */
-		String tempTableName = createTemporaryTableOfActionsRequired(callback, userId, BATCH_SIZE);
+		FilesBatchProvider filesProvider  = (batchLimit, batchOffset) -> getBatchOfFileIdsFromUsersDownloadList(userId, batchLimit, batchOffset);
+		
+		String tempTableName = actionsRequiredDao.createActionsRequiredTable(userId, BATCH_SIZE, filesProvider, callback);
+		
 		try {
 			String sql = String.format(DOWNLOAD_LIST_ACTION_REQUIRED_TEMPLATE, tempTableName);
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("principalId", userId);
 			params.addValue("limit", limit);
 			params.addValue("offset", offset);
-			return namedJdbcTemplate.query(sql, params, ActionsRequiredDaoImpl.ACTION_MAPPER);
+			return namedJdbcTemplate.query(sql, params, ActionsRequiredDao.ACTION_MAPPER);
 		} finally {
-			actionsRequiredDao.dropTemporaryTable(tempTableName);
+			actionsRequiredDao.dropActionsRequiredTable(userId);
 		}
 	}
 
