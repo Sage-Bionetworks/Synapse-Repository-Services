@@ -870,7 +870,7 @@ public class TableQueryManagerImplTest {
 		List<ActionRequiredCount> actions = List.of(new ActionRequiredCount().setCount(3L).setAction(new MeetAccessRequirement().setAccessRequirementId(345L)));
 		
 		when(mockTableIndexDAO.querySingleColumn(any(), any(), any(), anyLong(), anyLong())).thenReturn(List.of(1L, 2L, 3L), Collections.emptyList());
-		when(mockJdbcTemplate.query("SELECT ACTION_TYPE, ACTION_ID, COUNT(*) AS COUNT FROM AR_" + tableId.toString() + " GROUP BY ACTION_TYPE, ACTION_ID ORDER BY COUNT DESC LIMIT 50", ActionsRequiredDao.ACTION_MAPPER))
+		when(mockJdbcTemplate.query("SELECT ACTION_TYPE, ACTION_ID, COUNT(*) AS COUNT FROM U" + user.getId() + "A GROUP BY ACTION_TYPE, ACTION_ID ORDER BY COUNT DESC LIMIT 50", ActionsRequiredDao.ACTION_MAPPER))
 			.thenReturn(actions);
 		
 		// non-null handler indicates the query should be run.
