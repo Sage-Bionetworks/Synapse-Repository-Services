@@ -878,7 +878,7 @@ public class TableController {
 	 * <li>The sum of the file sizes <i>(sumFileSizesBytes)</i> = 0x40</li>
 	 * <li>The last updated on date of the table <i>(lastUpdatedOn)</i> = 0x80</li>
 	 * <li>The SQL that combines the input query and the additional filters <i>(combinedSql)</i> = 0x100</li>
-	 * <li>The list of actions required to download any file that appears in the query <i>(actionsRequired)</i> = 0x200</li>
+	 * <li>The list of actions required to download any file that appears in the query <i>(actionsRequired)</i> = 0x200 (The query.selectFileColumn needs to be specified)</li>
 	 * </ul>
 	 * </p>
 	 * <p>

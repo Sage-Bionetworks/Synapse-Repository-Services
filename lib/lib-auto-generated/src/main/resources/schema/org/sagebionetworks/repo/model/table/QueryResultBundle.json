@@ -53,7 +53,7 @@
 			"type": "string"
 		},
 		"actionsRequired": {
-			"description": "The first 50 actions required to download the files that are part of the query",
+			"description": "The first 50 actions required to download the files that are part of the query. Use mask = 0x200 to include them in the bundle.",
 			"type": "array",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.download.ActionRequiredCount"

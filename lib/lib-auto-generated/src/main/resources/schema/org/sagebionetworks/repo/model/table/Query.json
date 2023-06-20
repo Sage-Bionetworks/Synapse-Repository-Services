@@ -26,7 +26,7 @@
 		},
 		"selectFileColumn": {
 			"type":"integer",
-			"description": "The id of the column used to select file entities (e.g. to fetch the action required for dowonload). The column will need to be an ENTITY type column and be part of the schema of the underlying table/view."
+			"description": "The id of the column used to select file entities (e.g. to fetch the action required for download). The column needs to be an ENTITYID type column and be part of the schema of the underlying table/view."
 		},
 		"offset":{
             "type":"integer",
