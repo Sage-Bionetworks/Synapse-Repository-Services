@@ -1,7 +1,10 @@
 package org.sagebionetworks.snapshot.workers.writers;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -15,6 +18,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -23,6 +28,7 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.CertifiedUserManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -35,6 +41,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 
 import com.amazonaws.services.sqs.model.Message;
+import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 
 @ExtendWith(MockitoExtension.class)
 public class CertifiedUserPassingRecordWriterTest {
@@ -47,9 +54,13 @@ public class CertifiedUserPassingRecordWriterTest {
 	private ObjectRecordDAO mockObjectRecordDAO;
 	@Mock
 	private ProgressCallback mockCallback;
+	@Mock
+	private AwsKinesisFirehoseLogger logger;
 	
 	@InjectMocks
 	private CertifiedUserPassingRecordWriter writer;
+	@Captor
+	private ArgumentCaptor<List<KinesisObjectSnapshotRecord<?>>> recordCaptor;
 	
 	private UserInfo admin = new UserInfo(true);
 	private Long userId = 123L;
@@ -106,9 +117,14 @@ public class CertifiedUserPassingRecordWriterTest {
 
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
+		KinesisObjectSnapshotRecord<?> expectedRecordOne =KinesisObjectSnapshotRecord.map(changeMessage, passingRecord);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 
 		verify(mockObjectRecordDAO).saveBatch(orList, record.getJsonClassName());
+		verify(logger).logBatch(eq("userCertificationSnapshots"), recordCaptor.capture());
+		assertNotNull(recordCaptor.getAllValues().get(0).get(0).getSnapshotTimestamp());
+		expectedRecordOne.withSnapshotTimestamp(recordCaptor.getAllValues().get(0).get(0).getSnapshotTimestamp());
+		assertEquals(List.of(expectedRecordOne), recordCaptor.getValue());
 	}
 
 	@Test
@@ -124,8 +140,15 @@ public class CertifiedUserPassingRecordWriterTest {
 
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
+		KinesisObjectSnapshotRecord<?> expectedRecordOne =KinesisObjectSnapshotRecord.map(changeMessage, passingRecord);
+		KinesisObjectSnapshotRecord<?> expectedRecordTwo =KinesisObjectSnapshotRecord.map(changeMessage, passingRecord);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 
 		verify(mockObjectRecordDAO).saveBatch(Arrays.asList(record, record), record.getJsonClassName());
+		verify(logger).logBatch(eq("userCertificationSnapshots"), recordCaptor.capture());
+		assertNotNull(recordCaptor.getAllValues().get(0).get(0).getSnapshotTimestamp());
+		expectedRecordOne.withSnapshotTimestamp(recordCaptor.getAllValues().get(0).get(0).getSnapshotTimestamp());
+		expectedRecordTwo.withSnapshotTimestamp(recordCaptor.getAllValues().get(0).get(1).getSnapshotTimestamp());
+		assertEquals(List.of(expectedRecordOne, expectedRecordTwo), recordCaptor.getValue());
 	}
 }
