@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -415,6 +416,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		query.setSql("select * from "+tableId+" limit 1");
 		QueryBundleRequest queryBundle = new QueryBundleRequest();
 		queryBundle.setQuery(query);
+		queryBundle.setPartMask(new QueryOptions().withRunQuery(true).getPartMask());
 		
 		status = asynchJobStatusManager.startJob(adminUserInfo, queryBundle);
 		// Wait for the job to complete.

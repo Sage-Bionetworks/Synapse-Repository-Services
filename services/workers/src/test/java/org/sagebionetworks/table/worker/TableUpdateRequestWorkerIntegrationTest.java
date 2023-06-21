@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
@@ -1039,6 +1040,7 @@ public class TableUpdateRequestWorkerIntegrationTest {
 		QueryBundleRequest request = new QueryBundleRequest();
 		request.setQuery(query);
 		request.setEntityId(tableId);
+		request.setPartMask(new QueryOptions().withReturnColumnModels(true).withRunQuery(true).getPartMask());
 		return request;
 	}
 	

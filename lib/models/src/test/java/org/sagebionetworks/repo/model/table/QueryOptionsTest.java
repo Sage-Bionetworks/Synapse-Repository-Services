@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_COMBINED_SQL;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_LAST_UPDATED_ON;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COLUMN_MODELS;
@@ -31,6 +32,10 @@ public class QueryOptionsTest {
 		Long partsMask = null;
 		// call under test
 		options.withMask(partsMask);
+		
+		// Actions required are not included by default
+		assertFalse(options.returnActionsRequired());
+		options.withReturnActionsRequired(true);
 		boolean expectedValue = true;
 		assertAll(expectedValue, options);
 	}

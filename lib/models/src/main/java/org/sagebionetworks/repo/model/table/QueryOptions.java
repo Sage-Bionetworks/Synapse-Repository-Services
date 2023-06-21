@@ -139,7 +139,8 @@ public class QueryOptions {
 		this.runSumFileSizes = ((partMask & BUNDLE_MASK_SUM_FILE_SIZES) != 0);
 		this.returnLastUpdatedOn = ((partMask & BUNDLE_MASK_LAST_UPDATED_ON) != 0);
 		this.returnCombinedSql = ((partMask & BUNDLE_MASK_COMBINED_SQL) !=0 );
-		this.returnActionsRequired = ((partMask & BUNDLE_MASK_ACTIONS_REQUIRED) !=0 );
+		// We disable the actions required by default for backward compatibility since it requires another parameter
+		this.returnActionsRequired = partMaskIn == null ? false : ((partMask & BUNDLE_MASK_ACTIONS_REQUIRED) !=0 );
 		return this;
 	}
 	
