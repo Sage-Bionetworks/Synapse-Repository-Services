@@ -83,22 +83,40 @@ public class ObjectSchemaUtils {
 		ValidateArgument.required(properties, "properties");
 		Map<String, JsonSchema> result = new LinkedHashMap<>();
 		for (String propertyName : properties.keySet()) {
-			ObjectSchema schema = properties.get(propertyName);
-			TYPE schemaType = properties.get(propertyName).getType();
-			if (schemaType == null) {
-				throw new IllegalArgumentException("Schema type is null for " + schema);
-			}
-			if (isPrimitive(schemaType)) {
-				result.put(propertyName, getSchemaForPrimitiveType(schema.getType()));
-			} else {
-				// if the class is not primitive, then generate a JsonSchema that has the 'ref' property 
-				// which references the object in the components section of the OpenAPI spec.
-				JsonSchema jsonSchema = new JsonSchema();
-				jsonSchema.set$ref(getPathInComponents(schema.getId()));
-				result.put(propertyName, jsonSchema);
-			}
+			ObjectSchema property = properties.get(propertyName);
+			TYPE propertyType = property.getType();
+			result.put(propertyName, translateObjectSchemaPropertyToJsonSchema(property, propertyType));
 		}
 		return result;
+	}
+	
+	/**
+	 * Translates a property of an ObjectSchema to a JsonSchema.
+	 * 
+	 * @param property the ObjectSchema property
+	 * @param propertyType the type of the ObjectSchema property
+	 * @return the JsonSchema that is equivalent to the ObjectSchema property
+	 */
+	public JsonSchema translateObjectSchemaPropertyToJsonSchema(ObjectSchema property, TYPE propertyType) {
+		ValidateArgument.required(property, "property");
+		ValidateArgument.required(propertyType, "propertyType");
+		if (isPrimitive(propertyType)) {
+			return getSchemaForPrimitiveType(propertyType);
+		} else {
+			JsonSchema schema = new JsonSchema();
+			if (propertyType.equals(TYPE.ARRAY)) {
+				// get the type of the items and then create an array JsonSchema
+				schema.setType(Type.array);
+				JsonSchema items = translateObjectSchemaPropertyToJsonSchema(property.getItems(), property.getItems().getType());
+				schema.setItems(items);
+			} else {
+				// if the class is another object, then generate a JsonSchema that has the 'ref' property 
+				// which references the object in the components section of the OpenAPI spec.
+				schema.setType(Type.object);
+				schema.set$ref(getPathInComponents(property.getId()));
+			}
+			return schema;
+		}
 	}
 	
 	/**
