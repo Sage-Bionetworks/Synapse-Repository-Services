@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -728,6 +729,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public ColumnModel getColumnModel(String id) {
 		return columnModelManager.getColumnModel(id);
+	}
+	
+	@Override
+	public ActionsRequiredDao getActionsRequiredDao(IdAndVersion idAndVersion) {
+		return new ActionsRequiredDao(tableConnectionFactory.getConnection(idAndVersion).getConnection());
 	}
 
 }

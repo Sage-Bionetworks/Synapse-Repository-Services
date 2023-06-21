@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -443,5 +444,11 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 	 * @param idAndVersion
 	 */
 	void triggerIndexUpdate(IdAndVersion idAndVersion);
+	
+	/**
+	 * @param idAndVersion
+	 * @return An {@link ActionsRequiredDao} instance for the table with the given id
+	 */
+	ActionsRequiredDao getActionsRequiredDao(IdAndVersion idAndVersion);
 
 }

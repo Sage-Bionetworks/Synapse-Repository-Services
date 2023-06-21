@@ -71,10 +71,15 @@ public class ActionsRequiredQueryTest {
 		// Call under test
 		ActionsRequiredQuery query = new ActionsRequiredQuery(queryContext);
 		
-		BasicQuery result = query.getFileEntityQuery();
+		BasicQuery result = query.getFileEntityQuery(10, 0);
 		
-		assertEquals("SELECT DISTINCT _C3_ FROM T123_4 WHERE ROW_BENEFACTOR IN ( :b0, :b1 ) AND _C1_ = :b2 ORDER BY _C3_", result.getSql());
-		assertEquals(Map.of("b0", 11L, "b1", 22L, "b2", "abc"), result.getParameters());
+		assertEquals("SELECT DISTINCT _C3_ FROM T123_4 WHERE ROW_BENEFACTOR IN ( :b0, :b1 ) AND _C1_ = :b2 ORDER BY _C3_ LIMIT :pLimit OFFSET :pOffset", result.getSql());
+		assertEquals(Map.of("b0", 11L, "b1", 22L, "b2", "abc", "pLimit", 10L, "pOffset", 0L), result.getParameters());
+		
+		result = query.getFileEntityQuery(10, 10);
+		
+		assertEquals("SELECT DISTINCT _C3_ FROM T123_4 WHERE ROW_BENEFACTOR IN ( :b0, :b1 ) AND _C1_ = :b2 ORDER BY _C3_ LIMIT :pLimit OFFSET :pOffset", result.getSql());
+		assertEquals(Map.of("b0", 11L, "b1", 22L, "b2", "abc", "pLimit", 10L, "pOffset", 10L), result.getParameters());
 	}
 	
 	@Test

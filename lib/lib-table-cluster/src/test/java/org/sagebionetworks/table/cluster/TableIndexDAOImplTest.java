@@ -5408,7 +5408,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(indexDescription.getIdAndVersion(), set, schemaOne);
 		
-		QueryTranslator query = QueryTranslator.builder("select distinct foo from " + tableId + " order by foo", schemaProvider(schemaOne), userId)
+		QueryTranslator query = QueryTranslator.builder("select distinct foo from " + tableId + " order by foo limit 5", schemaProvider(schemaOne), userId)
 			.indexDescription(new TableIndexDescription(tableId))
 			.build();
 		
@@ -5416,7 +5416,7 @@ public class TableIndexDAOImplTest {
 			6000L, 6001L, 6002L, 6003L, 6004L
 		);
 		// Call under test
-		List<Long> result = tableIndexDAO.querySingleColumn(query.getOutputSQL(), query.getParameters(), Long.class, 5, 0);
+		List<Long> result = tableIndexDAO.querySingleColumn(query.getOutputSQL(), query.getParameters(), Long.class);
 		
 		assertEquals(expected, result);
 	}

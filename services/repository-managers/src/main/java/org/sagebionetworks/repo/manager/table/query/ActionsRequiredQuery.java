@@ -1,7 +1,11 @@
 package org.sagebionetworks.repo.manager.table.query;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.query.ParseException;
@@ -15,7 +19,7 @@ import org.sagebionetworks.util.ValidateArgument;
 
 public class ActionsRequiredQuery {
 	
-	private BasicQuery selectFileEntitiesQuery;
+	private QueryTranslator selectFilesQuery;
 
 	public ActionsRequiredQuery(QueryContext expansion) {
 		ValidateArgument.required(expansion, "expansion");
@@ -50,21 +54,27 @@ public class ActionsRequiredQuery {
 			querySpec.getTableExpression().replacePagination(null);
 			querySpec.getTableExpression().replaceOrderBy(orderBy);
 			
-			QueryTranslator sqlQuery = QueryTranslator.builder(expression.toSql(), expansion.getUserId())
+			selectFilesQuery = QueryTranslator.builder(expression.toSql(), expansion.getUserId())
 				.schemaProvider(expansion.getSchemaProvider())
 				.indexDescription(expansion.getIndexDescription())
 				.build();
 			
-			selectFileEntitiesQuery = new BasicQuery(sqlQuery.getOutputSQL(), sqlQuery.getParameters());
-			
-
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
 	}
 	
-	public BasicQuery getFileEntityQuery() {
-		return selectFileEntitiesQuery;
+	public BasicQuery getFileEntityQuery(long limit, long offset) {
+		
+		// Avoid parsing and translating the query each time and simply append the pagination params
+		String sql = selectFilesQuery.getOutputSQL() + " LIMIT :" + TableConstants.P_LIMIT + " OFFSET :" + TableConstants.P_OFFSET;
+		
+		Map<String, Object> parameters = new HashMap<>(selectFilesQuery.getParameters());
+		
+		parameters.put(TableConstants.P_LIMIT, limit);
+		parameters.put(TableConstants.P_OFFSET, offset);
+		
+		return new BasicQuery(sql, parameters);
 	}
 
 }

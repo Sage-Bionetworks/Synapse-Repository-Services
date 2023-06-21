@@ -615,13 +615,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 	
 	List<ActionRequiredCount> runActionsRequiredQuery(IdAndVersion idAndVersion, UserInfo user, ActionsRequiredQuery actionsRequiredQuery, TableIndexDAO indexDao) {
-		BasicQuery filesQuery = actionsRequiredQuery.getFileEntityQuery();
-				
-		FilesBatchProvider filesProvider = (limit, offset) -> indexDao.querySingleColumn(filesQuery.getSql(), filesQuery.getParameters(), Long.class, limit, offset);
+		FilesBatchProvider filesProvider = (limit, offset) -> {
+			BasicQuery filesQuery = actionsRequiredQuery.getFileEntityQuery(limit, offset);
+			return indexDao.querySingleColumn(filesQuery.getSql(), filesQuery.getParameters(), Long.class);
+		};
 			
 		EntityActionRequiredCallback actionsProvider = (fileIds) -> entityAuthorizationManager.getActionsRequiredForDownload(user, fileIds);
 		
-		ActionsRequiredDao actionsRequiredDao = new ActionsRequiredDao(indexDao.getConnection());
+		ActionsRequiredDao actionsRequiredDao = tableManagerSupport.getActionsRequiredDao(idAndVersion);
 		
 		return indexDao.executeInWriteTransaction((txState) -> {
 			

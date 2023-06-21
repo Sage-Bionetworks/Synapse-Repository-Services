@@ -72,6 +72,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.entity.IdAndVersionParser;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -109,6 +110,7 @@ import org.sagebionetworks.workers.util.semaphore.ReadLockRequest;
 import org.sagebionetworks.workers.util.semaphore.WriteLock;
 import org.sagebionetworks.workers.util.semaphore.WriteLockRequest;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphore;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonServiceException.ErrorType;
@@ -166,6 +168,8 @@ public class TableManagerSupportTest {
 	private LoggerProvider mockLoggerProvider;
 	@Mock
 	private Logger mockLogger;
+	@Mock
+	private JdbcTemplate mockJdbcTemplate;
 	
 	private TableManagerSupportImpl manager;
 	private TableManagerSupportImpl managerSpy;
@@ -1706,6 +1710,21 @@ public class TableManagerSupportTest {
 			.withChangeType(ChangeType.UPDATE);
 		
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(expected);
+		
+	}
+	
+	@Test
+	public void testGetActionsRequiredDao() {
+		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.getConnection()).thenReturn(mockJdbcTemplate);
+		
+		// Call under test
+		ActionsRequiredDao result = manager.getActionsRequiredDao(idAndVersion);
+		
+		assertEquals(mockJdbcTemplate, result.getJdbcTemplate());
+		
+		verify(mockTableConnectionFactory).getConnection(idAndVersion);
+		verify(mockTableIndexDAO).getConnection();
 		
 	}
 	

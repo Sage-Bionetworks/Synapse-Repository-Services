@@ -50,6 +50,10 @@ public class ActionsRequiredDao {
 		this.jdbcTemplate = jdbcTemplate;
 	}
 	
+	public JdbcTemplate getJdbcTemplate() {
+		return jdbcTemplate;
+	}
+	
 	public String createActionsRequiredTable(long userId, long batchSize, FilesBatchProvider filesProvider, EntityActionRequiredCallback callback) {
 		String tableName = getTempTableName(userId);
 		jdbcTemplate.update(String.format(TEMP_ACTION_REQUIRED_TEMPLATE, tableName));

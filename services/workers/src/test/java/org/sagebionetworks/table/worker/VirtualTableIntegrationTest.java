@@ -204,7 +204,7 @@ public class VirtualTableIntegrationTest {
 		// Also check actions required
 		ColumnModel idColumn = tableManagerSupport.getTableSchema(KeyFactory.idAndVersion(virtualTable.getId(), null)).stream().filter(c -> c.getName().equals("id")).findFirst().orElseThrow();
 		
-		Query query = new Query().setSql("select * from "+virtualTable.getId()).setSelectFileColumn(MAX_WAIT_MS).setSelectFileColumn(Long.valueOf(idColumn.getId()));
+		Query query = new Query().setSql("select * from "+virtualTable.getId()).setSelectFileColumn(Long.valueOf(idColumn.getId()));
 		
 		QueryOptions options = new QueryOptions().withReturnActionsRequired(true);
 		

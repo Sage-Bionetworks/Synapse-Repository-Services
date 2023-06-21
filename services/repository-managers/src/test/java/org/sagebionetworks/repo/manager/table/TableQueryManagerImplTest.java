@@ -63,6 +63,8 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -138,7 +140,7 @@ public class TableQueryManagerImplTest {
 	@Mock
 	private ProgressCallback mockProgressCallback2;
 	@Mock
-	private JdbcTemplate mockJdbcTemplate;
+	private ActionsRequiredDao mockActionsRequiredDao;
 	@InjectMocks
 	private TableQueryManagerImpl manager;
 	
@@ -857,7 +859,6 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamAfterAuthorizationWithActionsRequired() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.getConnection()).thenReturn(mockJdbcTemplate);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		setupQueryCallback();
 		when(mockTableIndexDAO.executeInWriteTransaction(any())).thenAnswer(new Answer<Object>() {
@@ -866,17 +867,15 @@ public class TableQueryManagerImplTest {
 				return invocation.getArgument(0, TransactionCallback.class).doInTransaction(null);
 			}
 		});
-		
-		List<ActionRequiredCount> actions = List.of(new ActionRequiredCount().setCount(3L).setAction(new MeetAccessRequirement().setAccessRequirementId(345L)));
-		
-		when(mockTableIndexDAO.querySingleColumn(any(), any(), any(), anyLong(), anyLong())).thenReturn(List.of(1L, 2L, 3L), Collections.emptyList());
-		when(mockJdbcTemplate.query("SELECT ACTION_TYPE, ACTION_ID, COUNT(*) AS COUNT FROM U" + user.getId() + "A GROUP BY ACTION_TYPE, ACTION_ID ORDER BY COUNT DESC LIMIT 50", ActionsRequiredDao.ACTION_MAPPER))
-			.thenReturn(actions);
+		when(mockTableManagerSupport.getActionsRequiredDao(any())).thenReturn(mockActionsRequiredDao);
 		
 		// non-null handler indicates the query should be run.
 		RowHandler rowHandler = new SinglePageRowHandler();
+		
 		queryOptions = new QueryOptions().withRunQuery(true).withReturnActionsRequired(true);
+		
 		ColumnModel entityColumn = models.stream().filter(c->c.getColumnType() == ColumnType.ENTITYID).findFirst().orElseThrow();
+		
 		QueryContext context = queriesBuilder.setStartingSql("select * from " + tableId)
 			.setSelectFileColumn(Long.valueOf(entityColumn.getId()))
 			.build();
@@ -884,12 +883,21 @@ public class TableQueryManagerImplTest {
 		QueryTranslations query = new QueryTranslations(context, queryOptions);
 		
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
-		
-		assertEquals(actions, results.getActionsRequired());
-		
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user, mockProgressCallbackVoid, query, rowHandler, queryOptions);
+				
 		verify(mockTableIndexDAO).executeInWriteTransaction(any());
-		verify(mockTableIndexDAO).querySingleColumn("SELECT DISTINCT _C6_ FROM T123 ORDER BY _C6_", Collections.emptyMap(), Long.class, 10_000L, 0L);
+		
+		ArgumentCaptor<FilesBatchProvider> filesProviderCaptor = ArgumentCaptor.forClass(FilesBatchProvider.class);
+		ArgumentCaptor<EntityActionRequiredCallback> actionsCaptor = ArgumentCaptor.forClass(EntityActionRequiredCallback.class);
+		
+		verify(mockActionsRequiredDao).createActionsRequiredTable(eq(user.getId()), eq(10_000L), filesProviderCaptor.capture(), actionsCaptor.capture());
+		verify(mockActionsRequiredDao).getActionsRequiredCount(user.getId(), 50);
+		
+		// Emulates the actions required dao invoking the providers
+		filesProviderCaptor.getValue().getBatchOfFiles(10_000L, 0);
+		actionsCaptor.getValue().filter(List.of(1L, 2L, 3L));
+		
+		verify(mockTableIndexDAO).querySingleColumn("SELECT DISTINCT _C6_ FROM T123 ORDER BY _C6_ LIMIT :pLimit OFFSET :pOffset", Map.of("pLimit", 10_000L, "pOffset", 0L), Long.class);
 		verify(mockAuthManager).getActionsRequiredForDownload(user, List.of(1L, 2L, 3L));
 		
 	}

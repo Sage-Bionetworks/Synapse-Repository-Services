@@ -110,7 +110,7 @@ public interface TableIndexDAO {
 	 * @param offset
 	 * @return The list of results from the given SQL query on the index, expecting each row to contain a single column of the given type
 	 */
-	<T> List<T> querySingleColumn(String sql, Map<String, ?> params, Class<T> columnType, long limit, long offset);
+	<T> List<T> querySingleColumn(String sql, Map<String, ?> params, Class<T> columnType);
 
 	/**
 	 * Get the row count for this table.
