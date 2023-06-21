@@ -217,4 +217,16 @@ public class ControllerModelDocletTest {
 		assertTrue(references.contains("#/components/schemas/org.sagebionetworks.openapi.pet.Poodle"));
 		assertTrue(references.contains("#/components/schemas/org.sagebionetworks.openapi.pet.Cat"));
 	}
+	
+	@Test
+	public void testComplexTypesInPropertiesAreGeneratedAsReferences() {
+		JSONObject componentsObj = generatedOpenAPISpec.getJSONObject("components");
+		JSONObject schemasObj = componentsObj.getJSONObject("schemas");
+		JSONObject poodleObj = schemasObj.getJSONObject("org.sagebionetworks.openapi.pet.Poodle");
+		JSONObject propertiesObj = poodleObj.getJSONObject("properties");
+		JSONObject ownerProperty = propertiesObj.getJSONObject("owner");
+		
+		// Should be a reference to the place the complex type lives in the "components" section
+		assertEquals("#/components/schemas/org.sagebionetworks.openapi.pet.Owner", ownerProperty.getString("$ref"));
+	}
 }

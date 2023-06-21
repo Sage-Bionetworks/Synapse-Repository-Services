@@ -11,9 +11,9 @@
 			"type": "boolean",
 			"description": "Describes if the poodle if fluffy."
 		},
-		"huskyType": {
+		"owner": {
 			"type": "object",
-			"$ref": "org.sagebionetworks.openapi.pet.Husky"
+			"$ref": "org.sagebionetworks.openapi.pet.Owner"
 		}
 	}
 }

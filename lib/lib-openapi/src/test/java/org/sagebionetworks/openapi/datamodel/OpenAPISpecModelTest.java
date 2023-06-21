@@ -30,25 +30,6 @@ import org.sagebionetworks.translator.ControllerModelDoclet;
 import com.google.gson.Gson;
 
 public class OpenAPISpecModelTest {
-//	@Test
-//	public void testGeneratesCorrectJsonBasicController() throws Exception {
-//		try (InputStream is = OpenAPISpecModel.class.getClassLoader()
-//				.getResourceAsStream("ComplexExampleControllerOpenAPISpec.json")) {
-//			assertNotNull(is);
-//			String jsonTxt = IOUtils.toString(is, StandardCharsets.UTF_8);
-//			JSONObject expectedJson = new JSONObject(jsonTxt);
-//
-//			Gson gson = new Gson();
-//			OpenAPISpecModel openAPISpecModel = gson.fromJson(expectedJson.toString(), OpenAPISpecModel.class);
-//			assertNotNull(openAPISpecModel);
-//
-//			JSONObject generatedJson = openAPISpecModel.generateJSON();
-//			assertEquals(expectedJson.toString(), generatedJson.toString());
-//		} catch (Exception e) {
-//			throw new RuntimeException(e);
-//		}
-//	}
-
 	@Test
 	public void testInitializeFromJSONObject() {
 		assertThrows(UnsupportedOperationException.class, () -> {
