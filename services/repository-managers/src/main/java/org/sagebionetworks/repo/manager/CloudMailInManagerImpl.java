@@ -13,9 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
 import org.json.JSONException;
@@ -41,13 +38,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
 
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
+
 public class CloudMailInManagerImpl implements CloudMailInManager {
-	private static final String FROM_HEADER = "From";
-	private static final String SUBJECT_HEADER = "Subject";
-	private static final String TO_HEADER = "To";
-	private static final String CC_HEADER = "Cc";
-	private static final String BCC_HEADER = "Bcc";
-	
+		
 	private static final String EMAIL_SUFFIX_LOWER_CASE = StackConfigurationSingleton.singleton().getNotificationEmailSuffix().toLowerCase();
 	
 	private static final String INVALID_EMAIL_ADDRESSES_SUBJECT = "Message Failure Notification";

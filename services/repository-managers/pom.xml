@@ -106,11 +106,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.sun.mail</groupId>
-			<artifactId>javax.mail</artifactId>
-		</dependency>
-
-		<dependency>
 			<groupId>commons-net</groupId>
 			<artifactId>commons-net</artifactId>
 		</dependency>
@@ -232,6 +227,25 @@
 		  <groupId>dev.samstevens.totp</groupId>
 		  <artifactId>totp</artifactId>
 		</dependency>
+		
+		<!-- Jakarta Mail Dependencies -->
+		<dependency>
+			<groupId>jakarta.mail</groupId>
+			<artifactId>jakarta.mail-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.angus</groupId>
+			<artifactId>jakarta.mail</artifactId>
+		</dependency>
+		<dependency>
+             <groupId>jakarta.activation</groupId>
+             <artifactId>jakarta.activation-api</artifactId>
+         </dependency>
+         <dependency>
+             <groupId>org.eclipse.angus</groupId>
+             <artifactId>angus-activation</artifactId>
+             <scope>runtime</scope>
+         </dependency>
 
 	</dependencies>
 
