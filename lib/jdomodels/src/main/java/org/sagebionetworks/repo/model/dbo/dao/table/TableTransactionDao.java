@@ -76,5 +76,8 @@ public interface TableTransactionDao {
 	 * 
 	 */
 	Optional<Long> getTransactionForVersion(String tableId, long version);
+	
+	// For testing
+	void truncateAll();
 
 }
