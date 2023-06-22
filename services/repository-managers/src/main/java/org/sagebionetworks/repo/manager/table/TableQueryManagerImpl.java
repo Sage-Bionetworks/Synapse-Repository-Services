@@ -10,6 +10,9 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.table.query.ActionsRequiredQuery;
+import org.sagebionetworks.repo.manager.table.query.BasicQuery;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
@@ -19,6 +22,10 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableType;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
+import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
@@ -65,12 +72,20 @@ import org.springframework.jdbc.BadSqlGrammarException;
 public class TableQueryManagerImpl implements TableQueryManager {
 
 	public static final long MAX_ROWS_PER_CALL = 100;
+	public static final long ACTIONS_REQUIRED_BATCH_SIZE = 10_000;
+	public static final long MAX_ACTIONS_REQUIRED = 50;
+
+	private TableManagerSupport tableManagerSupport;
+	private ConnectionFactory tableConnectionFactory;
+	private EntityAuthorizationManager entityAuthorizationManager;
 
 	@Autowired
-	TableManagerSupport tableManagerSupport;
-	@Autowired
-	ConnectionFactory tableConnectionFactory;
-
+	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager) {
+		this.tableManagerSupport = tableManagerSupport;
+		this.tableConnectionFactory = tableConnectionFactory;
+		this.entityAuthorizationManager = entityAuthorizationManager;
+	}
+	
 	/**
 	 * Injected via spring
 	 */
@@ -209,12 +224,21 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			addRowLevelFilter(user, qs);
 		}
 
-		QueryContext expansion = QueryContext.builder().setStartingSql(preprocessedModel.toSql()).setUserId(user.getId())
-				.setSchemaProvider(tableManagerSupport).setIndexDescription(indexDescription)
-				.setMaxBytesPerPage(maxBytesPerPage).setMaxRowsPerCall(MAX_ROWS_PER_CALL)
-				.setAdditionalFilters(query.getAdditionalFilters()).setSelectedFacets(query.getSelectedFacets())
-				.setLimit(query.getLimit()).setOffset(query.getOffset()).setSort(query.getSort())
-				.setIncludeEntityEtag(query.getIncludeEntityEtag()).build();
+		QueryContext expansion = QueryContext.builder()
+			.setStartingSql(preprocessedModel.toSql())
+			.setUserId(user.getId())
+			.setSchemaProvider(tableManagerSupport)
+			.setIndexDescription(indexDescription)
+			.setMaxBytesPerPage(maxBytesPerPage)
+			.setMaxRowsPerCall(MAX_ROWS_PER_CALL)
+			.setAdditionalFilters(query.getAdditionalFilters())
+			.setSelectedFacets(query.getSelectedFacets())
+			.setSelectFileColumn(query.getSelectFileColumn())
+			.setLimit(query.getLimit())
+			.setOffset(query.getOffset())
+			.setSort(query.getSort())
+			.setIncludeEntityEtag(query.getIncludeEntityEtag())
+		.build();
 
 		return new QueryTranslations(expansion, options);
 	}
@@ -248,7 +272,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					// We can only run this query if the table is available.
 					final TableStatus status = validateTableIsAvailable(idAndVersion.toString());
 					// run the query
-					QueryResultBundle bundle = queryAsStreamAfterAuthorization(progressCallback, query,
+					QueryResultBundle bundle = queryAsStreamAfterAuthorization(user, progressCallback, query,
 							rowHandler, options);
 					// add the status to the result
 					if (rowHandler != null) {
@@ -303,7 +327,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback progressCallback, QueryTranslations query,
+	QueryResultBundle queryAsStreamAfterAuthorization(UserInfo user, ProgressCallback progressCallback, QueryTranslations query,
 			RowHandler rowHandler, final QueryOptions options)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
@@ -359,6 +383,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			bundle.setLastUpdatedOn(lastUpdatedOn);
 		}
 
+		if (options.returnActionsRequired()) {
+			bundle.setActionsRequired(runActionsRequiredQuery(idAndVersion, user, query.getActionsRequiredQuery()
+				.orElseThrow(()-> new IllegalStateException("Expected actions required query")), indexDao));
+		}
+		
 		return bundle;
 	}
 
@@ -585,7 +614,27 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}).orElse(new SumFileSizes().setGreaterThan(false).setSumFileSizesBytes(0L));
 	}
 	
-	
+	List<ActionRequiredCount> runActionsRequiredQuery(IdAndVersion idAndVersion, UserInfo user, ActionsRequiredQuery actionsRequiredQuery, TableIndexDAO indexDao) {
+		FilesBatchProvider filesProvider = (limit, offset) -> {
+			BasicQuery filesQuery = actionsRequiredQuery.getFileEntityQuery(limit, offset);
+			return indexDao.querySingleColumn(filesQuery.getSql(), filesQuery.getParameters(), Long.class);
+		};
+			
+		EntityActionRequiredCallback actionsProvider = (fileIds) -> entityAuthorizationManager.getActionsRequiredForDownload(user, fileIds);
+		
+		ActionsRequiredDao actionsRequiredDao = tableManagerSupport.getActionsRequiredDao(idAndVersion);
+		
+		return indexDao.executeInWriteTransaction((txState) -> {
+			
+			try {
+				actionsRequiredDao.createActionsRequiredTable(user.getId(), ACTIONS_REQUIRED_BATCH_SIZE, filesProvider, actionsProvider);
+		
+				return actionsRequiredDao.getActionsRequiredCount(user.getId(), MAX_ACTIONS_REQUIRED);
+			} finally {
+				actionsRequiredDao.dropActionsRequiredTable(user.getId());
+			}
+		});
+	}
 
 	/**
 	 * Parser a query and convert ParseExceptions to IllegalArgumentExceptions
@@ -678,6 +727,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			sum.setGreaterThan(false);
 			sum.setSumFileSizesBytes(0L);
 			bundle.setSumFileSizes(sum);
+		}
+		if (options.returnActionsRequired()) {
+			bundle.setActionsRequired(Collections.emptyList());
 		}
 		return bundle;
 	}

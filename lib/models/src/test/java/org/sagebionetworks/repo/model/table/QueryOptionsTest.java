@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_COMBINED_SQL;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_LAST_UPDATED_ON;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COLUMN_MODELS;
@@ -13,6 +14,7 @@ import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUER
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_RESULTS;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_SELECT_COLUMNS;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_SUM_FILE_SIZES;
+import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_ACTIONS_REQUIRED;
 
 public class QueryOptionsTest {
 	
@@ -30,6 +32,10 @@ public class QueryOptionsTest {
 		Long partsMask = null;
 		// call under test
 		options.withMask(partsMask);
+		
+		// Actions required are not included by default
+		assertFalse(options.returnActionsRequired());
+		options.withReturnActionsRequired(true);
 		boolean expectedValue = true;
 		assertAll(expectedValue, options);
 	}
@@ -47,7 +53,7 @@ public class QueryOptionsTest {
 	@Test
 	public void testWithMaskAllValues() {
 		QueryOptions options = new QueryOptions();
-		Long partsMask = 255L;
+		Long partsMask = 1023L;
 		// call under test
 		options.withMask(partsMask);
 		boolean expectedValue = true;
@@ -153,6 +159,17 @@ public class QueryOptionsTest {
 	}
 	
 	@Test
+	public void testReturnActionsRequired() {
+		// call under test
+		QueryOptions options = new QueryOptions().withMask(BUNDLE_MASK_ACTIONS_REQUIRED);
+		assertTrue(options.returnActionsRequired());
+		// the rest of the values should be false
+		options.withReturnActionsRequired(false);
+		boolean expectedValue = false;
+		assertAll(expectedValue, options);
+	}
+	
+	@Test
 	public void testGetMaskNone() {
 		QueryOptions options = new QueryOptions();
 		// call under test
@@ -226,6 +243,14 @@ public class QueryOptionsTest {
 	}
 	
 	@Test
+	public void testGetMaskReturnActionsRequired() {
+		QueryOptions options = new QueryOptions().withReturnActionsRequired(true);
+		// call under test
+		long mask = options.getPartMask();
+		assertEquals(QueryOptions.BUNDLE_MASK_ACTIONS_REQUIRED, mask);
+	}
+	
+	@Test
 	public void testReturnLastUpdatedOn() {
 		QueryOptions options = new QueryOptions().withReturnLastUpdatedOn(true);
 		// call under test
@@ -258,6 +283,8 @@ public class QueryOptionsTest {
 		assertEquals(value, options.returnFacets());
 		assertEquals(value, options.runSumFileSizes());
 		assertEquals(value, options.returnLastUpdatedOn());
+		assertEquals(value, options.returnCombinedSql());
+		assertEquals(value, options.returnActionsRequired());
 	}
 
 }

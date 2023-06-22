@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createRe
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -35,6 +36,8 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.download.ActionRequiredCount;
+import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
@@ -198,6 +201,34 @@ public class VirtualTableIntegrationTest {
 					results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 
+		// Also check actions required
+		ColumnModel idColumn = tableManagerSupport.getTableSchema(KeyFactory.idAndVersion(virtualTable.getId(), null)).stream().filter(c -> c.getName().equals("id")).findFirst().orElseThrow();
+		
+		Query query = new Query().setSql("select * from "+virtualTable.getId()).setSelectFileColumn(Long.valueOf(idColumn.getId()));
+		
+		QueryOptions options = new QueryOptions().withReturnActionsRequired(true);
+		
+		// The user does not have download access
+		asyncHelper.assertQueryResult(userInfo, query, options, (results) -> {
+			assertEquals(List.of(
+				new ActionRequiredCount().setCount(10L).setAction(new RequestDownload().setBenefactorId(KeyFactory.stringToKey(projectId)))
+			), results.getActionsRequired());
+		}, MAX_WAIT_MS);
+		
+		// The admin created the files, so it can download
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(Collections.emptyList(), results.getActionsRequired());
+		}, MAX_WAIT_MS);
+		
+		// Now grant download to the user
+		aclDaoHelper.update(projectId, ObjectType.ENTITY, a -> {
+			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.DOWNLOAD));
+		});
+		
+		// Now the user does not need any action
+		asyncHelper.assertQueryResult(userInfo, query, options, (results) -> {
+			assertEquals(Collections.emptyList(), results.getActionsRequired());
+		}, MAX_WAIT_MS);
 	}
 	
 

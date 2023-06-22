@@ -222,7 +222,7 @@ public class QueryTranslator {
 			// SELECT * is replaced with a select including each column in the schema.
 			if (BooleanUtils.isTrue(querySpecification.getSelectList().getAsterisk())) {
 				SelectList expandedSelectList = mapper.buildSelectAllColumns();
-				querySpecification.getSelectList().replaceElement(expandedSelectList);
+				querySpecification.replaceSelectList(expandedSelectList, null);
 			}
 		}
 		/**

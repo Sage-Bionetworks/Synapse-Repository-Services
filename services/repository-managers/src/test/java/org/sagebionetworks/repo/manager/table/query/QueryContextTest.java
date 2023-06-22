@@ -40,6 +40,7 @@ public class QueryContextTest {
 	private String startingSql;
 	private List<QueryFilter> additionalFilters;
 	private List<FacetColumnRequest> selectedFacets;
+	private Long selectFileColumn;
 	private Boolean includeEntityEtag;
 	private Long offset;
 	private Long limit;
@@ -59,17 +60,19 @@ public class QueryContextTest {
 		additionalFilters = List.of(new ColumnSingleValueQueryFilter().setColumnName("two")
 				.setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(List.of("99", "89")));
 		selectedFacets = List.of(new FacetColumnValuesRequest().setColumnName("one").setFacetValues(Set.of("cat")));
+		selectFileColumn = 99L;
 		
 		includeEntityEtag = true;
 		limit = 11L;
 		offset = 3L;
 		
 		sort = List.of(new SortItem().setColumn("three").setDirection(SortDirection.DESC));
-
+		
 		builder = QueryContext.builder().setIndexDescription(mockIndexDescription)
 				.setSchemaProvider(mockSchemaProvider).setUserId(userId).setMaxBytesPerPage(maxBytesPerPage)
 				.setStartingSql(startingSql).setMaxRowsPerCall(maxRowsPerCall).setAdditionalFilters(additionalFilters)
-				.setSelectedFacets(selectedFacets).setIncludeEntityEtag(includeEntityEtag).setLimit(limit)
+				.setSelectedFacets(selectedFacets).setSelectFileColumn(selectFileColumn).setIncludeEntityEtag(includeEntityEtag)
+				.setLimit(limit)
 				.setOffset(offset).setSort(sort);
 	}
 
@@ -88,6 +91,7 @@ public class QueryContextTest {
 		assertEquals(startingSql, expansion.getStartingSql());
 		assertEquals(additionalFilters, expansion.getAdditionalFilters());
 		assertEquals(selectedFacets, expansion.getSelectedFacets());
+		assertEquals(selectFileColumn, expansion.getSelectFileColumn());
 		assertEquals(includeEntityEtag, expansion.getIncludeEntityEtag());
 		assertEquals(limit, expansion.getLimit());
 		assertEquals(offset, expansion.getOffset());
