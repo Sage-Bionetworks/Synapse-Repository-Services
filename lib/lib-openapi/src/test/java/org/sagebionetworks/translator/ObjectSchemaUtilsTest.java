@@ -3,6 +3,7 @@ package org.sagebionetworks.translator;
 import static org.junit.Assert.assertEquals;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 public class ObjectSchemaUtilsTest {
@@ -52,16 +54,12 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
-	public void testGetClassNameToJsonSchema() {
+	public void testGetClassNameToJsonSchema() throws JSONObjectAdapterException {
 		Map<String, ObjectSchema> classNameToObjectSchema = new HashMap<>();
 		ObjectSchema objectSchema;
-		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			objectSchema = new ObjectSchemaImpl(adpater);
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+
 		objectSchema.setType(TYPE.INTEGER);
 		String className = "className";
 		classNameToObjectSchema.put(className, objectSchema);
@@ -77,15 +75,11 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateObjectSchemaToJsonSchemaWithNDescription() {
+	public void testTranslateObjectSchemaToJsonSchemaWithNDescription() throws JSONObjectAdapterException {
 		ObjectSchema objectSchema;
-		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			objectSchema = new ObjectSchemaImpl(adpater);
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+
 		objectSchema.setType(TYPE.OBJECT);
 		objectSchema.setProperties(new LinkedHashMap<>());
 		objectSchema.setDescription("TESTING");
@@ -105,15 +99,11 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateObjectSchemaToJsonSchemaWithNonPrimitiveType() {
+	public void testTranslateObjectSchemaToJsonSchemaWithNonPrimitiveType() throws JSONObjectAdapterException {
 		ObjectSchema objectSchema;
-		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			objectSchema = new ObjectSchemaImpl(adpater);
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+
 		objectSchema.setType(TYPE.OBJECT);
 		objectSchema.setProperties(new LinkedHashMap<>());
 		
@@ -131,15 +121,10 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateObjectSchemaToJsonSchemaWithPrimitiveType() {
+	public void testTranslateObjectSchemaToJsonSchemaWithPrimitiveType() throws JSONObjectAdapterException {
 		ObjectSchema objectSchema;
-		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			objectSchema = new ObjectSchemaImpl(adpater);
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
 		objectSchema.setType(TYPE.INTEGER);
 		
 		Mockito.doReturn(new JsonSchema()).when(util).getSchemaForPrimitiveType(any(TYPE.class));
@@ -160,21 +145,17 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
-	public void testTranslatePropertiesFromObjectSchema() {
+	public void testTranslatePropertiesFromObjectSchema() throws JSONObjectAdapterException {
 		Map<String, ObjectSchema> properties = new LinkedHashMap<>();
 		ObjectSchema objectSchema1;
 		ObjectSchema objectSchema2;
-		try {
-			JSONObjectAdapterImpl adpater1 = new JSONObjectAdapterImpl("{}");
-			JSONObjectAdapterImpl adpater2 = new JSONObjectAdapterImpl("{properties: {}}");
-			objectSchema1 = new ObjectSchemaImpl(adpater1);
-			objectSchema1.setType(TYPE.STRING);
-			objectSchema2 = new ObjectSchemaImpl(adpater2);
-			objectSchema2.setType(TYPE.INTEGER);
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
+		JSONObjectAdapterImpl adpater1 = new JSONObjectAdapterImpl("{}");
+		JSONObjectAdapterImpl adpater2 = new JSONObjectAdapterImpl("{properties: {}}");
+		objectSchema1 = new ObjectSchemaImpl(adpater1);
+		objectSchema1.setType(TYPE.STRING);
+		objectSchema2 = new ObjectSchemaImpl(adpater2);
+		objectSchema2.setType(TYPE.INTEGER);
+
 		String className1 = "ClassName1";
 		String className2 = "ClassName2";
 		properties.put(className1, objectSchema1);
@@ -198,15 +179,10 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
-	public void testTranslatePropertiesFromObjectSchemaWithNullProperties() {
+	public void testTranslatePropertiesFromObjectSchemaWithNullProperties() throws JSONObjectAdapterException {
 		ObjectSchema objectSchema;
-		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			objectSchema = new ObjectSchemaImpl(adpater);
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
 		
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
@@ -216,16 +192,106 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateObjectSchemaPropertyToJsonSchemaWithComplexType() {
+	public void testTranslateObjectSchemaPropertyToJsonSchemaSetsDescriptionWhenPresent() throws JSONObjectAdapterException {
 		ObjectSchema objectSchema;
-		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			objectSchema = new ObjectSchemaImpl(adpater);
-			objectSchema.setId("MOCK_ID");
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+		objectSchema.setId("MOCK_ID");
+		objectSchema.setDescription("MOCK_DESCRIPTION");
+		
+		// call under test
+		JsonSchema result = util.translateObjectSchemaPropertyToJsonSchema(objectSchema, TYPE.OBJECT);
+		assertTrue(result.getDescription().equals("MOCK_DESCRIPTION"));
+	}
+	
+	@Test
+	public void testTranslateObjectSchemaPropertyToJsonSchemaWithUnhandledType() throws JSONObjectAdapterException {
+		ObjectSchema objectSchema;
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+		
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			util.translateObjectSchemaPropertyToJsonSchema(objectSchema, TYPE.NULL);
+		});
+		assertEquals("Unsupported propertyType NULL", exception.getMessage());
+	}
+	
+	@Test
+	public void testTranslateObjectSchemaPropertyToJsonSchemaWithTupleArrayMapType() throws JSONObjectAdapterException {
+		ObjectSchema objectSchema;
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+		objectSchema.setKey(new ObjectSchemaImpl(adpater));
+		objectSchema.setValue(new ObjectSchemaImpl(adpater));
+		
+		Mockito.doReturn(false).when(util).isPrimitive(any());
+		
+		Map<String, JsonSchema> translatedProperties = new LinkedHashMap<>();
+		translatedProperties.put("key", new JsonSchema());
+		translatedProperties.put("value", new JsonSchema());
+		Mockito.doReturn(translatedProperties).when(util).translatePropertiesFromObjectSchema(any());
+		
+		JsonSchema result = new JsonSchema();
+		result.setType(Type.object);
+		result.setProperties(translatedProperties);
+		
+		// call under test
+		assertEquals(result, util.translateObjectSchemaPropertyToJsonSchema(objectSchema, TYPE.TUPLE_ARRAY_MAP));
+		Mockito.verify(util).isPrimitive(TYPE.TUPLE_ARRAY_MAP);
+		Mockito.verify(util).translatePropertiesFromObjectSchema(any());
+	}
+	
+	@Test
+	public void testTranslateObjectSchemaPropertyToJsonSchemaWithMapType() throws JSONObjectAdapterException {
+		ObjectSchema objectSchema;
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+		objectSchema.setKey(new ObjectSchemaImpl(adpater));
+		objectSchema.setValue(new ObjectSchemaImpl(adpater));
+		
+		Mockito.doReturn(false).when(util).isPrimitive(any());
+		
+		Map<String, JsonSchema> translatedProperties = new LinkedHashMap<>();
+		translatedProperties.put("key", new JsonSchema());
+		translatedProperties.put("value", new JsonSchema());
+		Mockito.doReturn(translatedProperties).when(util).translatePropertiesFromObjectSchema(any());
+		
+		JsonSchema result = new JsonSchema();
+		result.setType(Type.object);
+		result.setProperties(translatedProperties);
+		
+		// call under test
+		assertEquals(result, util.translateObjectSchemaPropertyToJsonSchema(objectSchema, TYPE.MAP));
+		Mockito.verify(util).isPrimitive(TYPE.MAP);
+		Mockito.verify(util).translatePropertiesFromObjectSchema(any());
+	}
+	
+	@Test
+	public void testTranslateObjectSchemaPropertyToJsonSchemaWithInterfaceType() throws JSONObjectAdapterException {
+		ObjectSchema objectSchema;
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+		objectSchema.setId("MOCK_ID");
+		
+		Mockito.doReturn(false).when(util).isPrimitive(any());
+		Mockito.doReturn("MOCK_PATH").when(util).getPathInComponents(any());
+		JsonSchema result = new JsonSchema();
+		result.set$ref("MOCK_PATH");
+		result.setType(Type.object);
+		
+		// call under test
+		assertEquals(result, util.translateObjectSchemaPropertyToJsonSchema(objectSchema, TYPE.INTERFACE));
+		Mockito.verify(util).isPrimitive(TYPE.INTERFACE);
+		Mockito.verify(util).getPathInComponents("MOCK_ID");
+	}
+	
+	@Test
+	public void testTranslateObjectSchemaPropertyToJsonSchemaWithObjectType() throws JSONObjectAdapterException {
+		ObjectSchema objectSchema;
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+		objectSchema.setId("MOCK_ID");
 		
 		Mockito.doReturn(false).when(util).isPrimitive(any());
 		Mockito.doReturn("MOCK_PATH").when(util).getPathInComponents(any());
@@ -240,24 +306,19 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateObjectSchemaPropertyToJsonSchemaWithArrayType() {
+	public void testTranslateObjectSchemaPropertyToJsonSchemaWithArrayType() throws JSONObjectAdapterException {
 		ObjectSchema schema;
 		ObjectSchema items;
-		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			schema = new ObjectSchemaImpl(adpater);
-			schema.setType(TYPE.ARRAY);
-			
-			JSONObjectAdapterImpl itemsAdapter = new JSONObjectAdapterImpl();
-			items = new ObjectSchemaImpl(itemsAdapter);
-			items.setType(TYPE.STRING);
-			items.setId("MOCK_ID");
-			
-			schema.setItems(items);
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		schema = new ObjectSchemaImpl(adpater);
+		schema.setType(TYPE.ARRAY);
+		
+		JSONObjectAdapterImpl itemsAdapter = new JSONObjectAdapterImpl();
+		items = new ObjectSchemaImpl(itemsAdapter);
+		items.setType(TYPE.STRING);
+		items.setId("MOCK_ID");
+		
+		schema.setItems(items);
 		
 		JsonSchema result = new JsonSchema();
 		result.setType(Type.array);

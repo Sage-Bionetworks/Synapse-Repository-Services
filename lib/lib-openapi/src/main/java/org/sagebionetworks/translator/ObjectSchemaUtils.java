@@ -104,16 +104,31 @@ public class ObjectSchemaUtils {
 			return getSchemaForPrimitiveType(propertyType);
 		} else {
 			JsonSchema schema = new JsonSchema();
-			if (propertyType.equals(TYPE.ARRAY)) {
-				// get the type of the items and then create an array JsonSchema
-				schema.setType(Type.array);
-				JsonSchema items = translateObjectSchemaPropertyToJsonSchema(property.getItems(), property.getItems().getType());
-				schema.setItems(items);
-			} else {
-				// if the class is another object, then generate a JsonSchema that has the 'ref' property 
-				// which references the object in the components section of the OpenAPI spec.
-				schema.setType(Type.object);
-				schema.set$ref(getPathInComponents(property.getId()));
+			if (property.getDescription() != null) {
+				schema.setDescription(property.getDescription());
+			}
+			
+			switch (propertyType) {
+				case ARRAY:
+					schema.setType(Type.array);
+					JsonSchema items = translateObjectSchemaPropertyToJsonSchema(property.getItems(), property.getItems().getType());
+					schema.setItems(items);
+					break;
+				case TUPLE_ARRAY_MAP:
+				case MAP:
+					schema.setType(Type.object);
+					Map<String, ObjectSchema> properties = new LinkedHashMap<>();
+					properties.put("key", property.getKey());
+					properties.put("value", property.getValue());
+					schema.setProperties(translatePropertiesFromObjectSchema(properties));
+					break;
+				case OBJECT:
+				case INTERFACE:
+					schema.setType(Type.object);
+					schema.set$ref(getPathInComponents(property.getId()));
+					break;
+				default:
+					throw new IllegalArgumentException("Unsupported propertyType " + propertyType);
 			}
 			return schema;
 		}
