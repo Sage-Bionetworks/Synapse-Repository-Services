@@ -10,6 +10,13 @@
 		"hasLongHair": {
 			"type": "boolean",
 			"description": "Describes if the husky has long hair."
+		},
+		"owners": {
+			"type": "array",
+			"items": {
+			    "type":"object",
+				"$ref":"org.sagebionetworks.openapi.pet.Owner"
+			}
 		}
 	}
 }

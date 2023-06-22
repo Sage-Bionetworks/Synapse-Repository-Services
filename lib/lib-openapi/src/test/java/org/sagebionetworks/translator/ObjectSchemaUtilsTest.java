@@ -180,32 +180,47 @@ public class ObjectSchemaUtilsTest {
 		properties.put(className1, objectSchema1);
 		properties.put(className2, objectSchema2);
 		
-		Mockito.doReturn(new JsonSchema()).when(util).translateObjectSchemaToJsonSchema(any(ObjectSchema.class));
-		
+		JsonSchema schema1 = new JsonSchema();
+		schema1.setType(Type.string);
+		JsonSchema schema2 = new JsonSchema();
+		schema2.setType(Type.integer);
+		Mockito.doReturn(schema1, schema2).when(util).translateObjectSchemaPropertyToJsonSchema(any(), any());
 		Map<String, JsonSchema> expected = new LinkedHashMap<>();
-		JsonSchema expectedSchema1 = new JsonSchema();
-		expectedSchema1.setType(Type.string);
-		JsonSchema expectedSchema2 = new JsonSchema();
-		expectedSchema2.setType(Type.integer);
-		expectedSchema2.setFormat("int32");
-		expected.put(className1, expectedSchema1);
-		expected.put(className2, expectedSchema2);
+		expected.put(className1, schema1);
+		expected.put(className2, schema2);
 		
 		// call under test
 		assertEquals(expected, util.translatePropertiesFromObjectSchema(properties));
-		Mockito.verify(util, Mockito.times(2)).getSchemaForPrimitiveType(any());
+		Mockito.verify(util, Mockito.times(2)).translateObjectSchemaPropertyToJsonSchema(any(), any());
 		InOrder inOrder = Mockito.inOrder(util);
-		inOrder.verify(util).getSchemaForPrimitiveType(TYPE.STRING);
-		inOrder.verify(util).getSchemaForPrimitiveType(TYPE.INTEGER);
+		inOrder.verify(util).translateObjectSchemaPropertyToJsonSchema(objectSchema1, TYPE.STRING);
+		inOrder.verify(util).translateObjectSchemaPropertyToJsonSchema(objectSchema2, TYPE.INTEGER);
 	}
 	
 	@Test
-	public void testTranslatePropertiesFromObjectSchemaWithComplexType() {
+	public void testTranslatePropertiesFromObjectSchemaWithNullProperties() {
 		ObjectSchema objectSchema;
 		try {
 			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 			objectSchema = new ObjectSchemaImpl(adpater);
-			objectSchema.setType(TYPE.ARRAY);
+		} catch (Exception e) {
+			// this should never happen
+			throw new RuntimeException("Error creating adapter for schema");
+		}
+		
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			util.translatePropertiesFromObjectSchema(null);
+		});
+		assertEquals("properties is required.", exception.getMessage());
+	}
+	
+	@Test
+	public void testTranslateObjectSchemaPropertyToJsonSchemaWithComplexType() {
+		ObjectSchema objectSchema;
+		try {
+			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+			objectSchema = new ObjectSchemaImpl(adpater);
 			objectSchema.setId("MOCK_ID");
 		} catch (Exception e) {
 			// this should never happen
@@ -214,49 +229,82 @@ public class ObjectSchemaUtilsTest {
 		
 		Mockito.doReturn(false).when(util).isPrimitive(any());
 		Mockito.doReturn("MOCK_PATH").when(util).getPathInComponents(any());
-		
-		Map<String, ObjectSchema> properties = new LinkedHashMap<>();
-		properties.put("KEY", objectSchema);
-		
-		Map<String, JsonSchema> expected = new LinkedHashMap<>();
-		JsonSchema expectedSchema = new JsonSchema();
-		expectedSchema.set$ref("MOCK_PATH");
-		expected.put("KEY", expectedSchema);
+		JsonSchema result = new JsonSchema();
+		result.set$ref("MOCK_PATH");
+		result.setType(Type.object);
 		
 		// call under test
-		assertEquals(expected, util.translatePropertiesFromObjectSchema(properties));
-		Mockito.verify(util).isPrimitive(TYPE.ARRAY);
+		assertEquals(result, util.translateObjectSchemaPropertyToJsonSchema(objectSchema, TYPE.OBJECT));
+		Mockito.verify(util).isPrimitive(TYPE.OBJECT);
 		Mockito.verify(util).getPathInComponents("MOCK_ID");
 	}
 	
 	@Test
-	public void testTranslatePropertiesFromObjectSchemaWithNullSchemaType() {
-		ObjectSchema objectSchema;
+	public void testTranslateObjectSchemaPropertyToJsonSchemaWithArrayType() {
+		ObjectSchema schema;
+		ObjectSchema items;
 		try {
 			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			objectSchema = new ObjectSchemaImpl(adpater);
-			objectSchema.setType(null);
+			schema = new ObjectSchemaImpl(adpater);
+			schema.setType(TYPE.ARRAY);
+			
+			JSONObjectAdapterImpl itemsAdapter = new JSONObjectAdapterImpl();
+			items = new ObjectSchemaImpl(itemsAdapter);
+			items.setType(TYPE.STRING);
+			items.setId("MOCK_ID");
+			
+			schema.setItems(items);
 		} catch (Exception e) {
 			// this should never happen
 			throw new RuntimeException("Error creating adapter for schema");
 		}
-
-		Map<String, ObjectSchema> properties = new LinkedHashMap<>();
-		properties.put("key", objectSchema);
-		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			util.translatePropertiesFromObjectSchema(properties);
-		});
-		assertEquals("Schema type is null for " + objectSchema.toString(), exception.getMessage());
+		
+		JsonSchema result = new JsonSchema();
+		result.setType(Type.array);
+		JsonSchema resultItems = new JsonSchema();
+		resultItems.setType(Type.string);
+		result.setItems(resultItems);
+		
+		// call under test
+		assertEquals(result, util.translateObjectSchemaPropertyToJsonSchema(schema, TYPE.ARRAY));
+		Mockito.verify(util, Mockito.times(2)).translateObjectSchemaPropertyToJsonSchema(any(), any());
+		InOrder inOrder = Mockito.inOrder(util);
+		inOrder.verify(util).translateObjectSchemaPropertyToJsonSchema(schema, TYPE.ARRAY);
+		inOrder.verify(util).translateObjectSchemaPropertyToJsonSchema(items, TYPE.STRING);
 	}
 	
 	@Test
-	public void testTranslatePropertiesFromObjectSchemaWithNull() {
+	public void testTranslateObjectSchemaPropertyToJsonSchemaWithPrimitiveType() {
+		Mockito.doReturn(true).when(util).isPrimitive(any());
+		JsonSchema result = new JsonSchema();
+		result.setType(Type.string);
+		Mockito.doReturn(result).when(util).getSchemaForPrimitiveType(any());
+		
+		ObjectSchema property = Mockito.mock(ObjectSchema.class);
+		TYPE propertyType = TYPE.STRING;
+		
+		// call under test
+		assertEquals(result, util.translateObjectSchemaPropertyToJsonSchema(property, propertyType));
+		Mockito.verify(util).isPrimitive(TYPE.STRING);
+		Mockito.verify(util).getSchemaForPrimitiveType(TYPE.STRING);
+	}
+	
+	@Test
+	public void testTranslateObjectSchemaPropertyToJsonSchemaWithNullPropertyType() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			util.translatePropertiesFromObjectSchema(null);
+			util.translateObjectSchemaPropertyToJsonSchema(Mockito.mock(ObjectSchema.class), null);
 		});
-		assertEquals("properties is required.", exception.getMessage());
+		assertEquals("propertyType is required.", exception.getMessage());
+	}
+	
+	@Test
+	public void testTranslateObjectSchemaPropertyToJsonSchemaWithNullProperty() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			util.translateObjectSchemaPropertyToJsonSchema(null, TYPE.ARRAY);
+		});
+		assertEquals("property is required.", exception.getMessage());
 	}
 	
 	@Test
