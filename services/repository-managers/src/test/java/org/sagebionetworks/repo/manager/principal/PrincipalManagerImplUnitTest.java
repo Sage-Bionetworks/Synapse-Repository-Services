@@ -22,10 +22,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,6 +61,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
 
 @ExtendWith(MockitoExtension.class)
 public class PrincipalManagerImplUnitTest {
