@@ -130,4 +130,38 @@ public class QuerySpecificationTest {
 		assertTrue(message.contains("Was expecting one of:"));
 		assertTrue(message.contains("<EOF>"));
 	}
+	
+	@Test
+	public void testReplaceSelectList() throws ParseException {
+		QuerySpecification querySpec = new TableQueryParser("select bar, count(*) from syn123 where bar is not null")
+				.querySpecification();
+		
+		SelectList oldSelectList = querySpec.getSelectList();
+		SelectList newSelectList = new TableQueryParser("bar, foo").selectList();
+		
+		// call under test
+		querySpec.replaceSelectList(newSelectList, null);
+		
+		assertEquals("SELECT bar, foo FROM syn123 WHERE bar IS NOT NULL", querySpec.toSql());
+		assertEquals(newSelectList, querySpec.getSelectList());
+		assertEquals(querySpec, newSelectList.getParent());
+		assertNull(oldSelectList.getParent());
+	}
+	
+	@Test
+	public void testReplaceSelectListWithDistinct() throws ParseException {
+		QuerySpecification querySpec = new TableQueryParser("select bar, count(*) from syn123 where bar is not null")
+				.querySpecification();
+		
+		SelectList oldSelectList = querySpec.getSelectList();
+		SelectList newSelectList = new TableQueryParser("bar, foo").selectList();
+		
+		// call under test
+		querySpec.replaceSelectList(newSelectList, SetQuantifier.DISTINCT);
+		
+		assertEquals("SELECT DISTINCT bar, foo FROM syn123 WHERE bar IS NOT NULL", querySpec.toSql());
+		assertEquals(newSelectList, querySpec.getSelectList());
+		assertEquals(querySpec, newSelectList.getParent());
+		assertNull(oldSelectList.getParent());
+	}
 }

@@ -397,7 +397,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 				throw new IllegalArgumentException(String.format("'%s' is not a file view or a dataset", idAndVersion.toString()));
 			}
 			
-			model.getSelectList().replaceElement(new TableQueryParser(TableConstants.ROW_ID).selectList());
+			model.replaceSelectList(new TableQueryParser(TableConstants.ROW_ID).selectList(), null);
 			query.setSql(model.toSql());
 			QueryOptions queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false)
 					.withReturnFacets(false).withReturnLastUpdatedOn(false);
