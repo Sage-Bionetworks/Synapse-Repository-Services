@@ -17,13 +17,15 @@ import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.util.ValidateArgument;
 
-public class ObjectSchemaUtils {	
+public class ObjectSchemaUtils {
 	/**
-	 * Generates a mapping of class id to an ObjectSchema that represents that class.
-	 * Starts out with all of the concrete classes found in `autoGen`
+	 * Generates a mapping of class id to an ObjectSchema that represents that
+	 * class. Starts out with all of the concrete classes found in `autoGen`
 	 * 
-	 * @param concreteClassNames - the iterator whose values represent ids of all concrete classes.
-	 * @return a mapping of concrete classes between class id to an ObjectSchema that represents it.
+	 * @param concreteClassNames - the iterator whose values represent ids of all
+	 *                           concrete classes.
+	 * @return a mapping of concrete classes between class id to an ObjectSchema
+	 *         that represents it.
 	 */
 	public Map<String, ObjectSchema> getConcreteClasses(Iterator<String> concreteClassNames) {
 		Map<String, ObjectSchema> classNameToObjectSchema = new HashMap<>();
@@ -34,9 +36,10 @@ public class ObjectSchemaUtils {
 		}
 		return classNameToObjectSchema;
 	}
-	
+
 	/**
-	 * Translates a mapping from class id to ObjectSchema to a mapping from class id to JsonSchema;
+	 * Translates a mapping from class id to ObjectSchema to a mapping from class id
+	 * to JsonSchema;
 	 * 
 	 * @param classNameToObjectSchema - the mapping being translated
 	 * @return a translated mapping consisting of class id to JsonSchema
@@ -47,7 +50,8 @@ public class ObjectSchemaUtils {
 			ObjectSchema schema = classNameToObjectSchema.get(className);
 			classNameToJsonSchema.put(className, translateObjectSchemaToJsonSchema(schema));
 		}
-		Map<String, List<TypeReference>> interfaces = SchemaUtils.mapImplementationsToIntefaces(classNameToObjectSchema);
+		Map<String, List<TypeReference>> interfaces = SchemaUtils
+				.mapImplementationsToIntefaces(classNameToObjectSchema);
 		insertOneOfPropertyForInterfaces(classNameToJsonSchema, interfaces);
 		return classNameToJsonSchema;
 	}
@@ -65,41 +69,48 @@ public class ObjectSchemaUtils {
 		}
 		JsonSchema jsonSchema = new JsonSchema();
 		jsonSchema.setType(translateObjectSchemaTypeToJsonSchemaType(objectSchema.getType()));
-		jsonSchema.setProperties(translatePropertiesFromObjectSchema(objectSchema.getProperties()));
+		jsonSchema.setProperties(translatePropertiesFromObjectSchema(objectSchema.getProperties(), objectSchema.getId()));
 		if (objectSchema.getDescription() != null) {
 			jsonSchema.setDescription(objectSchema.getDescription());
 		}
 
 		return jsonSchema;
 	}
-	
+
 	/**
-	 * Translate the "properties" attribute of an ObjectSchema, which is a mapping between class id to ObjectSchema
+	 * Translate the "properties" attribute of an ObjectSchema, which is a mapping
+	 * between propertyName to ObjectSchema
 	 * 
 	 * @param properties - the properties we are translating
+	 * @param schemaId   - the id of the schema whose properties we are translating
 	 * @return an equivalent mapping between class id to JsonSchema
 	 */
-	Map<String, JsonSchema> translatePropertiesFromObjectSchema(Map<String, ObjectSchema> properties) {
+	Map<String, JsonSchema> translatePropertiesFromObjectSchema(Map<String, ObjectSchema> properties, String schemaId) {
 		ValidateArgument.required(properties, "properties");
 		Map<String, JsonSchema> result = new LinkedHashMap<>();
 		for (String propertyName : properties.keySet()) {
 			ObjectSchema property = properties.get(propertyName);
-			TYPE propertyType = property.getType();
-			result.put(propertyName, translateObjectSchemaPropertyToJsonSchema(property, propertyType));
+			if (isSelfReferencing(property)) {
+				result.put(propertyName, generateReferenceSchema(schemaId));
+			} else {
+				result.put(propertyName, translateObjectSchemaPropertyToJsonSchema(property, schemaId));
+			}
 		}
 		return result;
 	}
-	
+
 	/**
 	 * Translates a property of an ObjectSchema to a JsonSchema.
 	 * 
-	 * @param property the ObjectSchema property
-	 * @param propertyType the type of the ObjectSchema property
+	 * @param property     the ObjectSchema property
+	 * @param schemaId	   the id of the schema whose property we are translating
 	 * @return the JsonSchema that is equivalent to the ObjectSchema property
 	 */
-	public JsonSchema translateObjectSchemaPropertyToJsonSchema(ObjectSchema property, TYPE propertyType) {
+	public JsonSchema translateObjectSchemaPropertyToJsonSchema(ObjectSchema property, String schemaId) {
 		ValidateArgument.required(property, "property");
-		ValidateArgument.required(propertyType, "propertyType");
+		ValidateArgument.required(schemaId, "schemaId");
+		ValidateArgument.required(property.getType(), "property.type");
+		TYPE propertyType = property.getType();
 		if (isPrimitive(propertyType)) {
 			return getSchemaForPrimitiveType(propertyType);
 		} else {
@@ -107,33 +118,109 @@ public class ObjectSchemaUtils {
 			if (property.getDescription() != null) {
 				schema.setDescription(property.getDescription());
 			}
-			
+
 			switch (propertyType) {
-				case ARRAY:
-					schema.setType(Type.array);
-					JsonSchema items = translateObjectSchemaPropertyToJsonSchema(property.getItems(), property.getItems().getType());
-					schema.setItems(items);
-					break;
-				case TUPLE_ARRAY_MAP:
-				case MAP:
-					schema.setType(Type.object);
-					Map<String, ObjectSchema> properties = new LinkedHashMap<>();
-					properties.put("key", property.getKey());
-					properties.put("value", property.getValue());
-					schema.setProperties(translatePropertiesFromObjectSchema(properties));
-					break;
-				case OBJECT:
-				case INTERFACE:
-					schema.setType(Type.object);
-					schema.set$ref(getPathInComponents(property.getId()));
-					break;
-				default:
-					throw new IllegalArgumentException("Unsupported propertyType " + propertyType);
+			case ARRAY:
+				populateSchemaForArrayType(schema, property.getItems(), schemaId);
+				break;
+			case TUPLE_ARRAY_MAP:
+			case MAP:
+				populateSchemaForMapType(schema, property, schemaId);			
+				break;
+			case OBJECT:
+			case INTERFACE:
+				populateSchemaForObjectType(schema, property, schemaId);
+				break;
+			default:
+				throw new IllegalArgumentException("Unsupported propertyType " + propertyType);
 			}
 			return schema;
 		}
 	}
 	
+	/**
+	 * Populate the schema for the Array type
+	 * 
+	 * @param schema the schema being populated
+	 * @param items the schema which represents each element in the array
+	 * @param schemaId the id of the schema which contains the property
+	 */
+	void populateSchemaForArrayType(JsonSchema schema, ObjectSchema items, String schemaId) {
+		ValidateArgument.required(schema, "schema");
+		ValidateArgument.required(items, "items");
+		ValidateArgument.required(schemaId, "schemaId");
+		schema.setType(Type.array);
+		if (isSelfReferencing(items)) {
+			schema.setItems(generateReferenceSchema(schemaId));
+		} else {
+			schema.setItems(translateObjectSchemaPropertyToJsonSchema(items, schemaId));
+		}
+	}
+	
+	/**
+	 * Populate the schema for the Map and Tuple_Array_Map types
+	 * 
+	 * @param schema the schema being populated
+	 * @param property the property being looked at
+	 * @param schemaId the id of the schema which contains the property
+	 */
+	void populateSchemaForMapType(JsonSchema schema, ObjectSchema property, String schemaId) {
+		ValidateArgument.required(schema, "schema");
+		ValidateArgument.required(property, "property");
+		ValidateArgument.required(schemaId, "schemaId");
+		schema.setType(Type.object);
+		if (isSelfReferencing(property.getValue())) {
+			schema.setAdditionalProperties(generateReferenceSchema(schemaId));
+		} else {
+			schema.setAdditionalProperties(translateObjectSchemaPropertyToJsonSchema(property.getValue(), schemaId));
+		}
+	}
+	
+	/**
+	 * Populate the schema for the Object and Interface types.
+	 * 
+	 * @param schema the schema being populated
+	 * @param property the property being looked at
+	 * @param schemaId the id of the schema which contains the property
+	 */
+	void populateSchemaForObjectType(JsonSchema schema, ObjectSchema property, String schemaId) {
+		ValidateArgument.required(schema, "schema");
+		ValidateArgument.required(property, "property");
+		ValidateArgument.required(schemaId, "schemaId");
+		schema.setType(Type.object);
+		String referenceId = isSelfReferencing(property) ? schemaId : property.getId();
+		if (referenceId != null) {
+			schema.set$ref(getPathInComponents(referenceId));
+		}
+	}
+	
+	/**
+	 * Generates a JsonSchema that is a reference to schema with schemaId
+	 * 
+	 * @param schemaId the id of the schema
+	 * @return a JsonSchema that is a reference to schemaId
+	 */
+	JsonSchema generateReferenceSchema(String schemaId) {
+		ValidateArgument.required(schemaId, "schemaId");
+		JsonSchema schema = new JsonSchema();
+		schema.setType(Type.object);
+		schema.set$ref(getPathInComponents(schemaId));
+		return schema;
+	}
+
+	/**
+	 * Returns whether a property in an ObjectSchema is referencing the ObjectSchema itself.
+	 * 
+	 * @param property the property in question
+	 * @return true if the property is referencing the original ObjectSchema, false otherwise.
+	 */
+	boolean isSelfReferencing(ObjectSchema property) {
+		if (property.get$recursiveRef() == null) {
+			return false;
+		}
+		return property.get$recursiveRef().equals("#");
+	}
+
 	/**
 	 * Returns if the given TYPE is primitive.
 	 * 
@@ -141,16 +228,21 @@ public class ObjectSchemaUtils {
 	 * @return true if 'type' is primitive, false otherwise.
 	 */
 	boolean isPrimitive(TYPE type) {
-		return type.equals(TYPE.BOOLEAN) || type.equals(TYPE.NUMBER) || type.equals(TYPE.STRING) || type.equals(TYPE.INTEGER);
+		return type.equals(TYPE.BOOLEAN) || type.equals(TYPE.NUMBER) || type.equals(TYPE.STRING)
+				|| type.equals(TYPE.INTEGER);
 	}
-	
+
 	/**
-	 * Inserts the oneOf properties into all of the JsonSchemas which represent interfaces.
+	 * Inserts the oneOf properties into all of the JsonSchemas which represent
+	 * interfaces.
 	 * 
-	 * @param classNameToJsonSchema mapping from class ids to a JsonSchema that represents that class.
-	 * @param interfaces the interfaces present in the application mapped to the list of classes that implement them.
+	 * @param classNameToJsonSchema mapping from class ids to a JsonSchema that
+	 *                              represents that class.
+	 * @param interfaces            the interfaces present in the application mapped
+	 *                              to the list of classes that implement them.
 	 */
-	void insertOneOfPropertyForInterfaces(Map<String, JsonSchema> classNameToJsonSchema, Map<String, List<TypeReference>> interfaces) {
+	void insertOneOfPropertyForInterfaces(Map<String, JsonSchema> classNameToJsonSchema,
+			Map<String, List<TypeReference>> interfaces) {
 		for (String className : classNameToJsonSchema.keySet()) {
 			if (interfaces.containsKey(className)) {
 				Set<TypeReference> implementers = getImplementers(className, interfaces);
@@ -158,7 +250,8 @@ public class ObjectSchemaUtils {
 				for (TypeReference implementer : implementers) {
 					String id = implementer.getId();
 					if (!classNameToJsonSchema.containsKey(id)) {
-						throw new IllegalArgumentException("Implementation of " + className + " interface with name " + id + " was not found.");
+						throw new IllegalArgumentException(
+								"Implementation of " + className + " interface with name " + id + " was not found.");
 					}
 					JsonSchema newSchema = new JsonSchema();
 					newSchema.set$ref(getPathInComponents(id));
@@ -168,10 +261,10 @@ public class ObjectSchemaUtils {
 			}
 		}
 	}
-	
+
 	/**
-	 * Generated the path to a class name that exists in the "components"
-	 * section of the OpenAPI specification.
+	 * Generated the path to a class name that exists in the "components" section of
+	 * the OpenAPI specification.
 	 * 
 	 * @param className the className in question
 	 * @return the path in the componenets section where the className exists.
@@ -180,17 +273,17 @@ public class ObjectSchemaUtils {
 		ValidateArgument.required(className, "className");
 		return "#/components/schemas/" + className;
 	}
-	
+
 	/**
 	 * Recursively gets all of the concrete implementers of the given interface.
 	 * 
 	 * @param interfaceId the id of the interface
-	 * @param interfaces a mapping between all interfaces and their implementers
+	 * @param interfaces  a mapping between all interfaces and their implementers
 	 * @return a set of all of the concrete implementers of the interface
 	 */
 	Set<TypeReference> getImplementers(String interfaceId, Map<String, List<TypeReference>> interfaces) {
 		Set<TypeReference> allImplementers = new HashSet<>();
-		
+
 		List<TypeReference> implementers = interfaces.get(interfaceId);
 		for (TypeReference implementer : implementers) {
 			String implementerId = implementer.getId();
@@ -203,7 +296,7 @@ public class ObjectSchemaUtils {
 				allImplementers.add(implementer);
 			}
 		}
-		
+
 		return allImplementers;
 	}
 
@@ -227,7 +320,7 @@ public class ObjectSchemaUtils {
 			throw new IllegalArgumentException("Unable to convert non-primitive type " + type);
 		}
 	}
-	
+
 	/**
 	 * Constructs a JsonSchema for a primitive class.
 	 * 

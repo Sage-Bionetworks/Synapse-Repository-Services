@@ -18,14 +18,14 @@
 				"$ref":"org.sagebionetworks.openapi.pet.Owner"
 			}
 		},
-		"friendToOwner": {
-			"description": "The values for columns of this row as a map. The key is the columnId and value is the cell value",
+		"treatToRating": {
+			"description": "A mapping from treats to the rating of each treat.",
 			"type":"map",
 			"key":{
 				"type": "string"
 			},
 		   	"value":{
-				"type": "string"
+				"type": "integer"
 			}
 		}
 	}
