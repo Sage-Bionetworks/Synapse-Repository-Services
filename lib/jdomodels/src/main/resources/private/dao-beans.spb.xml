@@ -298,14 +298,7 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDaoImpl" />
 
 	<!-- Misc beans -->
-	
-	<!-- A singleton counting semaphore with all method synchronized to serialize lock acquisition on each machine -->
-	<bean id="countingSemaphore"
-		class="org.sagebionetworks.database.semaphore.CountingSemaphoreImpl"
-		scope="singleton">
-		<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
-	</bean>
-	
+		
 	<bean id="clockImpl" class="org.sagebionetworks.common.util.ClockImpl"/>
 	
 	<!-- Aspect used to throttle calls to counting semaphore as part of the fix for PLFM-5465 -->
