@@ -1254,8 +1254,8 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		
 		JsonSubject subject = setupSubject();
 		subject.toJson().put("country", "United States");
-		subject.toJson().put("Street Number", 12);
-		subject.toJson().put("isRented", false);
+		subject.toJson().put("street_number", 12);
+		subject.toJson().put("is_rented", false);
 		
 		ValidationResults result = manager.validate(schema, subject);
 		assertNotNull(result);
