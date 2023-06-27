@@ -1231,6 +1231,37 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		assertEquals(List.of("#/integers: expected at least one array item to match 'contains' schema"), result.getAllValidationMessages());
 
 	}
+	
+	@Test
+	public void testAdditionalPropertiesValid() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/AdditionalProperties.json");
+		assertNotNull(schema.getProperties());
+		
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("country", "United States");
+		subject.toJson().put("state", "Washington");
+		
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+	}
+	
+	@Test
+	public void testAdditionalPropertiesInvalid() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/AdditionalProperties.json");
+		assertNotNull(schema.getProperties());
+		
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("country", "United States");
+		subject.toJson().put("Street Number", 12);
+		subject.toJson().put("isRented", false);
+		
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+		assertEquals("#: only 1 subschema matches out of 3", result.getValidationErrorMessage());
+	}
 
 	/**
 	 * Helper to build a stack trace for the given exception.

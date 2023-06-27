@@ -168,43 +168,17 @@ public class ObjectSchemaUtilsTest {
 		schema1.setType(Type.string);
 		JsonSchema schema2 = new JsonSchema();
 		schema2.setType(Type.integer);
-		Mockito.doReturn(schema1, schema2).when(util).translateObjectSchemaPropertyToJsonSchema(any(), any());
+		Mockito.doReturn(schema1, schema2).when(util).getPropertyAsJsonSchema(any(), any());
 		Map<String, JsonSchema> expected = new LinkedHashMap<>();
 		expected.put(className1, schema1);
 		expected.put(className2, schema2);
 		
-		Mockito.doReturn(false).when(util).isSelfReferencing(any());
 		// call under test
 		assertEquals(expected, util.translatePropertiesFromObjectSchema(properties, "MOCK_ID"));
-		Mockito.verify(util, Mockito.times(2)).translateObjectSchemaPropertyToJsonSchema(any(), any());
+		Mockito.verify(util, Mockito.times(2)).getPropertyAsJsonSchema(any(), any());
 		InOrder inOrder = Mockito.inOrder(util);
-		inOrder.verify(util).translateObjectSchemaPropertyToJsonSchema(objectSchema1, "MOCK_ID");
-		inOrder.verify(util).translateObjectSchemaPropertyToJsonSchema(objectSchema2, "MOCK_ID");
-		Mockito.verify(util, Mockito.times(2)).isSelfReferencing(any());
-	}
-	
-	@Test
-	public void testTranslatePropertiesFromObjectSchemaWithSelfReferencingProperty() throws JSONObjectAdapterException {
-		ObjectSchema objectSchema;
-		JSONObjectAdapterImpl adpater1 = new JSONObjectAdapterImpl("{}");
-		objectSchema = new ObjectSchemaImpl(adpater1);
-		objectSchema.setType(TYPE.STRING);
-
-		Map<String, ObjectSchema> properties = new LinkedHashMap<>();
-		String className1 = "ClassName1";
-		properties.put(className1, objectSchema);
-		
-		JsonSchema schema1 = new JsonSchema();
-		schema1.setType(Type.string);
-		Mockito.doReturn(schema1).when(util).generateReferenceSchema(any());
-		Map<String, JsonSchema> expected = new LinkedHashMap<>();
-		expected.put(className1, schema1);
-		
-		Mockito.doReturn(true).when(util).isSelfReferencing(any());
-		// call under test
-		assertEquals(expected, util.translatePropertiesFromObjectSchema(properties, "MOCK_ID"));
-		Mockito.verify(util).generateReferenceSchema("MOCK_ID");
-		Mockito.verify(util).isSelfReferencing(objectSchema);
+		inOrder.verify(util).getPropertyAsJsonSchema(objectSchema1, "MOCK_ID");
+		inOrder.verify(util).getPropertyAsJsonSchema(objectSchema2, "MOCK_ID");
 	}
 	
 	@Test
@@ -405,34 +379,14 @@ public class ObjectSchemaUtilsTest {
 		property.setType(TYPE.ARRAY);
 		
 		JsonSchema items = new JsonSchema();
-		Mockito.doReturn(false).when(util).isSelfReferencing(any());
-		Mockito.doReturn(items).when(util).translateObjectSchemaPropertyToJsonSchema(any(), any());
+		items.setType(Type.array);
+		Mockito.doReturn(items).when(util).getPropertyAsJsonSchema(any(), any());
 		
 		// call under test
 		util.populateSchemaForArrayType(schema, property, "PROPERTY_SCHEMA_ID");
 		assertTrue(schema.getType().equals(Type.array));
 		assertTrue(schema.getItems().equals(items));
-		Mockito.verify(util).isSelfReferencing(property);
-		Mockito.verify(util).translateObjectSchemaPropertyToJsonSchema(property, "PROPERTY_SCHEMA_ID");
-	}
-	
-	@Test
-	public void testPopulateSchemaForArrayTypeWithSelfReferencingItems() throws JSONObjectAdapterException {
-		JsonSchema schema = new JsonSchema();
-		ObjectSchema property;
-		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-		property = new ObjectSchemaImpl(adpater);
-		
-		Mockito.doReturn(true).when(util).isSelfReferencing(any());
-		JsonSchema items = new JsonSchema();
-		Mockito.doReturn(items).when(util).generateReferenceSchema(any());
-		
-		// call under test
-		util.populateSchemaForArrayType(schema, property, "MOCK_SCHEMA_ID");
-		assertTrue(schema.getType().equals(Type.array));
-		assertTrue(schema.getItems().equals(items));
-		Mockito.verify(util).isSelfReferencing(property);
-		Mockito.verify(util).generateReferenceSchema("MOCK_SCHEMA_ID");
+		Mockito.verify(util).getPropertyAsJsonSchema(property, "PROPERTY_SCHEMA_ID");
 	}
 	
 	@Test
@@ -468,47 +422,21 @@ public class ObjectSchemaUtilsTest {
 		ObjectSchema property;
 		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl();
 		property = new ObjectSchemaImpl(adapter);
-		property.setId("PROPERTY_SCHEMA_ID");
 		
 		ObjectSchema value;
 		JSONObjectAdapterImpl valueAdapter = new JSONObjectAdapterImpl();
 		value = new ObjectSchemaImpl(valueAdapter);
 		property.setValue(value);
 		
-		Mockito.doReturn(false).when(util).isSelfReferencing(any());
 		JsonSchema additionalProperties = new JsonSchema();
-		Mockito.doReturn(additionalProperties).when(util).translateObjectSchemaPropertyToJsonSchema(any(), any());
+		additionalProperties.setType(Type.object);
+		Mockito.doReturn(additionalProperties).when(util).getPropertyAsJsonSchema(any(), any());
 		
 		// call under test
 		util.populateSchemaForMapType(schema, property, "PROPERTY_SCHEMA_ID");
-		assertTrue(schema.getType().equals(Type.object));
-		assertTrue(schema.getAdditionalProperties().equals(additionalProperties));
-		Mockito.verify(util).isSelfReferencing(value);
-		Mockito.verify(util).translateObjectSchemaPropertyToJsonSchema(value, "PROPERTY_SCHEMA_ID");
-	}
-	
-	@Test
-	public void testPopulateSchemaForMapTypeWithSelfReferencingProperty() throws JSONObjectAdapterException {
-		JsonSchema schema = new JsonSchema();
-		ObjectSchema property;
-		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-		property = new ObjectSchemaImpl(adpater);
-		
-		ObjectSchema value;
-		JSONObjectAdapterImpl valueAdapter = new JSONObjectAdapterImpl();
-		value = new ObjectSchemaImpl(valueAdapter);
-		property.setValue(value);
-		
-		Mockito.doReturn(true).when(util).isSelfReferencing(any());
-		JsonSchema additionalProperties = new JsonSchema();
-		Mockito.doReturn(additionalProperties).when(util).generateReferenceSchema(any());
-		
-		// call under test
-		util.populateSchemaForMapType(schema, property, "MOCK_SCHEMA_ID");
-		assertTrue(schema.getType().equals(Type.object));
-		assertTrue(schema.getAdditionalProperties().equals(additionalProperties));
-		Mockito.verify(util).isSelfReferencing(value);
-		Mockito.verify(util).generateReferenceSchema("MOCK_SCHEMA_ID");
+		assertEquals(Type.object, schema.getType());
+		assertEquals(additionalProperties, schema.getAdditionalProperties());
+		Mockito.verify(util).getPropertyAsJsonSchema(value, "PROPERTY_SCHEMA_ID");
 	}
 	
 	@Test
@@ -536,6 +464,56 @@ public class ObjectSchemaUtilsTest {
 			util.populateSchemaForMapType(null, Mockito.mock(ObjectSchema.class), "SCHEMA_ID");
 		});
 		assertEquals("schema is required.", exception.getMessage());
+	}
+	
+	@Test
+	public void testGetPropertyAsJsonSchema() {
+		ObjectSchema property = Mockito.mock(ObjectSchema.class);
+		String schemaId = "SCHEMA_ID";
+		
+		JsonSchema propertyTranslated = new JsonSchema();
+		propertyTranslated.setType(Type.array);
+		Mockito.doReturn(propertyTranslated).when(util).translateObjectSchemaPropertyToJsonSchema(any(), any());
+		Mockito.doReturn(false).when(util).isSelfReferencing(any());
+		
+		// call under test
+		assertEquals(propertyTranslated, util.getPropertyAsJsonSchema(property, schemaId));
+		Mockito.verify(util).isSelfReferencing(property);
+		Mockito.verify(util).translateObjectSchemaPropertyToJsonSchema(property, schemaId);
+	}
+	
+	@Test
+	public void testGetPropertyAsJsonSchemaWithSelfReferencingSchema() {
+		ObjectSchema property = Mockito.mock(ObjectSchema.class);
+		String schemaId = "SCHEMA_ID";
+		
+		JsonSchema propertyTranslated = new JsonSchema();
+		propertyTranslated.setType(Type.array);
+		Mockito.doReturn(propertyTranslated).when(util).generateReferenceSchema(any());
+		Mockito.doReturn(true).when(util).isSelfReferencing(any());
+		
+		// call under test
+		assertEquals(propertyTranslated, util.getPropertyAsJsonSchema(property, schemaId));
+		Mockito.verify(util).isSelfReferencing(property);
+		Mockito.verify(util).generateReferenceSchema(schemaId);
+	}
+	
+	@Test
+	public void testGetPropertyAsJsonSchemaWithNullSchemaId() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			util.getPropertyAsJsonSchema(Mockito.mock(ObjectSchema.class),  null);
+		});
+		assertEquals("schemaId is required.", exception.getMessage());
+	}
+	
+	@Test
+	public void testGetPropertyAsJsonSchemaWithNullProperty() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			util.getPropertyAsJsonSchema(null,  "SCHEMA_ID");
+		});
+		assertEquals("property is required.", exception.getMessage());
 	}
 	
 	@Test
