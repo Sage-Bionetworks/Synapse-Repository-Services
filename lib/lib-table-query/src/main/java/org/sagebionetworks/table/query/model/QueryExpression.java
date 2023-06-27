@@ -13,11 +13,11 @@ import java.util.Optional;
  *      "http://teiid.github.io/teiid-documents/9.0.x/content/reference/BNF_for_SQL_Grammar.html#queryExpression">QueryExpression</a>
  * 
  */
-public class QueryExpression extends SQLElement implements HasSqlContext {
+public class QueryExpression extends SQLElement implements HasSqlContext, HasReplaceableChildren<NonJoinQueryExpression> {
 
 	private SqlContext sqlContext;
 	private final List<WithListElement> withListElements;
-	private final NonJoinQueryExpression nonJoinQueryExpression;
+	private NonJoinQueryExpression nonJoinQueryExpression;
 
 	public QueryExpression(List<WithListElement> withListElements, NonJoinQueryExpression nonJoinQueryExpression) {
 		this.withListElements = withListElements;
@@ -76,6 +76,11 @@ public class QueryExpression extends SQLElement implements HasSqlContext {
 			list.addAll(withListElements);
 		}
 		return list;
+	}
+
+	@Override
+	public void replaceChildren(NonJoinQueryExpression replacement) {
+		this.nonJoinQueryExpression = replacement;
 	}
 
 }

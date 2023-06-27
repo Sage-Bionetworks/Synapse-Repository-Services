@@ -1,19 +1,20 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -25,16 +26,18 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
+import org.sagebionetworks.table.cluster.description.IndexDescriptionLookup;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
+import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class FacetTransformerRangeTest {
 	private FacetTransformerRange facetTransformer;
 	private String columnName;
@@ -46,10 +49,15 @@ public class FacetTransformerRangeTest {
 	private RowSet rowSet;
 	private List<SelectColumn> correctSelectList;
 	private Long userId;
-	private TableExpression originalQuery;
+	private QueryExpression originalQuery;
 	private TranslationDependencies dependencies;
 	
-	@Before
+	@Mock
+	private SchemaProvider mockSchemaProvider;
+	@Mock
+	private IndexDescriptionLookup mockLookup;
+	
+	@BeforeEach
 	public void before() throws ParseException{
 		schema = TableModelTestUtils.createOneOfEachType(true);
 		assertFalse(schema.isEmpty());
@@ -64,13 +72,12 @@ public class FacetTransformerRangeTest {
 		selectedMax = "34";
 		originalSearchCondition = "i0 LIKE 'asdf%'";
 		userId = 1L;
-		SchemaProvider schemaProvider = Mockito.mock(SchemaProvider.class);
-		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		
-		dependencies = TranslationDependencies.builder().setSchemaProvider(schemaProvider)
+		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
 				.setIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn123"))).setUserId(userId).build();
 		
-		originalQuery = new TableQueryParser("FROM syn123 WHERE " + originalSearchCondition).tableExpression();
+		originalQuery = new TableQueryParser("select * FROM syn123 WHERE " + originalSearchCondition).queryExpression();
 		
 		rowSet = new RowSet();
 		
@@ -108,25 +115,48 @@ public class FacetTransformerRangeTest {
 		assertEquals("asdf%", facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
 	}
 	
+	@Test
+	public void testGenerateFacetSqlQueryWihtCTE() throws ParseException{
+		
+		when(mockLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(IdAndVersion.parse("syn1")));
+		VirtualTableIndexDescription vtid = new VirtualTableIndexDescription(IdAndVersion.parse("syn2"), "select * from syn1", mockLookup);
+		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
+				.setIndexDescription(vtid).setUserId(userId).build();
+		
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(List.of(schema.get(0), schema.get(2)));
+		originalQuery = new TableQueryParser("with syn2 as (select i0, i2 from syn1) select * from syn2 where i0 > 100 order by i2").queryExpression();
+		facetTransformer = new FacetTransformerRange(columnName, facets, originalQuery, dependencies, selectedMin, selectedMax);
+		//check the non-transformed sql
+		String expectedString = "WITH T2 (_C0_, _C2_) AS (SELECT _C0_, _C2_ FROM T1)"
+				+ " SELECT MIN(_C2_) AS minimum, MAX(_C2_) AS maximum FROM T2 WHERE _C0_ > :b0";
+		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
+		assertEquals("100", facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
+	}
+	
 	////////////////////////////
 	// translateToResult() tests
 	////////////////////////////
-	@Test (expected = IllegalArgumentException.class)
 	public void testTranslateToResultNullRowSet(){
-		facetTransformer.translateToResult(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			facetTransformer.translateToResult(null);
+		});
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testTranslateToResultWrongHeaders(){
 		rowSet.setHeaders(new ArrayList<SelectColumn>());
-		facetTransformer.translateToResult(rowSet);
+		assertThrows(IllegalArgumentException.class, ()->{
+			facetTransformer.translateToResult(rowSet);
+		});
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testTranslateToResultCorrectHeadersWrongNumRows(){
 		rowSet.setHeaders(correctSelectList);
 		rowSet.setRows(new ArrayList<Row>());
-		facetTransformer.translateToResult(rowSet);
+		assertThrows(IllegalArgumentException.class, ()->{
+			facetTransformer.translateToResult(rowSet);
+		});
 	}
 	
 	@Test 

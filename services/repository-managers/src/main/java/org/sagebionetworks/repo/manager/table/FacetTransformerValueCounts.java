@@ -15,8 +15,13 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.FromClause;
+import org.sagebionetworks.table.query.model.NonJoinQueryExpression;
 import org.sagebionetworks.table.query.model.Pagination;
-import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.model.QueryExpression;
+import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.sagebionetworks.table.query.util.FacetUtils;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
@@ -35,7 +40,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	private Set<String> selectedValues;
 	
 	public FacetTransformerValueCounts(String columnName, boolean columnTypeIsList, List<FacetRequestColumnModel> facets,
-			TableExpression originalQuery, TranslationDependencies dependencies, Set<String> selectedValues){
+			QueryExpression originalQuery, TranslationDependencies dependencies, Set<String> selectedValues){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facets, "facets");
 		ValidateArgument.required(originalQuery, "originalQuery");
@@ -56,12 +61,14 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		return this.generatedFacetSqlQuery;
 	}
 	
-	private QueryTranslator generateFacetSqlQuery(TableExpression originalQuery, TranslationDependencies dependencies, boolean columnTypeIsList) {
+	private QueryTranslator generateFacetSqlQuery(QueryExpression originalQuery, TranslationDependencies dependencies, boolean columnTypeIsList) {
 		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
 		
 		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);
 
 		String columnToUse = columnTypeIsList ? "UNNEST(\"" + columnName + "\")" : "\"" + columnName + "\"";
+		
+		NonJoinQueryExpression njqe = originalQuery.getNonJoinQueryExpression();
 
 		StringBuilder builder = new StringBuilder("SELECT ");
 		builder.append(columnToUse);
@@ -70,8 +77,8 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		builder.append(", COUNT(*) AS ");
 		builder.append(COUNT_ALIAS);
 		builder.append(" ");
-		builder.append(originalQuery.getFromClause().toSql());
-		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, originalQuery.getWhereClause());
+		builder.append(njqe.getFirstElementOfType(FromClause.class).toSql());
+		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, njqe.getFirstElementOfType(WhereClause.class));
 		builder.append(" GROUP BY ");
 		builder.append(columnToUse);
 		builder.append(" ORDER BY ");
@@ -81,7 +88,14 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		builder.append(" ASC ");
 		builder.append(pagination.toSql());
 		
-		return QueryTranslator.builder(builder.toString(), dependencies).build();
+		try {
+			NonJoinQueryExpression replacement = new TableQueryParser(builder.toString()).nonJoinQueryExpression();
+			njqe.replaceElement(replacement);
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
+		}
+		
+		return QueryTranslator.builder(originalQuery.toSql(), dependencies).build();
 	}
 
 	@Override

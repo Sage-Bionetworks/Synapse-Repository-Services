@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
@@ -17,7 +17,10 @@ import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -30,21 +33,24 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
+import org.sagebionetworks.table.cluster.description.IndexDescriptionLookup;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
+import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+@ExtendWith(MockitoExtension.class)
 public class FacetTransformerValueCountsTest {
-	String selectedValue;
-	String notSelectedValue;
+	private String selectedValue;
+	private String notSelectedValue;
 	private List<ColumnModel> schema;
-	private TableExpression originalQuery;
+	private QueryExpression originalQuery;
 	private TranslationDependencies dependencies;
 	private String originalSearchCondition;
 	private List<FacetRequestColumnModel> facets;
@@ -54,6 +60,11 @@ public class FacetTransformerValueCountsTest {
 	private ColumnModel stringModel;
 	private ColumnModel stringListModel;
 	private Long userId;
+	
+	@Mock
+	private SchemaProvider mockSchemaProvider;
+	@Mock
+	private IndexDescriptionLookup mockLookup;
 
 	
 	@BeforeEach
@@ -85,15 +96,14 @@ public class FacetTransformerValueCountsTest {
 		facets.add(new FacetRequestColumnModel(schema.get(0), valuesRequest));//use column "i0"
 
 		userId = 1L;
-		SchemaProvider schemaProvider = Mockito.mock(SchemaProvider.class);
-		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 
 		originalSearchCondition = "\"stringColumn\" LIKE 'asdf%'";
 		
-		dependencies = TranslationDependencies.builder().setSchemaProvider(schemaProvider)
+		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
 				.setIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn123"))).setUserId(userId).build();
 		
-		originalQuery = new TableQueryParser("FROM syn123 WHERE " + originalSearchCondition).tableExpression();
+		originalQuery = new TableQueryParser("select * FROM syn123 WHERE " + originalSearchCondition).queryExpression();
 		
 		rowSet = new RowSet();
 		
@@ -138,6 +148,26 @@ public class FacetTransformerValueCountsTest {
 		
 		//transformed model will be correct if schema and non-transformed query are correct
 		//because it is handled by SqlQuery Constructor
+	}
+	
+	@Test
+	public void testGenerateFacetSqlQueryWithCTE() throws ParseException{
+		
+		when(mockLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(IdAndVersion.parse("syn1")));
+		VirtualTableIndexDescription vtid = new VirtualTableIndexDescription(IdAndVersion.parse("syn2"), "select * from syn1", mockLookup);
+		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
+				.setIndexDescription(vtid).setUserId(userId).build();
+		
+		originalQuery = new TableQueryParser("with syn2 as (select * from syn1 where stringColumn like 'foo%') select * from syn2").queryExpression();
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
+
+		//check the non-transformed sql
+		String expectedString = "WITH T2 (_C1_, _C2_) AS (SELECT _C1_, _C2_ FROM T1 WHERE _C1_ LIKE :b1)"
+				+ " SELECT _C1_ AS value, COUNT(*) AS frequency FROM T2"
+				+ " GROUP BY _C1_ ORDER BY frequency DESC, value ASC LIMIT :b0";
+		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
+		assertEquals(100L, facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
+		assertEquals("foo%", facetTransformer.getFacetSqlQuery().getParameters().get("b1"));
 	}
 
 	@Test

@@ -297,7 +297,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(schemaIds);
 		return tableConnectionFactory.getConnection(idAndVersion).doesIndexStateMatch(idAndVersion, version, schemaMD5Hex, isSearchEnabled);
 	}
-
+	
 	/*
 	 * (non-Javadoc)
 	 * 

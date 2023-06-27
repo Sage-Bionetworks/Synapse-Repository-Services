@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
-import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.TableName;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.sagebionetworks.util.ValidateArgument;
@@ -36,7 +36,7 @@ public class FacetModel {
 	 * @param sqlQuery the sqlQuery on which to base the generated facet queries.
 	 * @param returnFacets whether facet information will be returned back to the user
 	 */
-	public FacetModel(List<FacetColumnRequest> selectedFacets, TableExpression originalQuery, TranslationDependencies dependencies, boolean returnFacets) {
+	public FacetModel(List<FacetColumnRequest> selectedFacets, QueryExpression originalQuery, TranslationDependencies dependencies, boolean returnFacets) {
 		ValidateArgument.required(originalQuery, "originalQuery");
 		IdAndVersion id = IdAndVersion.parse(originalQuery.getFirstElementOfType(TableName.class).toSql());
 		List<ColumnModel> tableSchema = dependencies.getSchemaProvider().getTableSchema(id);
@@ -117,7 +117,7 @@ public class FacetModel {
 		return result;
 	}
 	
-	static List<FacetTransformer> generateFacetQueryTransformers(TableExpression originalQuery, TranslationDependencies dependencies, List<FacetRequestColumnModel> validatedFacets){
+	static List<FacetTransformer> generateFacetQueryTransformers(QueryExpression originalQuery, TranslationDependencies dependencies, List<FacetRequestColumnModel> validatedFacets){
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(dependencies, "dependencies");
 		ValidateArgument.required(validatedFacets, "validatedFacets");

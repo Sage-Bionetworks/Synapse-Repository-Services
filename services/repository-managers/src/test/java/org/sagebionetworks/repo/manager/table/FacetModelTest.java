@@ -28,7 +28,7 @@ import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 
 import com.google.common.collect.Lists;
@@ -54,7 +54,7 @@ public class FacetModelTest {
 	private FacetColumnRangeRequest rangeRequest;
 	private FacetColumnValuesRequest valuesRequest;
 	private ArrayList<FacetColumnRequest> selectedFacets;
-	private TableExpression originalQuery;
+	private QueryExpression originalQuery;
 	private TranslationDependencies dependencies;
 
 	private Long userId;
@@ -111,7 +111,7 @@ public class FacetModelTest {
 		dependencies = TranslationDependencies.builder().setSchemaProvider(schemaProvider(facetSchema))
 				.setIndexDescription(new TableIndexDescription(IdAndVersion.parse(tableId))).setUserId(userId).build();
 		
-		originalQuery = new TableQueryParser("from " + tableId + " where asdf <> ayy and asdf < 'taco bell'").tableExpression();
+		originalQuery = new TableQueryParser("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'").queryExpression();
 
 	}
 	/////////////////////

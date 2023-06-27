@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.ReplicationType;
@@ -135,7 +136,7 @@ public class VirtualTableIntegrationTest {
 		}, MAX_WAIT_MS);
 
 		ColumnModel barSum = columnModelManager
-				.createColumnModel(new ColumnModel().setName("barSum").setColumnType(ColumnType.INTEGER));
+				.createColumnModel(new ColumnModel().setName("barSum").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range));
 
 		String definingSql = String.format("select foo, cast(sum(bar) as %s) from %s group by foo order by foo",
 				barSum.getId(), table.getId());
@@ -147,7 +148,7 @@ public class VirtualTableIntegrationTest {
 		query.setSql("select * from " + virtualTable.getId());
 		query.setIncludeEntityEtag(false);
 
-		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false)
+		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(true)
 				.withReturnColumnModels(true);
 
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
