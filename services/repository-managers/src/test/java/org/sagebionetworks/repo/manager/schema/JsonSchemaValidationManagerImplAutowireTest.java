@@ -1238,6 +1238,8 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		assertNotNull(schema.getProperties());
 		
 		JsonSubject subject = setupSubject();
+		subject.toJson().put("number", 200);
+		subject.toJson().put("street_name", "Street");
 		subject.toJson().put("country", "United States");
 		subject.toJson().put("state", "Washington");
 		
@@ -1253,14 +1255,15 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		assertNotNull(schema.getProperties());
 		
 		JsonSubject subject = setupSubject();
-		subject.toJson().put("country", "United States");
+		subject.toJson().put("number", 100);
+		subject.toJson().put("street_name", "street");
 		subject.toJson().put("street_number", 12);
 		subject.toJson().put("is_rented", false);
 		
 		ValidationResults result = manager.validate(schema, subject);
 		assertNotNull(result);
 		assertFalse(result.getIsValid());
-		assertEquals("#: only 1 subschema matches out of 3", result.getValidationErrorMessage());
+		assertEquals("2 schema violations found", result.getValidationErrorMessage());
 	}
 
 	/**
@@ -1293,7 +1296,7 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 	public JSONObject setupJsonObject() {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("objectId", objectId);
-		jsonObject.put("objectType", objectType);
+		jsonObject.put("objectType", objectType.name());
 		jsonObject.put("objectEtag", objectEtag);
 		return jsonObject;
 	}
