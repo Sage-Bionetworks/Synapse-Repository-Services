@@ -89,12 +89,8 @@ public class ObjectSchemaUtils {
 		ValidateArgument.required(properties, "properties");
 		Map<String, JsonSchema> result = new LinkedHashMap<>();
 		for (String propertyName : properties.keySet()) {
-			ObjectSchema property = properties.get(propertyName);
-			if (isSelfReferencing(property)) {
-				result.put(propertyName, generateReferenceSchema(schemaId));
-			} else {
-				result.put(propertyName, translateObjectSchemaPropertyToJsonSchema(property, schemaId));
-			}
+			JsonSchema property = getPropertyAsJsonSchema(properties.get(propertyName), schemaId);
+			result.put(propertyName, property);
 		}
 		return result;
 	}
@@ -150,11 +146,8 @@ public class ObjectSchemaUtils {
 		ValidateArgument.required(items, "items");
 		ValidateArgument.required(schemaId, "schemaId");
 		schema.setType(Type.array);
-		if (isSelfReferencing(items)) {
-			schema.setItems(generateReferenceSchema(schemaId));
-		} else {
-			schema.setItems(translateObjectSchemaPropertyToJsonSchema(items, schemaId));
-		}
+		JsonSchema itemsSchema = getPropertyAsJsonSchema(items, schemaId);
+		schema.setItems(itemsSchema);
 	}
 	
 	/**
@@ -169,11 +162,24 @@ public class ObjectSchemaUtils {
 		ValidateArgument.required(property, "property");
 		ValidateArgument.required(schemaId, "schemaId");
 		schema.setType(Type.object);
-		if (isSelfReferencing(property.getValue())) {
-			schema.setAdditionalProperties(generateReferenceSchema(schemaId));
-		} else {
-			schema.setAdditionalProperties(translateObjectSchemaPropertyToJsonSchema(property.getValue(), schemaId));
+		JsonSchema additionalProperty = getPropertyAsJsonSchema(property.getValue(), schemaId);
+		schema.setAdditionalProperties(additionalProperty);
+	}
+	
+	/**
+	 * Get the JsonSchema representation of a property.
+	 * 
+	 * @param property the property to be translated
+	 * @param schemaId the id of the original schema which contains this property
+	 * @return the JsonSchema representation of the property
+	 */
+	JsonSchema getPropertyAsJsonSchema(ObjectSchema property, String schemaId) {
+		ValidateArgument.required(property, "property");
+		ValidateArgument.required(schemaId, "schemaId");
+		if (isSelfReferencing(property)) {
+			return generateReferenceSchema(schemaId);
 		}
+		return translateObjectSchemaPropertyToJsonSchema(property, schemaId);
 	}
 	
 	/**
