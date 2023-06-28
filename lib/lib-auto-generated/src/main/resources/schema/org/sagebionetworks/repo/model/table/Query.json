@@ -24,6 +24,10 @@
             "type":"boolean",
             "description":"Optional, default false. When true, a query results against views will include the Etag of each entity in the results.  Note: The etag is necessary to update Entities in the view."
 		},
+		"selectFileColumn": {
+			"type":"integer",
+			"description": "The id of the column used to select file entities (e.g. to fetch the action required for download). The column needs to be an ENTITYID type column and be part of the schema of the underlying table/view."
+		},
 		"offset":{
             "type":"integer",
             "description":"The optional offset into the results"

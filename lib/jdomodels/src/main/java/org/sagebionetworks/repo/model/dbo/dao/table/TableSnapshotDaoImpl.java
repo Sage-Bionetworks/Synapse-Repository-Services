@@ -122,9 +122,17 @@ public class TableSnapshotDaoImpl implements TableSnapshotDao {
 			
 			StringBuilder sql = new StringBuilder()
 				.append("SELECT S.* FROM ").append(TABLE_TABLE_SNAPSHOT).append(" S") 
+				// Join on the NODE REVISION table to make sure that the table version was not deleted (See https://sagebionetworks.jira.com/browse/PLFM-7897)
+				.append(" JOIN ").append(TABLE_REVISION)
+					.append(" R ON S.").append(COL_TABLE_SNAPSHOT_TABLE_ID).append(" = R.").append(COL_REVISION_OWNER_NODE)
+					.append(" AND S.")
+					.append(COL_TABLE_SNAPSHOT_VERSION).append(" = R.").append(COL_REVISION_NUMBER)
 				// Make sure to join on the table transaction version tables so that we know the version still exists
-				.append(" JOIN ").append(TABLE_TABLE_TRANSACTION).append(" T ON S.").append(COL_TABLE_SNAPSHOT_TABLE_ID).append(" = T.").append(COL_TABLE_TRX_TABLE_ID)
-				.append(" JOIN ").append(TABLE_TABLE_TRX_TO_VERSION).append(" V ON T.").append(COL_TABLE_TRX_ID).append(" = V.").append(COL_TABLE_TRX_TO_VER_TRX_ID).append(" AND S.").append(COL_TABLE_SNAPSHOT_VERSION).append(" = V.").append(COL_TABLE_TRX_TO_VER_VER_NUM)
+				.append(" JOIN ").append(TABLE_TABLE_TRANSACTION)
+					.append(" T ON S.").append(COL_TABLE_SNAPSHOT_TABLE_ID).append(" = T.").append(COL_TABLE_TRX_TABLE_ID)
+				.append(" JOIN ").append(TABLE_TABLE_TRX_TO_VERSION)
+					.append(" V ON T.").append(COL_TABLE_TRX_ID).append(" = V.").append(COL_TABLE_TRX_TO_VER_TRX_ID)
+					.append(" AND S.").append(COL_TABLE_SNAPSHOT_VERSION).append(" = V.").append(COL_TABLE_TRX_TO_VER_VER_NUM)
 				.append(" WHERE S.").append(COL_TABLE_SNAPSHOT_TABLE_ID).append(" = ?");
 			
 			args.add(idAndVersion.getId());

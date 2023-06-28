@@ -5,7 +5,7 @@ import java.util.Optional;
 /**
  * This matches &ltquery specification&gt in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
-public class QuerySpecification extends SQLElement implements HasAggregate, HasSingleTableName, HasReplaceableChildren<SelectList> {
+public class QuerySpecification extends SQLElement implements HasAggregate, HasSingleTableName {
 
 	SetQuantifier setQuantifier;
 	SelectList selectList;
@@ -25,6 +25,7 @@ public class QuerySpecification extends SQLElement implements HasAggregate, HasS
 	public SetQuantifier getSetQuantifier() {
 		return setQuantifier;
 	}
+		
 	public SelectList getSelectList() {
 		return selectList;
 	}
@@ -65,10 +66,9 @@ public class QuerySpecification extends SQLElement implements HasAggregate, HasS
 		}
 		return tableExpression.getSingleTableName();
 	}
-
-	@Override
-	public void replaceChildren(SelectList replacement) {
-		this.setQuantifier = null;
-		this.selectList = Replaceable.prepareToReplace(this.selectList, replacement, this);
+	
+	public void replaceSelectList(SelectList selectList, SetQuantifier setQuantifier) {
+		this.selectList = Replaceable.prepareToReplace(this.selectList, selectList, this);
+		this.setQuantifier = setQuantifier;
 	}
 }

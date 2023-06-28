@@ -156,5 +156,10 @@ public class TableTransactionDaoImpl implements TableTransactionDao {
 			return Optional.empty();
 		}
 	}
+	
+	@Override
+	public void truncateAll() {
+		jdbcTemplate.update("DELETE FROM " + TABLE_TABLE_TRANSACTION);		
+	}
 		
 }

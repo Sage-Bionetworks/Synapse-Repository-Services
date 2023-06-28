@@ -735,11 +735,6 @@
 				<version>${org.apache.pivot.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>com.sun.mail</groupId>
-				<artifactId>javax.mail</artifactId>
-				<version>1.6.1</version>
-			</dependency>
-			<dependency>
 				<groupId>com.google.inject</groupId>
 				<artifactId>guice</artifactId>
 				<version>5.1.0</version>
@@ -778,6 +773,32 @@
 			    <artifactId>totp</artifactId>
 			    <version>1.7.1</version>
 			</dependency>
+			
+			<!-- Jakarta Email Api -->
+			<dependency>
+				<groupId>jakarta.mail</groupId>
+				<artifactId>jakarta.mail-api</artifactId>
+				<version>2.1.2</version>
+			</dependency>
+			<!-- Official Email Api Implementation from Eclipse Angus (See https://eclipse-ee4j.github.io/angus-mail/) -->
+			<dependency>
+				<groupId>org.eclipse.angus</groupId>
+				<artifactId>jakarta.mail</artifactId>
+				<version>2.0.2</version>
+			</dependency>
+			<!-- Jakarta Activation Api -->
+			<dependency>
+                <groupId>jakarta.activation</groupId>
+                <artifactId>jakarta.activation-api</artifactId>
+                <version>2.1.2</version>
+            </dependency>
+            <!-- Official Activation Api Implementation from Eclipse Angus (See https://eclipse-ee4j.github.io/angus-activation/) -->
+            <dependency>
+                <groupId>org.eclipse.angus</groupId>
+                <artifactId>angus-activation</artifactId>
+                <version>2.0.1</version>
+                <scope>runtime</scope>
+            </dependency>
 
 		</dependencies>
 

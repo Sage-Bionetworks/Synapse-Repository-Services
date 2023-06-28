@@ -12,9 +12,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeUtility;
-
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
@@ -28,6 +25,9 @@ import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.net.InternetDomainName;
+
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeUtility;
 
 public class EmailUtils {
 	//////////////////////////////////////////

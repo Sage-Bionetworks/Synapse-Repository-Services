@@ -15,7 +15,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -41,128 +44,146 @@ public class TableSnapshotDaoImplTest {
 	@Autowired
 	private TransactionTemplate txTemplate;
 	
-	TableSnapshot viewSnapshot;
+	@Autowired
+	private NodeDAO nodeDao;
+	
+	TableSnapshot tableSnapshot;
 	IdAndVersion idAndVersion;
 	long adminUserId;
 
 	@BeforeEach
 	public void beforeEach() {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		idAndVersion = IdAndVersion.parse("syn222.1");
-		viewSnapshot = new TableSnapshot().withSnapshotId(111L).withTableId(idAndVersion.getId())
-				.withVersion(idAndVersion.getVersion().get()).withCreatedBy(adminUserId).withCreatedOn(new Date())
-				.withBucket("some bucket").withKey("some key");
-		
 		tableTruthDao.truncateAllRowData();
 		viewSnapshotDao.truncateAll();
-		tableTransactionDao.deleteTable(idAndVersion.getId().toString());
+		tableTransactionDao.truncateAll();
+		nodeDao.truncateAll();
+		
+		Node newTable = new Node();
+		newTable.setName("a table");
+		newTable.setCreatedByPrincipalId(adminUserId);
+		newTable.setCreatedOn(new Date());
+		newTable.setModifiedByPrincipalId(newTable.getCreatedByPrincipalId());
+		newTable.setModifiedOn(newTable.getCreatedOn());
+		newTable.setNodeType(EntityType.table);
+		
+		newTable = nodeDao.createNewNode(newTable);
+		
+		idAndVersion = IdAndVersion.parse(newTable.getId() + "." + newTable.getVersionNumber());
+		
+		tableSnapshot = new TableSnapshot()
+			.withSnapshotId(111L)
+			.withTableId(idAndVersion.getId())
+			.withVersion(idAndVersion.getVersion().get())
+			.withCreatedBy(adminUserId).withCreatedOn(new Date())
+			.withBucket("some bucket")
+			.withKey("some key");
 	}
 
 	@AfterEach
 	public void afterEach() {
 		tableTruthDao.truncateAllRowData();
 		viewSnapshotDao.truncateAll();
-		if (idAndVersion != null) {
-			tableTransactionDao.deleteTable(idAndVersion.getId().toString());
-		}
+		tableTransactionDao.truncateAll();
+		nodeDao.truncateAll();
 	}
 
 	@Test
 	public void testTranslate() {
 		// call under test
-		DBOTableSnapshot dbo = TableSnapshotDaoImpl.translate(viewSnapshot);
+		DBOTableSnapshot dbo = TableSnapshotDaoImpl.translate(tableSnapshot);
 		assertNotNull(dbo);
 		// call under test
 		TableSnapshot clone = TableSnapshotDaoImpl.translate(dbo);
-		assertEquals(viewSnapshot, clone);
+		assertEquals(tableSnapshot, clone);
 	}
 
 	@Test
 	public void testCreateSnapshot() {
-		viewSnapshot.withSnapshotId(null);
+		tableSnapshot.withSnapshotId(null);
 		// call under test
-		TableSnapshot result = viewSnapshotDao.createSnapshot(viewSnapshot);
+		TableSnapshot result = viewSnapshotDao.createSnapshot(tableSnapshot);
 		assertNotNull(result);
 		assertNotNull(result.getSnapshotId());
-		assertEquals(viewSnapshot.getTableId(), result.getTableId());
-		assertEquals(viewSnapshot.getVersion(), result.getVersion());
-		assertEquals(viewSnapshot.getCreatedBy(), result.getCreatedBy());
-		assertEquals(viewSnapshot.getCreatedOn(), result.getCreatedOn());
-		assertEquals(viewSnapshot.getBucket(), result.getBucket());
-		assertEquals(viewSnapshot.getKey(), result.getKey());
+		assertEquals(tableSnapshot.getTableId(), result.getTableId());
+		assertEquals(tableSnapshot.getVersion(), result.getVersion());
+		assertEquals(tableSnapshot.getCreatedBy(), result.getCreatedBy());
+		assertEquals(tableSnapshot.getCreatedOn(), result.getCreatedOn());
+		assertEquals(tableSnapshot.getBucket(), result.getBucket());
+		assertEquals(tableSnapshot.getKey(), result.getKey());
 	}
 
 	@Test
 	public void testCreateSnapshotDuplicate() {
-		viewSnapshot.withSnapshotId(null);
-		TableSnapshot result = viewSnapshotDao.createSnapshot(viewSnapshot);
+		tableSnapshot.withSnapshotId(null);
+		TableSnapshot result = viewSnapshotDao.createSnapshot(tableSnapshot);
 		assertNotNull(result);
 		assertNotNull(result.getSnapshotId());
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			viewSnapshotDao.createSnapshot(viewSnapshot);
+			viewSnapshotDao.createSnapshot(tableSnapshot);
 		}).getMessage();
-		assertEquals("Snapshot already exists for: syn222.1", message);
+		assertEquals("Snapshot already exists for: " + idAndVersion.toString(), message);
 	}
 
 	@Test
 	public void testCreateSnapshotNullViewId() {
-		viewSnapshot.withTableId(null);
+		tableSnapshot.withTableId(null);
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			viewSnapshotDao.createSnapshot(viewSnapshot);
+			viewSnapshotDao.createSnapshot(tableSnapshot);
 		});
 	}
 
 	@Test
 	public void testCreateSnapshotNullVersion() {
-		viewSnapshot.withVersion(null);
+		tableSnapshot.withVersion(null);
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			viewSnapshotDao.createSnapshot(viewSnapshot);
+			viewSnapshotDao.createSnapshot(tableSnapshot);
 		});
 	}
 
 	@Test
 	public void testCreateSnapshotNullCreatedBy() {
-		viewSnapshot.withCreatedBy(null);
+		tableSnapshot.withCreatedBy(null);
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			viewSnapshotDao.createSnapshot(viewSnapshot);
+			viewSnapshotDao.createSnapshot(tableSnapshot);
 		});
 	}
 
 	@Test
 	public void testCreateSnapshotNullCreatedOn() {
-		viewSnapshot.withCreatedOn(null);
+		tableSnapshot.withCreatedOn(null);
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			viewSnapshotDao.createSnapshot(viewSnapshot);
+			viewSnapshotDao.createSnapshot(tableSnapshot);
 		});
 	}
 
 	@Test
 	public void testCreateSnapshotNullBucket() {
-		viewSnapshot.withBucket(null);
+		tableSnapshot.withBucket(null);
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			viewSnapshotDao.createSnapshot(viewSnapshot);
+			viewSnapshotDao.createSnapshot(tableSnapshot);
 		});
 	}
 
 	@Test
 	public void testCreateSnapshotNullKey() {
-		viewSnapshot.withKey(null);
+		tableSnapshot.withKey(null);
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			viewSnapshotDao.createSnapshot(viewSnapshot);
+			viewSnapshotDao.createSnapshot(tableSnapshot);
 		});
 	}
 
 	@Test
 	public void testGetSnapshot() {
-		viewSnapshot.withSnapshotId(null);
-		TableSnapshot created = viewSnapshotDao.createSnapshot(viewSnapshot);
+		tableSnapshot.withSnapshotId(null);
+		TableSnapshot created = viewSnapshotDao.createSnapshot(tableSnapshot);
 		assertNotNull(created);
 		// call under test
 		TableSnapshot result = viewSnapshotDao.getSnapshot(idAndVersion).get();
@@ -179,8 +200,8 @@ public class TableSnapshotDaoImplTest {
 	
 	@Test
 	public void testGetSnapshotId() {
-		viewSnapshot.withSnapshotId(null);
-		TableSnapshot created = viewSnapshotDao.createSnapshot(viewSnapshot);
+		tableSnapshot.withSnapshotId(null);
+		TableSnapshot created = viewSnapshotDao.createSnapshot(tableSnapshot);
 		assertNotNull(created);
 		// call under test
 		long id = viewSnapshotDao.getSnapshotId(idAndVersion);
@@ -218,30 +239,30 @@ public class TableSnapshotDaoImplTest {
 
 		String tableId = idAndVersion.getId().toString();
 		
-		addTableChanges(tableId, 1L);
+		Long snapshotVersion = addTableChanges(tableId, true);
 		
 		TableSnapshot snapshotOne = viewSnapshotDao.createSnapshot(new TableSnapshot()
 			.withTableId(idAndVersion.getId())
-			.withVersion(1L)
+			.withVersion(snapshotVersion)
 			.withCreatedBy(adminUserId)
 			.withCreatedOn(new Date())
 			.withBucket("some bucket")
 			.withKey("some key")
 		);
 		
-		addTableChanges(tableId, null);
-		addTableChanges(tableId, 2L);
+		addTableChanges(tableId, false);
+		snapshotVersion = addTableChanges(tableId, true);
 				
 		TableSnapshot snapshotTwo = viewSnapshotDao.createSnapshot(new TableSnapshot()
 			.withTableId(idAndVersion.getId())
-			.withVersion(2L)
+			.withVersion(snapshotVersion)
 			.withCreatedBy(adminUserId)
 			.withCreatedOn(new Date())
 			.withBucket("some bucket")
 			.withKey("some other key")
 		);
 		
-		addTableChanges(tableId, null);
+		addTableChanges(tableId, false);
 		
 		idAndVersion = IdAndVersion.newBuilder().setId(idAndVersion.getId()).build();
 		
@@ -256,29 +277,29 @@ public class TableSnapshotDaoImplTest {
 				
 		String tableId = idAndVersion.getId().toString();
 		
-		addTableChanges(tableId, 1L);
+		Long snapshotVersion = addTableChanges(tableId, true);
 		
 		TableSnapshot snapshotOne = viewSnapshotDao.createSnapshot(new TableSnapshot()
 			.withTableId(idAndVersion.getId())
-			.withVersion(1L)
+			.withVersion(snapshotVersion)
 			.withCreatedBy(adminUserId)
 			.withCreatedOn(new Date())
 			.withBucket("some bucket")
 			.withKey("some key")
 		);
 		
-		addTableChanges(tableId, 2L);
+		snapshotVersion = addTableChanges(tableId, true);
 		
 		TableSnapshot snapshotTwo = viewSnapshotDao.createSnapshot(new TableSnapshot()
 			.withTableId(idAndVersion.getId())
-			.withVersion(2L)
+			.withVersion(snapshotVersion)
 			.withCreatedBy(adminUserId)
 			.withCreatedOn(new Date())
 			.withBucket("some bucket")
 			.withKey("some other key")
 		);
 		
-		addTableChanges(tableId, null);
+		addTableChanges(tableId, false);
 		
 		idAndVersion = IdAndVersion.newBuilder().setId(idAndVersion.getId()).setVersion(snapshotTwo.getVersion()).build();
 				
@@ -293,23 +314,23 @@ public class TableSnapshotDaoImplTest {
 		
 		String tableId = idAndVersion.getId().toString();
 		
-		addTableChanges(tableId, 1L);
+		Long snapshotVersion = addTableChanges(tableId, true);
 		
 		TableSnapshot snapshotOne = viewSnapshotDao.createSnapshot(new TableSnapshot()
 			.withTableId(idAndVersion.getId())
-			.withVersion(1L)
+			.withVersion(snapshotVersion)
 			.withCreatedBy(adminUserId)
 			.withCreatedOn(new Date())
 			.withBucket("some bucket")
 			.withKey("some key")
 		);
 		
-		addTableChanges(tableId, null);
-		addTableChanges(tableId, 2L);
+		addTableChanges(tableId, false);
+		snapshotVersion = addTableChanges(tableId, true);
 		
 		TableSnapshot snapshotTwo = viewSnapshotDao.createSnapshot(new TableSnapshot()
 			.withTableId(idAndVersion.getId())
-			.withVersion(2L)
+			.withVersion(snapshotVersion)
 			.withCreatedBy(adminUserId)
 			.withCreatedOn(new Date())
 			.withBucket("some bucket")
@@ -329,20 +350,21 @@ public class TableSnapshotDaoImplTest {
 		
 		String tableId = idAndVersion.getId().toString();
 		
-		addTableChanges(tableId, 1L);
+		Long snapshotVersion = addTableChanges(tableId, true);
 		
 		TableSnapshot snapshotOne = viewSnapshotDao.createSnapshot(new TableSnapshot()
 			.withTableId(idAndVersion.getId())
-			.withVersion(1L)
+			.withVersion(snapshotVersion)
 			.withCreatedBy(adminUserId)
 			.withCreatedOn(new Date())
 			.withBucket("some bucket")
 			.withKey("some key")
 		);
 		
-		addTableChanges(tableId, null);
-		addTableChanges(tableId, null);
+		addTableChanges(tableId, false);
+		addTableChanges(tableId, false);
 		
+		// This is a snapshot whose version in the node does not exist
 		TableSnapshot snapshotTwo = viewSnapshotDao.createSnapshot(new TableSnapshot()
 			.withTableId(idAndVersion.getId())
 			.withVersion(2L)
@@ -361,10 +383,54 @@ public class TableSnapshotDaoImplTest {
 		assertEquals(snapshotOne, result.get());
 	}
 	
+	// Reproduce https://sagebionetworks.jira.com/browse/PLFM-7897
+	@Test
+	public void testGetMostRecentTableSnapshotWithMissingNodeRevision() {
+		
+		String tableId = idAndVersion.getId().toString();
+		
+		Long snapshotVersion = addTableChanges(tableId, true);
+		
+		TableSnapshot snapshotOne = viewSnapshotDao.createSnapshot(new TableSnapshot()
+			.withTableId(idAndVersion.getId())
+			.withVersion(snapshotVersion)
+			.withCreatedBy(adminUserId)
+			.withCreatedOn(new Date())
+			.withBucket("some bucket")
+			.withKey("some key")
+		);
+		
+		addTableChanges(tableId, false);
+		snapshotVersion = addTableChanges(tableId, true);
+		
+		TableSnapshot snapshotTwo = viewSnapshotDao.createSnapshot(new TableSnapshot()
+			.withTableId(idAndVersion.getId())
+			.withVersion(snapshotVersion)
+			.withCreatedBy(adminUserId)
+			.withCreatedOn(new Date())
+			.withBucket("some bucket")
+			.withKey("some other key")
+		);
+	
+		idAndVersion = IdAndVersion.newBuilder().setId(idAndVersion.getId()).setVersion(snapshotTwo.getVersion()).build();
+		
+		Optional<TableSnapshot> result = viewSnapshotDao.getMostRecentTableSnapshot(idAndVersion);
+
+		assertEquals(snapshotTwo, result.get());
+		
+		// Now delete the node revision
+		nodeDao.deleteVersion(tableId, snapshotTwo.getVersion());
+		
+		// The snapshot exists, and there is a version in the tx, but the revision is missing, use the previous snapshot
+		result = viewSnapshotDao.getMostRecentTableSnapshot(idAndVersion);
+
+		assertEquals(snapshotOne, result.get());
+	}
+	
 	@Test
 	public void testGetMostRecentTableSnapshotWithNoTableChanges() {
 		
-		viewSnapshot = viewSnapshotDao.createSnapshot(viewSnapshot);
+		tableSnapshot = viewSnapshotDao.createSnapshot(tableSnapshot);
 		
 		// Call under test
 		Optional<TableSnapshot> result = viewSnapshotDao.getMostRecentTableSnapshot(idAndVersion);
@@ -379,7 +445,9 @@ public class TableSnapshotDaoImplTest {
 		assertTrue(result.isEmpty());
 	}	
 
-	private void addTableChanges(String tableId, Long tableVersion) {
+	private Long addTableChanges(String tableId, boolean newTableVersion) {
+		final Node table = nodeDao.getNode(tableId);
+		
 		// We need to wrap all this in tx since linkTransactionToVersion needs a manadatory tx
 		txTemplate.executeWithoutResult( status -> {
 			long txId = tableTransactionDao.startTransaction(tableId, adminUserId);
@@ -390,9 +458,12 @@ public class TableSnapshotDaoImplTest {
 			
 			tableTruthDao.appendRowSetToTable(String.valueOf(adminUserId), tableId, UUID.randomUUID().toString(), changeNumber, null, changeSet, txId, false);
 			
-			if (tableVersion != null) {
-				tableTransactionDao.linkTransactionToVersion(txId, tableVersion);
+			if (newTableVersion) {
+				tableTransactionDao.linkTransactionToVersion(txId, table.getVersionNumber());
+				nodeDao.createNewVersion(table.setVersionLabel(null));
 			}
 		});
+		
+		return table.getVersionNumber();
 	}
 }

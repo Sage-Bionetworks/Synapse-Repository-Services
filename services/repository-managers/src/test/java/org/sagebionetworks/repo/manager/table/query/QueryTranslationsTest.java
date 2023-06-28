@@ -42,9 +42,11 @@ public class QueryTranslationsTest {
 	public void before() {
 
 		schema = List.of(
-				TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING).setFacetType(FacetType.enumeration),
-				TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER),
-				TableModelTestUtils.createColumn(3L, "three", ColumnType.STRING));
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING).setFacetType(FacetType.enumeration),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER),
+			TableModelTestUtils.createColumn(3L, "three", ColumnType.STRING),
+			TableModelTestUtils.createColumn(4L, "four", ColumnType.ENTITYID)
+		);
 
 		schemaProvider = Mockito.mock(SchemaProvider.class);
 		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
@@ -57,14 +59,23 @@ public class QueryTranslationsTest {
 
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
 
-		options = new QueryOptions().withRunQuery(true).withReturnFacets(true).withReturnMaxRowsPerPage(true)
-				.withRunCount(true).withRunSumFileSizes(true);
+		options = new QueryOptions()
+			.withRunQuery(true)
+			.withReturnFacets(true)
+			.withReturnMaxRowsPerPage(true)
+			.withRunCount(true)
+			.withRunSumFileSizes(true)
+			.withReturnActionsRequired(true);
 
 		startingSql = "select * from " + tableId;
 
-		builder = QueryContext.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
-				.setUserId(userId).setMaxBytesPerPage(maxBytesPerPage).setStartingSql(startingSql)
-				.setMaxRowsPerCall(maxRowsPerCall);
+		builder = QueryContext.builder()
+			.setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
+			.setUserId(userId)
+			.setMaxBytesPerPage(maxBytesPerPage)
+			.setStartingSql(startingSql)
+			.setMaxRowsPerCall(maxRowsPerCall)
+			.setSelectFileColumn(4L);
 	}
 
 	@Test
@@ -83,6 +94,9 @@ public class QueryTranslationsTest {
 
 		assertNotNull(queries.getSumFileSizesQuery());
 		assertTrue(queries.getSumFileSizesQuery().isPresent());
+		
+		assertNotNull(queries.getActionsRequiredQuery());
+		assertTrue(queries.getActionsRequiredQuery().isPresent());
 
 	}
 
@@ -91,6 +105,7 @@ public class QueryTranslationsTest {
 		options.withRunCount(false);
 		options.withReturnFacets(false);
 		options.withRunSumFileSizes(false);
+		options.withReturnActionsRequired(false);
 
 		// call under test
 		QueryTranslations queries = new QueryTranslations(builder.build(), options);
@@ -105,6 +120,9 @@ public class QueryTranslationsTest {
 
 		assertNotNull(queries.getSumFileSizesQuery());
 		assertFalse(queries.getSumFileSizesQuery().isPresent());
+		
+		assertNotNull(queries.getActionsRequiredQuery());
+		assertFalse(queries.getActionsRequiredQuery().isPresent());
 
 	}
 

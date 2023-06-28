@@ -1,27 +1,20 @@
 package org.sagebionetworks.repo.manager;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Properties;
 
-import javax.mail.BodyPart;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.message.multipart.Attachment;
@@ -29,7 +22,12 @@ import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
-import java.util.Base64;
+
+import jakarta.mail.BodyPart;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
 
 public class SendRawEmailRequestBuilderTest {
 	
@@ -168,6 +166,48 @@ public class SendRawEmailRequestBuilderTest {
 	@Test
 	public void testCreateRawEmailRequestWithOneTextAttachment() throws Exception {
 		String body = "{\"html\":\"<div>text</div>\",\"attachments\":[{\"content\":\"MjAwCg==\",\"file_name\":\"in.txt\",\"content_type\":\"text/plain\",\"disposition\":\"attachment\",\"size\":\"4\"}]}";
+		new SendRawEmailRequestBuilder()
+				.withRecipientEmail("foo@bar.com")
+				.withSubject("subject")
+				.withBody(body, SendRawEmailRequestBuilder.BodyType.JSON)
+				.withSenderUserName("foobar")
+				.withSenderDisplayName("Foo Bar")
+				.withNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT)
+				.withUnsubscribeLink(true)
+				.withUserProfileSettingEndpoint(PROFILE_SETTING_ENDPOINT)
+				.withProfileSettingLink(true)
+				.withUserId("101")
+				.withTo("TO<to@foo.bar>")
+				.withCc("Cc<cc@foo.bar>")
+				.withBcc("Bcc<bcc@foo.bar>")
+				.build();
+	}
+	
+	// When moving to JDK 11, the old javax.mail implementation was broken due to the missing activation module. Some attachments types (such as pdf) were not recognized. 
+	// See https://sagebionetworks.jira.com/browse/PLFM-7894
+	@Test
+	public void testCreateRawEmailRequestWithPdfAttachment() throws Exception {
+		String body = "{\"html\":\"<div>text</div>\",\"attachments\":[{\"content\":\"MjAwCg==\",\"file_name\":\"in.pdf\",\"content_type\":\"application/pdf\",\"disposition\":\"attachment\",\"size\":\"4\"}]}";
+		new SendRawEmailRequestBuilder()
+				.withRecipientEmail("foo@bar.com")
+				.withSubject("subject")
+				.withBody(body, SendRawEmailRequestBuilder.BodyType.JSON)
+				.withSenderUserName("foobar")
+				.withSenderDisplayName("Foo Bar")
+				.withNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT)
+				.withUnsubscribeLink(true)
+				.withUserProfileSettingEndpoint(PROFILE_SETTING_ENDPOINT)
+				.withProfileSettingLink(true)
+				.withUserId("101")
+				.withTo("TO<to@foo.bar>")
+				.withCc("Cc<cc@foo.bar>")
+				.withBcc("Bcc<bcc@foo.bar>")
+				.build();
+	}
+	
+	@Test
+	public void testCreateRawEmailRequestWithJpegAttachment() throws Exception {
+		String body = "{\"html\":\"<div>text</div>\",\"attachments\":[{\"content\":\"MjAwCg==\",\"file_name\":\"in.jpg\",\"content_type\":\"image/jpeg\",\"disposition\":\"attachment\",\"size\":\"1000\"}]}";
 		new SendRawEmailRequestBuilder()
 				.withRecipientEmail("foo@bar.com")
 				.withSubject("subject")

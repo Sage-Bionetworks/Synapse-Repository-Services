@@ -6,21 +6,8 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
-import javax.mail.BodyPart;
-import javax.mail.Message;
-import javax.mail.Message.RecipientType;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
 
-import com.amazonaws.services.simpleemail.model.RawMessage;
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import org.apache.commons.net.util.Base64;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
@@ -31,6 +18,19 @@ import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.utils.ContentTypeUtil;
+
+import com.amazonaws.services.simpleemail.model.RawMessage;
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+
+import jakarta.mail.BodyPart;
+import jakarta.mail.Message.RecipientType;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
 
 /*
  * If sender is null then the 'notification email address' is used
@@ -183,7 +183,7 @@ public class SendRawEmailRequestBuilder {
 		try {
 			MimeMessage msg = new MimeMessage(mailSession);
 			msg.setFrom(new InternetAddress(source));
-			msg.setRecipient( Message.RecipientType.TO, new InternetAddress(recipientEmail));
+			msg.setRecipient(RecipientType.TO, new InternetAddress(recipientEmail));
 			if (subject!=null) msg.setSubject(subject); // note: setSubject will encode non-ascii characters for us
 			if (to!=null) msg.setRecipients(RecipientType.TO, to);
 			if (cc!=null) msg.setRecipients(RecipientType.CC, cc);

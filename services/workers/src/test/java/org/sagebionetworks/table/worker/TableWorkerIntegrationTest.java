@@ -3854,8 +3854,12 @@ public class TableWorkerIntegrationTest {
 		query.setOffset(offset);
 		query.setLimit(limit);
 		
-		QueryOptions queryOptions = new QueryOptions();
-		queryOptions.withMask(-1L);
+		QueryOptions queryOptions = new QueryOptions()
+			.withRunQuery(true)
+			.withRunCount(true)
+			.withReturnColumnModels(true)
+			.withReturnSelectColumns(true);
+		
 		return waitForConsistentQueryBundle(user, query, queryOptions, responseConsumer);
 	}
 	

@@ -24,6 +24,7 @@ public class QueryContext {
 	private final Long maxRowsPerCall;
 	private final List<QueryFilter> additionalFilters;
 	private final List<FacetColumnRequest> selectedFacets;
+	private final Long selectFileColumn;
 	private final Boolean includeEntityEtag;
 	private final Long offset;
 	private final Long limit;
@@ -31,7 +32,7 @@ public class QueryContext {
 
 	public QueryContext(String startingSql, SchemaProvider schemaProvider, IndexDescription indexDescription,
 			Long userId, Long maxBytesPerPage, Long maxRowsPerCall, List<QueryFilter> additionalFilters,
-			List<FacetColumnRequest> selectedFacets, Boolean includeEntityEtag, Long offset, Long limit,
+			List<FacetColumnRequest> selectedFacets, Long selectFileColumn, Boolean includeEntityEtag, Long offset, Long limit,
 			List<SortItem> sort) {
 
 		ValidateArgument.required(startingSql, "startingSql");
@@ -41,13 +42,13 @@ public class QueryContext {
 
 		this.startingSql = startingSql;
 		this.schemaProvider = new CachingSchemaProvider(schemaProvider);
-		;
 		this.indexDescription = indexDescription;
 		this.userId = userId;
 		this.maxBytesPerPage = maxBytesPerPage;
 		this.maxRowsPerCall = maxRowsPerCall;
 		this.additionalFilters = additionalFilters;
 		this.selectedFacets = selectedFacets;
+		this.selectFileColumn = selectFileColumn;
 		this.includeEntityEtag = includeEntityEtag;
 		this.offset = offset;
 		this.limit = limit;
@@ -109,6 +110,10 @@ public class QueryContext {
 	public List<FacetColumnRequest> getSelectedFacets() {
 		return selectedFacets;
 	}
+	
+	public Long getSelectFileColumn() {
+		return selectFileColumn;
+	}
 
 	/**
 	 * @return the includeEntityEtag
@@ -152,6 +157,7 @@ public class QueryContext {
 		private Long maxRowsPerCall;
 		private List<QueryFilter> additionalFilters;
 		private List<FacetColumnRequest> selectedFacets;
+		private Long selectFileColumn;
 		private Boolean includeEntityEtag;
 		private Long offset;
 		private Long limit;
@@ -220,6 +226,14 @@ public class QueryContext {
 			this.selectedFacets = selectedFacets;
 			return this;
 		}
+		
+		/**
+		 * @param selectFileColumn The id of the column to use to select files from the query
+		 */
+		public Builder setSelectFileColumn(Long selectFileColumn) {
+			this.selectFileColumn = selectFileColumn;
+			return this;
+		}
 
 		/**
 		 * @param includeEntityEtag the includeEntityEtag to set
@@ -255,7 +269,7 @@ public class QueryContext {
 
 		public QueryContext build() {
 			return new QueryContext(startingSql, schemaProvider, indexDescription, userId, maxBytesPerPage,
-					maxRowsPerCall, additionalFilters, selectedFacets, includeEntityEtag, offset, limit, sort);
+					maxRowsPerCall, additionalFilters, selectedFacets, selectFileColumn, includeEntityEtag, offset, limit, sort);
 		}
 
 	}

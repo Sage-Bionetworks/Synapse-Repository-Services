@@ -592,7 +592,7 @@ public class SqlElementUtils {
 			builder.append("COUNT(*)");
 		}
 		try {
-			model.replaceChildren(new TableQueryParser(builder.toString()).selectList());
+			model.replaceSelectList(new TableQueryParser(builder.toString()).selectList(), null);
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
