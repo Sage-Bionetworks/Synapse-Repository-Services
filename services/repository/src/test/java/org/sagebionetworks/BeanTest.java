@@ -43,8 +43,14 @@ public class BeanTest implements ApplicationContextAware {
 			"org.springframework.transaction.annotation.AnnotationTransactionAttributeSource",
 			"org.springframework.transaction.interceptor.TransactionInterceptor",
 			"org.springframework.aop.support.DefaultBeanFactoryPointcutAdvisor");
+	
 	private static final Pattern UNNAMED_BEAN_PATTERN = Pattern.compile("^(.*)#[0-9]+$");
 
+	// The semaphore uses the standard transactional annotation
+	private static final Set<String> TRANSACTIONAL_EXCEPTIONS = Set.of(
+		"refreshLockTimeout", "releaseLock", "attemptToAcquireLock"
+	);
+	
 	@Test
 	public void testNoUnnamedBeans() {
 		List<String> foundBeans = Lists.newLinkedList();
@@ -62,7 +68,7 @@ public class BeanTest implements ApplicationContextAware {
 		// Transactional is not used anymore, use @WriteTransaction, @NewWriteTransaction or @MandatoryWriteTransaction
 		Reflections reflections = new Reflections("org.sagebionetworks", Scanners.MethodsAnnotated, Scanners.TypesAnnotated);
 		assertEquals(0, reflections.getTypesAnnotatedWith(Transactional.class).size());
-		assertEquals(0, reflections.getMethodsAnnotatedWith(Transactional.class).size());
+		assertEquals(0, reflections.getMethodsAnnotatedWith(Transactional.class).stream().filter(m -> !TRANSACTIONAL_EXCEPTIONS.contains(m.getName())).count());
 	}
 
 	private static final List<String> readMethodPrefixes = Lists.newArrayList("check", "get");
