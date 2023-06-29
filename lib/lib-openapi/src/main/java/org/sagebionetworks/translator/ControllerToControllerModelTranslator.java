@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -69,14 +70,47 @@ public class ControllerToControllerModelTranslator {
 	 */
 	public List<ControllerModel> extractControllerModels(DocletEnvironment env, Map<String, ObjectSchema> schemaMap) {
 		List<ControllerModel> controllerModels = new ArrayList<>();
-		for (TypeElement t : ElementFilter.typesIn(env.getIncludedElements())) {
-			if (!t.getKind().equals(ElementKind.CLASS)) {
-				continue;
-			}
+		for (TypeElement t : getControllers(ElementFilter.typesIn(env.getIncludedElements()))) {
 			ControllerModel controllerModel = translate(t, env.getDocTrees(), schemaMap);
 			controllerModels.add(controllerModel);
 		}
 		return controllerModels;
+	}
+	
+	/**
+	 * Returns the controllers present in a set of files
+	 * 
+	 * @param files the files being examines
+	 * @return a list of Controllers in the files
+	 */
+	List<TypeElement> getControllers(Set<TypeElement> files) {
+		List<TypeElement> controllers = new ArrayList<>();
+		for (TypeElement file : files) {
+			if (isController(file)) {
+				controllers.add(file);
+			}
+		}
+		return controllers;
+	}
+	
+	/**
+	 * Determines if a file is a controller
+	 * 
+	 * @param file the file being examined
+	 * @return true if the file is a controller, false otherwise
+	 */
+	boolean isController(TypeElement file) {
+		ValidateArgument.required(file, "file");
+		if (!file.getKind().equals(ElementKind.CLASS)) {
+			return false;
+		}
+		List<? extends AnnotationMirror> fileAnnotations = file.getAnnotationMirrors();
+		for (AnnotationMirror annotation : fileAnnotations) {
+			if (ControllerInfo.class.getSimpleName().equals(getSimpleAnnotationName(annotation))) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	/**

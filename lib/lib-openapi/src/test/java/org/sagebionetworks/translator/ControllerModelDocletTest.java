@@ -69,6 +69,7 @@ public class ControllerModelDocletTest {
 			"-sourcepath", sampleSourceFile.getParentFile().getParent(),
 			"--target-file", targetFilePath,
 			"--factory-path", serverSideFactoryPath,
+			"--should-run", "true",
 			controllersPackageName
 		};
 		
