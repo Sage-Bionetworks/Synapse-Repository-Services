@@ -6,8 +6,11 @@ import javax.sql.DataSource;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.database.semaphore.CountingSemaphore;
+import org.sagebionetworks.database.semaphore.CountingSemaphoreImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -58,6 +61,8 @@ public class ModelConfig {
 	}
 
 	@Bean
+	// Primary transaction manager used by the database semaphore
+	@Primary
 	public PlatformTransactionManager txManager(DataSource dataSourcePool) {
 		return new DataSourceTransactionManager(dataSourcePool);
 	}
@@ -92,5 +97,10 @@ public class ModelConfig {
 		txDefinition.setName("readCommitedTransactionTemplate");
 
 		return new TransactionTemplate(txManager, txDefinition);
+	}
+	
+	@Bean
+	public CountingSemaphore countingSemaphore(DataSource dataSourcePool) {
+		return new CountingSemaphoreImpl(dataSourcePool);
 	}
 }

@@ -1,17 +1,38 @@
 package org.sagebionetworks.repo.web.service;
 
-import com.google.common.collect.Lists;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityRef;
@@ -22,7 +43,10 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.semaphore.LockContext;
+import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
@@ -33,28 +57,13 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.service.metadata.EventType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.when;
+import com.google.common.collect.Lists;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -75,6 +84,9 @@ public class EntityServiceImplAutowiredTest  {
 	@Autowired 
 	private TableEntityManager tableEntityManager;
 
+	@Autowired
+	private TableManagerSupport tableManagerSupport;
+	
 	@Autowired
 	private IdGenerator idGenerator;
 	
@@ -795,7 +807,7 @@ public class EntityServiceImplAutowiredTest  {
 		assertTrue(table.getIsSearchEnabled());
 		
 	}
-
+	
 	@Test
 	public void testDatasetCreationAndUpdateCalculateSizeAndChecksum() {
 		// Create a file entity
@@ -846,5 +858,37 @@ public class EntityServiceImplAutowiredTest  {
 		assertNotNull(updatedDataset.getChecksum());
 		assertEquals(fileHandle1.getContentSize() + fileHandle2.getContentSize(), updatedDataset.getSize());
 		toDelete.add(updatedDataset.getId());
+	}
+	
+	// Test to reproduce https://sagebionetworks.jira.com/browse/PLFM-7863
+	@Test
+	public void testUpdateTableWithLockUnavailableException() throws Exception {
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SampleTable");
+		table.setIsSearchEnabled(false);
+		
+		table = entityService.createEntity(adminUserId, table, null);
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		
+		IdAndVersion idAndVersion = IdAndVersion.parse(table.getId());
+		SynchronizedProgressCallback callback = new SynchronizedProgressCallback(5);
+		
+		assertThrows(TemporarilyUnavailableException.class, () -> {
+			// We acquire a lock on the table, so the update will fail
+			tableManagerSupport.tryRunWithTableExclusiveLock(callback, new LockContext(ContextType.TableUpdate, idAndVersion), idAndVersion, (ProgressCallback callbackInner) -> {
+				TableEntity updateTable = entityService.getEntity(adminUserId, idAndVersion.getId().toString(), TableEntity.class);
+				updateTable.setName("Updated name");
+				updateTable.setIsSearchEnabled(true);
+				entityService.updateEntity(adminUserId, updateTable, false, null);
+				return null;
+			});	
+		});
+		
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		
+		// The failure of the lock acquisition should roll back the main transaction
+		assertEquals("SampleTable", table.getName());
+		assertFalse(table.getIsSearchEnabled());
 	}
 }
