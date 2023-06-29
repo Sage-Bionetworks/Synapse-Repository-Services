@@ -127,6 +127,7 @@ public class ControllerToControllerModelTranslator {
 	 */
 	public ControllerModel translate(TypeElement controller, DocTrees docTrees, Map<String, ObjectSchema> schemaMap) {
 		ControllerModel controllerModel = new ControllerModel();
+		System.out.println("Extracting controller " + controller.getSimpleName());
 		List<MethodModel> methods = getMethods(controller.getEnclosedElements(), docTrees, schemaMap);
 		ControllerInfoModel controllerInfo = getControllerInfoModel(controller.getAnnotationMirrors());
 		controllerModel.withDisplayName(controllerInfo.getDisplayName()).withPath(controllerInfo.getPath())
@@ -188,6 +189,8 @@ public class ControllerToControllerModelTranslator {
 			Map<String, ObjectSchema> schemaMap) {
 		List<MethodModel> methods = new ArrayList<>();
 		for (ExecutableElement method : ElementFilter.methodsIn(enclosedElements)) {
+			System.out.println("Extracting method " + method.getSimpleName());
+
 			DocCommentTree docCommentTree = docTrees.getDocCommentTree(method);
 			Map<String, String> parameterToDescription = getParameterToDescription(docCommentTree.getBlockTags());
 			Map<Class, Object> annotationToModel = getAnnotationToModel(method.getAnnotationMirrors());
