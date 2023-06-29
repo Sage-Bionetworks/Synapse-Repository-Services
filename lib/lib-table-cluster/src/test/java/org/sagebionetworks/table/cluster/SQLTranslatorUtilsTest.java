@@ -3441,8 +3441,11 @@ public class SQLTranslatorUtilsTest {
 		QueryExpression rootModel = new TableQueryParser("select foo from syn123").queryExpression();
 		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		
+		ColumnModel foo = columnNameMap.get("foo");
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
-				.thenReturn(List.of(columnNameMap.get("foo"), columnNameMap.get("has space")));
+				.thenReturn(List.of(foo, columnNameMap.get("has space")));
+		
+		when(mockSchemaProvider.getColumnModel(foo.getId())).thenReturn(foo);
 		
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 		
@@ -3488,6 +3491,7 @@ public class SQLTranslatorUtilsTest {
 		cm.setId("111");
 	
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List.of(cm));
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(cm);
 		
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 		
@@ -3510,6 +3514,7 @@ public class SQLTranslatorUtilsTest {
 			QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 			
 			when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List.of(cm));
+			when(mockSchemaProvider.getColumnModel(any())).thenReturn(cm);
 			
 			TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 			
@@ -3625,6 +3630,27 @@ public class SQLTranslatorUtilsTest {
 		expected.setColumnType(ColumnType.STRING);
 		expected.setMaximumSize(columnNameMap.get("foo").getMaximumSize());
 		expected.setId(null);
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithCastFacet() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser("select cast(foo as 88) from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+	
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("foo")));
+		
+		when(mockSchemaProvider.getColumnModel("88")).thenReturn(
+				new ColumnModel().setName("bar").setId("88").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		
+		ColumnModel expected = new ColumnModel().setName("bar").setId(null).setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
 	}

@@ -1171,15 +1171,24 @@ public class SQLTranslatorUtils {
 		ColumnType columnType = selectColumn.getColumnType();
 		String defaultValue = null;
 		FacetType facetType = null;
-		for (ColumnReference cr : derivedColumn.createIterable(ColumnReference.class)) {
-			ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
-			if (ctr != null) {
-				maximumSize = addLongsWithNull(maximumSize, ctr.getMaximumSize());
-				maxListLength = addLongsWithNull(maxListLength, ctr.getMaximumListLength());
-				defaultValue = ctr.getDefaultValues();
-				facetType = ctr.getFacetType();
+		if(selectColumn.getId() != null) {
+			ColumnModel cm = tableAndColumnMapper.getColumnModel(selectColumn.getId());
+			maximumSize = cm.getMaximumSize();
+			maxListLength = cm.getMaximumListLength();
+			defaultValue = cm.getDefaultValue();
+			facetType = cm.getFacetType();
+		}else {
+			for (ColumnReference cr : derivedColumn.createIterable(ColumnReference.class)) {
+				ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
+				if (ctr != null) {
+					maximumSize = addLongsWithNull(maximumSize, ctr.getMaximumSize());
+					maxListLength = addLongsWithNull(maxListLength, ctr.getMaximumListLength());
+					defaultValue = ctr.getDefaultValues();
+					facetType = ctr.getFacetType();
+				}
 			}
 		}
+
 
 		ColumnModel result = new ColumnModel();
 		result.setColumnType(columnType);

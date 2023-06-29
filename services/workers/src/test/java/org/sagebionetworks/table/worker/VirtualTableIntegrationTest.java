@@ -46,6 +46,8 @@ import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -159,6 +161,8 @@ public class VirtualTableIntegrationTest {
 					results.getQueryResult().getQueryResults().getRows());
 			assertEquals(List.of(foo, barSum), results.getColumnModels());
 			assertEquals(2L, results.getQueryCount());
+			assertEquals(List.of(new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range)
+					.setColumnMin("6").setColumnMax("18")), results.getFacets());
 		}, MAX_WAIT_MS);
 
 		String message = assertThrows(UnauthorizedException.class, () -> {
@@ -167,6 +171,20 @@ public class VirtualTableIntegrationTest {
 			}, MAX_WAIT_MS);
 		}).getMessage();
 		assertEquals("You lack DOWNLOAD access to the requested entity.", message);
+		
+		// query with a facet selection
+		query.setSelectedFacets(
+				List.of(new FacetColumnRangeRequest().setColumnName("barSum").setMax("19").setMin("17")));
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("b", "18"))),
+					results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum), results.getColumnModels());
+			assertEquals(1L, results.getQueryCount());
+			assertEquals(
+					List.of(new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range)
+							.setColumnMin("6").setColumnMax("18").setSelectedMax("19").setSelectedMin("17")),
+					results.getFacets());
+		}, MAX_WAIT_MS);
 	}
 
 	@Test
