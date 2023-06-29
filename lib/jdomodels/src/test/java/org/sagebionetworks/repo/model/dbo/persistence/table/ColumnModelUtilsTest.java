@@ -1,6 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -11,16 +17,15 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.json.JSONArray;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
-import org.sagebionetworks.repo.model.table.ColumnConstants;
 
 import com.google.common.collect.Lists;
 
@@ -444,6 +449,16 @@ public class ColumnModelUtilsTest {
 	public void testMediumTextDisallowDefaultValue(){
 		original.setName("name");
 		original.setColumnType(ColumnType.MEDIUMTEXT);
+		original.setDefaultValue("value");
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		});
+	}
+	
+	@Test
+	public void testJsonDisallowDefaultValue(){
+		original.setName("name");
+		original.setColumnType(ColumnType.JSON);
 		original.setDefaultValue("value");
 		assertThrows(IllegalArgumentException.class, () -> {
 			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());

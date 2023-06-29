@@ -145,6 +145,12 @@ public class ColumnTypeInfoTest {
 	}
 	
 	@Test
+	public void testParseJson(){
+		Object dbValue = ColumnTypeInfo.JSON.parseValueForDatabaseWrite("{\"foo\": \"bar\"}");
+		assertEquals("{\"foo\":\"bar\"}", dbValue);
+	}
+	
+	@Test
 	public void testParseAllNull(){
 		for(ColumnTypeInfo info: ColumnTypeInfo.values()){
 			String value = null;
@@ -356,6 +362,14 @@ public class ColumnTypeInfoTest {
 	}
 	
 	@Test
+	public void testToSqlMediumTextWithDefault(){
+		Long inputSize = null;
+		String defaultValue = "bar";
+		String sql = ColumnTypeInfo.MEDIUMTEXT.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
+		assertEquals("TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'bar' COMMENT 'MEDIUMTEXT'", sql);
+	}
+	
+	@Test
 	public void testToSqlBoolean(){
 		Long inputSize = null;
 		String defaultValue = null;
@@ -377,6 +391,14 @@ public class ColumnTypeInfoTest {
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.BOOLEAN.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
 		assertEquals("BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", sql);
+	}
+	
+	@Test
+	public void testToSqlJsonDefaultNull(){
+		Long inputSize = null;
+		String defaultValue = null;
+		String sql = ColumnTypeInfo.JSON.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
+		assertEquals("JSON DEFAULT NULL COMMENT 'JSON'", sql);
 	}
 	
 	@Test

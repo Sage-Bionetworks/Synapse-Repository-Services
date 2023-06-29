@@ -97,6 +97,11 @@ public class ColumnConstants {
 	public static final int SIZE_OF_MEDIUM_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES = (int) (MY_SQL_MAX_BYTES_PER_ROW/MY_SQL_MAX_COLUMNS_PER_TABLE);
 	
 	/**
+	 * Treat it as a large text column
+	 */
+	public static final int SIZE_OF_JSON_FOR_COLUMN_SIZE_ESTIMATE_BYTES = SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES;
+	
+	/**
 	 * The maximum number of characters allowed for a LARGETEXT value.
 	 */
 	public static final long MAX_LARGE_TEXT_CHARACTERS = MAX_LARGE_TEXT_BYTES/MAX_BYTES_PER_CHAR_UTF_8;
@@ -105,6 +110,11 @@ public class ColumnConstants {
 	 * The maximum number of characters allowed for a MEDIUMTEXT value.
 	 */
 	public static final long MAX_MEDIUM_TEXT_CHARACTERS = 2000;
+	
+	/**
+	 * The maximum number of characters allowed for a JSON value. Treat it as a large text.
+	 */
+	public static final long MAX_JSON_CHARACTERS = MAX_LARGE_TEXT_CHARACTERS;
 	
 	public static final String CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI = "CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci";
 	
