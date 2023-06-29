@@ -189,14 +189,15 @@ public class ControllerToControllerModelTranslator {
 			Map<String, ObjectSchema> schemaMap) {
 		List<MethodModel> methods = new ArrayList<>();
 		for (ExecutableElement method : ElementFilter.methodsIn(enclosedElements)) {
-			System.out.println("Extracting method " + method.getSimpleName());
+			String methodName = method.getSimpleName().toString();
+			System.out.println("Extracting method " + methodName);
 
 			DocCommentTree docCommentTree = docTrees.getDocCommentTree(method);
 			Map<String, String> parameterToDescription = getParameterToDescription(docCommentTree.getBlockTags());
 			Map<Class, Object> annotationToModel = getAnnotationToModel(method.getAnnotationMirrors());
 			if (!annotationToModel.containsKey(RequestMapping.class)) {
 				throw new IllegalStateException(
-						"Method " + method.getSimpleName() + " missing RequestMapping annotation.");
+						"Method " + methodName + " missing RequestMapping annotation.");
 			}
 
 			Optional<String> behaviorComment = getBehaviorComment(docCommentTree.getFullBody());
@@ -210,7 +211,7 @@ public class ControllerToControllerModelTranslator {
 			}
 			MethodModel methodModel = new MethodModel()
 					.withPath(getMethodPath((RequestMappingModel) annotationToModel.get(RequestMapping.class)))
-					.withName(method.getSimpleName().toString())
+					.withName(methodName)
 					.withDescription(behaviorComment.isEmpty() ? null : behaviorComment.get())
 					.withOperation(((RequestMappingModel) annotationToModel.get(RequestMapping.class)).getOperation())
 					.withParameters(getParameters(method.getParameters(), parameterToDescription, schemaMap))
