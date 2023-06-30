@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -58,38 +59,75 @@ import jdk.javadoc.doclet.DocletEnvironment;
  *
  */
 public class ControllerToControllerModelTranslator {
-	
+
 	/**
-	 * Converts all controllers found in the doclet environment to controller models. Populates
-	 * schemaMap based on types found in all of the controllers.
+	 * Converts all controllers found in the doclet environment to controller
+	 * models. Populates schemaMap based on types found in all of the controllers.
 	 * 
-	 * @param env the doclet environment being looked at
-	 * @param classNameToObjectSchema a mapping between class name to object schema that represents it
+	 * @param env                     the doclet environment being looked at
+	 * @param classNameToObjectSchema a mapping between class name to object schema
+	 *                                that represents it
 	 * @return
 	 */
 	public List<ControllerModel> extractControllerModels(DocletEnvironment env, Map<String, ObjectSchema> schemaMap) {
 		List<ControllerModel> controllerModels = new ArrayList<>();
-		for (TypeElement t : ElementFilter.typesIn(env.getIncludedElements())) {
-			if (!t.getKind().equals(ElementKind.CLASS)) {
-				continue;
-			}
+		for (TypeElement t : getControllers(ElementFilter.typesIn(env.getIncludedElements()))) {
 			ControllerModel controllerModel = translate(t, env.getDocTrees(), schemaMap);
 			controllerModels.add(controllerModel);
 		}
 		return controllerModels;
 	}
-	
+
 	/**
-	 * Translates a Doclet controller (TypeElement) to a ControllerModel. Populates schemaMap based on types found
-	 * in the controllers
+	 * Returns the controllers present in a set of files
+	 * 
+	 * @param files the files being examines
+	 * @return a list of Controllers in the files
+	 */
+	List<TypeElement> getControllers(Set<TypeElement> files) {
+		List<TypeElement> controllers = new ArrayList<>();
+		for (TypeElement file : files) {
+			if (isController(file)) {
+				controllers.add(file);
+			}
+		}
+		return controllers;
+	}
+
+	/**
+	 * Determines if a file is a controller
+	 * 
+	 * @param file the file being examined
+	 * @return true if the file is a controller, false otherwise
+	 */
+	boolean isController(TypeElement file) {
+		ValidateArgument.required(file, "file");
+		if (!file.getKind().equals(ElementKind.CLASS)) {
+			return false;
+		}
+		List<? extends AnnotationMirror> fileAnnotations = file.getAnnotationMirrors();
+		for (AnnotationMirror annotation : fileAnnotations) {
+			if (ControllerInfo.class.getSimpleName().equals(getSimpleAnnotationName(annotation))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Translates a Doclet controller (TypeElement) to a ControllerModel. Populates
+	 * schemaMap based on types found in the controllers
 	 * 
 	 * @param controller the doclet representation of a controller
-	 * @param docTrees stores the necessary javadoc comments for the methods and classes
-	 * @param schemaMap a mapping between class name and an ObjectSchema that represents that class
+	 * @param docTrees   stores the necessary javadoc comments for the methods and
+	 *                   classes
+	 * @param schemaMap  a mapping between class name and an ObjectSchema that
+	 *                   represents that class
 	 * @return a model that represents the controller.
 	 */
 	public ControllerModel translate(TypeElement controller, DocTrees docTrees, Map<String, ObjectSchema> schemaMap) {
 		ControllerModel controllerModel = new ControllerModel();
+		System.out.println("Extracting controller " + controller.getSimpleName());
 		List<MethodModel> methods = getMethods(controller.getEnclosedElements(), docTrees, schemaMap);
 		ControllerInfoModel controllerInfo = getControllerInfoModel(controller.getAnnotationMirrors());
 		controllerModel.withDisplayName(controllerInfo.getDisplayName()).withPath(controllerInfo.getPath())
@@ -151,30 +189,33 @@ public class ControllerToControllerModelTranslator {
 			Map<String, ObjectSchema> schemaMap) {
 		List<MethodModel> methods = new ArrayList<>();
 		for (ExecutableElement method : ElementFilter.methodsIn(enclosedElements)) {
+			String methodName = method.getSimpleName().toString();
+			System.out.println("Extracting method " + methodName);
+
 			DocCommentTree docCommentTree = docTrees.getDocCommentTree(method);
 			Map<String, String> parameterToDescription = getParameterToDescription(docCommentTree.getBlockTags());
 			Map<Class, Object> annotationToModel = getAnnotationToModel(method.getAnnotationMirrors());
 			if (!annotationToModel.containsKey(RequestMapping.class)) {
 				throw new IllegalStateException(
-						"Method " + method.getSimpleName() + " missing RequestMapping annotation.");
+						"Method " + methodName + " missing RequestMapping annotation.");
 			}
-			if (!annotationToModel.containsKey(ResponseStatus.class)) {
-				throw new IllegalStateException(
-						"Method " + method.getSimpleName() + " missing ResponseStatus annotation.");
-			}
+
 			Optional<String> behaviorComment = getBehaviorComment(docCommentTree.getFullBody());
 			Optional<RequestBodyModel> requestBody = getRequestBody(method.getParameters(), parameterToDescription,
 					schemaMap);
+			ResponseModel response = null;
+			if (annotationToModel.containsKey(ResponseStatus.class)) {
+				response = getResponseModel(method.getReturnType().getKind(), method.getReturnType().toString(),
+						docCommentTree.getBlockTags(),
+						(ResponseStatusModel) annotationToModel.get(ResponseStatus.class), schemaMap);
+			}
 			MethodModel methodModel = new MethodModel()
 					.withPath(getMethodPath((RequestMappingModel) annotationToModel.get(RequestMapping.class)))
-					.withName(method.getSimpleName().toString())
+					.withName(methodName)
 					.withDescription(behaviorComment.isEmpty() ? null : behaviorComment.get())
 					.withOperation(((RequestMappingModel) annotationToModel.get(RequestMapping.class)).getOperation())
 					.withParameters(getParameters(method.getParameters(), parameterToDescription, schemaMap))
-					.withRequestBody(requestBody.isEmpty() ? null : requestBody.get())
-					.withResponse(getResponseModel(method.getReturnType().getKind(), method.getReturnType().toString(),
-							docCommentTree.getBlockTags(),
-							(ResponseStatusModel) annotationToModel.get(ResponseStatus.class), schemaMap));
+					.withRequestBody(requestBody.isEmpty() ? null : requestBody.get()).withResponse(response);
 			methods.add(methodModel);
 		}
 		return methods;
@@ -206,15 +247,17 @@ public class ControllerToControllerModelTranslator {
 	}
 
 	/**
-	 * Populates the schemaMap by adding ObjectSchema that are associated with the className and type.
+	 * Populates the schemaMap by adding ObjectSchema that are associated with the
+	 * className and type.
 	 * 
 	 * @param className - the name of the class
-	 * @param type - the type of the class
-	 * @param schemaMap - a mapping between class names and schemas that represent those classes
+	 * @param type      - the type of the class
+	 * @param schemaMap - a mapping between class names and schemas that represent
+	 *                  those classes
 	 */
 	void populateSchemaMap(String className, TypeKind type, Map<String, ObjectSchema> schemaMap) {
 		ValidateArgument.required(className, "className");
-        ValidateArgument.required(type, "type");
+		ValidateArgument.required(type, "type");
 		ValidateArgument.required(schemaMap, "schemaMap");
 		boolean isPrimitive = type.isPrimitive() || className.equals(String.class.getName());
 		if (!isPrimitive) {
@@ -306,10 +349,14 @@ public class ControllerToControllerModelTranslator {
 	 */
 	int getHttpStatusCode(String object) {
 		HttpStatus status = HttpStatus.valueOf(object);
-		if (status.equals(HttpStatus.OK)) {
+		switch (status) {
+		case OK:
 			return HttpStatus.OK.value();
+		case CREATED:
+			return HttpStatus.CREATED.value();
+		default:
+			throw new IllegalArgumentException("Could not translate HttpStatus for status " + status);
 		}
-		throw new IllegalArgumentException("Could not translate HttpStatus for status " + status);
 	}
 
 	/**
@@ -331,8 +378,8 @@ public class ControllerToControllerModelTranslator {
 				TypeKind parameterType = param.asType().getKind();
 				String paramTypeClassName = param.asType().toString();
 				populateSchemaMap(paramTypeClassName, parameterType, schemaMap);
-				return Optional.of(
-						new RequestBodyModel().withDescription(paramDescription).withRequired(true).withId(paramTypeClassName));
+				return Optional.of(new RequestBodyModel().withDescription(paramDescription).withRequired(true)
+						.withId(paramTypeClassName));
 			}
 		}
 		return Optional.empty();
@@ -365,10 +412,10 @@ public class ControllerToControllerModelTranslator {
 		}
 		return parameters;
 	}
-	
+
 	/**
-	 * Generates a ObjectSchema for a primitive type. Since "STRING" does
-	 * not exist in TypeKind, we will pass it in as "DECLARED" type.
+	 * Generates a ObjectSchema for a primitive type. Since "STRING" does not exist
+	 * in TypeKind, we will pass it in as "DECLARED" type.
 	 * 
 	 * @param type - the primitive type we are translating
 	 * @return an ObjectSchema that represents the given type
@@ -377,13 +424,14 @@ public class ControllerToControllerModelTranslator {
 		ValidateArgument.required(type, "type");
 		ObjectSchema schema;
 		try {
-			// We can use empty json object because we only need the type to translate to JsonSchema later.
+			// We can use empty json object because we only need the type to translate to
+			// JsonSchema later.
 			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 			schema = new ObjectSchemaImpl(adpater);
 		} catch (Exception e) {
 			throw new RuntimeException("Error generating ObjectSchema for type " + type);
 		}
-		
+
 		switch (type) {
 		case INT:
 			schema.setType(TYPE.INTEGER);

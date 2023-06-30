@@ -14,8 +14,12 @@
 	<name>Platform Repository Service</name>
 
 	<dependencies>
-
+		
 		<!-- Sage Bionetworks Dependencies -->
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-openapi</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-table-query</artifactId>
@@ -228,35 +232,60 @@
 						<goals>
 							<goal>jar</goal>
 						</goals>
+						<configuration>
+							<excludePackageNames>
+								org.sagebionetworks.repo.web.service.metadata.*
+								:org.sagebionetworks.repo.web.filter.*
+								:org.sagebionetworks.repo.web.service.*
+								:org.sagebionetworks.sweeper.log4j.*
+								:profiler.org.*
+							</excludePackageNames>
+							<doclet>org.sagebionetworks.javadoc.web.services.SpringMVCDoclet</doclet>
+							<docletArtifact>
+								<groupId>org.sagebionetworks</groupId>
+								<artifactId>lib-javadoc</artifactId>
+								<version>${project.version}</version>
+							</docletArtifact>
+							<additionalparam>-verbose</additionalparam>
+							<useStandardDocletOptions>false</useStandardDocletOptions>
+							<destDir>${project.build.directory}/javadoc/restdocs</destDir>
+							<!-- This name is used to link to the authentication controller -->
+							<additionalJOption>-authControllerName org.sagebionetworks.auth.controller.AuthenticationController</additionalJOption>
+							<additionnalDependencies>
+								<additionnalDependency>
+									<groupId>org.sagebionetworks</groupId>
+									<artifactId>lib-table-query</artifactId>
+									<version>${project.version}</version>
+								</additionnalDependency>
+							</additionnalDependencies>
+						</configuration>
+					</execution>
+					<execution>
+						<id>generate-openapi-spec</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+						<configuration>
+							<excludePackageNames>
+								org.sagebionetworks.repo.web.service.metadata.*
+								:org.sagebionetworks.repo.web.filter.*
+								:org.sagebionetworks.repo.web.service.*
+								:org.sagebionetworks.sweeper.log4j.*
+								:profiler.org.*
+							</excludePackageNames>
+							<doclet>org.sagebionetworks.translator.ControllerModelDoclet</doclet>
+							<docletArtifact>
+								<groupId>org.sagebionetworks</groupId>
+								<artifactId>lib-openapi</artifactId>
+								<version>${project.version}</version>
+							</docletArtifact>
+							<!-- To run the controller, make sure to set the value of the -/-should-run option to true-->
+							<additionalparam>--target-file,org/sagebionetworks/repo/web/,--factory-path,org.sagebionetworks.server.ServerSideOnlyFactory,--should-run,false</additionalparam>
+							<useStandardDocletOptions>false</useStandardDocletOptions>
+							<destDir>${project.build.directory}/openapi</destDir>
+						</configuration>
 					</execution>
 				</executions>
-				<configuration>
-					<excludePackageNames>
-						org.sagebionetworks.repo.web.service.metadata.*
-						:org.sagebionetworks.repo.web.filter.*
-						:org.sagebionetworks.repo.web.service.*
-						:org.sagebionetworks.sweeper.log4j.*
-						:profiler.org.*
-					</excludePackageNames>
-					<doclet>org.sagebionetworks.javadoc.web.services.SpringMVCDoclet</doclet>
-					<docletArtifact>
-						<groupId>org.sagebionetworks</groupId>
-						<artifactId>lib-javadoc</artifactId>
-						<version>${project.version}</version>
-					</docletArtifact>
-					<additionalparam>-verbose</additionalparam>
-					<useStandardDocletOptions>false</useStandardDocletOptions>
-					<destDir>${project.build.directory}/javadoc/restdocs</destDir>
-					<!-- This name is used to link to the authentication controller -->
-					<additionalJOption>-authControllerName org.sagebionetworks.auth.controller.AuthenticationController</additionalJOption>
-					<additionnalDependencies>
-						<additionnalDependency>
-							<groupId>org.sagebionetworks</groupId>
-							<artifactId>lib-table-query</artifactId>
-							<version>${project.version}</version>
-						</additionnalDependency>
-					</additionnalDependencies>
-				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>

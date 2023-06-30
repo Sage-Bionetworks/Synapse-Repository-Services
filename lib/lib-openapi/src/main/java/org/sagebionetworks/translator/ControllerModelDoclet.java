@@ -22,6 +22,7 @@ public class ControllerModelDoclet implements Doclet {
 	private Reporter reporter;
 	private String targetFile;
 	private String serverSideFactoryPath;
+	private boolean shouldRun;
 
 	@Override
 	public void init(Locale locale, Reporter reporter) {
@@ -30,14 +31,21 @@ public class ControllerModelDoclet implements Doclet {
 	}
 
 	public boolean run(DocletEnvironment env) {
+		if (!shouldRun) {
+			reporter.print(Kind.NOTE, "The ControllerModelDoclet will not run since the 'shouldRun' parameter was not set to 'true'");
+			return true;
+		}
 		try {
+			reporter.print(Kind.NOTE, "Starting ControllerModelDoclet");
+			
 			// load ServerSideOnlyFactory based on class path passed in
 			Class c = Class.forName(serverSideFactoryPath);
 			Method method = c.getMethod("getKeySetIterator", null);
-			Iterator<String> concreteClassnames = (Iterator<String>) method.invoke(c.getDeclaredConstructor().newInstance(), null);
+			Iterator<String> concreteClassnames = (Iterator<String>) method
+					.invoke(c.getDeclaredConstructor().newInstance(), null);
 			ControllersToOpenAPIJsonTranslator translator = new ControllersToOpenAPIJsonTranslator();
 			JSONObject openAPIJson = translator.translate(env, concreteClassnames);
-			
+
 			// write resulting json to file
 			try (FileWriter fileWriter = new FileWriter(targetFile, false)) {
 				fileWriter.write(openAPIJson.toString(5));
@@ -88,7 +96,6 @@ public class ControllerModelDoclet implements Doclet {
 				return true;
 			}
 		};
-		
 		Option factoryPath = new Option() {
 			private final List<String> option = Arrays.asList("--factory-path");
 
@@ -123,8 +130,42 @@ public class ControllerModelDoclet implements Doclet {
 				return true;
 			}
 		};
-		
-		Option[] options = {targetDir, factoryPath};
+		Option shouldRunDoclet = new Option() {
+			private final List<String> option = Arrays.asList("--should-run");
+
+			@Override
+			public int getArgumentCount() {
+				return 1;
+			}
+
+			@Override
+			public String getDescription() {
+				return "When set to anything but 'true', the doclet will not run.";
+			}
+
+			@Override
+			public Option.Kind getKind() {
+				return Option.Kind.STANDARD;
+			}
+
+			@Override
+			public List<String> getNames() {
+				return option;
+			}
+
+			@Override
+			public String getParameters() {
+				return "Describes whether the ControllerModelDoclet should run or not.";
+			}
+
+			@Override
+			public boolean process(String opt, List<String> arguments) {
+				shouldRun = arguments.get(0).equals("true");
+				return true;
+			}
+		};
+
+		Option[] options = { targetDir, factoryPath, shouldRunDoclet };
 		return new HashSet<>(Arrays.asList(options));
 	}
 

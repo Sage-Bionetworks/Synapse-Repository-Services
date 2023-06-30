@@ -40,7 +40,7 @@ public class BasicExampleController2 {
 	 * @param numPets - the number of pets this person has
 	 * @return the name of the person that was added
 	 */
-	@ResponseStatus(HttpStatus.OK)
+	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/pet/{name}", method = RequestMethod.POST)
 	public @ResponseBody String addPets(@PathVariable String name, @RequestBody int numPets) {
 		personNameToPets.put(name, numPets);

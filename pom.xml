@@ -473,6 +473,11 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-openapi</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-javadoc</artifactId>
 				<version>${project.version}</version>
 			</dependency>
