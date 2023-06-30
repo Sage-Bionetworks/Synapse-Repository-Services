@@ -16,6 +16,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.util.ElementFilter;
+import javax.tools.Diagnostic.Kind;
 
 import org.sagebionetworks.controller.annotations.model.ControllerInfoModel;
 import org.sagebionetworks.controller.annotations.model.RequestMappingModel;
@@ -49,6 +50,7 @@ import com.sun.source.doctree.ReturnTree;
 import com.sun.source.util.DocTrees;
 
 import jdk.javadoc.doclet.DocletEnvironment;
+import jdk.javadoc.doclet.Reporter;
 
 /**
  * This translator pulls information from a generic doclet model into our
@@ -69,10 +71,10 @@ public class ControllerToControllerModelTranslator {
 	 *                                that represents it
 	 * @return
 	 */
-	public List<ControllerModel> extractControllerModels(DocletEnvironment env, Map<String, ObjectSchema> schemaMap) {
+	public List<ControllerModel> extractControllerModels(DocletEnvironment env, Map<String, ObjectSchema> schemaMap, Reporter reporter) {
 		List<ControllerModel> controllerModels = new ArrayList<>();
 		for (TypeElement t : getControllers(ElementFilter.typesIn(env.getIncludedElements()))) {
-			ControllerModel controllerModel = translate(t, env.getDocTrees(), schemaMap);
+			ControllerModel controllerModel = translate(t, env.getDocTrees(), schemaMap, reporter);
 			controllerModels.add(controllerModel);
 		}
 		return controllerModels;
@@ -125,10 +127,10 @@ public class ControllerToControllerModelTranslator {
 	 *                   represents that class
 	 * @return a model that represents the controller.
 	 */
-	public ControllerModel translate(TypeElement controller, DocTrees docTrees, Map<String, ObjectSchema> schemaMap) {
+	public ControllerModel translate(TypeElement controller, DocTrees docTrees, Map<String, ObjectSchema> schemaMap, Reporter reporter) {
 		ControllerModel controllerModel = new ControllerModel();
-		System.out.println("Extracting controller " + controller.getSimpleName());
-		List<MethodModel> methods = getMethods(controller.getEnclosedElements(), docTrees, schemaMap);
+		reporter.print(Kind.NOTE, "Extracting controller " + controller.getSimpleName());
+		List<MethodModel> methods = getMethods(controller.getEnclosedElements(), docTrees, schemaMap,  reporter);
 		ControllerInfoModel controllerInfo = getControllerInfoModel(controller.getAnnotationMirrors());
 		controllerModel.withDisplayName(controllerInfo.getDisplayName()).withPath(controllerInfo.getPath())
 				.withMethods(methods).withDescription(getControllerDescription(docTrees.getDocCommentTree(controller)));
@@ -186,11 +188,11 @@ public class ControllerToControllerModelTranslator {
 	 * @return the created list of MethodModels
 	 */
 	List<MethodModel> getMethods(List<? extends Element> enclosedElements, DocTrees docTrees,
-			Map<String, ObjectSchema> schemaMap) {
+			Map<String, ObjectSchema> schemaMap, Reporter reporter) {
 		List<MethodModel> methods = new ArrayList<>();
 		for (ExecutableElement method : ElementFilter.methodsIn(enclosedElements)) {
 			String methodName = method.getSimpleName().toString();
-			System.out.println("Extracting method " + methodName);
+			reporter.print(Kind.NOTE, "Extracting method " + methodName);
 
 			DocCommentTree docCommentTree = docTrees.getDocCommentTree(method);
 			Map<String, String> parameterToDescription = getParameterToDescription(docCommentTree.getBlockTags());

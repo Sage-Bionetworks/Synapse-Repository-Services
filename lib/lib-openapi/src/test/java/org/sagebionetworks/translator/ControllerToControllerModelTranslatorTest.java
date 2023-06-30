@@ -67,6 +67,7 @@ import com.sun.source.doctree.ParamTree;
 import com.sun.source.doctree.ReturnTree;
 import com.sun.source.util.DocTrees;
 
+import jdk.javadoc.doclet.Reporter;
 import jdk.javadoc.doclet.DocletEnvironment;
 
 @ExtendWith(MockitoExtension.class)
@@ -173,13 +174,14 @@ public class ControllerToControllerModelTranslatorTest {
 		
 		ControllerModel controller1 = new ControllerModel().withDescription("CONTROLLER_1");
 		ControllerModel controller2 = new ControllerModel().withDescription("CONTROLLER_2");
-		Mockito.doReturn(controller1, controller2).when(translator).translate(any(TypeElement.class), any(DocTrees.class), any(Map.class));
+		Mockito.doReturn(controller1, controller2).when(translator).translate(any(TypeElement.class), any(DocTrees.class), any(Map.class), any());
 		
-		assertEquals(new ArrayList<>(Arrays.asList(controller1, controller2)), translator.extractControllerModels(env, schemaMap));
+		Reporter reporter = Mockito.mock(Reporter.class);
+		assertEquals(new ArrayList<>(Arrays.asList(controller1, controller2)), translator.extractControllerModels(env, schemaMap, reporter));
 		
 		InOrder inOrder = Mockito.inOrder(translator);
-		inOrder.verify(translator).translate(element1, docTrees, schemaMap);
-		inOrder.verify(translator).translate(element2, docTrees, schemaMap);
+		inOrder.verify(translator).translate(element1, docTrees, schemaMap, reporter);
+		inOrder.verify(translator).translate(element2, docTrees, schemaMap, reporter);
 		Mockito.verify(translator).getControllers(any());
 	}
 	
@@ -191,14 +193,18 @@ public class ControllerToControllerModelTranslatorTest {
 		TypeElement element2 = Mockito.mock(TypeElement.class);
 		Mockito.doReturn(ElementKind.INTERFACE).when(element2).getKind();
 		Mockito.doReturn(new HashSet<>(Arrays.asList(element1, element2))).when(env).getIncludedElements();
-		assertEquals(new ArrayList<>(), translator.extractControllerModels(env, new HashMap<>()));
+		
+		Reporter reporter = Mockito.mock(Reporter.class);
+		assertEquals(new ArrayList<>(), translator.extractControllerModels(env, new HashMap<>(), reporter));
 	}
 	
 	@Test
 	public void testExtractControllersModelsWithEmptyIncludedElements() {
 		DocletEnvironment env = Mockito.mock(DocletEnvironment.class);
 		Mockito.doReturn(new HashSet<>()).when(env).getIncludedElements();
-		assertEquals(new ArrayList<>(), translator.extractControllerModels(env, new HashMap<>()));
+		
+		Reporter reporter = Mockito.mock(Reporter.class);
+		assertEquals(new ArrayList<>(), translator.extractControllerModels(env, new HashMap<>(), reporter));
 	}
 	
 	@Test
@@ -273,7 +279,7 @@ public class ControllerToControllerModelTranslatorTest {
 		Mockito.doReturn(elements).when(controller).getEnclosedElements();
 		List<AnnotationMirror> annoMirrors = new ArrayList<>();
 		Mockito.doReturn(annoMirrors).when(controller).getAnnotationMirrors();
-		Mockito.doReturn(getExpectedMethods()).when(translator).getMethods(any(List.class), any(DocTrees.class), any(Map.class));
+		Mockito.doReturn(getExpectedMethods()).when(translator).getMethods(any(List.class), any(DocTrees.class), any(Map.class), any());
 		Mockito.doReturn(new ControllerInfoModel().withDisplayName(CONTROLLER_NAME).withPath(CONTROLLER_PATH))
 				.when(translator).getControllerInfoModel(any(List.class));
 		Mockito.doReturn(CONTROLLER_DESCRIPTION).when(translator).getControllerDescription(any(DocCommentTree.class));
@@ -283,12 +289,15 @@ public class ControllerToControllerModelTranslatorTest {
 		DocTrees mockDocTree = Mockito.mock(DocTrees.class);
 		DocCommentTree mockDocCommentTree = Mockito.mock(DocCommentTree.class);
 		Mockito.doReturn(mockDocCommentTree).when(mockDocTree).getDocCommentTree(any(TypeElement.class));
+		
+		Reporter reporter = Mockito.mock(Reporter.class);
+		Mockito.doNothing().when(reporter).print(any(), any());
 		// call under test
-		assertEquals(expectedControllerModel, translator.translate(controller, mockDocTree, schemaMap));
+		assertEquals(expectedControllerModel, translator.translate(controller, mockDocTree, schemaMap, reporter));
 		
 		Mockito.verify(controller).getEnclosedElements();
 		Mockito.verify(controller).getAnnotationMirrors();
-		Mockito.verify(translator).getMethods(elements, mockDocTree, schemaMap);
+		Mockito.verify(translator).getMethods(elements, mockDocTree, schemaMap, reporter);
 		Mockito.verify(translator).getControllerInfoModel(annoMirrors);
 		Mockito.verify(translator).getControllerDescription(mockDocCommentTree);
 	}
@@ -506,8 +515,10 @@ public class ControllerToControllerModelTranslatorTest {
 		Mockito.doReturn(getExpectedResponseModel()).when(translator).getResponseModel(any(TypeKind.class), any(String.class), any(List.class),
 				any(ResponseStatusModel.class), any(Map.class));
 
+		Reporter reporter = Mockito.mock(Reporter.class);
+		Mockito.doNothing().when(reporter).print(any(), any());
 		// call under test
-		assertEquals(getExpectedMethods(), translator.getMethods(enclosedElements, docTrees, schemaMap));
+		assertEquals(getExpectedMethods(), translator.getMethods(enclosedElements, docTrees, schemaMap, reporter));
 		
 		Mockito.verify(docTrees).getDocCommentTree(method);
 		Mockito.verify(mockDocCommentTree, Mockito.times(2)).getBlockTags();
@@ -576,8 +587,11 @@ public class ControllerToControllerModelTranslatorTest {
 				.withOperation(Operation.get).withParameters(getExpectedParameters())
 				.withResponse(getExpectedResponseModel());
 		expectedMethods.add(expectedMethod);
+		
+		Reporter reporter = Mockito.mock(Reporter.class);
+		Mockito.doNothing().when(reporter).print(any(), any());
 		// call under test
-		assertEquals(expectedMethods, translator.getMethods(enclosedElements, docTrees, schemaMap));
+		assertEquals(expectedMethods, translator.getMethods(enclosedElements, docTrees, schemaMap, reporter));
 		
 		Mockito.verify(docTrees).getDocCommentTree(method);
 		Mockito.verify(mockDocCommentTree, Mockito.times(2)).getBlockTags();
@@ -620,9 +634,12 @@ public class ControllerToControllerModelTranslatorTest {
 		Mockito.doReturn(annotationToModel).when(translator).getAnnotationToModel(any(List.class));
 
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
+		
+		Reporter reporter = Mockito.mock(Reporter.class);
+		Mockito.doNothing().when(reporter).print(any(), any());
 		// Missing RequestMapping annotations
 		IllegalStateException exception1 = assertThrows(IllegalStateException.class, () -> {
-			translator.getMethods(enclosedElements, docTrees, schemaMap);
+			translator.getMethods(enclosedElements, docTrees, schemaMap, reporter);
 		});
 		assertEquals("Method " + METHOD_NAME + " missing RequestMapping annotation.", exception1.getMessage());
 		
@@ -660,16 +677,19 @@ public class ControllerToControllerModelTranslatorTest {
 		Mockito.doReturn(METHOD_PATH).when(translator).getMethodPath(any(RequestMappingModel.class));
 		Mockito.doReturn(getExpectedParameters()).when(translator).getParameters(any(List.class), any(Map.class), any(Map.class));
 		
+		Reporter reporter = Mockito.mock(Reporter.class);
+		Mockito.doNothing().when(reporter).print(any(), any());
 		// call under test
-		List<MethodModel> methods = translator.getMethods(enclosedElements, docTrees, new HashMap<>());
+		List<MethodModel> methods = translator.getMethods(enclosedElements, docTrees, new HashMap<>(), reporter);
 		assertTrue(methods.get(0).getResponse() == null);
 
 	}
 
 	@Test
 	public void testGetMethodsWithEmptyEnclosedElements() {
+		Reporter reporter = Mockito.mock(Reporter.class);
 		// call under test
-		assertEquals(new ArrayList<>(), translator.getMethods(new ArrayList<>(), Mockito.mock(DocTrees.class), new HashMap<>()));
+		assertEquals(new ArrayList<>(), translator.getMethods(new ArrayList<>(), Mockito.mock(DocTrees.class), new HashMap<>(), reporter));
 	}
 
 	@Test
