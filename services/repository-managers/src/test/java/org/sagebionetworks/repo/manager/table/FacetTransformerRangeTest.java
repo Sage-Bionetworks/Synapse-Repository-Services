@@ -123,8 +123,12 @@ public class FacetTransformerRangeTest {
 		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
 				.setIndexDescription(vtid).setUserId(userId).build();
 		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(schema.get(0));
+		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(List.of(schema.get(0), schema.get(2)));
 		originalQuery = new TableQueryParser("with syn2 as (select i0, i2 from syn1) select * from syn2 where i0 > 100 order by i2").queryExpression();
+		
+		// call under test
 		facetTransformer = new FacetTransformerRange(columnName, facets, originalQuery, dependencies, selectedMin, selectedMax);
 		//check the non-transformed sql
 		String expectedString = "WITH T2 (_C0_, _C2_) AS (SELECT _C0_, _C2_ FROM T1)"

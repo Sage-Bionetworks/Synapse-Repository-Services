@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.columntranslation.RowMetadataColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.description.ColumnToAdd;
@@ -3651,6 +3652,36 @@ public class SQLTranslatorUtilsTest {
 		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
 		
 		ColumnModel expected = new ColumnModel().setName("bar").setId(null).setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range);
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithColumnIdAndAllColumnModelParts()
+			throws ParseException, JSONObjectAdapterException {
+		QueryExpression rootModel = new TableQueryParser("select foo from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		columnFoo.setDefaultValue("a");
+		columnFoo.setEnumValues(List.of("a", "b"));
+		columnFoo.setFacetType(FacetType.enumeration);
+		columnFoo.setId("22");
+		columnFoo.setMaximumListLength(100L);
+		columnFoo.setMaximumSize(10L);
+		columnFoo.setName("foo");
+
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List.of(columnFoo));
+
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(columnFoo);
+
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+
+		ColumnModel expected = EntityFactory
+				.createEntityFromJSONString(EntityFactory.createJSONStringForEntity(columnFoo), ColumnModel.class);
+		expected.setId(null);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
 	}

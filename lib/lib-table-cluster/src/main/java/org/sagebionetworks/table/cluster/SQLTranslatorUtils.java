@@ -1167,6 +1167,7 @@ public class SQLTranslatorUtils {
 		SelectColumn selectColumn = getSelectColumns(derivedColumn, tableAndColumnMapper);
 		Long maximumSize = null;
 		Long maxListLength = null;
+		List<String> enumValues = null;
 		// The data type is correctly inferred by the #getSelectColumns call
 		ColumnType columnType = selectColumn.getColumnType();
 		String defaultValue = null;
@@ -1177,6 +1178,7 @@ public class SQLTranslatorUtils {
 			maxListLength = cm.getMaximumListLength();
 			defaultValue = cm.getDefaultValue();
 			facetType = cm.getFacetType();
+			enumValues = cm.getEnumValues();
 		}else {
 			for (ColumnReference cr : derivedColumn.createIterable(ColumnReference.class)) {
 				ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
@@ -1197,6 +1199,7 @@ public class SQLTranslatorUtils {
 		result.setName(selectColumn.getName());
 		result.setFacetType(facetType);
 		result.setDefaultValue(defaultValue);
+		result.setEnumValues(enumValues);
 		result.setId(null);
 		return result;
 	}

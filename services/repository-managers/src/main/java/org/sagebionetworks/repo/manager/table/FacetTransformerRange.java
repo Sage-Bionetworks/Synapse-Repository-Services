@@ -15,7 +15,6 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.NonJoinQueryExpression;
 import org.sagebionetworks.table.query.model.QueryExpression;
-import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.sagebionetworks.table.query.util.FacetUtils;
