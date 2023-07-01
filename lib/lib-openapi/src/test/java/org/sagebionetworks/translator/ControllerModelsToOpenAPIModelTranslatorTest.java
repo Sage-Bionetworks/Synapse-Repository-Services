@@ -338,7 +338,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 	
 	@Test
 	public void testGetResponsesWithRedirectedEndpoint() {
-		ResponseModel input = new ResponseModel().withId("REDIRECTED_ENDPOINT");
+		ResponseModel input = new ResponseModel().withIsRedirected(true);
 		Map<String, ResponseInfo> responses = new HashMap<>();
 		Mockito.doReturn(responses).when(translator).generateResponsesForRedirectedEndpoint();
 		

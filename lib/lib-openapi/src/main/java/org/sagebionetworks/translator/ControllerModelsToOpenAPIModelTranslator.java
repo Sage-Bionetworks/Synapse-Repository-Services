@@ -175,8 +175,7 @@ public class ControllerModelsToOpenAPIModelTranslator {
 	 */
 	Map<String, ResponseInfo> getResponses(ResponseModel response) {
 		ValidateArgument.required(response, "response");
-		boolean isEndpointRedirected = response.getId().equals("REDIRECTED_ENDPOINT");
-		if (isEndpointRedirected) {
+		if (response.getIsRedirected()) {
 			return generateResponsesForRedirectedEndpoint();
 		}
 		Map<String, ResponseInfo> responses = new LinkedHashMap<>();
