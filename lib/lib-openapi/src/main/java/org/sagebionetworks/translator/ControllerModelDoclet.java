@@ -44,7 +44,7 @@ public class ControllerModelDoclet implements Doclet {
 			Iterator<String> concreteClassnames = (Iterator<String>) method
 					.invoke(c.getDeclaredConstructor().newInstance(), null);
 			ControllersToOpenAPIJsonTranslator translator = new ControllersToOpenAPIJsonTranslator();
-			JSONObject openAPIJson = translator.translate(env, concreteClassnames);
+			JSONObject openAPIJson = translator.translate(env, concreteClassnames, reporter);
 
 			// write resulting json to file
 			try (FileWriter fileWriter = new FileWriter(targetFile, false)) {
@@ -140,7 +140,7 @@ public class ControllerModelDoclet implements Doclet {
 
 			@Override
 			public String getDescription() {
-				return "When set to anything but 'true', the doclet will not run.";
+				return "When set to anything but 'true', the doclet will not run. Example: --should-run,true";
 			}
 
 			@Override
