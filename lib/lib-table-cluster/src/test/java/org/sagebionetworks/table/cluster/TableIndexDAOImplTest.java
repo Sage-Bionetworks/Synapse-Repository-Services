@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -366,9 +367,28 @@ public class TableIndexDAOImplTest {
 		assertEquals(404004l, row.get("_C4_"));
 
 		// We should be able to update all of the rows
-		rows.get(4).setValues(
-				Arrays.asList("update", "99.99", "3", "false", "123", "123",
-						"syn123", "456", "789", "link2", "mediumText", "largeText", "42"));
+		rows.get(4).setValues(Arrays.asList(
+			"update", 
+			"99.99", 
+			"3", 
+			"false", 
+			"123", 
+			"123",
+			"syn123", 
+			"456", 
+			"789", 
+			"link2", 
+			"mediumText", 
+			"largeText", 
+			"42",
+			"[\"string\", \"otherstring\"]",
+			"[1111]",
+			"[true]",
+			"[1111]",
+			"[1111]",
+			"[1111]",
+			"{\"foo\": \"bar\"}"
+		));
 		rows.get(4).setVersionNumber(5L);
 		rows.get(0).setVersionNumber(5L);
 		// This should not fail
@@ -379,24 +399,37 @@ public class TableIndexDAOImplTest {
 						+ SQLUtils.getTableNameForId(tableId, TableIndexType.INDEX));
 		assertNotNull(result);
 		assertEquals(5, result.size());
+		
+		Map<String, Object> expectedRow = new LinkedHashMap<>();
+		expectedRow.put(ROW_ID, 104L);
+		expectedRow.put(ROW_VERSION, 5L);
+		expectedRow.put(ROW_SEARCH_CONTENT, null);
+		expectedRow.put("_C0_", "update");
+		expectedRow.put("_C1_", 99.99);
+		expectedRow.put("_DBL_C1_", null);
+		expectedRow.put("_C2_", 3L);
+		expectedRow.put("_C3_", Boolean.FALSE);
+		expectedRow.put("_C4_", 123L);
+		expectedRow.put("_C5_", 123L);
+		expectedRow.put("_C6_", 123L);
+		expectedRow.put("_C7_", 456L);
+		expectedRow.put("_C8_", 789L);
+		expectedRow.put("_C9_", "link2");
+		expectedRow.put("_C10_", "mediumText");
+		expectedRow.put("_C11_", "largeText");
+		expectedRow.put("_C12_", 42L);
+		expectedRow.put("_C13_", "[\"string\", \"otherstring\"]");
+		expectedRow.put("_C14_", "[1111]");
+		expectedRow.put("_C15_", "[true]");
+		expectedRow.put("_C16_", "[1111]");
+		expectedRow.put("_C17_", "[1111]");
+		expectedRow.put("_C18_", "[1111]");
+		expectedRow.put("_C19_", "{\"foo\": \"bar\"}");
+		
 		// row four
 		row = result.get(4);
-		// Check all values on the updated row.
-		assertEquals(104l, row.get(ROW_ID));
-		assertEquals(5L, row.get(ROW_VERSION));
-		assertEquals("update", row.get("_C0_"));
-		assertEquals(99.99, row.get("_C1_"));
-		assertEquals(3L, row.get("_C2_"));
-		assertEquals(Boolean.FALSE, row.get("_C3_"));
-		assertEquals(123L, row.get("_C4_"));
-		assertEquals(123L, row.get("_C5_"));
-		assertEquals(new Long(123), row.get("_C6_"));
-		assertEquals(456L, row.get("_C7_"));
-		assertEquals(789L, row.get("_C8_"));
-		assertEquals("link2", row.get("_C9_"));
-		assertEquals("mediumText", row.get("_C10_"));
-		assertEquals("largeText", row.get("_C11_"));
-		assertEquals(42L, row.get("_C12_"));
+		
+		assertEquals(expectedRow, row);
 	}
 
 	@Test
@@ -536,18 +569,56 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList("string0", "341003.12",
-				"203000", "false", "404000", "505000", "syn606000", "703000", "803000",
-				"link908000", "mediumText1004000", "largeText1104000", "1203000", "[\"string1300000\", \"otherstring1300000\"]", "[1403000]", "[false]", "[1604000]", "[\"syn1706000\"]", "[1803000]");
+		List<String> expectedValues = Arrays.asList(
+			"string0", 
+			"341003.12",
+			"203000", 
+			"false", 
+			"404000", 
+			"505000", 
+			"syn606000", 
+			"703000", 
+			"803000",
+			"link908000", 
+			"mediumText1004000", 
+			"largeText1104000", 
+			"1203000", 
+			"[\"string1300000\", \"otherstring1300000\"]", 
+			"[1403000]", 
+			"[false]", 
+			"[1604000]", 
+			"[\"syn1706000\"]", 
+			"[1803000]", 
+			"{\"foo\": \"bar1900000\"}"
+		);
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
 		assertNotNull(row);
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		expectedValues = Arrays.asList("string1", "341006.53", "203001",
-				"true", "404001", "505001", "syn606001", "703001", "803001",
-				"link908001", "mediumText1004001", "largeText1104001", "1203001", "[\"string1300001\", \"otherstring1300001\"]", "[1403001]", "[true]", "[1604001]", "[\"syn1706001\"]", "[1803001]");
+		expectedValues = Arrays.asList(
+			"string1", 
+			"341006.53", 
+			"203001",
+			"true", 
+			"404001", 
+			"505001", 
+			"syn606001", 
+			"703001", 
+			"803001",
+			"link908001", 
+			"mediumText1004001", 
+			"largeText1104001", 
+			"1203001", 
+			"[\"string1300001\", \"otherstring1300001\"]", 
+			"[1403001]", 
+			"[true]", 
+			"[1604001]", 
+			"[\"syn1706001\"]", 
+			"[1803001]",
+			"{\"foo\": \"bar1900001\"}"
+		);
 		assertEquals(expectedValues, row.getValues());
 		// must also be able to run the query with a null callback
 		mockProgressCallback = null;
@@ -675,7 +746,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList(null, null, null, null, null, null,
-				null, null, null, null,  null, null, null, null, null, null, null, null, null);
+				null, null, null, null,  null, null, null, null, null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
@@ -683,7 +754,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList(null, null, null, null, null, null, null, null,
-				null, null, null, null, null, null, null, null, null, null, null);
+				null, null, null, null, null, null, null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 	}
 

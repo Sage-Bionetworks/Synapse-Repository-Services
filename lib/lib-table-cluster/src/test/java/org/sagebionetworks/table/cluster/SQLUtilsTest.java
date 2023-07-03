@@ -1763,7 +1763,8 @@ public class SQLUtilsTest {
 				+ " MAX(IF(A.ANNO_KEY ='boolean_list', A.BOOLEAN_LIST_VALUE, NULL)) AS _C15_,"
 				+ " MAX(IF(A.ANNO_KEY ='date_list', A.LONG_LIST_VALUE, NULL)) AS _C16_,"
 				+ " MAX(IF(A.ANNO_KEY ='entityid_list', A.LONG_LIST_VALUE, NULL)) AS _C17_,"
-				+ " MAX(IF(A.ANNO_KEY ='userid_list', A.LONG_LIST_VALUE, NULL)) AS _C18_"
+				+ " MAX(IF(A.ANNO_KEY ='userid_list', A.LONG_LIST_VALUE, NULL)) AS _C18_,"
+				+ " MAX(IF(A.ANNO_KEY ='json', A.STRING_VALUE, NULL)) AS _C19_"
 				, builder.toString());
 	}
 
