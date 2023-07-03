@@ -104,6 +104,7 @@ public class TableModelTestUtils {
 				case EVALUATIONID:
 				case LARGETEXT:
 				case MEDIUMTEXT:
+				case JSON:
 					defaultValue = null;
 					break;
 				case INTEGER:

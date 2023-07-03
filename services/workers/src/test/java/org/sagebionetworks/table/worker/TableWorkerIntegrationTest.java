@@ -1,11 +1,35 @@
 package org.sagebionetworks.table.worker;
 
-import au.com.bytecode.opencsv.CSVReader;
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -103,42 +127,18 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
-import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
+import au.com.bytecode.opencsv.CSVReader;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -3556,9 +3556,51 @@ public class TableWorkerIntegrationTest {
 			.toArray(String[]::new);
 		
 		String[] rowTwoValues = IntStream.range(0, schema.size()).boxed()
-				.map( i -> RandomStringUtils.randomAlphanumeric((int) ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS))
-				.collect(Collectors.toList())
-				.toArray(String[]::new);
+			.map( i -> RandomStringUtils.randomAlphanumeric((int) ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS))
+			.collect(Collectors.toList())
+			.toArray(String[]::new);
+		
+		// Now add some data
+		List<Row> rows = Arrays.asList(
+			TableModelTestUtils.createRow(null, null, rowOneValues),
+			TableModelTestUtils.createRow(null, null, rowTwoValues)
+		);
+				
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		
+		System.out.println("TableId: "+ tableId);
+		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
+		
+		waitForConsistentQuery(adminUserInfo, "select ROW_ID from " + tableId, null, null, (queryResult) -> {
+			assertEquals(2, queryResult.getQueryResults().getRows().size());
+		});
+	}
+	
+	@Test
+	public void testTableWithJson() throws Exception {
+		// A json column uses the same size as a large text column
+		schema = IntStream.range(0, (int) ColumnConstants.MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE).boxed()
+				.map( i -> columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.JSON).setName("column_" + i)))
+				.collect(Collectors.toList());
+		
+		headers = TableModelUtils.getIds(schema);
+		
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, false).getId();
+		
+		String[] rowOneValues = IntStream.range(0, schema.size()).boxed()
+			.map( i -> "{\"foo\":\"" + RandomStringUtils.randomAlphanumeric(10) + "\"}")
+			.collect(Collectors.toList())
+			.toArray(String[]::new);
+		
+		String[] rowTwoValues = IntStream.range(0, schema.size()).boxed()
+			.map( i -> "[{\"foo\":\"" + RandomStringUtils.randomAlphanumeric(10) + "\"}, {\"bar\": " + i +"}]")
+			.collect(Collectors.toList())
+			.toArray(String[]::new);
 		
 		// Now add some data
 		List<Row> rows = Arrays.asList(

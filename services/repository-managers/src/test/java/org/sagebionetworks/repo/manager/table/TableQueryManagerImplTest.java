@@ -191,7 +191,7 @@ public class TableQueryManagerImplTest {
 		status.setChangedOn(new Date(123));
 		status.setLastTableChangeEtag("etag");
 		
-		models = TableModelTestUtils.createOneOfEachType(true);		
+		models = TableModelTestUtils.createOneOfEachType(true);
 				
 		maxBytesPerRequest = 10000000;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
@@ -1227,7 +1227,7 @@ public class TableQueryManagerImplTest {
 		assertEquals(
 				"SELECT _C0_, CASE WHEN _DBL_C1_ IS NULL THEN _C1_ ELSE _DBL_C1_ END, "
 				+ "_C2_, _C3_, _C4_, _C5_, _C6_, _C7_, _C8_, _C9_, _C10_, _C11_,"
-				+ " _C12_, _C13_, _C14_, _C15_, _C16_, _C17_, _C18_, ROW_ID, ROW_VERSION FROM T123",
+				+ " _C12_, _C13_, _C14_, _C15_, _C16_, _C17_, _C18_, _C19_, ROW_ID, ROW_VERSION FROM T123",
 				result.getMainQuery().getTranslator().getOutputSQL());
 	}
 	
