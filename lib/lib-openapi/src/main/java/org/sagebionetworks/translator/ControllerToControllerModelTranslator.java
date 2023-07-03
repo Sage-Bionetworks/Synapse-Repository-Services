@@ -261,7 +261,7 @@ public class ControllerToControllerModelTranslator {
 	 * @return a response model that represents a redirected response.
 	 */
 	ResponseModel generateRedirectedResponseModel(String description) {
-		return new ResponseModel().withDescription(description).withId("REDIRECTED_ENDPOINT");
+		return new ResponseModel().withDescription(description).withIsRedirected(true);
 	}
 
 	/**
@@ -296,9 +296,6 @@ public class ControllerToControllerModelTranslator {
 		boolean returnsVoid = method.getReturnType().getKind().equals(TypeKind.VOID);
 		boolean containsRedirectParam = containsRedirectParam(method.getParameters());
 		if (returnsVoid && !containsRedirectParam) {
-			for (VariableElement param : method.getParameters()) {
-				System.out.println(param.asType().getKind());
-			}
 			throw new IllegalArgumentException(
 					"Method " + method.getSimpleName() + " returns void but does not redirect.");
 		}
@@ -315,7 +312,7 @@ public class ControllerToControllerModelTranslator {
 		for (VariableElement param : params) {
 			boolean isRedirectParam = param.getSimpleName().toString().equals("redirect");
 			boolean isPrimitiveBoolean = param.asType().getKind().equals(TypeKind.BOOLEAN);
-			boolean isBooleanClass = param.asType().getKind().equals(TypeKind.DECLARED) && param.asType().toString().equals("java.lang.Boolean");
+			boolean isBooleanClass = param.asType().getKind().equals(TypeKind.DECLARED) && param.asType().toString().equals(Boolean.class.getName());
 			boolean isBoolean = isPrimitiveBoolean || isBooleanClass;
 			if (isRedirectParam && isBoolean) {
 				return true;

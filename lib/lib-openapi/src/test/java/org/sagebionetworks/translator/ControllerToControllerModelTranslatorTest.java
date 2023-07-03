@@ -691,7 +691,7 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 
 	@Test
-	public void testGetResponseModelWithNullResonseStatusModel() {
+	public void testGetResponseModelWithNullSchemaMap() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			translator.getResponseModel(Mockito.mock(ExecutableElement.class), new ArrayList<>(), new HashMap<>(),
@@ -701,7 +701,7 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 
 	@Test
-	public void testGetResponseModelWithNullBlockTags() {
+	public void testGetResponseModelWithNullAnnotationToModel() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			translator.getResponseModel(Mockito.mock(ExecutableElement.class), new ArrayList<>(), null,
@@ -711,7 +711,7 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 
 	@Test
-	public void testGetResponseModelWithNullReturnClassName() {
+	public void testGetResponseModelWithNullBlockTags() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			translator.getResponseModel(Mockito.mock(ExecutableElement.class), null, new HashMap<>(), new HashMap<>());
@@ -751,7 +751,7 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testGenerateRedirectedResponseModel() {
 		String description = "DESCRIPTION";
-		ResponseModel expected = new ResponseModel().withDescription(description).withId("REDIRECTED_ENDPOINT");
+		ResponseModel expected = new ResponseModel().withDescription(description).withIsRedirected(true);
 
 		// call under test
 		assertEquals(expected, translator.generateRedirectedResponseModel(description));
@@ -859,6 +859,11 @@ public class ControllerToControllerModelTranslatorTest {
 		
 		params.add(param);
 		// call under test
+		assertFalse(translator.containsRedirectParam(params));
+		
+		// call under test
+		Mockito.doReturn(TypeKind.DECLARED).when(paramType).getKind();
+		Mockito.doReturn(Boolean.class.getName()).when(paramName).toString();
 		assertFalse(translator.containsRedirectParam(params));
 		
 		Mockito.doReturn("redirect").when(paramName).toString();
@@ -1292,10 +1297,6 @@ public class ControllerToControllerModelTranslatorTest {
 		Mockito.verify(translator).getSimpleAnnotationName(mockAnnoMirror);
 	}
 
-	// TODO: start here by fixing this test, see if it would be better to have
-	// schemaMap as a field.
-	// EOD tomorrow: finish tests for this test suite as well as
-	// ControllerModelsToOpenAPIModelTranslatorTest -> 2 hours?
 	@Test
 	public void testGetParameters() {
 		Mockito.doReturn(ParameterLocation.path).when(translator).getParameterLocation(any(VariableElement.class));
