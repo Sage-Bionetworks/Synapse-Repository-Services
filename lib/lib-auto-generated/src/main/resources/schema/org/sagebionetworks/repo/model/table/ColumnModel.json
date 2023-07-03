@@ -98,7 +98,7 @@
                 },
                 {
                 	"name": "JSON",
-                	"description": "A flexible type that allows to store JSON data"
+                	"description": "A flexible type that allows to store JSON data. Each JSON column counts as 2133 bytes towards the total width of a table. A JSON value string should be less than 524,288 characters (2 MB of UTF-8 4 byte chars)."
                 }
             ]
         },
