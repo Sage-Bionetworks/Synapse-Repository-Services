@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.table.parser.BooleanParser;
 import org.sagebionetworks.repo.model.table.parser.DateToLongParser;
 import org.sagebionetworks.repo.model.table.parser.DoubleParser;
 import org.sagebionetworks.repo.model.table.parser.EntityIdParser;
+import org.sagebionetworks.repo.model.table.parser.JsonParser;
 import org.sagebionetworks.repo.model.table.parser.ListStringParser;
 import org.sagebionetworks.repo.model.table.parser.LongParser;
 import org.sagebionetworks.repo.model.table.parser.StringParser;
@@ -19,29 +20,27 @@ import org.sagebionetworks.repo.model.table.parser.StringParser;
  */
 public enum ColumnTypeInfo {
 	
-	INTEGER		(ColumnType.INTEGER, 		MySqlColumnType.BIGINT,		new LongParser(),								20L),
-	FILEHANDLEID(ColumnType.FILEHANDLEID,	MySqlColumnType.BIGINT, 	new LongParser(),								20L),
-	DATE		(ColumnType.DATE,			MySqlColumnType.BIGINT,		new DateToLongParser(),							20L),
-	ENTITYID	(ColumnType.ENTITYID,		MySqlColumnType.BIGINT,		new EntityIdParser(),							20L),
-	SUBMISSIONID(ColumnType.SUBMISSIONID,	MySqlColumnType.BIGINT,		new LongParser(),								20L),
-	EVALUATIONID(ColumnType.EVALUATIONID,	MySqlColumnType.BIGINT,		new LongParser(),								20L),
-	LINK		(ColumnType.LINK,			MySqlColumnType.VARCHAR,	new StringParser(),								null),
-	STRING		(ColumnType.STRING,			MySqlColumnType.VARCHAR,	new StringParser(),								null),
-	DOUBLE		(ColumnType.DOUBLE,			MySqlColumnType.DOUBLE,		new DoubleParser(),								null),
-	BOOLEAN		(ColumnType.BOOLEAN,		MySqlColumnType.BOOLEAN,	new BooleanParser(),							null),
-	LARGETEXT	(ColumnType.LARGETEXT,		MySqlColumnType.MEDIUMTEXT,	new StringParser(),								null),
-	MEDIUMTEXT	(ColumnType.MEDIUMTEXT,		MySqlColumnType.TEXT,		new StringParser(),								null),
-	USERID		(ColumnType.USERID,			MySqlColumnType.BIGINT, 	new LongParser(),								20L),
+	INTEGER		(ColumnType.INTEGER, 		MySqlColumnType.BIGINT,		new LongParser(),									20L),
+	FILEHANDLEID(ColumnType.FILEHANDLEID,	MySqlColumnType.BIGINT, 	new LongParser(),									20L),
+	DATE		(ColumnType.DATE,			MySqlColumnType.BIGINT,		new DateToLongParser(),								20L),
+	ENTITYID	(ColumnType.ENTITYID,		MySqlColumnType.BIGINT,		new EntityIdParser(),								20L),
+	SUBMISSIONID(ColumnType.SUBMISSIONID,	MySqlColumnType.BIGINT,		new LongParser(),									20L),
+	EVALUATIONID(ColumnType.EVALUATIONID,	MySqlColumnType.BIGINT,		new LongParser(),									20L),
+	LINK		(ColumnType.LINK,			MySqlColumnType.VARCHAR,	new StringParser(),									null),
+	STRING		(ColumnType.STRING,			MySqlColumnType.VARCHAR,	new StringParser(),									null),
+	DOUBLE		(ColumnType.DOUBLE,			MySqlColumnType.DOUBLE,		new DoubleParser(),									null),
+	BOOLEAN		(ColumnType.BOOLEAN,		MySqlColumnType.BOOLEAN,	new BooleanParser(),								null),
+	LARGETEXT	(ColumnType.LARGETEXT,		MySqlColumnType.MEDIUMTEXT,	new StringParser(),									null),
+	MEDIUMTEXT	(ColumnType.MEDIUMTEXT,		MySqlColumnType.TEXT,		new StringParser(),									null),
+	USERID		(ColumnType.USERID,			MySqlColumnType.BIGINT, 	new LongParser(),									20L),
 	STRING_LIST	(ColumnType.STRING_LIST,	MySqlColumnType.JSON,		new ListStringParser(new StringParser(),false),		null),
-	INTEGER_LIST(ColumnType.INTEGER_LIST,	MySqlColumnType.JSON,		new ListStringParser(new LongParser(),false),			null),
-	BOOLEAN_LIST(ColumnType.BOOLEAN_LIST,	MySqlColumnType.JSON,		new ListStringParser(new BooleanParser(),false),			null),
-	DATE_LIST	(ColumnType.DATE_LIST,		MySqlColumnType.JSON,		new ListStringParser(new DateToLongParser(),false),			null),
+	INTEGER_LIST(ColumnType.INTEGER_LIST,	MySqlColumnType.JSON,		new ListStringParser(new LongParser(),false),		null),
+	BOOLEAN_LIST(ColumnType.BOOLEAN_LIST,	MySqlColumnType.JSON,		new ListStringParser(new BooleanParser(),false),	null),
+	DATE_LIST	(ColumnType.DATE_LIST,		MySqlColumnType.JSON,		new ListStringParser(new DateToLongParser(),false),	null),
 	// Entity id lists need to be re-parsed to prepend "syn" to its elements
-	ENTITYID_LIST(ColumnType.ENTITYID_LIST, MySqlColumnType.JSON,       new ListStringParser(new EntityIdParser(),true), null),
-	USERID_LIST (ColumnType.USERID_LIST,    MySqlColumnType.JSON,       new ListStringParser(new LongParser(),false), null)
-	;
-
-
+	ENTITYID_LIST(ColumnType.ENTITYID_LIST, MySqlColumnType.JSON,       new ListStringParser(new EntityIdParser(),true), 	null),
+	USERID_LIST (ColumnType.USERID_LIST,    MySqlColumnType.JSON,       new ListStringParser(new LongParser(),false), 		null),
+	JSON		(ColumnType.JSON,			MySqlColumnType.JSON,		new JsonParser(), 									null);
 
 	private ColumnType type;
 	private MySqlColumnType mySqlType;

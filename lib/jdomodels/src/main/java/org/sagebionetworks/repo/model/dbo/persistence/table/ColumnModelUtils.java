@@ -172,6 +172,8 @@ public class ColumnModelUtils {
 			case USERID:
 			case LARGETEXT:
 			case MEDIUMTEXT:
+			// Do not support default values for now
+			case JSON:
 				if (StringUtils.isEmpty(defaultValue)) {
 					defaultValue = null;
 				}
