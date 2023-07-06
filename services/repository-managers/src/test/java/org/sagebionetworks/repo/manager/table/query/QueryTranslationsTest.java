@@ -50,6 +50,7 @@ public class QueryTranslationsTest {
 
 		schemaProvider = Mockito.mock(SchemaProvider.class);
 		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
+		when(schemaProvider.getColumnModel(any())).thenReturn(schema.get(0));
 		
 		maxBytesPerPage = 100_000_000L;
 		maxRowsPerCall = 72L;

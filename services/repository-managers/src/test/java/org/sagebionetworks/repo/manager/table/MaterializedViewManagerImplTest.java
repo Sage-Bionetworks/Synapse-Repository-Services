@@ -570,12 +570,20 @@ public class MaterializedViewManagerImplTest {
 		assertEquals(expected, result);
 	}
 
+	void setupGetColumns(List<ColumnModel> schema){
+		for(ColumnModel cm: schema) {
+			when(mockColumnModelManager.getColumnModel(cm.getId())).thenReturn(cm);
+		}
+	}
+	
 	@Test
 	public void testBindSchemaToView() {
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema);
 		when(mockColumnModelManager.createColumnModel(any())).thenReturn(
 				TableModelTestUtils.createColumn(333L, "foo", ColumnType.INTEGER),
-				TableModelTestUtils.createColumn(444L, "bar", ColumnType.STRING));
+				TableModelTestUtils.createColumn(444L, "bar", ColumnType.STRING));		
+		setupGetColumns(syn123Schema);
+		
 		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
 		QueryExpression query = MaterializedViewManagerImpl.getQuerySpecification("SELECT * FROM syn123");
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new MaterializedViewIndexDescription(
@@ -760,6 +768,8 @@ public class MaterializedViewManagerImplTest {
 		when(mockTableManagerSupport.isTableSearchEnabled(any())).thenReturn(false);
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryTranslator.class));
 		doNothing().when(managerSpy).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(any(), any(), anyBoolean());
+		
+		setupGetColumns(syn123Schema);
 		
 		IdAndVersion dependentIdAndVersion = IdAndVersion.parse("syn456");
 				

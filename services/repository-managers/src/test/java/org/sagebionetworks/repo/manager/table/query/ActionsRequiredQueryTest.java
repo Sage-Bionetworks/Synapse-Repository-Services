@@ -65,6 +65,7 @@ public class ActionsRequiredQueryTest {
 	@Test
 	public void testActionsRequiredQuery() {
 		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
+		when(schemaProvider.getColumnModel(any())).thenReturn(schema.get(0));
 		
 		QueryContext queryContext = builder.build();
 		

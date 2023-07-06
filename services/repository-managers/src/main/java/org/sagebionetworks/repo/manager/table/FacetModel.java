@@ -13,6 +13,8 @@ import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.TableName;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
@@ -124,6 +126,7 @@ public class FacetModel {
 		
 		List<FacetTransformer> transformersList = new ArrayList<>(validatedFacets.size());
 		for(FacetRequestColumnModel facet: validatedFacets){
+			QueryExpression queryClone = cloneQuery(originalQuery);
 			switch(facet.getFacetType()){
 				case enumeration:
 					Set<String> selectedValues = null;
@@ -131,7 +134,7 @@ public class FacetModel {
 					if ( facetValuesRequest != null){
 						selectedValues = facetValuesRequest.getFacetValues();
 					}
-					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.isColumnTypeIsList(), validatedFacets, originalQuery, dependencies, selectedValues));
+					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.isColumnTypeIsList(), validatedFacets, queryClone , dependencies, selectedValues));
 					break;
 				case range:
 					String selectedMin = null;
@@ -141,12 +144,20 @@ public class FacetModel {
 						selectedMin = facetRangeRequest.getMin();
 						selectedMax = facetRangeRequest.getMax();
 					}
-					transformersList.add(new FacetTransformerRange(facet.getColumnName(), validatedFacets, originalQuery, dependencies, selectedMin, selectedMax ));
+					transformersList.add(new FacetTransformerRange(facet.getColumnName(), validatedFacets, queryClone, dependencies, selectedMin, selectedMax ));
 					break;
 				default:
 					throw new RuntimeException("Found unexpected FacetType");
 			}
 		}
 		return transformersList;
+	}
+	
+	private static QueryExpression cloneQuery(QueryExpression toClone) {
+		try {
+			return new TableQueryParser(toClone.toSql()).queryExpression();
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }

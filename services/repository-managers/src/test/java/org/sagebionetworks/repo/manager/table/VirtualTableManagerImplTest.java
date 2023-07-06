@@ -16,7 +16,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -184,7 +183,9 @@ public class VirtualTableManagerImplTest {
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(schema);
 		when(mockColumnModelManager.createColumnModel(any())).thenReturn(cm);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new TableIndexDescription(id));
-
+		
+		when(mockColumnModelManager.getColumnModel(any())).thenReturn(cm);
+		
 		// call under test
 		manager.registerDefiningSql(id, sql);
 
@@ -213,7 +214,7 @@ public class VirtualTableManagerImplTest {
 				.setColumnType(ColumnType.INTEGER));
 		verify(mockColumnModelManager).bindColumnsToVersionOfObject(List.of("88"), id);
 		verify(mockColumnModelManager).getTableSchema(IdAndVersion.parse("syn456"));
-		verify(mockColumnModelManager, times(3)).getColumnModel("88");
+		verify(mockColumnModelManager, times(4)).getColumnModel("88");
 		verify(mockColumnModelManager)
 				.createColumnModel(new ColumnModel().setName("bar").setId(null).setColumnType(ColumnType.INTEGER));
 		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn456"));
@@ -237,9 +238,9 @@ public class VirtualTableManagerImplTest {
 				.setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range));
 		verify(mockColumnModelManager).bindColumnsToVersionOfObject(List.of("88"), id);
 		verify(mockColumnModelManager).getTableSchema(IdAndVersion.parse("syn456"));
-		verify(mockColumnModelManager, times(3)).getColumnModel("88");
+		verify(mockColumnModelManager, times(4)).getColumnModel("88");
 		verify(mockColumnModelManager)
-				.createColumnModel(new ColumnModel().setName("bar").setId(null).setColumnType(ColumnType.INTEGER));
+				.createColumnModel(new ColumnModel().setName("bar").setId(null).setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range));
 		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn456"));
 	}
 	

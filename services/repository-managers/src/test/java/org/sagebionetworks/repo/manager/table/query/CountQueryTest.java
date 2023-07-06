@@ -208,7 +208,7 @@ public class CountQueryTest {
 		ColumnModel sum = new ColumnModel().setName("sum").setId("33").setColumnType(ColumnType.INTEGER);
 		when(schemaProvider.getTableSchema(tableId)).thenReturn(schema);
 		when(schemaProvider.getTableSchema(virtualId)).thenReturn(List.of(one, sum));
-		when(schemaProvider.getColumnModel("33")).thenReturn(sum);
+		when(schemaProvider.getColumnModel(any())).thenReturn(sum);
 
 		String sql = indexDescription.preprocessQuery("select * from syn2");
 		QueryContext expantion = QueryContext.builder().setIndexDescription(indexDescription)
@@ -232,6 +232,6 @@ public class CountQueryTest {
 		verify(schemaProvider).getTableSchema(tableId);
 		verify(schemaProvider).getTableSchema(virtualId);
 		verify(schemaProvider).getColumnModel("33");
-		verify(schemaProvider, times(1)).getColumnModel(any());
+		verify(schemaProvider, times(2)).getColumnModel(any());
 	}
 }
