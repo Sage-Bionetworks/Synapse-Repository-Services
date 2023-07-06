@@ -1,23 +1,20 @@
-package org.sagebionetworks.repo.model.entity;
+package org.sagebionetworks.repo.model.file;
 
 /**
- * IdAndVersion::= [syn]<id>[.<version>]
+ * FileHandleId::= [fh]<id>
  *
  * This instance will parse the string in a single pass.
  */
-public class IdAndVersionParser {
+public class FileHandleIdParser {
 
 	// Null char is used to indicate parser termination.
 	private static final int NULL_CHAR = 0x0;
-	
 	private static int MAX_LONG_DIGITS = 19;
-
 	private int index;
 	private char[] chars;
 	private char currentChar;
-	IdAndVersionBuilder builder;
 
-	IdAndVersionParser(String toParse) {
+	FileHandleIdParser(String toParse) {
 		if (toParse == null) {
 			throw new IllegalArgumentException("Id string cannot be null");
 		}
@@ -30,28 +27,20 @@ public class IdAndVersionParser {
 	}
 
 	/**
-	 * Parser the string in a single pass.
+	 * Parse the string in a single pass.
 	 * 
 	 * @return
 	 */
-	IdAndVersion parse() {
+	String parse() {
 		try {
-			IdAndVersionBuilder builder = new IdAndVersionBuilder();
 			// ignore starting white space
 			consumeWhiteSpace();
-			// skip 'syn' if present.
-			consumeSyn();
-			// Check for the sign if present
-			boolean negative = consumeNegative();
+			// consume 'fh'.
+			consumeFh();
 			// first long is the ID
 			long id = consumeLong();
-			builder.setId(negative ? -id : id);
-			// version is optional so might be at the end.
+			String fileHandleId = Long.toString(id);
 			if (!isEnd()) {
-				// Not at the end so the next char must be dot
-				consumeDot();
-				// second long is the version
-				builder.setVersion(consumeLong());
 				// ignore trailing whitespace.
 				consumeWhiteSpace();
 			}
@@ -59,9 +48,9 @@ public class IdAndVersionParser {
 			if (!isEnd()) {
 				throw new ParseException(index);
 			}
-			return builder.build();
+			return fileHandleId;
 		} catch (ParseException e) {
-			throw new IllegalArgumentException("Invalid Entity ID: " + new String(chars), e);
+			throw new IllegalArgumentException("Invalid File Handle ID: " + new String(chars), e);
 		}
 	}
 
@@ -85,27 +74,6 @@ public class IdAndVersionParser {
 	 */
 	private boolean isEnd() {
 		return currentChar == NULL_CHAR;
-	}
-
-	/**
-	 * Consume the 'dot' character.
-	 * 
-	 * @throws ParseException Thrown if the current character is not dot.
-	 */
-	private void consumeDot() throws ParseException {
-		if (currentChar == '.') {
-			consumeCharacter();
-		} else {
-			throw new ParseException(index);
-		}
-	}
-	
-	private boolean consumeNegative() throws ParseException {
-		if (currentChar == '-') {
-			consumeCharacter();
-			return true;
-		}
-		return false;
 	}
 
 	/**
@@ -134,39 +102,32 @@ public class IdAndVersionParser {
 	}
 
 	/**
-	 * Consume case insensitive 'syn' if present.
-	 * 
-	 * @throws ParseExcpetion
+	 * Consume case insensitive 'fh' if present.
+	 *
 	 */
-	private void consumeSyn() throws ParseException {
-		if (currentChar == 's' || currentChar == 'S') {
+	private void consumeFh() throws ParseException {
+		if (currentChar == 'f' || currentChar == 'F') {
 			consumeCharacter();
-			if (currentChar == 'y' || currentChar == 'Y') {
+			if (currentChar == 'h' || currentChar == 'H') {
 				consumeCharacter();
 			} else {
 				throw new ParseException(index);
 			}
-			if (currentChar == 'n' || currentChar == 'N') {
-				consumeCharacter();
-			} else {
-				throw new ParseException(index);
-			}
+		} else {
+			throw new ParseException(index);
 		}
 	}
 
 	/**
-	 * Checks if case-insensitive 'syn' if present.
+	 * Checks if case insensitive 'fh' if present.
 	 *
 	 */
-	private boolean checkForSyn() {
-		if (currentChar == 's' || currentChar == 'S') {
+	private boolean checkForFh() {
+		if (currentChar == 'f' || currentChar == 'F') {
 			consumeCharacter();
-			if (currentChar == 'y' || currentChar == 'Y') {
+			if (currentChar == 'h' || currentChar == 'H') {
 				consumeCharacter();
-				if (currentChar == 'n' || currentChar == 'N') {
-					consumeCharacter();
-					return true;
-				}
+				return true;
 			}
 		}
 		return false;
@@ -186,9 +147,6 @@ public class IdAndVersionParser {
 	 *
 	 */
 	public static class ParseException extends Exception {
-
-		private static final long serialVersionUID = 1L;
-
 		int errorIndex;
 
 		public ParseException(int index) {
@@ -204,29 +162,28 @@ public class IdAndVersionParser {
 		public int getErrorIndex() {
 			return errorIndex;
 		}
-
 	}
 
 	/**
-	 * Parse the given String into an IdAndVersion.
+	 * Parse the given String into a file handle ID.
 	 * 
 	 * @param toParse
 	 * @return
 	 */
-	public static IdAndVersion parseIdAndVersion(String toParse) {
-		IdAndVersionParser parser = new IdAndVersionParser(toParse);
+	public static String parseFileHandleId(String toParse) {
+		FileHandleIdParser parser = new FileHandleIdParser(toParse);
 		return parser.parse();
 	}
 
 	/**
-	 * Check that the given String starts with the case-insensitive prefix 'syn'.
+	 * Check that the given String starts with the case-insensitive prefix 'fh'.
 	 *
 	 * @param toParse
 	 * @return
 	 */
-	public static boolean startsWithSyn(String toParse) {
-		IdAndVersionParser parser = new IdAndVersionParser(toParse);
+	public static boolean startsWithFh(String toParse) {
+		FileHandleIdParser parser = new FileHandleIdParser(toParse);
 		parser.consumeWhiteSpace();
-		return parser.checkForSyn();
+		return parser.checkForFh();
 	}
 }
