@@ -32,6 +32,12 @@ public class FunctionReturnTypeTest {
 	}
 	
 	@Test
+	public void testGetColumnTypeJson() {
+		ColumnType parameterType = ColumnType.STRING;
+		assertEquals(ColumnType.JSON, FunctionReturnType.JSON.getColumnType(parameterType));
+	}
+	
+	@Test
 	public void testGetMatchesParameter() {
 		ColumnType parameterType = ColumnType.BOOLEAN;
 		assertEquals(ColumnType.BOOLEAN, FunctionReturnType.MATCHES_PARAMETER.getColumnType(parameterType));
