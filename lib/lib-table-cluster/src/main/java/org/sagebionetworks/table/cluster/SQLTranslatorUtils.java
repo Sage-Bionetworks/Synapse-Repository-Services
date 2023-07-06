@@ -1165,6 +1165,11 @@ public class SQLTranslatorUtils {
 			TableAndColumnMapper tableAndColumnMapper) {
 		// the SelectColumn provides a starting name and type.
 		SelectColumn selectColumn = getSelectColumns(derivedColumn, tableAndColumnMapper);
+		
+		if (selectColumn.getId() != null) {
+			return tableAndColumnMapper.getColumnModel(selectColumn.getId());
+		}
+		
 		Long maximumSize = null;
 		Long maxListLength = null;
 		// The data type is correctly inferred by the #getSelectColumns call

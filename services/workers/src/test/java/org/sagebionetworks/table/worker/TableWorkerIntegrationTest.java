@@ -32,6 +32,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -3573,7 +3576,6 @@ public class TableWorkerIntegrationTest {
 		
 		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
 		
-		System.out.println("TableId: "+ tableId);
 		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
 		
 		waitForConsistentQuery(adminUserInfo, "select ROW_ID from " + tableId, null, null, (queryResult) -> {
@@ -3615,11 +3617,20 @@ public class TableWorkerIntegrationTest {
 		
 		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
 		
-		System.out.println("TableId: "+ tableId);
 		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
 		
-		waitForConsistentQuery(adminUserInfo, "select ROW_ID from " + tableId, null, null, (queryResult) -> {
+		waitForConsistentQuery(adminUserInfo, "select column_0 from " + tableId, null, null, (queryResult) -> {
 			assertEquals(2, queryResult.getQueryResults().getRows().size());
+			try {
+				new JSONObject(queryResult.getQueryResults().getRows().get(0).getValues().get(0));
+			} catch (JSONException e) {
+				fail("Could not parse row value as a JSON object: " + queryResult.getQueryResults().getRows().get(0));
+			}
+			try {
+				new JSONArray(queryResult.getQueryResults().getRows().get(1).getValues().get(0));
+			} catch (JSONException e) {
+				fail("Could not parse row value as a JSON array: " + queryResult.getQueryResults().getRows().get(1));
+			}
 		});
 	}
 	

@@ -2138,4 +2138,46 @@ public class QueryTranslatorTest {
 		assertTrue(query.isAggregatedResult());
 		
 	}
+	
+	@Test
+	public void testSelectWithJsonObject() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+
+		sql = "select JSON_OBJECT('foo', 1, 'bar', 2) as j from syn1";
+		
+		QueryTranslator query = QueryTranslator.builder(sql, userId)
+			.schemaProvider(mockSchemaProvider)
+			.sqlContext(SqlContext.query)
+			.indexDescription(indexDescription).build();
+		
+		assertEquals("SELECT JSON_OBJECT('foo',1,'bar',2) AS j, ROW_ID, ROW_VERSION FROM T1", query.getOutputSQL());
+		
+		List<SelectColumn> select = query.getSelectColumns();
+		
+		assertEquals(List.of(new SelectColumn().setName("j").setColumnType(ColumnType.JSON)), select);
+	}
+	
+	@Test
+	public void testSelectWithJsonArray() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+
+		sql = "select JSON_ARRAY('foo', 1, 'bar', 2) as j from syn1";
+		
+		QueryTranslator query = QueryTranslator.builder(sql, userId)
+			.schemaProvider(mockSchemaProvider)
+			.sqlContext(SqlContext.query)
+			.indexDescription(indexDescription).build();
+		
+		assertEquals("SELECT JSON_ARRAY('foo',1,'bar',2) AS j, ROW_ID, ROW_VERSION FROM T1", query.getOutputSQL());
+		
+		List<SelectColumn> select = query.getSelectColumns();
+		
+		assertEquals(List.of(new SelectColumn().setName("j").setColumnType(ColumnType.JSON)), select);
+	}
 }

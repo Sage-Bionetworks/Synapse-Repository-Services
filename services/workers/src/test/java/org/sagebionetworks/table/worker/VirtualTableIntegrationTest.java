@@ -128,8 +128,13 @@ public class VirtualTableIntegrationTest {
 		TableEntity table = asyncHelper.createTable(adminUserInfo, "sometable", project.getId(),
 				tableSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()), false);
 
-		List<Row> row = List.of(new Row().setValues(List.of("a", "1")), new Row().setValues(List.of("a", "5")),
-				new Row().setValues(List.of("b", "2")), new Row().setValues(List.of("b", "16")));
+		List<Row> row = List.of(
+			new Row().setValues(List.of("a", "1")), 
+			new Row().setValues(List.of("a", "5")),
+			new Row().setValues(List.of("b", "2")), 
+			new Row().setValues(List.of("b", "16"))
+		);
+		
 		appendRowsToTable(tableSchema, table.getId(), row);
 
 		asyncHelper.assertQueryResult(adminUserInfo, "select count(*) from " + table.getId(), (results) -> {
@@ -139,12 +144,16 @@ public class VirtualTableIntegrationTest {
 
 		ColumnModel barSum = columnModelManager
 				.createColumnModel(new ColumnModel().setName("barSum").setColumnType(ColumnType.INTEGER));
-
-		String definingSql = String.format("select foo, cast(sum(bar) as %s) from %s group by foo order by foo",
-				barSum.getId(), table.getId());
+		
+		ColumnModel jsonColumn = columnModelManager
+				.createColumnModel(new ColumnModel().setName("jsonColumn").setColumnType(ColumnType.JSON));
+		
+		String definingSql = String.format("select foo, cast(sum(bar) as %s), cast(json_object(foo, sum(bar)) as %s) from %s group by foo order by foo",
+				barSum.getId(), jsonColumn.getId(), table.getId());
 
 		VirtualTable virtualTable = asyncHelper.createVirtualTable(adminUserInfo, project.getId(), definingSql);
-		assertEquals(List.of(tableSchema.get(0).getId(), barSum.getId()), virtualTable.getColumnIds());
+		
+		assertEquals(List.of(tableSchema.get(0).getId(), barSum.getId(), jsonColumn.getId()), virtualTable.getColumnIds());
 
 		Query query = new Query();
 		query.setSql("select * from " + virtualTable.getId());
@@ -153,10 +162,14 @@ public class VirtualTableIntegrationTest {
 		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false)
 				.withReturnColumnModels(true);
 
+		List<Row> expectedRows = List.of(
+			new Row().setValues(List.of("a", "6", "{\"a\": 6}")),
+			new Row().setValues(List.of("b", "18", "{\"b\": 18}"))
+		);
+		
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
-			assertEquals(List.of(new Row().setValues(List.of("a", "6")), new Row().setValues(List.of("b", "18"))),
-					results.getQueryResult().getQueryResults().getRows());
-			assertEquals(List.of(foo, barSum), results.getColumnModels());
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum, jsonColumn), results.getColumnModels());
 			assertEquals(2L, results.getQueryCount());
 		}, MAX_WAIT_MS);
 

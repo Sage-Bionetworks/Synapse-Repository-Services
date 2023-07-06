@@ -292,6 +292,14 @@ TOKEN [IGNORE_CASE]: {
    >
 }
 
+/* json functions */
+TOKEN [IGNORE_CASE]: {
+  < json_function_name:
+   "JSON_OBJECT"
+   | "JSON_ARRAY"
+  >
+}
+
 /* date time field */
 TOKEN [IGNORE_CASE]: {
 	< date_time_field:
@@ -1248,6 +1256,7 @@ MySqlFunctionName mySqlFunctionName():
 	| functionName = <date_time_field> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 	| functionName = <numeric_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 	| functionName = <control_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
+	| functionName = <json_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 }
 
 StringValueExpression stringValueExpression():

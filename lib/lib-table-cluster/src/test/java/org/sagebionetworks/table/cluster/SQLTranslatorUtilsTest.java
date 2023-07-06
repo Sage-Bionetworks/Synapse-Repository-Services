@@ -12,6 +12,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -3443,17 +3444,16 @@ public class SQLTranslatorUtilsTest {
 		
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
 				.thenReturn(List.of(columnNameMap.get("foo"), columnNameMap.get("has space")));
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(columnFoo);
 		
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 		
 		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
-		ColumnModel expected = new ColumnModel();
-		expected.setName("foo");
-		expected.setColumnType(ColumnType.STRING);
-		expected.setMaximumSize(columnNameMap.get("foo").getMaximumSize());
-		expected.setId(null);
+		
 		// call under test
-		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+		assertEquals(columnFoo, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+		
+		verify(mockSchemaProvider).getColumnModel("111");
 	}
 	
 	@Test
@@ -3488,18 +3488,14 @@ public class SQLTranslatorUtilsTest {
 		cm.setId("111");
 	
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List.of(cm));
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(cm);
 		
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 		
 		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
-		ColumnModel expected = new ColumnModel();
-		expected.setName("foo");
-		expected.setColumnType(ColumnType.INTEGER);
-		expected.setDefaultValue("123");
-		expected.setFacetType(FacetType.range);
-		expected.setId(null);
 		// call under test
-		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+		assertEquals(cm, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+		verify(mockSchemaProvider).getColumnModel("111");
 	}
 	
 	@Test
@@ -3510,20 +3506,15 @@ public class SQLTranslatorUtilsTest {
 			QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 			
 			when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List.of(cm));
+			when(mockSchemaProvider.getColumnModel(any())).thenReturn(cm);
 			
 			TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 			
 			DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
-			ColumnModel expected = new ColumnModel();
-			expected.setName("foo");
-			expected.setColumnType(cm.getColumnType());
-			expected.setMaximumSize(cm.getMaximumSize());
-			expected.setMaximumListLength(cm.getMaximumListLength());
-			expected.setId(null);
-			expected.setFacetType(cm.getFacetType());
 
 			// call under test
-			assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+			assertEquals(cm, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+			verify(mockSchemaProvider).getColumnModel(cm.getId());
 		}
 	}
 	
@@ -3627,6 +3618,23 @@ public class SQLTranslatorUtilsTest {
 		expected.setId(null);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithCast() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser("select cast(foo as 111) from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+	
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List.of(columnNameMap.get("foo")));
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(columnFoo);
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		
+		// call under test
+		assertEquals(columnFoo, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+		verify(mockSchemaProvider, atLeastOnce()).getColumnModel("111");
 	}
 
 	@Test
