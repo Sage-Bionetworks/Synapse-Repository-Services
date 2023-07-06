@@ -36,6 +36,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -209,7 +210,9 @@ public class DrsManagerImpl implements DrsManager {
             });
         }
         result.setContents(contentList);
-        //TODO checksum and size of dataset should be filed once added in meta data of dataset
+        result.setSize(dataset.getSize());
+        result.setChecksums(Collections.singletonList(
+                new Checksum().setChecksum(dataset.getChecksum()).setType(ChecksumType.md5)));
     }
 
     private void validateIdHasVersion(final IdAndVersion idAndVersion) {

@@ -36,6 +36,8 @@ import org.sagebionetworks.repo.model.table.Dataset;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -375,6 +377,8 @@ public class DrsManagerImplUnitTest {
         entityRef.setVersionNumber(1L);
         entityRefList.add(entityRef);
         dataset.setItems(entityRefList);
+        dataset.setSize(120L);
+        dataset.setChecksum("checksum");
         return dataset;
     }
 
@@ -479,6 +483,9 @@ public class DrsManagerImplUnitTest {
         });
         drsObject.setContents(contentList);
         drsObject.setDescription(expectedDataset.getDescription());
+        drsObject.setSize(expectedDataset.getSize());
+        drsObject.setChecksums(Collections.singletonList(
+                new Checksum().setChecksum(expectedDataset.getChecksum()).setType(ChecksumType.md5)));
         return drsObject;
     }
 

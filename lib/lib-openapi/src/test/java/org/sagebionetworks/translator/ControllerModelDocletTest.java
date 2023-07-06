@@ -69,6 +69,7 @@ public class ControllerModelDocletTest {
 			"-sourcepath", sampleSourceFile.getParentFile().getParent(),
 			"--target-file", targetFilePath,
 			"--factory-path", serverSideFactoryPath,
+			"--should-run", "true",
 			controllersPackageName
 		};
 		
@@ -105,6 +106,23 @@ public class ControllerModelDocletTest {
 			}
 		}
 		assertTrue(foundComplexPetsTag);
+	}
+	
+	@Test
+	public void testRedirectedEndpointResponsesGenerateCorrectly() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/redirected");
+		JSONObject operationObj = pathObj.getJSONObject("get");
+		
+		JSONObject responses = operationObj.getJSONObject("responses");
+		
+		JSONObject responseStatusCode200 = responses.getJSONObject("200");
+		assertEquals("Status 200 will be returned if the 'redirect' boolean param is false", responseStatusCode200.getString("description"));
+		JSONObject content = responseStatusCode200.getJSONObject("content");
+		assertNotNull(content.getJSONObject("text/plain"));
+		
+		JSONObject responseStatusCode307 = responses.getJSONObject("307");
+		assertEquals("Status 307 will be returned if the 'redirect' boolean param is true or null", responseStatusCode307.getString("description"));
 	}
 	
 	@Test

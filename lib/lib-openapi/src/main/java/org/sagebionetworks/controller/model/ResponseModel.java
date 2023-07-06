@@ -14,6 +14,7 @@ public class ResponseModel {
 	private String description;
 	private String contentType = "application/json";
 	private String id;
+	private boolean isRedirected = false;
 	
 	public int getStatusCode() {
 		return statusCode;
@@ -50,10 +51,19 @@ public class ResponseModel {
 		this.id = id;
 		return this;
 	}
+	
+	public boolean getIsRedirected() {
+		return this.isRedirected;
+	}
+	
+	public ResponseModel withIsRedirected(boolean isRedirected) {
+		this.isRedirected = isRedirected;
+		return this;
+	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(contentType, description, id, statusCode);
+		return Objects.hash(contentType, description, id, isRedirected, statusCode);
 	}
 
 	@Override
@@ -66,12 +76,12 @@ public class ResponseModel {
 			return false;
 		ResponseModel other = (ResponseModel) obj;
 		return Objects.equals(contentType, other.contentType) && Objects.equals(description, other.description)
-				&& Objects.equals(id, other.id) && statusCode == other.statusCode;
+				&& Objects.equals(id, other.id) && isRedirected == other.isRedirected && statusCode == other.statusCode;
 	}
 
 	@Override
 	public String toString() {
 		return "ResponseModel [statusCode=" + statusCode + ", description=" + description + ", contentType="
-				+ contentType + ", id=" + id + "]";
+				+ contentType + ", id=" + id + ", isRedirected=" + isRedirected + "]";
 	}
 }

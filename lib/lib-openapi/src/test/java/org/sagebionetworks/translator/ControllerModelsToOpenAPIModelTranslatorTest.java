@@ -335,6 +335,17 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		});
 		assertEquals("method is required.", exception.getMessage());
 	}
+	
+	@Test
+	public void testGetResponsesWithRedirectedEndpoint() {
+		ResponseModel input = new ResponseModel().withIsRedirected(true);
+		Map<String, ResponseInfo> responses = new HashMap<>();
+		Mockito.doReturn(responses).when(translator).generateResponsesForRedirectedEndpoint();
+		
+		// call under test
+		assertEquals(responses, translator.getResponses(input));
+		Mockito.verify(translator).generateResponsesForRedirectedEndpoint();
+	}
 
 	@Test
 	public void testGetResponses() {
@@ -360,6 +371,26 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 			translator.getResponses(null);
 		});
 		assertEquals("response is required.", exception.getMessage());
+	}
+	
+	@Test
+	public void testGenerateResponsesForRedirectedEndpoint() {
+		Map<String, ResponseInfo> expectedResponses = new LinkedHashMap<>();
+		
+		String statusCodeRedirected = "307";
+		String statusCodeOk = "200";
+
+		Map<String, Schema> statusCodeOkContentTypeToSchema = new HashMap<>();
+		statusCodeOkContentTypeToSchema.put("text/plain", new Schema().withSchema(new JsonSchema()));
+		ResponseInfo responseOk = new ResponseInfo().withDescription("Status 200 will be returned if the 'redirect' boolean param is false").withContent(statusCodeOkContentTypeToSchema);
+		expectedResponses.put(statusCodeOk, responseOk);
+		
+		Map<String, Schema> statusCodeRedirectedContentTypeToSchema = new HashMap<>();
+		ResponseInfo responseRedirected = new ResponseInfo().withDescription("Status 307 will be returned if the 'redirect' boolean param is true or null").withContent(statusCodeRedirectedContentTypeToSchema);
+		expectedResponses.put(statusCodeRedirected, responseRedirected);
+		
+		// call under test
+		assertEquals(expectedResponses, translator.generateResponsesForRedirectedEndpoint());
 	}
 
 	@Test

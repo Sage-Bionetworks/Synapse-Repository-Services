@@ -61,4 +61,12 @@ public class ComplexExampleController {
 		petNameToPet.put(name, cat);
 		return name;
 	}
+	
+	/**
+	 * Example of an endpoint that would be redirected.
+	 * 
+	 * @param redirect if the endpoint will redirect the client
+	 */
+	@RequestMapping(value = "/complex-pet/redirected", method = RequestMethod.GET)
+	public void redirected(@RequestBody Boolean redirect) {}
 }

@@ -104,6 +104,7 @@ public class TableModelTestUtils {
 				case EVALUATIONID:
 				case LARGETEXT:
 				case MEDIUMTEXT:
+				case JSON:
 					defaultValue = null;
 					break;
 				case INTEGER:
@@ -405,6 +406,8 @@ public class TableModelTestUtils {
 				return "[" + (i + 4000 + (isUpdate ? 10000 : 0)) + "]";
 			case ENTITYID_LIST:
 				return "[\"syn" + (i + 6000 + (isUpdate ? 10000 : 0)) + "\"]";
+			case JSON:
+				return "{\"foo\": \"" +(isUpdate ? "updateBar": "bar") + i +"\"}";
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + cm.getColumnType());
 	}

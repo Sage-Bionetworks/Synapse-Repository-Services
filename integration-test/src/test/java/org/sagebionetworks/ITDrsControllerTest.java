@@ -29,6 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -187,6 +188,9 @@ public class ITDrsControllerTest {
         });
         drsObject.setContents(contentList);
         drsObject.setDescription(expectedDataset.getDescription());
+        drsObject.setChecksums(Collections.singletonList(
+                new Checksum().setChecksum(expectedDataset.getChecksum()).setType(ChecksumType.md5)));
+        drsObject.setSize(expectedDataset.getSize());
         return drsObject;
     }
 

@@ -381,6 +381,11 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 					throw new IllegalArgumentException("Cannot change a _LIST to " 
 						+ "a different type of _LIST");
 				}
+				// We do not support changing the column type from/to JSON for now
+				if (!oldColumn.getColumnType().equals(newColumn.getColumnType()) 
+						&& (oldColumn.getColumnType().equals(ColumnType.JSON) || newColumn.getColumnType().equals(ColumnType.JSON))) {
+					throw new IllegalArgumentException("Cannot change from/to a JSON column type");
+				}
 			}
 		}
 	}

@@ -175,6 +175,9 @@ public class ControllerModelsToOpenAPIModelTranslator {
 	 */
 	Map<String, ResponseInfo> getResponses(ResponseModel response) {
 		ValidateArgument.required(response, "response");
+		if (response.getIsRedirected()) {
+			return generateResponsesForRedirectedEndpoint();
+		}
 		Map<String, ResponseInfo> responses = new LinkedHashMap<>();
 		Map<String, Schema> contentTypeToSchema = new HashMap<>();
 		contentTypeToSchema.put(response.getContentType(), new Schema().withSchema(getReferenceSchema(response.getId())));
@@ -183,6 +186,30 @@ public class ControllerModelsToOpenAPIModelTranslator {
 
 		String statusCode = "" + response.getStatusCode();
 		responses.put(statusCode, responseInfo);
+		return responses;
+	}
+	
+	/**
+	 * If the endpoint is redirected, the response can either be a 
+	 * 
+	 * @param contentTypeToSchema
+	 */
+	Map<String, ResponseInfo> generateResponsesForRedirectedEndpoint() {
+		Map<String, ResponseInfo> responses = new LinkedHashMap<>();
+		
+		// the two possible status codes for a redirected endpoint
+		String statusCodeRedirected = "307";
+		String statusCodeOk = "200";
+
+		Map<String, Schema> statusCodeOkContentTypeToSchema = new HashMap<>();
+		statusCodeOkContentTypeToSchema.put("text/plain", new Schema().withSchema(new JsonSchema()));
+		ResponseInfo responseOk = new ResponseInfo().withDescription("Status 200 will be returned if the 'redirect' boolean param is false").withContent(statusCodeOkContentTypeToSchema);
+		responses.put(statusCodeOk, responseOk);
+		
+		Map<String, Schema> statusCodeRedirectedContentTypeToSchema = new HashMap<>();
+		ResponseInfo responseRedirected = new ResponseInfo().withDescription("Status 307 will be returned if the 'redirect' boolean param is true or null").withContent(statusCodeRedirectedContentTypeToSchema);
+		responses.put(statusCodeRedirected, responseRedirected);
+		
 		return responses;
 	}
 

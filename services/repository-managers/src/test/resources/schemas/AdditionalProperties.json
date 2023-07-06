@@ -1,0 +1,9 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "additionalProperties",
+	"properties": {
+		"number": { "type": "integer" },
+		"street_name": { "type": "string" }
+	},
+	"additionalProperties": { "type": "string" }
+}

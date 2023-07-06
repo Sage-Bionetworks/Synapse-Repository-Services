@@ -270,6 +270,16 @@ public class TableModelUtils {
 			checkStringEnum(value, cm);
 			return value;
 		}
+		
+		if (cm.getColumnType() == ColumnType.JSON) {
+			String jsonValue = (String) ColumnTypeInfo.getInfoForType(cm.getColumnType()).parseValueForDatabaseWrite(value);
+			
+			if (jsonValue.length() > ColumnConstants.MAX_JSON_CHARACTERS) {
+				throw new IllegalArgumentException("Exceeds the maximum number of characters: " + ColumnConstants.MAX_JSON_CHARACTERS);
+			}
+			checkStringEnum(value, cm);
+			return value;
+		}
 
 		if (ColumnTypeListMappings.isList(cm.getColumnType())) {
 			//make sure this is a valid JSON List (size limit, values
@@ -801,6 +811,8 @@ public class TableModelUtils {
 				return ColumnConstants.SIZE_OF_MEDIUM_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES;
 			case LARGETEXT:
 				return ColumnConstants.SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES;
+			case JSON:
+				return ColumnConstants.SIZE_OF_JSON_FOR_COLUMN_SIZE_ESTIMATE_BYTES;
 			case BOOLEAN:
 				return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING;
 			case INTEGER:

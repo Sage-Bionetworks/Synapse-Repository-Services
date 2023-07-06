@@ -971,6 +971,34 @@ public class ColumnModelManagerTest {
 		// Call under test
 		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.entityview);
 	}
+	
+	@Test
+	public void testValidateColumnChangeFromJSON() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.JSON);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.STRING);
+		// Call under test
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table);
+		}).getMessage();
+		
+		assertEquals("Cannot change from/to a JSON column type", result);
+	}
+	
+	@Test
+	public void testValidateColumnChangeToJSON() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.STRING);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.JSON);
+		// Call under test
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table);
+		}).getMessage();
+		
+		assertEquals("Cannot change from/to a JSON column type", result);
+	}
 
 	//////////////////////////////
 	// validateFacetType() tests

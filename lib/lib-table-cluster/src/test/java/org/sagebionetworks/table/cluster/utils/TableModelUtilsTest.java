@@ -460,6 +460,48 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testValidateJsonColumn() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.JSON);
+		assertEquals("{\"foo\":\"bar\"}", TableModelUtils.validateRowValue("{\"foo\":\"bar\"}", cm, 0, 0));
+		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 0, 0));
+		assertEquals(null, TableModelUtils.validateRowValue("", cm, 0, 0));
+	}
+	
+	@Test
+	public void testValidateJsonColumnWithNonJsonObjectOrArray() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.JSON);
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			TableModelUtils.validateRowValue("non json object", cm, 0, 0);
+		}).getMessage();
+		
+		assertEquals("Value at [0,0] was not a valid JSON. Invalid JSON object or array: A JSONObject text must begin with '{' at 1 [character 2 line 1], A JSONArray text must start with '[' at 1 [character 2 line 1]", result);
+	}
+	
+	@Test
+	public void testValidateJsonColumnWithJsonArray() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.JSON);
+					
+		assertEquals("[{\"foo\":\"bar\"}]", TableModelUtils.validateRowValue("[{\"foo\":\"bar\"}]", cm, 0, 0));
+	}
+	
+	@Test
+	public void testValidateJsonColumnWithTooLong() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.JSON);
+		String valueTooLong = createStringOfSize((int)ColumnConstants.MAX_JSON_CHARACTERS);
+					
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			TableModelUtils.validateRowValue("[{\"foo\":\""+ valueTooLong +"\"}]", cm, 0, 0);
+		}).getMessage();
+		
+		assertEquals("Value at [0,0] was not a valid JSON. Exceeds the maximum number of characters: 524288", result);
+	}
+	
+	@Test
 	public void testValidateStringTooBig() {
 		int sizeTooLarge = (int) (ColumnConstants.MAX_ALLOWED_STRING_SIZE+1);
 		ColumnModel cm = new ColumnModel();
@@ -867,6 +909,12 @@ public class TableModelUtilsTest {
 		assertEquals(ColumnConstants.SIZE_OF_MEDIUM_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES,
 				TableModelUtils.calculateMaxSizeForType(ColumnType.MEDIUMTEXT, null, null));
 	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeJson(){
+		assertEquals(ColumnConstants.SIZE_OF_JSON_FOR_COLUMN_SIZE_ESTIMATE_BYTES,
+				TableModelUtils.calculateMaxSizeForType(ColumnType.JSON, null, null));
+	}
 
 	@Test
 	public void testCalculateMaxSizeForTypeStringList(){
@@ -1041,7 +1089,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(16487, allBytes);
+		assertEquals(18620, allBytes);
 	}
 
 	@Test
