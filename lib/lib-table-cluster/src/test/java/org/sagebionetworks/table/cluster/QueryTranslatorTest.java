@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -15,6 +17,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1544,31 +1548,42 @@ public class QueryTranslatorTest {
 	@Test
 	public void testGetSchemaOfSelectWithUnion() throws ParseException {
 		IdAndVersion one = IdAndVersion.parse("syn1");
-		when(mockSchemaProvider.getTableSchema(one))
-		.thenReturn(List.of(TableModelTestUtils.createColumn(111L, "a", ColumnType.STRING).setMaximumSize(100L),
-				TableModelTestUtils.createColumn(222L, "b", ColumnType.STRING).setMaximumSize(50L)));
+		
+		ColumnModel a, b, c, d; 
+		
+		when(mockSchemaProvider.getTableSchema(one)).thenReturn(List.of(
+			a = TableModelTestUtils.createColumn(111L, "a", ColumnType.STRING).setMaximumSize(100L),
+			b = TableModelTestUtils.createColumn(222L, "b", ColumnType.STRING).setMaximumSize(50L)
+		));
 
 		IdAndVersion two = IdAndVersion.parse("syn2");
 		
-		when(mockSchemaProvider.getTableSchema(two))
-		.thenReturn(List.of(TableModelTestUtils.createColumn(333L, "c", ColumnType.STRING).setMaximumSize(40L),
-				TableModelTestUtils.createColumn(444L, "d", ColumnType.STRING).setMaximumSize(150L)));
+		when(mockSchemaProvider.getTableSchema(two)).thenReturn(List.of(
+			c = TableModelTestUtils.createColumn(333L, "c", ColumnType.STRING).setMaximumSize(40L),
+			d = TableModelTestUtils.createColumn(444L, "d", ColumnType.STRING).setMaximumSize(150L)
+		));
 
+		Map<String, ColumnModel> columnsMap = List.of(a, b, c, d).stream().collect(Collectors.toMap(ColumnModel::getId, Function.identity()));
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenAnswer( i -> columnsMap.get(i.getArgument(0)));
+		
 		List<IndexDescription> dependencies = List.of(new TableIndexDescription(one), new TableIndexDescription(two));
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		sql = "select a, b from syn1 union select c, d from syn2";
+		
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.indexDescription(indexDescription).sqlContext(SqlContext.build).build();
 		
+		List<ColumnModel> expectedSchema = List.of(
+			TableModelTestUtils.createColumn(null, "a", ColumnType.STRING).setMaximumSize(100L),
+			TableModelTestUtils.createColumn(null, "b", ColumnType.STRING).setMaximumSize(150L)
+		);
+		
 		// call under test
-		List<ColumnModel> schema = query.getSchemaOfSelect();
-		List<ColumnModel> expected = List.of(
-				new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(100L),
-				new ColumnModel().setName("b").setColumnType(ColumnType.STRING).setMaximumSize(150L));
-		assertEquals(expected, schema);
+		assertEquals(expectedSchema, query.getSchemaOfSelect());
 	}
 	
 	@Test
@@ -1756,6 +1771,7 @@ public class QueryTranslatorTest {
 		
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(columnNameToModelMap.get("inttype"));		
 
 		// Note: The dependencies are in a different order.
 		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(tableId),
@@ -1786,7 +1802,8 @@ public class QueryTranslatorTest {
 	
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 		when(mockSchemaProvider.getTableSchema(view2Id)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
-
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(columnNameToModelMap.get("inttype"));
+		
 		// Note: The dependencies are in a different order.
 		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(view2Id, TableType.entityview),
 				new ViewIndexDescription(viewId, TableType.entityview));
@@ -1814,7 +1831,8 @@ public class QueryTranslatorTest {
 		IdAndVersion viewId = IdAndVersion.parse("syn1");
 		
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
-
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(columnNameToModelMap.get("inttype"));
+		
 		// Note: The dependencies are in a different order.
 		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.entityview));
 
@@ -1846,7 +1864,10 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(view2Id)).thenReturn(List.of(columnNameToModelMap.get("has space")));
 		when(mockSchemaProvider.getTableSchema(view3Id)).thenReturn(List.of(columnNameToModelMap.get("bar")));
 
-
+		Map<String, ColumnModel> columnMap = columnNameToModelMap.values().stream().collect(Collectors.toMap(ColumnModel::getId, Function.identity()));
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenAnswer( i -> columnMap.get(i.getArgument(0)));
+		
 		List<IndexDescription> dependencies = Arrays.asList(
 				new ViewIndexDescription(viewId, TableType.entityview),
 				new ViewIndexDescription(view2Id, TableType.entityview),
@@ -2120,6 +2141,7 @@ public class QueryTranslatorTest {
 		
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(foo, bar));
 		when(mockSchemaProvider.getTableSchema(cte)).thenReturn(List.of(foo, sumBar));
+		when(mockSchemaProvider.getColumnModel("11")).thenReturn(foo);
 		when(mockSchemaProvider.getColumnModel("33")).thenReturn(sumBar);
 
 		when(mockIndexDescriptionLookup.getIndexDescription(viewId)).thenReturn(new ViewIndexDescription(viewId, TableType.entityview));
@@ -2135,8 +2157,8 @@ public class QueryTranslatorTest {
 		assertEquals("WITH T2 (_C11_, _C33_) AS"
 				+ " (SELECT _C11_, SUM(CAST(_C22_ AS SIGNED)) FROM T1 GROUP BY _C11_)"
 				+ " SELECT _C11_, _C33_ FROM T2", query.getOutputSQL());
-		assertTrue(query.isAggregatedResult());
 		
+		assertTrue(query.isAggregatedResult());
 	}
 	
 	@Test

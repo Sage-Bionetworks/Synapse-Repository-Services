@@ -1108,7 +1108,9 @@ public class SQLTranslatorUtils {
 		for (int colunIndex = 0; colunIndex < firstSchema.size(); colunIndex++) {
 			try {
 				ColumnModel clone = EntityFactory.createEntityFromJSONString(
-						EntityFactory.createJSONStringForEntity(firstSchema.get(colunIndex)), ColumnModel.class);
+					EntityFactory.createJSONStringForEntity(firstSchema.get(colunIndex)), 
+					ColumnModel.class).setId(null);
+				
 				newSchema.add(clone);
 				for (int schemaIndex = 1; schemaIndex < selectSchemas.size(); schemaIndex++) {
 					ColumnModel compareToColumn = selectSchemas.get(schemaIndex).get(colunIndex);

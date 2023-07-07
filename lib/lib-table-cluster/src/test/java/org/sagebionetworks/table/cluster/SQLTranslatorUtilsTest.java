@@ -3636,7 +3636,7 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(columnFoo, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
 		verify(mockSchemaProvider, atLeastOnce()).getColumnModel("111");
 	}
-
+		
 	@Test
 	public void testCreateMaterializedViewInsertSqlWithDependentView() {
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
