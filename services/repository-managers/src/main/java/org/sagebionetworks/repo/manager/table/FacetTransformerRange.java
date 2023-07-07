@@ -10,7 +10,12 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
-import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.FromClause;
+import org.sagebionetworks.table.query.model.NonJoinQueryExpression;
+import org.sagebionetworks.table.query.model.QueryExpression;
+import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.sagebionetworks.table.query.util.FacetUtils;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
@@ -27,7 +32,7 @@ public class FacetTransformerRange implements FacetTransformer {
 	
 	private QueryTranslator generatedFacetSqlQuery;
 	
-	public FacetTransformerRange(String columnName, List<FacetRequestColumnModel> facets, TableExpression originalQuery, TranslationDependencies dependencies, String selectedMin, String selectedMax){
+	public FacetTransformerRange(String columnName, List<FacetRequestColumnModel> facets, QueryExpression originalQuery, TranslationDependencies dependencies, String selectedMin, String selectedMax){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facets, "facets");
 		ValidateArgument.required(originalQuery, "originalQuery");
@@ -52,7 +57,9 @@ public class FacetTransformerRange implements FacetTransformer {
 	 * Creates a new SQL query for finding the minimum and maximum values of a faceted column
 	 * @return the generated SQL query represented by SqlQuery
 	 */
-	private QueryTranslator generateFacetSqlQuery(TableExpression originalQuery, TranslationDependencies dependencies) {
+	private QueryTranslator generateFacetSqlQuery(QueryExpression originalQuery, TranslationDependencies dependencies) {
+		
+		NonJoinQueryExpression njqe = originalQuery.getNonJoinQueryExpression();
 		
 		StringBuilder builder = new StringBuilder("SELECT MIN(");
 		builder.append("\"");
@@ -67,11 +74,18 @@ public class FacetTransformerRange implements FacetTransformer {
 		builder.append(") as ");
 		builder.append(MAX_ALIAS);
 		builder.append(" ");
-		builder.append(originalQuery.getFromClause().toSql());
+		builder.append(njqe.getFirstElementOfType(FromClause.class).toSql());
 		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
-		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, originalQuery.getWhereClause());
+		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, njqe.getFirstElementOfType(WhereClause.class));
 		
-		return QueryTranslator.builder(builder.toString(), dependencies).build();
+		try {
+			NonJoinQueryExpression replacement = new TableQueryParser(builder.toString()).nonJoinQueryExpression();
+			njqe.replaceElement(replacement);
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
+		}
+		
+		return QueryTranslator.builder(originalQuery.toSql(), dependencies).build();
 	}
 	
 	@Override

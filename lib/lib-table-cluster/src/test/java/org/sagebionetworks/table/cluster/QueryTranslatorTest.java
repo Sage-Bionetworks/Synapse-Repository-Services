@@ -106,6 +106,7 @@ public class QueryTranslatorTest {
 	public void testSelectStar() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123", mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
@@ -120,6 +121,7 @@ public class QueryTranslatorTest {
 	public void testSelectStarEscaping() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123", mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
@@ -131,6 +133,7 @@ public class QueryTranslatorTest {
 	public void testSelectSingleColumns() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo from syn123", mockSchemaProvider, userId)
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -144,6 +147,7 @@ public class QueryTranslatorTest {
 	public void testSqlQueryBuildWithNullSqlContext() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo from syn123", mockSchemaProvider, userId)
 				.indexDescription(new TableIndexDescription(idAndVersion)).sqlContext(null).build();
@@ -155,6 +159,7 @@ public class QueryTranslatorTest {
 	public void testSqlQueryBuildWithSqlContextQuery() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo from syn123", mockSchemaProvider, userId)
 				.indexDescription(new TableIndexDescription(idAndVersion)).sqlContext(SqlContext.query).build();
@@ -166,6 +171,7 @@ public class QueryTranslatorTest {
 	public void testSqlQueryBuildWithSqlContextBuild() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo from syn123", mockSchemaProvider, userId)
 				.indexDescription(new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList()))
@@ -178,6 +184,7 @@ public class QueryTranslatorTest {
 	public void testSelectDoubleQuotedColumn() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("has\"quote"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select \"has\"\"quote\" from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -191,6 +198,7 @@ public class QueryTranslatorTest {
 	public void testSelectMultipleColumns() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo, bar from syn123", mockSchemaProvider, userId)
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -205,6 +213,7 @@ public class QueryTranslatorTest {
 	public void testSelectDistinct() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select distinct foo, bar from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -220,6 +229,7 @@ public class QueryTranslatorTest {
 	public void selectRowIdAndVersionStar() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123", mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertTrue(translator.includesRowIdAndVersion());
@@ -229,6 +239,7 @@ public class QueryTranslatorTest {
 	public void selectRowIdAndVersionSingleColumn() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo from syn123", mockSchemaProvider, userId)
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -239,6 +250,7 @@ public class QueryTranslatorTest {
 	public void selectRowIdAndVersionDistinct() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select distinct foo from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -289,6 +301,7 @@ public class QueryTranslatorTest {
 	public void selectRowIdAndVersionConstantPlusColumn() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo, 'a constant' from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -309,6 +322,7 @@ public class QueryTranslatorTest {
 	public void selectRowIdAndVersionArithmeticAndColumn() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select 5 div 2, foo from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -329,6 +343,7 @@ public class QueryTranslatorTest {
 	public void selectRowIdAndVersionGroupBy() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo, count(*) from syn123 group by foo",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -339,6 +354,7 @@ public class QueryTranslatorTest {
 	public void selectRowIdAndVersionAggregateFunctionNoGroup() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo, max(bar) from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -349,6 +365,7 @@ public class QueryTranslatorTest {
 	public void selectRowIdAndNonAggregateFunction() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo, DAYOFMONTH(bar) from syn123",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -428,6 +445,7 @@ public class QueryTranslatorTest {
 	public void testSelectAggregateMoreColumns() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("bar"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select avg(inttype), bar from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -443,6 +461,7 @@ public class QueryTranslatorTest {
 	public void testSelectGroupByAggregate() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo from syn123 group by foo", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -485,6 +504,7 @@ public class QueryTranslatorTest {
 	public void testWhereSimple() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 where foo = 1", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -494,11 +514,24 @@ public class QueryTranslatorTest {
 		// The value should be in the parameters map.
 		assertEquals("1", translator.getParameters().get("b0"));
 	}
+	
+	void setupGetColumns(List<ColumnModel> schema){
+		for(ColumnModel cm: schema) {
+			when(mockSchemaProvider.getColumnModel(cm.getId())).thenReturn(cm);
+		}
+	}
+	
+	void setupGetColumns(ColumnModel...cms){
+		for(ColumnModel cm: cms) {
+			when(mockSchemaProvider.getColumnModel(cm.getId())).thenReturn(cm);
+		}
+	}
 
 	@Test
 	public void testWhereDoubleFunction() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder(
 				"select * from syn123 where isNaN(doubletype) or isInfinity(doubletype)", mockSchemaProvider,
@@ -515,6 +548,7 @@ public class QueryTranslatorTest {
 	public void testWhereDouble() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo from syn123 where doubletype between 1.0 and 2.0",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -529,6 +563,7 @@ public class QueryTranslatorTest {
 	public void testWhereOr() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 where foo = 1 or bar = 2",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -544,6 +579,7 @@ public class QueryTranslatorTest {
 	public void testWhereAnd() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 where foo = 1 and bar = 2",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -559,6 +595,7 @@ public class QueryTranslatorTest {
 	public void testWhereNested() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 where (foo = 1 and bar = 2) or foo_bar = 3",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -577,6 +614,7 @@ public class QueryTranslatorTest {
 	public void testGroupByOne() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 group by foo", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -588,6 +626,7 @@ public class QueryTranslatorTest {
 	public void testGroupByMultiple() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 group by foo, bar", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -599,6 +638,7 @@ public class QueryTranslatorTest {
 	public void testOrderByOneNoSpec() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 order by foo", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -611,6 +651,7 @@ public class QueryTranslatorTest {
 	public void testOrderByOneWithSpec() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 order by foo desc", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -623,6 +664,7 @@ public class QueryTranslatorTest {
 	public void testOrderByDouble() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo from syn123 order by doubletype desc",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -634,6 +676,7 @@ public class QueryTranslatorTest {
 	public void testOrderByMultipleNoSpec() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 order by foo, bar", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -646,6 +689,7 @@ public class QueryTranslatorTest {
 	public void testOrderByMultipeWithSpec() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 order by foo asc, bar desc",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -658,6 +702,7 @@ public class QueryTranslatorTest {
 	public void testLimit() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 limit 100", mockSchemaProvider, userId)
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -670,6 +715,7 @@ public class QueryTranslatorTest {
 	public void testLimitAndOffset() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 limit 100 offset 2",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -684,6 +730,7 @@ public class QueryTranslatorTest {
 	public void testAllParts() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar"));
 		
 		QueryTranslator translator = QueryTranslator.builder(
 				"select foo, bar from syn123 where foo_bar >= 1.89e4 order by bar desc limit 10 offset 0",
@@ -701,6 +748,7 @@ public class QueryTranslatorTest {
 	public void testAllPartsWithGrouping() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"),columnNameToModelMap.get("bar"));
 		
 		QueryTranslator translator = QueryTranslator.builder(
 				"select foo, bar from syn123 where foo_bar >= 1.89e4 group by foo order by bar desc limit 10 offset 0",
@@ -849,6 +897,7 @@ public class QueryTranslatorTest {
 	public void testPLFM_3866() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo from syn123 where foo in (\"a\")",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -859,6 +908,7 @@ public class QueryTranslatorTest {
 	public void testPLFM_3867() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			 QueryTranslator.builder("select foo from syn123 where foo = \"a\"",
@@ -871,6 +921,7 @@ public class QueryTranslatorTest {
 	public void testTranslateNotIsNaN() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo from syn123 where not isNaN(doubletype)",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -889,6 +940,7 @@ public class QueryTranslatorTest {
 		tableSchema = Lists.newArrayList(TableModelTestUtils.createColumn(123L, "aDouble", ColumnType.DOUBLE));
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 where not isNaN(aDouble)",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -923,6 +975,7 @@ public class QueryTranslatorTest {
 	public void testTranslateIsNaN() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo from syn123 where not isNaN(doubletype)",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -935,6 +988,7 @@ public class QueryTranslatorTest {
 	public void testMaxRowSizeBytesSelectStar() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		// the size will include the size of the schema
 		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
@@ -958,6 +1012,7 @@ public class QueryTranslatorTest {
 	public void testMaxRowsPerPage() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
 		Long maxBytesPerPage = maxSizeSchema * 2L;
@@ -972,6 +1027,7 @@ public class QueryTranslatorTest {
 	public void testMaxRowsPerPageMaxBytesSmall() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
 		Long maxBytesPerPage = 3L;
@@ -986,6 +1042,7 @@ public class QueryTranslatorTest {
 	public void testMaxRowsPerPageNullMaxBytesPerPage() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
 		
 		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
 		Long maxBytesPerPage = null;
@@ -1000,6 +1057,7 @@ public class QueryTranslatorTest {
 	public void testOverrideLimitAndOffset() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		Long maxBytesPerPage = 10000L;
 		QuerySpecification model = new TableQueryParser("select foo from syn123 limit 10 offset 1").querySpecification();
@@ -1014,6 +1072,7 @@ public class QueryTranslatorTest {
 	public void testOverrideLimitAndOffsetNullWithMaxBytesPerPage() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		Long maxBytesPerPage = 1L;
 		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
@@ -1028,6 +1087,7 @@ public class QueryTranslatorTest {
 	public void testOverrideNull() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		Long maxBytesPerPage = null;
 		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
@@ -1039,6 +1099,7 @@ public class QueryTranslatorTest {
 	public void testPLFM_4161() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		setupGetColumns(schema);
 		
 		String sql = "select * from syn123";
 		QueryTranslator query = QueryTranslator.builder(sql, mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -1049,6 +1110,7 @@ public class QueryTranslatorTest {
 	public void testDefaultType() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		setupGetColumns(schema);
 		
 		// call under test
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
@@ -1061,6 +1123,7 @@ public class QueryTranslatorTest {
 	public void testTableDefaultEtag() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		setupGetColumns(schema);
 		
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -1072,6 +1135,7 @@ public class QueryTranslatorTest {
 	public void testSelectViewWithoutEtag() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		setupGetColumns(schema);
 		
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).includeEntityEtag(null).build();
@@ -1083,6 +1147,7 @@ public class QueryTranslatorTest {
 	public void testViewDefaultEtag() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		setupGetColumns(schema);
 		
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).build();
@@ -1094,6 +1159,7 @@ public class QueryTranslatorTest {
 	public void testSelectViewWithEtag() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		setupGetColumns(schema);
 		
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.includeEntityEtag(true)
@@ -1106,6 +1172,7 @@ public class QueryTranslatorTest {
 	public void testSelectViewWithEtagFalse() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		setupGetColumns(schema);
 		
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.includeEntityEtag(false)
@@ -1118,6 +1185,7 @@ public class QueryTranslatorTest {
 	public void testSelectTableWithEtag() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		setupGetColumns(schema);
 		
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -1157,6 +1225,7 @@ public class QueryTranslatorTest {
 	public void testCurrentUserFunctionInWhereClause() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("inttype"));
 		
 		sql = "select inttype from syn123 where inttype = CURRENT_USER()";
 		Map<String, Object> expectedParameters = Collections.singletonMap("b0", userId);
@@ -1203,6 +1272,7 @@ public class QueryTranslatorTest {
 		schema = Arrays.asList(createdOn);
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		setupGetColumns(schema);
 
 		String sql = "select createdOn, UNIX_TIMESTAMP('2021-06-20 00:00:00')*1000 from syn123 where createdOn > UNIX_TIMESTAMP('2021-06-20 00:00:00')*1000";
 
@@ -1220,6 +1290,7 @@ public class QueryTranslatorTest {
 	public void testQueryWithTextMatches() throws ParseException {
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		sql = "select foo from syn123 WHERE TEXT_MATCHES('some text')";
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
@@ -1289,6 +1360,7 @@ public class QueryTranslatorTest {
 		
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
 		.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		setupGetColumns(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar"));
 
 		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")),
 				new ViewIndexDescription(IdAndVersion.parse("syn2"), TableType.entityview));
@@ -1488,6 +1560,7 @@ public class QueryTranslatorTest {
 		IdAndVersion viewId = IdAndVersion.parse("syn1");
 		
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("doubletype")));
+		setupGetColumns(columnNameToModelMap.get("doubletype"));
 
 		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.dataset));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
@@ -1506,6 +1579,7 @@ public class QueryTranslatorTest {
 
 		when(mockSchemaProvider.getTableSchema(materializedViewId))
 				.thenReturn(List.of(columnNameToModelMap.get("doubletype")));
+		setupGetColumns(columnNameToModelMap.get("doubletype"));
 		
 		List<IndexDescription> dependencies = Arrays.asList(
 				new ViewIndexDescription(viewId, TableType.dataset));
@@ -1544,15 +1618,17 @@ public class QueryTranslatorTest {
 	@Test
 	public void testGetSchemaOfSelectWithUnion() throws ParseException {
 		IdAndVersion one = IdAndVersion.parse("syn1");
-		when(mockSchemaProvider.getTableSchema(one))
-		.thenReturn(List.of(TableModelTestUtils.createColumn(111L, "a", ColumnType.STRING).setMaximumSize(100L),
-				TableModelTestUtils.createColumn(222L, "b", ColumnType.STRING).setMaximumSize(50L)));
+		ColumnModel a = TableModelTestUtils.createColumn(111L, "a", ColumnType.STRING).setMaximumSize(100L);
+		ColumnModel b = TableModelTestUtils.createColumn(222L, "b", ColumnType.STRING).setMaximumSize(50L);
+		when(mockSchemaProvider.getTableSchema(one)).thenReturn(List.of(a, b));
+		setupGetColumns(a,b);
 
 		IdAndVersion two = IdAndVersion.parse("syn2");
 		
-		when(mockSchemaProvider.getTableSchema(two))
-		.thenReturn(List.of(TableModelTestUtils.createColumn(333L, "c", ColumnType.STRING).setMaximumSize(40L),
-				TableModelTestUtils.createColumn(444L, "d", ColumnType.STRING).setMaximumSize(150L)));
+		ColumnModel c = TableModelTestUtils.createColumn(333L, "c", ColumnType.STRING).setMaximumSize(40L);
+		ColumnModel d = TableModelTestUtils.createColumn(444L, "d", ColumnType.STRING).setMaximumSize(150L);
+		when(mockSchemaProvider.getTableSchema(two)).thenReturn(List.of(c, d));
+		setupGetColumns(c,d);
 
 		List<IndexDescription> dependencies = List.of(new TableIndexDescription(one), new TableIndexDescription(two));
 
@@ -1626,6 +1702,7 @@ public class QueryTranslatorTest {
 	public void testBuildMaterializedViewWithViewDependencyAndGroupByInDefiningSql() throws ParseException {
 		IdAndVersion viewId = IdAndVersion.parse("syn1");
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("foo"),columnNameToModelMap.get("bar")));
+		setupGetColumns(columnNameToModelMap.get("foo"));
 
 		List<IndexDescription> dependencies = Arrays.asList(
 				new ViewIndexDescription(viewId, TableType.entityview)
@@ -1756,6 +1833,7 @@ public class QueryTranslatorTest {
 		
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
+		setupGetColumns(columnNameToModelMap.get("inttype"));
 
 		// Note: The dependencies are in a different order.
 		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(tableId),
@@ -1786,6 +1864,7 @@ public class QueryTranslatorTest {
 	
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 		when(mockSchemaProvider.getTableSchema(view2Id)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
+		setupGetColumns(columnNameToModelMap.get("inttype"));
 
 		// Note: The dependencies are in a different order.
 		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(view2Id, TableType.entityview),
@@ -1814,6 +1893,7 @@ public class QueryTranslatorTest {
 		IdAndVersion viewId = IdAndVersion.parse("syn1");
 		
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
+		setupGetColumns(columnNameToModelMap.get("inttype"));
 
 		// Note: The dependencies are in a different order.
 		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.entityview));
@@ -1846,6 +1926,7 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(view2Id)).thenReturn(List.of(columnNameToModelMap.get("has space")));
 		when(mockSchemaProvider.getTableSchema(view3Id)).thenReturn(List.of(columnNameToModelMap.get("bar")));
 
+		setupGetColumns(columnNameToModelMap.get("bar"));
 
 		List<IndexDescription> dependencies = Arrays.asList(
 				new ViewIndexDescription(viewId, TableType.entityview),
@@ -1912,6 +1993,7 @@ public class QueryTranslatorTest {
 	public void testSelectWithSearchedCase() {
 		IdAndVersion tableId = IdAndVersion.parse("syn1");
 		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		setupGetColumns(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar"));
 		
 		IndexDescription indexDescription = new TableIndexDescription(tableId);
 
@@ -2094,6 +2176,7 @@ public class QueryTranslatorTest {
 	@Test
 	public void testTranslateGroup_concatWithMultipleColumns() {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo, group_concat(distinct bar, foo_bar) from syn123 group by foo", mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals("SELECT _C111_, GROUP_CONCAT(DISTINCT _C333_, _C444_) FROM T123 GROUP BY _C111_", translator.getOutputSQL());
@@ -2120,7 +2203,7 @@ public class QueryTranslatorTest {
 		
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(foo, bar));
 		when(mockSchemaProvider.getTableSchema(cte)).thenReturn(List.of(foo, sumBar));
-		when(mockSchemaProvider.getColumnModel("33")).thenReturn(sumBar);
+		setupGetColumns(foo, sumBar);
 
 		when(mockIndexDescriptionLookup.getIndexDescription(viewId)).thenReturn(new ViewIndexDescription(viewId, TableType.entityview));
 		

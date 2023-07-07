@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.columntranslation.RowMetadataColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.description.ColumnToAdd;
@@ -3441,8 +3442,11 @@ public class SQLTranslatorUtilsTest {
 		QueryExpression rootModel = new TableQueryParser("select foo from syn123").queryExpression();
 		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 		
+		ColumnModel foo = columnNameMap.get("foo");
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
-				.thenReturn(List.of(columnNameMap.get("foo"), columnNameMap.get("has space")));
+				.thenReturn(List.of(foo, columnNameMap.get("has space")));
+		
+		when(mockSchemaProvider.getColumnModel(foo.getId())).thenReturn(foo);
 		
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 		
@@ -3488,6 +3492,7 @@ public class SQLTranslatorUtilsTest {
 		cm.setId("111");
 	
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List.of(cm));
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(cm);
 		
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 		
@@ -3510,6 +3515,7 @@ public class SQLTranslatorUtilsTest {
 			QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 			
 			when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List.of(cm));
+			when(mockSchemaProvider.getColumnModel(any())).thenReturn(cm);
 			
 			TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
 			
@@ -3624,6 +3630,57 @@ public class SQLTranslatorUtilsTest {
 		expected.setName("UNNEST(foo)");
 		expected.setColumnType(ColumnType.STRING);
 		expected.setMaximumSize(columnNameMap.get("foo").getMaximumSize());
+		expected.setId(null);
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithCastFacet() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser("select cast(foo as 88) from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+	
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("foo")));
+		
+		when(mockSchemaProvider.getColumnModel("88")).thenReturn(
+				new ColumnModel().setName("bar").setId("88").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		
+		ColumnModel expected = new ColumnModel().setName("bar").setId(null).setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range);
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithColumnIdAndAllColumnModelParts()
+			throws ParseException, JSONObjectAdapterException {
+		QueryExpression rootModel = new TableQueryParser("select foo from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		columnFoo.setDefaultValue("a");
+		columnFoo.setEnumValues(List.of("a", "b"));
+		columnFoo.setFacetType(FacetType.enumeration);
+		columnFoo.setId("22");
+		columnFoo.setMaximumListLength(100L);
+		columnFoo.setMaximumSize(10L);
+		columnFoo.setName("foo");
+
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List.of(columnFoo));
+
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(columnFoo);
+
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+
+		ColumnModel expected = EntityFactory
+				.createEntityFromJSONString(EntityFactory.createJSONStringForEntity(columnFoo), ColumnModel.class);
 		expected.setId(null);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));

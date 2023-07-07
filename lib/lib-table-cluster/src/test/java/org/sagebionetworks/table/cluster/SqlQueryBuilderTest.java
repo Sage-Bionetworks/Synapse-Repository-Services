@@ -42,6 +42,7 @@ public class SqlQueryBuilderTest {
 	@Test
 	public void testBuildSqlString() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(columnFoo);
 		QueryTranslator result = QueryTranslator.builder("select * from syn123", userId)
 		.schemaProvider(mockSchemaProvider)
 		.indexDescription(new TableIndexDescription(IdAndVersion.parse("syn123")))
