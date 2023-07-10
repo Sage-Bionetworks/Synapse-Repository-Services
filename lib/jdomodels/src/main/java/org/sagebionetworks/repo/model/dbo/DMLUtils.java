@@ -159,17 +159,7 @@ public class DMLUtils {
 		main.append(mapping.getTableName());
 		return main.toString();		
 	}
-	
-	public static String createGetMinMaxCountByKeyStatement(TableMapping<?> mapping) {
-		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
-		String backupFieldName = getBackupFieldColumnName(mapping);
-		String primaryFieldName = getPrimaryFieldColumnName(mapping);
-		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT MIN(`" + backupFieldName + "`), MAX(`" + backupFieldName + "`), COUNT(`" + primaryFieldName + "`) FROM ");
-		builder.append(mapping.getTableName());
-		return builder.toString();
-	}
-	
+
 	public static String createGetMinMaxByBackupKeyStatement(TableMapping<?> mapping) {
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		String backupFieldName = getBackupFieldColumnName(mapping);
@@ -559,14 +549,9 @@ public class DMLUtils {
 			@Override
 			public MigrationTypeCount mapRow(ResultSet rs, int rowNum) throws SQLException {
 				MigrationTypeCount mtc = new MigrationTypeCount();
-				mtc.setCount(rs.getLong(3));
-				if (mtc.getCount() == 0L) {
-					mtc.setMinid(null);
-					mtc.setMaxid(null);
-				} else {
-					mtc.setMinid(rs.getLong(1));
-					mtc.setMaxid(rs.getLong(2));
-				}
+				mtc.setCount(null);
+				mtc.setMinid(rs.getLong(1));
+				mtc.setMaxid(rs.getLong(2));
 				return mtc;
 			}
 		};

@@ -203,25 +203,27 @@ public class MigratableTableDAOImplAutowireTest {
 	}
 	
 	@Test
-	public void testGetMigrationTypeCountForType() {
-		long startCount = fileHandleDao.getCount();
-		assertEquals(startCount, migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getCount().longValue());
+	public void testGetMigrationTypeMetaDataForType() {
+		long startMaxId = fileHandleDao.getMaxId();
+		long maxId = migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMaxid().longValue();
+		assertEquals(startMaxId, maxId);
 		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handle.setFileName("handle");
 		handle = (S3FileHandle) fileHandleDao.createFile(handle);
-		assertEquals(startCount+1, migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getCount().longValue());
+		maxId = migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMaxid().longValue();
+		assertEquals(Long.parseLong(handle.getId()), maxId);
 		fileHandleDao.delete(handle.getId());
-		assertEquals(startCount, migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getCount().longValue());
+		maxId = migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMaxid().longValue();
+		assertEquals(startMaxId, maxId);
 	}
-	
+
 	@Test
-	public void testGetMigrationTypeCountForTypeNoData() {
+	public void testGetMigrationTypeMetaDataForTypeNoData() {
 		MigrationTypeCount mtc = migratableTableDAO.getMigrationTypeCount(MigrationType.VERIFICATION_SUBMISSION);
 		assertNotNull(mtc);
-		assertNotNull(mtc.getCount());
-		assertEquals(0L, mtc.getCount().longValue());
-		assertNull(mtc.getMaxid());
-		assertNull(mtc.getMinid());
+		assertNull(mtc.getCount());
+		assertEquals(0, mtc.getMaxid());
+		assertEquals(0, mtc.getMinid());
 		assertNotNull(mtc.getType());
 		assertEquals(MigrationType.VERIFICATION_SUBMISSION, mtc.getType());
 	}

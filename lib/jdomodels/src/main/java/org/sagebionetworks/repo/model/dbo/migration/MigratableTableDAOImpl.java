@@ -13,7 +13,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 
-import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
@@ -124,7 +123,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private Map<MigrationType, String> checksumRangeSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumTableSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> batchChecksumSqlMap = new HashMap<>();
-	private Map<MigrationType, String> migrationTypeCountSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> migrationTypeMetaDataSqlMap = new HashMap<MigrationType, String>();
 	
 	private Map<MigrationType, FieldColumn> etagColumns = new HashMap<MigrationType, FieldColumn>();
 	private Map<MigrationType, FieldColumn> backupIdColumns = new HashMap<MigrationType, FieldColumn>();
@@ -263,8 +262,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		maxSqlMap.put(type, mx);
 		String mi = DMLUtils.createGetMinByBackupKeyStatement(mapping);
 		minSqlMap.put(type,  mi);
-		String mtc = DMLUtils.createGetMinMaxCountByKeyStatement(mapping);
-		migrationTypeCountSqlMap.put(type, mtc);
+		String mtc = DMLUtils.createGetMinMaxByBackupKeyStatement(mapping);
+		migrationTypeMetaDataSqlMap.put(type, mtc);
 		String sumCrc = DMLUtils.createSelectChecksumStatement(mapping);
 		checksumRangeSqlMap.put(type, sumCrc);
 		String checksumTable = DMLUtils.createChecksumTableStatement(mapping);
@@ -527,9 +526,10 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return s;
 	}
 
+	// TODO: Update MigrationTypeCount to MigrationTypeMetaData
 	@Override
 	public MigrationTypeCount getMigrationTypeCount(MigrationType type) {
-		String sql = this.migrationTypeCountSqlMap.get(type);
+		String sql = this.migrationTypeMetaDataSqlMap.get(type);
 		if (sql == null) {
 			throw new IllegalArgumentException("Cannot find the migrationTypeCount SQL for type" + type);
 		}
