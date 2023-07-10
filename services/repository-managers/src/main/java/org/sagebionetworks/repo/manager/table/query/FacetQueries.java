@@ -8,7 +8,7 @@ import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class FacetQueries {
@@ -29,8 +29,7 @@ public class FacetQueries {
 					 */
 					.setSelectedFacets(null).setAdditionalFilters(expansion.getAdditionalFilters()).build();
 
-			TableExpression originalQuery = new TableQueryParser(combined.getCombinedSql()).querySpecification()
-					.getTableExpression();
+			QueryExpression originalQuery = new TableQueryParser(combined.getCombinedSql()).queryExpression();
 			boolean returnFacets = true;
 			TranslationDependencies deps = TranslationDependencies.builder()
 					.setIndexDescription(expansion.getIndexDescription())

@@ -53,6 +53,7 @@ public class SumFileSizesQueryTest {
 
 		schemaProvider = Mockito.mock(SchemaProvider.class);
 		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
+		when(schemaProvider.getColumnModel(any())).thenReturn(schema.get(0));
 
 		userId = 789L;
 		tableId = IdAndVersion.parse("syn123.4");

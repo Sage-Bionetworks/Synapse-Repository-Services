@@ -5498,8 +5498,19 @@ public class TableIndexDAOImplTest {
 	 * @return
 	 */
 	SchemaProvider schemaProvider(List<ColumnModel> schema) {
-		SchemaProvider mockProvider = Mockito.mock(SchemaProvider.class);
-		when(mockProvider.getTableSchema(any())).thenReturn(schema);
-		return mockProvider;
+		return new SchemaProvider() {
+			
+			@Override
+			public List<ColumnModel> getTableSchema(IdAndVersion tableId) {
+				return schema;
+			}
+			
+			@Override
+			public ColumnModel getColumnModel(String id) {
+				return schema.stream().filter(c->id.equals(c.getId())).findFirst().get();
+			}
+		};
 	}
+	
+
 }

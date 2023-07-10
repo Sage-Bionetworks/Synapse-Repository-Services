@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -65,8 +64,6 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
-import org.sagebionetworks.repo.model.download.ActionRequiredCount;
-import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunction;
@@ -118,7 +115,6 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.Lists;
@@ -323,6 +319,8 @@ public class TableQueryManagerImplTest {
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
+		
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		manager.queryPreflight(user, query, null, queryOptions);
@@ -448,6 +446,7 @@ public class TableQueryManagerImplTest {
 		setupQueryCallback();
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
 		RowHandler rowHandler = new SinglePageRowHandler();
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
@@ -470,6 +469,9 @@ public class TableQueryManagerImplTest {
 						any(IdAndVersion.class))).thenThrow(
 				new NotFoundException("not found"));
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		
 		RowHandler rowHandler = new SinglePageRowHandler();
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		assertThrows(NotFoundException.class, ()->{
@@ -486,6 +488,9 @@ public class TableQueryManagerImplTest {
 				new TableUnavailableException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		assertThrows(TableUnavailableException.class, ()->{
 			// call under test.
@@ -501,6 +506,9 @@ public class TableQueryManagerImplTest {
 				new TableFailedException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		assertThrows(TableFailedException.class, ()->{
 			// call under test.
@@ -515,6 +523,9 @@ public class TableQueryManagerImplTest {
 						any(IdAndVersion.class))).thenThrow(
 				new LockUnavilableException(LockType.Read, "key", "context"));
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		
 		RowHandler rowHandler = new SinglePageRowHandler();
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		assertThrows(LockUnavilableException.class, ()->{
@@ -531,6 +542,9 @@ public class TableQueryManagerImplTest {
 						any(IdAndVersion.class))).thenThrow(
 				new EmptyResultException());
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		
 		RowHandler rowHandler = new SinglePageRowHandler();
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		assertThrows(EmptyResultException.class, ()->{
@@ -545,6 +559,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		Query query = new Query();
 		query.setSql("select i0 from "+tableId);
@@ -585,6 +601,7 @@ public class TableQueryManagerImplTest {
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR);
 	}
 	
+	
 	@Test
 	public void testQueryPreflightWithAuthorizationVirtualTable() throws Exception{
 	
@@ -597,6 +614,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(viewId)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.getDistinctLongValues(any(), any())).thenReturn(benfactors);
 		when(mockTableManagerSupport.getAccessibleBenefactors(any(), any(), any())).thenReturn(subSet);
+		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		// virtual table setup
 		IdAndVersion virtualTableId = IdAndVersion.parse("syn2");
@@ -631,6 +650,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		
 		Long count = 201L;
 		// setup count results
 		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(count);
@@ -650,6 +671,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamAfterAuthorizationColumnsOnly() throws Exception {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		// null handler indicates not to run the main query.
 		RowHandler rowHandler = null;
 		queryOptions = new QueryOptions().withReturnColumnModels(true);
@@ -663,6 +685,9 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamAfterAuthorizationSelectOnly() throws Exception {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		
 		// null handler indicates not to run the main query.
 		RowHandler rowHandler = null;
 		queryOptions = new QueryOptions().withReturnSelectColumns(true);
@@ -684,6 +709,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		
 		Long count = 201L;
 		// setup count results
 		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(count);
@@ -702,6 +729,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		setupQueryCallback();
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
 		// non-null handler indicates the query should be run.
 		RowHandler rowHandler = new SinglePageRowHandler();
@@ -722,6 +750,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		setupQueryCallback();
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
 		Long count = 201L;
 		// setup count results
@@ -747,6 +777,8 @@ public class TableQueryManagerImplTest {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		setupQueryCallback();
 		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		
 		Date lastUpdatedOn = new Date(567L);
 		when(mockTableManagerSupport.getLastChangedOn(idAndVersion)).thenReturn(lastUpdatedOn);
 
@@ -766,6 +798,8 @@ public class TableQueryManagerImplTest {
 	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListNotReturningFacets() throws Exception{
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
 		Long count = 201L;
 		// setup count results
@@ -804,6 +838,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		
 		when(mockTableIndexDAO.query(isNull(), any(QueryTranslator.class))).thenReturn(enumerationFacetResults, rangeFacetResults, enumerationFacetResults);
 		List<FacetColumnRequest> facetRequestList = new ArrayList<>();
 		facetRequestList.add(facetColumnRequest);
@@ -838,6 +874,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.isSearchEnabled(any())).thenReturn(false);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
 		// null handler indicates not to run the main query.
 		RowHandler rowHandler = null;
@@ -868,6 +905,8 @@ public class TableQueryManagerImplTest {
 			}
 		});
 		when(mockTableManagerSupport.getActionsRequiredDao(any())).thenReturn(mockActionsRequiredDao);
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
 		// non-null handler indicates the query should be run.
 		RowHandler rowHandler = new SinglePageRowHandler();
@@ -906,6 +945,7 @@ public class TableQueryManagerImplTest {
 	public void testRunQueryAsStream() throws ParseException{
 		setupQueryCallback();
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
 		SinglePageRowHandler rowHandler = new SinglePageRowHandler();
 		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, mockSchemaProvider, user.getId()).indexDescription(new TableIndexDescription(idAndVersion)).build();
@@ -1025,6 +1065,8 @@ public class TableQueryManagerImplTest {
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
+		
 		status.setState(TableState.PROCESSING);
 		Query query = new Query();
 		query.setSql("select * from " + tableId + " limit 1");
@@ -1051,6 +1093,8 @@ public class TableQueryManagerImplTest {
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		setupQueryCallback();
+		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(models);
 		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(models);
@@ -1127,6 +1171,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		when(mockTableIndexDAO.query(isNull(), any(QueryTranslator.class))).thenReturn(enumerationFacetResults, rangeFacetResults, enumerationFacetResults);
 		
@@ -1215,6 +1261,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 	
 		List<SortItem> sortList= null;
 		Query query = new Query();
@@ -1237,6 +1285,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		SortItem sort = new SortItem();
 		sort.setColumn("i0");
@@ -1258,6 +1307,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 
 		Query query = new Query();
 		query.setSql("select i2, i0 from "+tableId);
@@ -1283,6 +1333,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 
 		Query query = new Query();
 		query.setSql("select i2, i0 from "+tableId);
@@ -1312,6 +1364,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 
 		Query query = new Query();
 		query.setSql("select i2, i0 from " + tableId);
@@ -1373,6 +1426,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		setupQueryCallback();
 		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
+		
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select * from "+tableId);
 		request.setSort(null);
@@ -1398,6 +1453,8 @@ public class TableQueryManagerImplTest {
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		setupQueryCallback();
+		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select i0 from "+tableId);
@@ -1432,6 +1489,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new TableIndexDescription(idAndVersion));
 		setupQueryCallback();
 		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
+		
 		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
@@ -1464,6 +1523,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 
 		setupQueryCallback();
 		
@@ -1502,6 +1563,8 @@ public class TableQueryManagerImplTest {
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		setupQueryCallback();
+		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select i0 from "+tableId);
@@ -1717,6 +1780,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		setupQueryCallback();
 		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
+		
 		// setup the results to return one row.
 		Row row = rows.get(0);
 		rows.clear();
@@ -1798,6 +1863,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		setupQueryCallback();
 		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
+		
 		addRowIdAndVersionToRows();
 		convertRowsToEntityRows();
 		
@@ -1869,6 +1936,8 @@ public class TableQueryManagerImplTest {
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
+		
 		Long totalCount = 101L;
 		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(totalCount);
 		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
@@ -1902,6 +1971,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		Long totalCount = 101L;
 		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(totalCount);
@@ -2272,6 +2343,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableIndexDAO.getSumOfFileSizes(any(), any())).thenReturn(sumFilesizes);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		
 		SumFileSizesQuery query = new SumFileSizesQuery(queriesBuilder.setStartingSql("select i0 from " + tableId + " limit 1000")
 				.setIndexDescription((new ViewIndexDescription(idAndVersion, TableType.entityview))).build());
 		
@@ -2298,6 +2371,9 @@ public class TableQueryManagerImplTest {
 		
 		when(mockTableIndexDAO.getSumOfFileSizes(any(), any())).thenReturn(sumFilesizes);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		
 		// query against an dataset
 		SumFileSizesQuery query = new SumFileSizesQuery(queriesBuilder.setStartingSql("select i0 from " + tableId + " limit 1000")
 				.setIndexDescription(new ViewIndexDescription(idAndVersion, TableType.dataset)).build());
@@ -2326,6 +2402,8 @@ public class TableQueryManagerImplTest {
 		when(mockTableIndexDAO.getRowIdAndVersions(any(), any())).thenReturn(idAndVersionList);
 		when(mockTableIndexDAO.getSumOfFileSizes(any(), any())).thenReturn(sumFilesizes);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
 		// query against an entity view.
 		SumFileSizesQuery query = new SumFileSizesQuery(queriesBuilder.setStartingSql("select i0 from " + tableId)

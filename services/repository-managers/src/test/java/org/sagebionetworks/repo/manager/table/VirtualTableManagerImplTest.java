@@ -16,10 +16,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
@@ -183,7 +183,9 @@ public class VirtualTableManagerImplTest {
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(schema);
 		when(mockColumnModelManager.createColumnModel(any())).thenReturn(cm);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new TableIndexDescription(id));
-
+		
+		when(mockColumnModelManager.getColumnModel(any())).thenReturn(cm);
+		
 		// call under test
 		manager.registerDefiningSql(id, sql);
 
@@ -208,11 +210,37 @@ public class VirtualTableManagerImplTest {
 		// call under test
 		manager.registerDefiningSql(id, sql);
 
+		verify(mockColumnModelManager).createColumnModel(new ColumnModel().setName("bar").setId(null)
+				.setColumnType(ColumnType.INTEGER));
 		verify(mockColumnModelManager).bindColumnsToVersionOfObject(List.of("88"), id);
 		verify(mockColumnModelManager).getTableSchema(IdAndVersion.parse("syn456"));
-		verify(mockColumnModelManager, times(3)).getColumnModel("88");
+		verify(mockColumnModelManager, times(4)).getColumnModel("88");
 		verify(mockColumnModelManager)
 				.createColumnModel(new ColumnModel().setName("bar").setId(null).setColumnType(ColumnType.INTEGER));
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn456"));
+	}
+	
+	@Test
+	public void testRegisterDefiningSqlWithCastWithFacet() {
+		IdAndVersion id = IdAndVersion.parse("syn123");
+		String sql = "select cast(foo as 88) from syn456";
+		ColumnModel foo = new ColumnModel().setName("foo").setId("99").setColumnType(ColumnType.INTEGER);
+		ColumnModel bar = new ColumnModel().setName("bar").setId("88").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range);
+		when(mockColumnModelManager.getTableSchema(any())).thenReturn(List.of(foo));
+		when(mockColumnModelManager.getColumnModel(any())).thenReturn(bar);
+		when(mockColumnModelManager.createColumnModel(any())).thenReturn(bar);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new TableIndexDescription(id));
+
+		// call under test
+		manager.registerDefiningSql(id, sql);
+
+		verify(mockColumnModelManager).createColumnModel(new ColumnModel().setName("bar").setId(null)
+				.setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range));
+		verify(mockColumnModelManager).bindColumnsToVersionOfObject(List.of("88"), id);
+		verify(mockColumnModelManager).getTableSchema(IdAndVersion.parse("syn456"));
+		verify(mockColumnModelManager, times(4)).getColumnModel("88");
+		verify(mockColumnModelManager)
+				.createColumnModel(new ColumnModel().setName("bar").setId(null).setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range));
 		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn456"));
 	}
 	

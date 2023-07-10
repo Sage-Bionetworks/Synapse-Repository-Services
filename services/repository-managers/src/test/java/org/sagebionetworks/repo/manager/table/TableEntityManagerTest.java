@@ -910,6 +910,7 @@ public class TableEntityManagerTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockColumModelManager.getTableSchema(any())).thenReturn(models);
 		setupQueryAsStream();
+		when(mockColumModelManager.getColumnModel(any())).thenReturn(models.get(0));
 		
 		RowReferenceSet rows = new RowReferenceSet();
 		rows.setTableId(tableId);
@@ -943,6 +944,7 @@ public class TableEntityManagerTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockColumModelManager.getTableSchema(any())).thenReturn(models);
 		setupQueryAsStream();
+		when(mockColumModelManager.getColumnModel(any())).thenReturn(models.get(0));
 		
 		RowReferenceSet rows = new RowReferenceSet();
 		rows.setTableId(tableId);
@@ -993,6 +995,12 @@ public class TableEntityManagerTest {
 		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
 	}
 
+	void setupGetColumns(List<ColumnModel> schema){
+		for(ColumnModel cm: schema) {
+			when(mockColumModelManager.getColumnModel(cm.getId())).thenReturn(cm);
+		}
+	}
+	
 	@Test
 	public void testGetCellValue() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
@@ -1000,6 +1008,7 @@ public class TableEntityManagerTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockColumModelManager.getTableSchema(any())).thenReturn(models);
 		setupQueryAsStream();
+		when(mockColumModelManager.getColumnModel(any())).thenReturn(models.get(0));
 		
 		final int columnIndex = 1;
 		RowReference rowRef = new RowReference();
@@ -1017,6 +1026,7 @@ public class TableEntityManagerTest {
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockColumModelManager.getTableSchema(any())).thenReturn(models);
 		setupQueryAsStream();
+		when(mockColumModelManager.getColumnModel(any())).thenReturn(models.get(0));
 		
 		final int columnIndex = 1;
 		RowReference rowRef = new RowReference();

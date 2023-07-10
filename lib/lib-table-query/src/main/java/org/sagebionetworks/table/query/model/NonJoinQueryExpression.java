@@ -7,7 +7,7 @@ package org.sagebionetworks.table.query.model;
  * Note: This is modified from the BNF to support recursion in a manner
  * compatible with Java CC.
  */
-public class NonJoinQueryExpression extends SQLElement {
+public class NonJoinQueryExpression extends SQLElement implements Replaceable<NonJoinQueryExpression> {
 
 	private SQLElement leftHandSide;
 	private SetQuantifier setQuantifier;

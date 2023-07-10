@@ -581,4 +581,16 @@ public class TableQueryParserTest {
 				element.toSql());
 	}
 	
+	@Test
+	public void testQuerySpecificationWithSemiColon() throws ParseException {
+		QuerySpecification element = new TableQueryParser("SELECT * FROM syn12 WHERE projectId ='syn456';").querySpecificationEOF();
+		assertEquals("SELECT * FROM syn12 WHERE projectId = 'syn456'", element.toSql());
+	}
+	
+	@Test
+	public void testQueryExpressionWithSemiColon() throws ParseException {
+		QueryExpression element = new TableQueryParser("SELECT * FROM syn12 WHERE projectId ='syn456';").queryExpression();
+		assertEquals("SELECT * FROM syn12 WHERE projectId = 'syn456'", element.toSql());
+	}
+	
 }

@@ -1167,19 +1167,30 @@ public class SQLTranslatorUtils {
 		SelectColumn selectColumn = getSelectColumns(derivedColumn, tableAndColumnMapper);
 		Long maximumSize = null;
 		Long maxListLength = null;
+		List<String> enumValues = null;
 		// The data type is correctly inferred by the #getSelectColumns call
 		ColumnType columnType = selectColumn.getColumnType();
 		String defaultValue = null;
 		FacetType facetType = null;
-		for (ColumnReference cr : derivedColumn.createIterable(ColumnReference.class)) {
-			ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
-			if (ctr != null) {
-				maximumSize = addLongsWithNull(maximumSize, ctr.getMaximumSize());
-				maxListLength = addLongsWithNull(maxListLength, ctr.getMaximumListLength());
-				defaultValue = ctr.getDefaultValues();
-				facetType = ctr.getFacetType();
+		if(selectColumn.getId() != null) {
+			ColumnModel cm = tableAndColumnMapper.getColumnModel(selectColumn.getId());
+			maximumSize = cm.getMaximumSize();
+			maxListLength = cm.getMaximumListLength();
+			defaultValue = cm.getDefaultValue();
+			facetType = cm.getFacetType();
+			enumValues = cm.getEnumValues();
+		}else {
+			for (ColumnReference cr : derivedColumn.createIterable(ColumnReference.class)) {
+				ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
+				if (ctr != null) {
+					maximumSize = addLongsWithNull(maximumSize, ctr.getMaximumSize());
+					maxListLength = addLongsWithNull(maxListLength, ctr.getMaximumListLength());
+					defaultValue = ctr.getDefaultValues();
+					facetType = ctr.getFacetType();
+				}
 			}
 		}
+
 
 		ColumnModel result = new ColumnModel();
 		result.setColumnType(columnType);
@@ -1188,6 +1199,7 @@ public class SQLTranslatorUtils {
 		result.setName(selectColumn.getName());
 		result.setFacetType(facetType);
 		result.setDefaultValue(defaultValue);
+		result.setEnumValues(enumValues);
 		result.setId(null);
 		return result;
 	}

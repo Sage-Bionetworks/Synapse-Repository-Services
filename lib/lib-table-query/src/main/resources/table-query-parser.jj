@@ -337,6 +337,7 @@ TOKEN [IGNORE_CASE]:{
 | < period: "." >
 | < right_paren: ")">
 | < underscore: "_">
+| < semicolon: ";">
 }
 
 TOKEN: {
@@ -351,7 +352,6 @@ TOKEN: {
 | < dollar_sign: "$">
 | < ampersand: "&">
 | < colon: ":">
-| < semicolon: ";">
 | < question_mark: "?">
 | < at_sign: "@">
 | < left_bracket: "[">
@@ -374,7 +374,7 @@ QueryExpression queryExpression():
 		<with> withListElement = withListElement() { withListElements.add(withListElement); }
 		( <comma> withListElement = withListElement() { withListElements.add(withListElement); } )* 
 	]
- 	nonJoinQueryExpression = nonJoinQueryExpression() <EOF>
+ 	nonJoinQueryExpression = nonJoinQueryExpression() endOfFile()
    { return new QueryExpression(withListElements, nonJoinQueryExpression); }
 }
 NonJoinQueryExpression nonJoinQueryExpression():
@@ -618,7 +618,7 @@ QuerySpecification querySpecificationEOF():
 	QuerySpecification querySpecification = null;
 }
 {
-	querySpecification = querySpecification() <EOF> { return querySpecification; }
+	querySpecification = querySpecification() endOfFile() { return querySpecification; }
 }
 SelectList selectList():
 {
@@ -1550,4 +1550,10 @@ WithListElement withListElement():
 		nonJoinQueryExpression = nonJoinQueryExpression()
 	<right_paren>
 	{ return new WithListElement(identifier, columnList, nonJoinQueryExpression); }
+}
+void endOfFile():
+{
+}
+{
+	[<semicolon>]<EOF>
 }
