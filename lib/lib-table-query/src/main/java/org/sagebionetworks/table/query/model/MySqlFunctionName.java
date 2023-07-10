@@ -41,8 +41,12 @@ public enum MySqlFunctionName {
 	ROUND(FunctionReturnType.DOUBLE),
 	CRC32(FunctionReturnType.LONG),
 	// control
-	IFNULL(FunctionReturnType.MATCHES_PARAMETER);
-	FunctionReturnType returnType;
+	IFNULL(FunctionReturnType.MATCHES_PARAMETER),
+	// json
+	JSON_OBJECT(FunctionReturnType.JSON),
+	JSON_ARRAY(FunctionReturnType.JSON);
+	
+	private FunctionReturnType returnType;
 	
 	MySqlFunctionName(FunctionReturnType returnType){
 		this.returnType = returnType;

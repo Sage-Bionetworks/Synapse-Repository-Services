@@ -54,6 +54,8 @@
 "String Functions","Trim leading and trailing white space characters from all string values of the column foo.","select trim(foo) from syn123"
 "Numeric Functions","Rounds all numeric values in the column foo to 2 decimal places.","select round(foo,2) from syn123"
 "Numeric Functions","Returns the cyclic redundancy check value of all values in column foo.","select crc32(foo) from syn123"
+"JSON Functions","Evaluates a list of key-value pairs and returns a JSON object containing those pairs.","select JSON_OBJECT(foo, sum(bar)) from syn123 group by foo"
+"JSON Functions","Evaluates a list of values and returns a JSON array containing those values.","select JSON_ARRAY('a', 'b', 'c') from syn123"
 "Grouping","Select all rows grouping first by foo, then by bar.","select * from syn123 group by foo, bar"
 "Grouping","Grouping can be used in conjunction with aggregation function.  In this example, values from the foo column are first grouped, then the average of each group is calculated. For this example, one row will be returned for each group.","select foo, avg(foo) from syn123 group by foo"
 "Sorting","Select all columns from the table with the returned row order sorted by the values of the foo column in ascending order.","select * from syn123 order by foo asc"
