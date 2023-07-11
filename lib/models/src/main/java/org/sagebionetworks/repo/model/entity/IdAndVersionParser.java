@@ -155,24 +155,6 @@ public class IdAndVersionParser {
 	}
 
 	/**
-	 * Checks if case-insensitive 'syn' if present.
-	 *
-	 */
-	private boolean checkForSyn() {
-		if (currentChar == 's' || currentChar == 'S') {
-			consumeCharacter();
-			if (currentChar == 'y' || currentChar == 'Y') {
-				consumeCharacter();
-				if (currentChar == 'n' || currentChar == 'N') {
-					consumeCharacter();
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	/**
 	 * Skip over all whitespace.
 	 */
 	private void consumeWhiteSpace() {
@@ -216,17 +198,5 @@ public class IdAndVersionParser {
 	public static IdAndVersion parseIdAndVersion(String toParse) {
 		IdAndVersionParser parser = new IdAndVersionParser(toParse);
 		return parser.parse();
-	}
-
-	/**
-	 * Check that the given String starts with the case-insensitive prefix 'syn'.
-	 *
-	 * @param toParse
-	 * @return
-	 */
-	public static boolean startsWithSyn(String toParse) {
-		IdAndVersionParser parser = new IdAndVersionParser(toParse);
-		parser.consumeWhiteSpace();
-		return parser.checkForSyn();
 	}
 }

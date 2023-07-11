@@ -105,12 +105,12 @@ public class DrsManagerImplUnitTest {
     @Test
     public void testGetBlobDrsObjectWithFileHandleId() {
         final FileHandle fileHandle = getFileHandle();
-        when(fileHandleManager.getRawFileHandleUnchecked(any())).thenReturn(fileHandle);
+        when(fileHandleManager.getRawFileHandle(any(), any())).thenReturn(fileHandle);
         when(userManager.getUserInfo(any())).thenReturn(userInfo);
 
         // Call under test
         final DrsObject drsObject = drsManager.getDrsObject(USER_ID, DATA_FILE_HANDLE_ID_WITH_PREFIX, false);
-        verify(fileHandleManager).getRawFileHandleUnchecked(DATA_FILE_HANDLE_ID);
+        verify(fileHandleManager).getRawFileHandle(userInfo, DATA_FILE_HANDLE_ID);
         verify(userManager).getUserInfo(USER_ID);
         assertNotNull(drsObject);
         assertEquals(getExpectedDrsBlobObjectForFileHandleId(fileHandle), drsObject);
@@ -128,44 +128,37 @@ public class DrsManagerImplUnitTest {
     }
 
     @Test
-    public void testPrepareFileEntityRelatedData() {
+    public void testCreateDrsObjectForFileEntity() {
         final FileEntity file = getFileEntity();
         final FileHandle fileHandle = getFileHandle();
-        when(fileHandleManager.getRawFileHandleUnchecked(any())).thenReturn(fileHandle);
 
         final IdAndVersion idAndVersion = KeyFactory.idAndVersion(file.getId(), file.getVersionNumber());
-        final DrsObject drsObject = prepareDrsObjectWithCommonFields(file, file.getVersionNumber().toString(), idAndVersion.toString());
 
         // call under test
-        drsManager.prepareFileEntityRelatedData(drsObject, file, idAndVersion);
-        verify(fileHandleManager).getRawFileHandleUnchecked(file.getDataFileHandleId());
-        assertNotNull(drsObject);
-        assertEquals(getExpectedDrsBlobObject(file, fileHandle), drsObject);
+        final DrsObject result = drsManager.createDrsObject(file, fileHandle, idAndVersion);
+        assertNotNull(result);
+        assertEquals(getExpectedDrsBlobObject(file, fileHandle), result);
     }
 
     @Test
-    public void testPrepareFileHandleRelatedData() {
-        final DrsObject result = new DrsObject();
+    public void testCreateDrsObjectForFileHandle() {
         final FileHandle fileHandle = getFileHandle();
-        when(fileHandleManager.getRawFileHandleUnchecked(any())).thenReturn(fileHandle);
 
         // call under test
-        drsManager.prepareFileHandleRelatedData(result, DATA_FILE_HANDLE_ID, DATA_FILE_HANDLE_ID_WITH_PREFIX);
-        verify(fileHandleManager).getRawFileHandleUnchecked(DATA_FILE_HANDLE_ID);
+        final DrsObject result = drsManager.createDrsObject(fileHandle);
         assertNotNull(result);
         assertEquals(getExpectedDrsBlobObjectForFileHandleId(fileHandle), result);
     }
 
     @Test
-    public void testPrepareDatasetRelatedData() {
+    public void testCreateDrsObjectForDataset() {
         final Dataset dataset = getDataset();
         final IdAndVersion idAndVersion = KeyFactory.idAndVersion(dataset.getId(), dataset.getVersionNumber());
-        final DrsObject drsObject = prepareDrsObjectWithCommonFields(dataset, dataset.getVersionNumber().toString(), idAndVersion.toString());
 
         //call under test
-        drsManager.prepareDatasetRelatedData(drsObject, dataset);
-        assertNotNull(drsObject);
-        assertEquals(getExpectedDrsBundleObject(dataset), drsObject);
+        final DrsObject result = drsManager.createDrsObject(dataset, idAndVersion);
+        assertNotNull(result);
+        assertEquals(getExpectedDrsBundleObject(dataset), result);
     }
 
     @Test
@@ -255,7 +248,7 @@ public class DrsManagerImplUnitTest {
         when(fileHandleManager.getRedirectURLForFileHandle(any())).thenReturn(url);
 
         // call under test
-        final AccessUrl accessUrl = drsManager.getAccessUrl(USER_ID, DATA_FILE_HANDLE_ID_WITH_PREFIX, DATA_FILE_HANDLE_ID_WITH_PREFIX);
+        final AccessUrl accessUrl = drsManager.getAccessUrl(USER_ID, DATA_FILE_HANDLE_ID_WITH_PREFIX, DATA_FILE_HANDLE_ID);
         verify(userManager).getUserInfo(USER_ID);
         verify(fileHandleManager).getRedirectURLForFileHandle(new FileHandleUrlRequest(userInfo, DATA_FILE_HANDLE_ID));
         assertNotNull(accessUrl);
@@ -278,10 +271,10 @@ public class DrsManagerImplUnitTest {
 
     @Test
     public void testGetAccessUrlWithInConsistentObjectIdWithFileHandleId() {
-        final String accessId = "fh12345";
+        final String accessId = "12345";
         when(userManager.getUserInfo(any())).thenReturn(userInfo);
 
-        assertEquals("AccessId contains different file handle Id.", assertThrows(IllegalArgumentException.class, () -> {
+        assertEquals("AccessId and ObjectId contain different file handle IDs.", assertThrows(IllegalArgumentException.class, () -> {
             drsManager.getAccessUrl(USER_ID, DATA_FILE_HANDLE_ID_WITH_PREFIX, accessId);
         }).getMessage());
 
@@ -317,16 +310,23 @@ public class DrsManagerImplUnitTest {
         }).getMessage());
     }
 
-    private DrsObject prepareDrsObjectWithCommonFields(final Entity entity, final String version, final String id) {
-        final DrsObject result = new DrsObject();
-        result.setId(id);
-        result.setName(entity.getName());
-        result.setSelf_uri(DRS_URI + id);
-        result.setVersion(version);
-        result.setCreated_time(entity.getCreatedOn());
-        result.setUpdated_time(entity.getModifiedOn());
-        result.setDescription(entity.getDescription());
-        return result;
+    @Test
+    public void testStartsWithSyn() {
+        assertEquals(true, drsManager.startsWith(ENTITY_ID, "syn"));
+    }
+
+    @Test
+    public void testStartsWithFh() {
+        assertEquals(true, drsManager.startsWith(DATA_FILE_HANDLE_ID_WITH_PREFIX, "fh"));
+    }
+
+    @Test
+    public void testStartsWithNothing() {
+        assertEquals(false, drsManager.startsWith(DATA_FILE_HANDLE_ID, "syn"));
+    }
+    @Test
+    public void testStartsWithIncorrectPrefix() {
+        assertEquals(false, drsManager.startsWith(DATA_FILE_HANDLE_ID_WITH_PREFIX, "syn"));
     }
 
     private FileEntity getFileEntity() {
@@ -452,10 +452,11 @@ public class DrsManagerImplUnitTest {
         checksum.setType(ChecksumType.md5);
         checksums.add(checksum);
         drsObject.setChecksums(checksums);
+        final AccessId accessId = new AccessId.Builder().setFileHandleId(fileHandle.getId()).build();
         final List<AccessMethod> accessMethods = new ArrayList<>();
         final AccessMethod accessMethod = new AccessMethod();
-        accessMethod.setType(AccessMethodType.https);;
-        accessMethod.setAccess_id(DATA_FILE_HANDLE_ID_WITH_PREFIX);
+        accessMethod.setType(AccessMethodType.https);
+        accessMethod.setAccess_id(DATA_FILE_HANDLE_ID);
         accessMethods.add(accessMethod);
         drsObject.setAccess_methods(accessMethods);
         drsObject.setSelf_uri(DRS_URI + DATA_FILE_HANDLE_ID_WITH_PREFIX);

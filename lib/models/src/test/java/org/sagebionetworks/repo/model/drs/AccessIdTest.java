@@ -22,30 +22,20 @@ public class AccessIdTest {
     }
 
     @Test
-    public void testCreateWithNullSynapseId() {
-        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
-                new AccessId.Builder().setAssociateType(FileHandleAssociateType.FileEntity)
-                        .setSynapseIdWithVersion(null).setFileHandleId("1234").build());
-        assertEquals("synapseIdWithVersion is required.", exception.getMessage());
-
-    }
-
-    @Test
-    public void testCreateWithNullFileHandleAssociationType() {
-        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
-                new AccessId.Builder().setAssociateType(null)
-                        .setSynapseIdWithVersion(idAndVersion).setFileHandleId("1234").build());
-        assertEquals("fileHandleAssociationType is required.", exception.getMessage());
-    }
-
-
-    @Test
     public void testEncode() {
         final AccessId accessId = new AccessId.Builder().setAssociateType(FileHandleAssociateType.FileEntity)
                 .setSynapseIdWithVersion(idAndVersion).setFileHandleId("1234").build();
         final String encodedId = accessId.encode();
 
         assertEquals("FileEntity_syn123.1_1234", encodedId);
+    }
+
+    @Test
+    public void testEncodeWithOnlyFileHandleId() {
+        final AccessId accessId = new AccessId.Builder().setFileHandleId("1234").build();
+        final String encodedId = accessId.encode();
+
+        assertEquals("1234", encodedId);
     }
 
     @Test
@@ -77,6 +67,14 @@ public class AccessIdTest {
                 AccessId.decode("fileEntity_syn1.1_123"));
         assertEquals("AccessId must contain a valid file handle association type.",
                 exception.getMessage());
+    }
+
+    @Test
+    public void testDecodeWithOnlyFileHandleId() {
+        final AccessId accessId = AccessId.decode("1234");
+        assertEquals(null, accessId.getAssociateType());
+        assertEquals(null, accessId.getSynapseIdWithVersion());
+        assertEquals("1234", accessId.getFileHandleId());
     }
 
     @Test
