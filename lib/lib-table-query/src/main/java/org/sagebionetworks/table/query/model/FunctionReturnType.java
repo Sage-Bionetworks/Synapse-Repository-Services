@@ -20,7 +20,9 @@ public enum FunctionReturnType {
 	// Cases where the return type matches the parameter type.
 	MATCHES_PARAMETER(new MatchParameterFunctionReturnTypeHandler()),
 	// Cases where the parameter type is a list and the return type is the non-list version of that parameter type
-	UNNEST_PARAMETER(new UnnestParameterFunctionReturnTypeHandler());
+	UNNEST_PARAMETER(new UnnestParameterFunctionReturnTypeHandler()),
+	// Functions returning json
+	JSON(ColumnType.JSON);
 
 	private FunctionReturnTypeHandler handler;
 

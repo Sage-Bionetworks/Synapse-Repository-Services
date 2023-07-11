@@ -143,11 +143,14 @@ public class VirtualTableIntegrationTest {
 		ColumnModel barSum = columnModelManager
 				.createColumnModel(new ColumnModel().setName("barSum").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range));
 
-		String definingSql = String.format("select foo, cast(sum(bar) as %s) from %s group by foo order by foo",
-				barSum.getId(), table.getId());
+		ColumnModel jsonColumn = columnModelManager
+				.createColumnModel(new ColumnModel().setName("jsonColumn").setColumnType(ColumnType.JSON));
+		
+		String definingSql = String.format("select foo, cast(sum(bar) as %s), cast(JSON_OBJECT(foo, sum(bar)) as %s) from %s group by foo order by foo",
+				barSum.getId(), jsonColumn.getId(), table.getId());
 
 		VirtualTable virtualTable = asyncHelper.createVirtualTable(adminUserInfo, project.getId(), definingSql);
-		assertEquals(List.of(tableSchema.get(0).getId(), barSum.getId()), virtualTable.getColumnIds());
+		assertEquals(List.of(tableSchema.get(0).getId(), barSum.getId(), jsonColumn.getId()), virtualTable.getColumnIds());
 
 		Query query = new Query();
 		query.setSql("select * from " + virtualTable.getId());
@@ -157,9 +160,11 @@ public class VirtualTableIntegrationTest {
 				.withReturnColumnModels(true);
 
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
-			assertEquals(List.of(new Row().setValues(List.of("a", "6")), new Row().setValues(List.of("b", "18"))),
-					results.getQueryResult().getQueryResults().getRows());
-			assertEquals(List.of(foo, barSum), results.getColumnModels());
+			assertEquals(List.of(
+				new Row().setValues(List.of("a", "6", "{\"a\": 6}")), 
+				new Row().setValues(List.of("b", "18", "{\"b\": 18}"))
+			), results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum, jsonColumn), results.getColumnModels());
 			assertEquals(2L, results.getQueryCount());
 			assertEquals(List.of(new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range)
 					.setColumnMin("6").setColumnMax("18")), results.getFacets());
@@ -176,9 +181,9 @@ public class VirtualTableIntegrationTest {
 		query.setSelectedFacets(
 				List.of(new FacetColumnRangeRequest().setColumnName("barSum").setMax("19").setMin("17")));
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
-			assertEquals(List.of(new Row().setValues(List.of("b", "18"))),
+			assertEquals(List.of(new Row().setValues(List.of("b", "18", "{\"b\": 18}"))),
 					results.getQueryResult().getQueryResults().getRows());
-			assertEquals(List.of(foo, barSum), results.getColumnModels());
+			assertEquals(List.of(foo, barSum, jsonColumn), results.getColumnModels());
 			assertEquals(1L, results.getQueryCount());
 			assertEquals(
 					List.of(new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range)

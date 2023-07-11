@@ -233,6 +233,20 @@ public class MySqlFunctionTest {
 		assertEquals("ROUND(foo,2)", element.toSql());
 		assertEquals(FunctionReturnType.DOUBLE, element.getFunctionName().getFunctionReturnType());
 	}
+	
+	@Test
+	public void testJsonObject() throws ParseException {
+		MySqlFunction element = new TableQueryParser("JSON_OBJECT('foo', 2)").mysqlFunction();
+		assertEquals("JSON_OBJECT('foo',2)", element.toSql());
+		assertEquals(FunctionReturnType.JSON, element.getFunctionName().getFunctionReturnType());
+	}
+	
+	@Test
+	public void testJsonArray() throws ParseException {
+		MySqlFunction element = new TableQueryParser("JSON_ARRAY(1, 'foo', 'bar')").mysqlFunction();
+		assertEquals("JSON_ARRAY(1,'foo','bar')", element.toSql());
+		assertEquals(FunctionReturnType.JSON, element.getFunctionName().getFunctionReturnType());
+	}
 
 	@Test
 	public void testGetChildren() throws ParseException {
