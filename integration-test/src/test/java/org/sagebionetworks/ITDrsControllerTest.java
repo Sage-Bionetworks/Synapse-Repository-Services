@@ -91,6 +91,15 @@ public class ITDrsControllerTest {
     }
 
     @Test
+    public void testGetDrsObjectBlobWithFileHandleId() throws SynapseException {
+        createFileEntity(1);
+        final FileHandle fileHandle = fileHandles.get(0);
+        final DrsObject drsObject = synapse.getDrsObject("fh" + fileHandle.getId());
+        assertNotNull(drsObject);
+        assertEquals(getExpectedDrsBlobObjectForFileHandleId(fileHandle), drsObject);
+    }
+
+    @Test
     public void testGetDrsObjectBlobWithIncorrectID() {
         final String idAndVersion = "syn123";
         final String errorMessage = "Object id should include version. e.g syn123.1";
@@ -165,6 +174,33 @@ public class ITDrsControllerTest {
         drsObject.setAccess_methods(accessMethods);
         drsObject.setSelf_uri(DRS_URI + idAndVersion);
         drsObject.setDescription(expectedFile.getDescription());
+        return drsObject;
+    }
+
+    private DrsObject getExpectedDrsBlobObjectForFileHandleId(final FileHandle fileHandle) {
+        final DrsObject drsObject = new DrsObject();
+        drsObject.setId("fh" + fileHandle.getId());
+        drsObject.setName(fileHandle.getFileName());
+        drsObject.setVersion(null);
+        drsObject.setSize(fileHandle.getContentSize());
+        drsObject.setMime_type(fileHandle.getContentType());
+        drsObject.setCreated_time(fileHandle.getCreatedOn());
+        drsObject.setUpdated_time(fileHandle.getModifiedOn());
+        final List<Checksum> checksums = new ArrayList<>();
+        final Checksum checksum = new Checksum();
+        checksum.setChecksum(fileHandle.getContentMd5());
+        checksum.setType(ChecksumType.md5);
+        checksums.add(checksum);
+        drsObject.setChecksums(checksums);
+        final List<AccessMethod> accessMethods = new ArrayList<>();
+        final AccessMethod accessMethod = new AccessMethod();
+        accessMethod.setType(AccessMethodType.https);
+        final AccessId accessId = new AccessId.Builder().setFileHandleId(fileHandle.getId()).build();
+        accessMethod.setAccess_id(accessId.encode());
+        accessMethods.add(accessMethod);
+        drsObject.setAccess_methods(accessMethods);
+        drsObject.setSelf_uri(DRS_URI + "fh" + fileHandle.getId());
+        drsObject.setDescription(null);
         return drsObject;
     }
 

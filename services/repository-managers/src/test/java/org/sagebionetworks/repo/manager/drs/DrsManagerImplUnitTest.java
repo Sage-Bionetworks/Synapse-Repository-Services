@@ -456,7 +456,7 @@ public class DrsManagerImplUnitTest {
         final List<AccessMethod> accessMethods = new ArrayList<>();
         final AccessMethod accessMethod = new AccessMethod();
         accessMethod.setType(AccessMethodType.https);
-        accessMethod.setAccess_id(DATA_FILE_HANDLE_ID);
+        accessMethod.setAccess_id(accessId.encode());
         accessMethods.add(accessMethod);
         drsObject.setAccess_methods(accessMethods);
         drsObject.setSelf_uri(DRS_URI + DATA_FILE_HANDLE_ID_WITH_PREFIX);
