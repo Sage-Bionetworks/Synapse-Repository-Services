@@ -123,7 +123,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private Map<MigrationType, String> checksumRangeSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumTableSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> batchChecksumSqlMap = new HashMap<>();
-	private Map<MigrationType, String> migrationTypeMetaDataSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> migrationTypeCountSqlMap = new HashMap<MigrationType, String>();
 	
 	private Map<MigrationType, FieldColumn> etagColumns = new HashMap<MigrationType, FieldColumn>();
 	private Map<MigrationType, FieldColumn> backupIdColumns = new HashMap<MigrationType, FieldColumn>();
@@ -263,7 +263,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		String mi = DMLUtils.createGetMinByBackupKeyStatement(mapping);
 		minSqlMap.put(type,  mi);
 		String mtc = DMLUtils.createGetMinMaxByBackupKeyStatement(mapping);
-		migrationTypeMetaDataSqlMap.put(type, mtc);
+		migrationTypeCountSqlMap.put(type, mtc);
 		String sumCrc = DMLUtils.createSelectChecksumStatement(mapping);
 		checksumRangeSqlMap.put(type, sumCrc);
 		String checksumTable = DMLUtils.createChecksumTableStatement(mapping);
@@ -526,10 +526,9 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return s;
 	}
 
-	// TODO: Update MigrationTypeCount to MigrationTypeMetaData
 	@Override
 	public MigrationTypeCount getMigrationTypeCount(MigrationType type) {
-		String sql = this.migrationTypeMetaDataSqlMap.get(type);
+		String sql = this.migrationTypeCountSqlMap.get(type);
 		if (sql == null) {
 			throw new IllegalArgumentException("Cannot find the migrationTypeCount SQL for type" + type);
 		}

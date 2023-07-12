@@ -551,7 +551,13 @@ public class DMLUtils {
 				MigrationTypeCount mtc = new MigrationTypeCount();
 				mtc.setCount(null);
 				mtc.setMinid(rs.getLong(1));
+				if (rs.wasNull()) {
+					mtc.setMinid(null);
+				}
 				mtc.setMaxid(rs.getLong(2));
+				if (rs.wasNull()) {
+					mtc.setMaxid(null);
+				}
 				return mtc;
 			}
 		};

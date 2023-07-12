@@ -203,27 +203,34 @@ public class MigratableTableDAOImplAutowireTest {
 	}
 	
 	@Test
-	public void testGetMigrationTypeMetaDataForType() {
-		long startMaxId = fileHandleDao.getMaxId();
-		long maxId = migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMaxid().longValue();
-		assertEquals(startMaxId, maxId);
+	public void testGetMigrationTypeCountForType() {
+		// Initial state: min and max are null
+		assertNull(migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMinid());
+		assertNull(migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMaxid());
+		// Add a file
 		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handle.setFileName("handle");
 		handle = (S3FileHandle) fileHandleDao.createFile(handle);
-		maxId = migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMaxid().longValue();
-		assertEquals(Long.parseLong(handle.getId()), maxId);
+		// minId == maxId == handleId
+		long handleId = Long.parseLong(handle.getId());
+		long maxId = migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMaxid().longValue();
+		long minId = migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMinid().longValue();
+		assertEquals(handleId, maxId);
+		assertEquals(handleId, minId);
+		// Delete file
 		fileHandleDao.delete(handle.getId());
-		maxId = migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMaxid().longValue();
-		assertEquals(startMaxId, maxId);
+		// Back to initial state
+		assertNull(migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMinid());
+		assertNull(migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMaxid());
 	}
 
 	@Test
-	public void testGetMigrationTypeMetaDataForTypeNoData() {
+	public void testGetMigrationTypeCountForTypeNoData() {
 		MigrationTypeCount mtc = migratableTableDAO.getMigrationTypeCount(MigrationType.VERIFICATION_SUBMISSION);
 		assertNotNull(mtc);
 		assertNull(mtc.getCount());
-		assertEquals(0, mtc.getMaxid());
-		assertEquals(0, mtc.getMinid());
+		assertNull(mtc.getMaxid());
+		assertNull(mtc.getMinid());
 		assertNotNull(mtc.getType());
 		assertEquals(MigrationType.VERIFICATION_SUBMISSION, mtc.getType());
 	}
