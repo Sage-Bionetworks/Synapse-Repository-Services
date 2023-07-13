@@ -232,6 +232,7 @@ TOKEN [IGNORE_CASE]: {
    | "VAR_SAMP"
    | "VARIANCE"
    | "GROUP_CONCAT"
+   | "JSON_ARRAYAGG"
   >
 }
 

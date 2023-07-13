@@ -2340,4 +2340,31 @@ public class QueryTranslatorTest {
 		assertEquals(List.of(new SelectColumn().setName("j").setColumnType(ColumnType.BOOLEAN)), select);
 	}
 	
+	@Test
+	public void testSelectWithJsonArrayAgg() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		
+		ColumnModel foo = columnNameToModelMap.get("foo");
+		ColumnModel bar = columnNameToModelMap.get("bar");
+		
+		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(foo, bar));
+		
+		setupGetColumns(bar);
+		
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+
+		sql = "select bar, JSON_ARRAYAGG(foo) as j from syn1 group by bar";
+		
+		QueryTranslator query = QueryTranslator.builder(sql, userId)
+			.schemaProvider(mockSchemaProvider)
+			.sqlContext(SqlContext.query)
+			.indexDescription(indexDescription).build();
+		
+		assertEquals("SELECT _C333_, JSON_ARRAYAGG(_C111_) AS j FROM T1 GROUP BY _C333_", query.getOutputSQL());
+		
+		List<SelectColumn> select = query.getSelectColumns();
+		
+		assertEquals(List.of(new SelectColumn().setName("bar").setColumnType(ColumnType.STRING), new SelectColumn().setName("j").setColumnType(ColumnType.JSON)), select);
+	}
+	
 }
