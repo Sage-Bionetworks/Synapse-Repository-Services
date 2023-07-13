@@ -64,6 +64,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.ArrayHasPredicate;
+import org.sagebionetworks.table.query.model.BooleanFactor;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.CastSpecification;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
@@ -82,6 +83,7 @@ import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
+import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
@@ -2745,7 +2747,7 @@ public class SQLTranslatorUtilsTest {
 		String searchCondition = SQLTranslatorUtils.translateQueryFilters(Arrays.asList(filter, filter2));
 		assertEquals("(\"myCol\" LIKE 'foo%' OR \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%') AND (\"otherCol\" LIKE '%asdf')", searchCondition);
 	}
-
+	
 	@Test
 	public void testTranslateQueryFiltersWithLikeFilterAndsingleValues(){
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
@@ -3837,5 +3839,77 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("T123 (_C111_, _C222_, _C333_, _C444_, _C555_, _C777_, _C888_, _C999_) AS (SELECT * FROM syn456)",
 				element.toSql());
 		verify(mockSchemaProvider).getTableSchema(IdAndVersion.parse("syn123"));
+	}
+	
+	@Test
+	public void testTranslateDefiningClause() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"with syn2 as (select * from syn1) select * from syn2 defining_where foo > bar").queryExpression();
+
+		// call under test
+		SQLTranslatorUtils.translateDefiningClause(element);
+		assertEquals("WITH syn2 AS (SELECT * FROM syn1 WHERE foo > bar) SELECT * FROM syn2", element.toSql());
+	}
+	
+	@Test
+	public void testTranslateDefiningClauseWithNoDefining() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"with syn2 as (select * from syn1) select * from syn2").queryExpression();
+
+		// call under test
+		SQLTranslatorUtils.translateDefiningClause(element);
+		assertEquals("WITH syn2 AS (SELECT * FROM syn1) SELECT * FROM syn2", element.toSql());
+	}
+
+	@Test
+	public void testTranslateDefiningClauseWithExistingWhere() throws ParseException {
+		QueryExpression element = new TableQueryParser("with syn2 as (select * from syn1 where a=b and (b>c or c>d))"
+				+ " select * from syn2 defining_where foo > bar or bar is null and foo < 1").queryExpression();
+
+		// call under test
+		SQLTranslatorUtils.translateDefiningClause(element);
+		assertEquals("WITH syn2 AS "
+				+ "(SELECT * FROM syn1 WHERE ( a = b AND ( b > c OR c > d ) ) AND ( foo > bar OR bar IS NULL AND foo < 1 ))"
+				+ " SELECT * FROM syn2", element.toSql());
+		element.stream(SearchCondition.class).forEach(s->assertNotNull(s.getParent()));
+	}
+	
+	@Test
+	public void testTranslateDefiningClauseWithoutCTE() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"select * from syn2 defining_where foo > bar").queryExpression();
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SQLTranslatorUtils.translateDefiningClause(element);
+		}).getMessage();
+		assertEquals("DEFINING_WHERE can only be used with a common table expression with a single inner query", message);
+	}
+	
+	@Test
+	public void testTranslateDefiningClauseWithMultipleCTE() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"with syn2 as (select * from syn1), syn3 as (select foo from syn1) select * from syn2 defining_where foo > bar").queryExpression();
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SQLTranslatorUtils.translateDefiningClause(element);
+		}).getMessage();
+		assertEquals("DEFINING_WHERE can only be used with a common table expression with a single inner query", message);
+	}
+	
+	@Test
+	public void testWrapSearchConditionInBooleanFactor() throws ParseException {
+		SearchCondition element = new TableQueryParser("foo > bar").searchCondition();
+		BooleanFactor factor = SQLTranslatorUtils.wrapSearchConditionInBooleanFactor(element);
+		assertEquals("( foo > bar )", factor.toSql());
+	}
+	
+	@Test
+	public void testMergeSearchConditions() throws ParseException {
+		SearchCondition one = new TableQueryParser("foo > bar").searchCondition();
+		SearchCondition two = new TableQueryParser("bar is not null").searchCondition();
+		SearchCondition result = SQLTranslatorUtils.mergeSearchConditions(one, two);
+		assertEquals("( foo > bar ) AND ( bar IS NOT NULL )", result.toSql());
 	}
 }

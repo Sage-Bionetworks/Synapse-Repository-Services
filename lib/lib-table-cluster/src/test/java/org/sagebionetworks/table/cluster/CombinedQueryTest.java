@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.table.SortItem;
 
 @ExtendWith(MockitoExtension.class)
 public class CombinedQueryTest {
-	
+
 	@Mock
 	SchemaProvider mockSchemaProvider;
 
@@ -111,7 +111,7 @@ public class CombinedQueryTest {
 
 		assertEquals("SELECT * FROM syn123 LIMIT 6 OFFSET 7", combined.getCombinedSql());
 	}
-	
+
 	@Test
 	public void testGetCombinedSqlWithExistingSort() {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
@@ -196,10 +196,34 @@ public class CombinedQueryTest {
 					.setOverrideOffset(overrideOffset).setSelectedFacets(selectedFacets).build();
 		});
 	}
-	
+
 	@Test
 	public void testGetCombinedSqlWithCTEAndAllOverrides() {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		// call under test
+		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
+				.setQuery("with syn2 as (select * from syn1) select * from syn2").setAdditionalFilters(additionalFilters).setSortList(sortList)
+				.setOverrideLimit(overrideLimit).setOverrideOffset(overrideOffset).setSelectedFacets(selectedFacets)
+				.build();
+
+		assertEquals(
+				"WITH syn2 AS (SELECT * FROM syn1) "
+				+ "SELECT * FROM syn2 WHERE ( ( \"foo\" LIKE 'one' OR \"foo\" LIKE 'two' ) )"
+				+ " AND ( ( ( \"bar\" HAS ( '1', '2', '3' ) ) ) ) "
+				+ "ORDER BY \"foo\" DESC LIMIT 99 OFFSET 2",
+				combined.getCombinedSql());
+	}
+
+	@Test
+	public void testGetCombinedSqlWithCTEAndDefiningConditions() {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		
+		additionalFilters = List.of(
+				new ColumnSingleValueQueryFilter().setColumnName("foo")
+				.setOperator(ColumnSingleValueFilterOperator.LIKE).setValues(List.of("one", "two"))
+				,new ColumnSingleValueQueryFilter().setColumnName("aBool")
+				.setOperator(ColumnSingleValueFilterOperator.IN).setValues(List.of("false")).setIsDefiningCondition(true));
+		
 		// call under test
 		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
 				.setQuery("with syn2 as (select * from syn1) select * from syn2").setAdditionalFilters(additionalFilters).setSortList(sortList)

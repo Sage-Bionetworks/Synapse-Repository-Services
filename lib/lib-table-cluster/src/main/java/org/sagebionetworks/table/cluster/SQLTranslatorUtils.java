@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -45,8 +46,11 @@ import org.sagebionetworks.table.query.model.ArrayFunctionType;
 import org.sagebionetworks.table.query.model.ArrayHasLikePredicate;
 import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
+import org.sagebionetworks.table.query.model.BooleanFactor;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
+import org.sagebionetworks.table.query.model.BooleanTerm;
+import org.sagebionetworks.table.query.model.BooleanTest;
 import org.sagebionetworks.table.query.model.CastSpecification;
 import org.sagebionetworks.table.query.model.CastTarget;
 import org.sagebionetworks.table.query.model.CharacterFactor;
@@ -57,6 +61,7 @@ import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.CurrentUserFunction;
+import org.sagebionetworks.table.query.model.DefiningClause;
 import org.sagebionetworks.table.query.model.DelimitedIdentifier;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Element;
@@ -77,13 +82,16 @@ import org.sagebionetworks.table.query.model.JoinCondition;
 import org.sagebionetworks.table.query.model.JoinType;
 import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.MySqlFunction;
+import org.sagebionetworks.table.query.model.NonJoinQueryExpression;
 import org.sagebionetworks.table.query.model.OuterJoinType;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Pattern;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QualifiedJoin;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
+import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.StringOverride;
@@ -96,6 +104,7 @@ import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
+import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.model.WithListElement;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
@@ -110,6 +119,7 @@ import com.google.common.collect.Lists;
  */
 public class SQLTranslatorUtils {
 
+	private static final String DEFINING_WHERE_CAN_ONLY_BE_USED_WITH_A_CTE = "DEFINING_WHERE can only be used with a common table expression with a single inner query";
 	private static final String COLON = ":";
 	public static final String BIND_PREFIX = "b";
 
@@ -954,6 +964,10 @@ public class SQLTranslatorUtils {
 		
 		return columnRefMatch;
 	}
+	
+	public static void addFiltersToTableExpression(List<QueryFilter> additionalFilters, TableExpression expression) {
+		
+	}
 
 	public static String translateQueryFilters(List<QueryFilter> additionalFilters){
 		ValidateArgument.requiredNotEmpty(additionalFilters, "additionalFilters");
@@ -1262,5 +1276,46 @@ public class SQLTranslatorUtils {
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	/**
+	 * For a CTE that includes a defining_where in the root
+	 * (NonJoinQueryExpression), the defining_where SearchCondition must be merged
+	 * with the search condition of the inner query's where clause.
+	 * 
+	 * @param element
+	 */
+	public static void translateDefiningClause(QueryExpression element) {
+		NonJoinQueryExpression root = element.getNonJoinQueryExpression();
+		TableExpression rootTableExpression = root.getFirstElementOfType(TableExpression.class);
+		DefiningClause definingClause = rootTableExpression.getDefiningClause();
+		if (definingClause != null) {
+			if(element.getWithListElements().isEmpty()) {
+				throw new IllegalArgumentException(
+						DEFINING_WHERE_CAN_ONLY_BE_USED_WITH_A_CTE);
+			}
+			element.getWithListElements().ifPresent(list -> {
+				if (list.size() != 1) {
+					throw new IllegalArgumentException(
+							DEFINING_WHERE_CAN_ONLY_BE_USED_WITH_A_CTE);
+				}
+				rootTableExpression.replaceDefiningClause(null);
+				TableExpression innerTableExpression = list.get(0).getFirstElementOfType(TableExpression.class);
+				SearchCondition newSearchCondition = innerTableExpression.getWhereClause() == null
+						? definingClause.getSearchCondition()
+						: mergeSearchConditions(innerTableExpression.getWhereClause().getSearchCondition(),
+								definingClause.getSearchCondition());
+				innerTableExpression.replaceWhere(new WhereClause(newSearchCondition));
+			});
+		}
+	}
+	
+	public static SearchCondition mergeSearchConditions(SearchCondition original, SearchCondition toMerge) {
+		return new SearchCondition(Collections.singletonList(new BooleanTerm(
+				List.of(wrapSearchConditionInBooleanFactor(original), wrapSearchConditionInBooleanFactor(toMerge)))));
+	}
+	
+	public static BooleanFactor wrapSearchConditionInBooleanFactor(SearchCondition condition) {
+		return new BooleanFactor(null, new BooleanTest(new BooleanPrimary(condition), null, null, null));
 	}
 }

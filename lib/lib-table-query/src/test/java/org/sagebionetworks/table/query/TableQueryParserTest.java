@@ -574,10 +574,10 @@ public class TableQueryParserTest {
 	@Test
 	public void testCTE() throws ParseException {
 		QueryExpression element = new TableQueryParser(
-				"WITH syn2 AS (select foo, cast(sum(bar) as 22) from syn1 group by foo order by foo) SELECT * FROM syn1")
+				"WITH syn2 AS (select foo, cast(sum(bar) as 22) from syn1 group by foo order by foo) SELECT * FROM syn2")
 				.queryExpression();
 		assertEquals(
-				"WITH syn2 AS (SELECT foo, CAST(SUM(bar) AS 22) FROM syn1 GROUP BY foo ORDER BY foo) SELECT * FROM syn1",
+				"WITH syn2 AS (SELECT foo, CAST(SUM(bar) AS 22) FROM syn1 GROUP BY foo ORDER BY foo) SELECT * FROM syn2",
 				element.toSql());
 	}
 	
@@ -591,6 +591,14 @@ public class TableQueryParserTest {
 	public void testQueryExpressionWithSemiColon() throws ParseException {
 		QueryExpression element = new TableQueryParser("SELECT * FROM syn12 WHERE projectId ='syn456';").queryExpression();
 		assertEquals("SELECT * FROM syn12 WHERE projectId = 'syn456'", element.toSql());
+	}
+	
+	@Test
+	public void testQueryExpressionWithDefiningWhere() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"SELECT * FROM syn12 defining_where foo_bar is not null WHERE foo = 1 group by bar order by foo limit 1 ")
+				.queryExpression();
+		assertEquals("SELECT * FROM syn12 DEFINING_WHERE foo_bar IS NOT NULL WHERE foo = 1 GROUP BY bar ORDER BY foo LIMIT 1", element.toSql());
 	}
 	
 }

@@ -49,16 +49,12 @@ public interface Replaceable<T extends Element> extends Element {
 	 */
 	public static <T extends Element> T prepareToReplace(T oldElement, T newElement, Element parent) {
 		ValidateArgument.required(parent, "parent");
-		if (oldElement == newElement) {
-			// nothing needs to change.
-			return newElement;
+		if (oldElement != null) {
+			oldElement.recursiveClearParent();
 		}
 		if (newElement != null) {
 			newElement.setParent(parent);
 			newElement.recursiveSetParent();
-		}
-		if (oldElement != null) {
-			oldElement.recursiveClearParent();
 		}
 		return newElement;
 	}
