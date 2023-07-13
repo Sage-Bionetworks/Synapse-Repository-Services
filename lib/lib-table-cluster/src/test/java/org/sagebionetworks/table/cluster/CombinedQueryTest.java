@@ -232,9 +232,9 @@ public class CombinedQueryTest {
 
 		assertEquals(
 				"WITH syn2 AS (SELECT * FROM syn1) "
-				+ "SELECT * FROM syn2 WHERE ( ( \"foo\" LIKE 'one' OR \"foo\" LIKE 'two' ) )"
-				+ " AND ( ( ( \"bar\" HAS ( '1', '2', '3' ) ) ) ) "
-				+ "ORDER BY \"foo\" DESC LIMIT 99 OFFSET 2",
+				+ "SELECT * FROM syn2 DEFINING_WHERE ( \"aBool\" IN ( 'false' ) ) "
+				+ "WHERE ( ( \"foo\" LIKE 'one' OR \"foo\" LIKE 'two' ) ) AND ( ( ( \"bar\" HAS ( '1', '2', '3' ) ) ) )"
+				+ " ORDER BY \"foo\" DESC LIMIT 99 OFFSET 2",
 				combined.getCombinedSql());
 	}
 

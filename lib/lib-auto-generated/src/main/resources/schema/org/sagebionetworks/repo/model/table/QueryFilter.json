@@ -3,6 +3,10 @@
 	"properties": {
 		"concreteType": {
 			"type": "string"
+		},
+		"isDefiningCondition": {
+			"type": "boolean",
+			"description": "When null (default) or false, this condition will be applied to WHERE clause of table/view query.  When set to true, for a query against a VirtualTable, this condition will be applied to the WHERE clause of the VirtualTable's definingSQL."
 		}
 	}
 }

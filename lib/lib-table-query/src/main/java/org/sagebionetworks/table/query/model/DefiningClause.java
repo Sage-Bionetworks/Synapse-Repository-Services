@@ -5,7 +5,7 @@ package org.sagebionetworks.table.query.model;
  * DefiningClause ::= <defining> {@link SearchCondition}
  *
  */
-public class DefiningClause extends SQLElement {
+public class DefiningClause extends SQLElement implements HasSearchCondition {
 	
 	private SearchCondition searchCondition;
 	

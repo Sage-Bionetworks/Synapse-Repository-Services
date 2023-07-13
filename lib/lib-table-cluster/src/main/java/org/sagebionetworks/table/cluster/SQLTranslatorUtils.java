@@ -72,6 +72,7 @@ import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.HasFunctionReturnType;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
+import org.sagebionetworks.table.query.model.HasSearchCondition;
 import org.sagebionetworks.table.query.model.HasSqlContext;
 import org.sagebionetworks.table.query.model.Identifier;
 import org.sagebionetworks.table.query.model.InPredicate;
@@ -969,22 +970,40 @@ public class SQLTranslatorUtils {
 		
 	}
 
-	public static String translateQueryFilters(List<QueryFilter> additionalFilters){
+	public static void translateQueryFilters(TableExpression tableExpression, List<QueryFilter> additionalFilters) {
+		ValidateArgument.required(tableExpression, "tableExpression");
 		ValidateArgument.requiredNotEmpty(additionalFilters, "additionalFilters");
 
-		StringBuilder additionalSearchConditionBuilder = new StringBuilder();
+		StringBuilder where = new StringBuilder();
+		StringBuilder defining = new StringBuilder();
 
-		boolean firstVal = true;
-
-		for(QueryFilter filter : additionalFilters){
-			if(!firstVal){
-				additionalSearchConditionBuilder.append(" AND ");
+		for (QueryFilter filter : additionalFilters) {
+			StringBuilder builder = Boolean.TRUE.equals(filter.getIsDefiningCondition()) ? defining : where;
+			if (builder.length() > 0) {
+				builder.append(" AND ");
 			}
-			translateQueryFilters(additionalSearchConditionBuilder, filter);
-			firstVal=false;
+			translateQueryFilters(builder, filter);
 		}
 
-		return additionalSearchConditionBuilder.toString();
+		createSearchCondition(where).ifPresent(searchCondition -> {
+			tableExpression.replaceWhere(new WhereClause(
+					mergeSearchConditions(tableExpression.getWhereClause(), searchCondition)));
+		});
+		createSearchCondition(defining).ifPresent(searchCondition -> {
+			tableExpression.replaceDefiningClause(
+					new DefiningClause(mergeSearchConditions(tableExpression.getDefiningClause(), searchCondition)));
+		});
+	}
+	
+	public static Optional<SearchCondition> createSearchCondition(StringBuilder builder){
+		if(builder.length() < 1) {
+			return Optional.empty();
+		}
+		try {
+			return Optional.of(new TableQueryParser(builder.toString()).searchCondition());
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	static void translateQueryFilters(StringBuilder builder, QueryFilter filter){
@@ -1301,15 +1320,32 @@ public class SQLTranslatorUtils {
 				}
 				rootTableExpression.replaceDefiningClause(null);
 				TableExpression innerTableExpression = list.get(0).getFirstElementOfType(TableExpression.class);
-				SearchCondition newSearchCondition = innerTableExpression.getWhereClause() == null
-						? definingClause.getSearchCondition()
-						: mergeSearchConditions(innerTableExpression.getWhereClause().getSearchCondition(),
+				SearchCondition newSearchCondition = mergeSearchConditions(innerTableExpression.getWhereClause(),
 								definingClause.getSearchCondition());
 				innerTableExpression.replaceWhere(new WhereClause(newSearchCondition));
 			});
 		}
 	}
 	
+	/**
+	 * Merge the two SearchConditions into a single SearchCondition with 'AND' between each.
+	 * @param original If null, toMerge will be returned unmodified.
+	 * @param toMerge
+	 * @return
+	 */
+	public static SearchCondition mergeSearchConditions(HasSearchCondition original, SearchCondition toMerge) {
+		if(original == null) {
+			return toMerge;
+		}
+		return mergeSearchConditions(original.getSearchCondition(), toMerge);
+	}
+	
+	/**
+	 * Merge the two SearchConditions into a single SearchCondition with 'AND' between each.
+	 * @param original
+	 * @param toMerge
+	 * @return
+	 */
 	public static SearchCondition mergeSearchConditions(SearchCondition original, SearchCondition toMerge) {
 		return new SearchCondition(Collections.singletonList(new BooleanTerm(
 				List.of(wrapSearchConditionInBooleanFactor(original), wrapSearchConditionInBooleanFactor(toMerge)))));

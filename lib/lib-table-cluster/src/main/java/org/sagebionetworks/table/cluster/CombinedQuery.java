@@ -38,12 +38,7 @@ public class CombinedQuery {
 
 			// Append additionalFilters onto the WHERE clause
 			if (additionalFilters != null && !additionalFilters.isEmpty()) {
-				String additionalFilterSearchCondition = SQLTranslatorUtils.translateQueryFilters(additionalFilters);
-				StringBuilder whereClauseBuilder = new StringBuilder();
-				SqlElementUtils.appendCombinedWhereClauseToStringBuilder(whereClauseBuilder,
-						additionalFilterSearchCondition, querySpecification.getTableExpression().getWhereClause());
-				querySpecification.getTableExpression()
-						.replaceWhere(new TableQueryParser(whereClauseBuilder.toString()).whereClause());
+				SQLTranslatorUtils.translateQueryFilters(querySpecification.getTableExpression(), additionalFilters);
 			}
 
 			// facet selection

@@ -44,6 +44,8 @@ import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
@@ -189,6 +191,33 @@ public class VirtualTableIntegrationTest {
 					List.of(new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range)
 							.setColumnMin("6").setColumnMax("18").setSelectedMax("19").setSelectedMin("17")),
 					results.getFacets());
+		}, MAX_WAIT_MS);
+		
+
+		// defining_where additional filters
+		query.setAdditionalFilters(List.of(new ColumnSingleValueQueryFilter().setColumnName("bar")
+				.setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(List.of("5"))
+				.setIsDefiningCondition(true)));
+		query.setSelectedFacets(null);
+		options.withReturnFacets(false);
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("a", "5", "{\"a\": 5}"))),
+					results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum, jsonColumn), results.getColumnModels());
+			assertEquals(1L, results.getQueryCount());
+		}, MAX_WAIT_MS);
+		
+		// defining_where direct
+		query.setSql(String.format("select * from %s defining_where bar < 10", virtualTable.getId()));
+		query.setAdditionalFilters(null);
+		query.setSelectedFacets(null);
+		options.withReturnFacets(false);
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("a", "6", "{\"a\": 6}")),
+								new Row().setValues(List.of("b", "2", "{\"b\": 2}"))),
+					results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum, jsonColumn), results.getColumnModels());
+			assertEquals(2L, results.getQueryCount());
 		}, MAX_WAIT_MS);
 	}
 
