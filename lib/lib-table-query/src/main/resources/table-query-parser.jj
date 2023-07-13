@@ -299,6 +299,7 @@ TOKEN [IGNORE_CASE]: {
    "JSON_OBJECT"
    | "JSON_ARRAY"
    | "JSON_EXTRACT"
+   | "JSON_OVERLAPS"
   >
 }
 

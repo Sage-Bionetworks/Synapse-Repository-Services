@@ -45,7 +45,8 @@ public enum MySqlFunctionName {
 	// json
 	JSON_OBJECT(FunctionReturnType.JSON),
 	JSON_ARRAY(FunctionReturnType.JSON),
-	JSON_EXTRACT(FunctionReturnType.STRING);
+	JSON_EXTRACT(FunctionReturnType.STRING),
+	JSON_OVERLAPS(FunctionReturnType.BOOLEAN);
 	
 	private FunctionReturnType returnType;
 	
