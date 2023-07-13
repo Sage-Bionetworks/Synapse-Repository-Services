@@ -298,6 +298,7 @@ TOKEN [IGNORE_CASE]: {
   < json_function_name:
    "JSON_OBJECT"
    | "JSON_ARRAY"
+   | "JSON_EXTRACT"
   >
 }
 

@@ -247,6 +247,13 @@ public class MySqlFunctionTest {
 		assertEquals("JSON_ARRAY(1,'foo','bar')", element.toSql());
 		assertEquals(FunctionReturnType.JSON, element.getFunctionName().getFunctionReturnType());
 	}
+	
+	@Test
+	public void testJsonExtract() throws ParseException {
+		MySqlFunction element = new TableQueryParser("JSON_EXTRACT(foo, '$[0]')").mysqlFunction();
+		assertEquals("JSON_EXTRACT(foo,'$[0]')", element.toSql());
+		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
+	}
 
 	@Test
 	public void testGetChildren() throws ParseException {
