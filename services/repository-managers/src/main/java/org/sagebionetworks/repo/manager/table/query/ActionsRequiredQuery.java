@@ -15,6 +15,7 @@ import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SetQuantifier;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class ActionsRequiredQuery {
@@ -46,8 +47,10 @@ public class ActionsRequiredQuery {
 				throw new IllegalArgumentException("Including the actions required is not supported for aggregate queries");
 			}
 			
-			SelectList selectFileColumnList = new TableQueryParser(selectFileColumn.getName()).selectList();
-			OrderByClause orderBy = new OrderByClause(new TableQueryParser(selectFileColumn.getName()).sortSpecificationList());
+			String selectFileColumnName = SqlElementUtils.wrapInDoubleQuotes(selectFileColumn.getName());
+			
+			SelectList selectFileColumnList = new TableQueryParser(selectFileColumnName).selectList();
+			OrderByClause orderBy = new OrderByClause(new TableQueryParser(selectFileColumnName).sortSpecificationList());
 			
 			querySpec.replaceSelectList(selectFileColumnList, SetQuantifier.DISTINCT);
 			querySpec.getTableExpression().replacePagination(null);
