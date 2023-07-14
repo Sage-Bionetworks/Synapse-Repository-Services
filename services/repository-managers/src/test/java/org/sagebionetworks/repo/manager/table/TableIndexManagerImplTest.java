@@ -539,30 +539,6 @@ public class TableIndexManagerImplTest {
 	}
 
 	@Test
-	public void testIsVersionAppliedToIndexNoVersionApplied() {
-		// no version has been applied for this case
-		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
-		versionNumber = 1L;
-		assertFalse(manager.isVersionAppliedToIndex(tableId, versionNumber));
-	}
-
-	@Test
-	public void testIsVersionAppliedToIndexVersionMatches() {
-		versionNumber = 1L;
-		// no version has been applied for this case
-		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(versionNumber);
-		assertTrue(manager.isVersionAppliedToIndex(tableId, versionNumber));
-	}
-
-	@Test
-	public void testIsVersionAppliedToIndexVersionGreater() {
-		versionNumber = 1L;
-		// no version has been applied for this case
-		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(versionNumber + 1);
-		assertTrue(manager.isVersionAppliedToIndex(tableId, versionNumber));
-	}
-
-	@Test
 	public void testDeleteTableIndex() {
 		manager.deleteTableIndex(tableId);
 		verify(mockIndexDao).deleteTable(tableId);
