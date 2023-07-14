@@ -41,9 +41,11 @@ public class ActionsRequiredQueryTest {
 	public void before() {
 
 		schema = List.of(
-				TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING).setFacetType(FacetType.enumeration),
-				TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER).setFacetType(FacetType.range),
-				TableModelTestUtils.createColumn(3L, "three", ColumnType.ENTITYID));
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING).setFacetType(FacetType.enumeration),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER).setFacetType(FacetType.range),
+			TableModelTestUtils.createColumn(3L, "three", ColumnType.ENTITYID),
+			TableModelTestUtils.createColumn(4L, "four with space", ColumnType.ENTITYID)
+		);
 
 		userId = 789L;
 		tableId = IdAndVersion.parse("syn123.4");
@@ -140,5 +142,30 @@ public class ActionsRequiredQueryTest {
 		}).getMessage();
 		
 		assertEquals("Including the actions required is not supported for aggregate queries", result);
+	}
+	
+	// Column names can have spaces and punctuation, should still work (See https://sagebionetworks.jira.com/browse/PLFM-7933)
+	@Test
+	public void testActionsRequiredQueryWithComplexColumnName() {
+		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
+		when(schemaProvider.getColumnModel(any())).thenReturn(schema.get(0));
+		
+		// This column has a space in its name
+		builder.setSelectFileColumn(4L);
+		
+		QueryContext queryContext = builder.build();
+		
+		// Call under test
+		ActionsRequiredQuery query = new ActionsRequiredQuery(queryContext);
+		
+		BasicQuery result = query.getFileEntityQuery(10, 0);
+		
+		assertEquals("SELECT DISTINCT _C4_ FROM T123_4 WHERE ROW_BENEFACTOR IN ( :b0, :b1 ) AND _C1_ = :b2 ORDER BY _C4_ LIMIT :pLimit OFFSET :pOffset", result.getSql());
+		assertEquals(Map.of("b0", 11L, "b1", 22L, "b2", "abc", "pLimit", 10L, "pOffset", 0L), result.getParameters());
+		
+		result = query.getFileEntityQuery(10, 10);
+		
+		assertEquals("SELECT DISTINCT _C4_ FROM T123_4 WHERE ROW_BENEFACTOR IN ( :b0, :b1 ) AND _C1_ = :b2 ORDER BY _C4_ LIMIT :pLimit OFFSET :pOffset", result.getSql());
+		assertEquals(Map.of("b0", 11L, "b1", 22L, "b2", "abc", "pLimit", 10L, "pOffset", 10L), result.getParameters());
 	}
 }
