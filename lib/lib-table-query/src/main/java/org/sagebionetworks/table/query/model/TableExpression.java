@@ -12,13 +12,15 @@ public class TableExpression extends SQLElement implements HasAggregate, HasSing
 	GroupByClause groupByClause;
 	OrderByClause orderByClause;
 	Pagination pagination;
+	DefiningClause definingClause;
 
-	public TableExpression(FromClause fromClause, WhereClause whereClause, GroupByClause groupByClause, OrderByClause orderByClause, Pagination pagination) {
+	public TableExpression(FromClause fromClause, WhereClause whereClause, GroupByClause groupByClause, OrderByClause orderByClause, Pagination pagination, DefiningClause definingClause) {
 		this.fromClause = fromClause;
 		this.whereClause = whereClause;
 		this.groupByClause = groupByClause;
 		this.orderByClause = orderByClause;
 		this.pagination = pagination;
+		this.definingClause = definingClause;
 	}
 
 	public WhereClause getWhereClause() {
@@ -41,9 +43,17 @@ public class TableExpression extends SQLElement implements HasAggregate, HasSing
 		return orderByClause;
 	}
 
+	public DefiningClause getDefiningClause() {
+		return definingClause;
+	}
+	
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		fromClause.toSql(builder, parameters);
+		if(definingClause != null) {
+			builder.append(" ");
+			definingClause.toSql(builder, parameters);
+		}
 		if(whereClause != null){
 			builder.append(" ");
 			whereClause.toSql(builder, parameters);
@@ -64,7 +74,7 @@ public class TableExpression extends SQLElement implements HasAggregate, HasSing
 	
 	@Override
 	public Iterable<Element> getChildren() {
-		return SQLElement.buildChildren(fromClause, whereClause, groupByClause, orderByClause, pagination);
+		return SQLElement.buildChildren(fromClause, whereClause, groupByClause, orderByClause, pagination, definingClause);
 	}
 
 	@Override
@@ -102,6 +112,14 @@ public class TableExpression extends SQLElement implements HasAggregate, HasSing
 	 */
 	public void replaceGroupBy(GroupByClause replacement) {
 		this.groupByClause = Replaceable.prepareToReplace(this.groupByClause, replacement, this);
+	}
+	
+	/**
+	 * Replace the existing DefiningClause.s
+	 * @param definingClause
+	 */
+	public void replaceDefiningClause(DefiningClause definingClause) {
+		this.definingClause = Replaceable.prepareToReplace(this.definingClause, definingClause, this);
 	}
 
 	@Override

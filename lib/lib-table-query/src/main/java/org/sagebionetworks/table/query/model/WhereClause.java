@@ -3,7 +3,7 @@ package org.sagebionetworks.table.query.model;
 /**
  * This matches &ltwhere clause&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
-public class WhereClause extends SQLElement {
+public class WhereClause extends SQLElement implements HasSearchCondition {
 
 	private final SearchCondition searchCondition;
 

@@ -2263,4 +2263,38 @@ public class QueryTranslatorTest {
 		
 		assertEquals(List.of(new SelectColumn().setName("j").setColumnType(ColumnType.JSON)), select);
 	}
+	
+	@Test
+	public void testVirtualTableWithDefiningClause() {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+		
+		ColumnModel foo = new ColumnModel().setName("foo").setColumnType(ColumnType.STRING).setMaximumSize(40L).setId("11");
+		ColumnModel bar = new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER).setId("22");
+		ColumnModel sumBar = new ColumnModel().setName("sumBar").setColumnType(ColumnType.INTEGER).setId("33");
+		
+		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(foo, bar));
+		when(mockSchemaProvider.getTableSchema(cte)).thenReturn(List.of(foo, sumBar));
+		setupGetColumns(foo, sumBar);
+
+		when(mockIndexDescriptionLookup.getIndexDescription(viewId)).thenReturn(new ViewIndexDescription(viewId, TableType.entityview));
+		
+		String definingSql = "select foo, sum(cast(bar as 33)) from syn1 where bar > 1 group by foo";
+		IndexDescription indexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
+
+		sql = indexDescription.preprocessQuery("select * from syn2 defining_where foo = 'apple'");
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
+		
+		assertEquals("WITH T2 (_C11_, _C33_) AS "
+				+ "(SELECT _C11_, SUM(CAST(_C22_ AS SIGNED)) FROM T1 WHERE ( _C22_ > :b0 ) AND ( _C11_ = :b1 ) GROUP BY _C11_)"
+				+ " SELECT _C11_, _C33_ FROM T2", query.getOutputSQL());
+		assertTrue(query.isAggregatedResult());
+		
+		Map<String, Object> expectedParams = new HashMap<>(2);
+		expectedParams.put("b0", 1L);
+		expectedParams.put("b1", "apple");
+		assertEquals(expectedParams, query.getParameters());
+	}
 }

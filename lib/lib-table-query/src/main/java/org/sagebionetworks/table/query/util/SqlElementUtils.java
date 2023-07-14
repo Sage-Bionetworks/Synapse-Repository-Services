@@ -21,6 +21,7 @@ import org.sagebionetworks.table.query.model.BooleanTest;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
+import org.sagebionetworks.table.query.model.DefiningClause;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.FromClause;
@@ -459,12 +460,6 @@ public class SqlElementUtils {
 		return new TableQueryParser(sql).sortSpecificationList();
 	}
 
-
-	public static TableExpression removeOrderByClause(TableExpression tableExpression) {
-		return new TableExpression(tableExpression.getFromClause(), tableExpression.getWhereClause(), tableExpression.getGroupByClause(),
-				null, tableExpression.getPagination());
-	}
-
 	/**
 	 * If given a nonempty sortList, create a new OrderByClause that is the the union of the currentOrderBy and the 
 	 * sortList.
@@ -617,6 +612,7 @@ public class SqlElementUtils {
 		GroupByClause groupByClause = null;
 		OrderByClause orderByClause = null;
 		Pagination pagination = null;
+		DefiningClause definingClause = null;
 
 		// There are three cases
 		if (model.hasAnyAggregateElements()) {
@@ -629,7 +625,7 @@ public class SqlElementUtils {
 		builder.append(", ");
 		builder.append(TableConstants.ROW_VERSION);
 		// clear pagination, group by, order by
-		tableExpression = new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination);
+		tableExpression = new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination, definingClause);
 		builder.append(" ");
 		builder.append(tableExpression.toSql());
 		builder.append(" LIMIT ");
