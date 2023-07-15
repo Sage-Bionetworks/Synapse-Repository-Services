@@ -58,17 +58,6 @@ public interface TableIndexManager {
 	long getCurrentVersionOfIndex(IdAndVersion tableId);
 
 	/**
-	 * Has the change set represented by the given version number already been
-	 * applied to the table index?
-	 * 
-	 * @param connection
-	 * @param versionNumber
-	 * @return True if the change set for the given version has already been applied
-	 *         ot the table.
-	 */
-	boolean isVersionAppliedToIndex(IdAndVersion tableId, long versionNumber);
-
-	/**
 	 * Apply the given change set to a table's index. Each row in a change set must
 	 * have the same version number. Each change set must be the complete set of
 	 * rows for a given version. Change sets must be applied to the index in version
@@ -245,6 +234,7 @@ public interface TableIndexManager {
 	long updateViewRowsInTransaction(IndexDescription index, ViewScopeType scopeType, List<ColumnModel> currentSchema,
 			ViewFilter filter);
 
+	
 	/**
 	 * Ensure the benefactor IDs for the given view snapshot are up-to-date.
 	 * 

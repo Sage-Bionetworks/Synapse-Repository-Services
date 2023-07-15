@@ -180,20 +180,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.manager.table.TableIndexManager#
-	 * isVersionAppliedToIndex
-	 * (org.sagebionetworks.repo.manager.table.TableIndexManager
-	 * .TableIndexConnection, long)
-	 */
-	@Override
-	public boolean isVersionAppliedToIndex(final IdAndVersion tableId, long versionNumber) {
-		final long currentVersion = tableIndexDao.getMaxCurrentCompleteVersionForTable(tableId);
-		return currentVersion >= versionNumber;
-	}
-	
 	/**
 	 * Set the table index schema to match the given schema.
 	 * 
@@ -745,6 +731,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	String buildIndexToLatestChange(final IdAndVersion idAndVersion, final Iterator<TableChangeMetaData> iterator,
 			final long targetChangeNumber, final String tableResetToken) throws NotFoundException, IOException {
 		String lastEtag = null;
+		
+		long currentVersion = tableIndexDao.getMaxCurrentCompleteVersionForTable(idAndVersion);
 		// Inspect each change.
 		while(iterator.hasNext()) {
 			TableChangeMetaData changeMetadata = iterator.next();
@@ -752,13 +740,14 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				// all changes have been applied to the index.
 				break;
 			}
-			if(!isVersionAppliedToIndex(idAndVersion, changeMetadata.getChangeNumber())) {
+			if(changeMetadata.getChangeNumber()> currentVersion) {
 				// This change needs to be applied to the table
 				tableManagerSupport.attemptToUpdateTableProgress(idAndVersion,
 						tableResetToken, "Applying change: " + changeMetadata.getChangeNumber(), changeMetadata.getChangeNumber(),
 						targetChangeNumber);
 				applyChangeToIndex(idAndVersion, changeMetadata);
 				lastEtag = changeMetadata.getETag();
+				currentVersion = tableIndexDao.getMaxCurrentCompleteVersionForTable(idAndVersion);
 			}
 		}
 
