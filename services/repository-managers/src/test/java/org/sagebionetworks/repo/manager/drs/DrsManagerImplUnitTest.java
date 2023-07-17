@@ -310,25 +310,6 @@ public class DrsManagerImplUnitTest {
         }).getMessage());
     }
 
-    @Test
-    public void testStartsWithSyn() {
-        assertEquals(true, drsManager.startsWith(ENTITY_ID, "syn"));
-    }
-
-    @Test
-    public void testStartsWithFh() {
-        assertEquals(true, drsManager.startsWith(DATA_FILE_HANDLE_ID_WITH_PREFIX, "fh"));
-    }
-
-    @Test
-    public void testStartsWithNothing() {
-        assertEquals(false, drsManager.startsWith(DATA_FILE_HANDLE_ID, "syn"));
-    }
-    @Test
-    public void testStartsWithIncorrectPrefix() {
-        assertEquals(false, drsManager.startsWith(DATA_FILE_HANDLE_ID_WITH_PREFIX, "syn"));
-    }
-
     private FileEntity getFileEntity() {
         final FileEntity file = new FileEntity();
         file.setId(ENTITY_ID);

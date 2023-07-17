@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.drs.Checksum;
 import org.sagebionetworks.repo.model.drs.ChecksumType;
 import org.sagebionetworks.repo.model.drs.Content;
 import org.sagebionetworks.repo.model.drs.DrsObject;
+import org.sagebionetworks.repo.model.drs.IdAndTypeParser;
 import org.sagebionetworks.repo.model.drs.OrganizationInformation;
 import org.sagebionetworks.repo.model.drs.PackageInformation;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
@@ -105,44 +106,39 @@ public class DrsManagerImpl implements DrsManager {
             throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException, UnsupportedOperationException {
         ValidateArgument.required(userId, "userId");
         ValidateArgument.required(objectId, "objectId");
+        final FileHandle fileHandle;
+        final IdAndVersion idAndVersion;
         final UserInfo userInfo = userManager.getUserInfo(userId);
+        final IdAndTypeParser idAndTypeParser = IdAndTypeParser.Builder().setObjectId(objectId).build();
 
-        if (startsWith(objectId, "fh")) {
-            final String fileHandleId = String.valueOf(Long.parseLong(objectId.substring(2)));
-            final FileHandle fileHandle = fileHandleManager.getRawFileHandle(userInfo, fileHandleId);
-            return createDrsObject(fileHandle);
-        }
+        switch (idAndTypeParser.getType()) {
+            case FILE_HANDLE:
+                idAndVersion = idAndTypeParser.getIdAndVersion();
+                fileHandle = fileHandleManager.getRawFileHandle(userInfo, idAndVersion.getId().toString());
+                return createDrsObject(fileHandle);
+            case FILE_ENTITY:
+                idAndVersion = idAndTypeParser.getIdAndVersion();
+                final Entity entity = entityManager.getEntityForVersion(userInfo, idAndVersion.getId().toString(),
+                        idAndVersion.getVersion().get(), null);
 
-        if (startsWith(objectId, "syn")) {
-            final IdAndVersion idAndVersion = IdAndVersion.parse(objectId);
-            validateIdHasVersion(idAndVersion);
-            final Entity entity = entityManager.getEntityForVersion(userInfo, idAndVersion.getId().toString(),
-                    idAndVersion.getVersion().get(), null);
+                if (entity instanceof FileEntity) {
+                    final FileEntity file = (FileEntity) entity;
+                    // Drs user are allowed to see metadata so access check is not required and
+                    // moreover the metadata provided is not sensitive like s3 url etc.
+                    fileHandle = fileHandleManager.getRawFileHandleUnchecked(file.getDataFileHandleId());
+                    return createDrsObject(file, fileHandle, idAndVersion);
+                } else if (entity instanceof Dataset) {
+                    if (expand) {
+                        throw new IllegalArgumentException("Nesting of bundle is not supported.");
+                    }
 
-            if (entity instanceof FileEntity) {
-                final FileEntity file = (FileEntity) entity;
-                // Drs user are allowed to see metadata so access check is not required and
-                // moreover the metadata provided is not sensitive like s3 url etc.
-                final FileHandle fileHandle = fileHandleManager.getRawFileHandleUnchecked(file.getDataFileHandleId());
-                return createDrsObject(file, fileHandle, idAndVersion);
-            } else if (entity instanceof Dataset) {
-                if (expand) {
-                    throw new IllegalArgumentException("Nesting of bundle is not supported.");
+                    final Dataset dataset = (Dataset) entity;
+                    return createDrsObject(dataset, idAndVersion);
+                } else {
+                    throw new IllegalArgumentException(ILLEGAL_ARGUMENT_ERROR_MESSAGE);
                 }
-
-                final Dataset dataset = (Dataset) entity;
-                return createDrsObject(dataset, idAndVersion);
-            } else {
-                throw new IllegalArgumentException(ILLEGAL_ARGUMENT_ERROR_MESSAGE);
-            }
         }
         throw new IllegalArgumentException("Invalid Object ID: " + objectId);
-    }
-
-    private void validateIdHasVersion(final IdAndVersion idAndVersion) {
-        if (idAndVersion.getVersion().isEmpty()) {
-            throw new IllegalArgumentException("Object id should include version. e.g syn123.1");
-        }
     }
 
     @Override
@@ -151,22 +147,30 @@ public class DrsManagerImpl implements DrsManager {
         ValidateArgument.required(userId, "userId");
         ValidateArgument.required(objectId, "objectId");
         ValidateArgument.required(accessId, "accessId");
-        final UserInfo userInfo = userManager.getUserInfo(userId);
         final FileHandleUrlRequest urlRequest;
+        final AccessId accessIdObject;
+        final UserInfo userInfo = userManager.getUserInfo(userId);
 
-        if (startsWith(objectId, "fh")) {
-            final String fileHandleIdFromObjectId = String.valueOf(Long.parseLong(objectId.substring(2)));
-            final AccessId accessIdObject = AccessId.decode(accessId);
-            if (!fileHandleIdFromObjectId.equals(accessIdObject.getFileHandleId())) {
-                throw new IllegalArgumentException("AccessId and ObjectId contain different file handle IDs.");
-            }
-            urlRequest = new FileHandleUrlRequest(userInfo, accessIdObject.getFileHandleId());
-        } else {
-            final AccessId accessIdObject = AccessId.decode(accessId);
-            final IdAndVersion drsObjectId = IdAndVersion.parse(objectId);
-            validateAccessIdHasObjectId(drsObjectId, accessIdObject.getSynapseIdWithVersion());
-            urlRequest = new FileHandleUrlRequest(userInfo, accessIdObject.getFileHandleId())
-                    .withAssociation(accessIdObject.getAssociateType(), drsObjectId.getId().toString());
+        final IdAndTypeParser idAndTypeParser = IdAndTypeParser.Builder().setObjectId(objectId).build();
+
+        switch (idAndTypeParser.getType()) {
+            case FILE_HANDLE:
+                final String fileHandleIdFromObjectId = idAndTypeParser.getIdAndVersion().getId().toString();
+                accessIdObject = AccessId.decode(accessId);
+                if (!fileHandleIdFromObjectId.equals(accessIdObject.getFileHandleId())) {
+                    throw new IllegalArgumentException("AccessId and ObjectId contain different file handle IDs.");
+                }
+                urlRequest = new FileHandleUrlRequest(userInfo, accessIdObject.getFileHandleId());
+                break;
+            case FILE_ENTITY:
+                accessIdObject = AccessId.decode(accessId);
+                final IdAndVersion drsObjectId = IdAndVersion.parse(objectId);
+                validateAccessIdHasObjectId(drsObjectId, accessIdObject.getSynapseIdWithVersion());
+                urlRequest = new FileHandleUrlRequest(userInfo, accessIdObject.getFileHandleId())
+                        .withAssociation(accessIdObject.getAssociateType(), drsObjectId.getId().toString());
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid Object ID: " + objectId);
         }
 
         final String url = fileHandleManager.getRedirectURLForFileHandle(urlRequest);
@@ -262,9 +266,5 @@ public class DrsManagerImpl implements DrsManager {
         checksums.add(checksum);
         result.setChecksums(checksums);
         return result;
-    }
-
-    static boolean startsWith(String toTest, String prefix) {
-        return toTest.trim().toLowerCase().startsWith(prefix);
     }
 }
