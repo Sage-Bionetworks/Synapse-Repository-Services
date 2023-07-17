@@ -35,6 +35,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -64,6 +65,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.ArrayHasPredicate;
+import org.sagebionetworks.table.query.model.BooleanFactor;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.CastSpecification;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
@@ -76,14 +78,17 @@ import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
+import org.sagebionetworks.table.query.model.HasSearchCondition;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
+import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlContext;
+import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
@@ -2705,36 +2710,40 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFiltersWithNOrullEmptyList() {
+	public void testTranslateQueryFiltersWithNOrullEmptyList() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn").tableExpression();
 		assertThrows(IllegalArgumentException.class, () ->
 				// method under test
-				SQLTranslatorUtils.translateQueryFilters(null)
+				SQLTranslatorUtils.translateQueryFilters(tableExpression, null)
 		);
 
 		assertThrows(IllegalArgumentException.class, () ->
 				// method under test
-				SQLTranslatorUtils.translateQueryFilters(Collections.emptyList())
-		);
+				SQLTranslatorUtils.translateQueryFilters(tableExpression, Collections.emptyList())
+		);		
 	}
 
 	@Test
-	public void testTranslateQueryFiltersWithSingleColumns() {
+	public void testTranslateQueryFiltersWithSingleColumns() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
-		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
+		filter.setValues(Arrays.asList("foo%", "%bar", "%baz%"));
 
 		// method under test
-		String searchCondition = SQLTranslatorUtils.translateQueryFilters(Arrays.asList(filter));
-		assertEquals("(\"myCol\" LIKE 'foo%' OR \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%')", searchCondition);
+		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(filter));
+		assertEquals("FROM syn1 WHERE ( \"myCol\" LIKE 'foo%' OR \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%' )",
+				tableExpression.toSql());
 	}
 
 	@Test
-	public void testTranslateQueryFiltersWithMultipleColumns(){
+	public void testTranslateQueryFiltersWithMultipleColumns() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
-		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
+		filter.setValues(Arrays.asList("foo%", "%bar", "%baz%"));
 
 		ColumnSingleValueQueryFilter filter2 = new ColumnSingleValueQueryFilter();
 		filter2.setColumnName("otherCol");
@@ -2742,10 +2751,12 @@ public class SQLTranslatorUtilsTest {
 		filter2.setValues(Arrays.asList("%asdf"));
 
 		// method under test
-		String searchCondition = SQLTranslatorUtils.translateQueryFilters(Arrays.asList(filter, filter2));
-		assertEquals("(\"myCol\" LIKE 'foo%' OR \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%') AND (\"otherCol\" LIKE '%asdf')", searchCondition);
+		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(filter, filter2));
+		assertEquals(
+				"FROM syn1 WHERE ( \"myCol\" LIKE 'foo%' OR \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%' ) AND ( \"otherCol\" LIKE '%asdf' )",
+				tableExpression.toSql());
 	}
-
+	
 	@Test
 	public void testTranslateQueryFiltersWithLikeFilterAndsingleValues(){
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
@@ -2812,23 +2823,80 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFiltersWithSingleColumnsWithEqual() {
+	public void testTranslateQueryFiltersWithSingleColumnsWithEqual() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		filter.setOperator(ColumnSingleValueFilterOperator.EQUAL);
 		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
 
 		// method under test
-		String searchCondition = SQLTranslatorUtils.translateQueryFilters(Arrays.asList(filter));
-		assertEquals("(\"myCol\" = 'foo%' OR \"myCol\" = '%bar' OR \"myCol\" = '%baz%')", searchCondition);
+		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(filter));
+		assertEquals("FROM syn1 WHERE ( \"myCol\" = 'foo%' OR \"myCol\" = '%bar' OR \"myCol\" = '%baz%' )", tableExpression.toSql());
 	}
-
+	
 	@Test
-	public void testTranslateQueryFiltersWithMultipleColumnsWithEqual(){
+	public void testTranslateQueryFiltersWithSingleColumnsWithExistingWhere() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1 where a>b").tableExpression();
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		filter.setOperator(ColumnSingleValueFilterOperator.EQUAL);
-		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
+		filter.setValues(Arrays.asList("foo"));
+
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(filter));
+		assertEquals("FROM syn1 WHERE ( a > b ) AND ( ( \"myCol\" = 'foo' ) )", tableExpression.toSql());
+	}
+	
+	@Test
+	public void testTranslateQueryFiltersWithDefiningSingleColumns() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.EQUAL);
+		filter.setValues(Arrays.asList("foo"));
+		filter.setIsDefiningCondition(true);
+
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(filter));
+		assertEquals("FROM syn1 DEFINING_WHERE ( \"myCol\" = 'foo' )", tableExpression.toSql());
+	}
+	
+	@Test
+	public void testTranslateQueryFiltersWithDefiningSingleColumnsAndExistingDefining() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1 defining_where a>b").tableExpression();
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.EQUAL);
+		filter.setValues(Arrays.asList("foo"));
+		filter.setIsDefiningCondition(true);
+
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(filter));
+		assertEquals("FROM syn1 DEFINING_WHERE ( a > b ) AND ( ( \"myCol\" = 'foo' ) )", tableExpression.toSql());
+	}
+	
+	@Test
+	public void testTranslateQueryFiltersWithDefiningSingleColumnsAndExistingWhere() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1 where a>b").tableExpression();
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.EQUAL);
+		filter.setValues(Arrays.asList("foo"));
+		filter.setIsDefiningCondition(true);
+
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(filter));
+		assertEquals("FROM syn1 DEFINING_WHERE ( \"myCol\" = 'foo' ) WHERE a > b", tableExpression.toSql());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithMultipleColumnsWithEqual() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.EQUAL);
+		filter.setValues(Arrays.asList("foo%", "%bar", "%baz%"));
 
 		ColumnSingleValueQueryFilter filter2 = new ColumnSingleValueQueryFilter();
 		filter2.setColumnName("otherCol");
@@ -2836,8 +2904,10 @@ public class SQLTranslatorUtilsTest {
 		filter2.setValues(Arrays.asList("%asdf"));
 
 		// method under test
-		String searchCondition = SQLTranslatorUtils.translateQueryFilters(Arrays.asList(filter, filter2));
-		assertEquals("(\"myCol\" = 'foo%' OR \"myCol\" = '%bar' OR \"myCol\" = '%baz%') AND (\"otherCol\" = '%asdf')", searchCondition);
+		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(filter, filter2));
+		assertEquals(
+				"FROM syn1 WHERE ( \"myCol\" = 'foo%' OR \"myCol\" = '%bar' OR \"myCol\" = '%baz%' ) AND ( \"otherCol\" = '%asdf' )",
+				tableExpression.toSql());
 	}
 
 	@Test
@@ -2999,6 +3069,16 @@ public class SQLTranslatorUtilsTest {
 
 			@Override
 			public QueryFilter setConcreteType(String concreteType) {
+				return null;
+			}
+
+			@Override
+			public Boolean getIsDefiningCondition() {
+				return null;
+			}
+
+			@Override
+			public QueryFilter setIsDefiningCondition(Boolean isDefiningCondition) {
 				return null;
 			}
 		};
@@ -3837,5 +3917,96 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("T123 (_C111_, _C222_, _C333_, _C444_, _C555_, _C777_, _C888_, _C999_) AS (SELECT * FROM syn456)",
 				element.toSql());
 		verify(mockSchemaProvider).getTableSchema(IdAndVersion.parse("syn123"));
+	}
+	
+	@Test
+	public void testTranslateDefiningClause() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"with syn2 as (select * from syn1) select * from syn2 defining_where foo > bar").queryExpression();
+
+		// call under test
+		SQLTranslatorUtils.translateDefiningClause(element);
+		assertEquals("WITH syn2 AS (SELECT * FROM syn1 WHERE foo > bar) SELECT * FROM syn2", element.toSql());
+	}
+	
+	@Test
+	public void testTranslateDefiningClauseWithNoDefining() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"with syn2 as (select * from syn1) select * from syn2").queryExpression();
+
+		// call under test
+		SQLTranslatorUtils.translateDefiningClause(element);
+		assertEquals("WITH syn2 AS (SELECT * FROM syn1) SELECT * FROM syn2", element.toSql());
+	}
+
+	@Test
+	public void testTranslateDefiningClauseWithExistingWhere() throws ParseException {
+		QueryExpression element = new TableQueryParser("with syn2 as (select * from syn1 where a=b and (b>c or c>d))"
+				+ " select * from syn2 defining_where foo > bar or bar is null and foo < 1").queryExpression();
+
+		// call under test
+		SQLTranslatorUtils.translateDefiningClause(element);
+		assertEquals("WITH syn2 AS "
+				+ "(SELECT * FROM syn1 WHERE ( a = b AND ( b > c OR c > d ) ) AND ( foo > bar OR bar IS NULL AND foo < 1 ))"
+				+ " SELECT * FROM syn2", element.toSql());
+		element.stream(SearchCondition.class).forEach(s->assertNotNull(s.getParent()));
+	}
+	
+	@Test
+	public void testTranslateDefiningClauseWithoutCTE() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"select * from syn2 defining_where foo > bar").queryExpression();
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SQLTranslatorUtils.translateDefiningClause(element);
+		}).getMessage();
+		assertEquals("DEFINING_WHERE can only be used with a common table expression with a single inner query", message);
+	}
+	
+	@Test
+	public void testTranslateDefiningClauseWithMultipleCTE() throws ParseException {
+		QueryExpression element = new TableQueryParser(
+				"with syn2 as (select * from syn1), syn3 as (select foo from syn1) select * from syn2 defining_where foo > bar").queryExpression();
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SQLTranslatorUtils.translateDefiningClause(element);
+		}).getMessage();
+		assertEquals("DEFINING_WHERE can only be used with a common table expression with a single inner query", message);
+	}
+	
+	@Test
+	public void testWrapSearchConditionInBooleanFactor() throws ParseException {
+		SearchCondition element = new TableQueryParser("foo > bar").searchCondition();
+		BooleanFactor factor = SQLTranslatorUtils.wrapSearchConditionInBooleanFactor(element);
+		assertEquals("( foo > bar )", factor.toSql());
+	}
+	
+	@Test
+	public void testMergeSearchConditions() throws ParseException {
+		SearchCondition one = new TableQueryParser("foo > bar").searchCondition();
+		SearchCondition two = new TableQueryParser("bar is not null").searchCondition();
+		SearchCondition result = SQLTranslatorUtils.mergeSearchConditions(one, two);
+		assertEquals("( foo > bar ) AND ( bar IS NOT NULL )", result.toSql());
+	}
+	
+	@Test
+	public void testMergeSearchConditionsWithHasCondition() throws ParseException {
+		HasSearchCondition mockHas = Mockito.mock(HasSearchCondition.class);
+		SearchCondition one = new TableQueryParser("foo > bar").searchCondition();
+		when(mockHas.getSearchCondition()).thenReturn(one);
+		SearchCondition two = new TableQueryParser("bar is not null").searchCondition();
+		SearchCondition result = SQLTranslatorUtils.mergeSearchConditions(mockHas, two);
+		assertEquals("( foo > bar ) AND ( bar IS NOT NULL )", result.toSql());
+		verify(mockHas).getSearchCondition();
+	}
+	
+	@Test
+	public void testMergeSearchConditionsWithNullHasCondition() throws ParseException {
+		HasSearchCondition mockHas = null;
+		SearchCondition two = new TableQueryParser("bar is not null").searchCondition();
+		SearchCondition result = SQLTranslatorUtils.mergeSearchConditions(mockHas, two);
+		assertEquals("bar IS NOT NULL", result.toSql());
 	}
 }

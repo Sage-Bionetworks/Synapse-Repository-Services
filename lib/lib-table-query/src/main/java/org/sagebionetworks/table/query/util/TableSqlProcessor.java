@@ -90,7 +90,7 @@ public class TableSqlProcessor {
 		QuerySpecification newQuery = new QuerySpecification(
 				model.getSetQuantifier(), selectList, new TableExpression(
 						te.getFromClause(), te.getWhereClause(),
-						te.getGroupByClause(), newCluase, te.getPagination()));
+						te.getGroupByClause(), newCluase, te.getPagination(), te.getDefiningClause()));
 		return newQuery.toSql();
 	}
 

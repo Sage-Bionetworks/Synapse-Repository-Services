@@ -122,6 +122,7 @@ public class QueryTranslator {
 			}
 			QueryExpression transformedModel = new TableQueryParser(startingSql).queryExpression();
 			transformedModel.setSqlContext(this.sqlContext);
+			SQLTranslatorUtils.translateDefiningClause(transformedModel);
 			
 			List<QueryPart> parts = transformedModel.stream(QuerySpecification.class).map((q)-> new QueryPart(q, schemaProvider)).collect(Collectors.toList());
 			

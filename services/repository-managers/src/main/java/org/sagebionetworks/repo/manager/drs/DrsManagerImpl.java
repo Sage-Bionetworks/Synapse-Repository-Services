@@ -232,6 +232,7 @@ public class DrsManagerImpl implements DrsManager {
                 content.setName(fileIdWithVersion);
                 content.setDrs_uri(DRS_URI + fileIdWithVersion);
                 contentList.add(content);
+
             });
         }
         result.setContents(contentList);

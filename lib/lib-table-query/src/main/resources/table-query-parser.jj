@@ -210,6 +210,7 @@ TOKEN [IGNORE_CASE]: {
 | < _else: "ELSE">
 | < cast: "CAST">
 | < with: "WITH">
+| < defining_where: "DEFINING_WHERE">
 }
 
 /* Aggregate functions */
@@ -671,14 +672,16 @@ TableExpression tableExpression():
 	GroupByClause groupByClause = null;
 	OrderByClause orderByClause = null;
 	Pagination pagination = null;
+	DefiningClause definingClause = null;
 }
 {
 	fromClause  = fromClause()
+	[ definingClause = definingClause() ]
 	[ whereClause = whereClause() ]
 	[ groupByClause = groupByClause() ]
 	[ orderByClause = orderByClause() ]
 	[ pagination = pagination() ]
-	{ return new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination); }
+	{ return new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination, definingClause); }
 }
 FromClause fromClause():
 {
@@ -1565,4 +1568,11 @@ void endOfFile():
 }
 {
 	[<semicolon>]<EOF>
+}
+DefiningClause definingClause():
+{
+	SearchCondition searchCondition = null;
+}
+{
+	<defining_where> searchCondition = searchCondition() { return new DefiningClause(searchCondition); }
 }
