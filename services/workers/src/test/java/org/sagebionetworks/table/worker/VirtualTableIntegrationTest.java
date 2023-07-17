@@ -133,13 +133,17 @@ public class VirtualTableIntegrationTest {
 		TableEntity table = asyncHelper.createTable(adminUserInfo, "sometable", project.getId(),
 				tableSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()), false);
 
-		List<Row> row = List.of(new Row().setValues(List.of("a", "1")), new Row().setValues(List.of("a", "5")),
-				new Row().setValues(List.of("b", "2")), new Row().setValues(List.of("b", "16")));
+		List<Row> row = List.of(
+			new Row().setValues(List.of("a", "1")), 
+			new Row().setValues(List.of("a", "5")),
+			new Row().setValues(List.of("b", "2")), 
+			new Row().setValues(List.of("b", "16"))
+		);
+		
 		appendRowsToTable(tableSchema, table.getId(), row);
 
 		asyncHelper.assertQueryResult(adminUserInfo, "select count(*) from " + table.getId(), (results) -> {
-			assertEquals(List.of(new Row().setValues(List.of("4"))),
-					results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(new Row().setValues(List.of("4"))), results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 
 		ColumnModel barSum = columnModelManager
@@ -148,25 +152,31 @@ public class VirtualTableIntegrationTest {
 		ColumnModel jsonColumn = columnModelManager
 				.createColumnModel(new ColumnModel().setName("jsonColumn").setColumnType(ColumnType.JSON));
 		
-		String definingSql = String.format("select foo, cast(sum(bar) as %s), cast(JSON_OBJECT(foo, sum(bar)) as %s) from %s group by foo order by foo",
-				barSum.getId(), jsonColumn.getId(), table.getId());
+		ColumnModel jsonArrayColumn = columnModelManager
+				.createColumnModel(new ColumnModel().setName("jsonArrayColumn").setColumnType(ColumnType.JSON));
+		
+		String definingSql = String.format("select foo, cast(sum(bar) as %s), cast(JSON_OBJECT(foo, sum(bar)) as %s), cast(JSON_ARRAYAGG(bar) as %s) from %s group by foo order by foo",
+				barSum.getId(), jsonColumn.getId(), jsonArrayColumn.getId(), table.getId());
 
 		VirtualTable virtualTable = asyncHelper.createVirtualTable(adminUserInfo, project.getId(), definingSql);
-		assertEquals(List.of(tableSchema.get(0).getId(), barSum.getId(), jsonColumn.getId()), virtualTable.getColumnIds());
+		assertEquals(List.of(tableSchema.get(0).getId(), barSum.getId(), jsonColumn.getId(), jsonArrayColumn.getId()), virtualTable.getColumnIds());
 
 		Query query = new Query();
 		query.setSql("select * from " + virtualTable.getId());
 		query.setIncludeEntityEtag(false);
 
-		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(true)
-				.withReturnColumnModels(true);
+		QueryOptions options = new QueryOptions()
+			.withRunQuery(true)
+			.withRunCount(true)
+			.withReturnFacets(true)
+			.withReturnColumnModels(true);
 
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
 			assertEquals(List.of(
-				new Row().setValues(List.of("a", "6", "{\"a\": 6}")), 
-				new Row().setValues(List.of("b", "18", "{\"b\": 18}"))
+				new Row().setValues(List.of("a", "6", "{\"a\": 6}", "[1, 5]")), 
+				new Row().setValues(List.of("b", "18", "{\"b\": 18}", "[2, 16]"))
 			), results.getQueryResult().getQueryResults().getRows());
-			assertEquals(List.of(foo, barSum, jsonColumn), results.getColumnModels());
+			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn), results.getColumnModels());
 			assertEquals(2L, results.getQueryCount());
 			assertEquals(List.of(new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range)
 					.setColumnMin("6").setColumnMax("18")), results.getFacets());
@@ -182,10 +192,11 @@ public class VirtualTableIntegrationTest {
 		// query with a facet selection
 		query.setSelectedFacets(
 				List.of(new FacetColumnRangeRequest().setColumnName("barSum").setMax("19").setMin("17")));
+		
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
-			assertEquals(List.of(new Row().setValues(List.of("b", "18", "{\"b\": 18}"))),
+			assertEquals(List.of(new Row().setValues(List.of("b", "18", "{\"b\": 18}", "[2, 16]"))),
 					results.getQueryResult().getQueryResults().getRows());
-			assertEquals(List.of(foo, barSum, jsonColumn), results.getColumnModels());
+			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn), results.getColumnModels());
 			assertEquals(1L, results.getQueryCount());
 			assertEquals(
 					List.of(new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range)
@@ -193,7 +204,6 @@ public class VirtualTableIntegrationTest {
 					results.getFacets());
 		}, MAX_WAIT_MS);
 		
-
 		// defining_where additional filters
 		query.setAdditionalFilters(List.of(new ColumnSingleValueQueryFilter().setColumnName("bar")
 				.setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(List.of("5"))
@@ -201,9 +211,9 @@ public class VirtualTableIntegrationTest {
 		query.setSelectedFacets(null);
 		options.withReturnFacets(false);
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
-			assertEquals(List.of(new Row().setValues(List.of("a", "5", "{\"a\": 5}"))),
+			assertEquals(List.of(new Row().setValues(List.of("a", "5", "{\"a\": 5}", "[5]"))),
 					results.getQueryResult().getQueryResults().getRows());
-			assertEquals(List.of(foo, barSum, jsonColumn), results.getColumnModels());
+			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn), results.getColumnModels());
 			assertEquals(1L, results.getQueryCount());
 		}, MAX_WAIT_MS);
 		
@@ -213,11 +223,25 @@ public class VirtualTableIntegrationTest {
 		query.setSelectedFacets(null);
 		options.withReturnFacets(false);
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
-			assertEquals(List.of(new Row().setValues(List.of("a", "6", "{\"a\": 6}")),
-								new Row().setValues(List.of("b", "2", "{\"b\": 2}"))),
+			assertEquals(List.of(new Row().setValues(List.of("a", "6", "{\"a\": 6}", "[1, 5]")),
+								new Row().setValues(List.of("b", "2", "{\"b\": 2}", "[2]"))),
 					results.getQueryResult().getQueryResults().getRows());
-			assertEquals(List.of(foo, barSum, jsonColumn), results.getColumnModels());
+			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn), results.getColumnModels());
 			assertEquals(2L, results.getQueryCount());
+		}, MAX_WAIT_MS);
+		
+		// Try manipulating the JSON column
+		
+		query.setSelectedFacets(null);
+		query.setAdditionalFilters(null);
+		query.setSql("select JSON_EXTRACT(jsonColumn, '$.a') as a, JSON_EXTRACT(jsonColumn, '$.b') as b, JSON_EXTRACT(jsonArrayColumn, '$[0]') as c from " + virtualTable.getId());
+		
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(2L, results.getQueryCount());
+			assertEquals(List.of(
+				new Row().setValues(Arrays.asList("6", null, "1")),
+				new Row().setValues(Arrays.asList(null, "18", "2"))
+			), results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 	}
 
