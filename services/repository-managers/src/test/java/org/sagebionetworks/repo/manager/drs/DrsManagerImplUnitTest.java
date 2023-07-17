@@ -315,7 +315,6 @@ public class DrsManagerImplUnitTest {
 
     private ServiceInformation createExpectedServiceInformation() {
         final ServiceInformation serviceInformation = new ServiceInformation();
-        final String baseURL = String.format("%s://%s", DrsManagerImpl.HTTPS, DrsManagerImpl.REGISTERED_HOSTNAME);
         serviceInformation.setId(DrsManagerImpl.REVERSE_DOMAIN_NOTATION);
         serviceInformation.setName(DrsManagerImpl.SERVICE_NAME);
         final PackageInformation drsPackageInformation = new PackageInformation();
@@ -334,7 +333,6 @@ public class DrsManagerImplUnitTest {
         serviceInformation.setUpdatedAt(DrsManagerImpl.UPDATED_AT);
         serviceInformation.setEnvironment("dev");
         serviceInformation.setVersion("417.0.1");
-        serviceInformation.setUrl(baseURL);
         return serviceInformation;
     }
 
