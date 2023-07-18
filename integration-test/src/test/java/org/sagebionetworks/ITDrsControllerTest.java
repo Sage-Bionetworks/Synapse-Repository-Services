@@ -102,7 +102,7 @@ public class ITDrsControllerTest {
     @Test
     public void testGetDrsObjectBlobWithIncorrectID() {
         final String idAndVersion = "syn123";
-        final String errorMessage = "Object id should include version. e.g syn123.1";
+        final String errorMessage = "Entity ID must include version. e.g syn123.1";
         try {
             synapse.getDrsObject(idAndVersion);
         } catch (final SynapseException synapseException) {

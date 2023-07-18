@@ -47,6 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -70,7 +71,6 @@ public class DrsManagerImplUnitTest {
     private static final String ENTITY_NAME = "Test File";
     private static final String ENTITY_DESCRIPTION = "Drs Test File";
     private static final String DATA_FILE_HANDLE_ID = "123456";
-    private static final String DATA_FILE_HANDLE_ID_WITH_PREFIX = "fh123456";
     private static final String FILE_CHECKSUM = "HexOfMd5";
     private static final Long USER_ID = 1L;
     private static final String DRS_URI = "drs://repo-prod.prod.sagebase.org/";
@@ -104,59 +104,58 @@ public class DrsManagerImplUnitTest {
 
     @Test
     public void testGetBlobDrsObjectWithFileHandleId() {
-        final FileHandle fileHandle = getFileHandle();
+        FileHandle fileHandle = getFileHandle();
         when(fileHandleManager.getRawFileHandle(any(), any())).thenReturn(fileHandle);
         when(userManager.getUserInfo(any())).thenReturn(userInfo);
 
         // Call under test
-        final DrsObject drsObject = drsManager.getDrsObject(USER_ID, DATA_FILE_HANDLE_ID_WITH_PREFIX, false);
+        DrsObject drsObject = drsManager.getDrsObject(USER_ID, "fh123456", false);
         verify(fileHandleManager).getRawFileHandle(userInfo, DATA_FILE_HANDLE_ID);
         verify(userManager).getUserInfo(USER_ID);
+        verifyNoMoreInteractions(entityManager);
         assertNotNull(drsObject);
         assertEquals(getExpectedDrsBlobObjectForFileHandleId(fileHandle), drsObject);
     }
 
     @Test
     public void testGetBlobDrsObjectNoPrefix() {
-        final String expectedErrorMessage = "Invalid Object ID: " + DATA_FILE_HANDLE_ID;
-
         // call under test
-        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            final DrsObject drsObject = drsManager.getDrsObject(USER_ID, DATA_FILE_HANDLE_ID, false);
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            DrsObject drsObject = drsManager.getDrsObject(USER_ID, "123456", false);
         });
-        assertEquals(expectedErrorMessage, exception.getMessage());
+        assertEquals("Object Id must be entity ID with version (e.g syn32132536.1), or the file handle ID prepended with the string \"fh\" (e.g. fh123)", exception.getMessage());
     }
 
     @Test
     public void testCreateDrsObjectForFileEntity() {
-        final FileEntity file = getFileEntity();
-        final FileHandle fileHandle = getFileHandle();
+        FileEntity file = getFileEntity();
+        FileHandle fileHandle = getFileHandle();
 
-        final IdAndVersion idAndVersion = KeyFactory.idAndVersion(file.getId(), file.getVersionNumber());
+        IdAndVersion idAndVersion = KeyFactory.idAndVersion(file.getId(), file.getVersionNumber());
 
         // call under test
-        final DrsObject result = drsManager.createDrsObject(file, fileHandle, idAndVersion);
+        DrsObject result = drsManager.createDrsObject(file, fileHandle, idAndVersion);
         assertNotNull(result);
         assertEquals(getExpectedDrsBlobObject(file, fileHandle), result);
     }
 
     @Test
     public void testCreateDrsObjectForFileHandle() {
-        final FileHandle fileHandle = getFileHandle();
+        FileHandle fileHandle = getFileHandle();
 
         // call under test
-        final DrsObject result = drsManager.createDrsObject(fileHandle);
+        DrsObject result = drsManager.createDrsObject(fileHandle);
         assertNotNull(result);
         assertEquals(getExpectedDrsBlobObjectForFileHandleId(fileHandle), result);
     }
 
     @Test
     public void testCreateDrsObjectForDataset() {
-        final Dataset dataset = getDataset();
-        final IdAndVersion idAndVersion = KeyFactory.idAndVersion(dataset.getId(), dataset.getVersionNumber());
+        Dataset dataset = getDataset();
+        IdAndVersion idAndVersion = KeyFactory.idAndVersion(dataset.getId(), dataset.getVersionNumber());
 
         //call under test
-        final DrsObject result = drsManager.createDrsObject(dataset, idAndVersion);
+        DrsObject result = drsManager.createDrsObject(dataset, idAndVersion);
         assertNotNull(result);
         assertEquals(getExpectedDrsBundleObject(dataset), result);
     }
@@ -191,7 +190,7 @@ public class DrsManagerImplUnitTest {
     @Test
     public void testGetBlobDrsObjectWithObjectIdWithoutVersion() {
         final String id = "syn1";
-        final String expectedErrorMessage = "Object id should include version. e.g syn123.1";
+        final String expectedErrorMessage = "Entity ID must include version. e.g syn123.1";
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             drsManager.getDrsObject(USER_ID, id, false);
         });
@@ -206,7 +205,7 @@ public class DrsManagerImplUnitTest {
             drsManager.getDrsObject(USER_ID, project.getId(), false);
         });
         verify(entityManager).getEntityForVersion(null, "1", ENTITY_VERSION, null);
-        assertEquals("DRS API only supports FileEntity and Datasets.", exception.getMessage());
+        assertEquals("Only FileEntity, Datasets, and File Handle IDs are supported.", exception.getMessage());
     }
 
     @Test
@@ -243,14 +242,14 @@ public class DrsManagerImplUnitTest {
 
     @Test
     public void testGetAccessUrlWithFileHandleId() {
-        final String url = "https://s3.amazonaws.com/proddata.sagebase.org/3449751/645bd567-5f63-46d0-92ee-0d58dbfb08e9";
+        String url = "https://s3.amazonaws.com/proddata.sagebase.org/3449751/645bd567-5f63-46d0-92ee-0d58dbfb08e9";
         when(userManager.getUserInfo(any())).thenReturn(userInfo);
         when(fileHandleManager.getRedirectURLForFileHandle(any())).thenReturn(url);
 
         // call under test
-        final AccessUrl accessUrl = drsManager.getAccessUrl(USER_ID, DATA_FILE_HANDLE_ID_WITH_PREFIX, DATA_FILE_HANDLE_ID);
+        AccessUrl accessUrl = drsManager.getAccessUrl(USER_ID, "fh123456", "123456");
         verify(userManager).getUserInfo(USER_ID);
-        verify(fileHandleManager).getRedirectURLForFileHandle(new FileHandleUrlRequest(userInfo, DATA_FILE_HANDLE_ID));
+        verify(fileHandleManager).getRedirectURLForFileHandle(new FileHandleUrlRequest(userInfo, "123456"));
         assertNotNull(accessUrl);
         assertEquals(url, accessUrl.getUrl());
     }
@@ -271,11 +270,10 @@ public class DrsManagerImplUnitTest {
 
     @Test
     public void testGetAccessUrlWithInConsistentObjectIdWithFileHandleId() {
-        final String accessId = "12345";
         when(userManager.getUserInfo(any())).thenReturn(userInfo);
 
         assertEquals("AccessId and ObjectId contain different file handle IDs.", assertThrows(IllegalArgumentException.class, () -> {
-            drsManager.getAccessUrl(USER_ID, DATA_FILE_HANDLE_ID_WITH_PREFIX, accessId);
+            drsManager.getAccessUrl(USER_ID, "fh123456", "12345");
         }).getMessage());
 
         verify(userManager).getUserInfo(USER_ID);
@@ -420,7 +418,7 @@ public class DrsManagerImplUnitTest {
 
     private DrsObject getExpectedDrsBlobObjectForFileHandleId(final FileHandle fileHandle) {
         final DrsObject drsObject = new DrsObject();
-        drsObject.setId(DATA_FILE_HANDLE_ID_WITH_PREFIX);
+        drsObject.setId("fh123456");
         drsObject.setName(fileHandle.getFileName());
         drsObject.setVersion(null);
         drsObject.setSize(fileHandle.getContentSize());
@@ -440,7 +438,7 @@ public class DrsManagerImplUnitTest {
         accessMethod.setAccess_id(accessId.encode());
         accessMethods.add(accessMethod);
         drsObject.setAccess_methods(accessMethods);
-        drsObject.setSelf_uri(DRS_URI + DATA_FILE_HANDLE_ID_WITH_PREFIX);
+        drsObject.setSelf_uri(DRS_URI + "fh123456");
         drsObject.setDescription(null);
         return drsObject;
     }
