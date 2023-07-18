@@ -165,6 +165,14 @@ public class SetFunctionSpecificationTest {
 		assertNotNull(element.getFirstElementOfType(OrderByClause.class));
 		assertNotNull(element.getFirstElementOfType(Separator.class));
 	}
+	
+	@Test
+	public void testJsonArrayAgg() throws ParseException {
+		SetFunctionSpecification element = new TableQueryParser("json_arrayagg(foo)").generalSetFunction();
+		assertTrue(element.isElementAggregate());
+		assertEquals("JSON_ARRAYAGG(foo)", element.toString());
+		assertEquals(FunctionReturnType.JSON, element.getFunctionReturnType());
+	}
 
 	@Test
 	public void testGetChildren() throws ParseException {
