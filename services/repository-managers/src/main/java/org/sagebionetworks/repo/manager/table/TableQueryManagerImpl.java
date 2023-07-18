@@ -379,7 +379,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		
 		if(options.returnLastUpdatedOn()) {
-			Date lastUpdatedOn = tableManagerSupport.getLastChangedOn(idAndVersion);
+			Date lastUpdatedOn = tableManagerSupport.getLastChangedOn(idAndVersion).orElse(new Date());
 			bundle.setLastUpdatedOn(lastUpdatedOn);
 		}
 

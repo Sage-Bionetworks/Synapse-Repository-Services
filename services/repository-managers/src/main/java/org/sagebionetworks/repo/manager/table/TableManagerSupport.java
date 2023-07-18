@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
+import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
@@ -387,9 +388,9 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 	 * Get table status last changed on date for the given table.
 	 * 
 	 * @param idAndVersion
-	 * @return
+	 * @return {@link Optional#empty()} for a table/view that does not have an index (like {@link VirtualTable}.
 	 */
-	Date getLastChangedOn(IdAndVersion idAndVersion);
+	Optional<Date> getLastChangedOn(IdAndVersion idAndVersion);
 
 	/**
 	 * Is the state of the index for the given table invalid? An index is invalid if

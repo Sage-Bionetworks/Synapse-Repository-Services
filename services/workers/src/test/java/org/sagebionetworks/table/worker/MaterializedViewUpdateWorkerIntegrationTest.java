@@ -1015,7 +1015,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertEquals(initialRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 		
-		Date initialChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);
+		Date initialChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId).get();
 		
 		// Now trigger an update of the dependent table changing its schema
 		List<ColumnModel> schema = List.of(
@@ -1038,7 +1038,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertNotEquals(initialChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
 		}, MAX_WAIT_MS);
 		
-		Date lastChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);
+		Date lastChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId).get();
 		 
 		// We emulate another update, the index should not be replaced since the view is up to date
 		tableManagerSupport.triggerIndexUpdate(materializedViewId);
@@ -1089,7 +1089,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertEquals(initialRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 		
-		Date initialChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);
+		Date initialChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId).get();
 		
 		// Now we change the view data and trigger an update
 		
@@ -1120,7 +1120,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertNotEquals(initialChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
 		}, MAX_WAIT_MS);
 		
-		Date lastChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);		
+		Date lastChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId).get();		
 		
 		// We emulate another update to the depending view, the index should not be replaced since the view is up to date
 		tableManagerSupport.triggerIndexUpdate(viewId);

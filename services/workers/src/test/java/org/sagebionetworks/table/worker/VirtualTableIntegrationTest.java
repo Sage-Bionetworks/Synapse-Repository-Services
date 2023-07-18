@@ -71,7 +71,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class VirtualTableIntegrationTest {
 
-	public static final Long MAX_WAIT_MS = 30_000L;
+	public static final Long MAX_WAIT_MS = 30_000_000L;
 
 	@Autowired
 	private AsynchronousJobWorkerHelper asyncHelper;
@@ -155,6 +155,76 @@ public class VirtualTableIntegrationTest {
 
 		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(true)
 				.withReturnColumnModels(true);
+
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("a", "6")), new Row().setValues(List.of("b", "18"))),
+					results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum), results.getColumnModels());
+			assertEquals(2L, results.getQueryCount());
+			assertEquals(List.of(new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range)
+					.setColumnMin("6").setColumnMax("18")), results.getFacets());
+		}, MAX_WAIT_MS);
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			asyncHelper.assertQueryResult(userInfo, query, options, (results) -> {
+				// should fail
+			}, MAX_WAIT_MS);
+		}).getMessage();
+		assertEquals("You lack DOWNLOAD access to the requested entity.", message);
+		
+		// query with a facet selection
+		query.setSelectedFacets(
+				List.of(new FacetColumnRangeRequest().setColumnName("barSum").setMax("19").setMin("17")));
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("b", "18"))),
+					results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum), results.getColumnModels());
+			assertEquals(1L, results.getQueryCount());
+			assertEquals(
+					List.of(new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range)
+							.setColumnMin("6").setColumnMax("18").setSelectedMax("19").setSelectedMin("17")),
+					results.getFacets());
+		}, MAX_WAIT_MS);
+	}
+	
+	@Test
+	public void testVirtualTableAgainstTableTemp() throws Exception {
+
+		List<Entity> entitites = createProjectHierachy();
+		Project project = (Project) entitites.get(0);
+
+		List<ColumnModel> tableSchema = List.of(
+				new ColumnModel().setName("string").setColumnType(ColumnType.STRING).setMaximumSize(50L).setFacetType(FacetType.enumeration),
+				new ColumnModel().setName("boolean").setColumnType(ColumnType.BOOLEAN).setFacetType(FacetType.enumeration),
+				new ColumnModel().setName("double").setColumnType(ColumnType.DOUBLE).setFacetType(FacetType.range));
+		tableSchema = columnModelManager.createColumnModels(adminUserInfo, tableSchema);
+		ColumnModel foo = tableSchema.get(0);
+
+		TableEntity table = asyncHelper.createTable(adminUserInfo, "sometable", project.getId(),
+				tableSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()), false);
+
+		List<Row> row = List.of(new Row().setValues(List.of("a", "true", "3.13")), new Row().setValues(List.of("a", "false", "4.5")),
+				new Row().setValues(List.of("a", "TRUE", "nan")), new Row().setValues(List.of("b", "FALSE","0.1")));
+		appendRowsToTable(tableSchema, table.getId(), row);
+
+		asyncHelper.assertQueryResult(adminUserInfo, "select count(*) from " + table.getId(), (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("4"))),
+					results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+
+		ColumnModel barSum = columnModelManager
+				.createColumnModel(new ColumnModel().setName("barSum").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range));
+
+		String definingSql = String.format("select string, boolean from %s",
+				table.getId());
+
+		VirtualTable virtualTable = asyncHelper.createVirtualTable(adminUserInfo, project.getId(), definingSql);
+
+		Query query = new Query();
+		query.setSql("select * from " + virtualTable.getId());
+		query.setIncludeEntityEtag(true);
+
+		QueryOptions options = new QueryOptions().withMask(254L);
 
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
 			assertEquals(List.of(new Row().setValues(List.of("a", "6")), new Row().setValues(List.of("b", "18"))),

@@ -34,6 +34,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -780,7 +781,7 @@ public class TableQueryManagerImplTest {
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
 		Date lastUpdatedOn = new Date(567L);
-		when(mockTableManagerSupport.getLastChangedOn(idAndVersion)).thenReturn(lastUpdatedOn);
+		when(mockTableManagerSupport.getLastChangedOn(idAndVersion)).thenReturn(Optional.of(lastUpdatedOn));
 
 		// non-null handler indicates the query should be run.
 		RowHandler rowHandler = new SinglePageRowHandler();
@@ -790,6 +791,29 @@ public class TableQueryManagerImplTest {
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(lastUpdatedOn, results.getLastUpdatedOn());
+	}
+	
+	@Test
+	public void testQueryAsStreamAfterAuthorizationWithLastUpdatedOnEmpty() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		setupQueryCallback();
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		when(mockTableManagerSupport.getLastChangedOn(idAndVersion)).thenReturn(Optional.empty());
+
+		// non-null handler indicates the query should be run.
+		RowHandler rowHandler = new SinglePageRowHandler();
+		queryOptions = new QueryOptions().withReturnLastUpdatedOn(true);
+				QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
+		// call under test
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		assertNotNull(results);
+		assertNotNull(results.getLastUpdatedOn());
+		long now = System.currentTimeMillis();
+		long resultMs = results.getLastUpdatedOn().getTime();
+		assertTrue(resultMs > now-1000L);
+		assertTrue(resultMs < now+1000L);
 	}
 	
 	

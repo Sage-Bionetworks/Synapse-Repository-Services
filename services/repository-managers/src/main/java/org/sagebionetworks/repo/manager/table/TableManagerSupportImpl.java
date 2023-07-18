@@ -609,7 +609,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public Date getLastChangedOn(IdAndVersion idAndVersion) {
+	public Optional<Date> getLastChangedOn(IdAndVersion idAndVersion) {
 		return tableStatusDAO.getLastChangedOn(idAndVersion);
 	}
 

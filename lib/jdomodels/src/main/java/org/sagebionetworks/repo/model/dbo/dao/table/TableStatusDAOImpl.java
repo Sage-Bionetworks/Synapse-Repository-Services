@@ -300,15 +300,15 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	}
 
 	@Override
-	public Date getLastChangedOn(IdAndVersion tableId) {
+	public Optional<Date> getLastChangedOn(IdAndVersion tableId) {
 		long version = validateAndGetVersion(tableId);
 		try {
 			Long changedOn = jdbcTemplate.queryForObject(
 					String.format(SELECT_STATUS_TEMPLATE, COL_TABLE_STATUS_CHANGE_ON), Long.class, tableId.getId(),
 					version);
-			return new Date(changedOn);
+			return Optional.of(new Date(changedOn));
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Table status does not exist for: " + tableId.toString());
+			return Optional.empty();
 		}
 	}
 
