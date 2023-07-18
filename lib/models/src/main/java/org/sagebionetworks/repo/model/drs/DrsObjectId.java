@@ -16,19 +16,21 @@ public class DrsObjectId {
 	private static final String ENTITY_ID_PREFIX = "syn";
 	private static final String FILE_HANDLE_ID_PREFIX = "fh";
 
-	private Type type;
-	private Long fileHandleId;
-	private IdAndVersion idAndVersion;
+	private final Type type;
+	private final Long fileHandleId;
+	private final IdAndVersion idAndVersion;
 
 
 	public DrsObjectId(Type type, IdAndVersion idAndVersion) {
 		this.type = type;
 		this.idAndVersion = idAndVersion;
+		this.fileHandleId = null;
 	}
 
 	public DrsObjectId(Type type, Long fileHandleId) {
 		this.type = type;
 		this.fileHandleId = fileHandleId;
+		this.idAndVersion = null;
 	}
 
 	public Type getType() {

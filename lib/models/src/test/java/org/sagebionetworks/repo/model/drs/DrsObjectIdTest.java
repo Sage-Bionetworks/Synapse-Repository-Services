@@ -13,15 +13,15 @@ public class DrsObjectIdTest {
     private static final String ENTITY_OBJECT_ID = "syn54321.1";
 
     @Test
-    public void testCreateDrsObjectIdWithFileHandleId() {
+    public void testParseWithValidFileHandleId() {
         // call under test
         DrsObjectId drsObjectId = DrsObjectId.parse("fh12345");
         assertEquals(DrsObjectId.Type.FILE_HANDLE, drsObjectId.getType());
-        assertEquals("12345", drsObjectId.getFileHandleId().toString());
+        assertEquals(12345L, drsObjectId.getFileHandleId());
     }
 
     @Test
-    public void testCreateDrsObjectIdWithEntityId() {
+    public void testParseWithValidEntityId() {
         // call under test
         DrsObjectId drsObjectId = DrsObjectId.parse("syn54321.1");
         assertEquals(DrsObjectId.Type.ENTITY, drsObjectId.getType());
@@ -29,11 +29,32 @@ public class DrsObjectIdTest {
     }
 
     @Test
-    public void testCreateDrsObjectIdWithNull() {
+    public void testParseWithNullId() {
         // call under test
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
                 DrsObjectId.parse(null));
         assertEquals("objectId is required.", exception.getMessage());
+    }
+
+    @Test
+    public void testParseWithInvalidId() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                DrsObjectId.parse("6789"));
+        assertEquals("Object Id must be entity ID with version (e.g syn32132536.1), or the file handle ID prepended with the string \"fh\" (e.g. fh123)", exception.getMessage());
+    }
+
+    @Test
+    public void testParseWithNoEntityIdVersion() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                DrsObjectId.parse("syn6789"));
+        assertEquals("Entity ID must include version. e.g syn123.1", exception.getMessage());
+    }
+
+    @Test
+    public void testParseWithInvalidFileHandleId() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                DrsObjectId.parse("fh67a89"));
+        assertEquals("File Handle ID must contain prefix \"fh\" followed by a Long", exception.getMessage());
     }
 
     @Test
@@ -45,24 +66,20 @@ public class DrsObjectIdTest {
     }
 
     @Test
-    public void testCreateDrsObjectIdWithInvalidId() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
-                DrsObjectId.parse("6789"));
-        assertEquals("Object Id must be entity ID with version (e.g syn32132536.1), or the file handle ID prepended with the string \"fh\" (e.g. fh123)", exception.getMessage());
+    public void testGetEntityIdWithTypeFileHandle() {
+        DrsObjectId drsObjectId = DrsObjectId.parse("fh12345");
+
+        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () ->
+                drsObjectId.getEntityId());
+        assertEquals("IdAndVersion can only be accessed for type ENTITY", exception.getMessage());
     }
 
     @Test
-    public void testCreateDrsObjectIdNoEntityIdVersion() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
-                DrsObjectId.parse("syn6789"));
-        assertEquals("Entity ID must include version. e.g syn123.1", exception.getMessage());
-    }
+    public void testGetFileHandleId() {
+        DrsObjectId drsObjectId = DrsObjectId.parse("fh12345");
 
-    @Test
-    public void testCreateDrsObjectIdWithInvalidFileHandleId() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
-                DrsObjectId.parse("fh67a89"));
-        assertEquals("File Handle ID must contain prefix \"fh\" followed by a Long", exception.getMessage());
+        // call under test
+        assertEquals(12345L, drsObjectId.getFileHandleId());
     }
 
     @Test
@@ -73,16 +90,5 @@ public class DrsObjectIdTest {
                 drsObjectId.getFileHandleId());
         assertEquals("File handle ID can only be accessed for type FILE_HANDLE", exception.getMessage());
     }
-
-    @Test
-    public void testGetEntityIdWithTypeFileHandle() {
-        DrsObjectId drsObjectId = DrsObjectId.parse("fh12345");
-
-        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () ->
-                drsObjectId.getEntityId());
-        assertEquals("IdAndVersion can only be accessed for type ENTITY", exception.getMessage());
-    }
-
-
 }
 
