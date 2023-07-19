@@ -6,8 +6,8 @@ package org.sagebionetworks.table.query.model;
 public class NullPredicate extends IsPredicate  {
 	
 
-	public NullPredicate(ColumnReference columnReferenceLHS, Boolean not) {
-		super(columnReferenceLHS, not);
+	public NullPredicate(PredicateLeftHandSide leftHandSide, Boolean not) {
+		super(leftHandSide, not);
 	}
 
 	@Override

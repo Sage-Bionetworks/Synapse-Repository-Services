@@ -9,13 +9,13 @@ import java.util.List;
  */
 public class LikePredicate extends SQLElement implements HasPredicate {
 	
-	ReplaceableBox<ColumnReference> columnReferenceLHS;
+	PredicateLeftHandSide leftHandSide;
 	Boolean not;
 	Pattern pattern;
 	EscapeCharacter escapeCharacter;
 	
-	public LikePredicate(ColumnReference columnReferenceLHS, Boolean not, Pattern pattern, EscapeCharacter escapeCharacter) {
-		this.columnReferenceLHS = new ReplaceableBox<ColumnReference>(columnReferenceLHS);
+	public LikePredicate(PredicateLeftHandSide leftHandSide, Boolean not, Pattern pattern, EscapeCharacter escapeCharacter) {
+		this.leftHandSide = leftHandSide;
 		this.not = not;
 		this.pattern = pattern;
 		this.escapeCharacter = escapeCharacter;
@@ -31,13 +31,9 @@ public class LikePredicate extends SQLElement implements HasPredicate {
 		return escapeCharacter;
 	}
 
-	public ColumnReference getColumnReferenceLHS() {
-		return columnReferenceLHS.getChild();
-	}
-
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		columnReferenceLHS.toSql(builder, parameters);
+		leftHandSide.toSql(builder, parameters);
 		if (not != null) {
 			builder.append(" NOT");
 		}
@@ -51,12 +47,12 @@ public class LikePredicate extends SQLElement implements HasPredicate {
 
 	@Override
 	public Iterable<Element> getChildren() {
-		return SQLElement.buildChildren(columnReferenceLHS, pattern, escapeCharacter);
+		return SQLElement.buildChildren(leftHandSide, pattern, escapeCharacter);
 	}
 
 	@Override
-	public ColumnReference getLeftHandSide() {
-		return columnReferenceLHS.getChild();
+	public PredicateLeftHandSide getLeftHandSide() {
+		return leftHandSide;
 	}
 
 	@Override

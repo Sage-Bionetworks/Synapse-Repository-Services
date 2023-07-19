@@ -24,9 +24,9 @@ public class ArrayHasLikePredicate extends ArrayHasPredicate {
 
 	private EscapeCharacter escapeCharacter;
 
-	public ArrayHasLikePredicate(ColumnReference columnReferenceLHS, Boolean not, InPredicateValue inPredicateValue,
+	public ArrayHasLikePredicate(PredicateLeftHandSide leftHandSide, Boolean not, InPredicateValue inPredicateValue,
 			EscapeCharacter escapeCharacter) {
-		super(columnReferenceLHS, not, inPredicateValue);
+		super(leftHandSide, not, inPredicateValue);
 		this.escapeCharacter = escapeCharacter;
 	}
 	

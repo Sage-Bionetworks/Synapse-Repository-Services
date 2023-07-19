@@ -230,8 +230,7 @@ public class VirtualTableIntegrationTest {
 			assertEquals(2L, results.getQueryCount());
 		}, MAX_WAIT_MS);
 		
-		// Try manipulating the JSON column
-		
+		// Try manipulating the JSON column		
 		query.setSelectedFacets(null);
 		query.setAdditionalFilters(null);
 		query.setSql("select JSON_EXTRACT(jsonColumn, '$.a') as a, JSON_EXTRACT(jsonColumn, '$.b') as b, JSON_EXTRACT(jsonArrayColumn, '$[0]') as c from " + virtualTable.getId());
@@ -241,6 +240,32 @@ public class VirtualTableIntegrationTest {
 			assertEquals(List.of(
 				new Row().setValues(Arrays.asList("6", null, "1")),
 				new Row().setValues(Arrays.asList(null, "18", "2"))
+			), results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		
+		// Try filtering the JSON columns
+		query.setSql("select * from " + virtualTable.getId() + " where JSON_OVERLAPS(jsonArrayColumn, '[5,6]')");
+		
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(1L, results.getQueryCount());
+			assertEquals(List.of(
+				new Row().setValues(List.of("a", "6", "{\"a\": 6}", "[1, 5]"))
+			), results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		
+		query.setSql("select * from " + virtualTable.getId() + " where JSON_OVERLAPS(jsonArrayColumn, '[18]')");
+		
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(0L, results.getQueryCount());
+			assertEquals(Collections.emptyList(), results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		
+		query.setSql("select * from " + virtualTable.getId() + " where JSON_EXTRACT(jsonColumn, '$.b') > 10");
+		
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(1L, results.getQueryCount());
+			assertEquals(List.of(
+				new Row().setValues(List.of("b", "18", "{\"b\": 18}", "[2, 16]"))
 			), results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 	}

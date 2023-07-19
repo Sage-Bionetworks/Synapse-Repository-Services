@@ -85,6 +85,7 @@ import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
+import org.sagebionetworks.table.query.model.SQLElement;
 import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlContext;
@@ -1016,7 +1017,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testReplaceArrayHasPredicate_ReferencedColumn_FalseIsList() throws ParseException {
+	public void testReplaceArrayHasPredicateWithNotAListColumn() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING);//not a list type
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
 		
@@ -1038,19 +1039,34 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testReplaceArrayHasPredicate_ReferencedColumn_unknown() throws ParseException {
+	public void testReplaceArrayHasPredicateWithUnknownReferencedColumnn() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 
 		//should not ever happen since translate would have to translate column name to something that it didnt have in its maping
 		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("_C723895794567246_ has ('asdf', 'qwerty', 'yeet')");
 
-		assertThrows(IllegalArgumentException.class, () -> {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, createTableAndColumnMapper());
-		});
+		}).getMessage();
+		
+		assertEquals("Unknown column reference: _C723895794567246_", message);
+	}
+	
+	@Test
+	public void testReplaceArrayHasPredicateWithNotAColumnReference() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+
+		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("JSON_EXTRACT(foo, '$.bar') has ('asdf', 'qwerty', 'yeet')");
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, createTableAndColumnMapper());
+		}).getMessage();
+		
+		assertEquals("The HAS keyword only works for list column references", message);
 	}
 
 	@Test
-	public void testReplaceArrayHasPredicate_Has() throws ParseException {
+	public void testReplaceArrayHasPredicate() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
 		
@@ -1071,7 +1087,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testReplaceArrayHasPredicate_NotHas() throws ParseException {
+	public void testReplaceArrayHasPredicateWithNot() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
 		
@@ -1091,35 +1107,8 @@ public class SQLTranslatorUtilsTest {
 
 	}
 
-	//Test to ensure that a list of values containing 'syn' prefix are removed (e.g. ( ('syn123','syn456')  --->  ('123','456') )
 	@Test
-	public void testTranslate_Has_onEntityIdList() throws ParseException {
-		columnFoo.setColumnType(ColumnType.ENTITYID_LIST);
-		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
-		
-		TableAndColumnMapper singleTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class),mockSchemaProvider);
-
-		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("foo has ('syn123', 456, 'syn789')");
-		booleanPrimary.recursiveSetParent();
-		SQLTranslatorUtils.translateAllColumnReferences(booleanPrimary, singleTableMapper);
-		HashMap<String, Object> parameters = new HashMap<>();
-
-		//method under test
-		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, singleTableMapper);
-
-		//parameter mapping should have stripped out the "syn" prefixes
-		Map<String, Object> expected = ImmutableMap.of(
-			"b0", 123L,
-			"b1", 456L,
-			"b2", 789L
-		);
-
-		assertEquals(expected, parameters);
-	}
-
-	@Test
-	public void testReplaceArrayHasPredicate_NotAnArrayHasPredicate() throws ParseException{
+	public void testReplaceArrayHasPredicateWithNotAnArrayHasPredicate() throws ParseException{
 		BooleanPrimary notArrayHasPredicate = SqlElementUtils.createBooleanPrimary("foo IN (\"123\", \"456\")");
 		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
 		SQLTranslatorUtils.translate(notArrayHasPredicate.getFirstElementOfType(InPredicate.class), new HashMap<>(), createTableAndColumnMapper());
@@ -1912,6 +1901,46 @@ public class SQLTranslatorUtilsTest {
 
 		assertEquals("ROW_ETAG <> :b0", element.toSql());
 		assertEquals(uuid, parameters.get("b0"));
+	}
+	
+	//Test to ensure that a list of values containing 'syn' prefix are removed (e.g. ( ('syn123','syn456')  --->  ('123','456') )
+	@Test
+	public void testTranslateHasPredicateWithEntityIdList() throws ParseException {
+		columnFoo.setColumnType(ColumnType.ENTITYID_LIST);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
+		
+		TableAndColumnMapper singleTableMapper = new TableAndColumnMapper(
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class),mockSchemaProvider);
+
+		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("foo has ('syn123', 456, 'syn789')");
+		booleanPrimary.recursiveSetParent();
+		SQLTranslatorUtils.translateAllColumnReferences(booleanPrimary, singleTableMapper);
+		HashMap<String, Object> parameters = new HashMap<>();
+
+		//method under test
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, singleTableMapper);
+
+		//parameter mapping should have stripped out the "syn" prefixes
+		Map<String, Object> expected = ImmutableMap.of(
+			"b0", 123L,
+			"b1", 456L,
+			"b2", 789L
+		);
+
+		assertEquals(expected, parameters);
+	}
+	
+	@Test
+	public void testTranslateHasPredicateWithMySqlFunction() throws ParseException{
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		Predicate predicate = SqlElementUtils.createPredicate("JSON_EXTRACT(foo, '$.bar') <> 3");
+		SQLTranslatorUtils.translateAllColumnReferences(predicate, createTableAndColumnMapper());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		// call under test
+		SQLTranslatorUtils.translate(hasPredicate, parameters, createTableAndColumnMapper());
+		assertEquals("JSON_EXTRACT(_C111_,'$.bar') <> :b0",predicate.toSql());
+		assertEquals(Map.of("b0", "3"), parameters);
 	}
 	
 	@Test

@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Element;
+import org.sagebionetworks.table.query.model.PredicateLeftHandSide;
 import org.sagebionetworks.table.query.model.TextMatchesMySQLPredicate;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
@@ -29,7 +30,7 @@ public class TextMatchesMySQLPredicateTest {
 	private UnsignedLiteral mockLiteral;
 	
 	@Mock
-	private ColumnReference mockColumnReference;
+	private PredicateLeftHandSide mockColumnLeftHandSide;
 	
 	@InjectMocks
 	private TextMatchesMySQLPredicate predicate;
@@ -63,12 +64,12 @@ public class TextMatchesMySQLPredicateTest {
 	
 	@Test
 	public void testGetLeftHandSide() throws ParseException {
-		when(mockInputPredicate.getLeftHandSide()).thenReturn(mockColumnReference);
+		when(mockInputPredicate.getLeftHandSide()).thenReturn(mockColumnLeftHandSide);
 				
 		// Call under test
-		ColumnReference columnReference = predicate.getLeftHandSide();
+		PredicateLeftHandSide leftHandSide = predicate.getLeftHandSide();
 
-		assertEquals(mockColumnReference, columnReference);
+		assertEquals(mockColumnLeftHandSide, leftHandSide);
 
 		verify(mockInputPredicate).getLeftHandSide();
 	}
