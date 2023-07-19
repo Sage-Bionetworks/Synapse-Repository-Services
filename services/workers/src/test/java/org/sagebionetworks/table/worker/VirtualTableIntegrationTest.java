@@ -44,6 +44,8 @@ import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
@@ -143,11 +145,14 @@ public class VirtualTableIntegrationTest {
 		ColumnModel barSum = columnModelManager
 				.createColumnModel(new ColumnModel().setName("barSum").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range));
 
-		String definingSql = String.format("select foo, cast(sum(bar) as %s) from %s group by foo order by foo",
-				barSum.getId(), table.getId());
+		ColumnModel jsonColumn = columnModelManager
+				.createColumnModel(new ColumnModel().setName("jsonColumn").setColumnType(ColumnType.JSON));
+		
+		String definingSql = String.format("select foo, cast(sum(bar) as %s), cast(JSON_OBJECT(foo, sum(bar)) as %s) from %s group by foo order by foo",
+				barSum.getId(), jsonColumn.getId(), table.getId());
 
 		VirtualTable virtualTable = asyncHelper.createVirtualTable(adminUserInfo, project.getId(), definingSql);
-		assertEquals(List.of(tableSchema.get(0).getId(), barSum.getId()), virtualTable.getColumnIds());
+		assertEquals(List.of(tableSchema.get(0).getId(), barSum.getId(), jsonColumn.getId()), virtualTable.getColumnIds());
 
 		Query query = new Query();
 		query.setSql("select * from " + virtualTable.getId());
@@ -157,9 +162,11 @@ public class VirtualTableIntegrationTest {
 				.withReturnColumnModels(true);
 
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
-			assertEquals(List.of(new Row().setValues(List.of("a", "6")), new Row().setValues(List.of("b", "18"))),
-					results.getQueryResult().getQueryResults().getRows());
-			assertEquals(List.of(foo, barSum), results.getColumnModels());
+			assertEquals(List.of(
+				new Row().setValues(List.of("a", "6", "{\"a\": 6}")), 
+				new Row().setValues(List.of("b", "18", "{\"b\": 18}"))
+			), results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum, jsonColumn), results.getColumnModels());
 			assertEquals(2L, results.getQueryCount());
 			assertEquals(List.of(new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range)
 					.setColumnMin("6").setColumnMax("18")), results.getFacets());
@@ -176,14 +183,41 @@ public class VirtualTableIntegrationTest {
 		query.setSelectedFacets(
 				List.of(new FacetColumnRangeRequest().setColumnName("barSum").setMax("19").setMin("17")));
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
-			assertEquals(List.of(new Row().setValues(List.of("b", "18"))),
+			assertEquals(List.of(new Row().setValues(List.of("b", "18", "{\"b\": 18}"))),
 					results.getQueryResult().getQueryResults().getRows());
-			assertEquals(List.of(foo, barSum), results.getColumnModels());
+			assertEquals(List.of(foo, barSum, jsonColumn), results.getColumnModels());
 			assertEquals(1L, results.getQueryCount());
 			assertEquals(
 					List.of(new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range)
 							.setColumnMin("6").setColumnMax("18").setSelectedMax("19").setSelectedMin("17")),
 					results.getFacets());
+		}, MAX_WAIT_MS);
+		
+
+		// defining_where additional filters
+		query.setAdditionalFilters(List.of(new ColumnSingleValueQueryFilter().setColumnName("bar")
+				.setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(List.of("5"))
+				.setIsDefiningCondition(true)));
+		query.setSelectedFacets(null);
+		options.withReturnFacets(false);
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("a", "5", "{\"a\": 5}"))),
+					results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum, jsonColumn), results.getColumnModels());
+			assertEquals(1L, results.getQueryCount());
+		}, MAX_WAIT_MS);
+		
+		// defining_where direct
+		query.setSql(String.format("select * from %s defining_where bar < 10", virtualTable.getId()));
+		query.setAdditionalFilters(null);
+		query.setSelectedFacets(null);
+		options.withReturnFacets(false);
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("a", "6", "{\"a\": 6}")),
+								new Row().setValues(List.of("b", "2", "{\"b\": 2}"))),
+					results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum, jsonColumn), results.getColumnModels());
+			assertEquals(2L, results.getQueryCount());
 		}, MAX_WAIT_MS);
 	}
 	

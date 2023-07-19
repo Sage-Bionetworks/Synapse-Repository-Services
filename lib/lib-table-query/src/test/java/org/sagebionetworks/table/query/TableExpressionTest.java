@@ -1,13 +1,14 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.table.query.model.DefiningClause;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -135,6 +136,32 @@ public class TableExpressionTest {
 		element.replacePagination(newPagination);
 		assertEquals(element, newPagination.getParent());
 		assertNull(old.getParent());
+	}
+	
+	@Test
+	public void testReplaceDefiingClause() throws ParseException {
+		TableExpression element = new TableQueryParser(
+				"from syn123 defining_where bar between 1 and 2 where foo = 100 limit 1 offset 2").tableExpression();
+		
+		DefiningClause oldClaues = element.getDefiningClause();
+		DefiningClause newClause = new TableQueryParser("defining_where bar is not null").definingClause();
+		// call under test
+		element.replaceDefiningClause(newClause);
+		assertEquals(element, newClause.getParent());
+		assertNull(oldClaues.getParent());
+		assertEquals("FROM syn123 DEFINING_WHERE bar IS NOT NULL WHERE foo = 100 LIMIT 1 OFFSET 2", element.toSql());
+	}
+	
+	@Test
+	public void testReplaceDefiingClauseWithNull() throws ParseException {
+		TableExpression element = new TableQueryParser(
+				"from syn123 defining_where bar between 1 and 2 where foo = 100 limit 1 offset 2").tableExpression();
+		
+		DefiningClause oldClaues = element.getDefiningClause();
+		// call under test
+		element.replaceDefiningClause(null);
+		assertNull(oldClaues.getParent());
+		assertEquals("FROM syn123 WHERE foo = 100 LIMIT 1 OFFSET 2", element.toSql());
 	}
 
 }

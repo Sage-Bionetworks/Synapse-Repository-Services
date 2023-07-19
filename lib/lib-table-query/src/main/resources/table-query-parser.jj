@@ -210,6 +210,7 @@ TOKEN [IGNORE_CASE]: {
 | < _else: "ELSE">
 | < cast: "CAST">
 | < with: "WITH">
+| < defining_where: "DEFINING_WHERE">
 }
 
 /* Aggregate functions */
@@ -290,6 +291,14 @@ TOKEN [IGNORE_CASE]: {
   < array_function_name:
    "UNNEST"
    >
+}
+
+/* json functions */
+TOKEN [IGNORE_CASE]: {
+  < json_function_name:
+   "JSON_OBJECT"
+   | "JSON_ARRAY"
+  >
 }
 
 /* date time field */
@@ -663,14 +672,16 @@ TableExpression tableExpression():
 	GroupByClause groupByClause = null;
 	OrderByClause orderByClause = null;
 	Pagination pagination = null;
+	DefiningClause definingClause = null;
 }
 {
 	fromClause  = fromClause()
+	[ definingClause = definingClause() ]
 	[ whereClause = whereClause() ]
 	[ groupByClause = groupByClause() ]
 	[ orderByClause = orderByClause() ]
 	[ pagination = pagination() ]
-	{ return new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination); }
+	{ return new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination, definingClause); }
 }
 FromClause fromClause():
 {
@@ -1248,6 +1259,7 @@ MySqlFunctionName mySqlFunctionName():
 	| functionName = <date_time_field> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 	| functionName = <numeric_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 	| functionName = <control_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
+	| functionName = <json_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 }
 
 StringValueExpression stringValueExpression():
@@ -1556,4 +1568,11 @@ void endOfFile():
 }
 {
 	[<semicolon>]<EOF>
+}
+DefiningClause definingClause():
+{
+	SearchCondition searchCondition = null;
+}
+{
+	<defining_where> searchCondition = searchCondition() { return new DefiningClause(searchCondition); }
 }

@@ -150,4 +150,21 @@ public class ReplaceableTest {
 		}).getMessage();
 		assertEquals("parent is required.", message);
 	}
+	
+	@Test
+	public void testPrepareToReplaceWithChildReused() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 where foo > 1").querySpecification();
+		WhereClause old = model.getTableExpression().getWhereClause();
+		assertNotNull(old.getParent());
+		ColumnReference oldRef = old.getFirstElementOfType(ColumnReference.class);
+		assertNotNull(oldRef.getParent());
+		// old child is reused in a new parent.
+		WhereClause newWhere = new WhereClause(old.getSearchCondition());
+		assertNull(newWhere.getParent());
+		
+		// call under test
+		Replaceable.prepareToReplace(old, newWhere, model.getTableExpression());
+		
+		assertEquals(newWhere, old.getSearchCondition().getParent());
+	}
 }
