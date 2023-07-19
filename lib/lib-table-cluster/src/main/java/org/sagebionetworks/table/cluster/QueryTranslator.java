@@ -174,7 +174,7 @@ public class QueryTranslator {
 			
 			// Track if this is an aggregate query.
 			this.isAggregatedResult = transformedModel.hasAnyAggregateElements();
-			this.includesRowIdAndVersion = !this.isAggregatedResult;
+			this.includesRowIdAndVersion = !this.isAggregatedResult && !this.isCommonTableExpression;
 			// Build headers that describe how the client should read the results of this
 			// query.
 			this.selectColumns = SQLTranslatorUtils.getSelectColumns(firstPart.getQuerySpecification().getSelectList(), firstPart.getMapper(),
