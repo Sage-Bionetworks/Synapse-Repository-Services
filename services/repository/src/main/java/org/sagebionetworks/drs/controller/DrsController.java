@@ -73,7 +73,8 @@ public class DrsController {
      * The DRSObject API will provide information about a DrsObject, which can be a
      * <a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a> or
      * <a href="${org.sagebionetworks.repo.model.table.Dataset}">Dataset</a>.
-     * The DrsObject is fetched by its drsId i.e., its Synapse ID, plus its version, which makes it immutable (e.g.,  syn123.1).
+     * The DrsObject is fetched by its drsId i.e., its Synapse ID, plus its version, which makes it immutable (e.g.,  syn123.1)
+     * , or its file handle ID prepended with the string “fh” (e.g., fh123)). 
      * <a href="https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.2.0/docs/#operation/GetObject">
      * Get info about a DrsObject.</a>
      *

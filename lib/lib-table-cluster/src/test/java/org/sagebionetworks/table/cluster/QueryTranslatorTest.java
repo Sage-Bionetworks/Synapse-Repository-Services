@@ -2297,4 +2297,74 @@ public class QueryTranslatorTest {
 		expectedParams.put("b1", "apple");
 		assertEquals(expectedParams, query.getParameters());
 	}
+	
+	@Test
+	public void testSelectWithJsonExtract() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+
+		sql = "select JSON_EXTRACT(foo, '$[0]') as j from syn1";
+		
+		QueryTranslator query = QueryTranslator.builder(sql, userId)
+			.schemaProvider(mockSchemaProvider)
+			.sqlContext(SqlContext.query)
+			.indexDescription(indexDescription).build();
+		
+		assertEquals("SELECT JSON_EXTRACT(_C111_,'$[0]') AS j, ROW_ID, ROW_VERSION FROM T1", query.getOutputSQL());
+		
+		List<SelectColumn> select = query.getSelectColumns();
+		
+		assertEquals(List.of(new SelectColumn().setName("j").setColumnType(ColumnType.STRING)), select);
+	}
+	
+	@Test
+	public void testSelectWithJsonOverlaps() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+
+		sql = "select JSON_OVERLAPS(foo, '[1,2]') as j from syn1";
+		
+		QueryTranslator query = QueryTranslator.builder(sql, userId)
+			.schemaProvider(mockSchemaProvider)
+			.sqlContext(SqlContext.query)
+			.indexDescription(indexDescription).build();
+		
+		assertEquals("SELECT JSON_OVERLAPS(_C111_,'[1,2]') AS j, ROW_ID, ROW_VERSION FROM T1", query.getOutputSQL());
+		
+		List<SelectColumn> select = query.getSelectColumns();
+		
+		assertEquals(List.of(new SelectColumn().setName("j").setColumnType(ColumnType.BOOLEAN)), select);
+	}
+	
+	@Test
+	public void testSelectWithJsonArrayAgg() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		
+		ColumnModel foo = columnNameToModelMap.get("foo");
+		ColumnModel bar = columnNameToModelMap.get("bar");
+		
+		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(foo, bar));
+		
+		setupGetColumns(bar);
+		
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+
+		sql = "select bar, JSON_ARRAYAGG(foo) as j from syn1 group by bar";
+		
+		QueryTranslator query = QueryTranslator.builder(sql, userId)
+			.schemaProvider(mockSchemaProvider)
+			.sqlContext(SqlContext.query)
+			.indexDescription(indexDescription).build();
+		
+		assertEquals("SELECT _C333_, JSON_ARRAYAGG(_C111_) AS j FROM T1 GROUP BY _C333_", query.getOutputSQL());
+		
+		List<SelectColumn> select = query.getSelectColumns();
+		
+		assertEquals(List.of(new SelectColumn().setName("bar").setColumnType(ColumnType.STRING), new SelectColumn().setName("j").setColumnType(ColumnType.JSON)), select);
+	}
+	
 }

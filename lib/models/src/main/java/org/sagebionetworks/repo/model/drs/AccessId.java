@@ -70,16 +70,18 @@ public class AccessId {
             if (StringUtils.isEmpty(toDecode)) {
                 throw new IllegalArgumentException("AccessId must not be null or empty.");
             }
-
+            final Builder builder = new Builder();
             final String[] array = toDecode.trim().split(DELIMITER);
-            if (array.length != 3) {
+            if (array.length == 1) {
+                builder.setFileHandleId(getFileHandleID(array[0]));
+            } else if (array.length == 3) {
+                builder.setAssociateType(getFileHandleAssociateType(array[0]));
+                builder.setSynapseIdWithVersion(IdAndVersion.parse(array[1]));
+                builder.setFileHandleId(getFileHandleID(array[2]));
+            } else {
                 throw new IllegalArgumentException("Invalid accessId");
             }
 
-            final Builder builder = new Builder();
-            builder.setAssociateType(getFileHandleAssociateType(array[0]));
-            builder.setSynapseIdWithVersion(IdAndVersion.parse(array[1]));
-            builder.setFileHandleId(getFileHandleID(array[2]));
             return builder.build();
         } catch (final Exception exception) {
             throw new IllegalArgumentException(exception.getMessage());
@@ -103,6 +105,10 @@ public class AccessId {
     }
 
     public String encode() {
+        if (associateType == null && synapseIdWithVersion == null) {
+            return fileHandleId;
+        }
+
         final StringJoiner joiner = new StringJoiner(DELIMITER);
         joiner.add(associateType.name());
         joiner.add(synapseIdWithVersion.toString());
@@ -149,10 +155,10 @@ public class AccessId {
         }
 
         public AccessId build() {
-            ValidateArgument.required(associateType, "fileHandleAssociationType");
-            ValidateArgument.required(synapseIdWithVersion, "synapseIdWithVersion");
             ValidateArgument.required(fileHandleId, "fileHandleId");
-            validateSynapseIdWithVersion(synapseIdWithVersion);
+            if (synapseIdWithVersion != null) {
+                validateSynapseIdWithVersion(synapseIdWithVersion);
+            }
             return new AccessId(associateType, synapseIdWithVersion, fileHandleId);
         }
 
