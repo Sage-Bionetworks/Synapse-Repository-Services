@@ -244,7 +244,7 @@ public class VirtualTableIntegrationTest {
 		}, MAX_WAIT_MS);
 		
 		// Try filtering the JSON columns
-		query.setSql("select * from " + virtualTable.getId() + " where JSON_OVERLAPS(jsonArrayColumn, '[5,6]')");
+		query.setSql("select * from " + virtualTable.getId() + " where JSON_OVERLAPS(jsonArrayColumn, '[5,6]') IS TRUE");
 		
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
 			assertEquals(1L, results.getQueryCount());
@@ -253,14 +253,16 @@ public class VirtualTableIntegrationTest {
 			), results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 		
-		query.setSql("select * from " + virtualTable.getId() + " where JSON_OVERLAPS(jsonArrayColumn, '[18]')");
+		query.setSql("select * from " + virtualTable.getId() + " where JSON_OVERLAPS(jsonArrayColumn, '[18]') IS TRUE");
 		
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
 			assertEquals(0L, results.getQueryCount());
 			assertEquals(Collections.emptyList(), results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 		
-		query.setSql("select * from " + virtualTable.getId() + " where JSON_EXTRACT(jsonColumn, '$.b') > 10");
+		// Note that if we do not case the value as an integer it will be treated as a string since the JSON_EXTRACT function
+		// return type cannot be known before hand
+		query.setSql("select * from " + virtualTable.getId() + " where JSON_EXTRACT(jsonColumn, '$.b') > CAST(10 AS INTEGER)");
 		
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
 			assertEquals(1L, results.getQueryCount());
