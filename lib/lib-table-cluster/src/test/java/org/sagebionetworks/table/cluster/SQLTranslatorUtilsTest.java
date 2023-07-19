@@ -85,7 +85,6 @@ import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
-import org.sagebionetworks.table.query.model.SQLElement;
 import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlContext;
@@ -1944,6 +1943,19 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testTranslateHasPredicateWithCastSpecification() throws ParseException{
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		Predicate predicate = SqlElementUtils.createPredicate("CAST(JSON_EXTRACT(foo, '$.bar') AS INTEGER) <> 3");
+		SQLTranslatorUtils.translateAllColumnReferences(predicate, createTableAndColumnMapper());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		// call under test
+		SQLTranslatorUtils.translate(hasPredicate, parameters, createTableAndColumnMapper());
+		assertEquals("CAST(JSON_EXTRACT(_C111_,'$.bar') AS INTEGER) <> :b0",predicate.toSql());
+		assertEquals(Map.of("b0", 3L), parameters);
+	}
+	
+	@Test
 	public void testTranslatePagination() throws ParseException{
 		Pagination element = new TableQueryParser("limit 1 offset 9").pagination();
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -2617,12 +2629,6 @@ public class SQLTranslatorUtilsTest {
 		String expectedSql = "CAST(foo AS CHAR)";
 		assertEquals(expectedSql, element.toSql());
 		verify(mockTableAndColumnMapper, never()).getColumnModel(any());
-		
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			SQLTranslatorUtils.translateCastSpecification(element, mockTableAndColumnMapper);
-		}).getMessage();
-		assertEquals("Either ColumnType or ColumnId is required", message);
 	}
 	
 	@Test
@@ -4037,5 +4043,53 @@ public class SQLTranslatorUtilsTest {
 		SearchCondition two = new TableQueryParser("bar is not null").searchCondition();
 		SearchCondition result = SQLTranslatorUtils.mergeSearchConditions(mockHas, two);
 		assertEquals("bar IS NOT NULL", result.toSql());
+	}
+	
+	@Test
+	public void testGetColumnTypeFromPredicateWithColumnReference() throws ParseException {
+		
+		HasPredicate predicate = SqlElementUtils.createPredicate("foo = 1").getFirstElementOfType(HasPredicate.class);
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(createTableAndColumnMapper(), predicate);
+		
+		assertEquals(columnFoo.getColumnType(), columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeFromPredicateWithMySqlFunction() throws ParseException {
+		
+		HasPredicate predicate = SqlElementUtils.createPredicate("JSON_EXTRACT(foo, '$.bar') = 1").getFirstElementOfType(HasPredicate.class);
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(createTableAndColumnMapper(), predicate);
+		
+		assertEquals(ColumnType.STRING, columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeFromPredicateWithCastSpecification() throws ParseException {
+		
+		HasPredicate predicate = SqlElementUtils.createPredicate("CAST(JSON_EXTRACT(foo, '$.bar') AS INTEGER) = 1").getFirstElementOfType(HasPredicate.class);
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(createTableAndColumnMapper(), predicate);
+		
+		assertEquals(ColumnType.INTEGER, columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeFromPredicateWithUnsupportedLeftHandSide() throws ParseException {
+		
+		HasPredicate predicate = SqlElementUtils.createPredicate("CAST(JSON_EXTRACT(foo, '$.bar') AS INTEGER) = 1").getFirstElementOfType(HasPredicate.class);
+		
+		predicate.getLeftHandSide().replaceChildren(new CharacterStringLiteral("a string"));
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			SQLTranslatorUtils.getColumnType(createTableAndColumnMapper(), predicate);
+		}).getMessage();
+		
+		assertEquals("Unsupported left hand side of predicate ''a string' = 1': expected a column reference, a mysql function or a cast specification.", message);
 	}
 }

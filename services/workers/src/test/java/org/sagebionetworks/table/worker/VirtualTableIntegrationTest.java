@@ -260,9 +260,24 @@ public class VirtualTableIntegrationTest {
 			assertEquals(Collections.emptyList(), results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 		
-		// Note that if we do not case the value as an integer it will be treated as a string since the JSON_EXTRACT function
-		// return type cannot be known before hand
+		// Note that the result of a JSON_EXTRACT is always a STRING so this won't match the value
+		query.setSql("select * from " + virtualTable.getId() + " where JSON_EXTRACT(jsonColumn, '$.b') > 10");
+		
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(0L, results.getQueryCount());
+			assertEquals(Collections.emptyList(), results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		
 		query.setSql("select * from " + virtualTable.getId() + " where JSON_EXTRACT(jsonColumn, '$.b') > CAST(10 AS INTEGER)");
+		
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(1L, results.getQueryCount());
+			assertEquals(List.of(
+				new Row().setValues(List.of("b", "18", "{\"b\": 18}", "[2, 16]"))
+			), results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		
+		query.setSql("select * from " + virtualTable.getId() + " where CAST(JSON_EXTRACT(jsonColumn, '$.b') AS INTEGER) > 10");
 		
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
 			assertEquals(1L, results.getQueryCount());

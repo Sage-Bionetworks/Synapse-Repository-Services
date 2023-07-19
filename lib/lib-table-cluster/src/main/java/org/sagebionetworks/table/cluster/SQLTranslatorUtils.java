@@ -414,14 +414,19 @@ public class SQLTranslatorUtils {
 	public static void translateCastSpecification(CastSpecification cast, TableAndColumnMapper mapper) {
 		ValidateArgument.required(cast, "CastSpecification");
 		ValidateArgument.required(mapper, "TableAndColumnMapper");
+		
 		CastTarget target = cast.getCastTarget();
-		if(target.getType() == null && target.getColumnId() == null) {
+		
+		if (target.getType() == null && target.getColumnId() == null) {
 			throw new IllegalArgumentException("Either ColumnType or ColumnId is required");
 		}
+		
 		ColumnType type = target.getType() != null ? target.getType()
 				: mapper.getColumnModel(target.getColumnId().toSql()).getColumnType();
-		target.replaceElement(
-				new CastTarget(ColumnTypeInfo.getInfoForType(type).getMySqlType().getMySqlCastType().name()));
+		
+		ColumnTypeInfo columnTypeInfo = ColumnTypeInfo.getInfoForType(type);
+		
+		target.replaceElement(new CastTarget(columnTypeInfo.getType(), columnTypeInfo.getMySqlType().getMySqlCastType().name()));
 	}
 
 	/**
@@ -684,20 +689,8 @@ public class SQLTranslatorUtils {
 			TableAndColumnMapper mapper) {
 		ValidateArgument.required(predicate, "predicate");
 		ValidateArgument.required(parameters, "parameters");
-				
-		Element leftHandSideElement = predicate.getLeftHandSide().getChild();
 		
-		ColumnType columnType;
-		
-		if (leftHandSideElement instanceof ColumnReference) {
-			columnType = getColumnType(mapper, (ColumnReference) leftHandSideElement);	
-		} else if (leftHandSideElement instanceof MySqlFunction) {
-			MySqlFunction mySqlFunction = (MySqlFunction) leftHandSideElement;
-			// A MySQLFunction always have a constant return column type that does not depend on the parameters
-			columnType = mySqlFunction.getFunctionReturnType().getColumnType(null);
-		} else {
-			throw new IllegalArgumentException("Unsupported left hand side of predicate '" + predicate.toSql() + "': expected a column reference or a mysql function.");
-		}
+		ColumnType columnType = getColumnType(mapper, predicate);
 		
 		predicate.getRightHandSideColumn().ifPresent((rhs)->{
 			// The right=hand-side is a ColumnReference so validate that it exists.
@@ -717,6 +710,28 @@ public class SQLTranslatorUtils {
 				translateRightHandeSide(element, columnType, parameters);
 			}
 		}
+	}
+	
+	static ColumnType getColumnType(TableAndColumnMapper mapper, HasPredicate predicate) {
+		
+		Element leftHandSideElement = predicate.getLeftHandSide().getChild();
+				
+		if (leftHandSideElement instanceof ColumnReference) {
+			return getColumnType(mapper, (ColumnReference) leftHandSideElement);	
+		} 
+		
+		if (leftHandSideElement instanceof MySqlFunction) {
+			// A MySQLFunction always have a constant return column type that does not depend on the parameters
+			return ((MySqlFunction) leftHandSideElement).getFunctionReturnType().getColumnType(null);
+		} 
+		
+		if (leftHandSideElement instanceof CastSpecification) {
+			// At this point all the cast specifications have been translated so the type must be there
+			return ((CastSpecification) leftHandSideElement).getCastTarget().getType();
+		}
+		
+		throw new IllegalArgumentException("Unsupported left hand side of predicate '" + predicate.toSql() + "': expected a column reference, a mysql function or a cast specification.");
+		
 	}
 
 	static ColumnType getColumnType(TableAndColumnMapper mapper, ColumnReference columnReference) {

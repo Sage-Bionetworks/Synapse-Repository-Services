@@ -12,5 +12,9 @@ public class PredicateLeftHandSide extends SimpleBranch {
 	public PredicateLeftHandSide(MySqlFunction mySqlFunction) {
 		super(mySqlFunction);
 	}
+	
+	public PredicateLeftHandSide(CastSpecification castSpecification) {
+		super(castSpecification);
+	}
 
 }

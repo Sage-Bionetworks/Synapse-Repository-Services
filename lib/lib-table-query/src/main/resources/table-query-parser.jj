@@ -949,10 +949,12 @@ PredicateLeftHandSide predicateLeftHandSide():
 {
  	ColumnReference columnReference = null;
  	MySqlFunction mySqlFunction = null;
+ 	CastSpecification castSpecification = null;
 }
 {
 	columnReference = columnReference() { return new PredicateLeftHandSide(columnReference); }
 	| mySqlFunction = mysqlFunction() { return new PredicateLeftHandSide(mySqlFunction); }
+	| castSpecification = castSpecification() { return new PredicateLeftHandSide(castSpecification); }
 }
 ComparisonPredicate comparisonPredicate(PredicateLeftHandSide leftHandSide):
 {
