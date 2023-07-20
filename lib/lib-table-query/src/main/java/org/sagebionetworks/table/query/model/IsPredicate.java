@@ -6,11 +6,11 @@ package org.sagebionetworks.table.query.model;
  */
 public abstract class IsPredicate extends SQLElement implements HasPredicate {
 
-	ReplaceableBox<ColumnReference> columnReferenceLHS;
+	PredicateLeftHandSide leftHandSide;
 	Boolean not;
 
-	public IsPredicate(ColumnReference columnReferenceLHS, Boolean not) {
-		this.columnReferenceLHS = new ReplaceableBox<ColumnReference>(columnReferenceLHS);
+	public IsPredicate(PredicateLeftHandSide leftHandSide, Boolean not) {
+		this.leftHandSide = leftHandSide;
 		this.not = not;
 	}
 
@@ -18,15 +18,11 @@ public abstract class IsPredicate extends SQLElement implements HasPredicate {
 		return not;
 	}
 
-	public ColumnReference getColumnReferenceLHS() {
-		return columnReferenceLHS.getChild();
-	}
-
 	public abstract String getCompareValue();
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		columnReferenceLHS.toSql(builder, parameters);
+		leftHandSide.toSql(builder, parameters);
 		builder.append(" IS ");
 		if (not != null) {
 			builder.append("NOT ");
@@ -35,8 +31,8 @@ public abstract class IsPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public ColumnReference getLeftHandSide() {
-		return columnReferenceLHS.getChild();
+	public PredicateLeftHandSide getLeftHandSide() {
+		return leftHandSide;
 	}
 
 	@Override
@@ -46,7 +42,7 @@ public abstract class IsPredicate extends SQLElement implements HasPredicate {
 
 	@Override
 	public Iterable<Element> getChildren() {
-		return SQLElement.buildChildren(columnReferenceLHS);
+		return SQLElement.buildChildren(leftHandSide);
 	}
 
 }

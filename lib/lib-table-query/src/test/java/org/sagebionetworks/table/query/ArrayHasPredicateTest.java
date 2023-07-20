@@ -13,7 +13,7 @@ import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.ReplaceableBox;
+import org.sagebionetworks.table.query.model.PredicateLeftHandSide;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 public class ArrayHasPredicateTest {
@@ -23,7 +23,7 @@ public class ArrayHasPredicateTest {
 		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("bar");
 		Boolean not = null;
 		InPredicateValue ArrayHasPredicateValue = SqlElementUtils.createInPredicateValue("(1)");
-		ArrayHasPredicate element = new ArrayHasPredicate(columnReferenceLHS, not, ArrayHasPredicateValue);
+		ArrayHasPredicate element = new ArrayHasPredicate(new PredicateLeftHandSide(columnReferenceLHS), not, ArrayHasPredicateValue);
 		assertEquals("bar HAS ( 1 )", element.toString());
 	}
 
@@ -32,7 +32,7 @@ public class ArrayHasPredicateTest {
 		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("bar");
 		Boolean not = Boolean.TRUE;
 		InPredicateValue ArrayHasPredicateValue = SqlElementUtils.createInPredicateValue("(1, 2)");
-		ArrayHasPredicate element = new ArrayHasPredicate(columnReferenceLHS, not, ArrayHasPredicateValue);
+		ArrayHasPredicate element = new ArrayHasPredicate(new PredicateLeftHandSide(columnReferenceLHS), not, ArrayHasPredicateValue);
 		assertEquals("bar NOT HAS ( 1, 2 )", element.toString());
 	}
 
@@ -55,8 +55,7 @@ public class ArrayHasPredicateTest {
 		Predicate predicate = new TableQueryParser("foo has (1,'2',3)").predicate();
 		ArrayHasPredicate element = predicate.getFirstElementOfType(ArrayHasPredicate.class);
 		List<Element> children = element.getChildrenStream().collect(Collectors.toList());
-		assertEquals(Arrays.asList(new ReplaceableBox<ColumnReference>(element.getLeftHandSide()),
-				element.getInPredicateValue()), children);
+		assertEquals(Arrays.asList(element.getLeftHandSide(), element.getInPredicateValue()), children);
 	}
 
 }

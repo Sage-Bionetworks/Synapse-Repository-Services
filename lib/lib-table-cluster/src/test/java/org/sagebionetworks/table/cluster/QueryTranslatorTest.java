@@ -2330,20 +2330,22 @@ public class QueryTranslatorTest {
 		
 		IndexDescription indexDescription = new TableIndexDescription(tableId);
 
-		sql = "select JSON_EXTRACT(foo, '$[0]') as j from syn1";
+		sql = "select JSON_EXTRACT(foo, '$[0]') as j from syn1 where JSON_EXTRACT(bar, '$.a') > 3";
 		
 		QueryTranslator query = QueryTranslator.builder(sql, userId)
 			.schemaProvider(mockSchemaProvider)
 			.sqlContext(SqlContext.query)
 			.indexDescription(indexDescription).build();
 		
-		assertEquals("SELECT JSON_EXTRACT(_C111_,'$[0]') AS j, ROW_ID, ROW_VERSION FROM T1", query.getOutputSQL());
+		assertEquals("SELECT JSON_EXTRACT(_C111_,'$[0]') AS j, ROW_ID, ROW_VERSION FROM T1 WHERE JSON_EXTRACT(_C333_,'$.a') > :b0", query.getOutputSQL());
+		
+		assertEquals(Map.of("b0", "3"), query.getParameters());
 		
 		List<SelectColumn> select = query.getSelectColumns();
 		
 		assertEquals(List.of(new SelectColumn().setName("j").setColumnType(ColumnType.STRING)), select);
 	}
-	
+		
 	@Test
 	public void testSelectWithJsonOverlaps() {
 		IdAndVersion tableId = IdAndVersion.parse("syn1");
@@ -2351,14 +2353,14 @@ public class QueryTranslatorTest {
 		
 		IndexDescription indexDescription = new TableIndexDescription(tableId);
 
-		sql = "select JSON_OVERLAPS(foo, '[1,2]') as j from syn1";
+		sql = "select JSON_OVERLAPS(foo, '[1,2]') as j from syn1 where JSON_OVERLAPS(bar, '[3,4]') IS TRUE";
 		
 		QueryTranslator query = QueryTranslator.builder(sql, userId)
 			.schemaProvider(mockSchemaProvider)
 			.sqlContext(SqlContext.query)
 			.indexDescription(indexDescription).build();
 		
-		assertEquals("SELECT JSON_OVERLAPS(_C111_,'[1,2]') AS j, ROW_ID, ROW_VERSION FROM T1", query.getOutputSQL());
+		assertEquals("SELECT JSON_OVERLAPS(_C111_,'[1,2]') AS j, ROW_ID, ROW_VERSION FROM T1 WHERE JSON_OVERLAPS(_C333_,'[3,4]') IS TRUE", query.getOutputSQL());
 		
 		List<SelectColumn> select = query.getSelectColumns();
 		
@@ -2386,6 +2388,8 @@ public class QueryTranslatorTest {
 			.indexDescription(indexDescription).build();
 		
 		assertEquals("SELECT _C333_, JSON_ARRAYAGG(_C111_) AS j FROM T1 GROUP BY _C333_", query.getOutputSQL());
+		
+		assertTrue(query.isAggregatedResult());
 		
 		List<SelectColumn> select = query.getSelectColumns();
 		

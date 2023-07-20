@@ -12,7 +12,7 @@ import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.NullPredicate;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.ReplaceableBox;
+import org.sagebionetworks.table.query.model.PredicateLeftHandSide;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 public class NullPredicateTest {
@@ -20,14 +20,14 @@ public class NullPredicateTest {
 	@Test
 	public void testNullPredicateToSQL() throws ParseException {
 		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("foo");
-		NullPredicate element = new NullPredicate(columnReferenceLHS, null);
+		NullPredicate element = new NullPredicate(new PredicateLeftHandSide(columnReferenceLHS), null);
 		assertEquals("foo IS NULL", element.toString());
 	}
 
 	@Test
 	public void testNullPredicateToSQLNot() throws ParseException {
 		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("foo");
-		NullPredicate element = new NullPredicate(columnReferenceLHS, Boolean.TRUE);
+		NullPredicate element = new NullPredicate(new PredicateLeftHandSide(columnReferenceLHS), Boolean.TRUE);
 		assertEquals("foo IS NOT NULL", element.toString());
 	}
 
@@ -52,6 +52,6 @@ public class NullPredicateTest {
 		Predicate predicate = new TableQueryParser("foo is null").predicate();
 		NullPredicate element = predicate.getFirstElementOfType(NullPredicate.class);
 		List<Element> children = element.getChildrenStream().collect(Collectors.toList());
-		assertEquals(Arrays.asList(new ReplaceableBox<ColumnReference>(element.getLeftHandSide())), children);
+		assertEquals(Arrays.asList(element.getLeftHandSide()), children);
 	}
 }

@@ -13,7 +13,7 @@ public interface HasPredicate extends Element {
 	 * 
 	 * @return
 	 */
-	ColumnReference getLeftHandSide();
+	PredicateLeftHandSide getLeftHandSide();
 
 	/**
 	 * Get right-hand-side values.

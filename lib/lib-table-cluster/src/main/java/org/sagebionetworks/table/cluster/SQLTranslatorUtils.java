@@ -88,6 +88,7 @@ import org.sagebionetworks.table.query.model.OuterJoinType;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Pattern;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.PredicateLeftHandSide;
 import org.sagebionetworks.table.query.model.QualifiedJoin;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -413,14 +414,19 @@ public class SQLTranslatorUtils {
 	public static void translateCastSpecification(CastSpecification cast, TableAndColumnMapper mapper) {
 		ValidateArgument.required(cast, "CastSpecification");
 		ValidateArgument.required(mapper, "TableAndColumnMapper");
+		
 		CastTarget target = cast.getCastTarget();
-		if(target.getType() == null && target.getColumnId() == null) {
+		
+		if (target.getType() == null && target.getColumnId() == null) {
 			throw new IllegalArgumentException("Either ColumnType or ColumnId is required");
 		}
+		
 		ColumnType type = target.getType() != null ? target.getType()
 				: mapper.getColumnModel(target.getColumnId().toSql()).getColumnType();
-		target.replaceElement(
-				new CastTarget(ColumnTypeInfo.getInfoForType(type).getMySqlType().getMySqlCastType().name()));
+		
+		ColumnTypeInfo columnTypeInfo = ColumnTypeInfo.getInfoForType(type);
+		
+		target.replaceElement(new CastTarget(columnTypeInfo.getType(), columnTypeInfo.getMySqlType().getMySqlCastType().name()));
 	}
 
 	/**
@@ -684,7 +690,7 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(predicate, "predicate");
 		ValidateArgument.required(parameters, "parameters");
 		
-		ColumnType columnType = getColumnType(mapper, predicate.getLeftHandSide());	
+		ColumnType columnType = getColumnType(mapper, predicate);
 		
 		predicate.getRightHandSideColumn().ifPresent((rhs)->{
 			// The right=hand-side is a ColumnReference so validate that it exists.
@@ -704,6 +710,28 @@ public class SQLTranslatorUtils {
 				translateRightHandeSide(element, columnType, parameters);
 			}
 		}
+	}
+	
+	static ColumnType getColumnType(TableAndColumnMapper mapper, HasPredicate predicate) {
+		
+		Element leftHandSideElement = predicate.getLeftHandSide().getChild();
+				
+		if (leftHandSideElement instanceof ColumnReference) {
+			return getColumnType(mapper, (ColumnReference) leftHandSideElement);	
+		} 
+		
+		if (leftHandSideElement instanceof MySqlFunction) {
+			// A MySQLFunction always have a constant return column type that does not depend on the parameters
+			return ((MySqlFunction) leftHandSideElement).getFunctionReturnType().getColumnType(null);
+		} 
+		
+		if (leftHandSideElement instanceof CastSpecification) {
+			// At this point all the cast specifications have been translated so the type must be there
+			return ((CastSpecification) leftHandSideElement).getCastTarget().getType();
+		}
+		
+		throw new IllegalArgumentException("Unsupported left hand side of predicate '" + predicate.toSql() + "': expected a column reference, a mysql function or a cast specification.");
+		
 	}
 
 	static ColumnType getColumnType(TableAndColumnMapper mapper, ColumnReference columnReference) {
@@ -834,7 +862,13 @@ public class SQLTranslatorUtils {
 		
 		IdAndVersion idAndVersion = mapper.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 
-		ColumnReference columnRefernece = arrayHasPredicate.getLeftHandSide();
+		PredicateLeftHandSide leftHandSide = arrayHasPredicate.getLeftHandSide();
+		
+		if (!(leftHandSide.getChild() instanceof ColumnReference)) {
+			throw new IllegalArgumentException("The HAS keyword only works for list column references");
+		}
+		
+		ColumnReference columnRefernece = (ColumnReference) leftHandSide.getChild();
 
 		ColumnReferenceMatch columnMatch = lookupAndRequireListColumn(mapper, columnRefernece, "The " + arrayHasPredicate.getKeyWord() + " keyword");
 		
@@ -859,7 +893,7 @@ public class SQLTranslatorUtils {
 			
 			//replace the "HAS" with "IN" predicate containing the subquery
 			Predicate replacementPredicate = new Predicate(new InPredicate(
-					SqlElementUtils.createColumnReference(ROW_ID),
+					new PredicateLeftHandSide(SqlElementUtils.createColumnReference(ROW_ID)),
 					arrayHasPredicate.getNot(),
 					new InPredicateValue(subquery)));
 
@@ -881,7 +915,7 @@ public class SQLTranslatorUtils {
 		QuerySpecification subquery = TableQueryParser.parserQuery(sql.toString());
 
 		//create a "IN" predicate that has the same right hand side as the "HAS" predicate for the subquery
-		InPredicate subqueryInPredicate = new InPredicate(unnestedColumn, null, value);
+		InPredicate subqueryInPredicate = new InPredicate(new PredicateLeftHandSide(unnestedColumn), null, value);
 		subquery.getFirstElementOfType(Predicate.class).replaceChildren(subqueryInPredicate);
 		return subquery;
 	}
@@ -917,7 +951,7 @@ public class SQLTranslatorUtils {
 			
 			Pattern likePattern = new Pattern(new CharacterValueExpression(new CharacterFactor(new CharacterPrimary(valueExpressions.get(i)))));
 			
-			likePredicates.add(new LikePredicate(unnestedColumn, null, likePattern, escapeCharacter));
+			likePredicates.add(new LikePredicate(new PredicateLeftHandSide(unnestedColumn), null, likePattern, escapeCharacter));
 		}
 				
 		QuerySpecification subquery = TableQueryParser.parserQuery(sql.toString());

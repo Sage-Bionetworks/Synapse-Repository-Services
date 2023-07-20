@@ -7,8 +7,8 @@ public class BooleanPredicate extends IsPredicate {
 	
 	TruthValue truthValue;
 
-	public BooleanPredicate(ColumnReference columnReferenceLHS, Boolean not, TruthValue truthValue) {
-		super(columnReferenceLHS, not);
+	public BooleanPredicate(PredicateLeftHandSide leftHandSide, Boolean not, TruthValue truthValue) {
+		super(leftHandSide, not);
 		this.truthValue = truthValue;
 	}
 

@@ -84,7 +84,7 @@ public class TextMatchesPredicateTest {
 		TextMatchesPredicate element = new TextMatchesPredicate(literal);
 		
 		// Call under test
-		ColumnReference columnReference = element.getLeftHandSide();
+		ColumnReference columnReference = (ColumnReference) element.getLeftHandSide().getChild();
 		
 		assertEquals(ColumnType.STRING, columnReference.getImplicitColumnType());
 		assertEquals(TableConstants.ROW_SEARCH_CONTENT, columnReference.toSql());

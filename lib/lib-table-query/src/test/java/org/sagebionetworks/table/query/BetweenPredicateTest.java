@@ -12,7 +12,7 @@ import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.ReplaceableBox;
+import org.sagebionetworks.table.query.model.PredicateLeftHandSide;
 import org.sagebionetworks.table.query.model.RowValueConstructor;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
@@ -27,7 +27,7 @@ public class BetweenPredicateTest {
 		Boolean not = null;
 		RowValueConstructor betweenRowValueConstructor = SqlElementUtils.createRowValueConstructor("1.0");
 		RowValueConstructor andRowValueConstructorRHS = SqlElementUtils.createRowValueConstructor("2.0");
-		BetweenPredicate element = new BetweenPredicate(columnReferenceLHS, not, betweenRowValueConstructor,
+		BetweenPredicate element = new BetweenPredicate(new PredicateLeftHandSide(columnReferenceLHS), not, betweenRowValueConstructor,
 				andRowValueConstructorRHS);
 		assertEquals("bar BETWEEN 1.0 AND 2.0", element.toString());
 	}
@@ -38,7 +38,7 @@ public class BetweenPredicateTest {
 		Boolean not = Boolean.TRUE;
 		RowValueConstructor betweenRowValueConstructor = SqlElementUtils.createRowValueConstructor("1.0");
 		RowValueConstructor andRowValueConstructorRHS = SqlElementUtils.createRowValueConstructor("2.0");
-		BetweenPredicate element = new BetweenPredicate(columnReferenceLHS, not, betweenRowValueConstructor,
+		BetweenPredicate element = new BetweenPredicate(new PredicateLeftHandSide(columnReferenceLHS), not, betweenRowValueConstructor,
 				andRowValueConstructorRHS);
 		assertEquals("bar NOT BETWEEN 1.0 AND 2.0", element.toString());
 	}
@@ -60,8 +60,7 @@ public class BetweenPredicateTest {
 		Predicate predicate = new TableQueryParser("foo between 1.2 and 2.2").predicate();
 		BetweenPredicate element = predicate.getFirstElementOfType(BetweenPredicate.class);
 		List<Element> children = element.getChildrenStream().collect(Collectors.toList());
-		assertEquals(Arrays.asList(new ReplaceableBox<ColumnReference>(element.getLeftHandSide()), element.getBetweenRowValueConstructor(),
-				element.getAndRowValueConstructorRHS()), children);
+		assertEquals(Arrays.asList(element.getLeftHandSide(), element.getBetweenRowValueConstructor(), element.getAndRowValueConstructorRHS()), children);
 	}
 
 }

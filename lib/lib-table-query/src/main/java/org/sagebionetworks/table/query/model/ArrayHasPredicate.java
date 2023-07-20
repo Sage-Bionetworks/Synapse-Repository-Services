@@ -18,12 +18,12 @@ public class ArrayHasPredicate extends SQLElement implements HasPredicate {
 	
 	private static final String KEYWORD = "HAS";
 
-	ReplaceableBox<ColumnReference> columnReferenceLHS;
+	PredicateLeftHandSide leftHandSide;
 	Boolean not;
 	InPredicateValue inPredicateValue;
 	
-	public ArrayHasPredicate(ColumnReference columnReferenceLHS, Boolean not, InPredicateValue inPredicateValue) {
-		this.columnReferenceLHS = new ReplaceableBox<ColumnReference>(columnReferenceLHS);
+	public ArrayHasPredicate(PredicateLeftHandSide leftHandSide, Boolean not, InPredicateValue inPredicateValue) {
+		this.leftHandSide = leftHandSide;
 		this.not = not;
 		this.inPredicateValue = inPredicateValue;
 	}
@@ -42,7 +42,7 @@ public class ArrayHasPredicate extends SQLElement implements HasPredicate {
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		columnReferenceLHS.toSql(builder, parameters);
+		leftHandSide.toSql(builder, parameters);
 		builder.append(" ");
 		if (this.not != null) {
 			builder.append("NOT ");
@@ -55,12 +55,12 @@ public class ArrayHasPredicate extends SQLElement implements HasPredicate {
 	
 	@Override
 	public Iterable<Element> getChildren() {
-		return SQLElement.buildChildren(columnReferenceLHS, inPredicateValue);
+		return SQLElement.buildChildren(leftHandSide, inPredicateValue);
 	}
 
 	@Override
-	public ColumnReference getLeftHandSide() {
-		return columnReferenceLHS.getChild();
+	public PredicateLeftHandSide getLeftHandSide() {
+		return leftHandSide;
 	}
 
 	@Override

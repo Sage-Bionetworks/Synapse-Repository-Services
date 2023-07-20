@@ -1016,7 +1016,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testReplaceArrayHasPredicate_ReferencedColumn_FalseIsList() throws ParseException {
+	public void testReplaceArrayHasPredicateWithNotAListColumn() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING);//not a list type
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
 		
@@ -1038,19 +1038,34 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testReplaceArrayHasPredicate_ReferencedColumn_unknown() throws ParseException {
+	public void testReplaceArrayHasPredicateWithUnknownReferencedColumnn() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 
 		//should not ever happen since translate would have to translate column name to something that it didnt have in its maping
 		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("_C723895794567246_ has ('asdf', 'qwerty', 'yeet')");
 
-		assertThrows(IllegalArgumentException.class, () -> {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, createTableAndColumnMapper());
-		});
+		}).getMessage();
+		
+		assertEquals("Unknown column reference: _C723895794567246_", message);
+	}
+	
+	@Test
+	public void testReplaceArrayHasPredicateWithNotAColumnReference() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+
+		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("JSON_EXTRACT(foo, '$.bar') has ('asdf', 'qwerty', 'yeet')");
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, createTableAndColumnMapper());
+		}).getMessage();
+		
+		assertEquals("The HAS keyword only works for list column references", message);
 	}
 
 	@Test
-	public void testReplaceArrayHasPredicate_Has() throws ParseException {
+	public void testReplaceArrayHasPredicate() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
 		
@@ -1071,7 +1086,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testReplaceArrayHasPredicate_NotHas() throws ParseException {
+	public void testReplaceArrayHasPredicateWithNot() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
 		
@@ -1091,35 +1106,8 @@ public class SQLTranslatorUtilsTest {
 
 	}
 
-	//Test to ensure that a list of values containing 'syn' prefix are removed (e.g. ( ('syn123','syn456')  --->  ('123','456') )
 	@Test
-	public void testTranslate_Has_onEntityIdList() throws ParseException {
-		columnFoo.setColumnType(ColumnType.ENTITYID_LIST);
-		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
-		
-		TableAndColumnMapper singleTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class),mockSchemaProvider);
-
-		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("foo has ('syn123', 456, 'syn789')");
-		booleanPrimary.recursiveSetParent();
-		SQLTranslatorUtils.translateAllColumnReferences(booleanPrimary, singleTableMapper);
-		HashMap<String, Object> parameters = new HashMap<>();
-
-		//method under test
-		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, singleTableMapper);
-
-		//parameter mapping should have stripped out the "syn" prefixes
-		Map<String, Object> expected = ImmutableMap.of(
-			"b0", 123L,
-			"b1", 456L,
-			"b2", 789L
-		);
-
-		assertEquals(expected, parameters);
-	}
-
-	@Test
-	public void testReplaceArrayHasPredicate_NotAnArrayHasPredicate() throws ParseException{
+	public void testReplaceArrayHasPredicateWithNotAnArrayHasPredicate() throws ParseException{
 		BooleanPrimary notArrayHasPredicate = SqlElementUtils.createBooleanPrimary("foo IN (\"123\", \"456\")");
 		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
 		SQLTranslatorUtils.translate(notArrayHasPredicate.getFirstElementOfType(InPredicate.class), new HashMap<>(), createTableAndColumnMapper());
@@ -1914,6 +1902,59 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(uuid, parameters.get("b0"));
 	}
 	
+	//Test to ensure that a list of values containing 'syn' prefix are removed (e.g. ( ('syn123','syn456')  --->  ('123','456') )
+	@Test
+	public void testTranslateHasPredicateWithEntityIdList() throws ParseException {
+		columnFoo.setColumnType(ColumnType.ENTITYID_LIST);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
+		
+		TableAndColumnMapper singleTableMapper = new TableAndColumnMapper(
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class),mockSchemaProvider);
+
+		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("foo has ('syn123', 456, 'syn789')");
+		booleanPrimary.recursiveSetParent();
+		SQLTranslatorUtils.translateAllColumnReferences(booleanPrimary, singleTableMapper);
+		HashMap<String, Object> parameters = new HashMap<>();
+
+		//method under test
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, singleTableMapper);
+
+		//parameter mapping should have stripped out the "syn" prefixes
+		Map<String, Object> expected = ImmutableMap.of(
+			"b0", 123L,
+			"b1", 456L,
+			"b2", 789L
+		);
+
+		assertEquals(expected, parameters);
+	}
+	
+	@Test
+	public void testTranslateHasPredicateWithMySqlFunction() throws ParseException{
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		Predicate predicate = SqlElementUtils.createPredicate("JSON_EXTRACT(foo, '$.bar') <> 3");
+		SQLTranslatorUtils.translateAllColumnReferences(predicate, createTableAndColumnMapper());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		// call under test
+		SQLTranslatorUtils.translate(hasPredicate, parameters, createTableAndColumnMapper());
+		assertEquals("JSON_EXTRACT(_C111_,'$.bar') <> :b0",predicate.toSql());
+		assertEquals(Map.of("b0", "3"), parameters);
+	}
+	
+	@Test
+	public void testTranslateHasPredicateWithCastSpecification() throws ParseException{
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		Predicate predicate = SqlElementUtils.createPredicate("CAST(JSON_EXTRACT(foo, '$.bar') AS INTEGER) <> 3");
+		SQLTranslatorUtils.translateAllColumnReferences(predicate, createTableAndColumnMapper());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		// call under test
+		SQLTranslatorUtils.translate(hasPredicate, parameters, createTableAndColumnMapper());
+		assertEquals("CAST(JSON_EXTRACT(_C111_,'$.bar') AS INTEGER) <> :b0",predicate.toSql());
+		assertEquals(Map.of("b0", 3L), parameters);
+	}
+	
 	@Test
 	public void testTranslatePagination() throws ParseException{
 		Pagination element = new TableQueryParser("limit 1 offset 9").pagination();
@@ -2588,12 +2629,6 @@ public class SQLTranslatorUtilsTest {
 		String expectedSql = "CAST(foo AS CHAR)";
 		assertEquals(expectedSql, element.toSql());
 		verify(mockTableAndColumnMapper, never()).getColumnModel(any());
-		
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			SQLTranslatorUtils.translateCastSpecification(element, mockTableAndColumnMapper);
-		}).getMessage();
-		assertEquals("Either ColumnType or ColumnId is required", message);
 	}
 	
 	@Test
@@ -4008,5 +4043,53 @@ public class SQLTranslatorUtilsTest {
 		SearchCondition two = new TableQueryParser("bar is not null").searchCondition();
 		SearchCondition result = SQLTranslatorUtils.mergeSearchConditions(mockHas, two);
 		assertEquals("bar IS NOT NULL", result.toSql());
+	}
+	
+	@Test
+	public void testGetColumnTypeFromPredicateWithColumnReference() throws ParseException {
+		
+		HasPredicate predicate = SqlElementUtils.createPredicate("foo = 1").getFirstElementOfType(HasPredicate.class);
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(createTableAndColumnMapper(), predicate);
+		
+		assertEquals(columnFoo.getColumnType(), columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeFromPredicateWithMySqlFunction() throws ParseException {
+		
+		HasPredicate predicate = SqlElementUtils.createPredicate("JSON_EXTRACT(foo, '$.bar') = 1").getFirstElementOfType(HasPredicate.class);
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(createTableAndColumnMapper(), predicate);
+		
+		assertEquals(ColumnType.STRING, columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeFromPredicateWithCastSpecification() throws ParseException {
+		
+		HasPredicate predicate = SqlElementUtils.createPredicate("CAST(JSON_EXTRACT(foo, '$.bar') AS INTEGER) = 1").getFirstElementOfType(HasPredicate.class);
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(createTableAndColumnMapper(), predicate);
+		
+		assertEquals(ColumnType.INTEGER, columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeFromPredicateWithUnsupportedLeftHandSide() throws ParseException {
+		
+		HasPredicate predicate = SqlElementUtils.createPredicate("CAST(JSON_EXTRACT(foo, '$.bar') AS INTEGER) = 1").getFirstElementOfType(HasPredicate.class);
+		
+		predicate.getLeftHandSide().replaceChildren(new CharacterStringLiteral("a string"));
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			SQLTranslatorUtils.getColumnType(createTableAndColumnMapper(), predicate);
+		}).getMessage();
+		
+		assertEquals("Unsupported left hand side of predicate ''a string' = 1': expected a column reference, a mysql function or a cast specification.", message);
 	}
 }
