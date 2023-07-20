@@ -77,7 +77,6 @@ public class DrsManagerImpl implements DrsManager {
 
     @Override
     public ServiceInformation getServiceInformation() {
-        final String baseURL = String.format("%s://%s", HTTPS, REGISTERED_HOSTNAME);
         final ServiceInformation result = new ServiceInformation();
         result.setId(REVERSE_DOMAIN_NOTATION);
         result.setName(SERVICE_NAME);
@@ -97,7 +96,6 @@ public class DrsManagerImpl implements DrsManager {
         result.setUpdatedAt(UPDATED_AT);
         result.setEnvironment(stackConfiguration.getStack());
         result.setVersion(stackConfiguration.getStackInstance());
-        result.setUrl(baseURL);
         return result;
     }
 
