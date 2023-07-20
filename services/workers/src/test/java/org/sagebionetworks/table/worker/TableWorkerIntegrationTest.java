@@ -2918,7 +2918,7 @@ public class TableWorkerIntegrationTest {
 				fail("This should have failed with an IllegalArgumentException");
 			});
 		});
-		assertTrue( whereClauseException.getMessage().startsWith("Encountered \" <date_time_field> \"year \"\" at line 1, column 37."));
+		assertTrue( whereClauseException.getMessage().startsWith("Unknown column 'YEAR' in 'where clause'"));
 		assertTrue( whereClauseException.getMessage().contains(TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE));
 		Throwable groupbyClauseException = assertThrows(IllegalArgumentException.class, ()->{
 			waitForConsistentQuery(adminUserInfo, "select \"year\" from " + tableId + " where \"year\" = 2020 group" +

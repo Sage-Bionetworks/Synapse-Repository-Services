@@ -182,11 +182,11 @@ public class TableQueryUtilsTest {
 	 * must be escaped.
 	 */
 	public void testExtractTableIdFromSqlWithParserException() {
-		String sql = "select year from syn123 where year = 1";
+		String sql = "select year from syn123 where timestamp = 1";
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{
 			TableQueryUtils.extractTableIdFromSql(sql);
 		});
-		assertTrue(exception.getMessage().startsWith("Encountered \" <date_time_field> \"year \"\" at line 1, column 31."));
+		assertTrue(exception.getMessage().startsWith("Encountered \" \"TIMESTAMP\" \"timestamp \"\" at line 1, column 31."));
 		assertTrue(exception.getMessage().contains(TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE));
 	}
 }
