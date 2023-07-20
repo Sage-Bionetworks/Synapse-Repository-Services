@@ -48,10 +48,6 @@
 		"version": {
 			"type": "string",
 			"description": "The version of software in which Drs services released."
-		},
-		"url": {
-			"type": "string",
-			"description": "The Drs API's base url for the provider of service."
 		}
 	}
 }

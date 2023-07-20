@@ -22,7 +22,9 @@ public enum FunctionReturnType {
 	// Cases where the parameter type is a list and the return type is the non-list version of that parameter type
 	UNNEST_PARAMETER(new UnnestParameterFunctionReturnTypeHandler()),
 	// Functions returning json
-	JSON(ColumnType.JSON);
+	JSON(ColumnType.JSON),
+	// Functions returning boolean
+	BOOLEAN(ColumnType.BOOLEAN);
 
 	private FunctionReturnTypeHandler handler;
 
