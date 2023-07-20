@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -58,7 +59,7 @@ import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.ReplicationType;
+
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
@@ -1015,7 +1016,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertEquals(initialRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 		
-		Date initialChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId).get();
+		Optional<Date> initialChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);
 		
 		// Now trigger an update of the dependent table changing its schema
 		List<ColumnModel> schema = List.of(
@@ -1038,7 +1039,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertNotEquals(initialChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
 		}, MAX_WAIT_MS);
 		
-		Date lastChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId).get();
+		Optional<Date> lastChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);
 		 
 		// We emulate another update, the index should not be replaced since the view is up to date
 		tableManagerSupport.triggerIndexUpdate(materializedViewId);
@@ -1089,7 +1090,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertEquals(initialRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 		
-		Date initialChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId).get();
+		Optional<Date> initialChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);
 		
 		// Now we change the view data and trigger an update
 		
@@ -1120,7 +1121,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertNotEquals(initialChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
 		}, MAX_WAIT_MS);
 		
-		Date lastChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId).get();		
+		Optional<Date> lastChangedOn = tableManagerSupport.getLastChangedOn(materializedViewId);		
 		
 		// We emulate another update to the depending view, the index should not be replaced since the view is up to date
 		tableManagerSupport.triggerIndexUpdate(viewId);
