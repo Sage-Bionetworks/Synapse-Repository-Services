@@ -220,6 +220,58 @@ public class VirtualTableIntegrationTest {
 			assertEquals(2L, results.getQueryCount());
 		}, MAX_WAIT_MS);
 	}
+	
+	/**
+	 * Test added for PLFM-7901.
+	 * @throws Exception
+	 */
+	@Test
+	public void testVirtualTableAllParts() throws Exception {
+
+		List<Entity> entitites = createProjectHierachy();
+		Project project = (Project) entitites.get(0);
+
+		List<ColumnModel> tableSchema = List.of(
+				new ColumnModel().setName("string").setColumnType(ColumnType.STRING).setMaximumSize(50L).setFacetType(FacetType.enumeration),
+				new ColumnModel().setName("boolean").setColumnType(ColumnType.BOOLEAN).setFacetType(FacetType.enumeration),
+				new ColumnModel().setName("double").setColumnType(ColumnType.DOUBLE).setFacetType(FacetType.range));
+		tableSchema = columnModelManager.createColumnModels(adminUserInfo, tableSchema);
+
+		TableEntity table = asyncHelper.createTable(adminUserInfo, "sometable", project.getId(),
+				tableSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()), false);
+
+		List<Row> row = List.of(new Row().setValues(List.of("a", "true", "3.13")), new Row().setValues(List.of("a", "false", "4.5")),
+				new Row().setValues(List.of("a", "TRUE", "nan")), new Row().setValues(List.of("b", "FALSE","0.1")));
+		appendRowsToTable(tableSchema, table.getId(), row);
+
+		asyncHelper.assertQueryResult(adminUserInfo, "select count(*) from " + table.getId(), (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("4"))),
+					results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+
+
+		// Note: No aggregation in the defining sql.
+		String definingSql = String.format("select string, boolean from %s",
+				table.getId());
+
+		VirtualTable virtualTable = asyncHelper.createVirtualTable(adminUserInfo, project.getId(), definingSql);
+
+		Query query = new Query();
+		query.setSql("select * from " + virtualTable.getId()+" where string = 'b'");
+		query.setIncludeEntityEtag(true);
+
+		// Select all options
+		QueryOptions options = new QueryOptions().withMask(0xffffL).withReturnActionsRequired(false);
+
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("b", "false"))),
+					results.getQueryResult().getQueryResults().getRows());
+			
+			assertEquals(1L,
+					results.getQueryCount());
+			assertNotNull(results.getLastUpdatedOn());
+		}, MAX_WAIT_MS);		
+	}
 
 	@Test
 	public void testVirtualTableWithSourceView() throws Exception {

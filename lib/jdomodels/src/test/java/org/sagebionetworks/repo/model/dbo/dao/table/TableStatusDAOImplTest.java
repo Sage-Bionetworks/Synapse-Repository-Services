@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 import java.util.Collections;
 import java.util.Date;
@@ -21,11 +20,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdVersionTableType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -514,7 +513,7 @@ public class TableStatusDAOImplTest {
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken, lastTableChangeEtag);
 		TableStatus lastStatus = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		// call under test
-		Date lastChangedOn = tableStatusDAO.getLastChangedOn(tableIdNoVersion);
+		Date lastChangedOn = tableStatusDAO.getLastChangedOn(tableIdNoVersion).get();
 		assertEquals(lastStatus.getChangedOn(), lastChangedOn);
 	}
 
@@ -525,17 +524,15 @@ public class TableStatusDAOImplTest {
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdWithVersion, resetToken, lastTableChangeEtag);
 		TableStatus lastStatus = tableStatusDAO.getTableStatus(tableIdWithVersion);
 		// call under test
-		Date lastChangedOn = tableStatusDAO.getLastChangedOn(tableIdWithVersion);
+		Date lastChangedOn = tableStatusDAO.getLastChangedOn(tableIdWithVersion).get();
 		assertEquals(lastStatus.getChangedOn(), lastChangedOn);
 	}
 
 	@Test
 	public void testGetLastChangedOn_NotFound() {
 		IdAndVersion doesNotExist = IdAndVersion.parse("syn999.888");
-		assertThrows(NotFoundException.class, () -> {
-			// call under test
-			tableStatusDAO.getLastChangedOn(doesNotExist);
-		});
+		// call under test
+		assertEquals(Optional.empty(), tableStatusDAO.getLastChangedOn(doesNotExist));
 	}
 
 	@Test
@@ -543,14 +540,14 @@ public class TableStatusDAOImplTest {
 		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
 		String lastTableChangeEtag = UUID.randomUUID().toString();
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken, lastTableChangeEtag);
-		Date startingChangedOn = tableStatusDAO.getLastChangedOn(tableIdNoVersion);
+		Date startingChangedOn = tableStatusDAO.getLastChangedOn(tableIdNoVersion).get();
 		// Sleep to update time
 		Thread.sleep(101L);
 
 		// call under test
 		boolean updated = tableStatusDAO.updateChangedOnIfAvailable(tableIdNoVersion);
 		assertTrue(updated);
-		Date endingChangedOne = tableStatusDAO.getLastChangedOn(tableIdNoVersion);
+		Date endingChangedOne = tableStatusDAO.getLastChangedOn(tableIdNoVersion).get();
 		assertTrue(endingChangedOne.after(startingChangedOn));
 	}
 
@@ -559,28 +556,28 @@ public class TableStatusDAOImplTest {
 		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
 		String lastTableChangeEtag = UUID.randomUUID().toString();
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdWithVersion, resetToken, lastTableChangeEtag);
-		Date startingChangedOn = tableStatusDAO.getLastChangedOn(tableIdWithVersion);
+		Date startingChangedOn = tableStatusDAO.getLastChangedOn(tableIdWithVersion).get();
 		// Sleep to update time
 		Thread.sleep(101L);
 
 		// call under test
 		boolean updated = tableStatusDAO.updateChangedOnIfAvailable(tableIdWithVersion);
 		assertTrue(updated);
-		Date endingChangedOne = tableStatusDAO.getLastChangedOn(tableIdWithVersion);
+		Date endingChangedOne = tableStatusDAO.getLastChangedOn(tableIdWithVersion).get();
 		assertTrue(endingChangedOne.after(startingChangedOn));
 	}
 
 	@Test
 	public void testUpdateChangedOnIfAvailable_Processing() throws InterruptedException {
 		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
-		Date startingChangedOn = tableStatusDAO.getLastChangedOn(tableIdWithVersion);
+		Date startingChangedOn = tableStatusDAO.getLastChangedOn(tableIdWithVersion).get();
 		// Sleep to update time
 		Thread.sleep(101L);
 
 		// call under test
 		boolean updated = tableStatusDAO.updateChangedOnIfAvailable(tableIdWithVersion);
 		assertFalse(updated);
-		Date endingChangedOne = tableStatusDAO.getLastChangedOn(tableIdWithVersion);
+		Date endingChangedOne = tableStatusDAO.getLastChangedOn(tableIdWithVersion).get();
 		assertEquals(endingChangedOne, startingChangedOn);
 	}
 
@@ -588,16 +585,17 @@ public class TableStatusDAOImplTest {
 	public void testUpdateChangedOnIfAvailable_Failed() throws InterruptedException {
 		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
 		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdWithVersion, "error", "details");
-		Date startingChangedOn = tableStatusDAO.getLastChangedOn(tableIdWithVersion);
+		Date startingChangedOn = tableStatusDAO.getLastChangedOn(tableIdWithVersion).get();
 		// Sleep to update time
 		Thread.sleep(101L);
 
 		// call under test
 		boolean updated = tableStatusDAO.updateChangedOnIfAvailable(tableIdWithVersion);
 		assertFalse(updated);
-		Date endingChangedOne = tableStatusDAO.getLastChangedOn(tableIdWithVersion);
+		Date endingChangedOne = tableStatusDAO.getLastChangedOn(tableIdWithVersion).get();
 		assertEquals(endingChangedOne, startingChangedOn);
 	}
+	
 
 	@Test
 	public void testGetLastChangeEtagWithNoEtag() throws InterruptedException {

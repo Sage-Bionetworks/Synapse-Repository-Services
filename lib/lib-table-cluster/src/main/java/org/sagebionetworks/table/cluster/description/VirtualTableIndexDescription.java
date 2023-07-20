@@ -2,7 +2,6 @@ package org.sagebionetworks.table.cluster.description;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -18,7 +17,7 @@ public class VirtualTableIndexDescription implements IndexDescription {
 
 	private final IdAndVersion idAndVersion;
 	private final String definingSql;
-	private final List<IndexDescription> sources;
+	private final IndexDescription source;
 
 	public VirtualTableIndexDescription(IdAndVersion idAndVersion, String definingSql, IndexDescriptionLookup lookup) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
@@ -37,7 +36,7 @@ public class VirtualTableIndexDescription implements IndexDescription {
 			sourceIds.stream().filter(s -> s.equals(idAndVersion)).findFirst().ifPresent(s -> {
 				throw new IllegalArgumentException("Defining SQL cannot reference itself");
 			});
-			sources = sourceIds.stream().map((id) -> lookup.getIndexDescription(id)).collect(Collectors.toList());
+			source =  lookup.getIndexDescription(sourceIds.get(0));
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -70,7 +69,7 @@ public class VirtualTableIndexDescription implements IndexDescription {
 
 	@Override
 	public List<IndexDescription> getDependencies() {
-		return sources;
+		return Collections.singletonList(source);
 	}
 
 	@Override

@@ -2297,4 +2297,32 @@ public class QueryTranslatorTest {
 		expectedParams.put("b1", "apple");
 		assertEquals(expectedParams, query.getParameters());
 	}
+	
+	@Test
+	public void testVirtualTableWithNonAggregateDefiningSql() {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+		
+		ColumnModel foo = new ColumnModel().setName("foo").setColumnType(ColumnType.STRING).setMaximumSize(40L).setId("11");
+			
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(List.of(foo));
+		setupGetColumns(foo);
+
+		when(mockIndexDescriptionLookup.getIndexDescription(viewId)).thenReturn(new ViewIndexDescription(viewId, TableType.entityview));
+		
+		String definingSql = "select foo from syn1";
+		IndexDescription indexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
+
+		sql = indexDescription.preprocessQuery("select * from syn2");
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
+		
+		assertEquals("WITH T2 (_C11_) AS (SELECT _C11_ FROM T1) SELECT _C11_ FROM T2", query.getOutputSQL());
+		assertFalse(query.includesRowIdAndVersion());
+		assertFalse(query.includeEntityEtag());
+		assertFalse(query.isAggregatedResult());
+		
+	}
+	
 }
