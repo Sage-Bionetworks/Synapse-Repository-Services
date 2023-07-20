@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.IdVersionTableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -123,9 +124,9 @@ public interface TableStatusDAO {
 	 * The the last changed on date for the given table.
 	 * 
 	 * @param tableId
-	 * @return
+	 * @return {@link Optional#empty()} for a table/view that does not have an index (like {@link VirtualTable}.
 	 */
-	public Date getLastChangedOn(IdAndVersion tableId);
+	public Optional<Date> getLastChangedOn(IdAndVersion tableId);
 
 	/**
 	 * Will update the changedOn of the given table if its state is currently
