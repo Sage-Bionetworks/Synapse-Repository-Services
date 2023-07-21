@@ -2322,8 +2322,9 @@ public class QueryTranslatorTest {
 		assertFalse(query.includesRowIdAndVersion());
 		assertFalse(query.includeEntityEtag());
 		assertFalse(query.isAggregatedResult());
-  }
+	}
 		
+	@Test
 	public void testSelectWithJsonExtract() {
 		IdAndVersion tableId = IdAndVersion.parse("syn1");
 		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
@@ -2395,5 +2396,5 @@ public class QueryTranslatorTest {
 		
 		assertEquals(List.of(new SelectColumn().setName("bar").setColumnType(ColumnType.STRING), new SelectColumn().setName("j").setColumnType(ColumnType.JSON)), select);
 	}
-	
+		
 }
