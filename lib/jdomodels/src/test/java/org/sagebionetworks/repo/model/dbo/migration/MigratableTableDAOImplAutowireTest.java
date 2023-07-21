@@ -204,22 +204,31 @@ public class MigratableTableDAOImplAutowireTest {
 	
 	@Test
 	public void testGetMigrationTypeCountForType() {
-		long startCount = fileHandleDao.getCount();
-		assertEquals(startCount, migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getCount().longValue());
+		// Initial state: min and max are null
+		assertNull(migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMinid());
+		assertNull(migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMaxid());
+		// Add a file
 		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handle.setFileName("handle");
 		handle = (S3FileHandle) fileHandleDao.createFile(handle);
-		assertEquals(startCount+1, migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getCount().longValue());
+		// minId == maxId == handleId
+		long handleId = Long.parseLong(handle.getId());
+		long maxId = migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMaxid().longValue();
+		long minId = migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMinid().longValue();
+		assertEquals(handleId, maxId);
+		assertEquals(handleId, minId);
+		// Delete file
 		fileHandleDao.delete(handle.getId());
-		assertEquals(startCount, migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getCount().longValue());
+		// Back to initial state
+		assertNull(migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMinid());
+		assertNull(migratableTableDAO.getMigrationTypeCount(MigrationType.FILE_HANDLE).getMaxid());
 	}
-	
+
 	@Test
 	public void testGetMigrationTypeCountForTypeNoData() {
 		MigrationTypeCount mtc = migratableTableDAO.getMigrationTypeCount(MigrationType.VERIFICATION_SUBMISSION);
 		assertNotNull(mtc);
-		assertNotNull(mtc.getCount());
-		assertEquals(0L, mtc.getCount().longValue());
+		assertNull(mtc.getCount());
 		assertNull(mtc.getMaxid());
 		assertNull(mtc.getMinid());
 		assertNotNull(mtc.getType());

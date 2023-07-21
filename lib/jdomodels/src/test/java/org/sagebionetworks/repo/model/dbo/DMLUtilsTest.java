@@ -322,15 +322,6 @@ public class DMLUtilsTest {
 	}
 
 	@Test
-	public void testCreateMinMaxCountByKeyStatement() {
-		String expectedSql = "SELECT MIN(`ID`), MAX(`ID`), COUNT(`ID`) FROM SOME_TABLE";
-		String sql = DMLUtils.createGetMinMaxCountByKeyStatement(migrateableMappingEtagAndId);
-		assertNotNull(sql);
-		
-		assertEquals(expectedSql, sql);
-	}
-
-	@Test
 	public void testGetBackupRangeBatch() {
 		String expectedSql = "SELECT * FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID";
 		String sql = DMLUtils.getBackupRangeBatch(mapping);
