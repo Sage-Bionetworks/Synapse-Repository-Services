@@ -952,9 +952,9 @@ PredicateLeftHandSide predicateLeftHandSide():
  	CastSpecification castSpecification = null;
 }
 {
-	columnReference = columnReference() { return new PredicateLeftHandSide(columnReference); }
-	| mySqlFunction = mysqlFunction() { return new PredicateLeftHandSide(mySqlFunction); }
+	mySqlFunction = mysqlFunction() { return new PredicateLeftHandSide(mySqlFunction); }
 	| castSpecification = castSpecification() { return new PredicateLeftHandSide(castSpecification); }
+	| columnReference = columnReference() { return new PredicateLeftHandSide(columnReference); }
 }
 ComparisonPredicate comparisonPredicate(PredicateLeftHandSide leftHandSide):
 {
