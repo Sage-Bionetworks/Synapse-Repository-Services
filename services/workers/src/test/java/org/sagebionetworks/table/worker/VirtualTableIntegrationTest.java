@@ -323,14 +323,14 @@ public class VirtualTableIntegrationTest {
 		VirtualTable virtualTable = asyncHelper.createVirtualTable(adminUserInfo, project.getId(), definingSql);
 
 		Query query = new Query();
-		query.setSql("select * from " + virtualTable.getId()+" where string = 'b'");
+		query.setSql("select string, boolean, 'some constant' from " + virtualTable.getId()+" where string = 'b'");
 		query.setIncludeEntityEtag(true);
 
 		// Select all options
 		QueryOptions options = new QueryOptions().withMask(0xffffL).withReturnActionsRequired(false);
 
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
-			assertEquals(List.of(new Row().setValues(List.of("b", "false"))),
+			assertEquals(List.of(new Row().setValues(List.of("b", "false", "some constant"))),
 					results.getQueryResult().getQueryResults().getRows());
 			
 			assertEquals(1L,

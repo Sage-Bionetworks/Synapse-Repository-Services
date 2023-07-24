@@ -1167,7 +1167,7 @@ public class SQLTranslatorUtils {
 	 *         ColumnModels modified as needed.
 	 */
 	public static List<ColumnModel> createSchemaOfSelect(final List<List<ColumnModel>> selectSchemas) {
-		if (selectSchemas.size() < 2) {
+		if (selectSchemas.size() < 2 || !hasSameSize(selectSchemas)) {
 			return selectSchemas.get(0);
 		}
 		List<ColumnModel> firstSchema = selectSchemas.get(0);
@@ -1187,6 +1187,19 @@ public class SQLTranslatorUtils {
 			}
 		}
 		return newSchema;
+	}
+	
+	/**
+	 * Do all of the given lists have the same size?
+	 * @param listOfLists
+	 * @return true if each list has the same size.
+	 */
+	public static <T> boolean hasSameSize(final List<List<T>> listOfLists) {
+		if(listOfLists.isEmpty()) {
+			return true;
+		}
+		int rootSize = listOfLists.get(0).size();
+		return listOfLists.stream().skip(1).allMatch(l -> l.size() == rootSize);
 	}
 	
 	/**
