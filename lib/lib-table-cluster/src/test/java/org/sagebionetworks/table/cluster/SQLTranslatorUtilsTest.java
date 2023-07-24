@@ -3849,6 +3849,20 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testCreateSchemaOfSelectWithDifferentSizes() {
+		List<List<ColumnModel>> selectSchemas = List.of(
+				List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(10L),
+						new ColumnModel().setName("b").setColumnType(ColumnType.STRING).setMaximumSize(11L)
+								.setMaximumListLength(12L)),
+				List.of(new ColumnModel().setName("x").setColumnType(ColumnType.STRING).setMaximumSize(13L)));
+		
+		// call under test
+		List<ColumnModel> result = SQLTranslatorUtils.createSchemaOfSelect(selectSchemas);
+		List<ColumnModel> expected = selectSchemas.get(0);
+		assertEquals(expected, result);
+	}
+	
+	@Test
 	public void testCreateSchemaOfSelectWithSingleSelect() {
 		List<List<ColumnModel>> selectSchemas = List.of(
 				List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(10L),
@@ -4091,5 +4105,29 @@ public class SQLTranslatorUtilsTest {
 		}).getMessage();
 		
 		assertEquals("Unsupported left hand side of predicate ''a string' = 1': expected a column reference, a mysql function or a cast specification.", message);
+	}
+	
+	@Test
+	public void testAllTheSameSize() {
+		List<List<String>> lists = List.of(List.of("a","b"),List.of("c","d"));
+		assertTrue(SQLTranslatorUtils.hasSameSize(lists));
+	}
+	
+	@Test
+	public void testAllTheSameSizeWithEmpty() {
+		List<List<String>> lists = Collections.emptyList();
+		assertTrue(SQLTranslatorUtils.hasSameSize(lists));
+	}
+	
+	@Test
+	public void testAllTheSameSizeWithOne() {
+		List<List<String>> lists = List.of(List.of("a","b"));
+		assertTrue(SQLTranslatorUtils.hasSameSize(lists));
+	}
+	
+	@Test
+	public void testAllTheSameSizeWithDifferentSizes() {
+		List<List<String>> lists = List.of(List.of("a","b"),List.of("c","d"),List.of("e"));
+		assertFalse(SQLTranslatorUtils.hasSameSize(lists));
 	}
 }
