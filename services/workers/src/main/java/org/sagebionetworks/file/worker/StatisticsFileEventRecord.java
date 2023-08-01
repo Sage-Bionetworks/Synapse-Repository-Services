@@ -72,7 +72,7 @@ public class StatisticsFileEventRecord extends AbstractAwsKinesisLogRecord {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         StatisticsFileEventRecord that = (StatisticsFileEventRecord) o;
-        return userId.equals(that.userId) && timestamp.equals(that.timestamp) && projectId.equals(that.projectId) && fileHandleId.equals(that.fileHandleId) && associateType == that.associateType && associateId.equals(that.associateId);
+        return userId.equals(that.userId) && timestamp.equals(that.timestamp) && Objects.equals(projectId, that.projectId) && fileHandleId.equals(that.fileHandleId) && associateType == that.associateType && associateId.equals(that.associateId);
     }
 
     @Override

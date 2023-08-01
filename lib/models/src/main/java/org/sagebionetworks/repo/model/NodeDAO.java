@@ -505,7 +505,7 @@ public interface NodeDAO {
 	 * @param objectId
 	 * @return
 	 */
-	public String getProjectId(String objectId);
+	public Optional<String> getProjectId(String objectId);
 	
 	/**
 	 * A node's permissions benefactor is the node which its permissions are inherited from.

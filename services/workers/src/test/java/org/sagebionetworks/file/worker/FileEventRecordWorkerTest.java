@@ -25,6 +25,7 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -32,7 +33,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 
@@ -68,7 +68,7 @@ public class FileEventRecordWorkerTest {
         FileEvent event = FileEventUtils.buildFileEvent(FileEventType.FILE_UPLOAD, 1L, "123",
                 "1", FileHandleAssociateType.FileEntity, STACK, INSTANCE);
 
-        when(projectResolver.resolveProject(any(), any())).thenReturn(23L);
+        when(projectResolver.resolveProject(any(), any())).thenReturn(Optional.of(23L));
 
         // Call under test
         worker.run(progressCallback, message, event);
@@ -93,7 +93,7 @@ public class FileEventRecordWorkerTest {
         FileEvent event = FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, 1L, "123",
                 "1", FileHandleAssociateType.FileEntity, STACK, INSTANCE);
 
-        when(projectResolver.resolveProject(any(), any())).thenReturn(23L);
+        when(projectResolver.resolveProject(any(), any())).thenReturn(Optional.of(23L));
         // Call under test
         worker.run(progressCallback, message, event);
 
@@ -125,17 +125,27 @@ public class FileEventRecordWorkerTest {
     }
 
     @Test
-    public void testRunWithoutProjectId() throws RecoverableMessageException, Exception {
-        FileEvent event = new FileEvent().setObjectType(ObjectType.FILE_EVENT)
-                .setObjectId("123").setTimestamp(Date.from(Instant.now()))
-                .setUserId(1L).setFileEventType(FileEventType.FILE_DOWNLOAD)
-                .setFileHandleId("123").setAssociateId("1")
-                .setAssociateType(FileHandleAssociateType.FileEntity);
+    public void testRunWithNullProjectId() throws Exception {
+        FileEventRecord expectedRecord = new FileEventRecord().setUserId(1L).setAssociateId("1").setFileHandleId("123").setProjectId(null)
+                .setAssociateType(FileHandleAssociateType.WikiAttachment);
+        StatisticsFileEventRecord expectedStatisticsRecord = new StatisticsFileEventRecord(STACK, INSTANCE,
+                Date.from(Instant.now()).getTime(), expectedRecord);
 
-        when(projectResolver.resolveProject(any(), any())).thenThrow(new IllegalStateException());
+        FileEvent event = FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, 1L, "123",
+                "1", FileHandleAssociateType.WikiAttachment, STACK, INSTANCE);
 
+        when(projectResolver.resolveProject(any(), any())).thenReturn(Optional.empty());
         // Call under test
         worker.run(progressCallback, message, event);
-        verifyZeroInteractions(firehoseLogger);
+
+        verify(firehoseLogger, times(2)).logBatch(streamNameCaptor.capture(), fileRecordCaptor.capture());
+        assertEquals(List.of("fileDownloadRecords", "fileDownloads"), streamNameCaptor.getAllValues());
+        KinesisJsonEntityRecord kinesisJsonEntityRecord = (KinesisJsonEntityRecord) fileRecordCaptor.getAllValues().get(0).get(0);
+        FileEventRecord actualRecord = (FileEventRecord) kinesisJsonEntityRecord.getPayload();
+        assertEquals(expectedRecord, actualRecord);
+        StatisticsFileEventRecord statisticsFileEventRecord = (StatisticsFileEventRecord) fileRecordCaptor.getAllValues().get(1).get(0);
+        assertNotNull(statisticsFileEventRecord.getTimestamp());
+        expectedStatisticsRecord.withTimestamp(statisticsFileEventRecord.getTimestamp());
+        assertEquals(expectedStatisticsRecord, statisticsFileEventRecord);
     }
 }

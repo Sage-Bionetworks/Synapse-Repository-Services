@@ -1,9 +1,5 @@
 package org.sagebionetworks.repo.manager.statistics;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
-
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -13,6 +9,11 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -28,22 +29,24 @@ public class ProjectResolverUnitTest {
 	public void testResolveProjectForSupportedEntity() {
 		String objectId = "123";
 		String projectIdString = "456";
-		when(mockNodeDao.getProjectId(objectId)).thenReturn(projectIdString);
+		when(mockNodeDao.getProjectId(objectId)).thenReturn(Optional.of(projectIdString));
 		
 		// Call under test
-		Long projectId = projectResolver.resolveProject(FileHandleAssociateType.FileEntity, objectId);
+		Optional<Long> projectId = projectResolver.resolveProject(FileHandleAssociateType.FileEntity, objectId);
 		
-		assertEquals(Long.valueOf(projectIdString), projectId);
+		assertEquals(Long.valueOf(projectIdString), projectId.orElseThrow());
 		
 	}
 	
 	@Test
 	public void testResolveProjectForUnsupportedEntity() {
 		String objectId = "123";
-		Assertions.assertThrows(UnsupportedOperationException.class, () -> {
-			// Call under test
-			projectResolver.resolveProject(FileHandleAssociateType.TeamAttachment, objectId);
-		});		
+		when(mockNodeDao.getProjectId(objectId)).thenReturn(Optional.empty());
+
+		// Call under test
+		Optional<Long> projectId = projectResolver.resolveProject(FileHandleAssociateType.WikiAttachment, objectId);
+
+		assertEquals(null, projectId.orElse(null));
 	}
 
 }

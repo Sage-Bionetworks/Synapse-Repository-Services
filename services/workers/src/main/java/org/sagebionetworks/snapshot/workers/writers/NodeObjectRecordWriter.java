@@ -1,10 +1,5 @@
 package org.sagebionetworks.snapshot.workers.writers;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
@@ -32,6 +27,11 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 @Service
 public class NodeObjectRecordWriter implements ObjectRecordWriter {
@@ -130,7 +130,7 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 				try {
 					Node node = nodeDAO.getNode(message.getObjectId());
 					String benefactorId = nodeDAO.getBenefactor(message.getObjectId());
-					String projectId = nodeDAO.getProjectId(message.getObjectId());
+					String projectId = nodeDAO.getProjectId(message.getObjectId()).orElseThrow();
 					NodeRecord record = buildNodeRecord(node, benefactorId, projectId);
 					record = setAccessProperties(record, userManager, accessRequirementDao, entityAuthorizationManager, nodeDAO);
 					ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());

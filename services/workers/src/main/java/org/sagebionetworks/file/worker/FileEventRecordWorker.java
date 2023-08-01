@@ -8,9 +8,7 @@ import org.sagebionetworks.repo.manager.statistics.ProjectResolver;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.file.FileEventRecord;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.worker.TypedMessageDrivenRunner;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,19 +28,13 @@ public class FileEventRecordWorker implements TypedMessageDrivenRunner<FileEvent
 
 
     @Override
-    public void run(ProgressCallback progressCallback, Message message, FileEvent event) throws RecoverableMessageException, Exception {
+    public void run(ProgressCallback progressCallback, Message message, FileEvent event) throws Exception {
         if (ObjectType.FILE_EVENT != event.getObjectType()) {
             throw new IllegalStateException("Unsupported object type: expected " + ObjectType.FILE_EVENT.name() + ", got " + event.getObjectType());
         }
 
-        Long projectId = null;
+        Long projectId = projectResolver.resolveProject(event.getAssociateType(), event.getAssociateId()).orElse(null);
 
-        try {
-            projectId = projectResolver.resolveProject(event.getAssociateType(), event.getAssociateId());
-        } catch (NotFoundException | IllegalStateException e) {
-            // The object does not exist anymore or there is a loop
-            return;
-        }
 
         FileEventRecord record = new FileEventRecord().setUserId(event.getUserId()).setFileHandleId(event.getFileHandleId()).
                 setAssociateId(event.getAssociateId()).setAssociateType(event.getAssociateType()).setProjectId(projectId);

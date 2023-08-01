@@ -6,6 +6,8 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class ProjectResolverImpl implements ProjectResolver {
 
@@ -17,19 +19,19 @@ public class ProjectResolverImpl implements ProjectResolver {
 	}
 
 	@Override
-	public Long resolveProject(FileHandleAssociateType associationType, String associationId) {
+	public Optional<Long> resolveProject(FileHandleAssociateType associationType, String associationId) {
 		switch (associationType) {
 		case FileEntity:
 		case TableEntity:
 			return getProjectForNode(associationId);
 		default:
-			throw new UnsupportedOperationException("Cannot resolve project for type " + associationType);
+			return Optional.empty();
 		}
 	}
 
-	private Long getProjectForNode(String objectId) {
-		String projectIdString = nodeDao.getProjectId(objectId);
-		return KeyFactory.stringToKey(projectIdString);
+	private Optional<Long> getProjectForNode(String objectId) {
+		Optional<String> projectIdString = nodeDao.getProjectId(objectId);
+		return projectIdString.map(KeyFactory::stringToKey);
 	}
 
 }

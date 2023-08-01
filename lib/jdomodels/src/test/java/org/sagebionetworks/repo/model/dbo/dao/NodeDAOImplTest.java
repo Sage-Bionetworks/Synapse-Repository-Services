@@ -2851,9 +2851,9 @@ public class NodeDAOImplTest {
 		toDelete.add(child.getId());
 		
 		// call under test
-		assertEquals(project.getId(), nodeDao.getProjectId(project.getId()));
-		assertEquals(project.getId(), nodeDao.getProjectId(parent.getId()));
-		assertEquals(project.getId(), nodeDao.getProjectId(child.getId()));
+		assertEquals(project.getId(), nodeDao.getProjectId(project.getId()).orElseThrow());
+		assertEquals(project.getId(), nodeDao.getProjectId(parent.getId()).orElseThrow());
+		assertEquals(project.getId(), nodeDao.getProjectId(child.getId()).orElseThrow());
 	}
 	
 	/**
@@ -2864,12 +2864,11 @@ public class NodeDAOImplTest {
 	 * @throws Exception
 	 */
 	@Test
-	public void testGetProjectIdChildWithNoParent() throws Exception{
+	public void testGetProjectIdChildWithNoParent() throws Exception {
 		Node child = setUpChildWithNoParent();
-		assertThrows(NotFoundException.class, ()->{
-			// Before the fix, this call call would hang with 100% CPU.
-			nodeDao.getProjectId(child.getId());
-		});
+		// Before the fix, this call would hang with 100% CPU.
+		String projectId = nodeDao.getProjectId(child.getId()).orElse(null);
+		assertEquals(null, projectId);
 	}
 	
 	/**
@@ -2977,13 +2976,11 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testGetProjectNodeDoesNotEixst(){
+	public void testGetProjectNodeDoesNotExist() {
 		String doesNotExist = "syn9999999";
-		String message = assertThrows(NotFoundException.class, ()->{
-			// call under test
-			nodeDao.getProjectId(doesNotExist);
-		}).getMessage();
-		assertEquals("Resource: 'syn9999999' does not exist", message);
+		// call under test
+		String projectId = nodeDao.getProjectId(doesNotExist).orElse(null);
+		assertEquals(null, projectId);
 	}
 	
 	@Test
@@ -2994,10 +2991,9 @@ public class NodeDAOImplTest {
 		node = nodeDao.createNewNode(node);
 		String nodeId = node.getId();
 		toDelete.add(node.getId());
-		assertThrows(NotFoundException.class, ()->{
-			// call under test
-			nodeDao.getProjectId(nodeId);
-		});
+		// call under test
+		String projectId = nodeDao.getProjectId(nodeId).orElse(null);
+		assertEquals(null, projectId);
 	}
 
 	@Test
