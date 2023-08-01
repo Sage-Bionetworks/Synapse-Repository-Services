@@ -59,13 +59,12 @@ public class VirtualTableMetadataProviderTest {
 	@Test
 	public void testEntityUpdated() {
 		when(mockTable.getId()).thenReturn("syn123");
-		when(mockTable.getVersionNumber()).thenReturn(2L);
 		when(mockTable.getDefiningSQL()).thenReturn("select * from syn345");
 		boolean wasNewVersionCreated = false;
 		// call under test
 		provider.entityUpdated(null, mockTable, wasNewVersionCreated);
 		
-		verify(mockManager).registerDefiningSql(IdAndVersion.parse("syn123.2"), "select * from syn345");
+		verify(mockManager).registerDefiningSql(IdAndVersion.parse("syn123"), "select * from syn345");
 	}
 	
 	@Test
@@ -83,11 +82,10 @@ public class VirtualTableMetadataProviderTest {
 	@Test
 	public void testEntityCreated() {
 		when(mockTable.getId()).thenReturn("syn123");
-		when(mockTable.getVersionNumber()).thenReturn(2L);
 		when(mockTable.getDefiningSQL()).thenReturn("select * from syn345");
 		// call under test
 		provider.entityCreated(null, mockTable);
 		
-		verify(mockManager).registerDefiningSql(IdAndVersion.parse("syn123.2"), "select * from syn345");
+		verify(mockManager).registerDefiningSql(IdAndVersion.parse("syn123"), "select * from syn345");
 	}
 }
