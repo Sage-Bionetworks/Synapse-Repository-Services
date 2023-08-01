@@ -288,7 +288,7 @@ public class VirtualTableIntegrationTest {
 	}
 	
 	/**
-	 * Test added for PLFM-7901.
+	 * Test added for PLFM-7901 and PLFM-7963.
 	 * @throws Exception
 	 */
 	@Test
@@ -326,7 +326,7 @@ public class VirtualTableIntegrationTest {
 		query.setSql("select string, boolean, 'some constant' from " + virtualTable.getId()+" where string = 'b'");
 		query.setIncludeEntityEtag(true);
 
-		// Select all options
+		// Select all options (See https://sagebionetworks.jira.com/browse/PLFM-7901)
 		QueryOptions options = new QueryOptions().withMask(0xffffL).withReturnActionsRequired(false);
 
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
@@ -336,7 +336,22 @@ public class VirtualTableIntegrationTest {
 			assertEquals(1L,
 					results.getQueryCount());
 			assertNotNull(results.getLastUpdatedOn());
-		}, MAX_WAIT_MS);		
+		}, MAX_WAIT_MS);
+
+		// Update the SQL changing the number of columns (See https://sagebionetworks.jira.com/browse/PLFM-7963)
+		definingSql = String.format("select string from %s", table.getId());
+		
+		asyncHelper.updateVirtualTable(virtualTable.getId(), adminUserInfo, definingSql);
+		
+		query.setSql("select * from " + virtualTable.getId()+" where string = 'b'");
+		query.setIncludeEntityEtag(true);
+
+		options = new QueryOptions().withRunCount(true);
+
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(1L, results.getQueryCount());
+		}, MAX_WAIT_MS);
+		
 	}
 
 	@Test

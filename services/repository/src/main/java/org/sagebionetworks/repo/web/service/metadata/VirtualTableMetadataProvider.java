@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -40,12 +41,17 @@ public class VirtualTableMetadataProvider implements
 		if (wasNewVersionCreated) {
 			throw new IllegalArgumentException("A VirtualTable version can only be created by creating a snapshot.");
 		}
-		manager.registerDefiningSql(KeyFactory.idAndVersion(entity.getId(), entity.getVersionNumber()), entity.getDefiningSQL());
+		registerDefiningSql(entity);
 	}
 
 	@Override
 	public void entityCreated(UserInfo userInfo, VirtualTable entity) {
-		manager.registerDefiningSql(KeyFactory.idAndVersion(entity.getId(), entity.getVersionNumber()), entity.getDefiningSQL());
+		registerDefiningSql(entity);
+	}
+	
+	private void registerDefiningSql(VirtualTable entity) {
+		// Note that the defining SQL is always bound to the "current" version of the entity (See https://sagebionetworks.jira.com/browse/PLFM-7963)
+		manager.registerDefiningSql(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
 	}
 
 }
