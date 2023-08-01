@@ -130,7 +130,7 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 				try {
 					Node node = nodeDAO.getNode(message.getObjectId());
 					String benefactorId = nodeDAO.getBenefactor(message.getObjectId());
-					String projectId = nodeDAO.getProjectId(message.getObjectId()).orElseThrow();
+					String projectId = nodeDAO.getProjectId(message.getObjectId()).orElseThrow(() -> new NotFoundException("Project id does not exists."));
 					NodeRecord record = buildNodeRecord(node, benefactorId, projectId);
 					record = setAccessProperties(record, userManager, accessRequirementDao, entityAuthorizationManager, nodeDAO);
 					ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
