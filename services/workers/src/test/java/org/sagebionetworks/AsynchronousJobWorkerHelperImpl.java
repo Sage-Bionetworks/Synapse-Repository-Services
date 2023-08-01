@@ -554,6 +554,18 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		vt.setColumnIds(virtualTableManager.getSchemaIds(idAndVersion));
 		return vt;
 	}
+	
+	@Override
+	public void updateVirtualTable(String tableId, UserInfo user, String sql) {
+		VirtualTable vTable = entityManager.getEntity(user, tableId, VirtualTable.class);
+		
+		vTable.setDefiningSQL(sql);
+		
+		entityManager.updateEntity(user, vTable, false, null);
+		
+		virtualTableManager.registerDefiningSql(IdAndVersion.parse(vTable.getId()), sql);
+		
+	}
 
 	/**
 	 * Helper to download the contents of the given FileHandle ID to a string.
