@@ -14,7 +14,6 @@ import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.PredicateLeftHandSide;
-import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 
@@ -60,21 +59,6 @@ public class InPredicateTest {
 		assertEquals("1", values.get(0).toSqlWithoutQuotes());
 		assertEquals("2", values.get(1).toSqlWithoutQuotes());
 		assertEquals("3", values.get(2).toSqlWithoutQuotes());
-	}
-
-	@Test
-	public void testHasSubQuery() throws ParseException {
-		QuerySpecification subQuery = new TableQueryParser(
-				"SELECT DISTINCT row_id FROM syn123_index WHERE expanded_value in (\"asdf\", \"qwerty\")")
-						.querySpecification();
-		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("row_id");
-
-		boolean not = false;
-		InPredicate predicate = new InPredicate(new PredicateLeftHandSide(columnReferenceLHS), false, new InPredicateValue(subQuery));
-
-		assertEquals(
-				"row_id IN ( SELECT DISTINCT row_id FROM syn123_index WHERE expanded_value IN ( \"asdf\", \"qwerty\" ) )",
-				predicate.toSql());
 	}
 
 	@Test

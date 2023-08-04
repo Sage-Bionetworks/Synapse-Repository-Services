@@ -48,14 +48,12 @@ import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFactor;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
+import org.sagebionetworks.table.query.model.BooleanPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.BooleanTerm;
 import org.sagebionetworks.table.query.model.BooleanTest;
 import org.sagebionetworks.table.query.model.CastSpecification;
 import org.sagebionetworks.table.query.model.CastTarget;
-import org.sagebionetworks.table.query.model.CharacterFactor;
-import org.sagebionetworks.table.query.model.CharacterPrimary;
-import org.sagebionetworks.table.query.model.CharacterValueExpression;
 import org.sagebionetworks.table.query.model.ColumnList;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
@@ -67,6 +65,7 @@ import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
+import org.sagebionetworks.table.query.model.Factor;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.HasFunctionReturnType;
@@ -75,18 +74,19 @@ import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.HasSearchCondition;
 import org.sagebionetworks.table.query.model.HasSqlContext;
 import org.sagebionetworks.table.query.model.Identifier;
-import org.sagebionetworks.table.query.model.InPredicate;
-import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.InValueList;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.JoinCondition;
 import org.sagebionetworks.table.query.model.JoinType;
-import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.MySqlFunction;
+import org.sagebionetworks.table.query.model.MySqlFunctionName;
 import org.sagebionetworks.table.query.model.NonJoinQueryExpression;
+import org.sagebionetworks.table.query.model.NullPredicate;
+import org.sagebionetworks.table.query.model.NumericPrimary;
+import org.sagebionetworks.table.query.model.NumericValueExpression;
+import org.sagebionetworks.table.query.model.NumericValueFunction;
 import org.sagebionetworks.table.query.model.OuterJoinType;
 import org.sagebionetworks.table.query.model.Pagination;
-import org.sagebionetworks.table.query.model.Pattern;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.PredicateLeftHandSide;
 import org.sagebionetworks.table.query.model.QualifiedJoin;
@@ -101,10 +101,13 @@ import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableName;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.table.query.model.TableReference;
+import org.sagebionetworks.table.query.model.Term;
 import org.sagebionetworks.table.query.model.TextMatchesMySQLPredicate;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
+import org.sagebionetworks.table.query.model.TruthValue;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
+import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.model.WithListElement;
@@ -855,12 +858,14 @@ public class SQLTranslatorUtils {
 		if(booleanPrimary.getPredicate() == null) {
 			return; // "HAS" should always be under a Predicate
 		}
+		
 		ArrayHasPredicate arrayHasPredicate = booleanPrimary.getPredicate().getFirstElementOfType(ArrayHasPredicate.class);
+		
 		if (arrayHasPredicate == null) {
 			return; // no ArrayHasPredicate to replace
 		}
 		
-		IdAndVersion idAndVersion = mapper.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
+		mapper.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 
 		PredicateLeftHandSide leftHandSide = arrayHasPredicate.getLeftHandSide();
 		
@@ -870,100 +875,88 @@ public class SQLTranslatorUtils {
 		
 		ColumnReference columnRefernece = (ColumnReference) leftHandSide.getChild();
 
-		ColumnReferenceMatch columnMatch = lookupAndRequireListColumn(mapper, columnRefernece, "The " + arrayHasPredicate.getKeyWord() + " keyword");
+		lookupAndRequireListColumn(mapper, columnRefernece, "The " + arrayHasPredicate.getKeyWord() + " keyword");
 		
-		SchemaColumnTranslationReference schemaColumnTranslationReference = (SchemaColumnTranslationReference) columnMatch.getColumnTranslationReference();
-
-		//build up subquery against the flattened index table
-		String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, schemaColumnTranslationReference.getId());
+		SearchCondition replacementSearchCondition;
 		
 		try {
-			
-			String rowIdRefColumnName = SQLUtils.getRowIdRefColumnNameForId(schemaColumnTranslationReference.getId());
-			ColumnReference unnestedColumn = SqlElementUtils.createColumnReference(SQLUtils.getUnnestedColumnNameForId(schemaColumnTranslationReference.getId()));
-			
-			QuerySpecification subquery;
-			
 			if (arrayHasPredicate instanceof ArrayHasLikePredicate) {
-				ArrayHasLikePredicate hasLikePredicate = (ArrayHasLikePredicate) arrayHasPredicate;
-				subquery = createArrayHasSubqueryWithLikeClause(columnFlattenedIndexTable, rowIdRefColumnName, unnestedColumn, arrayHasPredicate.getInPredicateValue(), hasLikePredicate.getEscapeCharacter());
+				replacementSearchCondition = createArrayHasLikeJsonSearchSearchCondition((ArrayHasLikePredicate) arrayHasPredicate, columnRefernece);
 			} else {
-				subquery = createArrayHasSubqueryWithInClause(columnFlattenedIndexTable, rowIdRefColumnName, unnestedColumn, arrayHasPredicate.getInPredicateValue());
+				replacementSearchCondition = createArrayHasSearchCondition(arrayHasPredicate, columnRefernece);
 			}
-			
-			//replace the "HAS" with "IN" predicate containing the subquery
-			Predicate replacementPredicate = new Predicate(new InPredicate(
-					new PredicateLeftHandSide(SqlElementUtils.createColumnReference(ROW_ID)),
-					arrayHasPredicate.getNot(),
-					new InPredicateValue(subquery)));
-
-			booleanPrimary.getPredicate().replaceChildren(replacementPredicate);
-		}catch (ParseException e){
+		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
+		
+		booleanPrimary.replaceSearchCondition(replacementSearchCondition);
 	}
 	
-	private static QuerySpecification createArrayHasSubqueryWithInClause(String columnFlattenedIndexTable, String rowIdRefColumnName, ColumnReference unnestedColumn, InPredicateValue value) throws ParseException {
-		StringBuilder sql = new StringBuilder("SELECT ")
-				.append(rowIdRefColumnName)
-				.append(" FROM ")
-				.append(columnFlattenedIndexTable)
-				.append(" WHERE ")
-				//use a placeholder predicate because the colons in bind variables (e.g. ":b1") are not accepted by the parser
-				.append(" placeholder IN ( placeholder )");
+	// Translate the expression foo HAS (1, 2, 3) -> JSON_OVERLAPS(foo, JSON_ARRAY(1, 2, 3)) IS TRUE
+	private static SearchCondition createArrayHasLikeJsonSearchSearchCondition(ArrayHasLikePredicate predicate, ColumnReference columnReference) throws ParseException {
 		
-		QuerySpecification subquery = TableQueryParser.parserQuery(sql.toString());
-
-		//create a "IN" predicate that has the same right hand side as the "HAS" predicate for the subquery
-		InPredicate subqueryInPredicate = new InPredicate(new PredicateLeftHandSide(unnestedColumn), null, value);
-		subquery.getFirstElementOfType(Predicate.class).replaceChildren(subqueryInPredicate);
-		return subquery;
-	}
-	
-	private static QuerySpecification createArrayHasSubqueryWithLikeClause(String columnFlattenedIndexTable, String rowIdRefColumnName, ColumnReference unnestedColumn, InPredicateValue value, EscapeCharacter escapeCharacter) throws ParseException {
-		StringBuilder sql = new StringBuilder("SELECT ")
-				.append(rowIdRefColumnName)
-				.append(" FROM ")
-				.append(columnFlattenedIndexTable)
-				.append(" WHERE ");
+		List<ValueExpression> values = predicate.getFirstElementOfType(InValueList.class).getValueExpressions();
 		
-		// For each of the values in the "inPredicate" of the has_like we construct a like expression for variable bind replacement
-		InValueList inValueList = value.getFirstElementOfType(InValueList.class);
+		List<BooleanTerm> orTerms = new ArrayList<>(values.size());
 		
-		List<ValueExpressionPrimary> valueExpressions = inValueList.getValueExpressions().stream()
-				.map((e) -> e.getFirstElementOfType(ValueExpressionPrimary.class))
-				.collect(Collectors.toList());
-		
-		List<LikePredicate> likePredicates = new ArrayList<>(valueExpressions.size());
-		
-		for (int i = 0; i< valueExpressions.size(); i++) {
-			if (i > 0) {
-				sql.append(" OR ");
-			}
-			//use a placeholder predicate because the colons in bind variables (e.g. ":b1") are not accepted by the parser
-			String placeholder = "placeholder";
-			
-			sql.append(placeholder).append(" LIKE ").append(placeholder);
-			
-			if (escapeCharacter != null) {
-				sql.append(" ESCAPE ").append(placeholder);
-			}
-			
-			Pattern likePattern = new Pattern(new CharacterValueExpression(new CharacterFactor(new CharacterPrimary(valueExpressions.get(i)))));
-			
-			likePredicates.add(new LikePredicate(new PredicateLeftHandSide(unnestedColumn), null, likePattern, escapeCharacter));
-		}
+		EscapeCharacter escapeCharacter = predicate.getEscapeCharacter() == null ? SqlElementUtils.createEscapeCharacter("'\\'") : predicate.getEscapeCharacter();
 				
-		QuerySpecification subquery = TableQueryParser.parserQuery(sql.toString());
-		
-		int i=0;
-		
-		// Replace all the placeholder with the bind variables
-		for (Predicate predicate : subquery.createIterable(Predicate.class)) {
-			predicate.replaceChildren(likePredicates.get(i++));
+		for (ValueExpression value : values) {
+			MySqlFunction jsonSearchFunction = new MySqlFunction(MySqlFunctionName.JSON_SEARCH);
+			
+			jsonSearchFunction.startParentheses();
+			
+			// The first parameter is the column reference
+			jsonSearchFunction.addParameter(new ValueExpression(new NumericValueExpression(new Term(new Factor(null, new NumericPrimary(new ValueExpressionPrimary(columnReference)))))));
+			
+			// Next we have the special value 'one' (stop at the first match)
+			jsonSearchFunction.addParameter(SqlElementUtils.createValueExpression("'one'"));
+			
+			// The third parameter is the actual bind variable (search string)
+			jsonSearchFunction.addParameter(value);
+			
+			// Next we provide the escape character
+			jsonSearchFunction.addParameter(SqlElementUtils.createValueExpression(escapeCharacter.toSql()));
+			
+			// Finally the path we are searching in (any element of the array)
+			jsonSearchFunction.addParameter(SqlElementUtils.createValueExpression("'$[*]'"));
+			
+			Boolean not = Boolean.TRUE.equals(predicate.getNot()) ? null : true;
+			
+			orTerms.add(new BooleanTerm(List.of(new BooleanFactor(null, 
+				new BooleanTest(new BooleanPrimary(new Predicate(new NullPredicate(new PredicateLeftHandSide(jsonSearchFunction), not))), null, null, null)
+			))));
+			
 		}
 		
-		return subquery;
+		return new SearchCondition(orTerms);
+	}
+	
+	// Translate the expression foo HAS_LIKE ('a%', 'b%') -> JSON_SEARCH(foo, 'one', 'a%', '\', '$[*]') IS NOT NULL OR JSON_SEARCH(foo, 'one', 'b%', '\', '$[*]') IS NOT NULL
+	private static SearchCondition createArrayHasSearchCondition(ArrayHasPredicate predicate, ColumnReference columnReference) {
+		
+		// First build the JSON_ARRAY expression with the input values
+		MySqlFunction jsonArrayFunction = new MySqlFunction(MySqlFunctionName.JSON_ARRAY);
+		
+		jsonArrayFunction.startParentheses();
+		
+		predicate.getFirstElementOfType(InValueList.class).getValueExpressions().forEach(jsonArrayFunction::addParameter);
+		
+		MySqlFunction jsonOverlapFunction = new MySqlFunction(MySqlFunctionName.JSON_OVERLAPS);
+		
+		jsonOverlapFunction.startParentheses();
+		
+		// The first argument of the JSON_OVERLAPS is the column reference
+		jsonOverlapFunction.addParameter(new ValueExpression(new NumericValueExpression(new Term(new Factor(null, new NumericPrimary(new ValueExpressionPrimary(columnReference)))))));
+		
+		// The second argument of the JSON_OVERLAPS is the result of a JSON_ARRAY with the input values
+		jsonOverlapFunction.addParameter(new ValueExpression(new NumericValueExpression(new Term(new Factor(null, new NumericPrimary(new NumericValueFunction(jsonArrayFunction)))))));
+		
+		TruthValue truthValue = Boolean.TRUE.equals(predicate.getNot()) ? TruthValue.FALSE : TruthValue.TRUE;
+		
+		Predicate isPredicate = new Predicate(new BooleanPredicate(new PredicateLeftHandSide(jsonOverlapFunction), null, truthValue));
+		
+		return new SearchCondition(List.of(new BooleanTerm(List.of(new BooleanFactor(null, new BooleanTest(new BooleanPrimary(isPredicate), null, null, null))))));
 	}
 
 	/**
