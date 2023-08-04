@@ -1,20 +1,10 @@
 package org.sagebionetworks.repo.web;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.impl.DefaultClaims;
+import io.jsonwebtoken.impl.DefaultJwt;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,16 +19,25 @@ import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ResponseData;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AccessRecorder;
 import org.sagebionetworks.util.TestClock;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.impl.DefaultClaims;
-import io.jsonwebtoken.impl.DefaultJwt;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit test for AccessInterceptor.
@@ -118,7 +117,7 @@ public class AccessInterceptorTest {
 		when(mockRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME)).thenReturn("SESSIONTOKEN");
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
-		interceptor.setReturnObjectId("returnId");
+		interceptor.setResponseData(new ResponseData("returnId", "concreateType"));
 		// finish the call
 		Exception exception = null;
 		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, exception);
@@ -143,6 +142,7 @@ public class AccessInterceptorTest {
 		assertEquals(VirtualMachineIdProvider.getVMID(), result.getVmId());
 		assertEquals("?param1=foo", result.getQueryString());
 		assertEquals("returnId", result.getReturnObjectId());
+		assertEquals("concreateType", result.getConcreteType());
 		assertNull(result.getOauthClientId()); // request was made without an OAuth client
 		assertNull(result.getBasicAuthUsername());
 		assertEquals(AuthenticationMethod.SESSIONTOKEN.name(), result.getAuthenticationMethod());
@@ -208,7 +208,7 @@ public class AccessInterceptorTest {
 
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
-		interceptor.setReturnObjectId("returnId");
+		interceptor.setResponseData(new ResponseData("returnId", "concreateType"));
 		// Wait to add some elapse time
 		mockClock.sleep(234);
 		// finish the call
@@ -233,7 +233,7 @@ public class AccessInterceptorTest {
 
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
-		interceptor.setReturnObjectId("returnId");
+		interceptor.setResponseData(new ResponseData("returnId", null));
 		// Wait to add some elapse time
 		mockClock.sleep(234);
 		// finish the call
@@ -247,5 +247,6 @@ public class AccessInterceptorTest {
 		assertEquals(OAUTH_CLIENT_ID_BASIC, result.getOauthClientId());
 		assertEquals(OAUTH_CLIENT_ID_BASIC, result.getBasicAuthUsername());
 		assertEquals("BASICAUTH", result.getAuthenticationMethod());
+		assertNull(result.getConcreteType());
 	}
 }

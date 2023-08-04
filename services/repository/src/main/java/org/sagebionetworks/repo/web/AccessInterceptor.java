@@ -1,13 +1,5 @@
 package org.sagebionetworks.repo.web;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.logging.log4j.ThreadContext;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
@@ -15,6 +7,7 @@ import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ResponseData;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AccessRecorder;
 import org.sagebionetworks.util.Clock;
@@ -22,13 +15,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 /**
  * This intercepter is used to audit all web-service access.
  * 
  * @author John
  * 
  */
-public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
+public class AccessInterceptor implements HandlerInterceptor, AccessResponseDataListener {
 
 	public static final String SESSION_ID = "sessionId";
 
@@ -141,9 +141,16 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 	}
 
 	@Override
-	public void setReturnObjectId(String returneObjectId) {
-		// Set this value on the current thread's access
-		getCurrentThreadAccessRecord().setReturnObjectId(returneObjectId);
+	public void setResponseData(ResponseData responseData) {
+		// Set this value on the current thread's access record
+		AccessRecord accessRecord = getCurrentThreadAccessRecord();
+		if(responseData.getId() != null){
+			accessRecord.setReturnObjectId(responseData.getId());
+		}
+
+		if(responseData.getConcreteType() !=null){
+			accessRecord.setConcreteType(responseData.getConcreteType());
+		}
 	}
 	
 	/**

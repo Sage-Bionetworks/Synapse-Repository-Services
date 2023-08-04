@@ -17,6 +17,11 @@
 			"type": "string",
 			"description": "The HTTP method"
 		},
+		"concreteType": {
+			"type": "string",
+			"description": "Indicates the interface implementation of the object. The value is the fully qualified class name, e.g., org.sagebionetworks.repo.model.FileEntity."
+
+		},
 		"requestURL": {
 			"type": "string",
 			"description": "The URL of the request"

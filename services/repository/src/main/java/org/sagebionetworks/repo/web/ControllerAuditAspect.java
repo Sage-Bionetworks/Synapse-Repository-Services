@@ -2,7 +2,8 @@ package org.sagebionetworks.repo.web;
 
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
-import org.sagebionetworks.repo.model.IdExtractorUtil;
+import org.sagebionetworks.repo.model.ResponseData;
+import org.sagebionetworks.repo.model.ResponseDataExtractorUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -15,7 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class ControllerAuditAspect {
 	
 	@Autowired
-	AccessIdListener listener;
+	AccessResponseDataListener listener;
 
 	/**
 	 * Look at all return objects ma
@@ -23,11 +24,8 @@ public class ControllerAuditAspect {
 	 */
 	@AfterReturning(pointcut = "@annotation(org.springframework.web.bind.annotation.ResponseBody)", returning = "responseBody")
 	public void inspectResponseBody(Object responseBody) {
-		// extract the ID from the response body
-		String id = IdExtractorUtil.getObjectId(responseBody);
-		if(id != null){
-			listener.setReturnObjectId(id);
+		// extract the ID and concreteType from the response body
+		ResponseData responseData = ResponseDataExtractorUtil.getResponseData(responseBody);
+			listener.setResponseData(responseData);
 		}
 	}
-	
-}
