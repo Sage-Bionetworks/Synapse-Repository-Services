@@ -142,7 +142,7 @@ public class AccessInterceptorTest {
 		assertEquals(VirtualMachineIdProvider.getVMID(), result.getVmId());
 		assertEquals("?param1=foo", result.getQueryString());
 		assertEquals("returnId", result.getReturnObjectId());
-		assertEquals("concreateType", result.getConcreteType());
+		assertEquals("concreateType", result.getObjectConcreteType());
 		assertNull(result.getOauthClientId()); // request was made without an OAuth client
 		assertNull(result.getBasicAuthUsername());
 		assertEquals(AuthenticationMethod.SESSIONTOKEN.name(), result.getAuthenticationMethod());
@@ -247,6 +247,6 @@ public class AccessInterceptorTest {
 		assertEquals(OAUTH_CLIENT_ID_BASIC, result.getOauthClientId());
 		assertEquals(OAUTH_CLIENT_ID_BASIC, result.getBasicAuthUsername());
 		assertEquals("BASICAUTH", result.getAuthenticationMethod());
-		assertNull(result.getConcreteType());
+		assertNull(result.getObjectConcreteType());
 	}
 }
