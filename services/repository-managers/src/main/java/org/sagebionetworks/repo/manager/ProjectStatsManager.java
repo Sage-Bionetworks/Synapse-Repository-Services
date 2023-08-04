@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Date;
-
 import org.sagebionetworks.repo.model.ObjectType;
+
+import java.util.Date;
+import java.util.Optional;
 
 public interface ProjectStatsManager {
 
@@ -35,7 +36,7 @@ public interface ProjectStatsManager {
 	 * @return The projectId that contains the given object. Null if the object
 	 *         does not belong to a project.
 	 */
-	String getProjectForObject(String objectId, ObjectType objectType);
+	Optional<String> getProjectForObject(String objectId, ObjectType objectType);
 
 	/**
 	 * When a member is added to a team the new member's project stats

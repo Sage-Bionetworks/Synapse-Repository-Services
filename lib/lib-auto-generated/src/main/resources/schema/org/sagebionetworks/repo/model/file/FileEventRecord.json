@@ -8,8 +8,7 @@
         },
         "projectId": {
             "type": "integer",
-            "description": "The project Id of file.",
-            "required": true
+            "description": "The project Id of file."
         },
         "fileHandleId": {
             "type": "string",

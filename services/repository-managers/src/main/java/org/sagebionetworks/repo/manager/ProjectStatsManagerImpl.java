@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Date;
-import java.util.Set;
-
+import com.google.common.collect.Sets;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -13,11 +11,12 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.common.collect.Sets;
+import java.util.Date;
+import java.util.Optional;
+import java.util.Set;
 
 public class ProjectStatsManagerImpl implements ProjectStatsManager {
 
@@ -39,10 +38,9 @@ public class ProjectStatsManagerImpl implements ProjectStatsManager {
 	 * @see org.sagebionetworks.repo.manager.ProjectStatsManager#getProjectForObject(java.lang.String, org.sagebionetworks.repo.model.ObjectType)
 	 */
 	@Override
-	public String getProjectForObject(String objectId, ObjectType objectType) {
+	public Optional<String> getProjectForObject(String objectId, ObjectType objectType) {
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "objectType");
-		try {
 			switch (objectType) {
 			case ENTITY:
 			case TABLE:
@@ -53,12 +51,8 @@ public class ProjectStatsManagerImpl implements ProjectStatsManager {
 				// lookup the project of the owner.
 				return getProjectForObject(key.getOwnerObjectId(), key.getOwnerObjectType());
 			default:
-				return null;
+				return Optional.empty();
 			}
-		} catch (NotFoundException e) {
-			// return null for not found
-			return null;
-		}
 	}
 
 
@@ -76,9 +70,9 @@ public class ProjectStatsManagerImpl implements ProjectStatsManager {
 		ValidateArgument.required(objectType, "objectType");
 		
 		// Lookup the projectId for this object
-		String projectIdString = getProjectForObject(objectId, objectType);
-		if(projectIdString != null){
-			long projectId = KeyFactory.stringToKey(projectIdString);
+		Optional<String> projectIdString = getProjectForObject(objectId, objectType);
+		if(projectIdString.isPresent()){
+			long projectId = KeyFactory.stringToKey(projectIdString.get());
 			if(userGroupDao.isIndividual(principalId)){
 				// user.
 				projectStatDao.updateProjectStat(new ProjectStat(projectId, principalId, activityDate));

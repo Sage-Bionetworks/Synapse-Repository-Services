@@ -1,18 +1,6 @@
 package org.sagebionetworks.snapshot.workers.writers;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-
+import com.amazonaws.services.sqs.model.Message;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,7 +35,19 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 
-import com.amazonaws.services.sqs.model.Message;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class NodeObjectRecordWriterTest {
@@ -86,6 +86,7 @@ public class NodeObjectRecordWriterTest {
 
 		node = new NodeRecord();
 		node.setId("123");
+		node.setProjectId("1");
 		
 		stats = new AccessRequirementStats();
 		stats.setHasACT(true);
@@ -134,9 +135,8 @@ public class NodeObjectRecordWriterTest {
 
 	@Test
 	public void publicRestrictedAndControlledTest() throws IOException {
-		
 		when(mockNodeDAO.getNode("123")).thenReturn(node);
-
+		when(mockNodeDAO.getProjectId("123")).thenReturn(Optional.of("1"));
 		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
 				.thenReturn(mockUserInfo);
 		when(mockEntityAuthorizationManager.getUserPermissionsForEntity(mockUserInfo, node.getId()))
@@ -199,7 +199,7 @@ public class NodeObjectRecordWriterTest {
 
 	@Test
 	public void testNodeInTrashCan() throws IOException {
-		
+		when(mockNodeDAO.getProjectId("123")).thenReturn(Optional.of("1"));
 		when(mockNodeDAO.getNode("123")).thenReturn(node);
 		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
 				.thenReturn(mockUserInfo);
