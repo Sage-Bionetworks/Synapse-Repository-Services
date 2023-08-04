@@ -8,7 +8,8 @@ import java.lang.reflect.Field;
  *
  */
 public class ResponseDataExtractorUtil {
-	
+	public static final String ID = "id";
+	public static final String CONCRETE_TYPE = "concreteType";
 	/**
 	 * Exact the ID from an object
 	 * @param object
@@ -31,8 +32,8 @@ public class ResponseDataExtractorUtil {
 	}
 
 	public static ResponseData getResponseData(Object object){
-		String objectId = getObject(object, "id");
-		String concreteType = getObject(object, "concreteType");
+		String objectId = getObject(object, ID);
+		String concreteType = getObject(object, CONCRETE_TYPE);
 		return new ResponseData(objectId, concreteType);
 	}
 }

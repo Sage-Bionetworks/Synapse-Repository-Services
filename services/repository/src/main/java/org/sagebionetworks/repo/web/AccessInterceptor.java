@@ -148,8 +148,11 @@ public class AccessInterceptor implements HandlerInterceptor, AccessResponseData
 			accessRecord.setReturnObjectId(responseData.getId());
 		}
 
-		if(responseData.getConcreteType() !=null){
+		if(responseData.getConcreteType() != null){
 			accessRecord.setConcreteType(responseData.getConcreteType());
+		}else{
+			//Because AccessRecord itself has concrete type, so it will fill by default org.sagebionetworks.repo.model.audit.AccessRecord which is not the concrete type we returned in response.
+			accessRecord.setConcreteType(null);
 		}
 	}
 	
