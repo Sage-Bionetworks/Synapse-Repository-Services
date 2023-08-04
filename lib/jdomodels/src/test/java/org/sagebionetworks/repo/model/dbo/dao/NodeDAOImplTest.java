@@ -2867,8 +2867,8 @@ public class NodeDAOImplTest {
 	public void testGetProjectIdChildWithNoParent() throws Exception {
 		Node child = setUpChildWithNoParent();
 		// Before the fix, this call would hang with 100% CPU.
-		String projectId = nodeDao.getProjectId(child.getId()).orElse(null);
-		assertEquals(null, projectId);
+		Optional<String> projectId = nodeDao.getProjectId(child.getId());
+		assertEquals(Optional.empty(), projectId);
 	}
 	
 	/**
@@ -2979,8 +2979,8 @@ public class NodeDAOImplTest {
 	public void testGetProjectNodeDoesNotExist() {
 		String doesNotExist = "syn9999999";
 		// call under test
-		String projectId = nodeDao.getProjectId(doesNotExist).orElse(null);
-		assertEquals(null, projectId);
+		Optional<String> projectId = nodeDao.getProjectId(doesNotExist);
+		assertEquals(Optional.empty(), projectId);
 	}
 	
 	@Test
@@ -2992,8 +2992,8 @@ public class NodeDAOImplTest {
 		String nodeId = node.getId();
 		toDelete.add(node.getId());
 		// call under test
-		String projectId = nodeDao.getProjectId(nodeId).orElse(null);
-		assertEquals(null, projectId);
+		Optional<String> projectId = nodeDao.getProjectId(nodeId);
+		assertEquals(Optional.empty(), projectId);
 	}
 
 	@Test

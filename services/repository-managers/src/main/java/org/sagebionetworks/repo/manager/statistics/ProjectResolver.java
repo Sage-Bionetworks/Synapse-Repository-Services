@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.statistics;
 
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.web.NotFoundException;
 
 import java.util.Optional;
 
@@ -13,6 +12,6 @@ import java.util.Optional;
  */
 public interface ProjectResolver {
 
-	Optional<Long> resolveProject(FileHandleAssociateType associationType, String associationId) throws UnsupportedOperationException, NotFoundException, IllegalStateException;
+	Optional<Long> resolveProject(FileHandleAssociateType associationType, String associationId) throws IllegalStateException;
 
 }

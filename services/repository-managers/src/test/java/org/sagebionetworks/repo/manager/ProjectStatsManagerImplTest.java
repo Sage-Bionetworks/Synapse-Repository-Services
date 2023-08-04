@@ -80,7 +80,7 @@ public class ProjectStatsManagerImplTest {
 	public void testGetProjectForObjectEntity(){
 		ObjectType type = ObjectType.ENTITY;
 		// call under test
-		String projectIdLookup = manager.getProjectForObject(entityId, type).orElse(null);
+		String projectIdLookup = manager.getProjectForObject(entityId, type).orElseThrow();
 		assertEquals(projectIdString, projectIdLookup);
 	}
 	
@@ -88,7 +88,7 @@ public class ProjectStatsManagerImplTest {
 	public void testGetProjectForObjectTable(){
 		ObjectType type = ObjectType.TABLE;
 		// call under test
-		String projectIdLookup = manager.getProjectForObject(entityId, type).orElse(null);
+		String projectIdLookup = manager.getProjectForObject(entityId, type).orElseThrow();
 		assertEquals(projectIdString, projectIdLookup);
 	}
 	
@@ -96,7 +96,7 @@ public class ProjectStatsManagerImplTest {
 	public void testGetProjectForObjectWiki(){
 		ObjectType type = ObjectType.WIKI;
 		// call under test
-		String projectIdLookup = manager.getProjectForObject(wikiId, type).orElse(null);
+		String projectIdLookup = manager.getProjectForObject(wikiId, type).orElseThrow();
 		assertEquals(projectIdString, projectIdLookup);
 	}
 	
@@ -105,8 +105,8 @@ public class ProjectStatsManagerImplTest {
 		// a favorite does not have a project
 		ObjectType type = ObjectType.FAVORITE;
 		// call under test
-		String projectIdLookup = manager.getProjectForObject(wikiId, type).orElse(null);
-		assertEquals("Favorites do not have projects so null should be returned.",null, projectIdLookup);
+		Optional<String> projectIdLookup = manager.getProjectForObject(wikiId, type);
+		assertEquals("Favorites do not have projects so null should be returned.",Optional.empty(), projectIdLookup);
 	}
 	
 	@Test
@@ -115,8 +115,8 @@ public class ProjectStatsManagerImplTest {
 		when(mockNodeDao.getProjectId(entityId)).thenReturn(Optional.empty());
 		ObjectType type = ObjectType.ENTITY;
 		// call under test
-		String projectIdLookup = manager.getProjectForObject(entityId, type).orElse(null);
-		assertEquals("Null should be returned when the object cannot be found.",null, projectIdLookup);
+		Optional<String> projectIdLookup = manager.getProjectForObject(entityId, type);
+		assertEquals("Null should be returned when the object cannot be found.",Optional.empty(), projectIdLookup);
 	}
 	
 	@Test
