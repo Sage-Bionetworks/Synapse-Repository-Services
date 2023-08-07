@@ -89,7 +89,7 @@ public class MainQueryTest {
 				// additional filter
 				+ " AND ( ( _C2_ = :b2 OR _C2_ = :b3 ) ) )"
 				// selected facet
-				+ " AND ( ( ( ROW_ID IN ( SELECT ROW_ID_REF_C1_ FROM T123_4_INDEX_C1_ WHERE _C1__UNNEST IN ( :b4 ) ) ) ) )"
+				+ " AND ( ( ( ( JSON_OVERLAPS(_C1_,JSON_ARRAY(:b4)) IS TRUE ) ) ) )"
 				// additional sort
 				+ " ORDER BY _C3_ DESC"
 				// override pagination
