@@ -892,14 +892,18 @@ public class SQLTranslatorUtils {
 		booleanPrimary.replaceSearchCondition(replacementSearchCondition);
 	}
 	
-	// Translate the expression foo HAS (1, 2, 3) -> JSON_OVERLAPS(foo, JSON_ARRAY(1, 2, 3)) IS TRUE
+	// Translate the expression foo HAS_LIKE ('a%', 'b%') -> JSON_SEARCH(foo, 'one', 'a%', NULL, '$[*]') IS NOT NULL OR JSON_SEARCH(foo, 'one', 'b%', NULL, '$[*]') IS NOT NULL
 	private static SearchCondition createArrayHasLikeJsonSearchSearchCondition(ArrayHasLikePredicate predicate, ColumnReference columnReference) throws ParseException {
 		
 		List<ValueExpression> values = predicate.getFirstElementOfType(InValueList.class).getValueExpressions();
 		
 		List<BooleanTerm> orTerms = new ArrayList<>(values.size());
 		
-		EscapeCharacter escapeCharacter = predicate.getEscapeCharacter() == null ? SqlElementUtils.createEscapeCharacter("'\\'") : predicate.getEscapeCharacter();
+		ValueExpression escapeCharacter = predicate.getEscapeCharacter() == null ? 
+			// The parser does not parse NULL as a VALUE expression
+			new ValueExpression(new StringOverride("NULL")) :
+			// The parser does not parse bind variables (e.g. :b1)
+			new ValueExpression(new StringOverride(predicate.getEscapeCharacter().toSql()));
 				
 		for (ValueExpression value : values) {
 			MySqlFunction jsonSearchFunction = new MySqlFunction(MySqlFunctionName.JSON_SEARCH);
@@ -913,10 +917,11 @@ public class SQLTranslatorUtils {
 			jsonSearchFunction.addParameter(SqlElementUtils.createValueExpression("'one'"));
 			
 			// The third parameter is the actual bind variable (search string)
-			jsonSearchFunction.addParameter(value);
+			// Note that the JSON_SEARCH function is case sensitive (unlike the LIKE predicate) and we need to specify collation of the argument to be case insensitive
+			jsonSearchFunction.addParameter(new ValueExpression(new StringOverride(value.toSql() + " COLLATE 'utf8mb4_0900_ai_ci'")));
 			
 			// Next we provide the escape character
-			jsonSearchFunction.addParameter(SqlElementUtils.createValueExpression(escapeCharacter.toSql()));
+			jsonSearchFunction.addParameter(escapeCharacter);
 			
 			// Finally the path we are searching in (any element of the array)
 			jsonSearchFunction.addParameter(SqlElementUtils.createValueExpression("'$[*]'"));
@@ -932,7 +937,7 @@ public class SQLTranslatorUtils {
 		return new SearchCondition(orTerms);
 	}
 	
-	// Translate the expression foo HAS_LIKE ('a%', 'b%') -> JSON_SEARCH(foo, 'one', 'a%', '\', '$[*]') IS NOT NULL OR JSON_SEARCH(foo, 'one', 'b%', '\', '$[*]') IS NOT NULL
+	// Translate the expression foo HAS (1, 2, 3) -> JSON_OVERLAPS(foo, JSON_ARRAY(1, 2, 3)) IS TRUE
 	private static SearchCondition createArrayHasSearchCondition(ArrayHasPredicate predicate, ColumnReference columnReference) {
 		
 		// First build the JSON_ARRAY expression with the input values

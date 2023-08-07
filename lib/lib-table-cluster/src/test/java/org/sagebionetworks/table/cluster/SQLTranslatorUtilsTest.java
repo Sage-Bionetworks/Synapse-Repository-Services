@@ -1081,7 +1081,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
+		assertEquals("( JSON_OVERLAPS(_C111_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE )", booleanPrimary.toSql());
 
 	}
 
@@ -1102,7 +1102,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID NOT IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
+		assertEquals("( JSON_OVERLAPS(_C111_,JSON_ARRAY(:b0,:b1,:b2)) IS FALSE )", booleanPrimary.toSql());
 
 	}
 
@@ -1137,7 +1137,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 OR _C111__UNNEST LIKE :b1 OR _C111__UNNEST LIKE :b2 )", booleanPrimary.toSql());
+		assertEquals("( JSON_SEARCH(_C111_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b2 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL )", booleanPrimary.toSql());
 		assertEquals(ImmutableMap.of(
 				"b0", "asdf%",
 				"b1", "qwerty",
@@ -1164,7 +1164,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 ESCAPE :b3 OR _C111__UNNEST LIKE :b1 ESCAPE :b3 OR _C111__UNNEST LIKE :b2 ESCAPE :b3 )", booleanPrimary.toSql());
+		assertEquals("( JSON_SEARCH(_C111_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',:b3,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',:b3,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b2 COLLATE 'utf8mb4_0900_ai_ci',:b3,'$[*]') IS NOT NULL )", booleanPrimary.toSql());
 		assertEquals(ImmutableMap.of(
 				"b0", "asdf%",
 				"b1", "qwerty",
@@ -1211,7 +1211,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 )", booleanPrimary.toSql());
+		assertEquals("( JSON_SEARCH(_C111_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL )", booleanPrimary.toSql());
 
 	}
 	
@@ -2497,7 +2497,7 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID_REF_C777_ FROM T123_INDEX_C777_ WHERE _C777__UNNEST IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_INDEX_C111_ WHERE _C111__UNNEST IN ( :b3 ) ) OR _C333_ = :b4 )",element.toSql());
+		assertEquals("SELECT * FROM T123 WHERE ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE ) AND ( ( JSON_OVERLAPS(_C111_,JSON_ARRAY(:b3)) IS TRUE ) OR _C333_ = :b4 )",element.toSql());
 		assertEquals(1L, parameters.get("b0"));
 		assertEquals(2L, parameters.get("b1"));
 		assertEquals(3L, parameters.get("b2"));
@@ -2516,7 +2516,7 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID_REF_C777_ FROM T123_INDEX_C777_ WHERE _C777__UNNEST IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_INDEX_C111_ WHERE _C111__UNNEST LIKE :b3 OR _C111__UNNEST LIKE :b4 ) OR _C333_ = :b5 )",element.toSql());
+		assertEquals("SELECT * FROM T123 WHERE ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE ) AND ( ( JSON_SEARCH(_C111_,'one',:b3 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b4 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL ) OR _C333_ = :b5 )",element.toSql());
 		assertEquals(1L, parameters.get("b0"));
 		assertEquals(2L, parameters.get("b1"));
 		assertEquals(3L, parameters.get("b2"));
@@ -2536,7 +2536,7 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID_REF_C777_ FROM T123_INDEX_C777_ WHERE _C777__UNNEST IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_INDEX_C111_ WHERE _C111__UNNEST LIKE :b3 ESCAPE :b5 OR _C111__UNNEST LIKE :b4 ESCAPE :b5 ) OR _C333_ = :b6 )",element.toSql());
+		assertEquals("SELECT * FROM T123 WHERE ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE ) AND ( ( JSON_SEARCH(_C111_,'one',:b3 COLLATE 'utf8mb4_0900_ai_ci',:b5,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b4 COLLATE 'utf8mb4_0900_ai_ci',:b5,'$[*]') IS NOT NULL ) OR _C333_ = :b6 )",element.toSql());
 		assertEquals(1L, parameters.get("b0"));
 		assertEquals(2L, parameters.get("b1"));
 		assertEquals(3L, parameters.get("b2"));
