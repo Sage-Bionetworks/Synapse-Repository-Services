@@ -44,7 +44,7 @@ public class ControllerAuditAspect {
 		// extract the concrete type from the request body
 		String concreteType = AccessRecordExtractorUtil.getConcreteType(requestBody);
 		if (concreteType != null) {
-			listener.setReturnObjectId(concreteType);
+			listener.setRequestConcreteType(concreteType);
 		}
 	}
 
