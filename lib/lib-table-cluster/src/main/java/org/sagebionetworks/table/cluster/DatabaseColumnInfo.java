@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.RESERVED_COLUM
 import java.util.Comparator;
 
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -70,10 +71,20 @@ public class DatabaseColumnInfo {
 	 * 
 	 * @return
 	 */
-	public boolean isMetadata(){
+	public boolean isMetadata() {
 		return RESERVED_COLUMNS_NAMES.contains(this.columnName);
 	}
 	
+	public boolean isCreateIndex() {
+		if (isMetadata()) {
+			return false;
+		}
+		if (ColumnTypeListMappings.isList(columnType)) {
+			ColumnType nonListType = ColumnTypeListMappings.nonListType(columnType);
+			return ColumnTypeInfo.getInfoForType(nonListType).getMySqlType().isCreateIndex();
+		}
+		return type.isCreateIndex();
+	}
 	
 	/**
 	 * Create the index definition for this column.
@@ -85,19 +96,38 @@ public class DatabaseColumnInfo {
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(type, "type");
 		Integer indexSize = null;
-		if(MySqlColumnType.MEDIUMTEXT.equals(type) || MySqlColumnType.TEXT.equals(type)){
+		if (MySqlColumnType.MEDIUMTEXT.equals(type) || MySqlColumnType.TEXT.equals(type)){
 			indexSize = ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH;
 		}else{
 			indexSize = maxSize;
 		}
+		boolean isListType = ColumnTypeListMappings.isList(columnType);
+		
 		StringBuilder builder = new StringBuilder();
 		builder.append(indexName);
 		builder.append(" (");
-		builder.append(columnName);
-		if(indexSize != null && indexSize >= ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH){
-			builder.append("(");
-			builder.append(ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH);
-			builder.append(")");
+		if (isListType) {
+			ColumnTypeInfo nonListType = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnType));
+			
+			builder.append("(CAST(")
+				.append(columnName)
+				.append(" AS ")
+				.append(nonListType.getMySqlType().getMySqlCastType());
+			
+			if (nonListType.isStringType()) {
+				builder.append("(");
+				builder.append(ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH);
+				builder.append(")");
+			}
+			
+			builder.append(" ARRAY))");			
+		} else {
+			builder.append(columnName);
+			if(indexSize != null && indexSize >= ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH){
+				builder.append("(");
+				builder.append(ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH);
+				builder.append(")");
+			}
 		}
 		builder.append(")");
 		return builder.toString();
