@@ -30,12 +30,12 @@ public class AccessRecordExtractorUtilTest {
 	}
 
 	@Test
-	public void testEntityWithNullIdAndConcreteType(){
-		FileEntity ob = new FileEntity();
-		ob.setConcreteType(null);
+	public void testEntityWithOutConcreteType(){
+		UserGroup ob = new UserGroup();
+		ob.setId("syn123");
 		String id = AccessRecordExtractorUtil.getObjectId(ob);
 		String concreteType = AccessRecordExtractorUtil.getConcreteType(ob);
-		assertNull(id);
+		assertEquals(ob.getId(), id);
 		assertNull(concreteType);
 	}
 }
