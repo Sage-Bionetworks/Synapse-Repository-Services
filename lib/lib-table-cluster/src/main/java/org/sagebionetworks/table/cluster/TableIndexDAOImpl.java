@@ -66,6 +66,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
@@ -223,28 +225,39 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	private static final String KEY_NAME = "Key_name";
 	private static final String COLUMN_NAME = "Column_name";
+	private static final String EXPR_NAME = "Expression";
+	private static final Pattern LIST_INDEX_EXPR_PATTERN = Pattern.compile("cast\\([`]?(_.+_)[`]?.+\\)", Pattern.CASE_INSENSITIVE);
 	private static final String SHOW_INDEXES_FROM = "SHOW INDEXES FROM ";
 	private static final String KEY = "Key";
 	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
-	private static final String STALE_TABLE_PREFIX = "STALE_";
+	private static final String STALE_TABLE_PREFIX = "STALE_";	
 
 	private static final RowMapper<DatabaseColumnInfo> DB_COL_INFO_MAPPER = (rs, rowNum) -> {
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName(rs.getString(FIELD));
 		String key = rs.getString(KEY);
+		// Note that for multi-value JSON indexes this is NULL (See https://dev.mysql.com/doc/refman/8.0/en/show-columns.html)
 		info.setHasIndex(!"".equals(key));
 		String typeString = rs.getString("Type");
 		info.setType(MySqlColumnType.parserType(typeString));
-		if(info.getType() != null && info.getType().hasSize()){
+		if (info.getType() != null && info.getType().hasSize()) {
 			info.setMaxSize(MySqlColumnType.parseSize(typeString));
 		}
 		String comment = rs.getString("Comment");
-		if(comment != null && !"".equals(comment)){
+		if (comment != null && !"".equals(comment)) {
 			info.setColumnType(ColumnType.valueOf(comment));
 		}
 		return info;
 	};
+
+	private static String getColumnNameFromMultiValueIndexExpression(String expression) {
+		Matcher matcher = LIST_INDEX_EXPR_PATTERN.matcher(expression);
+		if (matcher.find()) {
+			return matcher.group(1);
+		}
+		return null;
+	}
 	
 	private DataSourceTransactionManager transactionManager;
 	private TransactionTemplate writeTransactionTemplate;
@@ -654,11 +667,12 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId) {
 		try {
 			String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableIndexType.INDEX);
+			
 			// Bind variables do not seem to work here
 			return template.query(SQL_SHOW_COLUMNS + tableName, DB_COL_INFO_MAPPER);
 		} catch (BadSqlGrammarException e) {
 			// Spring throws this when the table does not exist
-			return new LinkedList<DatabaseColumnInfo>();
+			return Collections.emptyList();
 		}
 	}
 
@@ -689,7 +703,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void provideIndexName(List<DatabaseColumnInfo> list, IdAndVersion tableId) {
+	public void provideIndexInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId) {
 		ValidateArgument.required(list, "list");
 		ValidateArgument.required(tableId, "tableId");
 		if(list.isEmpty()){
@@ -704,15 +718,27 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
 				String columnName = rs.getString(COLUMN_NAME);
-				String indexName = rs.getString(KEY_NAME);
-				DatabaseColumnInfo info = nameToInfoMap.get(columnName);
-				if(info == null){
-					throw new IllegalArgumentException("Provided List<DatabaseColumnInfo> has no match for column: "+columnName);
+				
+				if (columnName == null) {
+					// The Column_Name is null for JSON multi-value indexes (e.g. list columns) and it is contained in the expression itself
+					// cast(`_C123_`...)
+					columnName = getColumnNameFromMultiValueIndexExpression(rs.getString(EXPR_NAME));
 				}
+				
+				String indexName = rs.getString(KEY_NAME);
+				
+				DatabaseColumnInfo info = nameToInfoMap.get(columnName);
+				
+				if (info == null) {
+					throw new IllegalArgumentException("Provided List<DatabaseColumnInfo> has no match for column: " + columnName);
+				}
+				
 				info.setIndexName(indexName);
+				// Makes sure to mark the column with an index. An multi-value JSON index does not show up in the simple SHOW COLUMNS key (since it's a secondary index)
+				info.setHasIndex(true);
 			}
 		});
-	}
+	}	
 
 	@Override
 	public void optimizeTableIndices(List<DatabaseColumnInfo> list,

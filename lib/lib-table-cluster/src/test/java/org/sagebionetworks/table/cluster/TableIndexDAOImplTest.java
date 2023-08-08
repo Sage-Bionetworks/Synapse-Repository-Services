@@ -220,7 +220,7 @@ public class TableIndexDAOImplTest {
 	boolean alterTableAsNeeded(IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp){
 		// Lookup the current schema of the index.
 		List<DatabaseColumnInfo> currentIndedSchema = tableIndexDAO.getDatabaseInfo(tableId);
-		tableIndexDAO.provideIndexName(currentIndedSchema, tableId);
+		tableIndexDAO.provideIndexInfo(currentIndedSchema, tableId);
 		// Ensure all all updated columns actually exist.
 		changes = SQLUtils.matchChangesToCurrentInfo(currentIndedSchema, changes);
 		return tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
@@ -1624,7 +1624,14 @@ public class TableIndexDAOImplTest {
 		booleanColumn.setName("bar");
 		booleanColumn.setColumnType(ColumnType.BOOLEAN);
 		
-		List<ColumnModel> schema = Lists.newArrayList(intColumn, booleanColumn);
+		ColumnModel listColumn = new ColumnModel();
+		listColumn.setId("14");
+		listColumn.setName("stringList");
+		listColumn.setColumnType(ColumnType.STRING_LIST);
+		listColumn.setMaximumSize(100L);
+		listColumn.setMaximumListLength(10L);
+		
+		List<ColumnModel> schema = Lists.newArrayList(intColumn, booleanColumn, listColumn);
 		
 		createOrUpdateTable(schema, indexDescription);
 		// create three rows.
@@ -1648,7 +1655,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.optimizeTableIndices(infoList, tableId, 4);
 		infoList = getAllColumnInfo(tableId);
 		
-		assertEquals(5, infoList.size());
+		assertEquals(6, infoList.size());
 		
 		DatabaseColumnInfo info = infoList.get(0);
 		// ROW_ID
@@ -1664,7 +1671,7 @@ public class TableIndexDAOImplTest {
 		// one
 		info = infoList.get(3);
 		assertEquals("_C12_", info.getColumnName());
-		assertEquals(new Long(5), info.getCardinality());
+		assertEquals(5L, info.getCardinality());
 		assertTrue(info.hasIndex());
 		assertEquals("_C12_idx_", info.getIndexName());
 
@@ -1675,12 +1682,21 @@ public class TableIndexDAOImplTest {
 		// two
 		info = infoList.get(4);
 		assertEquals("_C13_", info.getColumnName());
-		assertEquals(new Long(2), info.getCardinality());
+		assertEquals(2L, info.getCardinality());
 		assertTrue(info.hasIndex());
 		assertEquals("_C13_idx_", info.getIndexName());
 		assertEquals(MySqlColumnType.TINYINT, info.getType());
 		assertNull(info.getMaxSize());
 		assertEquals(ColumnType.BOOLEAN, info.getColumnType());
+		
+		info = infoList.get(5);
+		assertEquals("_C14_", info.getColumnName());
+		assertEquals(5L, info.getCardinality());
+		assertTrue(info.hasIndex());
+		assertEquals("_C14_idx_", info.getIndexName());
+		assertEquals(MySqlColumnType.JSON, info.getType());
+		assertNull(info.getMaxSize());
+		assertEquals(ColumnType.STRING_LIST, info.getColumnType());
 	}
 	
 	@Test
@@ -1802,9 +1818,7 @@ public class TableIndexDAOImplTest {
 		ColumnModel stringListColumn = new ColumnModel();
 		stringListColumn.setId("12");
 		stringListColumn.setName("foo");
-		stringListColumn.setColumnType(ColumnType.STRING_LIST);
-		stringListColumn.setMaximumSize(10L);
-		stringListColumn.setMaximumListLength(2L);
+		stringListColumn.setColumnType(ColumnType.JSON);
 		
 		ColumnModel largeTextColumn = new ColumnModel();
 		largeTextColumn.setId("13");
@@ -1857,7 +1871,7 @@ public class TableIndexDAOImplTest {
 		assertNull(info.getIndexName());
 		assertEquals(MySqlColumnType.JSON, info.getType());
 		assertNull(info.getMaxSize());
-		assertEquals(ColumnType.STRING_LIST, info.getColumnType());
+		assertEquals(ColumnType.JSON, info.getColumnType());
 		
 		// two
 		info = infoList.get(4);
@@ -1978,7 +1992,7 @@ public class TableIndexDAOImplTest {
 	public List<DatabaseColumnInfo> getAllColumnInfo(IdAndVersion tableId){
 		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId);
 		tableIndexDAO.provideCardinality(info, tableId);
-		tableIndexDAO.provideIndexName(info, tableId);
+		tableIndexDAO.provideIndexInfo(info, tableId);
 		return info;
 	}
 	
@@ -4304,7 +4318,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testPopulateListColumnIndexTableView_NoIdFilter() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
-		int rowCount = 4;
+		int rowCount = 1000;
 		boolean includeMultiValue = true;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount, includeMultiValue);
 
