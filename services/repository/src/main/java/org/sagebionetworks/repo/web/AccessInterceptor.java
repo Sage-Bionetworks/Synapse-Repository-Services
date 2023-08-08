@@ -7,7 +7,6 @@ import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.ResponseData;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AccessRecorder;
 import org.sagebionetworks.util.Clock;
@@ -28,7 +27,7 @@ import java.util.UUID;
  * @author John
  * 
  */
-public class AccessInterceptor implements HandlerInterceptor, AccessResponseDataListener {
+public class AccessInterceptor implements HandlerInterceptor, AccessRecordListener {
 
 	public static final String SESSION_ID = "sessionId";
 
@@ -141,16 +140,15 @@ public class AccessInterceptor implements HandlerInterceptor, AccessResponseData
 	}
 
 	@Override
-	public void setResponseData(ResponseData responseData) {
-		// Set this value on the current thread's access record
-		AccessRecord accessRecord = getCurrentThreadAccessRecord();
-		if(responseData.getId() != null){
-			accessRecord.setReturnObjectId(responseData.getId());
-		}
+	public void setReturnObjectId(String returnObjectId) {
+		// Set this value on the current thread's access
+		getCurrentThreadAccessRecord().setReturnObjectId(returnObjectId);
+	}
 
-		if(responseData.getConcreteType() != null) {
-			accessRecord.setObjectConcreteType(responseData.getConcreteType());
-		}
+	@Override
+	public void setRequestConcreteType(String requestConcreteType) {
+		// Set this value on the current thread's access
+		getCurrentThreadAccessRecord().setRequestConcreteType(requestConcreteType);
 	}
 	
 	/**

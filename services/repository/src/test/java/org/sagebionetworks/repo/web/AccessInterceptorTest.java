@@ -19,7 +19,6 @@ import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.ResponseData;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AccessRecorder;
@@ -117,7 +116,8 @@ public class AccessInterceptorTest {
 		when(mockRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME)).thenReturn("SESSIONTOKEN");
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
-		interceptor.setResponseData(new ResponseData("returnId", "concreateType"));
+		interceptor.setReturnObjectId("returnId");
+		interceptor.setRequestConcreteType("concreteType");
 		// finish the call
 		Exception exception = null;
 		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, exception);
@@ -142,7 +142,7 @@ public class AccessInterceptorTest {
 		assertEquals(VirtualMachineIdProvider.getVMID(), result.getVmId());
 		assertEquals("?param1=foo", result.getQueryString());
 		assertEquals("returnId", result.getReturnObjectId());
-		assertEquals("concreateType", result.getObjectConcreteType());
+		assertEquals("concreteType", result.getRequestConcreteType());
 		assertNull(result.getOauthClientId()); // request was made without an OAuth client
 		assertNull(result.getBasicAuthUsername());
 		assertEquals(AuthenticationMethod.SESSIONTOKEN.name(), result.getAuthenticationMethod());
@@ -208,7 +208,7 @@ public class AccessInterceptorTest {
 
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
-		interceptor.setResponseData(new ResponseData("returnId", "concreateType"));
+		interceptor.setReturnObjectId("returnId");
 		// Wait to add some elapse time
 		mockClock.sleep(234);
 		// finish the call
@@ -233,7 +233,8 @@ public class AccessInterceptorTest {
 
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
-		interceptor.setResponseData(new ResponseData("returnId", null));
+		interceptor.setReturnObjectId("returnId");
+		interceptor.setRequestConcreteType(null);
 		// Wait to add some elapse time
 		mockClock.sleep(234);
 		// finish the call
@@ -247,6 +248,6 @@ public class AccessInterceptorTest {
 		assertEquals(OAUTH_CLIENT_ID_BASIC, result.getOauthClientId());
 		assertEquals(OAUTH_CLIENT_ID_BASIC, result.getBasicAuthUsername());
 		assertEquals("BASICAUTH", result.getAuthenticationMethod());
-		assertNull(result.getObjectConcreteType());
+		assertNull(result.getRequestConcreteType());
 	}
 }
