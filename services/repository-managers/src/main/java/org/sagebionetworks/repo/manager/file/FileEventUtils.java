@@ -27,12 +27,19 @@ public class FileEventUtils {
         ValidateArgument.required(associateObjectType, "associateObjectType");
         ValidateArgument.required(stack, "stack");
         ValidateArgument.required(instance, "instance");
+        return buildFileEvent(type, userId, fileHandleId, null, associateObjectId, associateObjectType, stack, instance);
+    }
+
+    public static FileEvent buildFileEvent(FileEventType type, Long userId, String fileHandleId,
+                                           String downloadedFileHandleId, String associateObjectId,
+                                           FileHandleAssociateType associateObjectType, String stack, String instance) {
         return new FileEvent()
                 .setObjectType(ObjectType.FILE_EVENT)
                 .setObjectId(fileHandleId)
                 .setTimestamp(Date.from(Instant.now()))
                 .setUserId(userId)
                 .setFileEventType(type)
+                .setDownloadedFileHandleId(downloadedFileHandleId)
                 .setFileHandleId(fileHandleId)
                 .setAssociateId(associateObjectId)
                 .setAssociateType(associateObjectType)
