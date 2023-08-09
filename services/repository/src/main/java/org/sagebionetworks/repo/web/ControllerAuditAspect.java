@@ -5,7 +5,10 @@ import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.sagebionetworks.repo.model.AccessRecordExtractorUtil;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.Optional;
 
 /**
  * This aspect listens to controller and gathers extra data for auditing such as the ID.
@@ -15,9 +18,10 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @Aspect
 public class ControllerAuditAspect {
-
+	public static final String ID = "id";
+	public static final String CONCRETE_TYPE = "concreteType";
 	@Autowired
-	AccessRecordListener listener;
+	AccessRecordDataListener listener;
 
 	/**
 	 * Look at all return objects ma
@@ -27,9 +31,9 @@ public class ControllerAuditAspect {
 	@AfterReturning(pointcut = "@annotation(org.springframework.web.bind.annotation.ResponseBody)", returning = "responseBody")
 	public void inspectResponseBody(Object responseBody) {
 		// extract the ID from the response body
-		String id = AccessRecordExtractorUtil.getObjectId(responseBody);
-		if (id != null) {
-			listener.setReturnObjectId(id);
+		Optional<String> id = AccessRecordExtractorUtil.getObjectFieldValue(responseBody, ID);
+		if (id.isPresent()) {
+			listener.setReturnObjectId(id.get());
 		}
 	}
 
@@ -38,14 +42,17 @@ public class ControllerAuditAspect {
 	 *
 	 * @param
 	 */
-
-	@Before("within(@org.springframework.stereotype.Controller *) && (args(.., @RequestBody requestBody))")
-	public void inspectRequestBody(JoinPoint joinPoint, Object requestBody) {
+	@Before("@within(org.springframework.stereotype.Controller) && " +
+			"execution(* * (..,@org.springframework.web.bind.annotation.RequestBody (*),..))" )
+	public void inspectRequestBody(JoinPoint joinPoint) {
 		// extract the concrete type from the request body
-		String concreteType = AccessRecordExtractorUtil.getConcreteType(requestBody);
-		if (concreteType != null) {
-			listener.setRequestConcreteType(concreteType);
+		for( Object o : joinPoint.getArgs()){
+			if(o instanceof JSONEntity){
+				Optional<String> concreteType = AccessRecordExtractorUtil.getObjectFieldValue(o ,CONCRETE_TYPE);
+				concreteType.ifPresent(s -> listener.setRequestConcreteType(s));
+			}
 		}
+
 	}
 
 }

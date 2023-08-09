@@ -19,7 +19,7 @@
 		},
 		"requestConcreteType": {
 			"type": "string",
-			"description": "The concrete type of the API request object, e.g., org.sagebionetworks.repo.model.FileEntity. Concrete type can be null either request body is not available ( in case of GET, DELETE API method) or object does not have field concrete type, e.g, UserGroup.java."
+			"description": "The concrete type of the API request object (if any) e.g., org.sagebionetworks.repo.model.FileEntity. The requestConcreteType may be null if the request body is not available (i.e. GET or DELETE) or if does not have a concreteType field (e.g. there is no ambiguity in the type)."
 
 		},
 		"requestURL": {

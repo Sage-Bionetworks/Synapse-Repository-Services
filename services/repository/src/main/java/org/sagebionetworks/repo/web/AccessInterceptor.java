@@ -27,7 +27,7 @@ import java.util.UUID;
  * @author John
  * 
  */
-public class AccessInterceptor implements HandlerInterceptor, AccessRecordListener {
+public class AccessInterceptor implements HandlerInterceptor, AccessRecordDataListener {
 
 	public static final String SESSION_ID = "sessionId";
 

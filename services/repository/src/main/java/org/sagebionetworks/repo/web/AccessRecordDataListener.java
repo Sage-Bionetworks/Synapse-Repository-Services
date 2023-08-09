@@ -2,14 +2,14 @@ package org.sagebionetworks.repo.web;
 
 
 /**
- * Abstraction for a listener to response accessRecord object.
+ * The Listener is used to provide additional information to an access record, from the request body and response body.
  * @author John
  *
  */
-public interface AccessRecordListener {
+public interface AccessRecordDataListener {
 
 	/**
-	 * Set the ID of the return object.
+	 * Set the ID of the returned response object.
 	 * @param returnObjectId
 	 */
 	public void setReturnObjectId(String returnObjectId);
