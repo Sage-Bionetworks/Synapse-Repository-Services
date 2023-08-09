@@ -1254,7 +1254,7 @@ public class SQLTranslatorUtilsTest {
 
 		String expected = "SELECT T123_INDEX_C111_._C111__UNNEST " +
 				"FROM T123 _A0 JOIN T456 _A1 " +
-				"LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"LEFT JOIN JSON_TABLE(_A0._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE " +
 				"ORDER BY T123_INDEX_C111_._C111__UNNEST";
 		
 		assertEquals(expected, querySpecification.toSql());
@@ -1279,8 +1279,8 @@ public class SQLTranslatorUtilsTest {
 
 		String expected = "SELECT T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C333_._C333__UNNEST " +
 				"FROM T123 _A0 JOIN T456 _A1 " +
-				"LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
-				"LEFT JOIN T456_INDEX_C333_ ON _A1.ROW_ID = T456_INDEX_C333_.ROW_ID_REF_C333_ " +
+				"LEFT JOIN JSON_TABLE(_A0._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE " +
+				"LEFT JOIN JSON_TABLE(_A1._C333_, '$[*]' COLUMNS(_C333__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T456_INDEX_C333_ ON TRUE " +
 				"ORDER BY T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C333_._C333__UNNEST";
 		
 		assertEquals(expected, querySpecification.toSql());
@@ -1303,9 +1303,10 @@ public class SQLTranslatorUtilsTest {
 
 		String expected = "SELECT T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C111_._C111__UNNEST " +
 				"FROM T123 _A0 JOIN T456 _A1 " +
-				"LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
-				"LEFT JOIN T456_INDEX_C111_ ON _A1.ROW_ID = T456_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"LEFT JOIN JSON_TABLE(_A0._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE " +
+				"LEFT JOIN JSON_TABLE(_A1._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T456_INDEX_C111_ ON TRUE " +
 				"ORDER BY T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C111_._C111__UNNEST";
+		 
 		
 		assertEquals(expected, querySpecification.toSql());
 	}
@@ -1362,8 +1363,8 @@ public class SQLTranslatorUtilsTest {
 
 		String expected = "SELECT _C222_, T123_456_INDEX_C111_._C111__UNNEST, T123_456_INDEX_C333_._C333__UNNEST " +
 				"FROM T123_456 " +
-				"LEFT JOIN T123_456_INDEX_C111_ ON T123_456.ROW_ID = T123_456_INDEX_C111_.ROW_ID_REF_C111_ " +
-				"LEFT JOIN T123_456_INDEX_C333_ ON T123_456.ROW_ID = T123_456_INDEX_C333_.ROW_ID_REF_C333_ " +
+				"LEFT JOIN JSON_TABLE(T123_456._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_456_INDEX_C111_ ON TRUE " +
+				"LEFT JOIN JSON_TABLE(T123_456._C333_, '$[*]' COLUMNS(_C333__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_456_INDEX_C333_ ON TRUE " +
 				"ORDER BY T123_456_INDEX_C111_._C111__UNNEST, T123_456_INDEX_C333_._C333__UNNEST";
 		assertEquals(expected, querySpecification.toSql());
 	}
@@ -2043,8 +2044,10 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		// call under test
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
+
 		assertEquals("SELECT T123_INDEX_C111_._C111__UNNEST FROM T123 _A0 JOIN T123 _A1 ON ( _A0._C444_ = _A1._C444_ )"
-				+ " LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_",element.toSql());
+				+ " LEFT JOIN JSON_TABLE(_A0._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE",element.toSql());
+		
 	}
 	
 	@Test
@@ -2558,7 +2561,7 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
 		String expectedSql = "SELECT T123_INDEX_C111_._C111__UNNEST, COUNT(*) " +
 				"FROM T123 " +
-				"LEFT JOIN T123_INDEX_C111_ ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"LEFT JOIN JSON_TABLE(T123._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE " +
 				"WHERE _C333_ IN ( :b0, :b1 ) " +
 				"GROUP BY T123_INDEX_C111_._C111__UNNEST";
 		assertEquals(expectedSql,element.toSql());
@@ -2676,9 +2679,9 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
 		String expectedSql = "SELECT T123_INDEX_C111_._C111__UNNEST, T123_INDEX_C333_._C333__UNNEST "
-				+ "FROM T123 LEFT JOIN T123_INDEX_C111_ "
-				+ "ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ LEFT JOIN T123_INDEX_C333_ "
-				+ "ON T123.ROW_ID = T123_INDEX_C333_.ROW_ID_REF_C333_";
+				+ "FROM T123 "
+				+ "LEFT JOIN JSON_TABLE(T123._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE "
+				+ "LEFT JOIN JSON_TABLE(T123._C333_, '$[*]' COLUMNS(_C333__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C333_ ON TRUE";
 		assertEquals(expectedSql, element.toSql());
 		assertTrue(parameters.isEmpty());
 	}

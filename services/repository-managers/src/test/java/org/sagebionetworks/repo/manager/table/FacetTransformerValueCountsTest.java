@@ -200,9 +200,9 @@ public class FacetTransformerValueCountsTest {
 		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), true, facets, originalQuery, dependencies, selectedValuesSet);
 
 		//check the non-transformed sql
-		String expectedString = "SELECT T123_INDEX_C2_._C2__UNNEST AS value, COUNT(*) AS frequency"
-				+ " FROM T123 LEFT JOIN T123_INDEX_C2_ ON T123.ROW_ID = T123_INDEX_C2_.ROW_ID_REF_C2_ W"
-				+ "HERE ( _C1_ LIKE :b0 ) AND ( ( ( _C1_ = :b1 ) ) ) "
+		String expectedString = "SELECT T123_INDEX_C2_._C2__UNNEST AS value, COUNT(*) AS frequency "
+				+ "FROM T123 LEFT JOIN JSON_TABLE(T123._C2_, '$[*]' COLUMNS(_C2__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C2_ ON TRUE "
+				+ "WHERE ( _C1_ LIKE :b0 ) AND ( ( ( _C1_ = :b1 ) ) ) "
 				+ "GROUP BY T123_INDEX_C2_._C2__UNNEST ORDER BY frequency DESC, value ASC LIMIT :b2";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
 		assertEquals("asdf%", facetTransformer.getFacetSqlQuery().getParameters().get("b0"));

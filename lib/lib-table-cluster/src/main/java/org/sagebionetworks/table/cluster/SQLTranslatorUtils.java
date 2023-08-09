@@ -58,12 +58,13 @@ import org.sagebionetworks.table.query.model.ColumnList;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.CorrelationName;
+import org.sagebionetworks.table.query.model.CorrelationSpecification;
 import org.sagebionetworks.table.query.model.CurrentUserFunction;
 import org.sagebionetworks.table.query.model.DefiningClause;
 import org.sagebionetworks.table.query.model.DelimitedIdentifier;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Element;
-import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.Factor;
 import org.sagebionetworks.table.query.model.FromClause;
@@ -78,6 +79,8 @@ import org.sagebionetworks.table.query.model.InValueList;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.JoinCondition;
 import org.sagebionetworks.table.query.model.JoinType;
+import org.sagebionetworks.table.query.model.JsonTable;
+import org.sagebionetworks.table.query.model.JsonTableColumn;
 import org.sagebionetworks.table.query.model.MySqlFunction;
 import org.sagebionetworks.table.query.model.MySqlFunctionName;
 import org.sagebionetworks.table.query.model.NonJoinQueryExpression;
@@ -104,6 +107,7 @@ import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.Term;
 import org.sagebionetworks.table.query.model.TextMatchesMySQLPredicate;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
+import org.sagebionetworks.table.query.model.TruthSpecification;
 import org.sagebionetworks.table.query.model.TruthValue;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
@@ -619,14 +623,25 @@ public class SQLTranslatorUtils {
 			String mainTableName = mapper.getNumberOfTables() > 1 ? columnMatch.getTableInfo().getTranslatedTableAlias() : columnMatch.getTableInfo().getTranslatedTableName();
 			String joinTableName = SQLUtils.getTableNameForMultiValueColumnIndex(referencedTable, columnReference.getId());
 			
-			TableReference joinedTableRef = tableReferenceForName(joinTableName);
-			JoinCondition joinOnRowId = new JoinCondition(new TableQueryParser(
-				mainTableName + "." + ROW_ID + "=" + joinTableName + "." + SQLUtils.getRowIdRefColumnNameForId(columnReference.getId())
-			).searchCondition());
-			JoinType leftOuterJoin = new JoinType(OuterJoinType.LEFT);
-			currentTableReference = new TableReference(new QualifiedJoin(
-					currentTableReference, leftOuterJoin, joinedTableRef, joinOnRowId
-			));
+			ColumnReference joinColumnReference = SqlElementUtils.createColumnReference(mainTableName + "." + columnMatch.getColumnTranslationReference().getTranslatedColumnName());
+			
+			String unnestColumnName = SQLUtils.getUnnestedColumnNameForId(columnReference.getId());
+			ColumnTypeInfo unnestColumnTypeInfo = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnReference.getColumnType()));
+			
+			String unnestColumnType = unnestColumnTypeInfo.getMySqlType().toString();
+			
+			if (unnestColumnTypeInfo.getMySqlType().hasSize && columnReference.getMaximumSize() != null) {
+				unnestColumnType += "(" + columnReference.getMaximumSize() + ")";
+			}
+			
+			List<JsonTableColumn> jsonColumns = List.of(new JsonTableColumn(unnestColumnName, unnestColumnType));
+			CorrelationSpecification jsonTableCorrelation = new CorrelationSpecification(true, new CorrelationName(new RegularIdentifier(joinTableName)));
+			
+			TableReference jsonTableRef = new TableReference(new JsonTable(joinColumnReference, jsonColumns, jsonTableCorrelation));
+			
+			JoinCondition joinOnTrue = new JoinCondition(new TruthSpecification(TruthValue.TRUE));
+			
+			currentTableReference = new TableReference(new QualifiedJoin(currentTableReference, new JoinType(OuterJoinType.LEFT), jsonTableRef, joinOnTrue));
 		}
 		
 		fromClause.setTableReference(currentTableReference);

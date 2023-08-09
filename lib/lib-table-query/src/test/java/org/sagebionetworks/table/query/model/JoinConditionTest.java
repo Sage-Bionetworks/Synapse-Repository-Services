@@ -19,4 +19,10 @@ class JoinConditionTest {
 		JoinCondition joinCondition = new TableQueryParser("on (t1.foo = t2.foo)").joinCondition();
 		assertEquals("ON ( t1.foo = t2.foo )", joinCondition.toSql());
 	}
+	
+	@Test
+	public void testJoinConditionWithTruthValue() throws ParseException {
+		JoinCondition joinCondition = new JoinCondition(new TruthSpecification(TruthValue.TRUE));
+		assertEquals("ON TRUE", joinCondition.toSql());
+	}
 }
