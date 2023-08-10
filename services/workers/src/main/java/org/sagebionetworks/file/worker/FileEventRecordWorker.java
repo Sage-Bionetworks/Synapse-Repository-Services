@@ -37,7 +37,8 @@ public class FileEventRecordWorker implements TypedMessageDrivenRunner<FileEvent
 
 
         FileEventRecord record = new FileEventRecord().setUserId(event.getUserId()).setFileHandleId(event.getFileHandleId()).
-                setAssociateId(event.getAssociateId()).setAssociateType(event.getAssociateType()).setProjectId(projectId);
+                setAssociateId(event.getAssociateId()).setAssociateType(event.getAssociateType()).setProjectId(projectId)
+                .setDownloadedFileHandleId(event.getDownloadedFileHandleId());
         // KinesisJsonEntityRecord contains json entity FileEventRecord which logges data in new kinesis stream in json format.
         KinesisJsonEntityRecord kinesisJsonEntityRecord = new KinesisJsonEntityRecord(event.getTimestamp().getTime(), record,
                 event.getStack(), event.getInstance());

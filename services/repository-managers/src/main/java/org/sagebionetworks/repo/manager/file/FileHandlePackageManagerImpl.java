@@ -164,7 +164,7 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 				resultFileHandleId = resultHandle.getId();
 			}
 
-			collectDownloadStatistics(user.getId(), results);
+			collectDownloadStatistics(user.getId(), resultFileHandleId, results);
 
 			// All of the parts are ready.
 			BulkFileDownloadResponse response = new BulkFileDownloadResponse();
@@ -279,11 +279,11 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 		}
 	}
 
-	void collectDownloadStatistics(Long userId, List<FileDownloadSummary> results) {
+	void collectDownloadStatistics(Long userId, String resultFileHandleId, List<FileDownloadSummary> results) {
 		List<FileEvent> downloadFileEvents = results.stream()
 				// Only collects stats for successful summaries
 				.filter(summary -> FileDownloadStatus.SUCCESS.equals(summary.getStatus()))
-				.map(summary -> FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userId, summary.getFileHandleId(),
+				.map(summary -> FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userId, summary.getFileHandleId(), resultFileHandleId,
 						summary.getAssociateObjectId(), summary.getAssociateObjectType(), configuration.getStack(), configuration.getStackInstance()))
 				.collect(Collectors.toList());
 
