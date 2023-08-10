@@ -21,10 +21,8 @@ public class AccessRecordExtractorUtil {
             Field field = object.getClass().getDeclaredField(fieldName);
             field.setAccessible(true);
             Object ob = field.get(object);
-            if (ob instanceof String) {
+            if (ob instanceof String || ob instanceof Long) {
                 return Optional.of(ob.toString());
-            } else if (ob instanceof Long) {
-                return Optional.of(((Long) ob).toString());
             } else return Optional.empty();
         } catch (Exception e) {
             return Optional.empty();
