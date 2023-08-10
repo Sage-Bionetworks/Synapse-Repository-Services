@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -50,6 +51,9 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
+import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
+import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
+import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -125,8 +129,10 @@ public class VirtualTableIntegrationTest {
 		Project project = (Project) entitites.get(0);
 
 		List<ColumnModel> tableSchema = List.of(
-				new ColumnModel().setName("foo").setColumnType(ColumnType.STRING).setMaximumSize(50L),
-				new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER));
+			new ColumnModel().setName("foo").setColumnType(ColumnType.STRING).setMaximumSize(50L),
+			new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER)
+		);
+		
 		tableSchema = columnModelManager.createColumnModels(adminUserInfo, tableSchema);
 		ColumnModel foo = tableSchema.get(0);
 
@@ -155,11 +161,16 @@ public class VirtualTableIntegrationTest {
 		ColumnModel jsonArrayColumn = columnModelManager
 				.createColumnModel(new ColumnModel().setName("jsonArrayColumn").setColumnType(ColumnType.JSON));
 		
-		String definingSql = String.format("select foo, cast(sum(bar) as %s), cast(JSON_OBJECT(foo, sum(bar)) as %s), cast(JSON_ARRAYAGG(bar) as %s) from %s group by foo order by foo",
-				barSum.getId(), jsonColumn.getId(), jsonArrayColumn.getId(), table.getId());
+		// This is needed to reproduce the use case for https://sagebionetworks.jira.com/browse/PLFM-7968
+		ColumnModel listColumn = columnModelManager
+				.createColumnModel(new ColumnModel().setName("listColumn").setColumnType(ColumnType.INTEGER_LIST).setFacetType(FacetType.enumeration));
+		
+		String definingSql = String.format("select foo, cast(sum(bar) as %s), cast(JSON_OBJECT(foo, sum(bar)) as %s), cast(JSON_ARRAYAGG(bar) as %s), cast(JSON_ARRAYAGG(bar) as %s) from %s group by foo order by foo",
+				barSum.getId(), jsonColumn.getId(), jsonArrayColumn.getId(), listColumn.getId(), table.getId());
 
 		VirtualTable virtualTable = asyncHelper.createVirtualTable(adminUserInfo, project.getId(), definingSql);
-		assertEquals(List.of(tableSchema.get(0).getId(), barSum.getId(), jsonColumn.getId(), jsonArrayColumn.getId()), virtualTable.getColumnIds());
+		
+		assertEquals(List.of(tableSchema.get(0).getId(), barSum.getId(), jsonColumn.getId(), jsonArrayColumn.getId(), listColumn.getId()), virtualTable.getColumnIds());
 
 		Query query = new Query();
 		query.setSql("select * from " + virtualTable.getId());
@@ -173,13 +184,20 @@ public class VirtualTableIntegrationTest {
 
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
 			assertEquals(List.of(
-				new Row().setValues(List.of("a", "6", "{\"a\": 6}", "[1, 5]")), 
-				new Row().setValues(List.of("b", "18", "{\"b\": 18}", "[2, 16]"))
+				new Row().setValues(List.of("a", "6", "{\"a\": 6}", "[1, 5]", "[1, 5]")), 
+				new Row().setValues(List.of("b", "18", "{\"b\": 18}", "[2, 16]", "[2, 16]"))
 			), results.getQueryResult().getQueryResults().getRows());
-			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn), results.getColumnModels());
+			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn, listColumn), results.getColumnModels());
 			assertEquals(2L, results.getQueryCount());
-			assertEquals(List.of(new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range)
-					.setColumnMin("6").setColumnMax("18")), results.getFacets());
+			assertEquals(List.of(
+				new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range).setColumnMin("6").setColumnMax("18"),
+				new FacetColumnResultValues().setColumnName("listColumn").setFacetType(FacetType.enumeration).setFacetValues(List.of(
+					new FacetColumnResultValueCount().setValue("1").setCount(1L).setIsSelected(false),
+					new FacetColumnResultValueCount().setValue("2").setCount(1L).setIsSelected(false),
+					new FacetColumnResultValueCount().setValue("5").setCount(1L).setIsSelected(false),
+					new FacetColumnResultValueCount().setValue("16").setCount(1L).setIsSelected(false)
+				))
+			), results.getFacets());
 		}, MAX_WAIT_MS);
 
 		String message = assertThrows(UnauthorizedException.class, () -> {
@@ -194,14 +212,38 @@ public class VirtualTableIntegrationTest {
 				List.of(new FacetColumnRangeRequest().setColumnName("barSum").setMax("19").setMin("17")));
 		
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
-			assertEquals(List.of(new Row().setValues(List.of("b", "18", "{\"b\": 18}", "[2, 16]"))),
+			assertEquals(List.of(new Row().setValues(List.of("b", "18", "{\"b\": 18}", "[2, 16]", "[2, 16]"))),
 					results.getQueryResult().getQueryResults().getRows());
-			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn), results.getColumnModels());
+			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn, listColumn), results.getColumnModels());
 			assertEquals(1L, results.getQueryCount());
-			assertEquals(
-					List.of(new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range)
-							.setColumnMin("6").setColumnMax("18").setSelectedMax("19").setSelectedMin("17")),
-					results.getFacets());
+			assertEquals(List.of(
+				new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range).setColumnMin("6").setColumnMax("18").setSelectedMax("19").setSelectedMin("17"),
+				new FacetColumnResultValues().setColumnName("listColumn").setFacetType(FacetType.enumeration).setFacetValues(List.of(
+					new FacetColumnResultValueCount().setValue("2").setCount(1L).setIsSelected(false),
+					new FacetColumnResultValueCount().setValue("16").setCount(1L).setIsSelected(false)
+				))
+			), results.getFacets());
+		}, MAX_WAIT_MS);
+		
+		// query with a facet selection on the list column
+		query.setSelectedFacets(List.of(
+			new FacetColumnValuesRequest().setColumnName("listColumn").setFacetValues(Set.of("16")))
+		);
+		
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("b", "18", "{\"b\": 18}", "[2, 16]", "[2, 16]"))),
+					results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn, listColumn), results.getColumnModels());
+			assertEquals(1L, results.getQueryCount());
+			assertEquals(List.of(
+				new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range).setColumnMin("18").setColumnMax("18"),
+				new FacetColumnResultValues().setColumnName("listColumn").setFacetType(FacetType.enumeration).setFacetValues(List.of(
+					new FacetColumnResultValueCount().setValue("1").setCount(1L).setIsSelected(false),
+					new FacetColumnResultValueCount().setValue("2").setCount(1L).setIsSelected(false),
+					new FacetColumnResultValueCount().setValue("5").setCount(1L).setIsSelected(false),
+					new FacetColumnResultValueCount().setValue("16").setCount(1L).setIsSelected(true)
+				))
+			), results.getFacets());
 		}, MAX_WAIT_MS);
 		
 		// defining_where additional filters
@@ -211,9 +253,9 @@ public class VirtualTableIntegrationTest {
 		query.setSelectedFacets(null);
 		options.withReturnFacets(false);
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
-			assertEquals(List.of(new Row().setValues(List.of("a", "5", "{\"a\": 5}", "[5]"))),
+			assertEquals(List.of(new Row().setValues(List.of("a", "5", "{\"a\": 5}", "[5]", "[5]"))),
 					results.getQueryResult().getQueryResults().getRows());
-			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn), results.getColumnModels());
+			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn, listColumn), results.getColumnModels());
 			assertEquals(1L, results.getQueryCount());
 		}, MAX_WAIT_MS);
 		
@@ -223,10 +265,10 @@ public class VirtualTableIntegrationTest {
 		query.setSelectedFacets(null);
 		options.withReturnFacets(false);
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
-			assertEquals(List.of(new Row().setValues(List.of("a", "6", "{\"a\": 6}", "[1, 5]")),
-								new Row().setValues(List.of("b", "2", "{\"b\": 2}", "[2]"))),
+			assertEquals(List.of(new Row().setValues(List.of("a", "6", "{\"a\": 6}", "[1, 5]", "[1, 5]")),
+								new Row().setValues(List.of("b", "2", "{\"b\": 2}", "[2]", "[2]"))),
 					results.getQueryResult().getQueryResults().getRows());
-			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn), results.getColumnModels());
+			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn, listColumn), results.getColumnModels());
 			assertEquals(2L, results.getQueryCount());
 		}, MAX_WAIT_MS);
 		
@@ -249,7 +291,7 @@ public class VirtualTableIntegrationTest {
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
 			assertEquals(1L, results.getQueryCount());
 			assertEquals(List.of(
-				new Row().setValues(List.of("a", "6", "{\"a\": 6}", "[1, 5]"))
+				new Row().setValues(List.of("a", "6", "{\"a\": 6}", "[1, 5]", "[1, 5]"))
 			), results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 		
@@ -273,7 +315,7 @@ public class VirtualTableIntegrationTest {
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
 			assertEquals(1L, results.getQueryCount());
 			assertEquals(List.of(
-				new Row().setValues(List.of("b", "18", "{\"b\": 18}", "[2, 16]"))
+				new Row().setValues(List.of("b", "18", "{\"b\": 18}", "[2, 16]", "[2, 16]"))
 			), results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 		
@@ -282,7 +324,17 @@ public class VirtualTableIntegrationTest {
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
 			assertEquals(1L, results.getQueryCount());
 			assertEquals(List.of(
-				new Row().setValues(List.of("b", "18", "{\"b\": 18}", "[2, 16]"))
+				new Row().setValues(List.of("b", "18", "{\"b\": 18}", "[2, 16]", "[2, 16]"))
+			), results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		
+		// Try filtering the multi-value column
+		query.setSql("select * from " + virtualTable.getId() + " where listColumn HAS(5,6)");
+		
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(1L, results.getQueryCount());
+			assertEquals(List.of(
+				new Row().setValues(List.of("a", "6", "{\"a\": 6}", "[1, 5]", "[1, 5]"))
 			), results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 	}
