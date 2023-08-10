@@ -3279,4 +3279,14 @@ public class SQLUtilsTest {
 				+ " VALUES ('1', -1, ?, FALSE)"
 				+ " ON DUPLICATE KEY UPDATE SCHEMA_HASH = ?", result);
 	}
+	
+	@Test
+	public void testGetColumnNameFromIndex() {
+		assertEquals("_C123_", SQLUtils.getColumnNameFromIndex(SQLUtils.getIndexName("_C123_")));
+	}
+	
+	@Test
+	public void testGetColumnNameFromIndexWithNoMatch() {
+		assertNull(SQLUtils.getColumnNameFromIndex("other_index"));
+	}
 }

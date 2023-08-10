@@ -225,8 +225,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 	private static final String KEY_NAME = "Key_name";
 	private static final String COLUMN_NAME = "Column_name";
-	private static final String EXPR_NAME = "Expression";
-	private static final Pattern LIST_INDEX_EXPR_PATTERN = Pattern.compile("cast\\([`]?(_.+_)[`]?.+\\)", Pattern.CASE_INSENSITIVE);
 	private static final String SHOW_INDEXES_FROM = "SHOW INDEXES FROM ";
 	private static final String KEY = "Key";
 	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
@@ -250,14 +248,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		return info;
 	};
-
-	private static String getColumnNameFromMultiValueIndexExpression(String expression) {
-		Matcher matcher = LIST_INDEX_EXPR_PATTERN.matcher(expression);
-		if (matcher.find()) {
-			return matcher.group(1);
-		}
-		return null;
-	}
 	
 	private DataSourceTransactionManager transactionManager;
 	private TransactionTemplate writeTransactionTemplate;
@@ -717,20 +707,19 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.query(SHOW_INDEXES_FROM+tableName, new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
+				String indexName = rs.getString(KEY_NAME);
 				String columnName = rs.getString(COLUMN_NAME);
 				
 				if (columnName == null) {
 					// The Column_Name is null for JSON multi-value indexes (e.g. list columns) and it is contained in the expression itself
-					// cast(`_C123_`...)
-					columnName = getColumnNameFromMultiValueIndexExpression(rs.getString(EXPR_NAME));
+					// cast(`_C123_`...), try to extract the columnName from the index itself
+					columnName = SQLUtils.getColumnNameFromIndex(indexName);
 				}
-				
-				String indexName = rs.getString(KEY_NAME);
 				
 				DatabaseColumnInfo info = nameToInfoMap.get(columnName);
 				
 				if (info == null) {
-					throw new IllegalArgumentException("Provided List<DatabaseColumnInfo> has no match for column: " + columnName);
+					throw new IllegalArgumentException("Provided List<DatabaseColumnInfo> has no match for column: " + columnName + " in index " + indexName);
 				}
 				
 				info.setIndexName(indexName);

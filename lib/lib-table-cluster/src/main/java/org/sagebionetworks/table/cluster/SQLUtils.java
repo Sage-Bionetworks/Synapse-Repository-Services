@@ -1163,8 +1163,15 @@ public class SQLUtils {
 	 * @param columnId
 	 * @return
 	 */
-	public static String getIndexName(String columnId){
-		return columnId+IDX;
+	public static String getIndexName(String columnName){
+		return columnName+IDX;
+	}
+	
+	public static String getColumnNameFromIndex(String indexName) {
+		if (indexName.endsWith(IDX)) {
+			return indexName.substring(0, indexName.length() - IDX.length());
+		}
+		return null;
 	}
 	
 	/**
