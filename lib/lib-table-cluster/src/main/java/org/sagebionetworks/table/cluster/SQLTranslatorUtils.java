@@ -912,13 +912,15 @@ public class SQLTranslatorUtils {
 		
 		List<ValueExpression> values = predicate.getFirstElementOfType(InValueList.class).getValueExpressions();
 		
-		List<BooleanTerm> orTerms = new ArrayList<>(values.size());
+		List<BooleanPrimary> booleanPrimaries = new ArrayList<>(values.size());
 		
 		ValueExpression escapeCharacter = predicate.getEscapeCharacter() == null ? 
 			// The parser does not parse NULL as a VALUE expression
 			new ValueExpression(new StringOverride("NULL")) :
 			// The parser does not parse bind variables (e.g. :b1)
 			new ValueExpression(new StringOverride(predicate.getEscapeCharacter().toSql()));
+		
+		Boolean notNull = Boolean.TRUE.equals(predicate.getNot()) ? null : true;
 				
 		for (ValueExpression value : values) {
 			MySqlFunction jsonSearchFunction = new MySqlFunction(MySqlFunctionName.JSON_SEARCH);
@@ -940,13 +942,25 @@ public class SQLTranslatorUtils {
 			
 			// Finally the path we are searching in (any element of the array)
 			jsonSearchFunction.addParameter(SqlElementUtils.createValueExpression("'$[*]'"));
+						
+			booleanPrimaries.add(new BooleanPrimary(new Predicate(new NullPredicate(new PredicateLeftHandSide(jsonSearchFunction), notNull))));
 			
-			Boolean not = Boolean.TRUE.equals(predicate.getNot()) ? null : true;
-			
-			orTerms.add(new BooleanTerm(List.of(new BooleanFactor(null, 
-				new BooleanTest(new BooleanPrimary(new Predicate(new NullPredicate(new PredicateLeftHandSide(jsonSearchFunction), not))), null, null, null)
-			))));
-			
+		}
+		
+		List<BooleanTerm> orTerms;
+		
+		if (notNull == null) {
+			// JSON_SEARCH(foo, 'a') IS NULL AND JSON_SEARCH(foo, 'b') IS NULL 
+			orTerms = List.of(
+				new BooleanTerm(booleanPrimaries.stream().map(
+					booleanPrimary -> new BooleanFactor(null, new BooleanTest(booleanPrimary, null, null, null))
+				).collect(Collectors.toList()))
+			);
+		} else {
+			// JSON_SEARCH(foo, 'a') IS NOT NULL OR JSON_SEARCH(foo, 'b') IS NOT NULL 
+			orTerms = booleanPrimaries.stream().map( booleanPrimary -> 
+				new BooleanTerm(List.of(new BooleanFactor(null, new BooleanTest(booleanPrimary, null, null, null))))
+			).collect(Collectors.toList());
 		}
 		
 		return new SearchCondition(orTerms);

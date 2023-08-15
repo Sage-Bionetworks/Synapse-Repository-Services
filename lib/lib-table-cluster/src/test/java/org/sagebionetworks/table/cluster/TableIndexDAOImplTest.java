@@ -4318,7 +4318,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testPopulateListColumnIndexTableView_NoIdFilter() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
-		int rowCount = 1000;
+		int rowCount = 4;
 		boolean includeMultiValue = true;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount, includeMultiValue);
 

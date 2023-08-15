@@ -1147,6 +1147,34 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testReplaceArrayHasPredicateWithNotHasLike() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
+		
+		TableAndColumnMapper singleTableMapper = new TableAndColumnMapper(
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class),mockSchemaProvider);
+
+		HashMap<String, Object> parameters = new HashMap<>();
+		
+		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("foo NOT has_like ('asdf%', 'qwerty', 'yeet')");
+		booleanPrimary.recursiveSetParent();
+		SQLTranslatorUtils.translateAllColumnReferences(booleanPrimary, singleTableMapper);
+		
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasLikePredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, singleTableMapper);
+
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
+
+		assertEquals("( JSON_SEARCH(_C111_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NULL AND JSON_SEARCH(_C111_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NULL AND JSON_SEARCH(_C111_,'one',:b2 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NULL )", booleanPrimary.toSql());
+		assertEquals(ImmutableMap.of(
+				"b0", "asdf%",
+				"b1", "qwerty",
+				"b2", "yeet"
+		), parameters);
+
+	}
+	
+	@Test
 	public void testReplaceArrayHasPredicateWithHasLikeAndEscape() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
@@ -2464,7 +2492,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_InPredicate_ValueNoQuotes() throws ParseException{
+	public void testTranslateModelWithInPredicate_ValueNoQuotes() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		QueryExpression rootElement = new TableQueryParser("select * from syn123 where id in(1, 2)").queryExpression();
 		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
@@ -2477,7 +2505,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_InPredicate_ValueSingleQuotes() throws ParseException{
+	public void testTranslateModelWithInPredicate_ValueSingleQuotes() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		QueryExpression rootElement = new TableQueryParser("select * from syn123 where foo in('asdf', 'qwerty')").queryExpression();
 		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
@@ -2490,7 +2518,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_HASKeyword() throws ParseException {
+	public void testTranslateModelWithHasKeyword() throws ParseException {
 		columnDouble.setColumnType(ColumnType.INTEGER_LIST);
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
@@ -2550,7 +2578,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateModel_UnnestArrayColumn() throws ParseException{
+	public void testTranslateModelWithUnnestArrayColumn() throws ParseException{
 		columnFoo.setColumnType(ColumnType.STRING_LIST);//not a list type
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 
@@ -2570,7 +2598,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_CurrentUserFunction() throws ParseException{
+	public void testTranslateModelWithCurrentUserFunction() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		QueryExpression rootElement = new TableQueryParser("select count(*) from syn123 where bar = CURRENT_USER()").queryExpression();
 		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
@@ -2583,7 +2611,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_translateSynapseFunctions() throws ParseException{
+	public void testTranslateModelWihttranslateSynapseFunctions() throws ParseException{
 		QueryExpression rootElement = new TableQueryParser("select bar, CURRENT_USER() from syn123 where bar = CURRENT_USER()").queryExpression();
 		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		// call under test
@@ -2669,7 +2697,7 @@ public class SQLTranslatorUtilsTest {
 
 	
 	@Test
-	public void testTranslateModel_UnnestArrayColumn_multipleJoins() throws ParseException{
+	public void testTranslateModelWithUnnestArrayColumnAndmultipleJoins() throws ParseException{
 		columnFoo.setColumnType(ColumnType.STRING_LIST);//not a list type
 		columnBar.setColumnType(ColumnType.STRING_LIST);//not a list type
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
