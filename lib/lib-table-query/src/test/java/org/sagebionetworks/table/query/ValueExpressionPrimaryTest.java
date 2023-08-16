@@ -129,4 +129,10 @@ public class ValueExpressionPrimaryTest {
 		assertEquals("CASE bar WHEN '123' THEN 1 ELSE 0 END", element.toSql());
 	}
 
+	@Test
+	public void testValueExpressionWithNull() throws ParseException {
+		ValueExpressionPrimary element = new TableQueryParser("NULL").valueExpressionPrimary();
+		assertEquals("NULL", element.toSql());
+	}
+
 }

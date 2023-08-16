@@ -69,7 +69,6 @@ import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
-import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.GroupingColumnReference;
 import org.sagebionetworks.table.query.model.HasFunctionReturnType;
 import org.sagebionetworks.table.query.model.HasPredicate;
@@ -446,20 +445,30 @@ public class SQLTranslatorUtils {
 		}
 	}
 	
+	/**
+	 * When there is a cast to a double within a {@link WithListElement} and
+	 * {@link SelectList}, we need to add a 'NULL' immediacy after it in the select
+	 * list. The NULL provides values for a virtual _DBL_C#_ column, which can be
+	 * used for double expansion in the root select statement.
+	 * 
+	 * @param model
+	 */
 	static void translateCastToDouble(QuerySpecification model) {
 		if (model.isInContext(WithListElement.class)) {
 			SelectList oldSelect = model.getSelectList();
 			List<DerivedColumn> oldList = oldSelect.getColumns();
-			List<DerivedColumn> newList = new ArrayList<>(oldList.size());
-			oldList.forEach(dc -> {
-				newList.add(dc);
-				dc.stream(CastTarget.class).findFirst().ifPresent(ct -> {
-					if(ColumnType.DOUBLE.equals(ct.getType())) {
-						newList.add(createNullDerivedColumn());
-					}
+			if(oldList != null) {
+				List<DerivedColumn> newList = new ArrayList<>(oldList.size());
+				oldList.forEach(dc -> {
+					newList.add(dc);
+					dc.stream(CastTarget.class).findFirst().ifPresent(ct -> {
+						if (ColumnType.DOUBLE.equals(ct.getType())) {
+							newList.add(createNullDerivedColumn());
+						}
+					});
 				});
-			});
-			model.replaceSelectList(new SelectList(newList), model.getSetQuantifier());
+				model.replaceSelectList(new SelectList(newList), model.getSetQuantifier());
+			}
 		}
 	}
 	
@@ -493,7 +502,7 @@ public class SQLTranslatorUtils {
 							match.getTableInfo().getTranslatedTableAlias(),
 							match.getColumnTranslationReference().getTranslatedColumnName()));
 		}
-		if (isBothDoubles(columnReference, type)) {
+		if (isBothDoubleColumns(columnReference, type)) {
 			return Optional.of(
 					createBothDoubleColumns(mapper.getNumberOfTables(),
 							match.getTableInfo().getTranslatedTableAlias(),
@@ -504,15 +513,10 @@ public class SQLTranslatorUtils {
 	}
 
 	/**
-	 * Doubles are implemented with two columns: the first is an enum: [ NaN, -Inf,
-	 * +Inf, null] (_DBL_C#_) and the second is the actual double value (_C#_) .
-	 * Typically, when a double column is selected, the actual double is replaced
-	 * with a double expansion. For example, '_C2_' would replaced with 'CASE WHEN
-	 * _DBL_C2_ IS NULL THEN _C2_ ELSE _DBL_C2_ END'
-	 * 
+	 * Is this a case where both double columns should be expanded into a cast statement?
 	 * @param columnReference
 	 * @param type
-	 * @return True when the actual double column should be replaced by its expansion.
+	 * @return
 	 */
 	static boolean isDoubleExpantion(ColumnReference columnReference, ColumnType type) {
 		if(!ColumnType.DOUBLE.equals(type)) {
@@ -530,7 +534,14 @@ public class SQLTranslatorUtils {
 		return SqlContext.query.equals(columnReference.getContext(HasSqlContext.class).get().getSqlContext());
 	}
 	
-	static boolean isBothDoubles(ColumnReference columnReference, ColumnType type) {
+	/**
+	 * Is this a case where both double columns should be selected?
+	 * 
+	 * @param columnReference
+	 * @param type
+	 * @return
+	 */
+	static boolean isBothDoubleColumns(ColumnReference columnReference, ColumnType type) {
 		if(!ColumnType.DOUBLE.equals(type)) {
 			return false;
 		}
@@ -563,26 +574,36 @@ public class SQLTranslatorUtils {
 	
 
 	/**
-	 * Create the translated double expansion for the given table and column alias
-	 * 
+	 * Generates a select statement for a double column that uses both of the double's columns.
+	 * For example: 'CASE WHEN alias._DBL_C#_ IS NULL THEN alias._C#_ ELSE alias._DBL_C#_ END'
+	 * @param tableCount
 	 * @param translatedTableAlias
-	 * @param translatedColumnName
+	 * @param columnId value of #.
 	 * @return
 	 */
 	static ColumnReference createDoubleExpanstion(final int tableCount, final String translatedTableAlias,
-			final String translatedColumnName) {
-		String tableAlias = (tableCount > 1) ? translatedTableAlias + "." : "";
-		String sql = String.format("CASE WHEN %1$s_DBL%2$s IS NULL THEN %1$s%2$s ELSE %1$s_DBL%2$s END", tableAlias,
-				translatedColumnName);
-		return new ColumnReference(new ColumnName(new Identifier(new ActualIdentifier(new RegularIdentifier(sql)))),
-				null);
+			final String columnId) {
+		return createColumReferenceFromTemplate("CASE WHEN %1$s_DBL%2$s IS NULL THEN %1$s%2$s ELSE %1$s_DBL%2$s END",
+				tableCount, translatedTableAlias, columnId);
 	}
 	
+	/**
+	 * Generates a simple select statement for both of a double's columns.  For example: 'alias._C#_, alias._DBL_C#_'
+	 * @param tableCount
+	 * @param translatedTableAlias
+	 * @param columnId
+	 * @return
+	 */
 	static ColumnReference createBothDoubleColumns(final int tableCount, final String translatedTableAlias,
-			final String translatedColumnName) {
+			final String columnId) {
+		return createColumReferenceFromTemplate("%1$s%2$s, %1$s_DBL%2$s", tableCount, translatedTableAlias,
+				columnId);
+	}
+	
+	static ColumnReference createColumReferenceFromTemplate(String template, int tableCount,
+			String translatedTableAlias, final String columnId) {
 		String tableAlias = (tableCount > 1) ? translatedTableAlias + "." : "";
-		String sql = String.format("%1$s%2$s, %1$s_DBL%2$s", tableAlias,
-				translatedColumnName);
+		String sql = String.format(template, tableAlias, columnId);
 		return new ColumnReference(new ColumnName(new Identifier(new ActualIdentifier(new RegularIdentifier(sql)))),
 				null);
 	}
