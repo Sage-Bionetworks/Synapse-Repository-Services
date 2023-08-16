@@ -1232,16 +1232,17 @@ public class SQLUtilsTest {
 		
 		List<DatabaseColumnInfo> list = new ArrayList<>();
 		
-		for (MySqlColumnType type : MySqlColumnType.values()) {
-			if (type.isCreateIndex()) {
-				continue;
-			}
+		for (ColumnType type : ColumnType.values()) {
 			DatabaseColumnInfo column = new DatabaseColumnInfo();
 			column.setColumnName(type.name());
-			column.setType(type);
+			column.setColumnType(type);
+			column.setType(ColumnTypeInfo.getInfoForType(type).getMySqlType());
 			column.setHasIndex(false);
 			column.setCardinality(-1L);
-			list.add(column);
+			
+			if (!column.isCreateIndex()) {
+				list.add(column);
+			}
 		}
 		
 		IndexChange changes = SQLUtils.calculateIndexOptimization(list, tableId, maxNumberOfIndex);
@@ -1257,16 +1258,18 @@ public class SQLUtilsTest {
 		
 		List<DatabaseColumnInfo> list = new ArrayList<>();
 		
-		for (MySqlColumnType type : MySqlColumnType.values()) {
-			if (type.isCreateIndex()) {
-				continue;
-			}
+		for (ColumnType type : ColumnType.values()) {
 			DatabaseColumnInfo column = new DatabaseColumnInfo();
 			column.setColumnName(type.name());
-			column.setType(type);
-			column.setHasIndex(true);
+			column.setColumnType(type);
+			column.setType(ColumnTypeInfo.getInfoForType(type).getMySqlType());
+			column.setHasIndex(false);
 			column.setCardinality(-1L);
-			list.add(column);
+			
+			if (!column.isCreateIndex()) {
+				column.setHasIndex(true);
+				list.add(column);
+			}
 		}
 		
 		IndexChange changes = SQLUtils.calculateIndexOptimization(list, tableId, maxNumberOfIndex);
@@ -3275,5 +3278,15 @@ public class SQLUtilsTest {
 				+ " ( SINGLE_KEY,ROW_VERSION,SCHEMA_HASH,SEARCH_ENABLED )"
 				+ " VALUES ('1', -1, ?, FALSE)"
 				+ " ON DUPLICATE KEY UPDATE SCHEMA_HASH = ?", result);
+	}
+	
+	@Test
+	public void testGetColumnNameFromIndex() {
+		assertEquals("_C123_", SQLUtils.getColumnNameFromIndex(SQLUtils.getIndexName("_C123_")));
+	}
+	
+	@Test
+	public void testGetColumnNameFromIndexWithNoMatch() {
+		assertNull(SQLUtils.getColumnNameFromIndex("other_index"));
 	}
 }

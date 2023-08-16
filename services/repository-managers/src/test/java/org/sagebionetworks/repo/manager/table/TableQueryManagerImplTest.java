@@ -1374,8 +1374,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 		assertNotNull(result);
-		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ROW_ID IN ("
-				+ " SELECT ROW_ID_REF_C13_ FROM T123_INDEX_C13_ WHERE _C13__UNNEST LIKE :b0 OR _C13__UNNEST LIKE :b1 ) )",
+		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ( JSON_SEARCH(_C13_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL OR JSON_SEARCH(_C13_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL ) )",
 				result.getMainQuery().getTranslator().getOutputSQL());
 		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b0"));
 		assertEquals("bar", result.getMainQuery().getTranslator().getParameters().get("b1"));
@@ -1404,9 +1403,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 		assertNotNull(result);
-		assertEquals(
-				"SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ROW_ID IN ( "
-				+ "SELECT ROW_ID_REF_C13_ FROM T123_INDEX_C13_ WHERE _C13__UNNEST IN ( :b0, :b1 ) ) )",
+		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ( JSON_OVERLAPS(_C13_,JSON_ARRAY(:b0,:b1)) IS TRUE ) )",
 				result.getMainQuery().getTranslator().getOutputSQL());
 		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
 		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b0"));

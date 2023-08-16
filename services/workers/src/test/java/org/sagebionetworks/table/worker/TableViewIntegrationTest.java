@@ -178,6 +178,7 @@ public class TableViewIntegrationTest {
 	ColumnModel stringColumn;
 	ColumnModel entityIdColumn;
 	ColumnModel stringListColumn;
+	ColumnModel integerListColumn;
 	
 	private ReplicationType viewObjectType;
 	
@@ -252,6 +253,12 @@ public class TableViewIntegrationTest {
 		stringListColumn.setColumnType(ColumnType.STRING_LIST);
 		stringListColumn.setMaximumListLength(3L);
 		stringListColumn = columnModelManager.createColumnModel(adminUserInfo, stringListColumn);
+		
+		integerListColumn = new ColumnModel();
+		integerListColumn.setName("intList");
+		integerListColumn.setColumnType(ColumnType.INTEGER_LIST);
+		integerListColumn.setMaximumListLength(3L);
+		integerListColumn = columnModelManager.createColumnModel(adminUserInfo, integerListColumn);
 		
 		viewObjectType = ReplicationType.ENTITY;
 	}
@@ -1578,6 +1585,8 @@ public class TableViewIntegrationTest {
 	@Test
 	public void testEntityView_multipleValueColumnRoundTrip() throws Exception {
 		defaultColumnIds.add(stringListColumn.getId());
+		defaultColumnIds.add(integerListColumn.getId());
+		
 		createFileView();
 
 		assertTrue(fileCount >= 2, "setup() needs to create at least 2 entities for this test to work");
@@ -1585,6 +1594,7 @@ public class TableViewIntegrationTest {
 		//set annotations for 2 files
 		Annotations fileAnnotation1 = entityManager.getAnnotations(adminUserInfo, fileIds.get(0));
 		AnnotationsV2TestUtils.putAnnotations(fileAnnotation1, stringListColumn.getName(), Arrays.asList("val1", "val2"), AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(fileAnnotation1, integerListColumn.getName(), Arrays.asList("1", "2", "3"), AnnotationsValueType.LONG);
 		entityManager.updateAnnotations(adminUserInfo, fileIds.get(0), fileAnnotation1);
 
 		Annotations fileAnnotation2 = entityManager.getAnnotations(adminUserInfo, fileIds.get(1));
@@ -1597,6 +1607,8 @@ public class TableViewIntegrationTest {
 
 		waitForRowCount(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount);
 		
+		//only 1 annotation has the integer list
+		waitForRowCount(adminUserInfo, "select * from "+ fileViewId + " where "+ integerListColumn.getName() +" HAS (1, 3)", 1);
 		//only 1 annotation has "val1" as a value
 		waitForRowCount(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('val1')", 1);
 		//both annotations have "val2" as a value

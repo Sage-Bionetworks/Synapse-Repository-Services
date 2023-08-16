@@ -317,7 +317,7 @@ public interface TableIndexDAO {
 	 * @param list
 	 * @param tableId
 	 */
-	void provideIndexName(List<DatabaseColumnInfo> list, IdAndVersion tableId);
+	void provideIndexInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId);
 
 	/**
 	 * The provided column data is used to optimize the indices on the given table.

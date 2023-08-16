@@ -437,7 +437,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// Lookup the current schema of the index.
 		List<DatabaseColumnInfo> currentIndedSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// must also gather the names of each index currently applied to each column.
-		tableIndexDao.provideIndexName(currentIndedSchema, tableId);
+		tableIndexDao.provideIndexInfo(currentIndedSchema, tableId);
 		// Ensure all all updated columns actually exist.
 		changes = SQLUtils.matchChangesToCurrentInfo(currentIndedSchema, changes);
 		return tableIndexDao.alterTableAsNeeded(tableId, changes, alterTemp);
@@ -455,7 +455,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// must also gather cardinality data for each column.
 		tableIndexDao.provideCardinality(tableInfo, tableId);
 		// must also gather the names of each index currently applied to each column.
-		tableIndexDao.provideIndexName(tableInfo, tableId);
+		tableIndexDao.provideIndexInfo(tableInfo, tableId);
 		// All of the column data is then used to optimized the indices.
 		tableIndexDao.optimizeTableIndices(tableInfo, tableId, MAX_MYSQL_INDEX_COUNT);
 	}

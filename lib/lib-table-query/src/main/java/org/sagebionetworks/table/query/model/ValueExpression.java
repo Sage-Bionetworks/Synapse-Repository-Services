@@ -8,6 +8,11 @@ public class ValueExpression extends SimpleBranch {
 	public ValueExpression(NumericValueExpression numericValueExpression) {
 		super(numericValueExpression);
 	}
+	
+	// Only used in the translator
+	public ValueExpression(StringOverride stringOverride) {
+		super(stringOverride);
+	}
 
 	public String getDisplayName(){
 		NumericPrimary numericPrimary = this.getFirstElementOfType(NumericPrimary.class);

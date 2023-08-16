@@ -1081,7 +1081,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
+		assertEquals("( JSON_OVERLAPS(_C111_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE )", booleanPrimary.toSql());
 
 	}
 
@@ -1102,7 +1102,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID NOT IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
+		assertEquals("( JSON_OVERLAPS(_C111_,JSON_ARRAY(:b0,:b1,:b2)) IS FALSE )", booleanPrimary.toSql());
 
 	}
 
@@ -1137,7 +1137,35 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 OR _C111__UNNEST LIKE :b1 OR _C111__UNNEST LIKE :b2 )", booleanPrimary.toSql());
+		assertEquals("( JSON_SEARCH(_C111_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b2 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL )", booleanPrimary.toSql());
+		assertEquals(ImmutableMap.of(
+				"b0", "asdf%",
+				"b1", "qwerty",
+				"b2", "yeet"
+		), parameters);
+
+	}
+	
+	@Test
+	public void testReplaceArrayHasPredicateWithNotHasLike() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
+		
+		TableAndColumnMapper singleTableMapper = new TableAndColumnMapper(
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class),mockSchemaProvider);
+
+		HashMap<String, Object> parameters = new HashMap<>();
+		
+		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("foo NOT has_like ('asdf%', 'qwerty', 'yeet')");
+		booleanPrimary.recursiveSetParent();
+		SQLTranslatorUtils.translateAllColumnReferences(booleanPrimary, singleTableMapper);
+		
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasLikePredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, singleTableMapper);
+
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
+
+		assertEquals("( JSON_SEARCH(_C111_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NULL AND JSON_SEARCH(_C111_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NULL AND JSON_SEARCH(_C111_,'one',:b2 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NULL )", booleanPrimary.toSql());
 		assertEquals(ImmutableMap.of(
 				"b0", "asdf%",
 				"b1", "qwerty",
@@ -1164,7 +1192,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 ESCAPE :b3 OR _C111__UNNEST LIKE :b1 ESCAPE :b3 OR _C111__UNNEST LIKE :b2 ESCAPE :b3 )", booleanPrimary.toSql());
+		assertEquals("( JSON_SEARCH(_C111_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',:b3,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',:b3,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b2 COLLATE 'utf8mb4_0900_ai_ci',:b3,'$[*]') IS NOT NULL )", booleanPrimary.toSql());
 		assertEquals(ImmutableMap.of(
 				"b0", "asdf%",
 				"b1", "qwerty",
@@ -1211,7 +1239,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 )", booleanPrimary.toSql());
+		assertEquals("( JSON_SEARCH(_C111_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL )", booleanPrimary.toSql());
 
 	}
 	
@@ -1254,7 +1282,7 @@ public class SQLTranslatorUtilsTest {
 
 		String expected = "SELECT T123_INDEX_C111_._C111__UNNEST " +
 				"FROM T123 _A0 JOIN T456 _A1 " +
-				"LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"LEFT JOIN JSON_TABLE(_A0._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE " +
 				"ORDER BY T123_INDEX_C111_._C111__UNNEST";
 		
 		assertEquals(expected, querySpecification.toSql());
@@ -1279,8 +1307,8 @@ public class SQLTranslatorUtilsTest {
 
 		String expected = "SELECT T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C333_._C333__UNNEST " +
 				"FROM T123 _A0 JOIN T456 _A1 " +
-				"LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
-				"LEFT JOIN T456_INDEX_C333_ ON _A1.ROW_ID = T456_INDEX_C333_.ROW_ID_REF_C333_ " +
+				"LEFT JOIN JSON_TABLE(_A0._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE " +
+				"LEFT JOIN JSON_TABLE(_A1._C333_, '$[*]' COLUMNS(_C333__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T456_INDEX_C333_ ON TRUE " +
 				"ORDER BY T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C333_._C333__UNNEST";
 		
 		assertEquals(expected, querySpecification.toSql());
@@ -1303,9 +1331,10 @@ public class SQLTranslatorUtilsTest {
 
 		String expected = "SELECT T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C111_._C111__UNNEST " +
 				"FROM T123 _A0 JOIN T456 _A1 " +
-				"LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
-				"LEFT JOIN T456_INDEX_C111_ ON _A1.ROW_ID = T456_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"LEFT JOIN JSON_TABLE(_A0._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE " +
+				"LEFT JOIN JSON_TABLE(_A1._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T456_INDEX_C111_ ON TRUE " +
 				"ORDER BY T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C111_._C111__UNNEST";
+		 
 		
 		assertEquals(expected, querySpecification.toSql());
 	}
@@ -1362,8 +1391,8 @@ public class SQLTranslatorUtilsTest {
 
 		String expected = "SELECT _C222_, T123_456_INDEX_C111_._C111__UNNEST, T123_456_INDEX_C333_._C333__UNNEST " +
 				"FROM T123_456 " +
-				"LEFT JOIN T123_456_INDEX_C111_ ON T123_456.ROW_ID = T123_456_INDEX_C111_.ROW_ID_REF_C111_ " +
-				"LEFT JOIN T123_456_INDEX_C333_ ON T123_456.ROW_ID = T123_456_INDEX_C333_.ROW_ID_REF_C333_ " +
+				"LEFT JOIN JSON_TABLE(T123_456._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_456_INDEX_C111_ ON TRUE " +
+				"LEFT JOIN JSON_TABLE(T123_456._C333_, '$[*]' COLUMNS(_C333__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_456_INDEX_C333_ ON TRUE " +
 				"ORDER BY T123_456_INDEX_C111_._C111__UNNEST, T123_456_INDEX_C333_._C333__UNNEST";
 		assertEquals(expected, querySpecification.toSql());
 	}
@@ -2043,8 +2072,10 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		// call under test
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
+
 		assertEquals("SELECT T123_INDEX_C111_._C111__UNNEST FROM T123 _A0 JOIN T123 _A1 ON ( _A0._C444_ = _A1._C444_ )"
-				+ " LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_",element.toSql());
+				+ " LEFT JOIN JSON_TABLE(_A0._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE",element.toSql());
+		
 	}
 	
 	@Test
@@ -2461,7 +2492,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_InPredicate_ValueNoQuotes() throws ParseException{
+	public void testTranslateModelWithInPredicate_ValueNoQuotes() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		QueryExpression rootElement = new TableQueryParser("select * from syn123 where id in(1, 2)").queryExpression();
 		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
@@ -2474,7 +2505,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_InPredicate_ValueSingleQuotes() throws ParseException{
+	public void testTranslateModelWithInPredicate_ValueSingleQuotes() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		QueryExpression rootElement = new TableQueryParser("select * from syn123 where foo in('asdf', 'qwerty')").queryExpression();
 		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
@@ -2487,7 +2518,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_HASKeyword() throws ParseException {
+	public void testTranslateModelWithHasKeyword() throws ParseException {
 		columnDouble.setColumnType(ColumnType.INTEGER_LIST);
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
@@ -2497,7 +2528,7 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID_REF_C777_ FROM T123_INDEX_C777_ WHERE _C777__UNNEST IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_INDEX_C111_ WHERE _C111__UNNEST IN ( :b3 ) ) OR _C333_ = :b4 )",element.toSql());
+		assertEquals("SELECT * FROM T123 WHERE ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE ) AND ( ( JSON_OVERLAPS(_C111_,JSON_ARRAY(:b3)) IS TRUE ) OR _C333_ = :b4 )",element.toSql());
 		assertEquals(1L, parameters.get("b0"));
 		assertEquals(2L, parameters.get("b1"));
 		assertEquals(3L, parameters.get("b2"));
@@ -2516,7 +2547,7 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID_REF_C777_ FROM T123_INDEX_C777_ WHERE _C777__UNNEST IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_INDEX_C111_ WHERE _C111__UNNEST LIKE :b3 OR _C111__UNNEST LIKE :b4 ) OR _C333_ = :b5 )",element.toSql());
+		assertEquals("SELECT * FROM T123 WHERE ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE ) AND ( ( JSON_SEARCH(_C111_,'one',:b3 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b4 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL ) OR _C333_ = :b5 )",element.toSql());
 		assertEquals(1L, parameters.get("b0"));
 		assertEquals(2L, parameters.get("b1"));
 		assertEquals(3L, parameters.get("b2"));
@@ -2536,7 +2567,7 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID_REF_C777_ FROM T123_INDEX_C777_ WHERE _C777__UNNEST IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_INDEX_C111_ WHERE _C111__UNNEST LIKE :b3 ESCAPE :b5 OR _C111__UNNEST LIKE :b4 ESCAPE :b5 ) OR _C333_ = :b6 )",element.toSql());
+		assertEquals("SELECT * FROM T123 WHERE ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE ) AND ( ( JSON_SEARCH(_C111_,'one',:b3 COLLATE 'utf8mb4_0900_ai_ci',:b5,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b4 COLLATE 'utf8mb4_0900_ai_ci',:b5,'$[*]') IS NOT NULL ) OR _C333_ = :b6 )",element.toSql());
 		assertEquals(1L, parameters.get("b0"));
 		assertEquals(2L, parameters.get("b1"));
 		assertEquals(3L, parameters.get("b2"));
@@ -2547,7 +2578,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateModel_UnnestArrayColumn() throws ParseException{
+	public void testTranslateModelWithUnnestArrayColumn() throws ParseException{
 		columnFoo.setColumnType(ColumnType.STRING_LIST);//not a list type
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 
@@ -2558,7 +2589,7 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
 		String expectedSql = "SELECT T123_INDEX_C111_._C111__UNNEST, COUNT(*) " +
 				"FROM T123 " +
-				"LEFT JOIN T123_INDEX_C111_ ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"LEFT JOIN JSON_TABLE(T123._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE " +
 				"WHERE _C333_ IN ( :b0, :b1 ) " +
 				"GROUP BY T123_INDEX_C111_._C111__UNNEST";
 		assertEquals(expectedSql,element.toSql());
@@ -2567,7 +2598,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_CurrentUserFunction() throws ParseException{
+	public void testTranslateModelWithCurrentUserFunction() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		QueryExpression rootElement = new TableQueryParser("select count(*) from syn123 where bar = CURRENT_USER()").queryExpression();
 		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
@@ -2580,7 +2611,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_translateSynapseFunctions() throws ParseException{
+	public void testTranslateModelWihttranslateSynapseFunctions() throws ParseException{
 		QueryExpression rootElement = new TableQueryParser("select bar, CURRENT_USER() from syn123 where bar = CURRENT_USER()").queryExpression();
 		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		// call under test
@@ -2666,7 +2697,7 @@ public class SQLTranslatorUtilsTest {
 
 	
 	@Test
-	public void testTranslateModel_UnnestArrayColumn_multipleJoins() throws ParseException{
+	public void testTranslateModelWithUnnestArrayColumnAndmultipleJoins() throws ParseException{
 		columnFoo.setColumnType(ColumnType.STRING_LIST);//not a list type
 		columnBar.setColumnType(ColumnType.STRING_LIST);//not a list type
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
@@ -2676,9 +2707,9 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
 		String expectedSql = "SELECT T123_INDEX_C111_._C111__UNNEST, T123_INDEX_C333_._C333__UNNEST "
-				+ "FROM T123 LEFT JOIN T123_INDEX_C111_ "
-				+ "ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ LEFT JOIN T123_INDEX_C333_ "
-				+ "ON T123.ROW_ID = T123_INDEX_C333_.ROW_ID_REF_C333_";
+				+ "FROM T123 "
+				+ "LEFT JOIN JSON_TABLE(T123._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE "
+				+ "LEFT JOIN JSON_TABLE(T123._C333_, '$[*]' COLUMNS(_C333__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C333_ ON TRUE";
 		assertEquals(expectedSql, element.toSql());
 		assertTrue(parameters.isEmpty());
 	}
