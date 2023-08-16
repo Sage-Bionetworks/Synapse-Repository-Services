@@ -353,6 +353,66 @@ public class VirtualTableIntegrationTest {
 		}, MAX_WAIT_MS);
 		
 	}
+	
+	@Test
+	public void testVirtualTableWithDoubles() throws Exception {
+		List<Entity> entitites = createProjectHierachy();
+		Project project = (Project) entitites.get(0);
+
+		List<ColumnModel> tableSchema = List.of(
+				new ColumnModel().setName("id").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setName("d1").setColumnType(ColumnType.DOUBLE),
+				new ColumnModel().setName("d2").setColumnType(ColumnType.DOUBLE));
+		tableSchema = columnModelManager.createColumnModels(adminUserInfo, tableSchema);
+
+		TableEntity table = asyncHelper.createTable(adminUserInfo, "sometable", project.getId(),
+				tableSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()), false);
+
+		List<Row> row = List.of(
+			new Row().setValues(List.of("1", "1.2", "1.3")), 
+			new Row().setValues(List.of("1", "1.2", "2.4")),
+			new Row().setValues(List.of("2", "4.5", "nan")),
+			new Row().setValues(List.of("2", "4.5", "7.8")),
+			new Row().setValues(List.of("3", "nan", "9.5")),
+			new Row().setValues(List.of("3", "nan", "1.6"))
+		);
+		
+		appendRowsToTable(tableSchema, table.getId(), row);
+
+		asyncHelper.assertQueryResult(adminUserInfo, "select count(*) from " + table.getId(), (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("6"))), results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		
+		ColumnModel sumD2 = columnModelManager
+				.createColumnModel(new ColumnModel().setName("sumD2").setColumnType(ColumnType.DOUBLE));
+		
+		String definingSql = String.format("select id, d1, cast(sum(d2) as %s) from %s group by id, d1 order by id",
+				sumD2.getId(), table.getId());
+		
+		List<String> expectedSchema = List.of(tableSchema.get(0).getId(), tableSchema.get(1).getId(), sumD2.getId());
+
+		VirtualTable virtualTable = asyncHelper.createVirtualTable(adminUserInfo, project.getId(), definingSql);
+		assertEquals(expectedSchema, virtualTable.getColumnIds());
+
+		Query query = new Query();
+		query.setSql("select * from " + virtualTable.getId());
+		query.setIncludeEntityEtag(false);
+
+		QueryOptions options = new QueryOptions()
+			.withRunQuery(true)
+			.withRunCount(true)
+			.withReturnFacets(true)
+			.withReturnColumnModels(true);
+
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(List.of(
+				new Row().setValues(List.of("1", "1.2", "3.7")), 
+				new Row().setValues(List.of("2", "4.5", "7.8")), 
+				new Row().setValues(List.of("3", "NaN", "11.1")) 
+			), results.getQueryResult().getQueryResults().getRows());
+			assertEquals(3L, results.getQueryCount());
+		}, MAX_WAIT_MS);
+	}
 
 	@Test
 	public void testVirtualTableWithSourceView() throws Exception {
