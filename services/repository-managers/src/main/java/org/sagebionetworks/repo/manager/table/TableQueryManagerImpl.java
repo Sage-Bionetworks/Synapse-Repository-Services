@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
@@ -815,8 +814,4 @@ public class TableQueryManagerImpl implements TableQueryManager {
         }
     }
 
-    @Override
-    public TableType getTableEntityType(IdAndVersion idAndVersion) {
-        return tableManagerSupport.getTableType(idAndVersion);
-    }
 }

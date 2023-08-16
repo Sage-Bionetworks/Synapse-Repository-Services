@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.table.cluster.SchemaProvider;
@@ -79,6 +80,33 @@ public class CachingSchemaProviderTest {
 		verify(mockSchemaProvider, times(2)).getColumnModel(any());
 		verify(mockSchemaProvider, times(1)).getColumnModel("11");
 		verify(mockSchemaProvider, times(1)).getColumnModel("22");
+	}
+	
+	@Test
+	public void testGetTableType() {
+		IdAndVersion idOne = IdAndVersion.parse("syn1.1");
+		
+		when(mockSchemaProvider.getTableType(idOne)).thenReturn(TableType.entityview);
+		
+		IdAndVersion idTwo = IdAndVersion.parse("syn123");
+		when(mockSchemaProvider.getTableType(idTwo)).thenReturn(TableType.table);
+
+		// call under test
+		TableType result = cacheProvider.getTableType(idOne);
+		assertEquals(TableType.entityview, result);
+		// call under test
+		result = cacheProvider.getTableType(idOne);
+		assertEquals(TableType.entityview, result);
+		// call under test
+		result = cacheProvider.getTableType(idTwo);
+		assertEquals(TableType.table, result);
+		// call under test
+		result = cacheProvider.getTableType(idTwo);
+		assertEquals(TableType.table, result);
+		
+		verify(mockSchemaProvider, times(2)).getTableType(any());
+		verify(mockSchemaProvider, times(1)).getTableType(idOne);
+		verify(mockSchemaProvider, times(1)).getTableType(idTwo);
 	}
 	
 	@Test

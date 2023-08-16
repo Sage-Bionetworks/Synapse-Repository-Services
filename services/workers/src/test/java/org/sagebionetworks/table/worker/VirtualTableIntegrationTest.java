@@ -38,6 +38,8 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
+import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
@@ -512,7 +514,7 @@ public class VirtualTableIntegrationTest {
 				new ActionRequiredCount().setCount(10L).setAction(new RequestDownload().setBenefactorId(KeyFactory.stringToKey(projectId)))
 			), results.getActionsRequired());
 		}, MAX_WAIT_MS);
-		
+				
 		// The admin created the files, so it can download
 		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
 			assertEquals(Collections.emptyList(), results.getActionsRequired());
@@ -526,6 +528,14 @@ public class VirtualTableIntegrationTest {
 		// Now the user does not need any action
 		asyncHelper.assertQueryResult(userInfo, query, options, (results) -> {
 			assertEquals(Collections.emptyList(), results.getActionsRequired());
+		}, MAX_WAIT_MS);
+		
+		// Try adding the files to the download list
+		AddToDownloadListRequest addToDownloadListrequest = new AddToDownloadListRequest()
+				.setQuery(query);
+		
+		asyncHelper.assertJobResponse(userInfo, addToDownloadListrequest, (AddToDownloadListResponse response) -> {
+			assertEquals(10L, response.getNumberOfFilesAdded());
 		}, MAX_WAIT_MS);
 	}
 	
