@@ -6,7 +6,7 @@ package org.sagebionetworks.table.query.model;
  */
 public class CastOperand extends SimpleBranch {
 
-	public CastOperand(NullableValueExpression child) {
+	public CastOperand(ValueExpression child) {
 		super(child);
 	}
 

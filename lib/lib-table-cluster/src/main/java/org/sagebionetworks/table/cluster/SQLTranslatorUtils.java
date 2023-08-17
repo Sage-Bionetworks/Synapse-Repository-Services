@@ -69,6 +69,7 @@ import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.Factor;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
+import org.sagebionetworks.table.query.model.GroupingColumnReference;
 import org.sagebionetworks.table.query.model.HasFunctionReturnType;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
@@ -369,12 +370,13 @@ public class SQLTranslatorUtils {
 		// translate all column references.
 		translateAllColumnReferences(transformedModel, mapper);
 		
+		translateCastToDouble(transformedModel);
+		
 		TableExpression tableExpression = transformedModel.getTableExpression();
 		if(tableExpression == null){
 			// nothing else to do.
 			return;
 		}
-
 
 		translateAllTableNameCorrelation(tableExpression.getFromClause(), mapper);
 
@@ -404,7 +406,7 @@ public class SQLTranslatorUtils {
 		}
 
 		/*
-		 *  By this point anything all remaining DelimitedIdentifier should be treated as a column
+		 * All remaining DelimitedIdentifier should be treated as a column
 		 *  reference and therefore should be enclosed in backticks.
 		 */
 		translateUnresolvedDelimitedIdentifiers(transformedModel);
@@ -451,6 +453,41 @@ public class SQLTranslatorUtils {
 	}
 	
 	/**
+	 * When there is a cast to a double within a {@link WithListElement} and
+	 * {@link SelectList}, we need to add a 'NULL' immediacy after it in the select
+	 * list. The NULL provides values for a virtual _DBL_C#_ column, which can be
+	 * used for double expansion in the root select statement.
+	 * 
+	 * @param model
+	 */
+	static void translateCastToDouble(QuerySpecification model) {
+		if (model.isInContext(WithListElement.class)) {
+			SelectList oldSelect = model.getSelectList();
+			List<DerivedColumn> oldList = oldSelect.getColumns();
+			if(oldList != null) {
+				List<DerivedColumn> newList = new ArrayList<>(oldList.size());
+				oldList.forEach(dc -> {
+					newList.add(dc);
+					dc.stream(CastTarget.class).findFirst().ifPresent(ct -> {
+						if (ColumnType.DOUBLE.equals(ct.getType())) {
+							newList.add(createNullDerivedColumn());
+						}
+					});
+				});
+				model.replaceSelectList(new SelectList(newList), model.getSetQuantifier());
+			}
+		}
+	}
+	
+	static DerivedColumn createNullDerivedColumn() {
+		try {
+			return new TableQueryParser("NULL").derivedColumn();
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
 	 * from one of the tables. The resulting LHS will be the translated table alias
 	 * and the RHS will be the translated column name. Optional.empty() returned if
 	 * no match was found.
@@ -465,25 +502,66 @@ public class SQLTranslatorUtils {
 		}
 		ColumnReferenceMatch match = optional.get();
 
-		/*
-		 * A ColumnReference within the select list that is of type Double needs to be
-		 * expanded to support NaN, +Inf, & -Inf, unless the reference is a function
-		 * parameter.
-		 */
-		if (ColumnType.DOUBLE.equals(match.getColumnTranslationReference().getColumnType())) {
-			if (columnReference.isInContext(SelectList.class)) {
-				if (!columnReference.isInContext(HasFunctionReturnType.class)) {
-					SqlContext context = columnReference.getContext(HasSqlContext.class).get().getSqlContext();
-					if(SqlContext.query.equals(context)) {
-						return Optional.of(createDoubleExpanstion(mapper.getNumberOfTables(),
-								match.getTableInfo().getTranslatedTableAlias(),
-								match.getColumnTranslationReference().getTranslatedColumnName()));
-					}
-				}
-			}
+		ColumnType type = match.getColumnTranslationReference().getColumnType();
+		if (isDoubleExpantion(columnReference, type)) {
+			return Optional.of(
+					createDoubleExpanstion(mapper.getNumberOfTables(),
+							match.getTableInfo().getTranslatedTableAlias(),
+							match.getColumnTranslationReference().getTranslatedColumnName()));
+		}
+		if (isBothDoubleColumns(columnReference, type)) {
+			return Optional.of(
+					createBothDoubleColumns(mapper.getNumberOfTables(),
+							match.getTableInfo().getTranslatedTableAlias(),
+							match.getColumnTranslationReference().getTranslatedColumnName()));
 		}
 		// All other cases
 		return simpleTranslateColumn(mapper, match);
+	}
+
+	/**
+	 * Is this a case where both double columns should be expanded into a cast statement?
+	 * @param columnReference
+	 * @param type
+	 * @return
+	 */
+	static boolean isDoubleExpantion(ColumnReference columnReference, ColumnType type) {
+		if(!ColumnType.DOUBLE.equals(type)) {
+			return false;
+		}
+		if(!columnReference.isInContext(SelectList.class)) {
+			return false;
+		}
+		if(columnReference.isInContext(WithListElement.class)) {
+			return false;
+		}
+		if(columnReference.isInContext(HasFunctionReturnType.class)) {
+			return false;
+		}
+		return SqlContext.query.equals(columnReference.getContext(HasSqlContext.class).get().getSqlContext());
+	}
+	
+	/**
+	 * Is this a case where both double columns should be selected?
+	 * 
+	 * @param columnReference
+	 * @param type
+	 * @return
+	 */
+	static boolean isBothDoubleColumns(ColumnReference columnReference, ColumnType type) {
+		if(!ColumnType.DOUBLE.equals(type)) {
+			return false;
+		}
+		if(!columnReference.isInContext(SelectList.class) && !columnReference.isInContext(GroupingColumnReference.class)) {
+			return false;
+		}
+		if(!columnReference.isInContext(WithListElement.class)) {
+			return false;
+		}
+		if(columnReference.isInContext(HasFunctionReturnType.class)) {
+			return false;
+		}
+		return SqlContext.query.equals(columnReference.getContext(HasSqlContext.class).get().getSqlContext());
 	}
 
 
@@ -503,21 +581,39 @@ public class SQLTranslatorUtils {
 	
 
 	/**
-	 * Create the translated double expansion for the given table and column alias
-	 * 
+	 * Generates a select statement for a double column that uses both of the double's columns.
+	 * For example: 'CASE WHEN alias._DBL_C#_ IS NULL THEN alias._C#_ ELSE alias._DBL_C#_ END'
+	 * @param tableCount
 	 * @param translatedTableAlias
-	 * @param translatedColumnName
+	 * @param columnId value of #.
 	 * @return
 	 */
 	static ColumnReference createDoubleExpanstion(final int tableCount, final String translatedTableAlias,
-			final String translatedColumnName) {
+			final String columnId) {
+		return createColumReferenceFromTemplate("CASE WHEN %1$s_DBL%2$s IS NULL THEN %1$s%2$s ELSE %1$s_DBL%2$s END",
+				tableCount, translatedTableAlias, columnId);
+	}
+	
+	/**
+	 * Generates a simple select statement for both of a double's columns.  For example: 'alias._C#_, alias._DBL_C#_'
+	 * @param tableCount
+	 * @param translatedTableAlias
+	 * @param columnId
+	 * @return
+	 */
+	static ColumnReference createBothDoubleColumns(final int tableCount, final String translatedTableAlias,
+			final String columnId) {
+		return createColumReferenceFromTemplate("%1$s%2$s, %1$s_DBL%2$s", tableCount, translatedTableAlias,
+				columnId);
+	}
+	
+	static ColumnReference createColumReferenceFromTemplate(String template, int tableCount,
+			String translatedTableAlias, final String columnId) {
 		String tableAlias = (tableCount > 1) ? translatedTableAlias + "." : "";
-		String sql = String.format("CASE WHEN %1$s_DBL%2$s IS NULL THEN %1$s%2$s ELSE %1$s_DBL%2$s END", tableAlias,
-				translatedColumnName);
+		String sql = String.format(template, tableAlias, columnId);
 		return new ColumnReference(new ColumnName(new Identifier(new ActualIdentifier(new RegularIdentifier(sql)))),
 				null);
 	}
-
 
 	private static void replaceTextMatchesPredicate(BooleanPrimary booleanPrimary) {
 		if (booleanPrimary.getPredicate() == null) {
@@ -1363,6 +1459,9 @@ public class SQLTranslatorUtils {
 			StringJoiner joiner = new StringJoiner(",");
 			for(ColumnModel cm: schema) {
 				joiner.add( new SchemaColumnTranslationReference(cm).getTranslatedColumnName());
+				if(ColumnType.DOUBLE.equals(cm.getColumnType())) {
+					joiner.add(String.format("_DBL_C%s_", cm.getId()));
+				}
 			}
 			ColumnList cl = new TableQueryParser(String.format("(%s)", joiner.toString())).columnList();
 			wle.setColumnList(cl);

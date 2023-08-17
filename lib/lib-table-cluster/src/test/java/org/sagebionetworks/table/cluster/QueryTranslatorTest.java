@@ -38,6 +38,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SqlContext;
 
 import com.google.common.collect.ImmutableMap;
@@ -2395,6 +2396,41 @@ public class QueryTranslatorTest {
 		List<SelectColumn> select = query.getSelectColumns();
 		
 		assertEquals(List.of(new SelectColumn().setName("bar").setColumnType(ColumnType.STRING), new SelectColumn().setName("j").setColumnType(ColumnType.JSON)), select);
+	}
+	
+	@Test
+	public void tesVirtualTableWithDouble() {
+	
+		ColumnModel id = new ColumnModel().setName("id").setColumnType(ColumnType.INTEGER).setId("1");
+		ColumnModel d1 = new ColumnModel().setName("d1").setColumnType(ColumnType.DOUBLE).setId("2");
+		ColumnModel d2 = new ColumnModel().setName("d2").setColumnType(ColumnType.DOUBLE).setId("3");
+		ColumnModel sumD2 = new ColumnModel().setName("sumD2").setColumnType(ColumnType.DOUBLE).setId("4");
+		
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+		
+		
+		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(id, d1, d2));
+		when(mockSchemaProvider.getTableSchema(cte)).thenReturn(List.of(id, d1, sumD2));
+		setupGetColumns(id, d1, sumD2);
+
+		when(mockIndexDescriptionLookup.getIndexDescription(tableId)).thenReturn(new TableIndexDescription(tableId));
+		
+		String definingSql = "select id, d1, cast(sum(d2) as 4) from syn1 group by id, d1";
+		IndexDescription vtIndexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
+
+		sql = vtIndexDescription.preprocessQuery("select * from syn2");
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query).indexDescription(vtIndexDescription).build();
+		
+		assertEquals("WITH T2 (_C1_, _C2_, _DBL_C2_, _C4_, _DBL_C4_) AS ("
+				+ "SELECT _C1_, _C2_, _DBL_C2_, CAST(SUM(_C3_) AS DOUBLE), NULL FROM T1 GROUP BY _C1_, _C2_, _DBL_C2_"
+				+ ") SELECT _C1_,"
+				+ " CASE WHEN _DBL_C2_ IS NULL THEN _C2_ ELSE _DBL_C2_ END,"
+				+ " CASE WHEN _DBL_C4_ IS NULL THEN _C4_ ELSE _DBL_C4_ END"
+				+ " FROM T2", query.getOutputSQL());
+		assertTrue(query.isAggregatedResult());
 	}
 		
 }
