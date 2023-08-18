@@ -9,8 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
@@ -5522,6 +5520,12 @@ public class TableIndexDAOImplTest {
 			@Override
 			public ColumnModel getColumnModel(String id) {
 				return schema.stream().filter(c->id.equals(c.getId())).findFirst().get();
+			}
+
+			@Override
+			public TableType getTableType(IdAndVersion tableId) {
+				// Unused
+				return null;
 			}
 		};
 	}
