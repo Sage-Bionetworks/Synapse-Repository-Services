@@ -174,14 +174,15 @@ public class ColumnModelUtils {
 			case USERID:
 			case LARGETEXT:
 			case MEDIUMTEXT:
-			// Do not support default values for now
-			case JSON:
+				// Do not support default values for now
 				if (StringUtils.isEmpty(defaultValue)) {
 					defaultValue = null;
 				}
 				if (defaultValue != null) {
 					throw new IllegalArgumentException("Columns of type " + clone.getColumnType() + " cannot have default values.");
 				}
+				break;
+			case JSON:
 				if(clone.getFacetType() != null) {
 					throw new IllegalArgumentException("A column of type JSON cannot have a facet type.  Instead, the jsonSubColumns of a JSON column can be faceted.");
 				}
