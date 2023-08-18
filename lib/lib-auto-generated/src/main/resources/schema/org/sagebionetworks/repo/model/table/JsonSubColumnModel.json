@@ -1,5 +1,5 @@
 {
-	"description": "...",
+	"description": "Defines a single sub-column of a column of type JSON.  This can be used to enable the faceting of the sub-columns.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.table.ColumnModelInterface"

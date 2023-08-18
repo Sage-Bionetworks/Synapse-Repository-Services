@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
@@ -377,6 +378,17 @@ public class ColumnModelUtilsTest {
 	}
 	
 	@Test
+	public void testNormalizedCloneWithSubColumnsWithJsonFacets() {
+		ColumnModel column = new ColumnModel().setName("jsonRoot").setColumnType(ColumnType.JSON).setFacetType(FacetType.range);	
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			ColumnModelUtils.createNormalizedClone(column,
+					StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		}).getMessage();
+		assertEquals("A column of type JSON cannot have a facet type.  Instead, the jsonSubColumns of a JSON column can be faceted.", message);
+	}
+	
+	@Test
 	public void testNormalizedCloneWithSubColumnsWithValidSubs() {
 		ColumnModel column = new ColumnModel().setName("jsonRoot").setColumnType(ColumnType.JSON)
 				.setJsonSubColumns(List.of(new JsonSubColumnModel().setName("a").setJsonPath("$.a").setColumnType(ColumnType.INTEGER)));
@@ -398,6 +410,19 @@ public class ColumnModelUtilsTest {
 					StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 		}).getMessage();
 		assertEquals("JsonSubColumnModel.name is required.", message);
+	}
+	
+	@Test
+	public void testNormalizedCloneWithSubColumnsWithNonJSON() {
+		ColumnModel column = new ColumnModel().setName("jsonRoot").setColumnType(ColumnType.INTEGER)
+				.setJsonSubColumns(List.of(new JsonSubColumnModel().setName(null).setJsonPath("$.a").setColumnType(ColumnType.INTEGER)));
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			ColumnModelUtils.createNormalizedClone(column,
+					StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		}).getMessage();
+		assertEquals("JsonSubColumns can only set for a column of type: JSON", message);
 	}
 	
 	@Test
@@ -445,6 +470,16 @@ public class ColumnModelUtilsTest {
 			ColumnModelUtils.validateJsonSubColumn(sub);
 		}).getMessage();
 		assertEquals("JsonSubColumnModel.columnType is required.", message);
+	}
+	
+	@Test
+	public void testValidateJsonSubColumnWithJSONColumnType() {
+		JsonSubColumnModel sub = new JsonSubColumnModel().setName("a").setJsonPath("$.a").setColumnType(ColumnType.JSON);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			ColumnModelUtils.validateJsonSubColumn(sub);
+		}).getMessage();
+		assertEquals("The columnType of a JsonSubColumnModel cannot be JSON.", message);
 	}
 
 	@Test

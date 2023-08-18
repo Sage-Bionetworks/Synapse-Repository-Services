@@ -182,6 +182,9 @@ public class ColumnModelUtils {
 				if (defaultValue != null) {
 					throw new IllegalArgumentException("Columns of type " + clone.getColumnType() + " cannot have default values.");
 				}
+				if(clone.getFacetType() != null) {
+					throw new IllegalArgumentException("A column of type JSON cannot have a facet type.  Instead, the jsonSubColumns of a JSON column can be faceted.");
+				}
 				break;
 			case ENTITYID_LIST:
 			case USERID_LIST:
@@ -248,6 +251,9 @@ public class ColumnModelUtils {
 			}
 			
 			if(clone.getJsonSubColumns() != null) {
+				if(!ColumnType.JSON.equals(clone.getColumnType())) {
+					throw new IllegalArgumentException("JsonSubColumns can only set for a column of type: JSON");
+				}
 				clone.getJsonSubColumns().forEach(ColumnModelUtils::validateJsonSubColumn);
 				if(clone.getJsonSubColumns().isEmpty()) {
 					clone.setJsonSubColumns(null);
@@ -264,6 +270,9 @@ public class ColumnModelUtils {
 		ValidateArgument.required(sub.getName(), "JsonSubColumnModel.name");
 		ValidateArgument.required(sub.getJsonPath(), "JsonSubColumnModel.jsonPath");
 		ValidateArgument.required(sub.getColumnType(), "JsonSubColumnModel.columnType");
+		if(ColumnType.JSON.equals(sub.getColumnType())) {
+			throw new IllegalArgumentException("The columnType of a JsonSubColumnModel cannot be JSON.");
+		}
 	}
 
 	static void validateListLengthForClone(ColumnModel clone){
