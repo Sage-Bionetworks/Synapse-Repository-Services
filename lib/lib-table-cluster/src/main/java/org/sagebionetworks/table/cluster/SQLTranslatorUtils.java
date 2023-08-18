@@ -475,7 +475,7 @@ public class SQLTranslatorUtils {
 				if (!columnReference.isInContext(HasFunctionReturnType.class)) {
 					SqlContext context = columnReference.getContext(HasSqlContext.class).get().getSqlContext();
 					if(SqlContext.query.equals(context)) {
-						return Optional.of(createDoubleExpanstion(mapper.getNumberOfTables(),
+						return Optional.of(createDoubleExpansion(mapper.getNumberOfTables(),
 								match.getTableInfo().getTranslatedTableAlias(),
 								match.getColumnTranslationReference().getTranslatedColumnName()));
 					}
@@ -509,7 +509,7 @@ public class SQLTranslatorUtils {
 	 * @param translatedColumnName
 	 * @return
 	 */
-	static ColumnReference createDoubleExpanstion(final int tableCount, final String translatedTableAlias,
+	static ColumnReference createDoubleExpansion(final int tableCount, final String translatedTableAlias,
 			final String translatedColumnName) {
 		String tableAlias = (tableCount > 1) ? translatedTableAlias + "." : "";
 		String sql = String.format("CASE WHEN %1$s_DBL%2$s IS NULL THEN %1$s%2$s ELSE %1$s_DBL%2$s END", tableAlias,

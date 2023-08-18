@@ -3323,16 +3323,16 @@ public class SQLTranslatorUtilsTest {
 		int tableCount = 1;
 		String translatedTableAliaName = "_A1";
 		String translatedColumnName = "_C333_";
-		ColumnReference ref = SQLTranslatorUtils.createDoubleExpanstion(tableCount, translatedTableAliaName, translatedColumnName);
+		ColumnReference ref = SQLTranslatorUtils.createDoubleExpansion(tableCount, translatedTableAliaName, translatedColumnName);
 		assertEquals("CASE WHEN _DBL_C333_ IS NULL THEN _C333_ ELSE _DBL_C333_ END", ref.toSql());
 	}
 	
 	@Test
-	public void testCreateDoubleExpanstionWithMOreThanOneTable() {
+	public void testCreateDoubleExpanstionWithMoreThanOneTable() {
 		int tableCount = 2;
 		String translatedTableAliaName = "_A1";
 		String translatedColumnName = "_C333_";
-		ColumnReference ref = SQLTranslatorUtils.createDoubleExpanstion(tableCount, translatedTableAliaName, translatedColumnName);
+		ColumnReference ref = SQLTranslatorUtils.createDoubleExpansion(tableCount, translatedTableAliaName, translatedColumnName);
 		assertEquals("CASE WHEN _A1._DBL_C333_ IS NULL THEN _A1._C333_ ELSE _A1._DBL_C333_ END", ref.toSql());
 	}
 	

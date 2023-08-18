@@ -26,6 +26,9 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
+import org.sagebionetworks.repo.model.table.SubColumnModel;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -465,6 +468,21 @@ public class DBOColumnModelImplTest {
 		column.setColumnType(ColumnType.STRING);
 		column.setMaximumSize(10L);
 		columnModelDao.createColumnModel(column).getId();
+	}
+	
+	@Test
+	public void testCreateWithSubColumns() {
+		ColumnModel root = new ColumnModel().setName("aRoot").setColumnType(ColumnType.JSON)
+				.setJsonSubColumns(List.of(
+						new JsonSubColumnModel().setName("a").setJsonPath("$.a")
+						.setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range),
+						new JsonSubColumnModel().setName("b").setJsonPath("$.b")
+						.setColumnType(ColumnType.STRING).setFacetType(FacetType.enumeration)
+						));
+		
+		ColumnModel rootResult = columnModelDao.createColumnModel(root);
+		ColumnModel rootResult2 = columnModelDao.createColumnModel(root);
+		assertEquals(rootResult, rootResult2);
 	}
 
 }

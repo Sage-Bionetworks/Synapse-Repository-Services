@@ -18,10 +18,12 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.collect.Lists;
 
@@ -244,11 +246,24 @@ public class ColumnModelUtils {
 			} else {
 				clone.setDefaultValue(null);
 			}
-
+			
+			if(clone.getJsonSubColumns() != null) {
+				clone.getJsonSubColumns().forEach(ColumnModelUtils::validateJsonSubColumn);
+				if(clone.getJsonSubColumns().isEmpty()) {
+					clone.setJsonSubColumns(null);
+				}
+			}
 			return clone;
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	static void validateJsonSubColumn(JsonSubColumnModel sub) {
+		ValidateArgument.required(sub, "JsonSubColumnModel");
+		ValidateArgument.required(sub.getName(), "JsonSubColumnModel.name");
+		ValidateArgument.required(sub.getJsonPath(), "JsonSubColumnModel.jsonPath");
+		ValidateArgument.required(sub.getColumnType(), "JsonSubColumnModel.columnType");
 	}
 
 	static void validateListLengthForClone(ColumnModel clone){
