@@ -72,6 +72,7 @@ import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
@@ -3540,6 +3541,65 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testTranslateColumnReferenceWithDoubleInWithList() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser(
+				"with cte as (select aDouble from syn123) select * from syn456").queryExpression();
+		QuerySpecification toTranslate = rootModel.getFirstElementOfType(WithListElement.class)
+				.getFirstElementOfType(QuerySpecification.class);
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("aDouble")));
+
+		TableAndColumnMapper mapper = new TableAndColumnMapper(toTranslate, mockSchemaProvider);
+
+		ColumnReference columnReference = toTranslate.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = SQLTranslatorUtils.translateColumnReference(columnReference, mapper);
+		assertTrue(translated.isPresent());
+		assertEquals("_C777_, _DBL_C777_", translated.get().toSql());
+	}
+	
+	@Test
+	public void testTranslateColumnReferenceWithDoubleInWithListInFunction() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser(
+				"with cte as (select cast(sum(aDouble) as DOUBLE) from syn123) select * from syn456").queryExpression();
+		QuerySpecification toTranslate = rootModel.getFirstElementOfType(WithListElement.class)
+				.getFirstElementOfType(QuerySpecification.class);
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("aDouble")));
+
+		TableAndColumnMapper mapper = new TableAndColumnMapper(toTranslate, mockSchemaProvider);
+
+		ColumnReference columnReference = toTranslate.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = SQLTranslatorUtils.translateColumnReference(columnReference, mapper);
+		assertTrue(translated.isPresent());
+		assertEquals("_C777_", translated.get().toSql());
+	}
+	
+	@Test
+	public void testTranslateColumnReferenceWithDoubleInWithListGroupBy() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser(
+				"with cte as (select aDouble from syn123 group by aDouble) select * from syn456").queryExpression();
+		QuerySpecification toTranslate = rootModel.getFirstElementOfType(WithListElement.class)
+				.getFirstElementOfType(QuerySpecification.class);
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("aDouble")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(toTranslate, mockSchemaProvider);
+		
+		List<ColumnReference> refs = toTranslate.stream(ColumnReference.class).collect(Collectors.toList());
+		assertEquals(2, refs.size());
+		// call under test select
+		Optional<ColumnReference> translated = SQLTranslatorUtils.translateColumnReference(refs.get(0), mapper);
+		assertTrue(translated.isPresent());
+		assertEquals("_C777_, _DBL_C777_", translated.get().toSql());
+		
+		// call under test group by
+		translated = SQLTranslatorUtils.translateColumnReference(refs.get(1), mapper);
+		assertTrue(translated.isPresent());
+		assertEquals("_C777_, _DBL_C777_", translated.get().toSql());
+	}
+	
+	@Test
 	public void testTranslateColumnReferenceWithRowIdAndMultipleTables() throws ParseException {
 		QueryExpression rootModel = new TableQueryParser("select r.ROW_ID from syn123 t join syn456 r").queryExpression();
 		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
@@ -3573,6 +3633,188 @@ public class SQLTranslatorUtilsTest {
 		Optional<ColumnReference> translated = SQLTranslatorUtils.translateColumnReference(columnReference, mapper);
 		assertTrue(translated.isPresent());
 		assertEquals("ROW_ID", translated.get().toSql());
+	}
+	
+	@Test
+	public void testIsDoubleExpansion() throws ParseException {
+		QueryExpression expression = new TableQueryParser("select aDouble from syn1").queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertTrue(SQLTranslatorUtils.isDoubleExpansion(ref, type));
+	}
+	
+	@Test
+	public void testIsDoubleExpansionWithNonDouble() throws ParseException {
+		QueryExpression expression = new TableQueryParser("select anInt from syn1").queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("anInt", ref.toSql());
+		ColumnType type = ColumnType.INTEGER;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
+	}
+	
+	@Test
+	public void testIsDoubleExpansionWithNonSelect() throws ParseException {
+		QueryExpression expression = new TableQueryParser("select * from syn1 where aDouble > 2").queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
+	}
+	
+	@Test
+	public void testIsDoubleExpansionWithCTE() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select aDouble from syn1) select * from syn2")
+				.queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
+	}
+	
+	@Test
+	public void testIsDoubleExpansionWithInFunction() throws ParseException {
+		QueryExpression expression = new TableQueryParser("select sum(aDouble) from syn1").queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
+	}
+	
+	@Test
+	public void testIsDoubleExpansionWithBuildContext() throws ParseException {
+		QueryExpression expression = new TableQueryParser("select aDouble from syn1").queryExpression();
+		expression.setSqlContext(SqlContext.build);
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
+	}
+	
+	@Test
+	public void testIsBothDoubleColumns() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select aDouble from syn1) select * from syn2")
+				.queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertTrue(SQLTranslatorUtils.isBothDoubleColumns(ref, type));
+	}
+	
+	@Test
+	public void testIsBothDoubleColumnsWithNonDouble() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select anInt from syn1) select * from syn2")
+				.queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("anInt", ref.toSql());
+		ColumnType type = ColumnType.INTEGER;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isBothDoubleColumns(ref, type));
+	}
+	
+	@Test
+	public void testIsBothDoubleColumnsWithWhere() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select * from syn1 where aDouble > 1.2) select * from syn2")
+				.queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isBothDoubleColumns(ref, type));
+	}
+	
+	@Test
+	public void testIsBothDoubleColumnsWithGroupBy() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select * from syn1 group by aDouble) select * from syn2")
+				.queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertTrue(SQLTranslatorUtils.isBothDoubleColumns(ref, type));
+	}
+	
+	@Test
+	public void testIsBothDoubleColumnsWithNotInWithList() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select * from syn1) select aDouble from syn2")
+				.queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isBothDoubleColumns(ref, type));
+	}
+	
+	@Test
+	public void testIsBothDoubleColumnsWithDoubleFunctionParam() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select sum(aDouble) from syn1) select * from syn2")
+				.queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isBothDoubleColumns(ref, type));
+	}
+	
+	@Test
+	public void testIsBothDoubleColumnsWithBuildContext() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select aDouble from syn1) select * from syn2")
+				.queryExpression();
+		expression.setSqlContext(SqlContext.build);
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isBothDoubleColumns(ref, type));
+	}
+	
+	@Test
+	public void testTranslateCastToDouble() throws ParseException {
+		QueryExpression expression = new TableQueryParser(
+				"with foo as ("
+				+ "select id, cast(sum(foo) as DOUBLE), anInt, cast(sum(bar) as DOUBLE) from syn1"
+				+ ") select * from syn2").queryExpression();
+		QuerySpecification spec = expression.getFirstElementOfType(WithListElement.class)
+				.getFirstElementOfType(QuerySpecification.class);
+
+		// call under test
+		SQLTranslatorUtils.translateCastToDouble(spec);
+		assertEquals("SELECT id, CAST(SUM(foo) AS DOUBLE), NULL, anInt, CAST(SUM(bar) AS DOUBLE), NULL FROM syn1", spec.toSql());
+	}
+	
+	@Test
+	public void testTranslateCastToDoubleWithCastInt() throws ParseException {
+		QueryExpression expression = new TableQueryParser(
+				"with foo as ("
+				+ "select cast(sum(foo) as INTEGER) from syn1"
+				+ ") select * from syn2").queryExpression();
+		QuerySpecification spec = expression.getFirstElementOfType(WithListElement.class)
+				.getFirstElementOfType(QuerySpecification.class);
+
+		// call under test
+		SQLTranslatorUtils.translateCastToDouble(spec);
+		assertEquals("SELECT CAST(SUM(foo) AS INTEGER) FROM syn1", spec.toSql());
+	}
+	
+	@Test
+	public void testTranslateCastToDoubleWithSelectStar() throws ParseException {
+		QueryExpression expression = new TableQueryParser(
+				"with foo as ("
+				+ "select * from syn1"
+				+ ") select * from syn2").queryExpression();
+		QuerySpecification spec = expression.getFirstElementOfType(WithListElement.class)
+				.getFirstElementOfType(QuerySpecification.class);
+
+		// call under test
+		SQLTranslatorUtils.translateCastToDouble(spec);
+		assertEquals("SELECT * FROM syn1", spec.toSql());
 	}
 
 	@Test
@@ -3994,7 +4236,10 @@ public class SQLTranslatorUtilsTest {
 		// call under test
 		SQLTranslatorUtils.translateWithListElement(element, mockSchemaProvider);
 
-		assertEquals("T123 (_C111_, _C222_, _C333_, _C444_, _C555_, _C777_, _C888_, _C999_) AS (SELECT * FROM syn456)",
+		assertEquals(
+				"T123 ("
+				+ "_C111_, _C222_, _C333_, _C444_, _C555_, _DBL_C555_, _C777_, _DBL_C777_, _C888_, _C999_"
+				+ ") AS (SELECT * FROM syn456)",
 				element.toSql());
 		verify(mockSchemaProvider).getTableSchema(IdAndVersion.parse("syn123"));
 	}

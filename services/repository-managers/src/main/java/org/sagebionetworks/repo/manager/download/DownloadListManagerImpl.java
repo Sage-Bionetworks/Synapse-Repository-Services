@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandlePackageManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -32,7 +33,6 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
@@ -62,7 +62,6 @@ import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadLis
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortDirection;
 import org.sagebionetworks.repo.model.download.SortField;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -74,18 +73,21 @@ import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.cluster.TableAndColumnMapper;
 import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.PaginationIterator;
+import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -125,6 +127,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	private EntityAuthorizationManager entityAuthorizationManager;
 	private DownloadListDAO downloadListDao;
 	private TableQueryManager tableQueryManager;
+	private TableManagerSupport tableManagerSupport;
 	private FileHandlePackageManager fileHandlePackageManager;
 	private FileHandleManager fileHandleManager;
 	private FileProvider fileProvider;
@@ -132,13 +135,14 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 	@Autowired
 	public DownloadListManagerImpl(EntityAuthorizationManager entityAuthorizationManager,
-			DownloadListDAO downloadListDao, TableQueryManager tableQueryManager,
+			DownloadListDAO downloadListDao, TableQueryManager tableQueryManager, TableManagerSupport tableManagerSupport,
 			FileHandlePackageManager fileHandlePackageManager, FileHandleManager fileHandleManager, FileProvider fileProvider,
 			NodeDAO nodeDao) {
 		super();
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.downloadListDao = downloadListDao;
 		this.tableQueryManager = tableQueryManager;
+		this.tableManagerSupport = tableManagerSupport;
 		this.fileHandlePackageManager = fileHandlePackageManager;
 		this.fileHandleManager = fileHandleManager;
 		this.fileProvider = fileProvider;
@@ -390,34 +394,47 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		ValidateArgument.required(query.getSql(), "query.sql");
 		try {
 			QuerySpecification model = TableQueryParser.parserQuery(query.getSql());
-			IdAndVersion idAndVersion = IdAndVersion.parse(model.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
-			TableType tableType = tableQueryManager.getTableEntityType(idAndVersion);
 			
-			if (!TableType.entityview.equals(tableType) && !TableType.dataset.equals(tableType)) {
-				throw new IllegalArgumentException(String.format("'%s' is not a file view or a dataset", idAndVersion.toString()));
-			}
+			TableAndColumnMapper tableAndColumnMapper = new TableAndColumnMapper(model, tableManagerSupport);
 			
-			model.replaceSelectList(new TableQueryParser(TableConstants.ROW_ID).selectList(), null);
+			Pair<SelectList, OrderByClause> selectFile = tableAndColumnMapper.buildSelectAndOrderByFileColumn(query.getSelectFileColumn());
+			
+			model.replaceSelectList(selectFile.getFirst(), null);
+			model.getTableExpression().replaceOrderBy(selectFile.getSecond());
+			
 			query.setSql(model.toSql());
-			QueryOptions queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false)
-					.withReturnFacets(false).withReturnLastUpdatedOn(false);
+			
+			QueryOptions queryOptions = new QueryOptions()
+				.withRunQuery(true);
+			
 			long totalFilesAdded = 0L;
 			long limit = Math.min(usersDownloadListCapacity, maxQueryPageSize);
 			long offset = 0L;
 			List<DownloadListItem> batchToAdd = null;
+			long batchSize = 0L;
+			
 			do {
-				QueryResultBundle result = tableQueryManager.querySinglePage(progressCallback, userInfo,
-						cloneQuery(query).setLimit(limit).setOffset(offset), queryOptions);
-				batchToAdd = result.getQueryResult().getQueryResults().getRows().stream().map((Row row) -> {
-					return createDownloadsListItemFromRow(useVersion, row);
-				}).collect(Collectors.toList());
+				QueryResultBundle result = tableQueryManager.querySinglePage(progressCallback, userInfo, cloneQuery(query).setLimit(limit).setOffset(offset), queryOptions);
+				
+				batchToAdd = result.getQueryResult().getQueryResults().getRows().stream()
+					.map((Row row) -> createDownloadsListItemFromRow(useVersion, row))
+					.collect(Collectors.toList());
+				
+				batchSize = (long) batchToAdd.size();
+				
+				// Filter non-file entities
+				batchToAdd = downloadListDao.filterUnsupportedTypes(batchToAdd);
+				
 				long numberOfFilesAdded = downloadListDao.addBatchOfFilesToDownloadList(userInfo.getId(), batchToAdd);
+				
 				totalFilesAdded += numberOfFilesAdded;
+				
 				if (totalFilesAdded >= usersDownloadListCapacity) {
 					break;
 				}
+				
 				offset += limit;
-			} while (limit == (long) batchToAdd.size());
+			} while (batchSize >= limit);
 
 			return new AddToDownloadListResponse().setNumberOfFilesAdded(totalFilesAdded);
 
@@ -442,7 +459,14 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 */
 	DownloadListItem createDownloadsListItemFromRow(final boolean useVersion, Row row) {
 		DownloadListItem item = new DownloadListItem();
-		item.setFileEntityId(row.getRowId().toString());
+		if (row.getRowId() != null) {
+			item.setFileEntityId(row.getRowId().toString());
+		} else if (row.getValues() != null && !row.getValues().isEmpty()) {
+			item.setFileEntityId(row.getValues().get(0));
+		} else {
+			throw new IllegalStateException("Expected a row id or a value but got none.");
+		}
+		
 		if (useVersion) {
 			item.setVersionNumber(row.getVersionNumber());
 		} else {

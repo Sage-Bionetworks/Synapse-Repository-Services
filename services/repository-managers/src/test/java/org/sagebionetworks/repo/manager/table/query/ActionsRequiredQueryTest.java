@@ -84,50 +84,7 @@ public class ActionsRequiredQueryTest {
 		assertEquals("SELECT DISTINCT _C3_ FROM T123_4 WHERE ROW_BENEFACTOR IN ( :b0, :b1 ) AND _C1_ = :b2 ORDER BY _C3_ LIMIT :pLimit OFFSET :pOffset", result.getSql());
 		assertEquals(Map.of("b0", 11L, "b1", 22L, "b2", "abc", "pLimit", 10L, "pOffset", 10L), result.getParameters());
 	}
-	
-	@Test
-	public void testActionsRequiredQueryWithNoSelectFileColumn() {
-		builder.setSelectFileColumn(null);
 		
-		QueryContext queryContext = builder.build();
-		
-		String result = assertThrows(IllegalArgumentException.class, () -> {			
-			new ActionsRequiredQuery(queryContext);
-		}).getMessage();
-		
-		assertEquals("The query.selectFileColumn is required when including actions required", result);
-	}
-	
-	@Test
-	public void testActionsRequiredQueryWithSelectFileColumnNotPartOfSchema() {
-		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
-		
-		builder.setSelectFileColumn(22L);
-		
-		QueryContext queryContext = builder.build();
-		
-		String result = assertThrows(IllegalArgumentException.class, () -> {			
-			new ActionsRequiredQuery(queryContext);
-		}).getMessage();
-		
-		assertEquals("The query.selectFileColumn must be an ENTITYID column that is part of the schema of the underlying table/view", result);
-	}
-	
-	@Test
-	public void testActionsRequiredQueryWithSelectFileColumnNotOfTypeEntity() {
-		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
-		
-		builder.setSelectFileColumn(2L);
-		
-		QueryContext queryContext = builder.build();
-		
-		String result = assertThrows(IllegalArgumentException.class, () -> {			
-			new ActionsRequiredQuery(queryContext);
-		}).getMessage();
-		
-		assertEquals("The query.selectFileColumn must be an ENTITYID column that is part of the schema of the underlying table/view", result);
-	}
-	
 	@Test
 	public void testActionsRequiredQueryWithAggregateQuery() {
 		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
@@ -142,30 +99,5 @@ public class ActionsRequiredQueryTest {
 		}).getMessage();
 		
 		assertEquals("Including the actions required is not supported for aggregate queries", result);
-	}
-	
-	// Column names can have spaces and punctuation, should still work (See https://sagebionetworks.jira.com/browse/PLFM-7933)
-	@Test
-	public void testActionsRequiredQueryWithComplexColumnName() {
-		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
-		when(schemaProvider.getColumnModel(any())).thenReturn(schema.get(0));
-		
-		// This column has a space in its name
-		builder.setSelectFileColumn(4L);
-		
-		QueryContext queryContext = builder.build();
-		
-		// Call under test
-		ActionsRequiredQuery query = new ActionsRequiredQuery(queryContext);
-		
-		BasicQuery result = query.getFileEntityQuery(10, 0);
-		
-		assertEquals("SELECT DISTINCT _C4_ FROM T123_4 WHERE ROW_BENEFACTOR IN ( :b0, :b1 ) AND _C1_ = :b2 ORDER BY _C4_ LIMIT :pLimit OFFSET :pOffset", result.getSql());
-		assertEquals(Map.of("b0", 11L, "b1", 22L, "b2", "abc", "pLimit", 10L, "pOffset", 0L), result.getParameters());
-		
-		result = query.getFileEntityQuery(10, 10);
-		
-		assertEquals("SELECT DISTINCT _C4_ FROM T123_4 WHERE ROW_BENEFACTOR IN ( :b0, :b1 ) AND _C1_ = :b2 ORDER BY _C4_ LIMIT :pLimit OFFSET :pOffset", result.getSql());
-		assertEquals(Map.of("b0", 11L, "b1", 22L, "b2", "abc", "pLimit", 10L, "pOffset", 10L), result.getParameters());
 	}
 }

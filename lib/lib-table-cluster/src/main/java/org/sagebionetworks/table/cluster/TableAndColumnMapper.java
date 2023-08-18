@@ -7,16 +7,21 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
+import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -108,6 +113,45 @@ public class TableAndColumnMapper implements ColumnLookup {
 		}
 	}
 
+	/**
+	 * Builds the SelectList and OrderByClause to fetch the file ids in a given query. If the fileColumnId is supplied will attempt to use the
+	 * given column, otherwise attempts to use the ROW_ID if the table type referenced by the model is a view or a dataset.
+	 * 
+	 * @param fileColumnId
+	 * @return
+	 * @throws ParseException
+	 */
+	public Pair<SelectList, OrderByClause> buildSelectAndOrderByFileColumn(Long fileColumnId) throws ParseException {
+		IdAndVersion idAndVersion = getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
+		
+		String selectFileColumnName;
+		
+		if (fileColumnId == null) {
+			TableType tableType = schemaProvider.getTableType(idAndVersion);
+			
+			// If the column id is not supplied we can infer the file column only for a view or dataset
+			if (!TableType.entityview.equals(tableType) && !TableType.dataset.equals(tableType)) {
+				throw new IllegalArgumentException(String.format("'%s' is not a file view or a dataset, the query.selectFileColumn must be specified", idAndVersion.toString()));
+			}
+			
+			selectFileColumnName = TableConstants.ROW_ID;
+		} else {
+			selectFileColumnName = getUnionOfAllTableSchemas().stream()
+				.filter(selectColumn -> selectColumn.getId().equals(fileColumnId.toString()) && ColumnType.ENTITYID == selectColumn.getColumnType())
+				.findFirst()
+				.map(ColumnModel::getName)
+				.orElseThrow(() -> new IllegalArgumentException("The query.selectFileColumn must be an ENTITYID column that is part of the schema of the underlying table/view"));
+		
+		}
+		
+		selectFileColumnName = SqlElementUtils.wrapInDoubleQuotes(selectFileColumnName);
+		
+		SelectList selectList = new TableQueryParser(selectFileColumnName).selectList();
+		OrderByClause orderBy = new OrderByClause(new TableQueryParser(selectFileColumnName).sortSpecificationList());
+		
+		return new Pair<>(selectList, orderBy);
+	}
+	
 	/**
 	 * Lookup a ColumnReference using just the column name or alias
 	 * @param columnName

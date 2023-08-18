@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -29,9 +30,11 @@ import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslati
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
+import org.sagebionetworks.util.Pair;
 
 @ExtendWith(MockitoExtension.class)
 public class TableAndColumnMapperTest {
@@ -53,7 +56,8 @@ public class TableAndColumnMapperTest {
 				TableModelTestUtils.createColumn(666L, "datetype", ColumnType.DATE),
 				TableModelTestUtils.createColumn(777L, "has\"quote", ColumnType.STRING),
 				TableModelTestUtils.createColumn(888L, "aDouble", ColumnType.DOUBLE),
-				TableModelTestUtils.createColumn(999L, "year", ColumnType.DATE));
+				TableModelTestUtils.createColumn(999L, "year", ColumnType.DATE),
+				TableModelTestUtils.createColumn(1111L, "file entity", ColumnType.ENTITYID));
 		columnMap = allColumns.stream()
 			      .collect(Collectors.toMap(ColumnModel::getName, Function.identity()));
 	}
@@ -132,7 +136,7 @@ public class TableAndColumnMapperTest {
 		// call under test
 		SelectList selectList = mapper.buildSelectAllColumns();
 		assertNotNull(selectList);
-		assertEquals("\"foo\", \"has space\", \"bar\", \"foo_bar\", \"Foo\", \"datetype\", \"has\"\"quote\", \"aDouble\", \"year\"",
+		assertEquals("\"foo\", \"has space\", \"bar\", \"foo_bar\", \"Foo\", \"datetype\", \"has\"\"quote\", \"aDouble\", \"year\", \"file entity\"",
 				selectList.toSql());
 	}
 
@@ -185,6 +189,117 @@ public class TableAndColumnMapperTest {
 		SelectList selectList = mapper.buildSelectAllColumns();
 		assertNotNull(selectList);
 		assertEquals("t.\"foo\", t.\"has space\", syn456.\"bar\", syn456.\"foo_bar\"", selectList.toSql());
+	}
+	
+	@Test
+	public void testBuildSelectAndOrderByFileColumnWithFileColumnId() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+			.thenReturn(List.of(columnMap.get("file entity"), columnMap.get("foo"), columnMap.get("bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+
+		// call under test
+		Pair<SelectList, OrderByClause> result = mapper.buildSelectAndOrderByFileColumn(1111L);
+		
+		// Column names can have spaces and punctuation, should still work (See https://sagebionetworks.jira.com/browse/PLFM-7933)
+		assertEquals("\"file entity\"", result.getFirst().toSql());
+		assertEquals("ORDER BY \"file entity\"", result.getSecond().toSql());
+		
+	}
+	
+	@Test
+	public void testBuildSelectAndOrderByFileColumnWithFileColumnIdNotPartOfSchema() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+			.thenReturn(List.of(columnMap.get("file entity"), columnMap.get("foo"), columnMap.get("bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			mapper.buildSelectAndOrderByFileColumn(123L);
+		}).getMessage();
+		
+		assertEquals("The query.selectFileColumn must be an ENTITYID column that is part of the schema of the underlying table/view", result);
+	}
+	
+	@Test
+	public void testBuildSelectAndOrderByFileColumnWithFileColumnIdNotEntity() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+			.thenReturn(List.of(columnMap.get("file entity"), columnMap.get("foo"), columnMap.get("bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			mapper.buildSelectAndOrderByFileColumn(111L);
+		}).getMessage();
+		
+		assertEquals("The query.selectFileColumn must be an ENTITYID column that is part of the schema of the underlying table/view", result);
+	}
+	
+	@Test
+	public void testBuildSelectAndOrderByFileColumnWithoutFileColumnId() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+			.thenReturn(List.of(columnMap.get("file entity"), columnMap.get("foo"), columnMap.get("bar")));
+		
+		when(mockSchemaProvider.getTableType(any())).thenReturn(TableType.entityview);
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+
+		// call under test
+		Pair<SelectList, OrderByClause> result = mapper.buildSelectAndOrderByFileColumn(null);
+		
+		assertEquals("\"ROW_ID\"", result.getFirst().toSql());
+		assertEquals("ORDER BY \"ROW_ID\"", result.getSecond().toSql());
+		
+	}
+	
+	@Test
+	public void testBuildSelectAndOrderByFileColumnWithoutFileColumnIdAndNotViewOrDataset() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+			.thenReturn(List.of(columnMap.get("file entity"), columnMap.get("foo"), columnMap.get("bar")));
+		
+		when(mockSchemaProvider.getTableType(any())).thenReturn(TableType.submissionview);
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			mapper.buildSelectAndOrderByFileColumn(null);
+		}).getMessage();
+
+		assertEquals("'syn123' is not a file view or a dataset, the query.selectFileColumn must be specified", result);
+		
+	}
+	
+	@Test
+	public void testBuildSelectAndOrderByFileColumnWithJoin() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 join syn456").querySpecification();
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+			.thenReturn(List.of(columnMap.get("file entity"), columnMap.get("foo"), columnMap.get("bar")));
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn456")))
+			.thenReturn(List.of(columnMap.get("bar"), columnMap.get("foo_bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			mapper.buildSelectAndOrderByFileColumn(123L);
+		}).getMessage();
+		
+		assertEquals("The JOIN keyword is not supported in this context", result);
 	}
 
 	@Test

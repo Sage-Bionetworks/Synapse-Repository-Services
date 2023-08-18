@@ -520,7 +520,8 @@ ValueExpressionPrimary valueExpressionPrimary():
 	CastSpecification castSpecification = null;
 }
 {
-	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
+	<null_specification> { return new ValueExpressionPrimary(new NullSpecification()); }
+	| setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
     | arrayFunctionSpecification = arrayFunctionSpecification() { return new ValueExpressionPrimary(arrayFunctionSpecification);}
 	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
 	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
@@ -989,8 +990,7 @@ RowValueConstructorElement rowValueConstructorElement():
 	TruthValue truthValue;
 }
 {
-		<null_specification> { return new RowValueConstructorElement(new NullSpecification()); }
-	|	<default_specification> { return new RowValueConstructorElement(new DefaultSpecification()); }
+	<default_specification> { return new RowValueConstructorElement(new DefaultSpecification()); }
 	|	truthValue = truthValue() { return new RowValueConstructorElement(new TruthSpecification(truthValue)); }
 	|	valueExpression = valueExpression() { return new RowValueConstructorElement(valueExpression); }
 }
@@ -1391,15 +1391,6 @@ Pagination pagination():
 	<limit> _limit = unsignedInteger() [ <offset> _offset = unsignedInteger() ]
 	{ return new Pagination(_limit, _offset); }
 }
-NullableValueExpression nullableValueExpression():
-{
-	ValueExpression valueExpression;
-}
-{
-	<null_specification> { return new NullableValueExpression(); }
-	| valueExpression = valueExpression() { return new NullableValueExpression(valueExpression); }
-}
-
 CaseExpression caseExpression():
 {
 	CaseAbbreviation caseAbbreviation = null;
@@ -1419,13 +1410,13 @@ CaseAbbreviation caseAbbreviation():
 {
 	AbbreviationType abbreviationType;
 	CaseAbbreviation caseAbbreviation = null;
-	NullableValueExpression lastValueExpression = null;
+	ValueExpression lastValueExpression = null;
 }
 {
 	abbreviationType = abbreviationType() { caseAbbreviation = new CaseAbbreviation(abbreviationType);  }
 	<left_paren> 
-		lastValueExpression = nullableValueExpression() { caseAbbreviation.addValueExpression(lastValueExpression); }
-		 ( <comma> lastValueExpression = nullableValueExpression() { caseAbbreviation.addValueExpression(lastValueExpression); } )+ 
+		lastValueExpression = valueExpression() { caseAbbreviation.addValueExpression(lastValueExpression); }
+		 ( <comma> lastValueExpression = valueExpression() { caseAbbreviation.addValueExpression(lastValueExpression); } )+ 
 	<right_paren>
 	{ return caseAbbreviation; }
 }
@@ -1483,8 +1474,7 @@ Result result():
 	ResultExpression resultExpression = null;
 }
 {
-	<null_specification> { return new Result(); }
-	| resultExpression = resultExpression() { return new Result(resultExpression); }
+	resultExpression = resultExpression() { return new Result(resultExpression); }
 }
 ResultExpression resultExpression():
 {
@@ -1539,10 +1529,10 @@ CastSpecification castSpecification():
 }
 CastOperand castOperand():
 {
-	NullableValueExpression nullableValueExpression = null;
+	ValueExpression valueExpression = null;
 }
 {
-	nullableValueExpression = nullableValueExpression() { return new CastOperand(nullableValueExpression); }
+	valueExpression = valueExpression() { return new CastOperand(valueExpression); }
 }
 CastTarget castTarget():
 {

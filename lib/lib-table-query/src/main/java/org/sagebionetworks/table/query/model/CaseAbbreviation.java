@@ -11,7 +11,7 @@ import java.util.List;
 public class CaseAbbreviation extends SQLElement {
 
 	private final AbbreviationType type;
-	private final List<NullableValueExpression> expressions;
+	private final List<ValueExpression> expressions;
 
 	public CaseAbbreviation(AbbreviationType type) {
 		super();
@@ -19,7 +19,7 @@ public class CaseAbbreviation extends SQLElement {
 		this.expressions = new ArrayList<>();
 	}
 	
-	public void addValueExpression(NullableValueExpression valueExpression) {
+	public void addValueExpression(ValueExpression valueExpression) {
 		this.expressions.add(valueExpression);
 	}
 
