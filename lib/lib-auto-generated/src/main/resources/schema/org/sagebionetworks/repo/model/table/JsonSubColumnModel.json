@@ -1,0 +1,14 @@
+{
+	"description": "Defines a single sub-column of a column of type JSON.  This can be used to enable the faceting of the sub-columns.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.ColumnModelInterface"
+		}
+	],
+	"properties": {
+		"jsonPath": {
+			"description": "Defines the JSON path of the sub column. Use the '$' char to represent the root of JSON object. If the JSON key of a sub column is 'a', then the jsonPath for that column would be: '$.a'.",
+			"type": "string"
+		}
+	}
+}

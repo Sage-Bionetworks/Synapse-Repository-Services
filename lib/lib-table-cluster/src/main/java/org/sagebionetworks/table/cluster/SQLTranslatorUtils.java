@@ -503,9 +503,9 @@ public class SQLTranslatorUtils {
 		ColumnReferenceMatch match = optional.get();
 
 		ColumnType type = match.getColumnTranslationReference().getColumnType();
-		if (isDoubleExpantion(columnReference, type)) {
+		if (isDoubleExpansion(columnReference, type)) {
 			return Optional.of(
-					createDoubleExpanstion(mapper.getNumberOfTables(),
+					createDoubleExpansion(mapper.getNumberOfTables(),
 							match.getTableInfo().getTranslatedTableAlias(),
 							match.getColumnTranslationReference().getTranslatedColumnName()));
 		}
@@ -525,7 +525,7 @@ public class SQLTranslatorUtils {
 	 * @param type
 	 * @return
 	 */
-	static boolean isDoubleExpantion(ColumnReference columnReference, ColumnType type) {
+	static boolean isDoubleExpansion(ColumnReference columnReference, ColumnType type) {
 		if(!ColumnType.DOUBLE.equals(type)) {
 			return false;
 		}
@@ -588,7 +588,7 @@ public class SQLTranslatorUtils {
 	 * @param columnId value of #.
 	 * @return
 	 */
-	static ColumnReference createDoubleExpanstion(final int tableCount, final String translatedTableAlias,
+	static ColumnReference createDoubleExpansion(final int tableCount, final String translatedTableAlias,
 			final String columnId) {
 		return createColumReferenceFromTemplate("CASE WHEN %1$s_DBL%2$s IS NULL THEN %1$s%2$s ELSE %1$s_DBL%2$s END",
 				tableCount, translatedTableAlias, columnId);

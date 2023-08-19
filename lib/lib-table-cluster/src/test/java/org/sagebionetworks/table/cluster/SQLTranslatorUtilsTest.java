@@ -3324,16 +3324,16 @@ public class SQLTranslatorUtilsTest {
 		int tableCount = 1;
 		String translatedTableAliaName = "_A1";
 		String translatedColumnName = "_C333_";
-		ColumnReference ref = SQLTranslatorUtils.createDoubleExpanstion(tableCount, translatedTableAliaName, translatedColumnName);
+		ColumnReference ref = SQLTranslatorUtils.createDoubleExpansion(tableCount, translatedTableAliaName, translatedColumnName);
 		assertEquals("CASE WHEN _DBL_C333_ IS NULL THEN _C333_ ELSE _DBL_C333_ END", ref.toSql());
 	}
 	
 	@Test
-	public void testCreateDoubleExpanstionWithMOreThanOneTable() {
+	public void testCreateDoubleExpanstionWithMoreThanOneTable() {
 		int tableCount = 2;
 		String translatedTableAliaName = "_A1";
 		String translatedColumnName = "_C333_";
-		ColumnReference ref = SQLTranslatorUtils.createDoubleExpanstion(tableCount, translatedTableAliaName, translatedColumnName);
+		ColumnReference ref = SQLTranslatorUtils.createDoubleExpansion(tableCount, translatedTableAliaName, translatedColumnName);
 		assertEquals("CASE WHEN _A1._DBL_C333_ IS NULL THEN _A1._C333_ ELSE _A1._DBL_C333_ END", ref.toSql());
 	}
 	
@@ -3642,7 +3642,7 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("aDouble", ref.toSql());
 		ColumnType type = ColumnType.DOUBLE;
 		// call under test
-		assertTrue(SQLTranslatorUtils.isDoubleExpantion(ref, type));
+		assertTrue(SQLTranslatorUtils.isDoubleExpansion(ref, type));
 	}
 	
 	@Test
@@ -3652,7 +3652,7 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("anInt", ref.toSql());
 		ColumnType type = ColumnType.INTEGER;
 		// call under test
-		assertFalse(SQLTranslatorUtils.isDoubleExpantion(ref, type));
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
 	}
 	
 	@Test
@@ -3662,7 +3662,7 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("aDouble", ref.toSql());
 		ColumnType type = ColumnType.DOUBLE;
 		// call under test
-		assertFalse(SQLTranslatorUtils.isDoubleExpantion(ref, type));
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
 	}
 	
 	@Test
@@ -3673,7 +3673,7 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("aDouble", ref.toSql());
 		ColumnType type = ColumnType.DOUBLE;
 		// call under test
-		assertFalse(SQLTranslatorUtils.isDoubleExpantion(ref, type));
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
 	}
 	
 	@Test
@@ -3683,7 +3683,7 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("aDouble", ref.toSql());
 		ColumnType type = ColumnType.DOUBLE;
 		// call under test
-		assertFalse(SQLTranslatorUtils.isDoubleExpantion(ref, type));
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
 	}
 	
 	@Test
@@ -3694,7 +3694,7 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("aDouble", ref.toSql());
 		ColumnType type = ColumnType.DOUBLE;
 		// call under test
-		assertFalse(SQLTranslatorUtils.isDoubleExpantion(ref, type));
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
 	}
 	
 	@Test
