@@ -1,9 +1,11 @@
 package org.sagebionetworks.table.cluster.columntranslation;
 
+import java.util.List;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 
 /**
  * Wraps a @RowMetadataColumnTranslationReference with a custom name.
@@ -52,6 +54,12 @@ public class RowMetadataReferenceWrapper implements ColumnTranslationReference {
 	public String getDefaultValues() {
 		return null;
 	}
+	
+	@Override
+	public List<JsonSubColumnModel> getJsonSubColumns() {
+		return null;
+	}
+	
 	@Override
 	public int hashCode() {
 		return Objects.hash(columnName, enumRef);

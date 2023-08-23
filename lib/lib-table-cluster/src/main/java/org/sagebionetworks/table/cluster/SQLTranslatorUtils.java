@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -1375,6 +1376,7 @@ public class SQLTranslatorUtils {
 		ColumnType columnType = selectColumn.getColumnType();
 		String defaultValue = null;
 		FacetType facetType = null;
+		List<JsonSubColumnModel> jsonSubColumns = null;
 		if(selectColumn.getId() != null) {
 			ColumnModel cm = tableAndColumnMapper.getColumnModel(selectColumn.getId());
 			maximumSize = cm.getMaximumSize();
@@ -1382,6 +1384,7 @@ public class SQLTranslatorUtils {
 			defaultValue = cm.getDefaultValue();
 			facetType = cm.getFacetType();
 			enumValues = cm.getEnumValues();
+			jsonSubColumns = cm.getJsonSubColumns();
 		}else {
 			for (ColumnReference cr : derivedColumn.createIterable(ColumnReference.class)) {
 				ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
@@ -1390,6 +1393,7 @@ public class SQLTranslatorUtils {
 					maxListLength = addLongsWithNull(maxListLength, ctr.getMaximumListLength());
 					defaultValue = ctr.getDefaultValues();
 					facetType = ctr.getFacetType();
+					jsonSubColumns = ctr.getJsonSubColumns();
 				}
 			}
 		}
@@ -1403,6 +1407,7 @@ public class SQLTranslatorUtils {
 		result.setFacetType(facetType);
 		result.setDefaultValue(defaultValue);
 		result.setEnumValues(enumValues);
+		result.setJsonSubColumns(jsonSubColumns);
 		result.setId(null);
 		return result;
 	}

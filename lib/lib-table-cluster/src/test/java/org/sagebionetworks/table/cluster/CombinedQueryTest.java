@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
@@ -44,10 +45,13 @@ public class CombinedQueryTest {
 	@BeforeEach
 	public void before() {
 		schema = List.of(
-				TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING).setFacetType(FacetType.enumeration),
-				TableModelTestUtils.createColumn(222L, "bar", ColumnType.INTEGER_LIST).setFacetType(
-						FacetType.enumeration),
-				TableModelTestUtils.createColumn(333L, "aBool", ColumnType.BOOLEAN));
+			TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING).setFacetType(FacetType.enumeration),
+			TableModelTestUtils.createColumn(222L, "bar", ColumnType.INTEGER_LIST).setFacetType(FacetType.enumeration),
+			TableModelTestUtils.createColumn(333L, "aBool", ColumnType.BOOLEAN),
+			TableModelTestUtils.createColumn(444L, "aJson", ColumnType.JSON).setJsonSubColumns(List.of(
+				new JsonSubColumnModel().setName("a").setJsonPath("$.a").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.enumeration)
+			))
+		);
 
 		additionalFilters = List.of(new ColumnSingleValueQueryFilter().setColumnName("foo")
 				.setOperator(ColumnSingleValueFilterOperator.LIKE).setValues(List.of("one", "two")));
@@ -144,6 +148,23 @@ public class CombinedQueryTest {
 				.build();
 
 		assertEquals("SELECT * FROM syn123", combined.getCombinedSql());
+	}
+	
+	@Test
+	public void testGetCombinedSqlWithSelectedFacetWithSubColumns() {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		overrideLimit = null;
+		overrideOffset = null;
+		additionalFilters = null;
+		sortList = null;
+		selectedFacets = List.of(new FacetColumnValuesRequest().setColumnName("aJson").setJsonPath("$.a").setFacetValues(Set.of("b")));
+		// call under test
+		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
+				.setQuery("select * from syn123").setAdditionalFilters(additionalFilters).setSortList(sortList)
+				.setOverrideLimit(overrideLimit).setOverrideOffset(overrideOffset).setSelectedFacets(selectedFacets)
+				.build();
+
+		assertEquals("SELECT * FROM syn123 WHERE ( ( JSON_EXTRACT(\"aJson\",'$.a') = CAST('b' AS INTEGER) ) )", combined.getCombinedSql());
 	}
 
 	@Test
