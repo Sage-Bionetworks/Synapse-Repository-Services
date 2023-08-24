@@ -62,15 +62,14 @@ public class CombinedQuery {
 						JsonSubColumnModel matchingSubColumn = subColumns.stream()
 							.filter(subColumn -> facetRequest.getJsonPath().equals(subColumn.getJsonPath()))
 							.findFirst()
-							.orElseThrow(() -> new IllegalArgumentException("Could not find a subColumn with jsonPath '" + facetRequest.getJsonPath() + "' in column '" + ref.getUserQueryColumnName() + "'"));
+							.orElseThrow(() -> new IllegalArgumentException("Could not find a subColumn with jsonPath '" + facetRequest.getJsonPath() + "' for column '" + ref.getUserQueryColumnName() + "'"));
 						
 						requestModel = new FacetRequestColumnModel(ref.getUserQueryColumnName(), matchingSubColumn, facetRequest);
 					} else {
 						requestModel = new FacetRequestColumnModel(new ColumnModel()
 								.setColumnType(ref.getColumnType())
 								.setFacetType(ref.getFacetType())
-								.setName(facetRequest.getColumnName())
-								.setJsonSubColumns(ref.getJsonSubColumns()), facetRequest);
+								.setName(facetRequest.getColumnName()), facetRequest);
 					}
 					
 					facetRequestModels.add(requestModel);

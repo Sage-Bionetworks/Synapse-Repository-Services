@@ -166,6 +166,26 @@ public class CombinedQueryTest {
 
 		assertEquals("SELECT * FROM syn123 WHERE ( ( JSON_EXTRACT(\"aJson\",'$.a') = CAST('b' AS INTEGER) ) )", combined.getCombinedSql());
 	}
+	
+	@Test
+	public void testGetCombinedSqlWithSelectedFacetWithSubColumnsAndNoMatch() {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		overrideLimit = null;
+		overrideOffset = null;
+		additionalFilters = null;
+		sortList = null;
+		selectedFacets = List.of(new FacetColumnValuesRequest().setColumnName("aJson").setJsonPath("$.b").setFacetValues(Set.of("b")));
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
+			.setQuery("select * from syn123").setAdditionalFilters(additionalFilters).setSortList(sortList)
+			.setOverrideLimit(overrideLimit).setOverrideOffset(overrideOffset).setSelectedFacets(selectedFacets)
+			.build();
+		}).getMessage();
+		
+		assertEquals("Could not find a subColumn with jsonPath '$.b' for column 'aJson'", result);
+	}
 
 	@Test
 	public void testGetCombinedSqlWithUnknownFacet() {

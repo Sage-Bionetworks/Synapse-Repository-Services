@@ -237,7 +237,7 @@ public class VirtualTableIntegrationTest {
 			), results.getFacets());
 		}, MAX_WAIT_MS);
 		
-		// query with a facet selection on the JSON column
+		// query with a (range) facet selection on the JSON column
 		query.setSelectedFacets(
 				List.of(new FacetColumnRangeRequest().setColumnName("jsonColumn").setJsonPath("$.b").setMax("19").setMin("17")));
 		
@@ -251,6 +251,24 @@ public class VirtualTableIntegrationTest {
 				new FacetColumnResultValues().setColumnName("listColumn").setFacetType(FacetType.enumeration).setFacetValues(List.of(
 					new FacetColumnResultValueCount().setValue("2").setCount(1L).setIsSelected(false),
 					new FacetColumnResultValueCount().setValue("16").setCount(1L).setIsSelected(false)
+				))
+			), results.getFacets());
+		}, MAX_WAIT_MS);
+		
+		// query with a (value) facet selection on the JSON column
+		query.setSelectedFacets(
+				List.of(new FacetColumnValuesRequest().setColumnName("jsonColumn").setJsonPath("$.a").setFacetValues(Set.of("6"))));
+		
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("a", "6", "{\"a\": 6}", "[1, 5]", "[1, 5]"))),
+					results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn, listColumn), results.getColumnModels());
+			assertEquals(1L, results.getQueryCount());
+			assertEquals(List.of(
+				new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range).setColumnMin("6").setColumnMax("6"),
+				new FacetColumnResultValues().setColumnName("listColumn").setFacetType(FacetType.enumeration).setFacetValues(List.of(
+						new FacetColumnResultValueCount().setValue("1").setCount(1L).setIsSelected(false),
+						new FacetColumnResultValueCount().setValue("5").setCount(1L).setIsSelected(false)
 				))
 			), results.getFacets());
 		}, MAX_WAIT_MS);
