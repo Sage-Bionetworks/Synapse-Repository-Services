@@ -279,7 +279,6 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
-import org.sagebionetworks.repo.model.table.SqlTransformRequest;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -3556,19 +3555,6 @@ public interface SynapseClient extends BaseClient {
 	String generateStorageReportAsyncStart(StorageReportType reportType) throws SynapseException;
 
 	DownloadStorageReportResponse generateStorageReportAsyncGet(String asyncJobToken) throws SynapseException;
-
-	/**
-	 * Request to transform the provided SQL based on the request parameters. For
-	 * example, a
-	 * {@linkplain org.sagebionetworks.repo.model.tabe.TransformSqlWithFacetsRequest}
-	 * can be used to alter the where clause of the provided SQL based on the
-	 * provided selected facets.
-	 * 
-	 * @param request
-	 * @return
-	 * @throws SynapseException 
-	 */
-	public String transformSqlRequest(SqlTransformRequest request) throws SynapseException;
 	
 	/**
 	 * Request to create a new snapshot of a table or view. The provided comment,

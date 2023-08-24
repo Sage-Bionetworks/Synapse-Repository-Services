@@ -33,21 +33,16 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
-import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
-import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.table.query.ParseException;
 
 import com.google.common.collect.Lists;
 
@@ -188,36 +183,6 @@ public class TableServicesImplTest {
 		NotFoundException thrown = Assertions.assertThrows(NotFoundException.class, () -> {
 			// Call under test
 			tableService.getFileHandleId(userInfo, tableId, rowRef, columnId);
-		});
-	}
-	
-	@Test
-	public void testTransformSqlRequestFacet() throws IOException, ParseException {
-		TransformSqlWithFacetsRequest request = new TransformSqlWithFacetsRequest();
-		request.setSqlToTransform("select * from syn123");
-		FacetColumnRangeRequest facet = new FacetColumnRangeRequest();
-		facet.setColumnName("foo");
-		facet.setMax("100");
-		facet.setMin("0");
-		request.setSelectedFacets(Lists.newArrayList(facet));
-		ColumnModel column = new ColumnModel();
-		column.setName("foo");
-		column.setFacetType(FacetType.range);
-		column.setColumnType(ColumnType.INTEGER);
-		request.setSchema(Lists.newArrayList(column));
-		// Call under test
-		SqlTransformResponse response = tableService.transformSqlRequest(request);
-		assertNotNull(response);
-		assertEquals("SELECT * FROM syn123 WHERE ( ( \"foo\" BETWEEN '0' AND '100' ) )", response.getTransformedSql());
-	}
-	
-	@Test
-	public void testTransformSqlRequestFacetNull() throws ParseException {
-		TransformSqlWithFacetsRequest request = null;
-		IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			SqlTransformResponse response = tableService.transformSqlRequest(request);
-			assertNotNull(response);
 		});
 	}
 	
