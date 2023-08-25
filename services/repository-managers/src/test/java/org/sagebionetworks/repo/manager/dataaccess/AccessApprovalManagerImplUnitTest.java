@@ -699,7 +699,7 @@ public class AccessApprovalManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testRevokeGroupAccessorsAuthorized() {
+	public void testRevokeGroupAccessorsUncheckedWithActUser() {
 		List<Long> approvals = Arrays.asList(1L, 2L);
 		
 		when(mockAccessApprovalDAO.listApprovalsBySubmitter(any(), any(), any())).thenReturn(approvals);
@@ -710,7 +710,7 @@ public class AccessApprovalManagerImplUnitTest {
 		List<String> accessorIds = Arrays.asList("1", "2");
 		
 		// Call under test
-		manager.revokeGroup(atcUser, accessRequirementId, submitterId, accessorIds);
+		manager.revokeGroupUnchecked(atcUser, accessRequirementId, submitterId, accessorIds);
 		
 		verify(mockAccessApprovalDAO).listApprovalsBySubmitter(accessRequirementId, submitterId, accessorIds);
 		verify(mockAccessApprovalDAO).revokeBatch(atcUser.getId(), approvals);
@@ -729,24 +729,37 @@ public class AccessApprovalManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testRevokeGroupAccessorsUnauthorized() {
+	public void testRevokeGroupAccessorsUncheckedWithNonActUser() {
+		List<Long> approvals = Arrays.asList(1L, 2L);
+		
+		when(mockAccessApprovalDAO.listApprovalsBySubmitter(any(), any(), any())).thenReturn(approvals);
+		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(approvals);
 		
 		String accessRequirementId = "2";
 		String submitterId = "1";
 		List<String> accessorIds = Arrays.asList("1", "2");
 		
-		assertThrows(UnauthorizedException.class, () -> {
-			// Call under test
-			manager.revokeGroup(userInfo, accessRequirementId, submitterId, accessorIds);
-		});
+		// Call under test
+		manager.revokeGroupUnchecked(userInfo, accessRequirementId, submitterId, accessorIds);
 		
-		verifyZeroInteractions(mockAccessApprovalDAO);
-		verifyZeroInteractions(mockTransactionMessenger);
+		verify(mockAccessApprovalDAO).listApprovalsBySubmitter(accessRequirementId, submitterId, accessorIds);
+		verify(mockAccessApprovalDAO).revokeBatch(userInfo.getId(), approvals);
+		
+		for (Long id : approvals) {
+			
+			MessageToSend expectedMessage = new MessageToSend()
+					.withUserId(userInfo.getId())
+					.withObjectType(ObjectType.ACCESS_APPROVAL)
+					.withObjectId(id.toString())
+					.withChangeType(ChangeType.UPDATE);
+			
+			verify(mockTransactionMessenger).sendMessageAfterCommit(expectedMessage);
+		}
 		
 	}
 	
 	@Test
-	public void testRevokeGroupAccessorsWithNullUser() {
+	public void testRevokeGroupAccessorsUncheckedWithNullUser() {
 		
 		String accessRequirementId = "2";
 		String submitterId = "1";
@@ -754,14 +767,14 @@ public class AccessApprovalManagerImplUnitTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.revokeGroup(null, accessRequirementId, submitterId, accessorIds);
+			manager.revokeGroupUnchecked(null, accessRequirementId, submitterId, accessorIds);
 		}).getMessage();
 		
 		assertEquals("The user is required.", message);
 	}
 	
 	@Test
-	public void testRevokeGroupAccessorsWithNullRequirement() {
+	public void testRevokeGroupAccessorsUncheckedWithNullRequirement() {
 		
 		String accessRequirementId = null;
 		String submitterId = "1";
@@ -769,14 +782,14 @@ public class AccessApprovalManagerImplUnitTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.revokeGroup(userInfo, accessRequirementId, submitterId, accessorIds);
+			manager.revokeGroupUnchecked(userInfo, accessRequirementId, submitterId, accessorIds);
 		}).getMessage();
 		
 		assertEquals("The access requirement id is required.", message);
 	}
 	
 	@Test
-	public void testRevokeGroupAccessorsWithNullSubmitter() {
+	public void testRevokeGroupAccessorsUncheckedWithNullSubmitter() {
 		
 		String accessRequirementId = "2";
 		String submitterId = null;
@@ -784,14 +797,14 @@ public class AccessApprovalManagerImplUnitTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.revokeGroup(userInfo, accessRequirementId, submitterId, accessorIds);
+			manager.revokeGroupUnchecked(userInfo, accessRequirementId, submitterId, accessorIds);
 		}).getMessage();
 		
 		assertEquals("The submitter id is required.", message);
 	}
 	
 	@Test
-	public void testRevokeGroupAccessorsWithNullAccessorIds() {
+	public void testRevokeGroupAccessorsUncheckedWithNullAccessorIds() {
 		
 		String accessRequirementId = "2";
 		String submitterId = "1";
@@ -799,7 +812,7 @@ public class AccessApprovalManagerImplUnitTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.revokeGroup(userInfo, accessRequirementId, submitterId, accessorIds);
+			manager.revokeGroupUnchecked(userInfo, accessRequirementId, submitterId, accessorIds);
 		}).getMessage();
 		
 		assertEquals("The list of accessor ids is required.", message);

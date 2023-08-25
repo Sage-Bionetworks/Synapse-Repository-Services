@@ -782,7 +782,7 @@ public class SubmissionManagerImplTest {
 		// call under test
 		assertEquals(submission, manager.updateStatus(atcUser, request));
 		
-		verify(mockAccessAprovalManager).revokeGroup(atcUser, accessRequirementId, userId, Arrays.asList(userId, "2"));
+		verify(mockAccessAprovalManager).revokeGroupUnchecked(atcUser, accessRequirementId, userId, Arrays.asList(userId, "2"));
 		
 		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
 		
@@ -837,7 +837,7 @@ public class SubmissionManagerImplTest {
 		// call under test
 		assertEquals(submission, manager.updateStatus(atcUser, request));
 
-		verify(mockAccessAprovalManager).revokeGroup(atcUser, accessRequirementId, userId, Arrays.asList(userId));
+		verify(mockAccessAprovalManager).revokeGroupUnchecked(atcUser, accessRequirementId, userId, Arrays.asList(userId));
 		
 		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
 
