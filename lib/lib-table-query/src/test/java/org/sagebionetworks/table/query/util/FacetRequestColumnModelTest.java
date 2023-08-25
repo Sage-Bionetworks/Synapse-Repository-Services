@@ -169,6 +169,19 @@ public class FacetRequestColumnModelTest {
 		
 		assertEquals("Unexpected facet request jsonPath (Was '$.foo', Expected '$.bar')", result);
 	}
+	
+	@Test
+	public void testConstructorWithJsonColumnAndMultiValueColumn(){
+		JsonSubColumnModel subColumn = new JsonSubColumnModel().setName("foo").setJsonPath("$.foo").setFacetType(FacetType.enumeration).setColumnType(ColumnType.INTEGER_LIST);
+		
+		facetValues.setJsonPath("$.foo");
+		
+		String result = assertThrows(UnsupportedOperationException.class, () -> {
+			new FacetRequestColumnModel(columnModel.getName(), subColumn, facetValues);
+		}).getMessage();
+		
+		assertEquals("Facets on multi-value sub columns are not supported yet.", result);
+	}
 
 	@Test
 	public void testConstructorNullFacetRequest(){

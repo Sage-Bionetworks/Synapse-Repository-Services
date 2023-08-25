@@ -424,7 +424,7 @@ public class ColumnModelUtilsTest {
 		}).getMessage();
 		assertEquals("JsonSubColumns can only set for a column of type: JSON", message);
 	}
-	
+		
 	@Test
 	public void testNormalizedCloneWithSubColumnsWithDuplicateJsonPath() {
 		ColumnModel column = new ColumnModel().setName("jsonRoot").setColumnType(ColumnType.JSON).setJsonSubColumns(List.of(
@@ -495,6 +495,16 @@ public class ColumnModelUtilsTest {
 			ColumnModelUtils.validateJsonSubColumn(sub);
 		}).getMessage();
 		assertEquals("The columnType of a JsonSubColumnModel cannot be JSON.", message);
+	}
+	
+	@Test
+	public void testValidateJsonSubColumnWithListColumnType() {
+		JsonSubColumnModel sub = new JsonSubColumnModel().setName("a").setJsonPath("$.a").setColumnType(ColumnType.INTEGER_LIST);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			ColumnModelUtils.validateJsonSubColumn(sub);
+		}).getMessage();
+		assertEquals("The columnType of a JsonSubColumnModel cannot be a list.", message);
 	}
 
 	@Test

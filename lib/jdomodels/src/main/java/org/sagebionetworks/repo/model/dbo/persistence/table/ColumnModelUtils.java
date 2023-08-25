@@ -25,6 +25,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.collect.Lists;
@@ -280,8 +281,11 @@ public class ColumnModelUtils {
 		ValidateArgument.required(sub.getName(), "JsonSubColumnModel.name");
 		ValidateArgument.required(sub.getJsonPath(), "JsonSubColumnModel.jsonPath");
 		ValidateArgument.required(sub.getColumnType(), "JsonSubColumnModel.columnType");
-		if(ColumnType.JSON.equals(sub.getColumnType())) {
+		if (ColumnType.JSON.equals(sub.getColumnType())) {
 			throw new IllegalArgumentException("The columnType of a JsonSubColumnModel cannot be JSON.");
+		}
+		if (ColumnTypeListMappings.isList(sub.getColumnType())) {
+			throw new IllegalArgumentException("The columnType of a JsonSubColumnModel cannot be a list.");
 		}
 	}
 

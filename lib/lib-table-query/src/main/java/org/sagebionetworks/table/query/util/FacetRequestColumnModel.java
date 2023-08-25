@@ -55,6 +55,10 @@ public class FacetRequestColumnModel {
 		ValidateArgument.required(subColumn.getFacetType(), "subColumn.facetType");
 		ValidateArgument.requiredNotBlank(subColumn.getJsonPath(), "subColumn.jsonPath");
 		ValidateArgument.required(subColumn.getColumnType(), "subColumn.columnType");
+
+		if (ColumnTypeListMappings.isList(subColumn.getColumnType())) {
+			throw new UnsupportedOperationException("Facets on multi-value sub columns are not supported yet.");
+		}
 		
 		validateFacetRequestType(subColumn.getFacetType(), facetColumnRequest);
 		
