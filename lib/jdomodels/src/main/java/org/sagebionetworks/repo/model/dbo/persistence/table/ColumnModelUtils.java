@@ -6,8 +6,10 @@ import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -255,9 +257,16 @@ public class ColumnModelUtils {
 				if(!ColumnType.JSON.equals(clone.getColumnType())) {
 					throw new IllegalArgumentException("JsonSubColumns can only set for a column of type: JSON");
 				}
-				clone.getJsonSubColumns().forEach(ColumnModelUtils::validateJsonSubColumn);
 				if(clone.getJsonSubColumns().isEmpty()) {
 					clone.setJsonSubColumns(null);
+				} else {
+					Set<String> jsonPaths = new HashSet<>();
+					clone.getJsonSubColumns().forEach(subColumn -> {
+						if (!jsonPaths.add(subColumn.getJsonPath())) {
+							throw new IllegalArgumentException("Duplicate jsonPath found in jsonSubColumns: '" + subColumn.getJsonPath() + "'");
+						}
+						validateJsonSubColumn(subColumn);
+					});
 				}
 			}
 			return clone;

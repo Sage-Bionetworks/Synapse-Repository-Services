@@ -426,6 +426,21 @@ public class ColumnModelUtilsTest {
 	}
 	
 	@Test
+	public void testNormalizedCloneWithSubColumnsWithDuplicateJsonPath() {
+		ColumnModel column = new ColumnModel().setName("jsonRoot").setColumnType(ColumnType.JSON).setJsonSubColumns(List.of(
+			new JsonSubColumnModel().setName("a").setJsonPath("$.a").setColumnType(ColumnType.INTEGER),
+			new JsonSubColumnModel().setName("duplicateA").setJsonPath("$.a").setColumnType(ColumnType.STRING)
+		));
+
+		String message = assertThrows(IllegalArgumentException.class, ()-> {
+			// call under test
+			ColumnModelUtils.createNormalizedClone(column, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		}).getMessage();
+		
+		assertEquals("Duplicate jsonPath found in jsonSubColumns: '$.a'", message);
+	}
+	
+	@Test
 	public void testValidateJsonSubColumn() {
 		JsonSubColumnModel sub = new JsonSubColumnModel().setName("a").setJsonPath("$.a").setColumnType(ColumnType.INTEGER);
 		// call under test
