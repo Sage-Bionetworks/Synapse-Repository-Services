@@ -230,16 +230,12 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	
 	@Override
 	@WriteTransaction
-	public void revokeGroup(UserInfo userInfo, String accessRequirementId, String submitterId, List<String> accessorIds) {
+	public void revokeGroupUnchecked(UserInfo userInfo, String accessRequirementId, String submitterId, List<String> accessorIds) {
 		ValidateArgument.required(userInfo, "The user");
 		ValidateArgument.required(accessRequirementId, "The access requirement id");
 		ValidateArgument.required(submitterId, "The submitter id");
 		ValidateArgument.required(accessorIds, "The list of accessor ids");
-		
-		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
-			throw new UnauthorizedException("Only ACT member can perform this action.");
-		}
-		
+				
 		if (accessorIds.isEmpty()) {
 			return;
 		}
