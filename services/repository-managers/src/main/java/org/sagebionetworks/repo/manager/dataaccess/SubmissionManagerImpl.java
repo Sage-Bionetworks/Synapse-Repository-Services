@@ -282,7 +282,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			createApprovalsForSubmission(submission, modifiedBy, expiredOn, approvalsToCreateOrUpdate, accessorsToRevoke);
 
 			if (!accessorsToRevoke.isEmpty()) {
-				accessAprovalManager.revokeGroup(userInfo, submission.getAccessRequirementId(), submission.getSubmittedBy(), accessorsToRevoke);
+				accessAprovalManager.revokeGroupUnchecked(userInfo, submission.getAccessRequirementId(), submission.getSubmittedBy(), accessorsToRevoke);
 			}
 			
 			if (!approvalsToCreateOrUpdate.isEmpty()) {

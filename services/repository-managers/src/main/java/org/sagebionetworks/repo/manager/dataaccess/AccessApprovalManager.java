@@ -65,14 +65,14 @@ public interface AccessApprovalManager {
 	void revokeGroup(UserInfo userInfo, AccessorGroupRevokeRequest request);
 
 	/**
-	 * Revoke a group of access approvals for the given access requirement, submitter and list of accessors
+	 * Revoke a group of access approvals for the given access requirement, submitter and list of accessors. Does NOT check for user permissions.
 	 * 
 	 * @param userInfo
 	 * @param accessRequirementId
 	 * @param submitterId
 	 * @param accessorIds
 	 */
-	void revokeGroup(UserInfo userInfo, String accessRequirementId, String submitterId, List<String> accessorIds);
+	void revokeGroupUnchecked(UserInfo userInfo, String accessRequirementId, String submitterId, List<String> accessorIds);
 
 	/**
 	 * Retrieve a batch of AccessApprovalInfo.
