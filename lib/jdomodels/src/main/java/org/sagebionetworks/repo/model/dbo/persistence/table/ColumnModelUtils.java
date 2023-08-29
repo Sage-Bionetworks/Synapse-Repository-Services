@@ -6,8 +6,10 @@ import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -23,6 +25,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.collect.Lists;
@@ -255,9 +258,16 @@ public class ColumnModelUtils {
 				if(!ColumnType.JSON.equals(clone.getColumnType())) {
 					throw new IllegalArgumentException("JsonSubColumns can only set for a column of type: JSON");
 				}
-				clone.getJsonSubColumns().forEach(ColumnModelUtils::validateJsonSubColumn);
 				if(clone.getJsonSubColumns().isEmpty()) {
 					clone.setJsonSubColumns(null);
+				} else {
+					Set<String> jsonPaths = new HashSet<>();
+					clone.getJsonSubColumns().forEach(subColumn -> {
+						if (!jsonPaths.add(subColumn.getJsonPath())) {
+							throw new IllegalArgumentException("Duplicate jsonPath found in jsonSubColumns: '" + subColumn.getJsonPath() + "'");
+						}
+						validateJsonSubColumn(subColumn);
+					});
 				}
 			}
 			return clone;
@@ -271,8 +281,11 @@ public class ColumnModelUtils {
 		ValidateArgument.required(sub.getName(), "JsonSubColumnModel.name");
 		ValidateArgument.required(sub.getJsonPath(), "JsonSubColumnModel.jsonPath");
 		ValidateArgument.required(sub.getColumnType(), "JsonSubColumnModel.columnType");
-		if(ColumnType.JSON.equals(sub.getColumnType())) {
+		if (ColumnType.JSON.equals(sub.getColumnType())) {
 			throw new IllegalArgumentException("The columnType of a JsonSubColumnModel cannot be JSON.");
+		}
+		if (ColumnTypeListMappings.isList(sub.getColumnType())) {
+			throw new IllegalArgumentException("The columnType of a JsonSubColumnModel cannot be a list.");
 		}
 	}
 

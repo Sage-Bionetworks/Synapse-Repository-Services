@@ -1,9 +1,0 @@
-{
-	"description": "Results of a SQL transformation request.",
-	"properties":{
-		"transformedSql":{
-			"type": "string",
-			"description":"the transformed SQL."
-		}
-	}
-}

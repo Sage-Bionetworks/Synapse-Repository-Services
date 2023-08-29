@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.ReplicationType;
@@ -158,7 +159,10 @@ public class VirtualTableIntegrationTest {
 				.createColumnModel(new ColumnModel().setName("barSum").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range));
 
 		ColumnModel jsonColumn = columnModelManager
-				.createColumnModel(new ColumnModel().setName("jsonColumn").setColumnType(ColumnType.JSON));
+				.createColumnModel(new ColumnModel().setName("jsonColumn").setColumnType(ColumnType.JSON).setJsonSubColumns(List.of(
+					new JsonSubColumnModel().setName("a").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.enumeration).setJsonPath("$.a"),
+					new JsonSubColumnModel().setName("b").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range).setJsonPath("$.b")
+				)));
 		
 		ColumnModel jsonArrayColumn = columnModelManager
 				.createColumnModel(new ColumnModel().setName("jsonArrayColumn").setColumnType(ColumnType.JSON));
@@ -199,6 +203,12 @@ public class VirtualTableIntegrationTest {
 					new FacetColumnResultValueCount().setValue("5").setCount(1L).setIsSelected(false),
 					new FacetColumnResultValueCount().setValue("16").setCount(1L).setIsSelected(false)
 				))
+				// TODO There should be values for each of the jsonSubColumn in the jsonColumn (See https://sagebionetworks.jira.com/browse/PLFM-7974)
+				// , 
+				// new FacetColumnResultValues().setColumnName("jsonColumn").setJsonPath("$.a").setFacetType(FacetType.enumeration).setFacetValues(List.of(
+				// 		new FacetColumnResultValueCount().setValue("a").setCount(1L).setIsSelected(false)
+				// )),
+				// new FacetColumnResultRange().setColumnName("jsonColumn").setJsonPath("$.b").setFacetType(FacetType.range).setColumnMin("18").setColumnMax("18")
 			), results.getFacets());
 		}, MAX_WAIT_MS);
 
@@ -223,6 +233,42 @@ public class VirtualTableIntegrationTest {
 				new FacetColumnResultValues().setColumnName("listColumn").setFacetType(FacetType.enumeration).setFacetValues(List.of(
 					new FacetColumnResultValueCount().setValue("2").setCount(1L).setIsSelected(false),
 					new FacetColumnResultValueCount().setValue("16").setCount(1L).setIsSelected(false)
+				))
+			), results.getFacets());
+		}, MAX_WAIT_MS);
+		
+		// query with a (range) facet selection on the JSON column
+		query.setSelectedFacets(
+				List.of(new FacetColumnRangeRequest().setColumnName("jsonColumn").setJsonPath("$.b").setMax("19").setMin("17")));
+		
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("b", "18", "{\"b\": 18}", "[2, 16]", "[2, 16]"))),
+					results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn, listColumn), results.getColumnModels());
+			assertEquals(1L, results.getQueryCount());
+			assertEquals(List.of(
+				new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range).setColumnMin("18").setColumnMax("18"),
+				new FacetColumnResultValues().setColumnName("listColumn").setFacetType(FacetType.enumeration).setFacetValues(List.of(
+					new FacetColumnResultValueCount().setValue("2").setCount(1L).setIsSelected(false),
+					new FacetColumnResultValueCount().setValue("16").setCount(1L).setIsSelected(false)
+				))
+			), results.getFacets());
+		}, MAX_WAIT_MS);
+		
+		// query with a (value) facet selection on the JSON column
+		query.setSelectedFacets(
+				List.of(new FacetColumnValuesRequest().setColumnName("jsonColumn").setJsonPath("$.a").setFacetValues(Set.of("6"))));
+		
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(List.of(new Row().setValues(List.of("a", "6", "{\"a\": 6}", "[1, 5]", "[1, 5]"))),
+					results.getQueryResult().getQueryResults().getRows());
+			assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn, listColumn), results.getColumnModels());
+			assertEquals(1L, results.getQueryCount());
+			assertEquals(List.of(
+				new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range).setColumnMin("6").setColumnMax("6"),
+				new FacetColumnResultValues().setColumnName("listColumn").setFacetType(FacetType.enumeration).setFacetValues(List.of(
+						new FacetColumnResultValueCount().setValue("1").setCount(1L).setIsSelected(false),
+						new FacetColumnResultValueCount().setValue("5").setCount(1L).setIsSelected(false)
 				))
 			), results.getFacets());
 		}, MAX_WAIT_MS);

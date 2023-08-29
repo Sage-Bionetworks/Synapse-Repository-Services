@@ -1,10 +1,12 @@
 package org.sagebionetworks.table.cluster;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
@@ -50,11 +52,27 @@ public class CombinedQuery {
 							.orElseThrow(() -> new IllegalArgumentException(
 									String.format("Facet selection: '%s' does not match any column name of the schema",
 											facetRequest.getColumnName())));
-					facetRequestModels
-							.add(new FacetRequestColumnModel(
-									new ColumnModel().setColumnType(ref.getColumnType())
-											.setFacetType(ref.getFacetType()).setName(facetRequest.getColumnName()),
-									facetRequest));
+					
+					FacetRequestColumnModel requestModel;
+					
+					// The facet request references a sub column
+					if (facetRequest.getJsonPath() != null) {
+						List<JsonSubColumnModel> subColumns = ref.getJsonSubColumns() == null ? Collections.emptyList() : ref.getJsonSubColumns();
+						
+						JsonSubColumnModel matchingSubColumn = subColumns.stream()
+							.filter(subColumn -> facetRequest.getJsonPath().equals(subColumn.getJsonPath()))
+							.findFirst()
+							.orElseThrow(() -> new IllegalArgumentException("Could not find a subColumn with jsonPath '" + facetRequest.getJsonPath() + "' for column '" + ref.getUserQueryColumnName() + "'"));
+						
+						requestModel = new FacetRequestColumnModel(ref.getUserQueryColumnName(), matchingSubColumn, facetRequest);
+					} else {
+						requestModel = new FacetRequestColumnModel(new ColumnModel()
+								.setColumnType(ref.getColumnType())
+								.setFacetType(ref.getFacetType())
+								.setName(facetRequest.getColumnName()), facetRequest);
+					}
+					
+					facetRequestModels.add(requestModel);
 				}
 
 				querySpecification.getTableExpression()

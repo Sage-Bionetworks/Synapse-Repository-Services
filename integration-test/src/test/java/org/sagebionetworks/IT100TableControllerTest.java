@@ -30,7 +30,6 @@ import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
-import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
@@ -51,8 +50,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
-import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -74,7 +71,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
-import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
 import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -962,27 +958,7 @@ public class IT100TableControllerTest {
 		});
 		
 	}
-	
-	
-	@Test
-	public void tesSqlTransformRequest() throws SynapseException {
-		TransformSqlWithFacetsRequest request = new TransformSqlWithFacetsRequest();
-		request.setSqlToTransform("select * from syn123");
-		FacetColumnRangeRequest facet = new FacetColumnRangeRequest();
-		facet.setColumnName("foo");
-		facet.setMax("100");
-		facet.setMin("0");
-		request.setSelectedFacets(Lists.newArrayList(facet));
-		ColumnModel column = new ColumnModel();
-		column.setName("foo");
-		column.setFacetType(FacetType.range);
-		column.setColumnType(ColumnType.INTEGER);
-		request.setSchema(Lists.newArrayList(column));
-		// Call under test
-		String resultSql = synapse.transformSqlRequest(request);
-		assertEquals("SELECT * FROM syn123 WHERE ( ( \"foo\" BETWEEN '0' AND '100' ) )", resultSql);
-	}
-	
+		
 	private TableEntity createTable(List<String> columns) throws SynapseException {
 		return createTable(columns, synapse);
 	}

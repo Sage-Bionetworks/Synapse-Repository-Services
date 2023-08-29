@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -4058,6 +4059,9 @@ public class SQLTranslatorUtilsTest {
 		columnFoo.setMaximumListLength(100L);
 		columnFoo.setMaximumSize(10L);
 		columnFoo.setName("foo");
+		columnFoo.setJsonSubColumns(List.of(
+			new JsonSubColumnModel().setName("a").setJsonPath("$.a").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.enumeration)
+		));
 
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List.of(columnFoo));
 

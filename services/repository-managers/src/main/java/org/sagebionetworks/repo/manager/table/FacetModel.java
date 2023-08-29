@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -70,9 +71,17 @@ public class FacetModel {
 		//create the SearchConditions based on each facet column's values and store them into the list
 		List <FacetRequestColumnModel> validatedFacetsList = new ArrayList<FacetRequestColumnModel>();
 		for(ColumnModel columnModel : schema){
-			FacetColumnRequest facetColumnRequest = selectedFacetMap.get(columnModel.getName());
+			FacetColumnRequest facetColumnRequest = selectedFacetMap.get(getColumnNameKey(columnModel.getName(), null));
 
-			processFacetColumnRequest(validatedFacetsList, facetedColumnNames, columnModel, facetColumnRequest, returnFacets);
+			processFacetColumnRequest(validatedFacetsList, facetedColumnNames, columnModel, null, facetColumnRequest, returnFacets);
+			
+			if (columnModel.getJsonSubColumns() != null) {
+				columnModel.getJsonSubColumns().forEach(subColumn -> {
+					FacetColumnRequest subColumnFacetColumnRequest = selectedFacetMap.get(getColumnNameKey(columnModel.getName(), subColumn.getJsonPath()));
+			
+					processFacetColumnRequest(validatedFacetsList, facetedColumnNames, columnModel, subColumn, subColumnFacetColumnRequest, returnFacets);
+				});
+			}
 		}
 		
 		if(!facetedColumnNames.containsAll(selectedFacetMap.keySet())){
@@ -91,13 +100,20 @@ public class FacetModel {
 	 * @param facetColumnRequest
 	 */
 	static void processFacetColumnRequest(List<FacetRequestColumnModel> validatedFacetsList, Set<String> facetedColumnNames,
-			ColumnModel columnModel, FacetColumnRequest facetColumnRequest, boolean returnFacets) {
-		if(columnModel.getFacetType() != null){
-			facetedColumnNames.add(columnModel.getName());
+			ColumnModel columnModel, JsonSubColumnModel subColumn, FacetColumnRequest facetColumnRequest, boolean returnFacets) {
+		if(columnModel.getFacetType() != null) {
+			facetedColumnNames.add(getColumnNameKey(columnModel.getName(), null));
 			
 			//if it is a faceted column and user either wants returned facets or they have applied a filter to the facet
-			if (returnFacets || facetColumnRequest != null ){
+			if (returnFacets || facetColumnRequest != null) {
 				validatedFacetsList.add(new FacetRequestColumnModel(columnModel, facetColumnRequest));
+			}
+		} else if (subColumn != null && subColumn.getFacetType() != null) {
+			
+			facetedColumnNames.add(getColumnNameKey(columnModel.getName(), subColumn.getJsonPath()));
+			
+			if (returnFacets || facetColumnRequest != null) {
+				validatedFacetsList.add(new FacetRequestColumnModel(columnModel.getName(), subColumn, facetColumnRequest));
 			}
 		}
 	}
@@ -110,7 +126,7 @@ public class FacetModel {
 		Map<String, FacetColumnRequest> result = new HashMap<String, FacetColumnRequest>();
 		if(selectedFacets != null){
 			for(FacetColumnRequest facet : selectedFacets){
-				FacetColumnRequest shouldBeNull = result.put(facet.getColumnName(), facet);
+				FacetColumnRequest shouldBeNull = result.put(getColumnNameKey(facet.getColumnName(), facet.getJsonPath()), facet);
 				if(shouldBeNull != null){
 					throw new IllegalArgumentException("Request contains QueryRequestFacetColumn with a duplicate column name");
 				}
@@ -125,9 +141,13 @@ public class FacetModel {
 		ValidateArgument.required(validatedFacets, "validatedFacets");
 		
 		List<FacetTransformer> transformersList = new ArrayList<>(validatedFacets.size());
-		for(FacetRequestColumnModel facet: validatedFacets){
+		for(FacetRequestColumnModel facet: validatedFacets) {
+			if (facet.getJsonPath() != null) {
+				// TODO: skip for now, see https://sagebionetworks.jira.com/browse/PLFM-7974
+				continue;
+			}
 			QueryExpression queryClone = cloneQuery(originalQuery);
-			switch(facet.getFacetType()){
+			switch(facet.getFacetType()) {
 				case enumeration:
 					Set<String> selectedValues = null;
 					FacetColumnValuesRequest facetValuesRequest = (FacetColumnValuesRequest) facet.getFacetColumnRequest();
@@ -151,6 +171,13 @@ public class FacetModel {
 			}
 		}
 		return transformersList;
+	}
+	
+	private static String getColumnNameKey(String columnName, String jsonPath) {
+		if (jsonPath == null) {
+			return columnName;
+		}
+		return columnName + "." + jsonPath;
 	}
 	
 	private static QueryExpression cloneQuery(QueryExpression toClone) {

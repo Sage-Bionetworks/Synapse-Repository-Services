@@ -1,10 +1,12 @@
 package org.sagebionetworks.table.cluster.columntranslation;
 
+import java.util.List;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -20,6 +22,7 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 	private final Long maximumListLength;
 	private final FacetType facetType;
 	private final String defaultValue;
+	private final List<JsonSubColumnModel> jsonSubColumns;
 
 	public SchemaColumnTranslationReference(ColumnModel columnModel){
 		ValidateArgument.required(columnModel, "columnModel");
@@ -34,6 +37,7 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 		this.maximumListLength = columnModel.getMaximumListLength();
 		this.facetType = columnModel.getFacetType();
 		this.defaultValue = columnModel.getDefaultValue();
+		this.jsonSubColumns = columnModel.getJsonSubColumns();
 	}
 
 	@Override
@@ -77,11 +81,16 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 	public String getDefaultValues() {
 		return this.defaultValue;
 	}
+	
+	@Override
+	public List<JsonSubColumnModel> getJsonSubColumns() {
+		return this.jsonSubColumns;
+	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(columnType, defaultValue, facetType, id, maximumListLength, maximumSize,
-				translatedColumnName, userQueryColumnName);
+		return Objects.hash(columnType, defaultValue, facetType, id, jsonSubColumns, maximumListLength, maximumSize, translatedColumnName,
+				userQueryColumnName);
 	}
 
 	@Override
@@ -93,20 +102,19 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 			return false;
 		}
 		SchemaColumnTranslationReference other = (SchemaColumnTranslationReference) obj;
-		return columnType == other.columnType && Objects.equals(defaultValue, other.defaultValue)
-				&& facetType == other.facetType && Objects.equals(id, other.id)
-				&& Objects.equals(maximumListLength, other.maximumListLength)
-				&& Objects.equals(maximumSize, other.maximumSize)
+		return columnType == other.columnType && Objects.equals(defaultValue, other.defaultValue) && facetType == other.facetType
+				&& Objects.equals(id, other.id) && Objects.equals(jsonSubColumns, other.jsonSubColumns)
+				&& Objects.equals(maximumListLength, other.maximumListLength) && Objects.equals(maximumSize, other.maximumSize)
 				&& Objects.equals(translatedColumnName, other.translatedColumnName)
 				&& Objects.equals(userQueryColumnName, other.userQueryColumnName);
 	}
 
 	@Override
 	public String toString() {
-		return "SchemaColumnTranslationReference [columnType=" + columnType + ", userQueryColumnName="
-				+ userQueryColumnName + ", translatedColumnName=" + translatedColumnName + ", id=" + id
-				+ ", maximumSize=" + maximumSize + ", maximumListLength=" + maximumListLength + ", facetType="
-				+ facetType + ", defaultValue=" + defaultValue + "]";
+		return "SchemaColumnTranslationReference [columnType=" + columnType + ", userQueryColumnName=" + userQueryColumnName
+				+ ", translatedColumnName=" + translatedColumnName + ", id=" + id + ", maximumSize=" + maximumSize + ", maximumListLength="
+				+ maximumListLength + ", facetType=" + facetType + ", defaultValue=" + defaultValue + ", jsonSubColumns=" + jsonSubColumns
+				+ "]";
 	}
 
 }

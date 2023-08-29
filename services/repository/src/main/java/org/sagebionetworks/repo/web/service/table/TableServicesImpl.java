@@ -30,15 +30,10 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
-import org.sagebionetworks.repo.model.table.SqlTransformRequest;
-import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
-import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.util.TableSqlProcessor;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -233,22 +228,6 @@ public class TableServicesImpl implements TableServices {
 		return tableManagerSupport.getDefaultTableViewColumns(entityType, viewTypeMask);
 	}
 	
-	@Override
-	public SqlTransformResponse transformSqlRequest(SqlTransformRequest request) throws ParseException {
-		ValidateArgument.required(request, "request");
-		String transformedSql = null;
-		if (request instanceof TransformSqlWithFacetsRequest) {
-			TransformSqlWithFacetsRequest facetRequest = (TransformSqlWithFacetsRequest) request;
-			transformedSql = TableSqlProcessor.generateSqlWithFacets(facetRequest.getSqlToTransform(),
-					facetRequest.getSelectedFacets(), facetRequest.getSchema());
-		} else {
-			throw new IllegalArgumentException("Unknown request type: " + request.getClass().getName());
-		}
-		SqlTransformResponse response = new SqlTransformResponse();
-		response.setTransformedSql(transformedSql);
-		return response;
-	}
-
 	@Override
 	public SnapshotResponse createTableSnapshot(Long userId, String tableId, SnapshotRequest request) {
 		Validate.required(userId, "userId");
