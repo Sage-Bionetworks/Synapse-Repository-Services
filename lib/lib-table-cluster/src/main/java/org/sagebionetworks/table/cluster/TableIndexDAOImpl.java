@@ -66,8 +66,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
@@ -109,7 +107,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -300,7 +297,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void deleteTable(IdAndVersion tableId) {
 		boolean alterTemp = false;
-		deleteMultiValueTablesForTable(tableId, alterTemp);
+//		deleteMultiValueTablesForTable(tableId, alterTemp);
 		template.update(SQLUtils.dropTableSQL(tableId, SQLUtils.TableIndexType.INDEX));
 		deleteSecondaryTables(tableId);
 	}
@@ -321,12 +318,12 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	 * @param tableId
 	 * @param alterTemp
 	 */
-	void deleteMultiValueTablesForTable(IdAndVersion tableId, boolean alterTemp) {
-		List<String> tablesToDelete = getMultivalueColumnIndexTableNames(tableId, alterTemp);
-		for(String tableNames: tablesToDelete) {
-			template.update("DROP TABLE IF EXISTS "+tableNames);
-		}
-	}
+//	void deleteMultiValueTablesForTable(IdAndVersion tableId, boolean alterTemp) {
+//		List<String> tablesToDelete = getMultivalueColumnIndexTableNames(tableId, alterTemp);
+//		for(String tableNames: tablesToDelete) {
+//			template.update("DROP TABLE IF EXISTS "+tableNames);
+//		}
+//	}
 
 	@Override
 	public void createOrUpdateOrDeleteRows(final IdAndVersion tableId, final Grouping grouping) {
@@ -614,37 +611,37 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return true;
 	}
 
-	@Override
-	public Set<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId){
-		boolean alterTemp = false;
-		return getMultivalueColumnIndexTableNames(tableId, alterTemp)
-				.stream()
-				.map((String indexTableName) -> SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(tableId, indexTableName))
-				.collect(Collectors.toSet());
-	}
+//	@Override
+//	public Set<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId){
+//		boolean alterTemp = false;
+//		return getMultivalueColumnIndexTableNames(tableId, alterTemp)
+//				.stream()
+//				.map((String indexTableName) -> SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(tableId, indexTableName))
+//				.collect(Collectors.toSet());
+//	}
 
-	List<String> getMultivalueColumnIndexTableNames(IdAndVersion tableId, boolean alterTemp){
-		String multiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId, alterTemp);
-		return template.queryForList("SHOW TABLES LIKE '"+multiValueTableNamePrefix+"%'", String.class);
-	}
+//	List<String> getMultivalueColumnIndexTableNames(IdAndVersion tableId, boolean alterTemp){
+//		String multiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId, alterTemp);
+//		return template.queryForList("SHOW TABLES LIKE '"+multiValueTableNamePrefix+"%'", String.class);
+//	}
 
-	@Override
-	public void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel, boolean alterTemp){
-		template.update(SQLUtils.createListColumnIndexTable(tableId, columnModel, alterTemp));
-	}
-
-	@Override
-	public void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId, boolean alterTemp){
-		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId.toString(), alterTemp);
-		template.update("DROP TABLE IF EXISTS " + tableName);
-	}
-
-
-	@Override
-	public void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp){
-		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumnId, newColumn, alterTemp);
-		template.update(sql);
-	}
+//	@Override
+//	public void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel, boolean alterTemp){
+//		template.update(SQLUtils.createListColumnIndexTable(tableId, columnModel, alterTemp));
+//	}
+//
+//	@Override
+//	public void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId, boolean alterTemp){
+//		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId.toString(), alterTemp);
+//		template.update("DROP TABLE IF EXISTS " + tableName);
+//	}
+//
+//
+//	@Override
+//	public void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp){
+//		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumnId, newColumn, alterTemp);
+//		template.update(sql);
+//	}
 
 
 	@Override
@@ -741,45 +738,45 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 
-	@Override
-	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds, boolean alterTemp){
-		ValidateArgument.required(tableId, "tableId");
-		ValidateArgument.required(listColumn, "listColumn");
-		//only operate on list column types
-		if (!ColumnTypeListMappings.isList(listColumn.getColumnType())) {
-			throw new IllegalArgumentException("Only valid for List type columns");
-		}
-		if(rowIds != null && rowIds.isEmpty()) {
-			throw new IllegalArgumentException("When rowIds is provided (not null) it cannot be empty");
-		}
-		boolean filterRows = rowIds != null;
-		String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableId, listColumn, filterRows, alterTemp);
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		if(filterRows) {
-			param.addValue(ID_PARAM_NAME, rowIds);
-		}
-		try {
-			namedTemplate.update(insertIntoSql, param);
-		} catch (DataIntegrityViolationException e){
-			throw new IllegalArgumentException("The size of the column '"+ listColumn.getName()+ "' is too small." +
-					" Unable to automatically determine the necessary size to fit all values in a STRING_LIST column", e);
-		}
-	}
+//	@Override
+//	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds, boolean alterTemp){
+//		ValidateArgument.required(tableId, "tableId");
+//		ValidateArgument.required(listColumn, "listColumn");
+//		//only operate on list column types
+//		if (!ColumnTypeListMappings.isList(listColumn.getColumnType())) {
+//			throw new IllegalArgumentException("Only valid for List type columns");
+//		}
+//		if(rowIds != null && rowIds.isEmpty()) {
+//			throw new IllegalArgumentException("When rowIds is provided (not null) it cannot be empty");
+//		}
+//		boolean filterRows = rowIds != null;
+//		String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableId, listColumn, filterRows, alterTemp);
+//		MapSqlParameterSource param = new MapSqlParameterSource();
+//		if(filterRows) {
+//			param.addValue(ID_PARAM_NAME, rowIds);
+//		}
+//		try {
+//			namedTemplate.update(insertIntoSql, param);
+//		} catch (DataIntegrityViolationException e){
+//			throw new IllegalArgumentException("The size of the column '"+ listColumn.getName()+ "' is too small." +
+//					" Unable to automatically determine the necessary size to fit all values in a STRING_LIST column", e);
+//		}
+//	}
 
-	@Override
-	public void deleteFromListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds){
-		ValidateArgument.required(tableId, "tableId");
-		ValidateArgument.required(listColumn, "listColumn");
-		ValidateArgument.required(listColumn.getId(), "listColumn.id");
-		ValidateArgument.requiredNotEmpty(rowIds, "rowIds");
-		ValidateArgument.requirement(ColumnTypeListMappings.isList(listColumn.getColumnType()), "Only valid for List type columns");
-
-		String rowIdsParameter = "rowIds";
-
-		namedTemplate.update("DELETE FROM " + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, listColumn.getId()) +
-				" WHERE " + SQLUtils.getRowIdRefColumnNameForId(listColumn.getId()) + " IN (:"+rowIdsParameter+")" ,
-				Collections.singletonMap(rowIdsParameter, rowIds));
-	}
+//	@Override
+//	public void deleteFromListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds){
+//		ValidateArgument.required(tableId, "tableId");
+//		ValidateArgument.required(listColumn, "listColumn");
+//		ValidateArgument.required(listColumn.getId(), "listColumn.id");
+//		ValidateArgument.requiredNotEmpty(rowIds, "rowIds");
+//		ValidateArgument.requirement(ColumnTypeListMappings.isList(listColumn.getColumnType()), "Only valid for List type columns");
+//
+//		String rowIdsParameter = "rowIds";
+//
+//		namedTemplate.update("DELETE FROM " + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, listColumn.getId()) +
+//				" WHERE " + SQLUtils.getRowIdRefColumnNameForId(listColumn.getId()) + " IN (:"+rowIdsParameter+")" ,
+//				Collections.singletonMap(rowIdsParameter, rowIds));
+//	}
 
 
 	@Override
@@ -810,34 +807,34 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 	}
 
-	@Override
-	public long getTempTableMultiValueColumnIndexCount(IdAndVersion tableId, String columnName) {
-		boolean alterTemp = true;
-		String sql = "SELECT COUNT(*) FROM " + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnName, alterTemp);
-		try {
-			return template.queryForObject(sql, Long.class);
-		} catch (DataAccessException e) {
-			return 0L;
-		}
-	}
-
-	@Override
-	public void createTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId){
-		String[] sqlBatch = SQLUtils.createTempMultiValueColumnIndexTableSql(tableId, columnId);
-		template.batchUpdate(sqlBatch);
-	}
-
-	@Override
-	public void copyAllDataToTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId) {
-		String sql = SQLUtils.copyMultiValueColumnIndexTableToTempSql(tableId, columnId);
-		template.update(sql);
-	}
-
-	@Override
-	public void deleteAllTemporaryMultiValueColumnIndexTable(IdAndVersion tableId) {
-		boolean alterTemp = true;
-		deleteMultiValueTablesForTable(tableId, alterTemp);
-	}
+//	@Override
+//	public long getTempTableMultiValueColumnIndexCount(IdAndVersion tableId, String columnName) {
+//		boolean alterTemp = true;
+//		String sql = "SELECT COUNT(*) FROM " + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnName, alterTemp);
+//		try {
+//			return template.queryForObject(sql, Long.class);
+//		} catch (DataAccessException e) {
+//			return 0L;
+//		}
+//	}
+//
+//	@Override
+//	public void createTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId){
+//		String[] sqlBatch = SQLUtils.createTempMultiValueColumnIndexTableSql(tableId, columnId);
+//		template.batchUpdate(sqlBatch);
+//	}
+//
+//	@Override
+//	public void copyAllDataToTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId) {
+//		String sql = SQLUtils.copyMultiValueColumnIndexTableToTempSql(tableId, columnId);
+//		template.update(sql);
+//	}
+//
+//	@Override
+//	public void deleteAllTemporaryMultiValueColumnIndexTable(IdAndVersion tableId) {
+//		boolean alterTemp = true;
+//		deleteMultiValueTablesForTable(tableId, alterTemp);
+//	}
 
 	@Override
 	public void createObjectReplicationTablesIfDoesNotExist() {
@@ -1652,33 +1649,33 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			
 		// Now we also swap the multi value tables
 		
-		List<String> targetMultiValueTableNames = getMultivalueColumnIndexTableNames(targetIndexId, false);
-		List<String> tmpMultiValueTableNames = new ArrayList<>(targetMultiValueTableNames.size());
-		
-		// First rename the target MV tables to random table names
-		targetMultiValueTableNames.forEach( targetTableName -> {
-			String tmpTableName = randomPrefix + targetTableName;
-			sqlBuilder.append(targetTableName).append(" TO ").append(tmpTableName).append(",");
-			tmpMultiValueTableNames.add(tmpTableName);
-		});
-		
-		// We can now rename the source tables into the target
-		List<String> sourceMultiValueTableNames = getMultivalueColumnIndexTableNames(sourceIndexId, false);
-		
-		String sourceMultiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(sourceIndexId, false);
-		String targetMultiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(targetIndexId, false);
-		
-		// Now we also rename the source MV tables into the target index
-		sourceMultiValueTableNames.forEach( sourceTableName -> {
-			String targetTableName = sourceTableName.replace(sourceMultiValueTableNamePrefix, targetMultiValueTableNamePrefix);
-			sqlBuilder.append(sourceTableName).append(" TO ").append(targetTableName).append(",");
-		});
-		
-		// We can now rename all the tmp tables to the source index prefix
-		tmpMultiValueTableNames.forEach( tmpTableName -> {
-			String sourceTableName = tmpTableName.replace(randomPrefix, "").replace(targetMultiValueTableNamePrefix, sourceMultiValueTableNamePrefix);
-			sqlBuilder.append(tmpTableName).append(" TO ").append(sourceTableName).append(",");
-		});
+//		List<String> targetMultiValueTableNames = getMultivalueColumnIndexTableNames(targetIndexId, false);
+//		List<String> tmpMultiValueTableNames = new ArrayList<>(targetMultiValueTableNames.size());
+//		
+//		// First rename the target MV tables to random table names
+//		targetMultiValueTableNames.forEach( targetTableName -> {
+//			String tmpTableName = randomPrefix + targetTableName;
+//			sqlBuilder.append(targetTableName).append(" TO ").append(tmpTableName).append(",");
+//			tmpMultiValueTableNames.add(tmpTableName);
+//		});
+//		
+//		// We can now rename the source tables into the target
+//		List<String> sourceMultiValueTableNames = getMultivalueColumnIndexTableNames(sourceIndexId, false);
+//		
+//		String sourceMultiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(sourceIndexId, false);
+//		String targetMultiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(targetIndexId, false);
+//		
+//		// Now we also rename the source MV tables into the target index
+//		sourceMultiValueTableNames.forEach( sourceTableName -> {
+//			String targetTableName = sourceTableName.replace(sourceMultiValueTableNamePrefix, targetMultiValueTableNamePrefix);
+//			sqlBuilder.append(sourceTableName).append(" TO ").append(targetTableName).append(",");
+//		});
+//		
+//		// We can now rename all the tmp tables to the source index prefix
+//		tmpMultiValueTableNames.forEach( tmpTableName -> {
+//			String sourceTableName = tmpTableName.replace(randomPrefix, "").replace(targetMultiValueTableNamePrefix, sourceMultiValueTableNamePrefix);
+//			sqlBuilder.append(tmpTableName).append(" TO ").append(sourceTableName).append(",");
+//		});
 		
 		sqlBuilder.deleteCharAt(sqlBuilder.length() - 1);
 	

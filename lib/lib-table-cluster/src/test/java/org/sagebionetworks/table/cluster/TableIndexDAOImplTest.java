@@ -199,11 +199,11 @@ public class TableIndexDAOImplTest {
 		changes = SQLUtils.matchChangesToCurrentInfo(currentSchema, changes);
 		boolean altered = tableIndexDAO.alterTableAsNeeded(indexDescription.getIdAndVersion(), changes, alterTemp);
 
-		for(ColumnModel columnModel : newSchema){
-			if(ColumnTypeListMappings.isList(columnModel.getColumnType())){
-				tableIndexDAO.createMultivalueColumnIndexTable(indexDescription.getIdAndVersion(), columnModel, false);
-			}
-		}
+//		for(ColumnModel columnModel : newSchema){
+//			if(ColumnTypeListMappings.isList(columnModel.getColumnType())){
+//				tableIndexDAO.createMultivalueColumnIndexTable(indexDescription.getIdAndVersion(), columnModel, false);
+//			}
+//		}
 
 		return altered;
 	}
@@ -2059,58 +2059,58 @@ public class TableIndexDAOImplTest {
 	}
 
 
-	@Test
-	public void testCreateMultiValueColumnIndexTable(){
-		ColumnModel strListCol = new ColumnModel();
-		strListCol.setId("12");
-		strListCol.setName("foo");
-		strListCol.setMaximumSize(50L);
-		strListCol.setColumnType(ColumnType.STRING_LIST);
-		strListCol.setMaximumListLength(25L);
-
-		List<ColumnModel> schema = Lists.newArrayList(strListCol);
-
-		createOrUpdateTable(schema, indexDescription);
-		// create five rows.
-		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
-		// add duplicate values
-		RowSet set = new RowSet();
-		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getSelectColumns(schema));
-		set.setTableId(tableId.toString());
-
-		IdRange range = new IdRange();
-		range.setMinimumId(100L);
-		range.setMaximumId(200L);
-		range.setVersionNumber(3L);
-		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-
-		createOrUpdateOrDeleteRows(tableId, set, schema);
-		//populate the column index table
-		tableIndexDAO.populateListColumnIndexTable(tableId, strListCol, null, false);
-
-		String columnId = strListCol.getId();
-
-		tableIndexDAO.deleteAllTemporaryMultiValueColumnIndexTable(tableId);
-		tableIndexDAO.deleteTemporaryTable(tableId);
-
-		// Create a copy of the table
-		tableIndexDAO.createTemporaryTable(tableId);
-		tableIndexDAO.copyAllDataToTemporaryTable(tableId);
-		tableIndexDAO.createTemporaryMultiValueColumnIndexTable(tableId, columnId);
-		// populate table with data
-		tableIndexDAO.copyAllDataToTemporaryMultiValueColumnIndexTable(tableId, columnId);
-
-		long count = tableIndexDAO.getTempTableMultiValueColumnIndexCount(tableId, columnId);
-
-		// we created 5 rows using the test utility, but there are 2 values per row which are expanded into the index table
-		assertEquals(10L, count);
-		// delete the temp and get the count again
-		tableIndexDAO.deleteAllTemporaryMultiValueColumnIndexTable(tableId);
-		tableIndexDAO.deleteTemporaryTable(tableId);
-		count = tableIndexDAO.getTempTableMultiValueColumnIndexCount(tableId, columnId);
-		assertEquals(0L, count);
-	}
+//	@Test
+//	public void testCreateMultiValueColumnIndexTable(){
+//		ColumnModel strListCol = new ColumnModel();
+//		strListCol.setId("12");
+//		strListCol.setName("foo");
+//		strListCol.setMaximumSize(50L);
+//		strListCol.setColumnType(ColumnType.STRING_LIST);
+//		strListCol.setMaximumListLength(25L);
+//
+//		List<ColumnModel> schema = Lists.newArrayList(strListCol);
+//
+//		createOrUpdateTable(schema, indexDescription);
+//		// create five rows.
+//		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
+//		// add duplicate values
+//		RowSet set = new RowSet();
+//		set.setRows(rows);
+//		set.setHeaders(TableModelUtils.getSelectColumns(schema));
+//		set.setTableId(tableId.toString());
+//
+//		IdRange range = new IdRange();
+//		range.setMinimumId(100L);
+//		range.setMaximumId(200L);
+//		range.setVersionNumber(3L);
+//		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+//
+//		createOrUpdateOrDeleteRows(tableId, set, schema);
+//		//populate the column index table
+//		tableIndexDAO.populateListColumnIndexTable(tableId, strListCol, null, false);
+//
+//		String columnId = strListCol.getId();
+//
+//		tableIndexDAO.deleteAllTemporaryMultiValueColumnIndexTable(tableId);
+//		tableIndexDAO.deleteTemporaryTable(tableId);
+//
+//		// Create a copy of the table
+//		tableIndexDAO.createTemporaryTable(tableId);
+//		tableIndexDAO.copyAllDataToTemporaryTable(tableId);
+//		tableIndexDAO.createTemporaryMultiValueColumnIndexTable(tableId, columnId);
+//		// populate table with data
+//		tableIndexDAO.copyAllDataToTemporaryMultiValueColumnIndexTable(tableId, columnId);
+//
+//		long count = tableIndexDAO.getTempTableMultiValueColumnIndexCount(tableId, columnId);
+//
+//		// we created 5 rows using the test utility, but there are 2 values per row which are expanded into the index table
+//		assertEquals(10L, count);
+//		// delete the temp and get the count again
+//		tableIndexDAO.deleteAllTemporaryMultiValueColumnIndexTable(tableId);
+//		tableIndexDAO.deleteTemporaryTable(tableId);
+//		count = tableIndexDAO.getTempTableMultiValueColumnIndexCount(tableId, columnId);
+//		assertEquals(0L, count);
+//	}
 	
 	@Test
 	public void testEntityReplication(){
@@ -3570,193 +3570,193 @@ public class TableIndexDAOImplTest {
 		return list;
 	}
 
-	@Test
-	public void testCreateAndPopulateListColumnIndexTables(){
-		// create a table with a long column.
-		ColumnModel intColumn = new ColumnModel();
-		intColumn.setId("12");
-		intColumn.setName("foo");
-		intColumn.setColumnType(ColumnType.INTEGER);
+//	@Test
+//	public void testCreateAndPopulateListColumnIndexTables(){
+//		// create a table with a long column.
+//		ColumnModel intColumn = new ColumnModel();
+//		intColumn.setId("12");
+//		intColumn.setName("foo");
+//		intColumn.setColumnType(ColumnType.INTEGER);
+//
+//		ColumnModel stringListColumn = new ColumnModel();
+//		stringListColumn.setId("15");
+//		stringListColumn.setName("myList");
+//		stringListColumn.setMaximumSize(54L);
+//		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+//		stringListColumn.setMaximumListLength(25L);
+//
+//
+//		ColumnModel booleanColumn = new ColumnModel();
+//		booleanColumn.setId("13");
+//		booleanColumn.setName("bar");
+//		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+//
+//		List<ColumnModel> schema = Lists.newArrayList(intColumn, stringListColumn ,booleanColumn);
+//
+//		createOrUpdateTable(schema, indexDescription);
+//
+//		int numRows = 5;
+//		List<Row> rows = TableModelTestUtils.createRows(schema, numRows);
+//		createOrUpdateOrDeleteRows(tableId, rows, schema);
+//
+//		Set<Long> rowsIds = null;
+//		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds, false);
+//
+//		//each list value created by createRows has 2 items in the list
+//		assertEquals(numRows * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
+//	}
 
-		ColumnModel stringListColumn = new ColumnModel();
-		stringListColumn.setId("15");
-		stringListColumn.setName("myList");
-		stringListColumn.setMaximumSize(54L);
-		stringListColumn.setColumnType(ColumnType.STRING_LIST);
-		stringListColumn.setMaximumListLength(25L);
+//	//See PLFM-5999
+//	@Test
+//	public void testCreateAndPopulateListColumnIndexTables__StringListDataTooLarge(){
+//
+//		ColumnModel stringListColumn = new ColumnModel();
+//		stringListColumn.setId("15");
+//		stringListColumn.setName("myList");
+//		// initial size needs to be large to allow initial values to be inserted into table
+//		// in a view, values are replicated from
+//		stringListColumn.setMaximumSize(54L);
+//		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+//		stringListColumn.setMaximumListLength(25L);
+//
+//
+//		List<ColumnModel> schema = Lists.newArrayList(stringListColumn);
+//
+//		createOrUpdateTable(schema, indexDescription);
+//
+//		int numRows = 5;
+//		List<Row> rows = TableModelTestUtils.createRows(schema, numRows);
+//		createOrUpdateOrDeleteRows(tableId, rows, schema);
+//
+//		// make size a very small value to replicate annotation values
+//		// larger than the defined max size being inserted copied into a view
+//		stringListColumn.setMaximumSize(1L);
+//		createOrUpdateTable(schema, indexDescription);
+//
+//		Set<Long> rowsIds = null;
+//		String message = assertThrows(IllegalArgumentException.class, ()-> {
+//			//method under test
+//			tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds, false);
+//		}).getMessage();
+//
+//		assertEquals("The size of the column 'myList' is too small." +
+//				" Unable to automatically determine the necessary size to fit all values in a STRING_LIST column", message);
+//	}
 
+//	@Test
+//	public void testDeleteFromListColumnIndexTable_NullTableId() {
+//		tableId = null;
+//		ColumnModel multiValue = new ColumnModel();
+//		multiValue.setId("886");
+//		multiValue.setColumnType(ColumnType.STRING_LIST);
+//		multiValue.setName("multiValue");
+//		multiValue.setMaximumSize(100L);
+//		Set<Long> rowIdFilter = null;
+//		String message = assertThrows(IllegalArgumentException.class, ()->{
+//			// call under test
+//			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
+//		}).getMessage();
+//		assertEquals("tableId is required.", message);
+//
+//	}
 
-		ColumnModel booleanColumn = new ColumnModel();
-		booleanColumn.setId("13");
-		booleanColumn.setName("bar");
-		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+//	@Test
+//	public void testDeleteFromListColumnIndexTable_NullColumn() {
+//		ColumnModel multiValue = null;
+//		Set<Long> rowIdFilter = Set.of(1L);
+//		String message = assertThrows(IllegalArgumentException.class, ()->{
+//			// call under test
+//			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
+//		}).getMessage();
+//		assertEquals("listColumn is required.", message);
+//	}
 
-		List<ColumnModel> schema = Lists.newArrayList(intColumn, stringListColumn ,booleanColumn);
+//	@Test
+//	public void testDeleteFromListColumnIndexTable_NotListType() {
+//		ColumnModel multiValue = new ColumnModel();
+//		multiValue.setId("886");
+//		multiValue.setColumnType(ColumnType.STRING);
+//		multiValue.setName("multiValue");
+//		multiValue.setMaximumSize(100L);
+//		Set<Long> rowIdFilter = Set.of(1L);
+//		String message = assertThrows(IllegalArgumentException.class, ()->{
+//			// call under test
+//			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
+//		}).getMessage();
+//		assertEquals("Only valid for List type columns", message);
+//	}
+//
+//	@Test
+//	public void testDeleteFromListColumnIndexTable_nullRowFilter() {
+//		ColumnModel multiValue = new ColumnModel();
+//		multiValue.setId("886");
+//		multiValue.setColumnType(ColumnType.STRING_LIST);
+//		multiValue.setName("multiValue");
+//		multiValue.setMaximumSize(100L);
+//		Set<Long> rowIdFilter = null;
+//		String message = assertThrows(IllegalArgumentException.class, ()->{
+//			// call under test
+//			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
+//		}).getMessage();
+//		assertEquals("rowIds is required and must not be empty.", message);
+//	}
 
-		createOrUpdateTable(schema, indexDescription);
-
-		int numRows = 5;
-		List<Row> rows = TableModelTestUtils.createRows(schema, numRows);
-		createOrUpdateOrDeleteRows(tableId, rows, schema);
-
-		Set<Long> rowsIds = null;
-		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds, false);
-
-		//each list value created by createRows has 2 items in the list
-		assertEquals(numRows * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
-	}
-
-	//See PLFM-5999
-	@Test
-	public void testCreateAndPopulateListColumnIndexTables__StringListDataTooLarge(){
-
-		ColumnModel stringListColumn = new ColumnModel();
-		stringListColumn.setId("15");
-		stringListColumn.setName("myList");
-		// initial size needs to be large to allow initial values to be inserted into table
-		// in a view, values are replicated from
-		stringListColumn.setMaximumSize(54L);
-		stringListColumn.setColumnType(ColumnType.STRING_LIST);
-		stringListColumn.setMaximumListLength(25L);
-
-
-		List<ColumnModel> schema = Lists.newArrayList(stringListColumn);
-
-		createOrUpdateTable(schema, indexDescription);
-
-		int numRows = 5;
-		List<Row> rows = TableModelTestUtils.createRows(schema, numRows);
-		createOrUpdateOrDeleteRows(tableId, rows, schema);
-
-		// make size a very small value to replicate annotation values
-		// larger than the defined max size being inserted copied into a view
-		stringListColumn.setMaximumSize(1L);
-		createOrUpdateTable(schema, indexDescription);
-
-		Set<Long> rowsIds = null;
-		String message = assertThrows(IllegalArgumentException.class, ()-> {
-			//method under test
-			tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds, false);
-		}).getMessage();
-
-		assertEquals("The size of the column 'myList' is too small." +
-				" Unable to automatically determine the necessary size to fit all values in a STRING_LIST column", message);
-	}
-
-	@Test
-	public void testDeleteFromListColumnIndexTable_NullTableId() {
-		tableId = null;
-		ColumnModel multiValue = new ColumnModel();
-		multiValue.setId("886");
-		multiValue.setColumnType(ColumnType.STRING_LIST);
-		multiValue.setName("multiValue");
-		multiValue.setMaximumSize(100L);
-		Set<Long> rowIdFilter = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
-		}).getMessage();
-		assertEquals("tableId is required.", message);
-
-	}
-
-	@Test
-	public void testDeleteFromListColumnIndexTable_NullColumn() {
-		ColumnModel multiValue = null;
-		Set<Long> rowIdFilter = Set.of(1L);
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
-		}).getMessage();
-		assertEquals("listColumn is required.", message);
-	}
-
-	@Test
-	public void testDeleteFromListColumnIndexTable_NotListType() {
-		ColumnModel multiValue = new ColumnModel();
-		multiValue.setId("886");
-		multiValue.setColumnType(ColumnType.STRING);
-		multiValue.setName("multiValue");
-		multiValue.setMaximumSize(100L);
-		Set<Long> rowIdFilter = Set.of(1L);
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
-		}).getMessage();
-		assertEquals("Only valid for List type columns", message);
-	}
-
-	@Test
-	public void testDeleteFromListColumnIndexTable_nullRowFilter() {
-		ColumnModel multiValue = new ColumnModel();
-		multiValue.setId("886");
-		multiValue.setColumnType(ColumnType.STRING_LIST);
-		multiValue.setName("multiValue");
-		multiValue.setMaximumSize(100L);
-		Set<Long> rowIdFilter = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
-		}).getMessage();
-		assertEquals("rowIds is required and must not be empty.", message);
-	}
-
-	@Test
-	public void testDeleteFromListColumnIndexTable_EmptyRowFilter() {
-		ColumnModel multiValue = new ColumnModel();
-		multiValue.setId("886");
-		multiValue.setColumnType(ColumnType.STRING_LIST);
-		multiValue.setName("multiValue");
-		multiValue.setMaximumSize(100L);
-		Set<Long> rowIdFilter = Collections.emptySet();
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
-		}).getMessage();
-		assertEquals("rowIds is required and must not be empty.", message);
-	}
-
-
-	@Test
-	public void testDeleteFromListColumnIndexTable() {
-		// create a table with a long column.
-		ColumnModel intColumn = new ColumnModel();
-		intColumn.setId("12");
-		intColumn.setName("foo");
-		intColumn.setColumnType(ColumnType.INTEGER);
-
-		ColumnModel stringListColumn = new ColumnModel();
-		stringListColumn.setId("15");
-		stringListColumn.setName("myList");
-		stringListColumn.setMaximumSize(54L);
-		stringListColumn.setColumnType(ColumnType.STRING_LIST);
-		stringListColumn.setMaximumListLength(25L);
+//	@Test
+//	public void testDeleteFromListColumnIndexTable_EmptyRowFilter() {
+//		ColumnModel multiValue = new ColumnModel();
+//		multiValue.setId("886");
+//		multiValue.setColumnType(ColumnType.STRING_LIST);
+//		multiValue.setName("multiValue");
+//		multiValue.setMaximumSize(100L);
+//		Set<Long> rowIdFilter = Collections.emptySet();
+//		String message = assertThrows(IllegalArgumentException.class, ()->{
+//			// call under test
+//			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
+//		}).getMessage();
+//		assertEquals("rowIds is required and must not be empty.", message);
+//	}
 
 
-		ColumnModel booleanColumn = new ColumnModel();
-		booleanColumn.setId("13");
-		booleanColumn.setName("bar");
-		booleanColumn.setColumnType(ColumnType.BOOLEAN);
-
-		List<ColumnModel> schema = Lists.newArrayList(intColumn, stringListColumn ,booleanColumn);
-
-		createOrUpdateTable(schema, indexDescription);
-
-		int numRows = 5;
-		List<Row> rows = TableModelTestUtils.createRows(schema, numRows);
-		createOrUpdateOrDeleteRows(tableId, rows, schema);
-
-		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, null, false);
-
-		assertEquals(numRows * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
-
-		//method under test
-		//delete 2 rows from index table
-		tableIndexDAO.deleteFromListColumnIndexTable(tableId, stringListColumn, Set.of(rows.get(0).getRowId(), rows.get(2).getRowId()));
-
-		//deleted 2 rows so expect 2*2=4 less rows in the index table
-		assertEquals((numRows-2) * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
-	}
+//	@Test
+//	public void testDeleteFromListColumnIndexTable() {
+//		// create a table with a long column.
+//		ColumnModel intColumn = new ColumnModel();
+//		intColumn.setId("12");
+//		intColumn.setName("foo");
+//		intColumn.setColumnType(ColumnType.INTEGER);
+//
+//		ColumnModel stringListColumn = new ColumnModel();
+//		stringListColumn.setId("15");
+//		stringListColumn.setName("myList");
+//		stringListColumn.setMaximumSize(54L);
+//		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+//		stringListColumn.setMaximumListLength(25L);
+//
+//
+//		ColumnModel booleanColumn = new ColumnModel();
+//		booleanColumn.setId("13");
+//		booleanColumn.setName("bar");
+//		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+//
+//		List<ColumnModel> schema = Lists.newArrayList(intColumn, stringListColumn ,booleanColumn);
+//
+//		createOrUpdateTable(schema, indexDescription);
+//
+//		int numRows = 5;
+//		List<Row> rows = TableModelTestUtils.createRows(schema, numRows);
+//		createOrUpdateOrDeleteRows(tableId, rows, schema);
+//
+//		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, null, false);
+//
+//		assertEquals(numRows * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
+//
+//		//method under test
+//		//delete 2 rows from index table
+//		tableIndexDAO.deleteFromListColumnIndexTable(tableId, stringListColumn, Set.of(rows.get(0).getRowId(), rows.get(2).getRowId()));
+//
+//		//deleted 2 rows so expect 2*2=4 less rows in the index table
+//		assertEquals((numRows-2) * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
+//	}
 	
 	/**
 	 * Test for the case where an entity is in the replication but not the view.
@@ -4313,36 +4313,36 @@ public class TableIndexDAOImplTest {
 		assertTrue(deltas.isEmpty());
 	}
 	
-	@Test
-	public void testPopulateListColumnIndexTableView_NoIdFilter() {
-		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
-		int rowCount = 4;
-		boolean includeMultiValue = true;
-		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount, includeMultiValue);
-
-		// Make additional object with a different type but same ids
-		createObjectDTOs(otherObjectType, EntityType.file, rowCount, includeMultiValue);
-		
-		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
-		ColumnModel multiValue = new ColumnModel();
-		multiValue.setId("886");
-		multiValue.setColumnType(ColumnType.STRING_LIST);
-		multiValue.setName("multiValue");
-		multiValue.setMaximumSize(100L);
-		multiValue.setMaximumListLength(53L);
-		List<ColumnModel> schema = Lists.newArrayList(multiValue);
-		createOrUpdateTable(schema, indexDescription);
-
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		// push all of the data to the view
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		Set<Long> rowIdFilter = null;
-		// call under test
-		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
-
-		//each list value created by createRows has 2 items in the list
-		assertEquals(rowCount * 2, countRowsInMultiValueIndex(tableId, multiValue.getId()));
-	}
+//	@Test
+//	public void testPopulateListColumnIndexTableView_NoIdFilter() {
+//		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+//		int rowCount = 4;
+//		boolean includeMultiValue = true;
+//		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount, includeMultiValue);
+//
+//		// Make additional object with a different type but same ids
+//		createObjectDTOs(otherObjectType, EntityType.file, rowCount, includeMultiValue);
+//		
+//		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
+//		ColumnModel multiValue = new ColumnModel();
+//		multiValue.setId("886");
+//		multiValue.setColumnType(ColumnType.STRING_LIST);
+//		multiValue.setName("multiValue");
+//		multiValue.setMaximumSize(100L);
+//		multiValue.setMaximumListLength(53L);
+//		List<ColumnModel> schema = Lists.newArrayList(multiValue);
+//		createOrUpdateTable(schema, indexDescription);
+//
+//		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
+//		// push all of the data to the view
+//		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
+//		Set<Long> rowIdFilter = null;
+//		// call under test
+//		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
+//
+//		//each list value created by createRows has 2 items in the list
+//		assertEquals(rowCount * 2, countRowsInMultiValueIndex(tableId, multiValue.getId()));
+//	}
 	
 	/**
 	 * This test simulate what happens when deltas are applied to an available view.
@@ -4351,297 +4351,297 @@ public class TableIndexDAOImplTest {
 	 * the view using an rowIdFilter to both the view and the multi-value index
 	 * table.
 	 */
-	@Test
-	public void testPopulateListColumnIndexTableView_WithIdFilter() {
-		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
-		int rowCount = 4;
-		boolean includeMultiValue = true;
-		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount, includeMultiValue);
-
-		// Make additional object with a different type but same ids
-		createObjectDTOs(otherObjectType, EntityType.file, rowCount, includeMultiValue);
-		
-		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
-		ColumnModel multiValue = new ColumnModel();
-		multiValue.setId("886");
-		multiValue.setColumnType(ColumnType.STRING_LIST);
-		multiValue.setName("multiValue");
-		multiValue.setMaximumSize(100L);
-		multiValue.setMaximumListLength(22L);
-		List<ColumnModel> schema = Lists.newArrayList(multiValue);
-		createOrUpdateTable(schema, indexDescription);
-
-		// Null row filter will add all rows
-		Set<Long> rowIdFilter = null;
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
-		// push all of the data to the view
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		// start will all of the data in the secondary table
-		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
-		// Should start with two row for each entity 
-		assertEquals(rowCount * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
-		
-		// delete the first and last rows from the main view
-		Long[] toDelete = new Long[] {dtos.get(0).getId(), dtos.get(3).getId()};
-		tableIndexDAO.deleteRowsFromViewBatch(tableId, toDelete);
-		// cascade delete should reduce the number of rows in the multi-value index
-		assertEquals(2 * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
-		
-		// add the two rows back to the view
-		rowIdFilter = Set.of(dtos.get(0).getId(), dtos.get(3).getId());
-		boolean excludeDerivedKeys = false;
-		
-		filter = new HierarchicaFilter(mainType, subTypes,rowIdFilter,null, scope, excludeDerivedKeys);
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		// call under test
-		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
-		assertEquals(4 * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
-	}
+//	@Test
+//	public void testPopulateListColumnIndexTableView_WithIdFilter() {
+//		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+//		int rowCount = 4;
+//		boolean includeMultiValue = true;
+//		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount, includeMultiValue);
+//
+//		// Make additional object with a different type but same ids
+//		createObjectDTOs(otherObjectType, EntityType.file, rowCount, includeMultiValue);
+//		
+//		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
+//		ColumnModel multiValue = new ColumnModel();
+//		multiValue.setId("886");
+//		multiValue.setColumnType(ColumnType.STRING_LIST);
+//		multiValue.setName("multiValue");
+//		multiValue.setMaximumSize(100L);
+//		multiValue.setMaximumListLength(22L);
+//		List<ColumnModel> schema = Lists.newArrayList(multiValue);
+//		createOrUpdateTable(schema, indexDescription);
+//
+//		// Null row filter will add all rows
+//		Set<Long> rowIdFilter = null;
+//		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
+//		
+//		// push all of the data to the view
+//		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
+//		// start will all of the data in the secondary table
+//		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
+//		// Should start with two row for each entity 
+//		assertEquals(rowCount * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
+//		
+//		// delete the first and last rows from the main view
+//		Long[] toDelete = new Long[] {dtos.get(0).getId(), dtos.get(3).getId()};
+//		tableIndexDAO.deleteRowsFromViewBatch(tableId, toDelete);
+//		// cascade delete should reduce the number of rows in the multi-value index
+//		assertEquals(2 * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
+//		
+//		// add the two rows back to the view
+//		rowIdFilter = Set.of(dtos.get(0).getId(), dtos.get(3).getId());
+//		boolean excludeDerivedKeys = false;
+//		
+//		filter = new HierarchicaFilter(mainType, subTypes,rowIdFilter,null, scope, excludeDerivedKeys);
+//		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
+//		// call under test
+//		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
+//		assertEquals(4 * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
+//	}
 	
-	@Test
-	public void testPopulateListColumnIndexTable_NullTableId() {
-		tableId = null;
-		ColumnModel multiValue = new ColumnModel();
-		multiValue.setId("886");
-		multiValue.setColumnType(ColumnType.STRING_LIST);
-		multiValue.setName("multiValue");
-		multiValue.setMaximumSize(100L);
-		Set<Long> rowIdFilter = null;
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
-		});
-	}
-	
-	@Test
-	public void testPopulateListColumnIndexTable_NullColumn() {
-		ColumnModel multiValue = null;
-		Set<Long> rowIdFilter = null;
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
-		});
-	}
-	
-	@Test
-	public void testPopulateListColumnIndexTable_NotListType() {
-		ColumnModel multiValue = new ColumnModel();
-		multiValue.setId("886");
-		multiValue.setColumnType(ColumnType.STRING);
-		multiValue.setName("multiValue");
-		multiValue.setMaximumSize(100L);
-		Set<Long> rowIdFilter = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
-		}).getMessage();
-		assertEquals("Only valid for List type columns", message);
-	}
-	
-	
-	@Test
-	public void testPopulateListColumnIndexTable_EmptyRowFilter() {
-		ColumnModel multiValue = new ColumnModel();
-		multiValue.setId("886");
-		multiValue.setColumnType(ColumnType.STRING_LIST);
-		multiValue.setName("multiValue");
-		multiValue.setMaximumSize(100L);
-		Set<Long> rowIdFilter = Collections.emptySet();
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
-		}).getMessage();
-		assertEquals("When rowIds is provided (not null) it cannot be empty", message);
-	}
-	
-	/**
-	 * Helper to count the number of rows in a mutli-value index table.
-	 * @param idAndversion
-	 * @param columnId
-	 * @return
-	 */
-	Long countRowsInMultiValueIndex(IdAndVersion idAndversion, String columnId) {
-		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(idAndversion, columnId);
-		return tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap());
-	}
+//	@Test
+//	public void testPopulateListColumnIndexTable_NullTableId() {
+//		tableId = null;
+//		ColumnModel multiValue = new ColumnModel();
+//		multiValue.setId("886");
+//		multiValue.setColumnType(ColumnType.STRING_LIST);
+//		multiValue.setName("multiValue");
+//		multiValue.setMaximumSize(100L);
+//		Set<Long> rowIdFilter = null;
+//		assertThrows(IllegalArgumentException.class, ()->{
+//			// call under test
+//			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
+//		});
+//	}
+//	
+//	@Test
+//	public void testPopulateListColumnIndexTable_NullColumn() {
+//		ColumnModel multiValue = null;
+//		Set<Long> rowIdFilter = null;
+//		assertThrows(IllegalArgumentException.class, ()->{
+//			// call under test
+//			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
+//		});
+//	}
+//	
+//	@Test
+//	public void testPopulateListColumnIndexTable_NotListType() {
+//		ColumnModel multiValue = new ColumnModel();
+//		multiValue.setId("886");
+//		multiValue.setColumnType(ColumnType.STRING);
+//		multiValue.setName("multiValue");
+//		multiValue.setMaximumSize(100L);
+//		Set<Long> rowIdFilter = null;
+//		String message = assertThrows(IllegalArgumentException.class, ()->{
+//			// call under test
+//			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
+//		}).getMessage();
+//		assertEquals("Only valid for List type columns", message);
+//	}
+//	
+//	
+//	@Test
+//	public void testPopulateListColumnIndexTable_EmptyRowFilter() {
+//		ColumnModel multiValue = new ColumnModel();
+//		multiValue.setId("886");
+//		multiValue.setColumnType(ColumnType.STRING_LIST);
+//		multiValue.setName("multiValue");
+//		multiValue.setMaximumSize(100L);
+//		Set<Long> rowIdFilter = Collections.emptySet();
+//		String message = assertThrows(IllegalArgumentException.class, ()->{
+//			// call under test
+//			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
+//		}).getMessage();
+//		assertEquals("When rowIds is provided (not null) it cannot be empty", message);
+//	}
+//	
+//	/**
+//	 * Helper to count the number of rows in a mutli-value index table.
+//	 * @param idAndversion
+//	 * @param columnId
+//	 * @return
+//	 */
+//	Long countRowsInMultiValueIndex(IdAndVersion idAndversion, String columnId) {
+//		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(idAndversion, columnId);
+//		return tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap());
+//	}
 
 	//See PLFM-6017
-	@Test
-	public void testCreateAndPopulateListColumnIndexTables__DefaultValue() throws ParseException {
-		ColumnModel intColumn = new ColumnModel();
-		intColumn.setId("12");
-		intColumn.setName("foo");
-		intColumn.setColumnType(ColumnType.INTEGER);
-
-		ColumnModel intListColumn = new ColumnModel();
-		intListColumn.setId("16");
-		intListColumn.setName("intList");
-		intListColumn.setColumnType(ColumnType.INTEGER_LIST);
-		intListColumn.setDefaultValue("[1,2,3]");
-		intListColumn.setMaximumListLength(25L);
-
-		List<ColumnModel> schema = Arrays.asList(intColumn, intListColumn);
-
-		createOrUpdateTable(schema, indexDescription);
-
-		Row row = new Row();
-		row.setValues(Arrays.asList("1", null));
-		List<Row> rows = Collections.singletonList(row);
-		createOrUpdateOrDeleteRows(tableId, rows, schema);
-
-		Set<Long> rowIds = null;
-		// call under test
-		tableIndexDAO.populateListColumnIndexTable(tableId, intListColumn, rowIds, false);
-
-		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
-		// Now query for the results
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
-		assertNotNull(results);
-		assertNotNull(results.getRows());
-		//expect a single row result
-		assertEquals(1, results.getRows().size());
-		assertEquals(tableId.toString(), results.getTableId());
-		//each row has 2 columns
-		assertEquals(2, results.getRows().get(0).getValues().size());
-		assertEquals("1", results.getRows().get(0).getValues().get(0));
-		//mysql adds spaces between the commas on returned results
-		assertEquals("[1, 2, 3]", results.getRows().get(0).getValues().get(1));
-	}
-
-
-	@Test
-	public void testGetMultivalueColumnIndexTableColumnIds(){
-		ColumnModel strListColumn = new ColumnModel();
-		strListColumn.setId("12");
-		strListColumn.setName("foo");
-		strListColumn.setMaximumSize(14L);
-		strListColumn.setColumnType(ColumnType.STRING_LIST);
-
-		ColumnModel intColumn = new ColumnModel();
-		intColumn.setId("14");
-		intColumn.setName("foo");
-		intColumn.setColumnType(ColumnType.INTEGER);
-
-		ColumnModel intListColumn = new ColumnModel();
-		intListColumn.setId("16");
-		intListColumn.setName("intList");
-		intListColumn.setColumnType(ColumnType.INTEGER_LIST);
-		intListColumn.setDefaultValue("[1,2,3]");
-
-		List<ColumnModel> schema = Arrays.asList(strListColumn, intColumn, intListColumn);
-		createOrUpdateTable(schema, indexDescription);
-
-		//method under test
-		Set<Long> columnIds = tableIndexDAO.getMultivalueColumnIndexTableColumnIds(tableId);
-		assertEquals(Set.of(12L,16L), columnIds);
-	}
-
-	@Test
-	public void testGetMultivalueColumnIndexTableColumnIds__emptyList(){
-		ColumnModel intColumn = new ColumnModel();
-		intColumn.setId("14");
-		intColumn.setName("foo");
-		intColumn.setColumnType(ColumnType.INTEGER);
-
-		List<ColumnModel> schema = Arrays.asList(intColumn);
-		createOrUpdateTable(schema, indexDescription);
-
-		//method under test
-		Set<Long> columnIds = tableIndexDAO.getMultivalueColumnIndexTableColumnIds(tableId);
-		assertEquals(Collections.emptySet(), columnIds);
-	}
+//	@Test
+//	public void testCreateAndPopulateListColumnIndexTables__DefaultValue() throws ParseException {
+//		ColumnModel intColumn = new ColumnModel();
+//		intColumn.setId("12");
+//		intColumn.setName("foo");
+//		intColumn.setColumnType(ColumnType.INTEGER);
+//
+//		ColumnModel intListColumn = new ColumnModel();
+//		intListColumn.setId("16");
+//		intListColumn.setName("intList");
+//		intListColumn.setColumnType(ColumnType.INTEGER_LIST);
+//		intListColumn.setDefaultValue("[1,2,3]");
+//		intListColumn.setMaximumListLength(25L);
+//
+//		List<ColumnModel> schema = Arrays.asList(intColumn, intListColumn);
+//
+//		createOrUpdateTable(schema, indexDescription);
+//
+//		Row row = new Row();
+//		row.setValues(Arrays.asList("1", null));
+//		List<Row> rows = Collections.singletonList(row);
+//		createOrUpdateOrDeleteRows(tableId, rows, schema);
+//
+//		Set<Long> rowIds = null;
+//		// call under test
+//		tableIndexDAO.populateListColumnIndexTable(tableId, intListColumn, rowIds, false);
+//
+//		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
+//		// Now query for the results
+//		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+//		assertNotNull(results);
+//		assertNotNull(results.getRows());
+//		//expect a single row result
+//		assertEquals(1, results.getRows().size());
+//		assertEquals(tableId.toString(), results.getTableId());
+//		//each row has 2 columns
+//		assertEquals(2, results.getRows().get(0).getValues().size());
+//		assertEquals("1", results.getRows().get(0).getValues().get(0));
+//		//mysql adds spaces between the commas on returned results
+//		assertEquals("[1, 2, 3]", results.getRows().get(0).getValues().get(1));
+//	}
 
 
+//	@Test
+//	public void testGetMultivalueColumnIndexTableColumnIds(){
+//		ColumnModel strListColumn = new ColumnModel();
+//		strListColumn.setId("12");
+//		strListColumn.setName("foo");
+//		strListColumn.setMaximumSize(14L);
+//		strListColumn.setColumnType(ColumnType.STRING_LIST);
+//
+//		ColumnModel intColumn = new ColumnModel();
+//		intColumn.setId("14");
+//		intColumn.setName("foo");
+//		intColumn.setColumnType(ColumnType.INTEGER);
+//
+//		ColumnModel intListColumn = new ColumnModel();
+//		intListColumn.setId("16");
+//		intListColumn.setName("intList");
+//		intListColumn.setColumnType(ColumnType.INTEGER_LIST);
+//		intListColumn.setDefaultValue("[1,2,3]");
+//
+//		List<ColumnModel> schema = Arrays.asList(strListColumn, intColumn, intListColumn);
+//		createOrUpdateTable(schema, indexDescription);
+//
+//		//method under test
+//		Set<Long> columnIds = tableIndexDAO.getMultivalueColumnIndexTableColumnIds(tableId);
+//		assertEquals(Set.of(12L,16L), columnIds);
+//	}
 
-	@Test
-	public void testCreateUpdateDeleteMultivalueColumnIndexTable(){
-		ColumnModel column = new ColumnModel();
-		column.setColumnType(ColumnType.STRING_LIST);
-		column.setId("1337");
-		column.setMaximumSize(50L);
-		column.setName("StringList");
-		// Create the table
-		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
-		//add column
-		tableIndexDAO.createMultivalueColumnIndexTable(tableId, column, false);
+//	@Test
+//	public void testGetMultivalueColumnIndexTableColumnIds__emptyList(){
+//		ColumnModel intColumn = new ColumnModel();
+//		intColumn.setId("14");
+//		intColumn.setName("foo");
+//		intColumn.setColumnType(ColumnType.INTEGER);
+//
+//		List<ColumnModel> schema = Arrays.asList(intColumn);
+//		createOrUpdateTable(schema, indexDescription);
+//
+//		//method under test
+//		Set<Long> columnIds = tableIndexDAO.getMultivalueColumnIndexTableColumnIds(tableId);
+//		assertEquals(Collections.emptySet(), columnIds);
+//	}
 
 
-		//check index table was created
-		assertNotNull(tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, column.getId()) + "'", String.class));
 
-		//update column
-		ColumnModel updated = new ColumnModel();
-		updated.setColumnType(ColumnType.STRING_LIST);
-		updated.setId("44444");
-		updated.setMaximumSize(79L);
-		updated.setName("newStringList");
-		tableIndexDAO.updateMultivalueColumnIndexTable(tableId, Long.parseLong(column.getId()), updated, false);
+//	@Test
+//	public void testCreateUpdateDeleteMultivalueColumnIndexTable(){
+//		ColumnModel column = new ColumnModel();
+//		column.setColumnType(ColumnType.STRING_LIST);
+//		column.setId("1337");
+//		column.setMaximumSize(50L);
+//		column.setName("StringList");
+//		// Create the table
+//		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
+//		//add column
+//		tableIndexDAO.createMultivalueColumnIndexTable(tableId, column, false);
+//
+//
+//		//check index table was created
+//		assertNotNull(tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, column.getId()) + "'", String.class));
+//
+//		//update column
+//		ColumnModel updated = new ColumnModel();
+//		updated.setColumnType(ColumnType.STRING_LIST);
+//		updated.setId("44444");
+//		updated.setMaximumSize(79L);
+//		updated.setName("newStringList");
+//		tableIndexDAO.updateMultivalueColumnIndexTable(tableId, Long.parseLong(column.getId()), updated, false);
+//
+//		//check original no longer exists
+//		assertThrows(EmptyResultDataAccessException.class, () -> {
+//			tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, column.getId()) + "'", String.class);
+//		});
+//		//check updated column's index table exists
+//		assertNotNull(tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, updated.getId()) + "'", String.class));
+//
+//
+//		//delete column
+//		tableIndexDAO.deleteMultivalueColumnIndexTable(tableId, Long.parseLong(column.getId()), false);
+//
+//		//check index table was deleted
+//		assertThrows(EmptyResultDataAccessException.class, () -> {
+//			tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, column.getId()) + "'", String.class);
+//		});
+//	}
 
-		//check original no longer exists
-		assertThrows(EmptyResultDataAccessException.class, () -> {
-			tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, column.getId()) + "'", String.class);
-		});
-		//check updated column's index table exists
-		assertNotNull(tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, updated.getId()) + "'", String.class));
-
-
-		//delete column
-		tableIndexDAO.deleteMultivalueColumnIndexTable(tableId, Long.parseLong(column.getId()), false);
-
-		//check index table was deleted
-		assertThrows(EmptyResultDataAccessException.class, () -> {
-			tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, column.getId()) + "'", String.class);
-		});
-	}
-
-	@Test
-	public void testTempTableListColumnMaxLength(){
-		ColumnModel strListCol = new ColumnModel();
-		strListCol.setId("12");
-		strListCol.setName("foo");
-		strListCol.setMaximumSize(50L);
-		strListCol.setColumnType(ColumnType.STRING_LIST);
-		strListCol.setMaximumListLength(25L);
-
-		List<ColumnModel> schema = Lists.newArrayList(strListCol);
-
-		createOrUpdateTable(schema, indexDescription);
-		// create five rows.
-		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
-		// add duplicate values
-		RowSet set = new RowSet();
-		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getSelectColumns(schema));
-		set.setTableId(tableId.toString());
-
-		IdRange range = new IdRange();
-		range.setMinimumId(100L);
-		range.setMaximumId(200L);
-		range.setVersionNumber(3L);
-		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-
-		createOrUpdateOrDeleteRows(tableId, set, schema);
-		//populate the column index table
-		tableIndexDAO.populateListColumnIndexTable(tableId, strListCol, null, false);
-
-		String columnId = strListCol.getId();
-
-		tableIndexDAO.deleteAllTemporaryMultiValueColumnIndexTable(tableId);
-		tableIndexDAO.deleteTemporaryTable(tableId);
-
-		// Create a copy of the table
-		tableIndexDAO.createTemporaryTable(tableId);
-
-		//method under test
-		// on an empty table without data, we should get back 0
-		assertEquals(0, tableIndexDAO.tempTableListColumnMaxLength(tableId,columnId));
-
-		tableIndexDAO.copyAllDataToTemporaryTable(tableId);
-
-		//method under test
-		assertEquals(2, tableIndexDAO.tempTableListColumnMaxLength(tableId,columnId));
-	}
+//	@Test
+//	public void testTempTableListColumnMaxLength(){
+//		ColumnModel strListCol = new ColumnModel();
+//		strListCol.setId("12");
+//		strListCol.setName("foo");
+//		strListCol.setMaximumSize(50L);
+//		strListCol.setColumnType(ColumnType.STRING_LIST);
+//		strListCol.setMaximumListLength(25L);
+//
+//		List<ColumnModel> schema = Lists.newArrayList(strListCol);
+//
+//		createOrUpdateTable(schema, indexDescription);
+//		// create five rows.
+//		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
+//		// add duplicate values
+//		RowSet set = new RowSet();
+//		set.setRows(rows);
+//		set.setHeaders(TableModelUtils.getSelectColumns(schema));
+//		set.setTableId(tableId.toString());
+//
+//		IdRange range = new IdRange();
+//		range.setMinimumId(100L);
+//		range.setMaximumId(200L);
+//		range.setVersionNumber(3L);
+//		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+//
+//		createOrUpdateOrDeleteRows(tableId, set, schema);
+//		//populate the column index table
+//		tableIndexDAO.populateListColumnIndexTable(tableId, strListCol, null, false);
+//
+//		String columnId = strListCol.getId();
+//
+//		tableIndexDAO.deleteAllTemporaryMultiValueColumnIndexTable(tableId);
+//		tableIndexDAO.deleteTemporaryTable(tableId);
+//
+//		// Create a copy of the table
+//		tableIndexDAO.createTemporaryTable(tableId);
+//
+//		//method under test
+//		// on an empty table without data, we should get back 0
+//		assertEquals(0, tableIndexDAO.tempTableListColumnMaxLength(tableId,columnId));
+//
+//		tableIndexDAO.copyAllDataToTemporaryTable(tableId);
+//
+//		//method under test
+//		assertEquals(2, tableIndexDAO.tempTableListColumnMaxLength(tableId,columnId));
+//	}
 	
 	@Test
 	public void testTempTableColumnExceedsCharacterLimit(){
@@ -5368,9 +5368,9 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(indexDescription.getIdAndVersion(), set, schemaOne);
 		
-		schemaOne.stream().filter( m -> ColumnTypeListMappings.isList(m.getColumnType())).forEach( column -> {			
-			tableIndexDAO.populateListColumnIndexTable(indexDescription.getIdAndVersion(), column, null, false);
-		});
+//		schemaOne.stream().filter( m -> ColumnTypeListMappings.isList(m.getColumnType())).forEach( column -> {			
+//			tableIndexDAO.populateListColumnIndexTable(indexDescription.getIdAndVersion(), column, null, false);
+//		});
 		
 		// Create another table
 		IndexDescription sourceIndexDescription = new TableIndexDescription(IdAndVersion.parse("456"));
@@ -5395,33 +5395,33 @@ public class TableIndexDAOImplTest {
 		
 		createOrUpdateOrDeleteRows(sourceIndexDescription.getIdAndVersion(), set, schemaTwo);
 		
-		schemaTwo.stream().filter( m -> ColumnTypeListMappings.isList(m.getColumnType())).forEach( column -> {			
-			tableIndexDAO.populateListColumnIndexTable(sourceIndexDescription.getIdAndVersion(), column, null, false);
-		});
+//		schemaTwo.stream().filter( m -> ColumnTypeListMappings.isList(m.getColumnType())).forEach( column -> {			
+//			tableIndexDAO.populateListColumnIndexTable(sourceIndexDescription.getIdAndVersion(), column, null, false);
+//		});
 		
 		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_DBL_C1_", "_C2_", "_C3_"), 
 			tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
 		);
 		
-		assertEquals(Set.of(2L, 3L), 
-			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(indexDescription.getIdAndVersion())
-		);
+//		assertEquals(Set.of(2L, 3L), 
+//			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(indexDescription.getIdAndVersion())
+//		);
 		
 		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C4_", "_C5_", "_C6_"), 
 			tableIndexDAO.getDatabaseInfo(sourceIndexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
 		);
 		
-		assertEquals(Set.of(5L, 6L), 
-			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(sourceIndexDescription.getIdAndVersion())
-		);
+//		assertEquals(Set.of(5L, 6L), 
+//			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(sourceIndexDescription.getIdAndVersion())
+//		);
 		
 		assertEquals(2L, tableIndexDAO.getRowCountForTable(indexDescription.getIdAndVersion()));
 		assertEquals(3L, tableIndexDAO.getRowCountForTable(sourceIndexDescription.getIdAndVersion()));
 		
-		assertEquals(4L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "2"));
-		assertEquals(2L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "3"));
-		assertEquals(3L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "5"));
-		assertEquals(6L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "6"));
+//		assertEquals(4L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "2"));
+//		assertEquals(2L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "3"));
+//		assertEquals(3L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "5"));
+//		assertEquals(6L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "6"));
 				
 		// Call under test
 		tableIndexDAO.swapTableIndex(sourceIndexDescription.getIdAndVersion(), indexDescription.getIdAndVersion());
@@ -5429,42 +5429,42 @@ public class TableIndexDAOImplTest {
 		assertEquals(3L, tableIndexDAO.getRowCountForTable(indexDescription.getIdAndVersion()));
 		assertEquals(2L, tableIndexDAO.getRowCountForTable(sourceIndexDescription.getIdAndVersion()));
 		
-		assertEquals(3L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "5"));
-		assertEquals(6L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "6"));
-		assertEquals(4L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "2"));
-		assertEquals(2L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "3"));
+//		assertEquals(3L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "5"));
+//		assertEquals(6L, countRowsInMultiValueIndex(indexDescription.getIdAndVersion(), "6"));
+//		assertEquals(4L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "2"));
+//		assertEquals(2L, countRowsInMultiValueIndex(sourceIndexDescription.getIdAndVersion(), "3"));
 		
 		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C4_", "_C5_", "_C6_"), 
 			tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
 		);
 		
-		assertEquals(Set.of(5L, 6L), 
-			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(indexDescription.getIdAndVersion())
-		);
+//		assertEquals(Set.of(5L, 6L), 
+//			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(indexDescription.getIdAndVersion())
+//		);
 		
 		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_DBL_C1_", "_C2_", "_C3_"), 
 			tableIndexDAO.getDatabaseInfo(sourceIndexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
 		);
 		
-		assertEquals(Set.of(2L, 3L), 
-			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(sourceIndexDescription.getIdAndVersion())
-		);
+//		assertEquals(Set.of(2L, 3L), 
+//			tableIndexDAO.getMultivalueColumnIndexTableColumnIds(sourceIndexDescription.getIdAndVersion())
+//		);
 		
 		JdbcTemplate jdbcTemplate = tableIndexDAO.getConnection();
 		
-		Set<String> renamedMultiValueTables = Set.of("2", "3").stream()
-			.map(id -> SQLUtils.getTableNameForMultiValueColumnIndex(sourceIndexDescription.getIdAndVersion(), id)).collect(Collectors.toSet());
-				
-		// Makes sure the FK constraints were renamed as well, each renamed table will have one renamed FK
-		Set<String> expectedForeignKeys = renamedMultiValueTables.stream()
-			.map(t ->SQLUtils.getMultiValueIndexTableForeignKeyConstraintName(t))
-			.collect(Collectors.toSet());
-		
-		Set<String> renamedForeignKeys = Set.copyOf(jdbcTemplate.queryForList("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE "
-			+ "TABLE_NAME IN(" + String.join(",", renamedMultiValueTables.stream().map(t-> "'" + t + "'").collect(Collectors.toList())) + ") AND REFERENCED_COLUMN_NAME = 'ROW_ID'", String.class)
-		);
-		
-		assertEquals(expectedForeignKeys, renamedForeignKeys);
+//		Set<String> renamedMultiValueTables = Set.of("2", "3").stream()
+//			.map(id -> SQLUtils.getTableNameForMultiValueColumnIndex(sourceIndexDescription.getIdAndVersion(), id)).collect(Collectors.toSet());
+//				
+//		// Makes sure the FK constraints were renamed as well, each renamed table will have one renamed FK
+//		Set<String> expectedForeignKeys = renamedMultiValueTables.stream()
+//			.map(t ->SQLUtils.getMultiValueIndexTableForeignKeyConstraintName(t))
+//			.collect(Collectors.toSet());
+//		
+//		Set<String> renamedForeignKeys = Set.copyOf(jdbcTemplate.queryForList("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE "
+//			+ "TABLE_NAME IN(" + String.join(",", renamedMultiValueTables.stream().map(t-> "'" + t + "'").collect(Collectors.toList())) + ") AND REFERENCED_COLUMN_NAME = 'ROW_ID'", String.class)
+//		);
+//		
+//		assertEquals(expectedForeignKeys, renamedForeignKeys);
 		
 		tableIndexDAO.deleteTable(sourceIndexDescription.getIdAndVersion());
 	}

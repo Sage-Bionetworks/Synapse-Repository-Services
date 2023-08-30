@@ -251,38 +251,38 @@ public class SparseChangeSet implements TableChange {
 		return grouping;
 	}
 
-	public List<ListColumnRowChanges> groupListColumnChanges() {
-		Map<String, Set<Long>> groupMap = new HashMap<>();
-
-		// We only care about list columns in the schema
-		List<String> listColumnsIdsOnly = schema.stream()
-				.filter((ColumnModel cm) -> ColumnTypeListMappings.isList(cm.getColumnType()))
-				.map(ColumnModel::getId)
-				.collect(Collectors.toList());
-
-		// No list columns in schema so no work to be done
-		if(listColumnsIdsOnly.isEmpty()){
-			return Collections.emptyList();
-		}
-
-		// check if each row has changed values for any of the list columns
-		// and if so, add the rowId to set of changed rows for that column
-		for (SparseRow row : this.rowIterator()) {
-			for(String listColumnModelId: listColumnsIdsOnly){
-				if(row.hasCellValue(listColumnModelId)){
-					groupMap.computeIfAbsent(listColumnModelId, (String cmId) -> new HashSet<>())
-					.add(row.getRowId());
-				}
-			}
-		}
-
-		// build result list based on map
-		return groupMap.entrySet().stream()
-				.map((Map.Entry<String, Set<Long>> entry) ->
-						new ListColumnRowChanges(getColumnModel(entry.getKey()), entry.getValue())
-				)
-				.collect(Collectors.toList());
-	}
+//	public List<ListColumnRowChanges> groupListColumnChanges() {
+//		Map<String, Set<Long>> groupMap = new HashMap<>();
+//
+//		// We only care about list columns in the schema
+//		List<String> listColumnsIdsOnly = schema.stream()
+//				.filter((ColumnModel cm) -> ColumnTypeListMappings.isList(cm.getColumnType()))
+//				.map(ColumnModel::getId)
+//				.collect(Collectors.toList());
+//
+//		// No list columns in schema so no work to be done
+//		if(listColumnsIdsOnly.isEmpty()){
+//			return Collections.emptyList();
+//		}
+//
+//		// check if each row has changed values for any of the list columns
+//		// and if so, add the rowId to set of changed rows for that column
+//		for (SparseRow row : this.rowIterator()) {
+//			for(String listColumnModelId: listColumnsIdsOnly){
+//				if(row.hasCellValue(listColumnModelId)){
+//					groupMap.computeIfAbsent(listColumnModelId, (String cmId) -> new HashSet<>())
+//					.add(row.getRowId());
+//				}
+//			}
+//		}
+//
+//		// build result list based on map
+//		return groupMap.entrySet().stream()
+//				.map((Map.Entry<String, Set<Long>> entry) ->
+//						new ListColumnRowChanges(getColumnModel(entry.getKey()), entry.getValue())
+//				)
+//				.collect(Collectors.toList());
+//	}
 	
 	public Set<Long> getCreatedOrUpdatedRowIds(List<ColumnModel> columnModels) {
 		ValidateArgument.requiredNotEmpty(columnModels, "The columnModels");

@@ -252,7 +252,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return
 	 */
-	Set<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId);
+//	Set<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId);
 
 	/**
 	 * Creates an index table for the multi-value column described in the
@@ -262,7 +262,7 @@ public interface TableIndexDAO {
 	 * @param columnModel
 	 * @param alterTemp
 	 */
-	void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel, boolean alterTemp);
+//	void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel, boolean alterTemp);
 
 	/**
 	 * Drop the multi-value column index table associated with the table id and
@@ -272,7 +272,7 @@ public interface TableIndexDAO {
 	 * @param columnId
 	 * @param alterTemp
 	 */
-	void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId, boolean alterTemp);
+//	void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId, boolean alterTemp);
 
 	/**
 	 * Drop the multi-value column index table associated with the table id and
@@ -282,8 +282,8 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @param alterTemp
 	 */
-	void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn,
-			boolean alterTemp);
+//	void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn,
+//			boolean alterTemp);
 
 	/**
 	 * Truncate all of the data in the given table.
@@ -343,8 +343,8 @@ public interface TableIndexDAO {
 	 *                   be populated.
 	 * @param alterTemp
 	 */
-	void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds,
-			boolean alterTemp);
+//	void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds,
+//			boolean alterTemp);
 
 	/**
 	 * Delete rows from an a specific list column's index table.
@@ -353,7 +353,7 @@ public interface TableIndexDAO {
 	 * @param listColumn
 	 * @param rowIds
 	 */
-	void deleteFromListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds);
+//	void deleteFromListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds);
 
 	/**
 	 * Create a temporary table like the given table.
@@ -387,7 +387,7 @@ public interface TableIndexDAO {
 	 * 
 	 * @param tableId
 	 */
-	void createTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId);
+//	void createTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId);
 
 	/**
 	 * Copy all of the data from the original multivalue column index table to the
@@ -395,13 +395,13 @@ public interface TableIndexDAO {
 	 * 
 	 * @param tableId
 	 */
-	void copyAllDataToTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId);
+//	void copyAllDataToTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId);
 
 	/**
 	 * Delete all of the temporary multivalue column index table associated with the
 	 * given table.
 	 */
-	void deleteAllTemporaryMultiValueColumnIndexTable(IdAndVersion tableId);
+//	void deleteAllTemporaryMultiValueColumnIndexTable(IdAndVersion tableId);
 
 	/**
 	 * Count the rows in the temp multi value index table.
@@ -409,7 +409,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return
 	 */
-	long getTempTableMultiValueColumnIndexCount(IdAndVersion tableId, String columnName);
+//	long getTempTableMultiValueColumnIndexCount(IdAndVersion tableId, String columnName);
 
 	/**
 	 * Create the entity replication tables if they do not exist.
