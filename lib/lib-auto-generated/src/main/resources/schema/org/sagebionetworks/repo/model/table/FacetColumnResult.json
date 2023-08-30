@@ -9,10 +9,13 @@
 			"type": "string",
 			"description":"The name of the faceted column"
 		},
-		
 		"facetType": {
 			"description": "The type of faceting applied to this column",
 			"$ref":"org.sagebionetworks.repo.model.table.FacetType"
+		},
+		"jsonPath":{
+			"type": "string",
+			"description":"When present, these results represent a sub-column identified by its jsonPath.  Note: The ColumnName will be the name of the root JSON column."
 		}
 	}
 }

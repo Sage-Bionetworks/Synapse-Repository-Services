@@ -11,10 +11,10 @@ public class FacetUtils {
 	/**
 	 * Concatenates a list of search condition Strings with AND and then wraps that search condition with a parenthesis
 	 * e.g. ["(col1 = 1 OR col1 = b)", "(col2 = c OR col2 = d)"] => "( (col1 = 1 OR col1 = b) AND (col2 = c OR col2 = d) )"
-	 * @param columNameToIgnore the name of the column to exclude from the concatenation
+	 * @param columNameExpressionToIgnore the result of {@link #getColumnNameExpression(String, String)} to exclude from the concatenation
 	 * @return the concatenated string or null if there was nothing to concatenate
 	 */
-	public static String concatFacetSearchConditionStrings(List<FacetRequestColumnModel> validatedFacets, String columNameToIgnore){
+	public static String concatFacetSearchConditionStrings(List<FacetRequestColumnModel> validatedFacets, String columNameExpressionToIgnore){
 		ValidateArgument.required(validatedFacets, "validatedFacets");
 		
 		if(validatedFacets.isEmpty()){
@@ -26,14 +26,19 @@ public class FacetUtils {
 		int initialSize = builder.length(); //length with the "( " included
 		
 		for(FacetRequestColumnModel facetColumn : validatedFacets){
-			if(columNameToIgnore == null || !facetColumn.getColumnName().equals(columNameToIgnore)){ //make sure not to include the ignored column
-				String searchCondition = facetColumn.getSearchConditionString();
-				if(searchCondition != null){//don't add anything if there is no search condition
-					if(builder.length() > initialSize){ //not the first element
-						builder.append(" AND ");
-					}
-					builder.append(searchCondition);
+			if (columNameExpressionToIgnore != null) {
+				String columnNameExpression = getColumnNameExpression(facetColumn.getColumnName(), facetColumn.getJsonPath());				
+				//make sure not to include the ignored column
+				if (columnNameExpression.equals(columNameExpressionToIgnore)) {
+					continue;
 				}
+			} 
+			String searchCondition = facetColumn.getSearchConditionString();
+			if(searchCondition != null){//don't add anything if there is no search condition
+				if(builder.length() > initialSize){ //not the first element
+					builder.append(" AND ");
+				}
+				builder.append(searchCondition);
 			}
 		}
 		if(builder.length() == initialSize){ //edge case where nothing got concatenated together
@@ -68,5 +73,21 @@ public class FacetUtils {
 			}
 		}
 		return originalWhereClause;
+	}
+	
+	public static String getColumnNameExpression(String columnName, String jsonPath) {
+		ValidateArgument.required(columnName, "The columnName");
+		// If a json path is supplied then we need to extract the value
+		StringBuilder builder = new StringBuilder();
+		if (jsonPath != null) {
+			builder.append("JSON_EXTRACT(");
+		}
+		
+		builder.append(SqlElementUtils.wrapInDoubleQuotes(columnName));
+		
+		if (jsonPath != null) {
+			builder.append(",'").append(jsonPath).append("')");
+		}
+		return builder.toString();
 	}
 }

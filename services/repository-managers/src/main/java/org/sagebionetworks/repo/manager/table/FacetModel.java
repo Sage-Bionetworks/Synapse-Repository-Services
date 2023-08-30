@@ -142,10 +142,6 @@ public class FacetModel {
 		
 		List<FacetTransformer> transformersList = new ArrayList<>(validatedFacets.size());
 		for(FacetRequestColumnModel facet: validatedFacets) {
-			if (facet.getJsonPath() != null) {
-				// TODO: skip for now, see https://sagebionetworks.jira.com/browse/PLFM-7974
-				continue;
-			}
 			QueryExpression queryClone = cloneQuery(originalQuery);
 			switch(facet.getFacetType()) {
 				case enumeration:
@@ -154,7 +150,7 @@ public class FacetModel {
 					if ( facetValuesRequest != null){
 						selectedValues = facetValuesRequest.getFacetValues();
 					}
-					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.isColumnTypeIsList(), validatedFacets, queryClone , dependencies, selectedValues));
+					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.getJsonPath(), facet.isColumnTypeIsList(), validatedFacets, queryClone , dependencies, selectedValues));
 					break;
 				case range:
 					String selectedMin = null;
@@ -164,7 +160,7 @@ public class FacetModel {
 						selectedMin = facetRangeRequest.getMin();
 						selectedMax = facetRangeRequest.getMax();
 					}
-					transformersList.add(new FacetTransformerRange(facet.getColumnName(), validatedFacets, queryClone, dependencies, selectedMin, selectedMax ));
+					transformersList.add(new FacetTransformerRange(facet.getColumnName(), facet.getJsonPath(), validatedFacets, queryClone, dependencies, selectedMin, selectedMax ));
 					break;
 				default:
 					throw new RuntimeException("Found unexpected FacetType");
