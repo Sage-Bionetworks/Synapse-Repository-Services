@@ -521,8 +521,13 @@ public class SQLUtilsTest {
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
 		cm.setColumnType(ColumnType.INTEGER);
+		
+		DatabaseColumnInfo cmInfo = new DatabaseColumnInfo();
+		cmInfo.setHasIndex(false);
+		
+		ColumnChangeDetails change = new ColumnChangeDetails(cm, cmInfo, null);
 		// call under test
-		SQLUtils.appendDeleteColumn(builder, cm);
+		SQLUtils.appendDeleteColumn(builder, change);
 		assertEquals("DROP COLUMN _C123_", builder.toString());
 	}
 
@@ -532,9 +537,31 @@ public class SQLUtilsTest {
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
 		cm.setColumnType(ColumnType.DOUBLE);
+		
+		DatabaseColumnInfo cmInfo = new DatabaseColumnInfo();
+		cmInfo.setHasIndex(false);
+		
+		ColumnChangeDetails change = new ColumnChangeDetails(cm, cmInfo, null);
 		// call under test
-		SQLUtils.appendDeleteColumn(builder, cm);
+		SQLUtils.appendDeleteColumn(builder, change);
 		assertEquals("DROP COLUMN _C123_, DROP COLUMN _DBL_C123_", builder.toString());
+	}
+	
+	@Test
+	public void testAppendDropColumnWithIndex(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.INTEGER);
+		
+		DatabaseColumnInfo cmInfo = new DatabaseColumnInfo();
+		cmInfo.setIndexName("_C123_idx_");
+		cmInfo.setHasIndex(true);
+		
+		ColumnChangeDetails change = new ColumnChangeDetails(cm, cmInfo, null);
+		// call under test
+		SQLUtils.appendDeleteColumn(builder, change);
+		assertEquals("DROP INDEX _C123_idx_, DROP COLUMN _C123_", builder.toString());
 	}
 
 	@Test
@@ -785,9 +812,13 @@ public class SQLUtilsTest {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
 		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		
+		DatabaseColumnInfo cmInfo = new DatabaseColumnInfo();
+		cmInfo.setHasIndex(false);
+		
 		// new column
 		ColumnModel newColumn = null;
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, cmInfo, newColumn);
 		// call under test
 		String sql = SQLUtils.appendAlterTableSql(change, useDepricatedUtf8ThreeBytes, tableName);
 		assertEquals("ALTER TABLE T999 DROP COLUMN _C123_", sql);

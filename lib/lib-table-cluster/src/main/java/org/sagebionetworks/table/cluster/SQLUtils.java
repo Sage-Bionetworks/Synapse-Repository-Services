@@ -793,7 +793,7 @@ public class SQLUtils {
 
 		if(change.getNewColumn() == null){
 			// delete
-			appendDeleteColumn(builder, change.getOldColumn());
+			appendDeleteColumn(builder, change);
 			return builder.toString();
 		}
 		if (change.getNewColumn().equals(change.getOldColumn())) {
@@ -829,14 +829,23 @@ public class SQLUtils {
 	 * @param builder
 	 * @param oldColumn
 	 */
-	public static void appendDeleteColumn(StringBuilder builder,
-			ColumnModel oldColumn) {
-		ValidateArgument.required(oldColumn, "oldColumn");
+	public static void appendDeleteColumn(StringBuilder builder, ColumnChangeDetails change) {
+		ValidateArgument.required(change, "change");
+		ValidateArgument.required(change.getOldColumn(), "oldColumn");
+		ValidateArgument.required(change.getOldColumnInfo(), "oldColumnInfo");
+		
+		// For list types we need to make sure the functional index is dropped if present, otherwise the column cannot be dropped
+		// (See https://sagebionetworks.jira.com/browse/PLFM-7999)
+		if (change.getOldColumnInfo().hasIndex()) {
+			appendDropIndex(builder, change.getOldColumnInfo());
+			builder.append(", ");
+		}
+		
 		builder.append("DROP COLUMN ");
-		appendColumnNameForId(oldColumn.getId(), builder);
+		appendColumnNameForId(change.getOldColumn().getId(), builder);
 		// doubles use two columns.
-		if(ColumnType.DOUBLE.equals(oldColumn.getColumnType())){
-			appendDropDoubleEnum(builder, oldColumn.getId());
+		if(ColumnType.DOUBLE.equals(change.getOldColumn().getColumnType())){
+			appendDropDoubleEnum(builder, change.getOldColumn().getId());
 		}
 	}
 	
@@ -922,7 +931,7 @@ public class SQLUtils {
 		builder.append("ALTER TABLE ");
 		builder.append(tableName);
 		builder.append(" ");
-		appendDeleteColumn(builder, change.getOldColumn());
+		appendDeleteColumn(builder, change);
 		return builder.toString();
 	}
 	
