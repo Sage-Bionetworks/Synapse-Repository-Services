@@ -289,7 +289,7 @@ public class FacetModelTest {
 	}
 	
 	@Test
-	public void testProcessFacetColumnRequestFacetWithSubColumn() {
+	public void testProcessFacetColumnRequestFacetWithJsonSubColumn() {
 		// json column
 		ColumnModel column = facetSchema.get(2);
 		// range subcolumn
@@ -345,6 +345,29 @@ public class FacetModelTest {
 		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel2, valuesRequest));
 		
 		List<FacetTransformer> result = FacetModel.generateFacetQueryTransformers(originalQuery, dependencies, validatedQueryFacetColumns);
+		//just check for the correct item types.  
+		//the transformers' unit tests already check that fields are set correctly
+		assertEquals(2, result.size());
+		assertTrue(result.get(0) instanceof FacetTransformerRange);
+		assertTrue(result.get(1) instanceof FacetTransformerValueCounts);
+	}
+	
+	@Test
+	public void testGenerateFacetQueryTransformersWithJsonSubColumns(){
+		ColumnModel jsonColumn = new ColumnModel()
+			.setName("jsonColumn")
+			.setColumnType(ColumnType.JSON)
+			.setJsonSubColumns(List.of(
+				new JsonSubColumnModel().setName("a").setJsonPath("$.a").setFacetType(FacetType.range).setColumnType(ColumnType.INTEGER),
+				new JsonSubColumnModel().setName("b").setJsonPath("$.b").setFacetType(FacetType.enumeration).setColumnType(ColumnType.INTEGER)
+			));
+		
+		jsonColumn.getJsonSubColumns().forEach(jsonSubColumn -> {
+			validatedQueryFacetColumns.add(new FacetRequestColumnModel(jsonColumn.getName(), jsonSubColumn, null));	
+		});
+		
+		List<FacetTransformer> result = FacetModel.generateFacetQueryTransformers(originalQuery, dependencies, validatedQueryFacetColumns);
+		
 		//just check for the correct item types.  
 		//the transformers' unit tests already check that fields are set correctly
 		assertEquals(2, result.size());

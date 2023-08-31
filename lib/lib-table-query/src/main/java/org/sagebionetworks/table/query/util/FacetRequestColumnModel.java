@@ -153,7 +153,7 @@ public class FacetRequestColumnModel {
 
 		StringBuilder builder = new StringBuilder("(");
 
-		appendColumnNameExpression(builder, facetRange);
+		builder.append(FacetUtils.getColumnNameExpression(facetRange.getColumnName(), facetRange.getJsonPath()));
 		
 		if (NULL_VALUE_KEYWORD.equals(min) || NULL_VALUE_KEYWORD.equals(max)){
 			builder.append(" IS NULL");
@@ -178,15 +178,15 @@ public class FacetRequestColumnModel {
 		if(facetValues == null || facetValues.getFacetValues() == null|| facetValues.getFacetValues().isEmpty()){
 			return null;
 		}
-		
 		StringBuilder builder = new StringBuilder("(");
+		String columnNameExpression = FacetUtils.getColumnNameExpression(facetValues.getColumnName(), facetValues.getJsonPath());
 		int initialSize = builder.length();
 		for(String value : facetValues.getFacetValues()){
 			if(builder.length() > initialSize){
 				builder.append(" OR ");
 			}
 			
-			appendColumnNameExpression(builder, facetValues);
+			builder.append(columnNameExpression);
 			
 			if(value.equals(NULL_VALUE_KEYWORD)){
 				builder.append(" IS NULL");
@@ -199,19 +199,6 @@ public class FacetRequestColumnModel {
 		return builder.toString();
 	}
 	
-	static void appendColumnNameExpression(StringBuilder builder, FacetColumnRequest request) {
-		// If a json path is supplied then we need to extract the value
-		if (request.getJsonPath() != null) {
-			builder.append("JSON_EXTRACT(");
-		}
-		
-		builder.append(SqlElementUtils.wrapInDoubleQuotes(request.getColumnName()));
-		
-		if (request.getJsonPath() != null) {
-			builder.append(",'").append(request.getJsonPath()).append("')");
-		}
-	}
-
 	static String createListColumnEnumerationSearchCondition(FacetColumnValuesRequest facetValues){
 		if(facetValues == null || facetValues.getFacetValues() == null|| facetValues.getFacetValues().isEmpty()){
 			return null;
