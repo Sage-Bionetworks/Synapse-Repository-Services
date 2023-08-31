@@ -301,7 +301,8 @@ TOKEN [IGNORE_CASE]: {
    | "JSON_ARRAY"
    | "JSON_EXTRACT"
    | "JSON_OVERLAPS"
-   | "JSON_SEARCH"	
+   | "JSON_SEARCH"
+   | "JSON_QUOTE"
   >
 }
 
