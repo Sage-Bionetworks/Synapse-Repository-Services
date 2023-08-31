@@ -26,17 +26,19 @@ public class FacetTransformerRange implements FacetTransformer {
 	public static final String MAX_ALIAS = "maximum";
 	
 	private String columnName;
+	private String jsonPath;
 	private List<FacetRequestColumnModel> facets;
 	private String selectedMin;
 	private String selectedMax;
 	
 	private QueryTranslator generatedFacetSqlQuery;
 	
-	public FacetTransformerRange(String columnName, List<FacetRequestColumnModel> facets, QueryExpression originalQuery, TranslationDependencies dependencies, String selectedMin, String selectedMax){
+	public FacetTransformerRange(String columnName, String jsonPath, List<FacetRequestColumnModel> facets, QueryExpression originalQuery, TranslationDependencies dependencies, String selectedMin, String selectedMax){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facets, "facets");
 		ValidateArgument.required(originalQuery, "originalQuery");
 		this.columnName = columnName;
+		this.jsonPath = jsonPath;
 		this.facets = facets;
 		this.selectedMin = selectedMin;
 		this.selectedMax = selectedMax;
@@ -59,23 +61,23 @@ public class FacetTransformerRange implements FacetTransformer {
 	 */
 	private QueryTranslator generateFacetSqlQuery(QueryExpression originalQuery, TranslationDependencies dependencies) {
 		
+		String columnNameExpression = FacetUtils.getColumnNameExpression(columnName, jsonPath);
+		
 		NonJoinQueryExpression njqe = originalQuery.getNonJoinQueryExpression();
 		
 		StringBuilder builder = new StringBuilder("SELECT MIN(");
-		builder.append("\"");
-		builder.append(columnName);
-		builder.append("\"");
+		builder.append(columnNameExpression);
 		builder.append(") as ");
 		builder.append(MIN_ALIAS);
 		builder.append(", MAX(");
-		builder.append("\"");
-		builder.append(columnName);
-		builder.append("\"");
+		builder.append(columnNameExpression);
 		builder.append(") as ");
 		builder.append(MAX_ALIAS);
 		builder.append(" ");
 		builder.append(njqe.getFirstElementOfType(FromClause.class).toSql());
-		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
+		
+		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnNameExpression);
+		
 		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, njqe.getFirstElementOfType(WhereClause.class));
 		
 		try {
@@ -107,6 +109,7 @@ public class FacetTransformerRange implements FacetTransformer {
 		
 		FacetColumnResultRange result = new FacetColumnResultRange();
 		result.setColumnName(this.columnName);
+		result.setJsonPath(this.jsonPath);
 		result.setFacetType(FacetType.range);
 		List<String> values =  row.getValues();
 		result.setColumnMin(values.get(0));

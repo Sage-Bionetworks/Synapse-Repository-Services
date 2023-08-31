@@ -1,21 +1,24 @@
 package org.sagebionetworks.table.query.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
@@ -24,7 +27,7 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.WhereClause;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class FacetUtilsTest {
 
 	@Mock
@@ -60,7 +63,7 @@ public class FacetUtilsTest {
 	
 
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws ParseException{
 		facetColumnName = "asdf";
 
@@ -85,7 +88,7 @@ public class FacetUtilsTest {
 		facetRange1.setMin(min1);
 		
 		tableId = "syn123";
-		Mockito.when(mockFacetColumn.getColumnName()).thenReturn(facetColumnName);
+		
 		searchCondition1 = "(searchCondition=asdf)";
 				
 		supportedFacetColumns = new HashSet<>();
@@ -94,21 +97,22 @@ public class FacetUtilsTest {
 		whereClause = new WhereClause(SqlElementUtils.createSearchCondition("water=wet AND sky=blue"));
 		facetSearchConditionString = "(tabs > spaces)";
 		stringBuilder = new StringBuilder();
-		
-		Mockito.when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
 	}
 
 	/////////////////////////////////////////////
 	// concatFacetSearchConditionStrings() Tests
 	/////////////////////////////////////////////
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testConcatFacetSearchConditionStringsNullFacetColumnsList(){
-		FacetUtils.concatFacetSearchConditionStrings(null, facetColumnName);
+		assertThrows(IllegalArgumentException.class, () -> {			
+			FacetUtils.concatFacetSearchConditionStrings(null, facetColumnName);
+		});
 	}
 	
 	@Test
 	public void testConcatFacetSearchConditionStringsNullColumnNameToIgnore(){
+		Mockito.when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		assertEquals(1, validatedQueryFacetColumns.size());
 		
@@ -118,16 +122,31 @@ public class FacetUtilsTest {
 	
 	@Test 
 	public void testConcatFacetSearchConditionStringsOnlyFacetInListIsIgnored(){
+		Mockito.when(mockFacetColumn.getColumnName()).thenReturn(facetColumnName);
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		assertEquals(1, validatedQueryFacetColumns.size());
 		
-		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, facetColumnName);
+		String columnNameExpressionToIgnore = FacetUtils.getColumnNameExpression(facetColumnName, null);
+		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, columnNameExpressionToIgnore);
+		assertNull(result);
+	}
+	
+	@Test 
+	public void testConcatFacetSearchConditionStringsOnlyFacetInListIsIgnoredWithJsonPath(){
+		when(mockFacetColumn.getColumnName()).thenReturn(facetColumnName);
+		when(mockFacetColumn.getJsonPath()).thenReturn("$.a");
+		
+		validatedQueryFacetColumns.add(mockFacetColumn);
+		assertEquals(1, validatedQueryFacetColumns.size());
+		
+		String columnNameExpressionToIgnore = FacetUtils.getColumnNameExpression(facetColumnName, "$.a");
+		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, columnNameExpressionToIgnore);
 		assertNull(result);
 	}
 	
 	@Test
 	public void testConcatFacetSearchConditionStringSearchConditionStringIsNull(){
-		Mockito.when(mockFacetColumn.getSearchConditionString()).thenReturn(null);
+		when(mockFacetColumn.getSearchConditionString()).thenReturn(null);
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		assertEquals(1, validatedQueryFacetColumns.size());
 		
@@ -137,10 +156,11 @@ public class FacetUtilsTest {
 	
 	@Test
 	public void testConcatFacetSearchConditionStringMultipleFacetColumns(){
+		when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		String searchCondition2 = "(searchCondition2)";
 		FacetRequestColumnModel mockFacetColumn2 = Mockito.mock(FacetRequestColumnModel.class);
-		Mockito.when(mockFacetColumn2.getSearchConditionString()).thenReturn("(searchCondition2)");
+		when(mockFacetColumn2.getSearchConditionString()).thenReturn("(searchCondition2)");
 		validatedQueryFacetColumns.add(mockFacetColumn2);
 
 		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, null);
@@ -153,10 +173,25 @@ public class FacetUtilsTest {
 	
 	@Test
 	public void testAppendFacetSearchConditionToQuerySpecification() throws ParseException {
+		when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		WhereClause modifiedSql = FacetUtils.appendFacetSearchConditionToQuerySpecification(
 				simpleModel.getTableExpression().getWhereClause(), validatedQueryFacetColumns);
 		assertEquals("WHERE ( i LIKE 'trains' ) AND ( ( ( searchCondition = asdf ) ) )",
 				modifiedSql.toSql());
+	}
+	
+	@Test
+	public void testGetColumnNameExpressionWithNoJsonPath() {
+		String jsonPath = null;
+		
+		assertEquals("\"foo bar\"", FacetUtils.getColumnNameExpression("foo bar", jsonPath));
+	}
+	
+	@Test
+	public void testGetColumnNameExpressionWithJsonPath() {
+		String jsonPath = "$.a";
+		
+		assertEquals("JSON_EXTRACT(\"foo bar\",'$.a')", FacetUtils.getColumnNameExpression("foo bar", jsonPath));
 	}
 }

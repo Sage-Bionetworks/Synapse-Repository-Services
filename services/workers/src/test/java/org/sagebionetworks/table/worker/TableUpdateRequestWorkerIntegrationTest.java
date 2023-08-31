@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -490,6 +491,88 @@ public class TableUpdateRequestWorkerIntegrationTest {
 		QueryBundleRequest queryRequest = createQueryRequest("SELECT UNNEST(" + name + ") FROM " + table.getId(), table.getId());
 		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
 			assertEquals(4, response.getQueryResult().getQueryResults().getRows().size());
+		});
+	}
+	
+	// See https://sagebionetworks.jira.com/browse/PLFM-7999
+	@Test
+	public void testSchemaChangelWithDropListColumn() throws Exception {
+		ColumnModel stringColumn = columnManager.createColumnModel(new ColumnModel()
+			.setName("stringColumn")
+			.setMaximumSize(100L)
+			.setColumnType(ColumnType.STRING)
+		);
+		
+		// string List column
+		ColumnModel stringListColumn = columnManager.createColumnModel(new ColumnModel()
+			.setName("aString")
+			.setColumnType(ColumnType.STRING_LIST)
+			.setMaximumSize(5L)
+		);
+
+		// test schema change on a TableEntity
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		String entityId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, entityId, TableEntity.class);
+		toDelete.add(entityId);
+
+		TableUpdateTransactionRequest transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(entityId);
+		transaction.setChanges(List.of(
+			new TableSchemaChangeRequest().setEntityId(entityId).setChanges(List.of(
+				new ColumnChange().setNewColumnId(stringColumn.getId()),
+				new ColumnChange().setNewColumnId(stringListColumn.getId())
+			)).setOrderedColumnIds(List.of(stringColumn.getId(), stringListColumn.getId()))
+		));
+		
+		// wait for the change to complete
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNotNull(response.getResults());
+			assertEquals(1, response.getResults().size());
+			TableUpdateResponse updateResponse = response.getResults().get(0);
+			assertTrue(updateResponse instanceof TableSchemaChangeResponse);
+			TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
+			assertNotNull(changeResponse.getSchema());
+			assertEquals(List.of(stringColumn, stringListColumn), changeResponse.getSchema());
+		});
+
+		// add row to column
+		PartialRow rowOne = TableModelTestUtils.createPartialRow(null, stringColumn.getId(), "abc", stringListColumn.getId(), "[\"12345\"]");
+		PartialRowSet rowSet = createRowSet(entityId, rowOne);
+		transaction = createAddDataRequest(entityId, rowSet);
+		
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());
+		
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
+			assertEquals(1, response.getQueryResult().getQueryResults().getRows().size());
+		});
+
+		// Drops the list columm
+		
+		transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(entityId);
+		transaction.setChanges(List.of(
+			new TableSchemaChangeRequest().setEntityId(entityId).setChanges(List.of(
+				new ColumnChange().setOldColumnId(stringListColumn.getId())
+			)).setOrderedColumnIds(List.of(stringColumn.getId()))
+		));
+		
+		// wait for the change to complete
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+		});
+		
+		queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());
+		
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
+			assertEquals(1, response.getQueryResult().getQueryResults().getRows().size());
+			assertEquals(List.of("abc"), response.getQueryResult().getQueryResults().getRows().get(0).getValues());
 		});
 	}
 	

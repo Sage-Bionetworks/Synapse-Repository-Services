@@ -18,9 +18,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -87,7 +89,7 @@ public class FacetTransformerRangeTest {
 		col2.setName(FacetTransformerRange.MAX_ALIAS);
 		correctSelectList = Lists.newArrayList(col1, col2);
 		
-		facetTransformer = new FacetTransformerRange(columnName, facets, originalQuery, dependencies, selectedMin, selectedMax);		
+		facetTransformer = new FacetTransformerRange(columnName, null, facets, originalQuery, dependencies, selectedMin, selectedMax);		
 
 	}
 	/////////////////////////////////
@@ -108,11 +110,25 @@ public class FacetTransformerRangeTest {
 	/////////////////////////////////
 	
 	@Test
-	public void testGenerateFacetSqlQuery(){
+	public void testGenerateFacetSqlQuery() {
 		//check the non-transformed sql
 		String expectedString = "SELECT MIN(_C2_) AS minimum, MAX(_C2_) AS maximum FROM T123 WHERE _C0_ LIKE :b0";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
 		assertEquals("asdf%", facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
+	}
+	
+	@Test
+	public void testGenerateFacetSqlQueryWithJsonPath() {
+		ColumnModel jsonColumn = schema.stream().filter(column -> column.getColumnType() == ColumnType.JSON).findFirst().get();
+		
+		jsonColumn.setJsonSubColumns(List.of(
+			new JsonSubColumnModel().setName("a").setJsonPath("$.a").setFacetType(FacetType.range).setColumnType(ColumnType.INTEGER)
+		));
+		
+		facetTransformer = new FacetTransformerRange(jsonColumn.getName(), "$.a", facets, originalQuery, dependencies, selectedMin, selectedMax);	
+
+		assertEquals("SELECT MIN(JSON_EXTRACT(\"i19\",'$.a')) AS minimum, MAX(JSON_EXTRACT(\"i19\",'$.a')) AS maximum FROM syn123 WHERE i0 LIKE 'asdf%'", facetTransformer.getFacetSqlQuery().getInputSql());
+		
 	}
 	
 	@Test
@@ -129,7 +145,7 @@ public class FacetTransformerRangeTest {
 		originalQuery = new TableQueryParser("with syn2 as (select i0, i2 from syn1) select * from syn2 where i0 > 100 order by i2").queryExpression();
 		
 		// call under test
-		facetTransformer = new FacetTransformerRange(columnName, facets, originalQuery, dependencies, selectedMin, selectedMax);
+		facetTransformer = new FacetTransformerRange(columnName, null, facets, originalQuery, dependencies, selectedMin, selectedMax);
 		//check the non-transformed sql
 		String expectedString = "WITH T2 (_C0_, _C2_) AS (SELECT _C0_, _C2_ FROM T1)"
 				+ " SELECT MIN(_C2_) AS minimum, MAX(_C2_) AS maximum FROM T2 WHERE _C0_ > :b0";
@@ -171,14 +187,48 @@ public class FacetTransformerRangeTest {
 		Row row = new Row();
 		row.setValues(Lists.newArrayList(colMin, colMax));
 		rowSet.setRows(Lists.newArrayList(row));
+		
+		FacetColumnResultRange expected = new FacetColumnResultRange()
+			.setColumnName(columnName)
+			.setFacetType(FacetType.range)
+			.setColumnMin("2")
+			.setColumnMax("42")
+			.setSelectedMin(selectedMin)
+			.setSelectedMax(selectedMax);
+		
 		FacetColumnResultRange result = (FacetColumnResultRange) facetTransformer.translateToResult(rowSet);
 
-		assertEquals(columnName, result.getColumnName());
-		assertEquals(FacetType.range, result.getFacetType());
+		assertEquals(expected, result);
+	}
+	
+	@Test 
+	public void testTranslateToResultWithJsonPath(){
+		ColumnModel jsonColumn = schema.stream().filter(column -> column.getColumnType() == ColumnType.JSON).findFirst().get();
+		
+		jsonColumn.setJsonSubColumns(List.of(
+			new JsonSubColumnModel().setName("a").setJsonPath("$.a").setFacetType(FacetType.range).setColumnType(ColumnType.INTEGER)
+		));
+		
+		facetTransformer = new FacetTransformerRange(jsonColumn.getName(), "$.a", facets, originalQuery, dependencies, selectedMin, selectedMax);
+		
+		String colMin = "2";
+		String colMax = "42";
+		rowSet.setHeaders(correctSelectList);
+		Row row = new Row();
+		row.setValues(Lists.newArrayList(colMin, colMax));
+		rowSet.setRows(Lists.newArrayList(row));
+		
+		FacetColumnResultRange expected = new FacetColumnResultRange()
+			.setColumnName(jsonColumn.getName())
+			.setJsonPath(jsonColumn.getJsonSubColumns().get(0).getJsonPath())
+			.setFacetType(FacetType.range)
+			.setColumnMin("2")
+			.setColumnMax("42")
+			.setSelectedMin(selectedMin)
+			.setSelectedMax(selectedMax);
+		
+		FacetColumnResultRange result = (FacetColumnResultRange) facetTransformer.translateToResult(rowSet);
 
-		assertEquals(colMin, result.getColumnMin());
-		assertEquals(colMax, result.getColumnMax());
-		assertEquals(selectedMin, result.getSelectedMin());
-		assertEquals(selectedMax, result.getSelectedMax());
+		assertEquals(expected, result);
 	}
 }

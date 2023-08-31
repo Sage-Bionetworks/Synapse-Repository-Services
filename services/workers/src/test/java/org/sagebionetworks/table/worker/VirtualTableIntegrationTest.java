@@ -65,6 +65,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -197,18 +198,17 @@ public class VirtualTableIntegrationTest {
 			assertEquals(2L, results.getQueryCount());
 			assertEquals(List.of(
 				new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range).setColumnMin("6").setColumnMax("18"),
+				new FacetColumnResultValues().setColumnName("jsonColumn").setJsonPath("$.a").setFacetType(FacetType.enumeration).setFacetValues(List.of(
+					new FacetColumnResultValueCount().setValue(TableConstants.NULL_VALUE_KEYWORD).setCount(1L).setIsSelected(false),
+					new FacetColumnResultValueCount().setValue("6").setCount(1L).setIsSelected(false)
+				)),
+				new FacetColumnResultRange().setColumnName("jsonColumn").setJsonPath("$.b").setFacetType(FacetType.range).setColumnMin("18").setColumnMax("18"),
 				new FacetColumnResultValues().setColumnName("listColumn").setFacetType(FacetType.enumeration).setFacetValues(List.of(
 					new FacetColumnResultValueCount().setValue("1").setCount(1L).setIsSelected(false),
 					new FacetColumnResultValueCount().setValue("2").setCount(1L).setIsSelected(false),
 					new FacetColumnResultValueCount().setValue("5").setCount(1L).setIsSelected(false),
 					new FacetColumnResultValueCount().setValue("16").setCount(1L).setIsSelected(false)
 				))
-				// TODO There should be values for each of the jsonSubColumn in the jsonColumn (See https://sagebionetworks.jira.com/browse/PLFM-7974)
-				// , 
-				// new FacetColumnResultValues().setColumnName("jsonColumn").setJsonPath("$.a").setFacetType(FacetType.enumeration).setFacetValues(List.of(
-				// 		new FacetColumnResultValueCount().setValue("a").setCount(1L).setIsSelected(false)
-				// )),
-				// new FacetColumnResultRange().setColumnName("jsonColumn").setJsonPath("$.b").setFacetType(FacetType.range).setColumnMin("18").setColumnMax("18")
 			), results.getFacets());
 		}, MAX_WAIT_MS);
 
@@ -230,6 +230,10 @@ public class VirtualTableIntegrationTest {
 			assertEquals(1L, results.getQueryCount());
 			assertEquals(List.of(
 				new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range).setColumnMin("6").setColumnMax("18").setSelectedMax("19").setSelectedMin("17"),
+				new FacetColumnResultValues().setColumnName("jsonColumn").setJsonPath("$.a").setFacetType(FacetType.enumeration).setFacetValues(List.of(
+					new FacetColumnResultValueCount().setValue(TableConstants.NULL_VALUE_KEYWORD).setCount(1L).setIsSelected(false)
+				)),
+				new FacetColumnResultRange().setColumnName("jsonColumn").setJsonPath("$.b").setFacetType(FacetType.range).setColumnMin("18").setColumnMax("18"),
 				new FacetColumnResultValues().setColumnName("listColumn").setFacetType(FacetType.enumeration).setFacetValues(List.of(
 					new FacetColumnResultValueCount().setValue("2").setCount(1L).setIsSelected(false),
 					new FacetColumnResultValueCount().setValue("16").setCount(1L).setIsSelected(false)
@@ -248,6 +252,10 @@ public class VirtualTableIntegrationTest {
 			assertEquals(1L, results.getQueryCount());
 			assertEquals(List.of(
 				new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range).setColumnMin("18").setColumnMax("18"),
+				new FacetColumnResultValues().setColumnName("jsonColumn").setJsonPath("$.a").setFacetType(FacetType.enumeration).setFacetValues(List.of(
+					new FacetColumnResultValueCount().setValue(TableConstants.NULL_VALUE_KEYWORD).setCount(1L).setIsSelected(false)
+				)),
+				new FacetColumnResultRange().setColumnName("jsonColumn").setJsonPath("$.b").setFacetType(FacetType.range).setColumnMin("18").setColumnMax("18").setSelectedMin("17").setSelectedMax("19"),
 				new FacetColumnResultValues().setColumnName("listColumn").setFacetType(FacetType.enumeration).setFacetValues(List.of(
 					new FacetColumnResultValueCount().setValue("2").setCount(1L).setIsSelected(false),
 					new FacetColumnResultValueCount().setValue("16").setCount(1L).setIsSelected(false)
@@ -266,6 +274,11 @@ public class VirtualTableIntegrationTest {
 			assertEquals(1L, results.getQueryCount());
 			assertEquals(List.of(
 				new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range).setColumnMin("6").setColumnMax("6"),
+				new FacetColumnResultValues().setColumnName("jsonColumn").setJsonPath("$.a").setFacetType(FacetType.enumeration).setFacetValues(List.of(
+					new FacetColumnResultValueCount().setValue(TableConstants.NULL_VALUE_KEYWORD).setCount(1L).setIsSelected(false),
+					new FacetColumnResultValueCount().setValue("6").setCount(1L).setIsSelected(true)
+				)),
+				new FacetColumnResultRange().setColumnName("jsonColumn").setJsonPath("$.b").setFacetType(FacetType.range).setColumnMin(null).setColumnMax(null),
 				new FacetColumnResultValues().setColumnName("listColumn").setFacetType(FacetType.enumeration).setFacetValues(List.of(
 						new FacetColumnResultValueCount().setValue("1").setCount(1L).setIsSelected(false),
 						new FacetColumnResultValueCount().setValue("5").setCount(1L).setIsSelected(false)
@@ -285,6 +298,10 @@ public class VirtualTableIntegrationTest {
 			assertEquals(1L, results.getQueryCount());
 			assertEquals(List.of(
 				new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range).setColumnMin("18").setColumnMax("18"),
+				new FacetColumnResultValues().setColumnName("jsonColumn").setJsonPath("$.a").setFacetType(FacetType.enumeration).setFacetValues(List.of(
+					new FacetColumnResultValueCount().setValue(TableConstants.NULL_VALUE_KEYWORD).setCount(1L).setIsSelected(false)
+				)),
+				new FacetColumnResultRange().setColumnName("jsonColumn").setJsonPath("$.b").setFacetType(FacetType.range).setColumnMin("18").setColumnMax("18"),
 				new FacetColumnResultValues().setColumnName("listColumn").setFacetType(FacetType.enumeration).setFacetValues(List.of(
 					new FacetColumnResultValueCount().setValue("1").setCount(1L).setIsSelected(false),
 					new FacetColumnResultValueCount().setValue("2").setCount(1L).setIsSelected(false),
