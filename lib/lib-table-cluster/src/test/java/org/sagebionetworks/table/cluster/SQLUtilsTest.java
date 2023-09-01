@@ -1306,7 +1306,7 @@ public class SQLUtilsTest {
 		IndexChange changes = SQLUtils.calculateIndexOptimization(list, tableId, maxNumberOfIndex);
 		
 		assertEquals(0, changes.getToAdd().size());
-		assertEquals(2, changes.getToRemove().size());
+		assertEquals(8, changes.getToRemove().size());
 		assertEquals(0, changes.getToRename().size());
 	}
 	

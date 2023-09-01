@@ -80,8 +80,10 @@ public class DatabaseColumnInfo {
 			return false;
 		}
 		if (ColumnTypeListMappings.isList(columnType)) {
-			ColumnType nonListType = ColumnTypeListMappings.nonListType(columnType);
-			return ColumnTypeInfo.getInfoForType(nonListType).getMySqlType().isCreateIndex();
+			// Disable the index for now, see https://sagebionetworks.jira.com/browse/PLFM-8003
+			return false;
+//			ColumnType nonListType = ColumnTypeListMappings.nonListType(columnType);
+//			return ColumnTypeInfo.getInfoForType(nonListType).getMySqlType().isCreateIndex();
 		}
 		return type.isCreateIndex();
 	}
