@@ -3525,6 +3525,7 @@ public class TableIndexDAOImplTest {
 			objectDataDTO.setFileMD5(Long.toHexString(id*1000));
 			objectDataDTO.setFileBucket("bucket");
 			objectDataDTO.setFileKey("key");
+			objectDataDTO.setFileName("fileName");
 			objectDataDTO.setFileConcreteType(S3FileHandle.class.getName());
 		}
 		if(EntityType.dataset.equals(type)){

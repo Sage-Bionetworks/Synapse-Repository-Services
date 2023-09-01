@@ -3145,6 +3145,7 @@ public class NodeDAOImplTest {
 		assertEquals(S3FileHandle.class.getName(), fileDto.getFileConcreteType());
 		assertEquals("bucket", fileDto.getFileBucket());
 		assertEquals("key", fileDto.getFileKey());
+		assertEquals("One", fileDto.getFileName());
 		assertEquals(SubType.valueOf(file.getNodeType().name()), fileDto.getSubType());
 		assertEquals(KeyFactory.stringToKey(project.getId()), fileDto.getParentId());
 		assertEquals(KeyFactory.stringToKey(project.getId()), fileDto.getBenefactorId());

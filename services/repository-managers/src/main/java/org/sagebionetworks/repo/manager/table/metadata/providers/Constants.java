@@ -22,6 +22,7 @@ public class Constants {
 					ObjectField.benefactorId, 
 					ObjectField.projectId,
 					ObjectField.dataFileHandleId,
+					ObjectField.dataFileName,
 					ObjectField.dataFileSizeBytes, 
 					ObjectField.dataFileMD5Hex,
 					ObjectField.dataFileConcreteType,

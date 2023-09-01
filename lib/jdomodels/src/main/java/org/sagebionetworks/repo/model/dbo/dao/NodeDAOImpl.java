@@ -99,6 +99,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JONS_SCHEMA_BINDING_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_BIND_ID;
@@ -1842,6 +1843,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				
 				dto.setFileKey(rs.getString(COL_FILES_KEY));
 				dto.setFileMD5(rs.getString(COL_FILES_CONTENT_MD5));
+				dto.setFileName(rs.getString("FILE_NAME"));
 				
 				String fileType = rs.getString(COL_FILES_METADATA_TYPE);
 

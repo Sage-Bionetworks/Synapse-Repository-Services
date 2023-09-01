@@ -1841,7 +1841,8 @@ public class SQLUtilsTest {
 				+ " MAX(R.ITEM_COUNT) AS ITEM_COUNT,"
 				+ " MAX(R.FILE_CONCRETE_TYPE) AS FILE_CONCRETE_TYPE,"
 				+ " MAX(R.FILE_BUCKET) AS FILE_BUCKET,"
-				+ " MAX(R.FILE_KEY) AS FILE_KEY"
+				+ " MAX(R.FILE_KEY) AS FILE_KEY,"
+				+ " MAX(R.FILE_NAME) AS FILE_NAME"
 				, builder.toString());
 	}
 	

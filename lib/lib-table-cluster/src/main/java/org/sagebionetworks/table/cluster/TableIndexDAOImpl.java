@@ -24,6 +24,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_MD5;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_SIZE_BYTES;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_ITEM_COUNT;
@@ -66,8 +67,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
@@ -188,6 +187,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		dto.setFileConcreteType(rs.getString(OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE));
 		dto.setFileBucket(rs.getString(OBJECT_REPLICATION_COL_FILE_BUCKET));
 		dto.setFileKey(rs.getString(OBJECT_REPLICATION_COL_FILE_KEY));
+		dto.setFileName(rs.getString(OBJECT_REPLICATION_COL_FILE_NAME));
 		return dto;
 	};
 	
@@ -882,7 +882,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					throws SQLException {
 				ObjectDataDTO dto = sorted.get(i);
 				int parameterIndex = 1;
-				int updateOffset = 19;
+				int updateOffset = 20;
 				
 				ps.setString(parameterIndex++, mainType.name());
 				ps.setLong(parameterIndex++, dto.getId());
@@ -995,6 +995,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					ps.setString(parameterIndex++, dto.getFileKey());
 					ps.setString(parameterIndex + updateOffset, dto.getFileKey());
 				}else {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.VARCHAR);
+				}
+				if (dto.getFileName() != null) {
+					ps.setString(parameterIndex++, dto.getFileName());
+					ps.setString(parameterIndex + updateOffset, dto.getFileName());
+				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					ps.setNull(parameterIndex + updateOffset, java.sql.Types.VARCHAR);
 				}
