@@ -97,7 +97,7 @@ public class DatabaseColumnInfoTest {
 		// call under test
 		String results = info.createIndexDefinition();
 		if (ColumnTypeListMappings.STRING == listTypeMapping) {
-			assertEquals("_C123_IDX ((CAST(_C123_ AS CHAR(1000) ARRAY)))", results);
+			assertEquals("_C123_IDX ((CAST(_C123_ AS CHAR(255) ARRAY)))", results);
 		} else {
 			assertEquals("_C123_IDX ((CAST(_C123_ AS "+ ColumnTypeInfo.getInfoForType(listTypeMapping.getNonListType()).getMySqlType().getMySqlCastType() +" ARRAY)))", results);
 		}
@@ -229,7 +229,7 @@ public class DatabaseColumnInfoTest {
 		info.setColumnType(columnType);
 		info.setType(ColumnTypeInfo.getInfoForType(columnType).getMySqlType());
 		
-		if (ColumnType.JSON == columnType || ColumnType.LARGETEXT == columnType) {
+		if (ColumnType.JSON == columnType || ColumnType.LARGETEXT == columnType || ColumnTypeListMappings.isList(columnType)) {
 			assertFalse(info.isCreateIndex());
 		} else {
 			assertTrue(info.isCreateIndex());			

@@ -80,8 +80,10 @@ public class DatabaseColumnInfo {
 			return false;
 		}
 		if (ColumnTypeListMappings.isList(columnType)) {
-			ColumnType nonListType = ColumnTypeListMappings.nonListType(columnType);
-			return ColumnTypeInfo.getInfoForType(nonListType).getMySqlType().isCreateIndex();
+			// Disable the index for now, see https://sagebionetworks.jira.com/browse/PLFM-8003
+			return false;
+//			ColumnType nonListType = ColumnTypeListMappings.nonListType(columnType);
+//			return ColumnTypeInfo.getInfoForType(nonListType).getMySqlType().isCreateIndex();
 		}
 		return type.isCreateIndex();
 	}
@@ -116,8 +118,7 @@ public class DatabaseColumnInfo {
 			
 			if (nonListType.isStringType()) {
 				builder.append("(");
-				// This is needed to make the multi-value index work for string lists: https://sagebionetworks.jira.com/browse/PLFM-8003
-				builder.append(ColumnConstants.MAX_ALLOWED_STRING_SIZE);
+				builder.append(ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH);
 				builder.append(")");
 			}
 			

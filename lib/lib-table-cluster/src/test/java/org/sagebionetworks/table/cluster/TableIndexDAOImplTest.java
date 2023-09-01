@@ -1689,9 +1689,9 @@ public class TableIndexDAOImplTest {
 		
 		info = infoList.get(5);
 		assertEquals("_C14_", info.getColumnName());
-		assertEquals(5L, info.getCardinality());
-		assertTrue(info.hasIndex());
-		assertEquals("_C14_idx_", info.getIndexName());
+		assertEquals(0L, info.getCardinality());
+		assertFalse(info.hasIndex());
+		assertEquals(null, info.getIndexName());
 		assertEquals(MySqlColumnType.JSON, info.getType());
 		assertNull(info.getMaxSize());
 		assertEquals(ColumnType.STRING_LIST, info.getColumnType());
