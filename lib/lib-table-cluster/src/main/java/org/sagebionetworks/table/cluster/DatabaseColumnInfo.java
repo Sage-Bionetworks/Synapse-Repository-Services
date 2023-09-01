@@ -116,7 +116,8 @@ public class DatabaseColumnInfo {
 			
 			if (nonListType.isStringType()) {
 				builder.append("(");
-				builder.append(ColumnConstants.MAX_MYSQL_VARCHAR_INDEX_LENGTH);
+				// This is needed to make the multi-value index work for string lists: https://sagebionetworks.jira.com/browse/PLFM-8003
+				builder.append(ColumnConstants.MAX_ALLOWED_STRING_SIZE);
 				builder.append(")");
 			}
 			

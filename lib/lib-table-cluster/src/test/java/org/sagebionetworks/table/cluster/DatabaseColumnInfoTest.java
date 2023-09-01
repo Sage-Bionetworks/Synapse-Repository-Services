@@ -97,7 +97,7 @@ public class DatabaseColumnInfoTest {
 		// call under test
 		String results = info.createIndexDefinition();
 		if (ColumnTypeListMappings.STRING == listTypeMapping) {
-			assertEquals("_C123_IDX ((CAST(_C123_ AS CHAR(255) ARRAY)))", results);
+			assertEquals("_C123_IDX ((CAST(_C123_ AS CHAR(1000) ARRAY)))", results);
 		} else {
 			assertEquals("_C123_IDX ((CAST(_C123_ AS "+ ColumnTypeInfo.getInfoForType(listTypeMapping.getNonListType()).getMySqlType().getMySqlCastType() +" ARRAY)))", results);
 		}
