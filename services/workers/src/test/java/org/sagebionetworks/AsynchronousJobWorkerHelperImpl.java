@@ -627,8 +627,8 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	public void waitForTableOrViewToBeAvailable(IdAndVersion id,long maxWaitMs) throws InterruptedException {
 		long startTime = System.currentTimeMillis();
 		while(true) {
-			Optional<TableState> optional = tableMangerSupport.getTableStatusState(id);
-			if(optional.isPresent() && TableState.AVAILABLE.equals(optional.get())) {
+			TableState state = tableMangerSupport.getTableStatusOrCreateIfNotExists(id).getState();
+			if(TableState.AVAILABLE.equals(state)) {
 				break;
 			}
 			assertTrue((System.currentTimeMillis()-startTime) < maxWaitMs, "Timed out waiting for a table/view to become available.");
