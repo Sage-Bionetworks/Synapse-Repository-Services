@@ -441,8 +441,9 @@ public class SQLUtilsTest {
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
 		cm.setColumnType(ColumnType.INTEGER);
+		String tableName = "T44";
 		// call under test
-		SQLUtils.appendAddColumn(builder, cm, useDepricatedUtf8ThreeBytes);
+		SQLUtils.appendAddColumn(builder, cm, useDepricatedUtf8ThreeBytes, tableName);
 		assertEquals("ADD COLUMN _C123_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 
@@ -452,10 +453,27 @@ public class SQLUtilsTest {
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
 		cm.setColumnType(ColumnType.DOUBLE);
+		String tableName = "T44";
 		// call under test
-		SQLUtils.appendAddColumn(builder, cm, useDepricatedUtf8ThreeBytes);
+		SQLUtils.appendAddColumn(builder, cm, useDepricatedUtf8ThreeBytes, tableName);
 		assertEquals("ADD COLUMN _C123_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
 				+ ", ADD COLUMN _DBL_C123_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
+	}
+	
+	@Test
+	public void testAppendAddColumnWithList(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.INTEGER_LIST);
+		cm.setMaximumSize(12L);
+		cm.setMaximumListLength(100L);
+		String tableName = "T44";
+		// call under test
+		SQLUtils.appendAddColumn(builder, cm, useDepricatedUtf8ThreeBytes, tableName);
+		assertEquals("ADD COLUMN _C123_ JSON DEFAULT NULL COMMENT 'INTEGER_LIST'"
+				+ ", ADD CONSTRAINT `T44CHK_C123_` CHECK (JSON_SCHEMA_VALID("
+				+ "'{ \"type\": \"array\", \"items\": { \"maxLength\": 12 }, \"maxItems\": 100 }', _C123_))", builder.toString());
 	}
 
 	@Test

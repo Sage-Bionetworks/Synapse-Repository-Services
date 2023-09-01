@@ -15,13 +15,14 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class DatabaseColumnInfo {
 	
-	String columnName;
-	boolean hasIndex;
-	MySqlColumnType type;
-	Integer maxSize;
-	Long cardinality;
-	String indexName;
-	ColumnType columnType;
+	private String columnName;
+	private boolean hasIndex;
+	private MySqlColumnType type;
+	private Integer maxSize;
+	private Long cardinality;
+	private String indexName;
+	private ColumnType columnType;
+	private String constraintName;
 	
 	public String getColumnName() {
 		return columnName;
@@ -64,6 +65,12 @@ public class DatabaseColumnInfo {
 	}
 	public void setColumnType(ColumnType columnType) {
 		this.columnType = columnType;
+	}
+	public String getConstraintName() {
+		return constraintName;
+	}
+	public void setConstraintName(String constraintName) {
+		this.constraintName = constraintName;
 	}
 	/**
 	 * Is this column for for metadata such as:

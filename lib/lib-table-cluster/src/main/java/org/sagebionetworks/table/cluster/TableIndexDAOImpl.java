@@ -66,6 +66,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
@@ -677,7 +678,29 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				info.setHasIndex(true);
 			}
 		});
-	}	
+	}
+	
+	@Override
+	public void provideConstraintInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId) {
+		ValidateArgument.required(list, "list");
+		ValidateArgument.required(tableId, "tableId");
+		if (list.isEmpty()) {
+			return;
+		}
+		final Map<String, DatabaseColumnInfo> nameToInfoMap = list.stream()
+				.collect(Collectors.toMap(DatabaseColumnInfo::getColumnName, Function.identity()));
+		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableIndexType.INDEX);
+		template.query(
+				"SELECT CONSTRAINT_NAME FROM information_schema.table_constraints WHERE"
+						+ " table_schema = DATABASE() AND table_name = ? AND constraint_type = 'CHECK'",
+				(ResultSet rs) -> {
+					String constraintName = rs.getString("CONSTRAINT_NAME");
+					ColumnConstraintInfo.parseConstraintName(constraintName).ifPresent((c) -> {
+						DatabaseColumnInfo info = nameToInfoMap.get(c.getColumnName());
+						info.setConstraintName(c.getConstraintName());
+					});
+				}, tableName);
+	}
 
 	@Override
 	public void optimizeTableIndices(List<DatabaseColumnInfo> list,

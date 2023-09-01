@@ -273,6 +273,14 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 */
 	void provideIndexInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId);
+	
+	/**
+	 * Provide constraint information for each column of the given tableId.
+	 * 
+	 * @param list The constraint information will be added to each provided {@link DatabaseColumnInfo}.
+	 * @param tableId
+	 */
+	void provideConstraintInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId);
 
 	/**
 	 * The provided column data is used to optimize the indices on the given table.

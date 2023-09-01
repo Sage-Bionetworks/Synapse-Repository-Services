@@ -757,7 +757,7 @@ public class SQLUtils {
 		}
 		if(change.getOldColumn() == null){
 			// add
-			appendAddColumn(builder, change.getNewColumn(), useDepricatedUtf8ThreeBytes);
+			appendAddColumn(builder, change.getNewColumn(), useDepricatedUtf8ThreeBytes, tableName);
 			return builder.toString();
 		}
 
@@ -784,14 +784,26 @@ public class SQLUtils {
 	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
 	public static void appendAddColumn(StringBuilder builder,
-			ColumnModel newColumn, boolean useDepricatedUtf8ThreeBytes) {
-		ValidateArgument.required(newColumn, "newColumn");
+			ColumnModel newColumn, boolean useDepricatedUtf8ThreeBytes, String tableName) {
 		builder.append("ADD COLUMN ");
 		appendColumnDefinition(builder, newColumn, useDepricatedUtf8ThreeBytes);
 		// doubles use two columns.
 		if(ColumnType.DOUBLE.equals(newColumn.getColumnType())){
 			appendAddDoubleEnum(builder, newColumn.getId());
 		}
+		if (ColumnTypeListMappings.isList(newColumn.getColumnType())) {
+			addListValidationConstraint(builder, newColumn, tableName);
+		}
+	}
+
+	static void addListValidationConstraint(StringBuilder builder, ColumnModel newColumn, String tableName) {
+		ColumnConstraintInfo info = new ColumnConstraintInfo(tableName,
+				SQLUtils.getColumnNameForId(newColumn.getId()));
+		builder.append(String.format(
+				", ADD CONSTRAINT `%s` CHECK (JSON_SCHEMA_VALID("
+				+ "'{ \"type\": \"array\", \"items\": { \"maxLength\": %d }, \"maxItems\": %d }', %s))",
+				info.getConstraintName(), newColumn.getMaximumSize(), newColumn.getMaximumListLength(),
+				info.getColumnName()));
 	}
 	
 	/**
@@ -880,7 +892,7 @@ public class SQLUtils {
 		builder.append("ALTER TABLE ");
 		builder.append(tableName);
 		builder.append(" ");
-		appendAddColumn(builder, change.getNewColumn(), useDepricatedUtf8ThreeBytes);
+		appendAddColumn(builder, change.getNewColumn(), useDepricatedUtf8ThreeBytes, tableName);
 		return builder.toString();
 	}
 	
