@@ -793,7 +793,7 @@ public class SQLUtils {
 
 		if(change.getNewColumn() == null){
 			// delete
-			appendDeleteColumn(builder, change.getOldColumn());
+			appendDeleteColumn(builder, change);
 			return builder.toString();
 		}
 		if (change.getNewColumn().equals(change.getOldColumn())) {
@@ -829,14 +829,23 @@ public class SQLUtils {
 	 * @param builder
 	 * @param oldColumn
 	 */
-	public static void appendDeleteColumn(StringBuilder builder,
-			ColumnModel oldColumn) {
-		ValidateArgument.required(oldColumn, "oldColumn");
+	public static void appendDeleteColumn(StringBuilder builder, ColumnChangeDetails change) {
+		ValidateArgument.required(change, "change");
+		ValidateArgument.required(change.getOldColumn(), "oldColumn");
+		ValidateArgument.required(change.getOldColumnInfo(), "oldColumnInfo");
+		
+		// For list types we need to make sure the functional index is dropped if present, otherwise the column cannot be dropped
+		// (See https://sagebionetworks.jira.com/browse/PLFM-7999)
+		if (change.getOldColumnInfo().hasIndex()) {
+			appendDropIndex(builder, change.getOldColumnInfo());
+			builder.append(", ");
+		}
+		
 		builder.append("DROP COLUMN ");
-		appendColumnNameForId(oldColumn.getId(), builder);
+		appendColumnNameForId(change.getOldColumn().getId(), builder);
 		// doubles use two columns.
-		if(ColumnType.DOUBLE.equals(oldColumn.getColumnType())){
-			appendDropDoubleEnum(builder, oldColumn.getId());
+		if(ColumnType.DOUBLE.equals(change.getOldColumn().getColumnType())){
+			appendDropDoubleEnum(builder, change.getOldColumn().getId());
 		}
 	}
 	
@@ -922,7 +931,7 @@ public class SQLUtils {
 		builder.append("ALTER TABLE ");
 		builder.append(tableName);
 		builder.append(" ");
-		appendDeleteColumn(builder, change.getOldColumn());
+		appendDeleteColumn(builder, change);
 		return builder.toString();
 	}
 	
@@ -1007,7 +1016,7 @@ public class SQLUtils {
 			// There is no need to run a distinct count for columns for which an index is not created 
 			// or for metadata columns (such as row id) that manage their own indices
 			// Using MAX with a constant is relatively cheap, note that when there are no rows in the table MAX will return NULL
-			if (info.isMetadata() || !info.getType().isCreateIndex()) {
+			if (info.isMetadata() || !info.isCreateIndex()) {
 				builder.append("MAX(");
 				builder.append(TableConstants.COLUMN_NO_CARDINALITY);
 				builder.append(")");
@@ -1065,7 +1074,7 @@ public class SQLUtils {
 				continue;
 			}
 			// If the index is skipped for the type, make sure to remove existing ones (e.g. if the type was updated)
-			if (!info.getType().isCreateIndex()) {
+			if (!info.isCreateIndex()) {
 				if(info.hasIndex()){
 					toRemove.add(info);
 				}
@@ -1163,8 +1172,15 @@ public class SQLUtils {
 	 * @param columnId
 	 * @return
 	 */
-	public static String getIndexName(String columnId){
-		return columnId+IDX;
+	public static String getIndexName(String columnName){
+		return columnName+IDX;
+	}
+	
+	public static String getColumnNameFromIndex(String indexName) {
+		if (indexName.endsWith(IDX)) {
+			return indexName.substring(0, indexName.length() - IDX.length());
+		}
+		return null;
 	}
 	
 	/**

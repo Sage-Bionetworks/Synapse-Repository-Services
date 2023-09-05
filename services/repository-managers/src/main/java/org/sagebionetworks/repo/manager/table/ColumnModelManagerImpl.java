@@ -115,7 +115,10 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	static void validateColumnModel(ColumnModel columnModel) {
 		ValidateArgument.required(columnModel, "ColumnModel");
 		checkColumnNaming(columnModel.getName());
-		validateFacetType(columnModel);
+		validateFacetType(columnModel.getFacetType(), columnModel.getColumnType());
+		if (columnModel.getJsonSubColumns() != null) {
+			columnModel.getJsonSubColumns().forEach(subColumn -> validateFacetType(subColumn.getFacetType(), subColumn.getColumnType()));
+		}
 	}
 	
 	/**
@@ -134,12 +137,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		}
 	}
 	
-	static void validateFacetType(ColumnModel columnModel){
-		//validate the facetType agains its d
-		FacetType facetType = columnModel.getFacetType();
-		ColumnType columnType = columnModel.getColumnType();
-		
-		if(facetType != null){
+	static void validateFacetType(FacetType facetType, ColumnType columnType) {
+		if(facetType != null) {
 			switch(columnType){
 			//integers and strings can be any type of facet
 			case INTEGER:

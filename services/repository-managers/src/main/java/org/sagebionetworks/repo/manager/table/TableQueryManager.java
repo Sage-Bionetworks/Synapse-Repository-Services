@@ -107,7 +107,7 @@ public interface TableQueryManager {
 	 * @param models
 	 * @return
 	 */
-	public Long getMaxRowsPerPage(List<ColumnModel> models);
+	Long getMaxRowsPerPage(List<ColumnModel> models);
 	
 	/**
 	 * Validate the table is available.
@@ -121,15 +121,8 @@ public interface TableQueryManager {
 	 * @throws TableFailedException
 	 *             If the table exists but processing failed.
 	 */
-	public TableStatus validateTableIsAvailable(String tableId)
+	TableStatus validateTableIsAvailable(String tableId)
 			throws NotFoundException, TableUnavailableException,
 			TableFailedException;
 	
-	/**
-	 * Get type table type for the given IdAndVersion.
-	 * 
-	 * @param idAndVersion
-	 * @return
-	 */
-	TableType getTableEntityType(IdAndVersion idAndVersion);
 }

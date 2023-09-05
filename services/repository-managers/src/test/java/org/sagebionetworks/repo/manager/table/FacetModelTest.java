@@ -9,10 +9,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +26,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
@@ -84,21 +87,43 @@ public class FacetModelTest {
 		facetColumnModel2.setMaximumSize(50L);
 		facetColumnModel2.setFacetType(FacetType.enumeration);
 		
+		ColumnModel jsonColumn = new ColumnModel();
+		
+		jsonColumn.setName("jsonColumn");
+		jsonColumn.setId("099");
+		jsonColumn.setColumnType(ColumnType.JSON);
+		jsonColumn.setJsonSubColumns(List.of(
+			new JsonSubColumnModel().setName("a").setJsonPath("$.a").setFacetType(FacetType.enumeration).setColumnType(ColumnType.STRING),
+			new JsonSubColumnModel().setName("b").setJsonPath("$.b").setFacetType(FacetType.range).setColumnType(ColumnType.INTEGER)
+		));
+		
+		ColumnModel jsonColumnWithoutFacets = new ColumnModel();
+		
+		jsonColumnWithoutFacets.setName("jsonColumnNoFacets");
+		jsonColumnWithoutFacets.setId("097");
+		jsonColumnWithoutFacets.setColumnType(ColumnType.JSON);
+		jsonColumnWithoutFacets.setJsonSubColumns(List.of(
+			new JsonSubColumnModel().setName("a").setJsonPath("$.a").setColumnType(ColumnType.STRING)
+		));
+		
 		ColumnModel cm = new ColumnModel();
 		cm.setName("ayy");
 		cm.setId("099");
 		cm.setColumnType(ColumnType.STRING);
 		cm.setMaximumSize(50L);
 		
-		facetSchema = Lists.newArrayList(facetColumnModel, facetColumnModel2,cm);
+		facetSchema = Lists.newArrayList(facetColumnModel, facetColumnModel2, jsonColumn, jsonColumnWithoutFacets, cm);
 		
 		selectedValue = "someValue";
+		
 		min = 23L;
 		max = 56L;
+		
 		rangeRequest = new FacetColumnRangeRequest();
 		rangeRequest.setColumnName(facetColumnName);
 		rangeRequest.setMax(max.toString());
 		rangeRequest.setMin(min.toString());
+		
 		valuesRequest = new FacetColumnValuesRequest();
 		valuesRequest.setColumnName(facetColumnName2);
 		valuesRequest.setFacetValues(Sets.newHashSet(selectedValue));
@@ -145,7 +170,7 @@ public class FacetModelTest {
 		//remove one column from schema
 		facetSchema.remove(0);
 		
-		assertEquals(2, facetSchema.size()); //only 1 column in schema now
+		assertEquals(4, facetSchema.size()); //only 4 columns in schema now
 		assertEquals(2, selectedFacets.size()); //but fil158r on 2 facet columns
 		
 		assertThrows(InvalidTableQueryFacetColumnRequestException.class, ()->{
@@ -162,9 +187,10 @@ public class FacetModelTest {
 		
 		//check that we got nonEmptyList back
 		//processFacetColumnRequest tests handles case where some columns don't get added
-		assertEquals(2, result.size());
-		assertEquals(facetColumnName, result.get(0).getColumnName());
-		assertEquals(facetColumnName2, result.get(1).getColumnName());
+		assertEquals(4, result.size());
+		
+		assertEquals(Arrays.asList("asdf", "qwerty", "jsonColumn", "jsonColumn"), result.stream().map(FacetRequestColumnModel::getColumnName).collect(Collectors.toList()));
+		assertEquals(Arrays.asList(null, null, "$.a", "$.b"), result.stream().map(FacetRequestColumnModel::getJsonPath).collect(Collectors.toList()));
 	}
 	
 	
@@ -210,8 +236,8 @@ public class FacetModelTest {
 	public void testProcessFacetColumnRequestColumnModelFacetTypeIsNull() {
 		facetColumnModel.setFacetType(null);
 
-		FacetModel.processFacetColumnRequest(validatedQueryFacetColumns, supportedFacetColumns, facetColumnModel,
-				new FacetColumnRangeRequest(), true);
+		FacetModel.processFacetColumnRequest(validatedQueryFacetColumns, supportedFacetColumns, facetColumnModel, null, new FacetColumnRangeRequest(), true);
+		
 		assertTrue(validatedQueryFacetColumns.isEmpty());
 		assertTrue(supportedFacetColumns.isEmpty());
 	}
@@ -220,8 +246,8 @@ public class FacetModelTest {
 	public void testProcessFacetColumnRequestFacetParamsNullReturnFacetsFalse() {
 		facetColumnModel.setFacetType(FacetType.range);
 
-		FacetModel.processFacetColumnRequest(validatedQueryFacetColumns, supportedFacetColumns, facetColumnModel, null,
-				false);
+		FacetModel.processFacetColumnRequest(validatedQueryFacetColumns, supportedFacetColumns, facetColumnModel, null, null, false);
+		
 		assertTrue(validatedQueryFacetColumns.isEmpty());
 		assertEquals(1, supportedFacetColumns.size());
 
@@ -231,8 +257,8 @@ public class FacetModelTest {
 	public void testProcessFacetColumnRequestFacetParamsNullReturnFacetsTrue() {
 		facetColumnModel.setFacetType(FacetType.range);
 
-		FacetModel.processFacetColumnRequest(validatedQueryFacetColumns, supportedFacetColumns, facetColumnModel, null,
-				true);
+		FacetModel.processFacetColumnRequest(validatedQueryFacetColumns, supportedFacetColumns, facetColumnModel, null, null, true);
+		
 		assertEquals(1, validatedQueryFacetColumns.size());
 		FacetRequestColumnModel validatedQueryFacetColumn = validatedQueryFacetColumns.get(0);
 		assertNull(validatedQueryFacetColumn.getFacetColumnRequest());
@@ -252,13 +278,35 @@ public class FacetModelTest {
 		facetRange.setMax("456");
 		facetRange.setColumnName(facetColumnName);
 
-		FacetModel.processFacetColumnRequest(validatedQueryFacetColumns, supportedFacetColumns, facetColumnModel,
-				facetRange, false);
+		FacetModel.processFacetColumnRequest(validatedQueryFacetColumns, supportedFacetColumns, facetColumnModel, null, facetRange, false);
 
 		assertEquals(1, validatedQueryFacetColumns.size());
 		FacetRequestColumnModel validatedQueryFacetColumn = validatedQueryFacetColumns.get(0);
 		assertEquals(facetRange, validatedQueryFacetColumn.getFacetColumnRequest());
 		assertEquals(facetColumnName, validatedQueryFacetColumn.getColumnName());
+		assertEquals(FacetType.range, validatedQueryFacetColumn.getFacetType());
+		assertEquals(1, supportedFacetColumns.size());
+	}
+	
+	@Test
+	public void testProcessFacetColumnRequestFacetWithJsonSubColumn() {
+		// json column
+		ColumnModel column = facetSchema.get(2);
+		// range subcolumn
+		JsonSubColumnModel subColumn = column.getJsonSubColumns().get(1);
+
+		FacetColumnRangeRequest facetRange = new FacetColumnRangeRequest();
+		facetRange.setJsonPath("$.b");
+		facetRange.setMin("123");
+		facetRange.setMax("456");
+		facetRange.setColumnName(facetColumnName);
+
+		FacetModel.processFacetColumnRequest(validatedQueryFacetColumns, supportedFacetColumns, column, subColumn, facetRange, false);
+
+		assertEquals(1, validatedQueryFacetColumns.size());
+		FacetRequestColumnModel validatedQueryFacetColumn = validatedQueryFacetColumns.get(0);
+		assertEquals(facetRange, validatedQueryFacetColumn.getFacetColumnRequest());
+		assertEquals(column.getName(), validatedQueryFacetColumn.getColumnName());
 		assertEquals(FacetType.range, validatedQueryFacetColumn.getFacetType());
 		assertEquals(1, supportedFacetColumns.size());
 	}
@@ -297,6 +345,29 @@ public class FacetModelTest {
 		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel2, valuesRequest));
 		
 		List<FacetTransformer> result = FacetModel.generateFacetQueryTransformers(originalQuery, dependencies, validatedQueryFacetColumns);
+		//just check for the correct item types.  
+		//the transformers' unit tests already check that fields are set correctly
+		assertEquals(2, result.size());
+		assertTrue(result.get(0) instanceof FacetTransformerRange);
+		assertTrue(result.get(1) instanceof FacetTransformerValueCounts);
+	}
+	
+	@Test
+	public void testGenerateFacetQueryTransformersWithJsonSubColumns(){
+		ColumnModel jsonColumn = new ColumnModel()
+			.setName("jsonColumn")
+			.setColumnType(ColumnType.JSON)
+			.setJsonSubColumns(List.of(
+				new JsonSubColumnModel().setName("a").setJsonPath("$.a").setFacetType(FacetType.range).setColumnType(ColumnType.INTEGER),
+				new JsonSubColumnModel().setName("b").setJsonPath("$.b").setFacetType(FacetType.enumeration).setColumnType(ColumnType.INTEGER)
+			));
+		
+		jsonColumn.getJsonSubColumns().forEach(jsonSubColumn -> {
+			validatedQueryFacetColumns.add(new FacetRequestColumnModel(jsonColumn.getName(), jsonSubColumn, null));	
+		});
+		
+		List<FacetTransformer> result = FacetModel.generateFacetQueryTransformers(originalQuery, dependencies, validatedQueryFacetColumns);
+		
 		//just check for the correct item types.  
 		//the transformers' unit tests already check that fields are set correctly
 		assertEquals(2, result.size());

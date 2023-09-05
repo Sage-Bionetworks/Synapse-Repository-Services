@@ -8,9 +8,6 @@ public class Result extends SQLElement {
 
 	private final ResultExpression resultExpression;
 
-	public Result() {
-		resultExpression = null;
-	}
 
 	public Result(ResultExpression resultExpression) {
 		super();
@@ -19,11 +16,7 @@ public class Result extends SQLElement {
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		if (resultExpression != null) {
-			resultExpression.toSql(builder, parameters);
-		} else {
-			builder.append("NULL");
-		}
+		resultExpression.toSql(builder, parameters);
 	}
 
 	@Override

@@ -261,6 +261,20 @@ public class MySqlFunctionTest {
 		assertEquals("JSON_OVERLAPS(foo,'[1, 2]')", element.toSql());
 		assertEquals(FunctionReturnType.BOOLEAN, element.getFunctionName().getFunctionReturnType());
 	}
+	
+	@Test
+	public void testJsonSearch() throws ParseException {
+		MySqlFunction element = new TableQueryParser("JSON_SEARCH(foo, 'one', 'string%', '$')").mysqlFunction();
+		assertEquals("JSON_SEARCH(foo,'one','string%','$')", element.toSql());
+		assertEquals(FunctionReturnType.JSON, element.getFunctionName().getFunctionReturnType());
+	}
+	
+	@Test
+	public void testJsonQuote() throws ParseException {
+		MySqlFunction element = new TableQueryParser("JSON_QUOTE('one')").mysqlFunction();
+		assertEquals("JSON_QUOTE('one')", element.toSql());
+		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
+	}
 
 	@Test
 	public void testGetChildren() throws ParseException {

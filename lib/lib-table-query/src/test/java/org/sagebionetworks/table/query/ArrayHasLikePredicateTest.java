@@ -17,7 +17,7 @@ import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.ReplaceableBox;
+import org.sagebionetworks.table.query.model.PredicateLeftHandSide;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 public class ArrayHasLikePredicateTest {
@@ -27,7 +27,7 @@ public class ArrayHasLikePredicateTest {
 		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("bar");
 		Boolean not = null;
 		InPredicateValue ArrayHasPredicateValue = SqlElementUtils.createInPredicateValue("(1)");
-		ArrayHasPredicate element = new ArrayHasLikePredicate(columnReferenceLHS, not, ArrayHasPredicateValue, null);
+		ArrayHasPredicate element = new ArrayHasLikePredicate(new PredicateLeftHandSide(columnReferenceLHS), not, ArrayHasPredicateValue, null);
 		assertEquals("bar HAS_LIKE ( 1 )", element.toString());
 	}
 
@@ -37,7 +37,7 @@ public class ArrayHasLikePredicateTest {
 		Boolean not = null;
 		InPredicateValue ArrayHasPredicateValue = SqlElementUtils.createInPredicateValue("(1)");
 		EscapeCharacter escape = SqlElementUtils.createEscapeCharacter("'_'");
-		ArrayHasPredicate element = new ArrayHasLikePredicate(columnReferenceLHS, not, ArrayHasPredicateValue, escape);
+		ArrayHasPredicate element = new ArrayHasLikePredicate(new PredicateLeftHandSide(columnReferenceLHS), not, ArrayHasPredicateValue, escape);
 		assertEquals("bar HAS_LIKE ( 1 ) ESCAPE '_'", element.toString());
 	}
 
@@ -77,8 +77,7 @@ public class ArrayHasLikePredicateTest {
 		Predicate predicate = new TableQueryParser("foo has_like (1,'2',3) escape '_'").predicate();
 		ArrayHasLikePredicate element = predicate.getFirstElementOfType(ArrayHasLikePredicate.class);
 		List<Element> children = element.getChildrenStream().collect(Collectors.toList());
-		assertEquals(Arrays.asList(new ReplaceableBox<ColumnReference>(element.getLeftHandSide()),
-				element.getInPredicateValue(), element.getEscapeCharacter()), children);
+		assertEquals(Arrays.asList(element.getLeftHandSide(), element.getInPredicateValue(), element.getEscapeCharacter()), children);
 	}
 
 	@Test
@@ -86,7 +85,6 @@ public class ArrayHasLikePredicateTest {
 		Predicate predicate = new TableQueryParser("foo has_like (1,'2',3)").predicate();
 		ArrayHasLikePredicate element = predicate.getFirstElementOfType(ArrayHasLikePredicate.class);
 		List<Element> children = element.getChildrenStream().collect(Collectors.toList());
-		assertEquals(Arrays.asList(new ReplaceableBox<ColumnReference>(element.getLeftHandSide()),
-				element.getInPredicateValue()), children);
+		assertEquals(Arrays.asList(element.getLeftHandSide(), element.getInPredicateValue()), children);
 	}
 }

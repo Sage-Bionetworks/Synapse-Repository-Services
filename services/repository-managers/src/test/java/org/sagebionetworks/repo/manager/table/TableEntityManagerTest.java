@@ -908,9 +908,9 @@ public class TableEntityManagerTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		when(mockColumModelManager.getTableSchema(any())).thenReturn(models);
+		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(models);
 		setupQueryAsStream();
-		when(mockColumModelManager.getColumnModel(any())).thenReturn(models.get(0));
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		RowReferenceSet rows = new RowReferenceSet();
 		rows.setTableId(tableId);
@@ -942,9 +942,9 @@ public class TableEntityManagerTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		when(mockColumModelManager.getTableSchema(any())).thenReturn(models);
+		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(models);
 		setupQueryAsStream();
-		when(mockColumModelManager.getColumnModel(any())).thenReturn(models.get(0));
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		RowReferenceSet rows = new RowReferenceSet();
 		rows.setTableId(tableId);
@@ -1006,9 +1006,9 @@ public class TableEntityManagerTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		when(mockColumModelManager.getTableSchema(any())).thenReturn(models);
+		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(models);
 		setupQueryAsStream();
-		when(mockColumModelManager.getColumnModel(any())).thenReturn(models.get(0));
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		final int columnIndex = 1;
 		RowReference rowRef = new RowReference();
@@ -1024,9 +1024,9 @@ public class TableEntityManagerTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		when(mockColumModelManager.getTableSchema(any())).thenReturn(models);
+		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(models);
 		setupQueryAsStream();
-		when(mockColumModelManager.getColumnModel(any())).thenReturn(models.get(0));
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		final int columnIndex = 1;
 		RowReference rowRef = new RowReference();

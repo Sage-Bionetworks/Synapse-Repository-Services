@@ -14,7 +14,7 @@ import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.Pattern;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.ReplaceableBox;
+import org.sagebionetworks.table.query.model.PredicateLeftHandSide;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 
@@ -28,7 +28,7 @@ public class LikePredicateTest {
 		Boolean not = null;
 		Pattern pattern = SqlElementUtils.createPattern("'%middle%'");
 		EscapeCharacter escapeCharacter = null;
-		LikePredicate element = new LikePredicate(columnReferenceLHS, not, pattern, escapeCharacter);
+		LikePredicate element = new LikePredicate(new PredicateLeftHandSide(columnReferenceLHS), not, pattern, escapeCharacter);
 		assertEquals("foo LIKE '%middle%'", element.toString());
 	}
 
@@ -38,7 +38,7 @@ public class LikePredicateTest {
 		Boolean not = Boolean.TRUE;
 		Pattern pattern = SqlElementUtils.createPattern("'%middle%'");
 		EscapeCharacter escapeCharacter = null;
-		LikePredicate element = new LikePredicate(columnReferenceLHS, not, pattern, escapeCharacter);
+		LikePredicate element = new LikePredicate(new PredicateLeftHandSide(columnReferenceLHS), not, pattern, escapeCharacter);
 		assertEquals("foo NOT LIKE '%middle%'", element.toString());
 	}
 
@@ -48,7 +48,7 @@ public class LikePredicateTest {
 		Boolean not = Boolean.TRUE;
 		Pattern pattern = SqlElementUtils.createPattern("'%middle%'");
 		EscapeCharacter escapeCharacter = SqlElementUtils.createEscapeCharacter("'$$'");
-		LikePredicate element = new LikePredicate(columnReferenceLHS, not, pattern, escapeCharacter);
+		LikePredicate element = new LikePredicate(new PredicateLeftHandSide(columnReferenceLHS), not, pattern, escapeCharacter);
 		assertEquals("foo NOT LIKE '%middle%' ESCAPE '$$'", element.toString());
 	}
 
@@ -80,7 +80,6 @@ public class LikePredicateTest {
 		Predicate predicate = new TableQueryParser("foo like '%aa%' ESCAPE '@'").predicate();
 		LikePredicate element = predicate.getFirstElementOfType(LikePredicate.class);
 		List<Element> children = element.getChildrenStream().collect(Collectors.toList());
-		assertEquals(Arrays.asList(new ReplaceableBox<ColumnReference>(element.getLeftHandSide()), element.getPattern(),
-				element.getEscapeCharacter()), children);
+		assertEquals(Arrays.asList(element.getLeftHandSide(), element.getPattern(), element.getEscapeCharacter()), children);
 	}
 }

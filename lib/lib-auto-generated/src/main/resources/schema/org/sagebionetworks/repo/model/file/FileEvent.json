@@ -28,6 +28,10 @@
             "type": "string",
             "description": "The filehandle Id of file."
         },
+        "downloadedFileHandleId": {
+            "type": "string",
+            "description": "The zipped filehandle Id, If the file download is requested in zip file otherwise not applicable."
+        },
         "associateType": {
             "$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociateType",
             "description": "The association type of filehandle."

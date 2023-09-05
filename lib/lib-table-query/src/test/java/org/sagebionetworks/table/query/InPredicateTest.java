@@ -13,8 +13,7 @@ import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.ReplaceableBox;
+import org.sagebionetworks.table.query.model.PredicateLeftHandSide;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 
@@ -27,7 +26,7 @@ public class InPredicateTest {
 		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("bar");
 		Boolean not = null;
 		InPredicateValue inPredicateValue = SqlElementUtils.createInPredicateValue("(1)");
-		InPredicate element = new InPredicate(columnReferenceLHS, not, inPredicateValue);
+		InPredicate element = new InPredicate(new PredicateLeftHandSide(columnReferenceLHS), not, inPredicateValue);
 		assertEquals("bar IN ( 1 )", element.toString());
 	}
 
@@ -36,7 +35,7 @@ public class InPredicateTest {
 		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("bar");
 		Boolean not = Boolean.TRUE;
 		InPredicateValue inPredicateValue = SqlElementUtils.createInPredicateValue("(1, 2)");
-		InPredicate element = new InPredicate(columnReferenceLHS, not, inPredicateValue);
+		InPredicate element = new InPredicate(new PredicateLeftHandSide(columnReferenceLHS), not, inPredicateValue);
 		assertEquals("bar NOT IN ( 1, 2 )", element.toString());
 	}
 
@@ -45,7 +44,7 @@ public class InPredicateTest {
 		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("bar");
 		Boolean not = Boolean.FALSE;
 		InPredicateValue inPredicateValue = SqlElementUtils.createInPredicateValue("(1, 2)");
-		InPredicate element = new InPredicate(columnReferenceLHS, not, inPredicateValue);
+		InPredicate element = new InPredicate(new PredicateLeftHandSide(columnReferenceLHS), not, inPredicateValue);
 		assertEquals("bar IN ( 1, 2 )", element.toString());
 	}
 
@@ -63,26 +62,10 @@ public class InPredicateTest {
 	}
 
 	@Test
-	public void testHasSubQuery() throws ParseException {
-		QuerySpecification subQuery = new TableQueryParser(
-				"SELECT DISTINCT row_id FROM syn123_index WHERE expanded_value in (\"asdf\", \"qwerty\")")
-						.querySpecification();
-		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("row_id");
-
-		boolean not = false;
-		InPredicate predicate = new InPredicate(columnReferenceLHS, false, new InPredicateValue(subQuery));
-
-		assertEquals(
-				"row_id IN ( SELECT DISTINCT row_id FROM syn123_index WHERE expanded_value IN ( \"asdf\", \"qwerty\" ) )",
-				predicate.toSql());
-	}
-
-	@Test
 	public void testGetChildren() throws ParseException {
 		Predicate predicate = new TableQueryParser("foo in (1,'2',3)").predicate();
 		InPredicate element = predicate.getFirstElementOfType(InPredicate.class);
 		List<Element> children = element.getChildrenStream().collect(Collectors.toList());
-		assertEquals(Arrays.asList(new ReplaceableBox<ColumnReference>(element.getLeftHandSide()),
-				element.getInPredicateValue()), children);
+		assertEquals(Arrays.asList(element.getLeftHandSide(), element.getInPredicateValue()), children);
 	}
 }

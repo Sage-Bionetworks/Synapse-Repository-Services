@@ -118,7 +118,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
 		QueryTranslator sqlQuery = QueryTranslator.builder()
 			.sql(definingQuery.toSql())
-			.schemaProvider(columModelManager)
+			.schemaProvider(tableManagerSupport)
 			.sqlContext(SqlContext.build)
 			.indexDescription(indexDescription)
 		.build();
@@ -223,7 +223,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			
 			QueryTranslator sqlQuery = QueryTranslator.builder()
 				.sql(definingSql)
-				.schemaProvider(columModelManager)
+				.schemaProvider(tableManagerSupport)
 				.sqlContext(SqlContext.build)
 				.indexDescription(indexDescription)
 			.build();
@@ -238,7 +238,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			LOG.info("Rebuilding materialized view index " + idAndVersion);
 			// continue with a read lock on each dependent table.
 			tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, parentContext, (ProgressCallback innerCallback) -> {
-				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(sqlQuery, columModelManager.getTableSchema(idAndVersion), tableManagerSupport.isTableSearchEnabled(idAndVersion));
+				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(sqlQuery, tableManagerSupport.getTableSchema(idAndVersion), tableManagerSupport.isTableSearchEnabled(idAndVersion));
 				return null;
 			}, dependentArray);
 		} catch (RecoverableMessageException e) {
@@ -263,7 +263,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			
 			QueryTranslator sqlQuery = QueryTranslator.builder()
 				.sql(definingSql)
-				.schemaProvider(columModelManager)
+				.schemaProvider(tableManagerSupport)
 				.sqlContext(SqlContext.build)
 				// Use the temporary index in the query so that it populates the correct index
 				.indexDescription(temporaryIndex)

@@ -34,6 +34,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -780,7 +781,7 @@ public class TableQueryManagerImplTest {
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
 		Date lastUpdatedOn = new Date(567L);
-		when(mockTableManagerSupport.getLastChangedOn(idAndVersion)).thenReturn(lastUpdatedOn);
+		when(mockTableManagerSupport.getLastChangedOn(idAndVersion)).thenReturn(Optional.of(lastUpdatedOn));
 
 		// non-null handler indicates the query should be run.
 		RowHandler rowHandler = new SinglePageRowHandler();
@@ -790,6 +791,29 @@ public class TableQueryManagerImplTest {
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertEquals(lastUpdatedOn, results.getLastUpdatedOn());
+	}
+	
+	@Test
+	public void testQueryAsStreamAfterAuthorizationWithLastUpdatedOnEmpty() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		setupQueryCallback();
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		when(mockTableManagerSupport.getLastChangedOn(idAndVersion)).thenReturn(Optional.empty());
+
+		// non-null handler indicates the query should be run.
+		RowHandler rowHandler = new SinglePageRowHandler();
+		queryOptions = new QueryOptions().withReturnLastUpdatedOn(true);
+				QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
+		// call under test
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		assertNotNull(results);
+		assertNotNull(results.getLastUpdatedOn());
+		long now = System.currentTimeMillis();
+		long resultMs = results.getLastUpdatedOn().getTime();
+		assertTrue(resultMs > now-1000L);
+		assertTrue(resultMs < now+1000L);
 	}
 	
 	
@@ -1350,8 +1374,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 		assertNotNull(result);
-		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ROW_ID IN ("
-				+ " SELECT ROW_ID_REF_C13_ FROM T123_INDEX_C13_ WHERE _C13__UNNEST LIKE :b0 OR _C13__UNNEST LIKE :b1 ) )",
+		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ( JSON_SEARCH(_C13_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL OR JSON_SEARCH(_C13_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL ) )",
 				result.getMainQuery().getTranslator().getOutputSQL());
 		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b0"));
 		assertEquals("bar", result.getMainQuery().getTranslator().getParameters().get("b1"));
@@ -1380,9 +1403,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 		assertNotNull(result);
-		assertEquals(
-				"SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ROW_ID IN ( "
-				+ "SELECT ROW_ID_REF_C13_ FROM T123_INDEX_C13_ WHERE _C13__UNNEST IN ( :b0, :b1 ) ) )",
+		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ( JSON_OVERLAPS(_C13_,JSON_ARRAY(:b0,:b1)) IS TRUE ) )",
 				result.getMainQuery().getTranslator().getOutputSQL());
 		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
 		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b0"));

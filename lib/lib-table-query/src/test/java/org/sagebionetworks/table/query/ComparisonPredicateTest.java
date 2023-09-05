@@ -15,7 +15,7 @@ import org.sagebionetworks.table.query.model.CompOp;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.ReplaceableBox;
+import org.sagebionetworks.table.query.model.PredicateLeftHandSide;
 import org.sagebionetworks.table.query.model.RowValueConstructor;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
@@ -29,7 +29,7 @@ public class ComparisonPredicateTest {
 		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("foo");
 		CompOp compOp = CompOp.NOT_EQUALS_OPERATOR;
 		RowValueConstructor rowValueConstructorRHS = SqlElementUtils.createRowValueConstructor("1");
-		ComparisonPredicate element = new ComparisonPredicate(columnReferenceLHS, compOp, rowValueConstructorRHS);
+		ComparisonPredicate element = new ComparisonPredicate(new PredicateLeftHandSide(columnReferenceLHS), compOp, rowValueConstructorRHS);
 		assertEquals("foo <> 1", element.toString());
 	}
 
@@ -49,8 +49,7 @@ public class ComparisonPredicateTest {
 		Predicate predicate = new TableQueryParser("foo > 12").predicate();
 		ComparisonPredicate element = predicate.getFirstElementOfType(ComparisonPredicate.class);
 		List<Element> children = element.getChildrenStream().collect(Collectors.toList());
-		assertEquals(Arrays.asList(new ReplaceableBox<ColumnReference>(element.getLeftHandSide()),
-				element.getRowValueConstructorRHS()), children);
+		assertEquals(Arrays.asList(element.getLeftHandSide(), element.getRowValueConstructorRHS()), children);
 	}
 	
 	@Test

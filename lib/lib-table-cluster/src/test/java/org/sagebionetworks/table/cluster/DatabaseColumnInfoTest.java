@@ -8,8 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 
 public class DatabaseColumnInfoTest {
 		
@@ -80,6 +84,23 @@ public class DatabaseColumnInfoTest {
 		// call under test
 		String results = info.createIndexDefinition();
 		assertEquals("_C123_IDX (_C123_)", results);
+	}
+	
+	@ParameterizedTest
+	@EnumSource(ColumnTypeListMappings.class)
+	public void testCreateIndexDefinitionWithListType(ColumnTypeListMappings listTypeMapping){
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnName("_C123_");
+		info.setIndexName("_C123_IDX");
+		info.setType(MySqlColumnType.JSON);
+		info.setColumnType(listTypeMapping.getListType());
+		// call under test
+		String results = info.createIndexDefinition();
+		if (ColumnTypeListMappings.STRING == listTypeMapping) {
+			assertEquals("_C123_IDX ((CAST(_C123_ AS CHAR(255) ARRAY)))", results);
+		} else {
+			assertEquals("_C123_IDX ((CAST(_C123_ AS "+ ColumnTypeInfo.getInfoForType(listTypeMapping.getNonListType()).getMySqlType().getMySqlCastType() +" ARRAY)))", results);
+		}
 	}
 	
 	@Test
@@ -198,4 +219,32 @@ public class DatabaseColumnInfoTest {
 		info.setColumnName("_C123_");
 		assertFalse(info.isMetadata());
 	}
+	
+	@ParameterizedTest
+	@EnumSource(ColumnType.class)
+	public void testIsCreateIndex(ColumnType columnType) {
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		
+		info.setColumnName("_C123_");
+		info.setColumnType(columnType);
+		info.setType(ColumnTypeInfo.getInfoForType(columnType).getMySqlType());
+		
+		if (ColumnType.JSON == columnType || ColumnType.LARGETEXT == columnType || ColumnTypeListMappings.isList(columnType)) {
+			assertFalse(info.isCreateIndex());
+		} else {
+			assertTrue(info.isCreateIndex());			
+		}
+	}
+	
+	@Test
+	public void testIsCreateIndexWithMetadataColumns() {
+		TableConstants.RESERVED_COLUMNS_NAMES.forEach( metadataColumnName -> {			
+			DatabaseColumnInfo info = new DatabaseColumnInfo();
+			
+			info.setColumnName(metadataColumnName);
+			
+			assertFalse(info.isCreateIndex());
+		});
+	}
+	
 }

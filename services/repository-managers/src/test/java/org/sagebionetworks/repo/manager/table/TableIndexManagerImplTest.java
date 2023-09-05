@@ -553,7 +553,7 @@ public class TableIndexManagerImplTest {
 		// column data must be gathered.
 		verify(mockIndexDao).getDatabaseInfo(tableId);
 		verify(mockIndexDao).provideCardinality(infoList, tableId);
-		verify(mockIndexDao).provideIndexName(infoList, tableId);
+		verify(mockIndexDao).provideIndexInfo(infoList, tableId);
 		// optimization called.
 		verify(mockIndexDao).optimizeTableIndices(infoList, tableId, TableIndexManagerImpl.MAX_MYSQL_INDEX_COUNT);
 	}
@@ -1067,7 +1067,7 @@ public class TableIndexManagerImplTest {
 
 		// call under test
 		manager.alterTableAsNeededWithinAutoProgress(tableId, changes, true);
-		verify(mockIndexDao).provideIndexName(curretIndexSchema, tableId);
+		verify(mockIndexDao).provideIndexInfo(curretIndexSchema, tableId);
 		verify(mockIndexDao).alterTableAsNeeded(eq(tableId), changeCaptor.capture(), eq(true));
 		List<ColumnChangeDetails> captured = changeCaptor.getValue();
 		// the results should be changed

@@ -15,6 +15,11 @@ public class TableReference extends SimpleBranch implements HasSingleTableName, 
 		super(qualifiedJoin);
 	}
 	
+	// Use only internally to unnest multi-value columns and not exposed in the parser
+	public TableReference(JsonTable jsonTable) {
+		super(jsonTable);
+	}
+	
 	/**
 	 * Does this table reference have one or more joins?
 	 * @return

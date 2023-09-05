@@ -233,6 +233,12 @@ public interface AsynchronousJobWorkerHelper {
 	 * @return
 	 */
 	VirtualTable createVirtualTable(UserInfo user, String parentId, String sql);
+	
+	/**
+	 * @param user
+	 * @param sql
+	 */
+	void updateVirtualTable(String tableId, UserInfo user, String sql);
 
 
 	/**

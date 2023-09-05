@@ -1,7 +1,10 @@
 package org.sagebionetworks.table.cluster.columntranslation;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 
 /**
  *
@@ -41,4 +44,7 @@ public interface ColumnTranslationReference {
 	FacetType getFacetType();
 	
 	String getDefaultValues();
+	
+	List<JsonSubColumnModel> getJsonSubColumns();
+	
 }

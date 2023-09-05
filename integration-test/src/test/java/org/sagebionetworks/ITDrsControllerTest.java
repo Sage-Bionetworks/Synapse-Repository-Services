@@ -69,7 +69,6 @@ public class ITDrsControllerTest {
         assertNotNull(serviceInformation);
         assertEquals(serviceInformation.getId(), "org.sagebase.prod.repo-prod");
         assertEquals(serviceInformation.getName(), "Sage Bionetworks Synapse DRS API");
-        assertEquals(serviceInformation.getUrl(), "https://repo-prod.prod.sagebase.org");
         assertEquals(serviceInformation.getDocumentationUrl(), "https://help.synapse.org/docs/");
         assertEquals(serviceInformation.getContactUrl(), "https://sagebionetworks.jira.com/servicedesk/customer/portal/9");
         assertEquals(serviceInformation.getOrganization().getName(), "Sage Bionetworks");

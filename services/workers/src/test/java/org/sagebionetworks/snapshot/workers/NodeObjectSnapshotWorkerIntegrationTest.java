@@ -1,15 +1,6 @@
 package org.sagebionetworks.snapshot.workers;
 
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,6 +33,15 @@ import org.sagebionetworks.workers.util.aws.message.QueueCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:test-context.xml"})
@@ -117,7 +117,7 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 			// fetch it
 			Node node = nodeDao.getNode(toCreate.getId());
 			String benefactorId = nodeDao.getBenefactor(toCreate.getId());
-			String projectId = nodeDao.getProjectId(toCreate.getId());
+			String projectId = nodeDao.getProjectId(toCreate.getId()).orElseThrow();
 			NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node, benefactorId, projectId);
 			record.setIsPublic(false);
 			record.setIsRestricted(false);
@@ -161,7 +161,7 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 		// fetch it
 		Node node = nodeDao.getNode(toCreate.getId());
 		String benefactorId = nodeDao.getBenefactor(toCreate.getId());
-		String projectId = nodeDao.getProjectId(toCreate.getId());
+		String projectId = nodeDao.getProjectId(toCreate.getId()).orElseThrow();
 		NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node, benefactorId, projectId);
 		record.setIsPublic(false);
 		record.setIsRestricted(true);

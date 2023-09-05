@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -72,6 +73,7 @@ import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
@@ -1016,7 +1018,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testReplaceArrayHasPredicate_ReferencedColumn_FalseIsList() throws ParseException {
+	public void testReplaceArrayHasPredicateWithNotAListColumn() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING);//not a list type
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
 		
@@ -1038,19 +1040,34 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testReplaceArrayHasPredicate_ReferencedColumn_unknown() throws ParseException {
+	public void testReplaceArrayHasPredicateWithUnknownReferencedColumnn() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 
 		//should not ever happen since translate would have to translate column name to something that it didnt have in its maping
 		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("_C723895794567246_ has ('asdf', 'qwerty', 'yeet')");
 
-		assertThrows(IllegalArgumentException.class, () -> {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, createTableAndColumnMapper());
-		});
+		}).getMessage();
+		
+		assertEquals("Unknown column reference: _C723895794567246_", message);
+	}
+	
+	@Test
+	public void testReplaceArrayHasPredicateWithNotAColumnReference() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+
+		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("JSON_EXTRACT(foo, '$.bar') has ('asdf', 'qwerty', 'yeet')");
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, createTableAndColumnMapper());
+		}).getMessage();
+		
+		assertEquals("The HAS keyword only works for list column references", message);
 	}
 
 	@Test
-	public void testReplaceArrayHasPredicate_Has() throws ParseException {
+	public void testReplaceArrayHasPredicate() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
 		
@@ -1066,12 +1083,12 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
+		assertEquals("( JSON_OVERLAPS(_C111_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE )", booleanPrimary.toSql());
 
 	}
 
 	@Test
-	public void testReplaceArrayHasPredicate_NotHas() throws ParseException {
+	public void testReplaceArrayHasPredicateWithNot() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
 		
@@ -1087,39 +1104,12 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID NOT IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
+		assertEquals("( JSON_OVERLAPS(_C111_,JSON_ARRAY(:b0,:b1,:b2)) IS FALSE )", booleanPrimary.toSql());
 
 	}
 
-	//Test to ensure that a list of values containing 'syn' prefix are removed (e.g. ( ('syn123','syn456')  --->  ('123','456') )
 	@Test
-	public void testTranslate_Has_onEntityIdList() throws ParseException {
-		columnFoo.setColumnType(ColumnType.ENTITYID_LIST);
-		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
-		
-		TableAndColumnMapper singleTableMapper = new TableAndColumnMapper(
-				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class),mockSchemaProvider);
-
-		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("foo has ('syn123', 456, 'syn789')");
-		booleanPrimary.recursiveSetParent();
-		SQLTranslatorUtils.translateAllColumnReferences(booleanPrimary, singleTableMapper);
-		HashMap<String, Object> parameters = new HashMap<>();
-
-		//method under test
-		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, singleTableMapper);
-
-		//parameter mapping should have stripped out the "syn" prefixes
-		Map<String, Object> expected = ImmutableMap.of(
-			"b0", 123L,
-			"b1", 456L,
-			"b2", 789L
-		);
-
-		assertEquals(expected, parameters);
-	}
-
-	@Test
-	public void testReplaceArrayHasPredicate_NotAnArrayHasPredicate() throws ParseException{
+	public void testReplaceArrayHasPredicateWithNotAnArrayHasPredicate() throws ParseException{
 		BooleanPrimary notArrayHasPredicate = SqlElementUtils.createBooleanPrimary("foo IN (\"123\", \"456\")");
 		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
 		SQLTranslatorUtils.translate(notArrayHasPredicate.getFirstElementOfType(InPredicate.class), new HashMap<>(), createTableAndColumnMapper());
@@ -1149,7 +1139,35 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 OR _C111__UNNEST LIKE :b1 OR _C111__UNNEST LIKE :b2 )", booleanPrimary.toSql());
+		assertEquals("( JSON_SEARCH(_C111_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b2 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL )", booleanPrimary.toSql());
+		assertEquals(ImmutableMap.of(
+				"b0", "asdf%",
+				"b1", "qwerty",
+				"b2", "yeet"
+		), parameters);
+
+	}
+	
+	@Test
+	public void testReplaceArrayHasPredicateWithNotHasLike() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
+		
+		TableAndColumnMapper singleTableMapper = new TableAndColumnMapper(
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class),mockSchemaProvider);
+
+		HashMap<String, Object> parameters = new HashMap<>();
+		
+		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("foo NOT has_like ('asdf%', 'qwerty', 'yeet')");
+		booleanPrimary.recursiveSetParent();
+		SQLTranslatorUtils.translateAllColumnReferences(booleanPrimary, singleTableMapper);
+		
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasLikePredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, singleTableMapper);
+
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
+
+		assertEquals("( JSON_SEARCH(_C111_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NULL AND JSON_SEARCH(_C111_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NULL AND JSON_SEARCH(_C111_,'one',:b2 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NULL )", booleanPrimary.toSql());
 		assertEquals(ImmutableMap.of(
 				"b0", "asdf%",
 				"b1", "qwerty",
@@ -1176,7 +1194,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 ESCAPE :b3 OR _C111__UNNEST LIKE :b1 ESCAPE :b3 OR _C111__UNNEST LIKE :b2 ESCAPE :b3 )", booleanPrimary.toSql());
+		assertEquals("( JSON_SEARCH(_C111_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',:b3,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',:b3,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b2 COLLATE 'utf8mb4_0900_ai_ci',:b3,'$[*]') IS NOT NULL )", booleanPrimary.toSql());
 		assertEquals(ImmutableMap.of(
 				"b0", "asdf%",
 				"b1", "qwerty",
@@ -1223,7 +1241,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 )", booleanPrimary.toSql());
+		assertEquals("( JSON_SEARCH(_C111_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL )", booleanPrimary.toSql());
 
 	}
 	
@@ -1266,7 +1284,7 @@ public class SQLTranslatorUtilsTest {
 
 		String expected = "SELECT T123_INDEX_C111_._C111__UNNEST " +
 				"FROM T123 _A0 JOIN T456 _A1 " +
-				"LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"LEFT JOIN JSON_TABLE(_A0._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE " +
 				"ORDER BY T123_INDEX_C111_._C111__UNNEST";
 		
 		assertEquals(expected, querySpecification.toSql());
@@ -1291,8 +1309,8 @@ public class SQLTranslatorUtilsTest {
 
 		String expected = "SELECT T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C333_._C333__UNNEST " +
 				"FROM T123 _A0 JOIN T456 _A1 " +
-				"LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
-				"LEFT JOIN T456_INDEX_C333_ ON _A1.ROW_ID = T456_INDEX_C333_.ROW_ID_REF_C333_ " +
+				"LEFT JOIN JSON_TABLE(_A0._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE " +
+				"LEFT JOIN JSON_TABLE(_A1._C333_, '$[*]' COLUMNS(_C333__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T456_INDEX_C333_ ON TRUE " +
 				"ORDER BY T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C333_._C333__UNNEST";
 		
 		assertEquals(expected, querySpecification.toSql());
@@ -1315,9 +1333,10 @@ public class SQLTranslatorUtilsTest {
 
 		String expected = "SELECT T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C111_._C111__UNNEST " +
 				"FROM T123 _A0 JOIN T456 _A1 " +
-				"LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
-				"LEFT JOIN T456_INDEX_C111_ ON _A1.ROW_ID = T456_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"LEFT JOIN JSON_TABLE(_A0._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE " +
+				"LEFT JOIN JSON_TABLE(_A1._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T456_INDEX_C111_ ON TRUE " +
 				"ORDER BY T123_INDEX_C111_._C111__UNNEST, T456_INDEX_C111_._C111__UNNEST";
+		 
 		
 		assertEquals(expected, querySpecification.toSql());
 	}
@@ -1374,8 +1393,8 @@ public class SQLTranslatorUtilsTest {
 
 		String expected = "SELECT _C222_, T123_456_INDEX_C111_._C111__UNNEST, T123_456_INDEX_C333_._C333__UNNEST " +
 				"FROM T123_456 " +
-				"LEFT JOIN T123_456_INDEX_C111_ ON T123_456.ROW_ID = T123_456_INDEX_C111_.ROW_ID_REF_C111_ " +
-				"LEFT JOIN T123_456_INDEX_C333_ ON T123_456.ROW_ID = T123_456_INDEX_C333_.ROW_ID_REF_C333_ " +
+				"LEFT JOIN JSON_TABLE(T123_456._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_456_INDEX_C111_ ON TRUE " +
+				"LEFT JOIN JSON_TABLE(T123_456._C333_, '$[*]' COLUMNS(_C333__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_456_INDEX_C333_ ON TRUE " +
 				"ORDER BY T123_456_INDEX_C111_._C111__UNNEST, T123_456_INDEX_C333_._C333__UNNEST";
 		assertEquals(expected, querySpecification.toSql());
 	}
@@ -1914,6 +1933,59 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(uuid, parameters.get("b0"));
 	}
 	
+	//Test to ensure that a list of values containing 'syn' prefix are removed (e.g. ( ('syn123','syn456')  --->  ('123','456') )
+	@Test
+	public void testTranslateHasPredicateWithEntityIdList() throws ParseException {
+		columnFoo.setColumnType(ColumnType.ENTITYID_LIST);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(Collections.singletonList(columnFoo));
+		
+		TableAndColumnMapper singleTableMapper = new TableAndColumnMapper(
+				new TableQueryParser("select * from syn123.456").queryExpression().getFirstElementOfType(QuerySpecification.class),mockSchemaProvider);
+
+		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("foo has ('syn123', 456, 'syn789')");
+		booleanPrimary.recursiveSetParent();
+		SQLTranslatorUtils.translateAllColumnReferences(booleanPrimary, singleTableMapper);
+		HashMap<String, Object> parameters = new HashMap<>();
+
+		//method under test
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, singleTableMapper);
+
+		//parameter mapping should have stripped out the "syn" prefixes
+		Map<String, Object> expected = ImmutableMap.of(
+			"b0", 123L,
+			"b1", 456L,
+			"b2", 789L
+		);
+
+		assertEquals(expected, parameters);
+	}
+	
+	@Test
+	public void testTranslateHasPredicateWithMySqlFunction() throws ParseException{
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		Predicate predicate = SqlElementUtils.createPredicate("JSON_EXTRACT(foo, '$.bar') <> 3");
+		SQLTranslatorUtils.translateAllColumnReferences(predicate, createTableAndColumnMapper());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		// call under test
+		SQLTranslatorUtils.translate(hasPredicate, parameters, createTableAndColumnMapper());
+		assertEquals("JSON_EXTRACT(_C111_,'$.bar') <> :b0",predicate.toSql());
+		assertEquals(Map.of("b0", "3"), parameters);
+	}
+	
+	@Test
+	public void testTranslateHasPredicateWithCastSpecification() throws ParseException{
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		Predicate predicate = SqlElementUtils.createPredicate("CAST(JSON_EXTRACT(foo, '$.bar') AS INTEGER) <> 3");
+		SQLTranslatorUtils.translateAllColumnReferences(predicate, createTableAndColumnMapper());
+		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		// call under test
+		SQLTranslatorUtils.translate(hasPredicate, parameters, createTableAndColumnMapper());
+		assertEquals("CAST(JSON_EXTRACT(_C111_,'$.bar') AS INTEGER) <> :b0",predicate.toSql());
+		assertEquals(Map.of("b0", 3L), parameters);
+	}
+	
 	@Test
 	public void testTranslatePagination() throws ParseException{
 		Pagination element = new TableQueryParser("limit 1 offset 9").pagination();
@@ -2002,8 +2074,10 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		// call under test
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
+
 		assertEquals("SELECT T123_INDEX_C111_._C111__UNNEST FROM T123 _A0 JOIN T123 _A1 ON ( _A0._C444_ = _A1._C444_ )"
-				+ " LEFT JOIN T123_INDEX_C111_ ON _A0.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_",element.toSql());
+				+ " LEFT JOIN JSON_TABLE(_A0._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE",element.toSql());
+		
 	}
 	
 	@Test
@@ -2420,7 +2494,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_InPredicate_ValueNoQuotes() throws ParseException{
+	public void testTranslateModelWithInPredicate_ValueNoQuotes() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		QueryExpression rootElement = new TableQueryParser("select * from syn123 where id in(1, 2)").queryExpression();
 		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
@@ -2433,7 +2507,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_InPredicate_ValueSingleQuotes() throws ParseException{
+	public void testTranslateModelWithInPredicate_ValueSingleQuotes() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		QueryExpression rootElement = new TableQueryParser("select * from syn123 where foo in('asdf', 'qwerty')").queryExpression();
 		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
@@ -2446,7 +2520,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_HASKeyword() throws ParseException {
+	public void testTranslateModelWithHasKeyword() throws ParseException {
 		columnDouble.setColumnType(ColumnType.INTEGER_LIST);
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
@@ -2456,7 +2530,7 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID_REF_C777_ FROM T123_INDEX_C777_ WHERE _C777__UNNEST IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_INDEX_C111_ WHERE _C111__UNNEST IN ( :b3 ) ) OR _C333_ = :b4 )",element.toSql());
+		assertEquals("SELECT * FROM T123 WHERE ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE ) AND ( ( JSON_OVERLAPS(_C111_,JSON_ARRAY(:b3)) IS TRUE ) OR _C333_ = :b4 )",element.toSql());
 		assertEquals(1L, parameters.get("b0"));
 		assertEquals(2L, parameters.get("b1"));
 		assertEquals(3L, parameters.get("b2"));
@@ -2475,7 +2549,7 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID_REF_C777_ FROM T123_INDEX_C777_ WHERE _C777__UNNEST IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_INDEX_C111_ WHERE _C111__UNNEST LIKE :b3 OR _C111__UNNEST LIKE :b4 ) OR _C333_ = :b5 )",element.toSql());
+		assertEquals("SELECT * FROM T123 WHERE ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE ) AND ( ( JSON_SEARCH(_C111_,'one',:b3 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b4 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL ) OR _C333_ = :b5 )",element.toSql());
 		assertEquals(1L, parameters.get("b0"));
 		assertEquals(2L, parameters.get("b1"));
 		assertEquals(3L, parameters.get("b2"));
@@ -2495,7 +2569,7 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID_REF_C777_ FROM T123_INDEX_C777_ WHERE _C777__UNNEST IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_INDEX_C111_ WHERE _C111__UNNEST LIKE :b3 ESCAPE :b5 OR _C111__UNNEST LIKE :b4 ESCAPE :b5 ) OR _C333_ = :b6 )",element.toSql());
+		assertEquals("SELECT * FROM T123 WHERE ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE ) AND ( ( JSON_SEARCH(_C111_,'one',:b3 COLLATE 'utf8mb4_0900_ai_ci',:b5,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b4 COLLATE 'utf8mb4_0900_ai_ci',:b5,'$[*]') IS NOT NULL ) OR _C333_ = :b6 )",element.toSql());
 		assertEquals(1L, parameters.get("b0"));
 		assertEquals(2L, parameters.get("b1"));
 		assertEquals(3L, parameters.get("b2"));
@@ -2506,7 +2580,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateModel_UnnestArrayColumn() throws ParseException{
+	public void testTranslateModelWithUnnestArrayColumn() throws ParseException{
 		columnFoo.setColumnType(ColumnType.STRING_LIST);//not a list type
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 
@@ -2517,7 +2591,7 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
 		String expectedSql = "SELECT T123_INDEX_C111_._C111__UNNEST, COUNT(*) " +
 				"FROM T123 " +
-				"LEFT JOIN T123_INDEX_C111_ ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"LEFT JOIN JSON_TABLE(T123._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE " +
 				"WHERE _C333_ IN ( :b0, :b1 ) " +
 				"GROUP BY T123_INDEX_C111_._C111__UNNEST";
 		assertEquals(expectedSql,element.toSql());
@@ -2526,7 +2600,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_CurrentUserFunction() throws ParseException{
+	public void testTranslateModelWithCurrentUserFunction() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		QueryExpression rootElement = new TableQueryParser("select count(*) from syn123 where bar = CURRENT_USER()").queryExpression();
 		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
@@ -2539,7 +2613,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateModel_translateSynapseFunctions() throws ParseException{
+	public void testTranslateModelWihttranslateSynapseFunctions() throws ParseException{
 		QueryExpression rootElement = new TableQueryParser("select bar, CURRENT_USER() from syn123 where bar = CURRENT_USER()").queryExpression();
 		QuerySpecification element = rootElement.getFirstElementOfType(QuerySpecification.class);
 		// call under test
@@ -2588,12 +2662,6 @@ public class SQLTranslatorUtilsTest {
 		String expectedSql = "CAST(foo AS CHAR)";
 		assertEquals(expectedSql, element.toSql());
 		verify(mockTableAndColumnMapper, never()).getColumnModel(any());
-		
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			SQLTranslatorUtils.translateCastSpecification(element, mockTableAndColumnMapper);
-		}).getMessage();
-		assertEquals("Either ColumnType or ColumnId is required", message);
 	}
 	
 	@Test
@@ -2631,7 +2699,7 @@ public class SQLTranslatorUtilsTest {
 
 	
 	@Test
-	public void testTranslateModel_UnnestArrayColumn_multipleJoins() throws ParseException{
+	public void testTranslateModelWithUnnestArrayColumnAndmultipleJoins() throws ParseException{
 		columnFoo.setColumnType(ColumnType.STRING_LIST);//not a list type
 		columnBar.setColumnType(ColumnType.STRING_LIST);//not a list type
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
@@ -2641,9 +2709,9 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
 		String expectedSql = "SELECT T123_INDEX_C111_._C111__UNNEST, T123_INDEX_C333_._C333__UNNEST "
-				+ "FROM T123 LEFT JOIN T123_INDEX_C111_ "
-				+ "ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ LEFT JOIN T123_INDEX_C333_ "
-				+ "ON T123.ROW_ID = T123_INDEX_C333_.ROW_ID_REF_C333_";
+				+ "FROM T123 "
+				+ "LEFT JOIN JSON_TABLE(T123._C111_, '$[*]' COLUMNS(_C111__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C111_ ON TRUE "
+				+ "LEFT JOIN JSON_TABLE(T123._C333_, '$[*]' COLUMNS(_C333__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C333_ ON TRUE";
 		assertEquals(expectedSql, element.toSql());
 		assertTrue(parameters.isEmpty());
 	}
@@ -3257,16 +3325,16 @@ public class SQLTranslatorUtilsTest {
 		int tableCount = 1;
 		String translatedTableAliaName = "_A1";
 		String translatedColumnName = "_C333_";
-		ColumnReference ref = SQLTranslatorUtils.createDoubleExpanstion(tableCount, translatedTableAliaName, translatedColumnName);
+		ColumnReference ref = SQLTranslatorUtils.createDoubleExpansion(tableCount, translatedTableAliaName, translatedColumnName);
 		assertEquals("CASE WHEN _DBL_C333_ IS NULL THEN _C333_ ELSE _DBL_C333_ END", ref.toSql());
 	}
 	
 	@Test
-	public void testCreateDoubleExpanstionWithMOreThanOneTable() {
+	public void testCreateDoubleExpanstionWithMoreThanOneTable() {
 		int tableCount = 2;
 		String translatedTableAliaName = "_A1";
 		String translatedColumnName = "_C333_";
-		ColumnReference ref = SQLTranslatorUtils.createDoubleExpanstion(tableCount, translatedTableAliaName, translatedColumnName);
+		ColumnReference ref = SQLTranslatorUtils.createDoubleExpansion(tableCount, translatedTableAliaName, translatedColumnName);
 		assertEquals("CASE WHEN _A1._DBL_C333_ IS NULL THEN _A1._C333_ ELSE _A1._DBL_C333_ END", ref.toSql());
 	}
 	
@@ -3474,6 +3542,65 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testTranslateColumnReferenceWithDoubleInWithList() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser(
+				"with cte as (select aDouble from syn123) select * from syn456").queryExpression();
+		QuerySpecification toTranslate = rootModel.getFirstElementOfType(WithListElement.class)
+				.getFirstElementOfType(QuerySpecification.class);
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("aDouble")));
+
+		TableAndColumnMapper mapper = new TableAndColumnMapper(toTranslate, mockSchemaProvider);
+
+		ColumnReference columnReference = toTranslate.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = SQLTranslatorUtils.translateColumnReference(columnReference, mapper);
+		assertTrue(translated.isPresent());
+		assertEquals("_C777_, _DBL_C777_", translated.get().toSql());
+	}
+	
+	@Test
+	public void testTranslateColumnReferenceWithDoubleInWithListInFunction() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser(
+				"with cte as (select cast(sum(aDouble) as DOUBLE) from syn123) select * from syn456").queryExpression();
+		QuerySpecification toTranslate = rootModel.getFirstElementOfType(WithListElement.class)
+				.getFirstElementOfType(QuerySpecification.class);
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("aDouble")));
+
+		TableAndColumnMapper mapper = new TableAndColumnMapper(toTranslate, mockSchemaProvider);
+
+		ColumnReference columnReference = toTranslate.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = SQLTranslatorUtils.translateColumnReference(columnReference, mapper);
+		assertTrue(translated.isPresent());
+		assertEquals("_C777_", translated.get().toSql());
+	}
+	
+	@Test
+	public void testTranslateColumnReferenceWithDoubleInWithListGroupBy() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser(
+				"with cte as (select aDouble from syn123 group by aDouble) select * from syn456").queryExpression();
+		QuerySpecification toTranslate = rootModel.getFirstElementOfType(WithListElement.class)
+				.getFirstElementOfType(QuerySpecification.class);
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("aDouble")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(toTranslate, mockSchemaProvider);
+		
+		List<ColumnReference> refs = toTranslate.stream(ColumnReference.class).collect(Collectors.toList());
+		assertEquals(2, refs.size());
+		// call under test select
+		Optional<ColumnReference> translated = SQLTranslatorUtils.translateColumnReference(refs.get(0), mapper);
+		assertTrue(translated.isPresent());
+		assertEquals("_C777_, _DBL_C777_", translated.get().toSql());
+		
+		// call under test group by
+		translated = SQLTranslatorUtils.translateColumnReference(refs.get(1), mapper);
+		assertTrue(translated.isPresent());
+		assertEquals("_C777_, _DBL_C777_", translated.get().toSql());
+	}
+	
+	@Test
 	public void testTranslateColumnReferenceWithRowIdAndMultipleTables() throws ParseException {
 		QueryExpression rootModel = new TableQueryParser("select r.ROW_ID from syn123 t join syn456 r").queryExpression();
 		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
@@ -3507,6 +3634,188 @@ public class SQLTranslatorUtilsTest {
 		Optional<ColumnReference> translated = SQLTranslatorUtils.translateColumnReference(columnReference, mapper);
 		assertTrue(translated.isPresent());
 		assertEquals("ROW_ID", translated.get().toSql());
+	}
+	
+	@Test
+	public void testIsDoubleExpansion() throws ParseException {
+		QueryExpression expression = new TableQueryParser("select aDouble from syn1").queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertTrue(SQLTranslatorUtils.isDoubleExpansion(ref, type));
+	}
+	
+	@Test
+	public void testIsDoubleExpansionWithNonDouble() throws ParseException {
+		QueryExpression expression = new TableQueryParser("select anInt from syn1").queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("anInt", ref.toSql());
+		ColumnType type = ColumnType.INTEGER;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
+	}
+	
+	@Test
+	public void testIsDoubleExpansionWithNonSelect() throws ParseException {
+		QueryExpression expression = new TableQueryParser("select * from syn1 where aDouble > 2").queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
+	}
+	
+	@Test
+	public void testIsDoubleExpansionWithCTE() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select aDouble from syn1) select * from syn2")
+				.queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
+	}
+	
+	@Test
+	public void testIsDoubleExpansionWithInFunction() throws ParseException {
+		QueryExpression expression = new TableQueryParser("select sum(aDouble) from syn1").queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
+	}
+	
+	@Test
+	public void testIsDoubleExpansionWithBuildContext() throws ParseException {
+		QueryExpression expression = new TableQueryParser("select aDouble from syn1").queryExpression();
+		expression.setSqlContext(SqlContext.build);
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isDoubleExpansion(ref, type));
+	}
+	
+	@Test
+	public void testIsBothDoubleColumns() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select aDouble from syn1) select * from syn2")
+				.queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertTrue(SQLTranslatorUtils.isBothDoubleColumns(ref, type));
+	}
+	
+	@Test
+	public void testIsBothDoubleColumnsWithNonDouble() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select anInt from syn1) select * from syn2")
+				.queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("anInt", ref.toSql());
+		ColumnType type = ColumnType.INTEGER;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isBothDoubleColumns(ref, type));
+	}
+	
+	@Test
+	public void testIsBothDoubleColumnsWithWhere() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select * from syn1 where aDouble > 1.2) select * from syn2")
+				.queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isBothDoubleColumns(ref, type));
+	}
+	
+	@Test
+	public void testIsBothDoubleColumnsWithGroupBy() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select * from syn1 group by aDouble) select * from syn2")
+				.queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertTrue(SQLTranslatorUtils.isBothDoubleColumns(ref, type));
+	}
+	
+	@Test
+	public void testIsBothDoubleColumnsWithNotInWithList() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select * from syn1) select aDouble from syn2")
+				.queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isBothDoubleColumns(ref, type));
+	}
+	
+	@Test
+	public void testIsBothDoubleColumnsWithDoubleFunctionParam() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select sum(aDouble) from syn1) select * from syn2")
+				.queryExpression();
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isBothDoubleColumns(ref, type));
+	}
+	
+	@Test
+	public void testIsBothDoubleColumnsWithBuildContext() throws ParseException {
+		QueryExpression expression = new TableQueryParser("with foo as (select aDouble from syn1) select * from syn2")
+				.queryExpression();
+		expression.setSqlContext(SqlContext.build);
+		ColumnReference ref = expression.getFirstElementOfType(ColumnReference.class);
+		assertEquals("aDouble", ref.toSql());
+		ColumnType type = ColumnType.DOUBLE;
+		// call under test
+		assertFalse(SQLTranslatorUtils.isBothDoubleColumns(ref, type));
+	}
+	
+	@Test
+	public void testTranslateCastToDouble() throws ParseException {
+		QueryExpression expression = new TableQueryParser(
+				"with foo as ("
+				+ "select id, cast(sum(foo) as DOUBLE), anInt, cast(sum(bar) as DOUBLE) from syn1"
+				+ ") select * from syn2").queryExpression();
+		QuerySpecification spec = expression.getFirstElementOfType(WithListElement.class)
+				.getFirstElementOfType(QuerySpecification.class);
+
+		// call under test
+		SQLTranslatorUtils.translateCastToDouble(spec);
+		assertEquals("SELECT id, CAST(SUM(foo) AS DOUBLE), NULL, anInt, CAST(SUM(bar) AS DOUBLE), NULL FROM syn1", spec.toSql());
+	}
+	
+	@Test
+	public void testTranslateCastToDoubleWithCastInt() throws ParseException {
+		QueryExpression expression = new TableQueryParser(
+				"with foo as ("
+				+ "select cast(sum(foo) as INTEGER) from syn1"
+				+ ") select * from syn2").queryExpression();
+		QuerySpecification spec = expression.getFirstElementOfType(WithListElement.class)
+				.getFirstElementOfType(QuerySpecification.class);
+
+		// call under test
+		SQLTranslatorUtils.translateCastToDouble(spec);
+		assertEquals("SELECT CAST(SUM(foo) AS INTEGER) FROM syn1", spec.toSql());
+	}
+	
+	@Test
+	public void testTranslateCastToDoubleWithSelectStar() throws ParseException {
+		QueryExpression expression = new TableQueryParser(
+				"with foo as ("
+				+ "select * from syn1"
+				+ ") select * from syn2").queryExpression();
+		QuerySpecification spec = expression.getFirstElementOfType(WithListElement.class)
+				.getFirstElementOfType(QuerySpecification.class);
+
+		// call under test
+		SQLTranslatorUtils.translateCastToDouble(spec);
+		assertEquals("SELECT * FROM syn1", spec.toSql());
 	}
 
 	@Test
@@ -3750,6 +4059,9 @@ public class SQLTranslatorUtilsTest {
 		columnFoo.setMaximumListLength(100L);
 		columnFoo.setMaximumSize(10L);
 		columnFoo.setName("foo");
+		columnFoo.setJsonSubColumns(List.of(
+			new JsonSubColumnModel().setName("a").setJsonPath("$.a").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.enumeration)
+		));
 
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List.of(columnFoo));
 
@@ -3810,6 +4122,20 @@ public class SQLTranslatorUtilsTest {
 		List<ColumnModel> expected = List.of(
 				new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(16L), new ColumnModel()
 						.setName("b").setColumnType(ColumnType.STRING).setMaximumSize(17L).setMaximumListLength(18L));
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testCreateSchemaOfSelectWithDifferentSizes() {
+		List<List<ColumnModel>> selectSchemas = List.of(
+				List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(10L),
+						new ColumnModel().setName("b").setColumnType(ColumnType.STRING).setMaximumSize(11L)
+								.setMaximumListLength(12L)),
+				List.of(new ColumnModel().setName("x").setColumnType(ColumnType.STRING).setMaximumSize(13L)));
+		
+		// call under test
+		List<ColumnModel> result = SQLTranslatorUtils.createSchemaOfSelect(selectSchemas);
+		List<ColumnModel> expected = selectSchemas.get(0);
 		assertEquals(expected, result);
 	}
 	
@@ -3914,7 +4240,10 @@ public class SQLTranslatorUtilsTest {
 		// call under test
 		SQLTranslatorUtils.translateWithListElement(element, mockSchemaProvider);
 
-		assertEquals("T123 (_C111_, _C222_, _C333_, _C444_, _C555_, _C777_, _C888_, _C999_) AS (SELECT * FROM syn456)",
+		assertEquals(
+				"T123 ("
+				+ "_C111_, _C222_, _C333_, _C444_, _C555_, _DBL_C555_, _C777_, _DBL_C777_, _C888_, _C999_"
+				+ ") AS (SELECT * FROM syn456)",
 				element.toSql());
 		verify(mockSchemaProvider).getTableSchema(IdAndVersion.parse("syn123"));
 	}
@@ -4008,5 +4337,77 @@ public class SQLTranslatorUtilsTest {
 		SearchCondition two = new TableQueryParser("bar is not null").searchCondition();
 		SearchCondition result = SQLTranslatorUtils.mergeSearchConditions(mockHas, two);
 		assertEquals("bar IS NOT NULL", result.toSql());
+	}
+	
+	@Test
+	public void testGetColumnTypeFromPredicateWithColumnReference() throws ParseException {
+		
+		HasPredicate predicate = SqlElementUtils.createPredicate("foo = 1").getFirstElementOfType(HasPredicate.class);
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(createTableAndColumnMapper(), predicate);
+		
+		assertEquals(columnFoo.getColumnType(), columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeFromPredicateWithMySqlFunction() throws ParseException {
+		
+		HasPredicate predicate = SqlElementUtils.createPredicate("JSON_EXTRACT(foo, '$.bar') = 1").getFirstElementOfType(HasPredicate.class);
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(createTableAndColumnMapper(), predicate);
+		
+		assertEquals(ColumnType.STRING, columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeFromPredicateWithCastSpecification() throws ParseException {
+		
+		HasPredicate predicate = SqlElementUtils.createPredicate("CAST(JSON_EXTRACT(foo, '$.bar') AS INTEGER) = 1").getFirstElementOfType(HasPredicate.class);
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(createTableAndColumnMapper(), predicate);
+		
+		assertEquals(ColumnType.INTEGER, columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeFromPredicateWithUnsupportedLeftHandSide() throws ParseException {
+		
+		HasPredicate predicate = SqlElementUtils.createPredicate("CAST(JSON_EXTRACT(foo, '$.bar') AS INTEGER) = 1").getFirstElementOfType(HasPredicate.class);
+		
+		predicate.getLeftHandSide().replaceChildren(new CharacterStringLiteral("a string"));
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			SQLTranslatorUtils.getColumnType(createTableAndColumnMapper(), predicate);
+		}).getMessage();
+		
+		assertEquals("Unsupported left hand side of predicate ''a string' = 1': expected a column reference, a mysql function or a cast specification.", message);
+	}
+	
+	@Test
+	public void testAllTheSameSize() {
+		List<List<String>> lists = List.of(List.of("a","b"),List.of("c","d"));
+		assertTrue(SQLTranslatorUtils.hasSameSize(lists));
+	}
+	
+	@Test
+	public void testAllTheSameSizeWithEmpty() {
+		List<List<String>> lists = Collections.emptyList();
+		assertTrue(SQLTranslatorUtils.hasSameSize(lists));
+	}
+	
+	@Test
+	public void testAllTheSameSizeWithOne() {
+		List<List<String>> lists = List.of(List.of("a","b"));
+		assertTrue(SQLTranslatorUtils.hasSameSize(lists));
+	}
+	
+	@Test
+	public void testAllTheSameSizeWithDifferentSizes() {
+		List<List<String>> lists = List.of(List.of("a","b"),List.of("c","d"),List.of("e"));
+		assertFalse(SQLTranslatorUtils.hasSameSize(lists));
 	}
 }

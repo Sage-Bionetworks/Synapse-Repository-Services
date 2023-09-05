@@ -301,6 +301,8 @@ TOKEN [IGNORE_CASE]: {
    | "JSON_ARRAY"
    | "JSON_EXTRACT"
    | "JSON_OVERLAPS"
+   | "JSON_SEARCH"
+   | "JSON_QUOTE"
   >
 }
 
@@ -519,7 +521,8 @@ ValueExpressionPrimary valueExpressionPrimary():
 	CastSpecification castSpecification = null;
 }
 {
-	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
+	<null_specification> { return new ValueExpressionPrimary(new NullSpecification()); }
+	| setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
     | arrayFunctionSpecification = arrayFunctionSpecification() { return new ValueExpressionPrimary(arrayFunctionSpecification);}
 	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
 	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
@@ -915,7 +918,7 @@ BooleanPrimary booleanPrimary():
 }
 Predicate predicate():
 {
-	ColumnReference leftHandSide = null;
+	PredicateLeftHandSide leftHandSide = null;
 	ComparisonPredicate comparisonPredicate = null;
 	BetweenPredicate betweenPredicate = null;
 	InPredicate inPredicate = null;
@@ -929,7 +932,7 @@ Predicate predicate():
 {
 	booleanFunctionPredicate = booleanFunctionPredicate() { return new Predicate(booleanFunctionPredicate); }
 	| textMatchesPredicate = textMatchesPredicate() { return new Predicate(textMatchesPredicate); }
-	| ( leftHandSide = columnReference()
+	| ( leftHandSide = predicateLeftHandSide()
 		(
 			comparisonPredicate = comparisonPredicate(leftHandSide) { return new Predicate(comparisonPredicate);}
 			| <is> isPredicate = isPredicate(leftHandSide) { return new Predicate(isPredicate);}
@@ -945,7 +948,18 @@ Predicate predicate():
 		)
 	)
 }
-ComparisonPredicate comparisonPredicate(ColumnReference leftHandSide):
+PredicateLeftHandSide predicateLeftHandSide():
+{
+ 	ColumnReference columnReference = null;
+ 	MySqlFunction mySqlFunction = null;
+ 	CastSpecification castSpecification = null;
+}
+{
+	mySqlFunction = mysqlFunction() { return new PredicateLeftHandSide(mySqlFunction); }
+	| castSpecification = castSpecification() { return new PredicateLeftHandSide(castSpecification); }
+	| columnReference = columnReference() { return new PredicateLeftHandSide(columnReference); }
+}
+ComparisonPredicate comparisonPredicate(PredicateLeftHandSide leftHandSide):
 {
 	CompOp compOp = null;
 	RowValueConstructor rowValueConstructorRHS = null;
@@ -977,8 +991,7 @@ RowValueConstructorElement rowValueConstructorElement():
 	TruthValue truthValue;
 }
 {
-		<null_specification> { return new RowValueConstructorElement(new NullSpecification()); }
-	|	<default_specification> { return new RowValueConstructorElement(new DefaultSpecification()); }
+	<default_specification> { return new RowValueConstructorElement(new DefaultSpecification()); }
 	|	truthValue = truthValue() { return new RowValueConstructorElement(new TruthSpecification(truthValue)); }
 	|	valueExpression = valueExpression() { return new RowValueConstructorElement(valueExpression); }
 }
@@ -992,7 +1005,7 @@ CompOp compOp():
 	|   <less_than_or_equals_operator> { return CompOp.LESS_THAN_OR_EQUALS_OPERATOR;}
 	|   <greater_than_or_equals_operator> {return CompOp.GREATER_THAN_OR_EQUALS_OPERATOR;}
 }
-BetweenPredicate betweenPredicate(ColumnReference leftHandSide, Boolean notB):
+BetweenPredicate betweenPredicate(PredicateLeftHandSide leftHandSide, Boolean notB):
 {
 	RowValueConstructor betweenRowValueConstructor = null;
 	RowValueConstructor andRowValueConstructorRHS = null;
@@ -1001,7 +1014,7 @@ BetweenPredicate betweenPredicate(ColumnReference leftHandSide, Boolean notB):
 	<between> betweenRowValueConstructor = rowValueConstructor() <and>  andRowValueConstructorRHS = rowValueConstructor()
 	{ return new BetweenPredicate(leftHandSide, notB, betweenRowValueConstructor, andRowValueConstructorRHS);}
 }
-ArrayHasPredicate arrayHasPredicate(ColumnReference leftHandSide, Boolean notB):
+ArrayHasPredicate arrayHasPredicate(PredicateLeftHandSide leftHandSide, Boolean notB):
 {
 	InPredicateValue inPredicateValue = null;
 	EscapeCharacter escapeCharacter = null;
@@ -1013,7 +1026,7 @@ ArrayHasPredicate arrayHasPredicate(ColumnReference leftHandSide, Boolean notB):
 	{ return new ArrayHasLikePredicate(leftHandSide, notB, inPredicateValue, escapeCharacter);}
 
 }
-InPredicate inPredicate(ColumnReference leftHandSide, Boolean notB):
+InPredicate inPredicate(PredicateLeftHandSide leftHandSide, Boolean notB):
 {
 	InPredicateValue inPredicateValue = null;
 }
@@ -1040,7 +1053,7 @@ InValueList inValueList():
 	( <comma> valueExpression = valueExpression() { inValueList.addValueExpression(valueExpression); } )*
 	{ return inValueList; }
 }
-LikePredicate likePredicate(ColumnReference leftHandSide, Boolean notB):
+LikePredicate likePredicate(PredicateLeftHandSide leftHandSide, Boolean notB):
 {
 	Pattern pattern = null;
 	EscapeCharacter escapeCharacter = null;
@@ -1073,7 +1086,7 @@ EscapeCharacter escapeCharacter():
 	characterValueExpression = characterValueExpression()
 	{return new EscapeCharacter(characterValueExpression);}
 }
-IsPredicate isPredicate(ColumnReference leftHandSide):
+IsPredicate isPredicate(PredicateLeftHandSide leftHandSide):
 {
 	Boolean notB = null;
 	TruthValue truthValue = null;
@@ -1379,15 +1392,6 @@ Pagination pagination():
 	<limit> _limit = unsignedInteger() [ <offset> _offset = unsignedInteger() ]
 	{ return new Pagination(_limit, _offset); }
 }
-NullableValueExpression nullableValueExpression():
-{
-	ValueExpression valueExpression;
-}
-{
-	<null_specification> { return new NullableValueExpression(); }
-	| valueExpression = valueExpression() { return new NullableValueExpression(valueExpression); }
-}
-
 CaseExpression caseExpression():
 {
 	CaseAbbreviation caseAbbreviation = null;
@@ -1407,13 +1411,13 @@ CaseAbbreviation caseAbbreviation():
 {
 	AbbreviationType abbreviationType;
 	CaseAbbreviation caseAbbreviation = null;
-	NullableValueExpression lastValueExpression = null;
+	ValueExpression lastValueExpression = null;
 }
 {
 	abbreviationType = abbreviationType() { caseAbbreviation = new CaseAbbreviation(abbreviationType);  }
 	<left_paren> 
-		lastValueExpression = nullableValueExpression() { caseAbbreviation.addValueExpression(lastValueExpression); }
-		 ( <comma> lastValueExpression = nullableValueExpression() { caseAbbreviation.addValueExpression(lastValueExpression); } )+ 
+		lastValueExpression = valueExpression() { caseAbbreviation.addValueExpression(lastValueExpression); }
+		 ( <comma> lastValueExpression = valueExpression() { caseAbbreviation.addValueExpression(lastValueExpression); } )+ 
 	<right_paren>
 	{ return caseAbbreviation; }
 }
@@ -1471,8 +1475,7 @@ Result result():
 	ResultExpression resultExpression = null;
 }
 {
-	<null_specification> { return new Result(); }
-	| resultExpression = resultExpression() { return new Result(resultExpression); }
+	resultExpression = resultExpression() { return new Result(resultExpression); }
 }
 ResultExpression resultExpression():
 {
@@ -1527,10 +1530,10 @@ CastSpecification castSpecification():
 }
 CastOperand castOperand():
 {
-	NullableValueExpression nullableValueExpression = null;
+	ValueExpression valueExpression = null;
 }
 {
-	nullableValueExpression = nullableValueExpression() { return new CastOperand(nullableValueExpression); }
+	valueExpression = valueExpression() { return new CastOperand(valueExpression); }
 }
 CastTarget castTarget():
 {

@@ -493,7 +493,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		String sql = SQLUtils.buildSelectRowIds(tableId, rows, columns);
 
 		final Map<Long, Row> rowMap = new HashMap<Long, Row>(rows.size());
-		QueryTranslator query = QueryTranslator.builder(sql, columModelManager, userInfo.getId())
+		QueryTranslator query = QueryTranslator.builder(sql, tableManagerSupport, userInfo.getId())
 				.indexDescription(indexDescription).build();
 		indexDao.queryAsStream(null, query, new RowHandler() {
 			@Override

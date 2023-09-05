@@ -13,11 +13,11 @@ import org.sagebionetworks.table.query.util.SqlElementUtils;
 public class TextMatchesPredicate extends SQLElement implements HasPredicate {
 		
 	public static final String KEYWORD = "TEXT_MATCHES";
-	private static final ColumnReference SEARCH_CONTENT_REF;
+	private static final PredicateLeftHandSide SEARCH_CONTENT_REF;
 	
 	static {
 		try {
-			SEARCH_CONTENT_REF = new ColumnReference(null, SqlElementUtils.createColumnName(TableConstants.ROW_SEARCH_CONTENT), ColumnType.STRING);
+			SEARCH_CONTENT_REF = new PredicateLeftHandSide(new ColumnReference(null, SqlElementUtils.createColumnName(TableConstants.ROW_SEARCH_CONTENT), ColumnType.STRING));
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}
@@ -46,7 +46,7 @@ public class TextMatchesPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public ColumnReference getLeftHandSide() {
+	public PredicateLeftHandSide getLeftHandSide() {
 		return SEARCH_CONTENT_REF;
 	}
 	

@@ -6,37 +6,37 @@ import java.util.Collections;
 public class BooleanFunctionPredicate extends SQLElement implements HasPredicate{
 
 	final BooleanFunction booleanFunction;
-	final ReplaceableBox<ColumnReference> columnReference;
+	final PredicateLeftHandSide leftHandSide;
 
 	public BooleanFunctionPredicate(BooleanFunction booleanFunction, ColumnReference columnReference) {
 		this.booleanFunction = booleanFunction;
-		this.columnReference = new ReplaceableBox<ColumnReference>(columnReference);
+		this.leftHandSide = new PredicateLeftHandSide(columnReference);
 	}
 
 	public BooleanFunction getBooleanFunction() {
 		return booleanFunction;
 	}
-
+	
 	public ColumnReference getColumnReference() {
-		return columnReference.getChild();
+		return (ColumnReference) leftHandSide.getChild();
 	}
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append(booleanFunction.name());
 		builder.append("(");
-		columnReference.toSql(builder, parameters);
+		leftHandSide.toSql(builder, parameters);
 		builder.append(")");
 	}
 
 	@Override
 	public Iterable<Element> getChildren() {
-		return SQLElement.buildChildren(columnReference);
+		return SQLElement.buildChildren(leftHandSide);
 	}
 
 	@Override
-	public ColumnReference getLeftHandSide() {
-		return columnReference.getChild();
+	public PredicateLeftHandSide getLeftHandSide() {
+		return leftHandSide;
 	}
 
 	@Override

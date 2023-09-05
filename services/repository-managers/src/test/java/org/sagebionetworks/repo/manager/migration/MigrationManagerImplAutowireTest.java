@@ -207,7 +207,7 @@ public class MigrationManagerImplAutowireTest {
 		expectedCount.setType(MigrationType.FILE_HANDLE);
 		expectedCount.setMinid(migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE));
 		expectedCount.setMaxid(migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE));
-		expectedCount.setCount(migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
+		expectedCount.setCount(null);
 		MigrationTypeCount mtc = migrationManager.getMigrationTypeCount(adminUser, MigrationType.FILE_HANDLE);
 		assertNotNull(mtc);
 		assertEquals(expectedCount, mtc);
@@ -219,7 +219,7 @@ public class MigrationManagerImplAutowireTest {
 		expectedCount.setType(MigrationType.FILE_HANDLE);
 		expectedCount.setMinid(migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE));
 		expectedCount.setMaxid(migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE));
-		expectedCount.setCount(migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
+		expectedCount.setCount(null);
 		
 		AsyncMigrationTypeCountRequest asyncMigrationTypeCountRequest = new AsyncMigrationTypeCountRequest();
 		asyncMigrationTypeCountRequest.setType(MigrationType.FILE_HANDLE.name());
@@ -237,7 +237,7 @@ public class MigrationManagerImplAutowireTest {
 		expectedCount.setType(MigrationType.FILE_HANDLE);
 		expectedCount.setMinid(migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE));
 		expectedCount.setMaxid(migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE));
-		expectedCount.setCount(migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
+		expectedCount.setCount(null);
 		List<MigrationTypeCount> l = new LinkedList<MigrationTypeCount>();
 		l.add(expectedCount);
 		expectedCounts.setList(l);

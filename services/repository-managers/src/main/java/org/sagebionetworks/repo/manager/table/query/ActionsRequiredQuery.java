@@ -3,11 +3,10 @@ package org.sagebionetworks.repo.manager.table.query;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.QueryTranslator;
+import org.sagebionetworks.table.cluster.TableAndColumnMapper;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.OrderByClause;
@@ -15,7 +14,7 @@ import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SetQuantifier;
-import org.sagebionetworks.table.query.util.SqlElementUtils;
+import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class ActionsRequiredQuery {
@@ -24,7 +23,6 @@ public class ActionsRequiredQuery {
 
 	public ActionsRequiredQuery(QueryContext expansion) {
 		ValidateArgument.required(expansion, "expansion");
-		ValidateArgument.requirement(expansion.getSelectFileColumn() != null, "The query.selectFileColumn is required when including actions required");
 		
 		try {
 			CombinedQuery combined = CombinedQuery.builder()
@@ -34,11 +32,6 @@ public class ActionsRequiredQuery {
 				.setAdditionalFilters(expansion.getAdditionalFilters())
 				.build();
 			
-			ColumnModel selectFileColumn = combined.getTableAndColumnMapper().getUnionOfAllTableSchemas().stream()
-				.filter(selectColumn -> selectColumn.getId().equals(expansion.getSelectFileColumn().toString()) && ColumnType.ENTITYID == selectColumn.getColumnType())
-				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("The query.selectFileColumn must be an ENTITYID column that is part of the schema of the underlying table/view"));
-						
 			QueryExpression expression = new TableQueryParser(combined.getCombinedSql()).queryExpression();
 			
 			QuerySpecification querySpec = expression.getFirstElementOfType(QuerySpecification.class);
@@ -47,14 +40,13 @@ public class ActionsRequiredQuery {
 				throw new IllegalArgumentException("Including the actions required is not supported for aggregate queries");
 			}
 			
-			String selectFileColumnName = SqlElementUtils.wrapInDoubleQuotes(selectFileColumn.getName());
+			TableAndColumnMapper tableAndColumnMapper = new TableAndColumnMapper(querySpec, expansion.getSchemaProvider());
 			
-			SelectList selectFileColumnList = new TableQueryParser(selectFileColumnName).selectList();
-			OrderByClause orderBy = new OrderByClause(new TableQueryParser(selectFileColumnName).sortSpecificationList());
+			Pair<SelectList, OrderByClause> selectFileColumn = tableAndColumnMapper.buildSelectAndOrderByFileColumn(expansion.getSelectFileColumn());
 			
-			querySpec.replaceSelectList(selectFileColumnList, SetQuantifier.DISTINCT);
+			querySpec.replaceSelectList(selectFileColumn.getFirst(), SetQuantifier.DISTINCT);
 			querySpec.getTableExpression().replacePagination(null);
-			querySpec.getTableExpression().replaceOrderBy(orderBy);
+			querySpec.getTableExpression().replaceOrderBy(selectFileColumn.getSecond());
 			
 			selectFilesQuery = QueryTranslator.builder(expression.toSql(), expansion.getUserId())
 				.schemaProvider(expansion.getSchemaProvider())

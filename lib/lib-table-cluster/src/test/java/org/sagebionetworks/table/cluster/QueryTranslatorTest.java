@@ -38,6 +38,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SqlContext;
 
 import com.google.common.collect.ImmutableMap;
@@ -2299,26 +2300,54 @@ public class QueryTranslatorTest {
 	}
 	
 	@Test
+	public void testVirtualTableWithNonAggregateDefiningSql() {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+		
+		ColumnModel foo = new ColumnModel().setName("foo").setColumnType(ColumnType.STRING).setMaximumSize(40L).setId("11");
+			
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(List.of(foo));
+		setupGetColumns(foo);
+
+		when(mockIndexDescriptionLookup.getIndexDescription(viewId)).thenReturn(new ViewIndexDescription(viewId, TableType.entityview));
+		
+		String definingSql = "select foo from syn1";
+		IndexDescription indexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
+
+		sql = indexDescription.preprocessQuery("select * from syn2");
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
+		
+		assertEquals("WITH T2 (_C11_) AS (SELECT _C11_ FROM T1) SELECT _C11_ FROM T2", query.getOutputSQL());
+		assertFalse(query.includesRowIdAndVersion());
+		assertFalse(query.includeEntityEtag());
+		assertFalse(query.isAggregatedResult());
+	}
+		
+	@Test
 	public void testSelectWithJsonExtract() {
 		IdAndVersion tableId = IdAndVersion.parse("syn1");
 		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 		
 		IndexDescription indexDescription = new TableIndexDescription(tableId);
 
-		sql = "select JSON_EXTRACT(foo, '$[0]') as j from syn1";
+		sql = "select JSON_EXTRACT(foo, '$[0]') as j from syn1 where JSON_EXTRACT(bar, '$.a') > 3";
 		
 		QueryTranslator query = QueryTranslator.builder(sql, userId)
 			.schemaProvider(mockSchemaProvider)
 			.sqlContext(SqlContext.query)
 			.indexDescription(indexDescription).build();
 		
-		assertEquals("SELECT JSON_EXTRACT(_C111_,'$[0]') AS j, ROW_ID, ROW_VERSION FROM T1", query.getOutputSQL());
+		assertEquals("SELECT JSON_EXTRACT(_C111_,'$[0]') AS j, ROW_ID, ROW_VERSION FROM T1 WHERE JSON_EXTRACT(_C333_,'$.a') > :b0", query.getOutputSQL());
+		
+		assertEquals(Map.of("b0", "3"), query.getParameters());
 		
 		List<SelectColumn> select = query.getSelectColumns();
 		
 		assertEquals(List.of(new SelectColumn().setName("j").setColumnType(ColumnType.STRING)), select);
 	}
-	
+		
 	@Test
 	public void testSelectWithJsonOverlaps() {
 		IdAndVersion tableId = IdAndVersion.parse("syn1");
@@ -2326,14 +2355,14 @@ public class QueryTranslatorTest {
 		
 		IndexDescription indexDescription = new TableIndexDescription(tableId);
 
-		sql = "select JSON_OVERLAPS(foo, '[1,2]') as j from syn1";
+		sql = "select JSON_OVERLAPS(foo, '[1,2]') as j from syn1 where JSON_OVERLAPS(bar, '[3,4]') IS TRUE";
 		
 		QueryTranslator query = QueryTranslator.builder(sql, userId)
 			.schemaProvider(mockSchemaProvider)
 			.sqlContext(SqlContext.query)
 			.indexDescription(indexDescription).build();
 		
-		assertEquals("SELECT JSON_OVERLAPS(_C111_,'[1,2]') AS j, ROW_ID, ROW_VERSION FROM T1", query.getOutputSQL());
+		assertEquals("SELECT JSON_OVERLAPS(_C111_,'[1,2]') AS j, ROW_ID, ROW_VERSION FROM T1 WHERE JSON_OVERLAPS(_C333_,'[3,4]') IS TRUE", query.getOutputSQL());
 		
 		List<SelectColumn> select = query.getSelectColumns();
 		
@@ -2362,9 +2391,46 @@ public class QueryTranslatorTest {
 		
 		assertEquals("SELECT _C333_, JSON_ARRAYAGG(_C111_) AS j FROM T1 GROUP BY _C333_", query.getOutputSQL());
 		
+		assertTrue(query.isAggregatedResult());
+		
 		List<SelectColumn> select = query.getSelectColumns();
 		
 		assertEquals(List.of(new SelectColumn().setName("bar").setColumnType(ColumnType.STRING), new SelectColumn().setName("j").setColumnType(ColumnType.JSON)), select);
 	}
 	
+	@Test
+	public void tesVirtualTableWithDouble() {
+	
+		ColumnModel id = new ColumnModel().setName("id").setColumnType(ColumnType.INTEGER).setId("1");
+		ColumnModel d1 = new ColumnModel().setName("d1").setColumnType(ColumnType.DOUBLE).setId("2");
+		ColumnModel d2 = new ColumnModel().setName("d2").setColumnType(ColumnType.DOUBLE).setId("3");
+		ColumnModel sumD2 = new ColumnModel().setName("sumD2").setColumnType(ColumnType.DOUBLE).setId("4");
+		
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+		
+		
+		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(id, d1, d2));
+		when(mockSchemaProvider.getTableSchema(cte)).thenReturn(List.of(id, d1, sumD2));
+		setupGetColumns(id, d1, sumD2);
+
+		when(mockIndexDescriptionLookup.getIndexDescription(tableId)).thenReturn(new TableIndexDescription(tableId));
+		
+		String definingSql = "select id, d1, cast(sum(d2) as 4) from syn1 group by id, d1";
+		IndexDescription vtIndexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
+
+		sql = vtIndexDescription.preprocessQuery("select * from syn2");
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query).indexDescription(vtIndexDescription).build();
+		
+		assertEquals("WITH T2 (_C1_, _C2_, _DBL_C2_, _C4_, _DBL_C4_) AS ("
+				+ "SELECT _C1_, _C2_, _DBL_C2_, CAST(SUM(_C3_) AS DOUBLE), NULL FROM T1 GROUP BY _C1_, _C2_, _DBL_C2_"
+				+ ") SELECT _C1_,"
+				+ " CASE WHEN _DBL_C2_ IS NULL THEN _C2_ ELSE _DBL_C2_ END,"
+				+ " CASE WHEN _DBL_C4_ IS NULL THEN _C4_ ELSE _DBL_C4_ END"
+				+ " FROM T2", query.getOutputSQL());
+		assertTrue(query.isAggregatedResult());
+	}
+		
 }

@@ -554,6 +554,18 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		vt.setColumnIds(virtualTableManager.getSchemaIds(idAndVersion));
 		return vt;
 	}
+	
+	@Override
+	public void updateVirtualTable(String tableId, UserInfo user, String sql) {
+		VirtualTable vTable = entityManager.getEntity(user, tableId, VirtualTable.class);
+		
+		vTable.setDefiningSQL(sql);
+		
+		entityManager.updateEntity(user, vTable, false, null);
+		
+		virtualTableManager.registerDefiningSql(IdAndVersion.parse(vTable.getId()), sql);
+		
+	}
 
 	/**
 	 * Helper to download the contents of the given FileHandle ID to a string.
@@ -615,8 +627,8 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	public void waitForTableOrViewToBeAvailable(IdAndVersion id,long maxWaitMs) throws InterruptedException {
 		long startTime = System.currentTimeMillis();
 		while(true) {
-			Optional<TableState> optional = tableMangerSupport.getTableStatusState(id);
-			if(optional.isPresent() && TableState.AVAILABLE.equals(optional.get())) {
+			TableState state = tableMangerSupport.getTableStatusOrCreateIfNotExists(id).getState();
+			if(TableState.AVAILABLE.equals(state)) {
 				break;
 			}
 			assertTrue((System.currentTimeMillis()-startTime) < maxWaitMs, "Timed out waiting for a table/view to become available.");

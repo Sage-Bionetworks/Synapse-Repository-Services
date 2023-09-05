@@ -7,13 +7,13 @@ import java.util.Optional;
  */
 public class ComparisonPredicate extends SQLElement implements HasPredicate {
 
-	ReplaceableBox<ColumnReference> columnReferenceLHS;
+	PredicateLeftHandSide leftHandSide;
 	CompOp compOp;
 	RowValueConstructor rowValueConstructorRHS;
-	public ComparisonPredicate(ColumnReference columnReferenceLHS,
+	public ComparisonPredicate(PredicateLeftHandSide leftHandSide,
 			CompOp compOp, RowValueConstructor rowValueConstructorRHS) {
 		super();
-		this.columnReferenceLHS = new ReplaceableBox<ColumnReference>(columnReferenceLHS);
+		this.leftHandSide = leftHandSide;
 		this.compOp = compOp;
 		this.rowValueConstructorRHS = rowValueConstructorRHS;
 	}
@@ -21,17 +21,14 @@ public class ComparisonPredicate extends SQLElement implements HasPredicate {
 	public CompOp getCompOp() {
 		return compOp;
 	}
+	
 	public RowValueConstructor getRowValueConstructorRHS() {
 		return rowValueConstructorRHS;
-	}
-	
-	public ColumnReference getColumnReferenceLHS() {
-		return columnReferenceLHS.getChild();
 	}
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		columnReferenceLHS.toSql(builder, parameters);
+		leftHandSide.toSql(builder, parameters);
 		builder.append(" ");
 		builder.append(compOp.toSQL());
 		builder.append(" ");
@@ -40,12 +37,12 @@ public class ComparisonPredicate extends SQLElement implements HasPredicate {
 	
 	@Override
 	public Iterable<Element> getChildren() {
-		return SQLElement.buildChildren(columnReferenceLHS, rowValueConstructorRHS);
+		return SQLElement.buildChildren(leftHandSide, rowValueConstructorRHS);
 	}
 
 	@Override
-	public ColumnReference getLeftHandSide() {
-		return columnReferenceLHS.getChild();
+	public PredicateLeftHandSide getLeftHandSide() {
+		return leftHandSide;
 	}
 
 	@Override

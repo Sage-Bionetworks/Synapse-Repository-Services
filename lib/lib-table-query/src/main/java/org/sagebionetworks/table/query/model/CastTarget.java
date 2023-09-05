@@ -24,23 +24,22 @@ public class CastTarget extends SQLElement implements Replaceable<CastTarget> {
 		this.castTypeString = null;
 	}
 	
-	public CastTarget(String castTypeString) {
+	// Constructor that is not exposed to the parser and used internally to replace the target with the MySql equivalent type
+	// The original column type is retained
+	public CastTarget(ColumnType type, String castTypeString) {
 		this.columnId = null;
-		this.type = null;
+		this.type = type;
 		this.castTypeString = castTypeString;
 	}
 	
-	
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		if(type!= null) {
-			builder.append(type.name());
-		}
-		if(columnId != null) {
-			columnId.toSql(builder, parameters);
-		}
 		if(castTypeString != null) {
 			builder.append(castTypeString);
+		} else if (type!= null) {
+			builder.append(type.name());
+		} else if (columnId != null) {
+			columnId.toSql(builder, parameters);
 		}
 	}
 

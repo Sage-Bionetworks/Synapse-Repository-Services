@@ -1,10 +1,8 @@
 package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
@@ -27,6 +25,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -58,6 +57,7 @@ public class FacetTransformerValueCountsTest {
 	private Set<String> selectedValuesSet;
 	private ColumnModel stringModel;
 	private ColumnModel stringListModel;
+	private ColumnModel jsonColumnModel;
 	private Long userId;
 	
 	@Mock
@@ -82,8 +82,16 @@ public class FacetTransformerValueCountsTest {
 		stringListModel.setFacetType(FacetType.enumeration);
 		stringListModel.setMaximumSize(50L);
 		stringListModel.setMaximumListLength(24L);
+		
+		jsonColumnModel = new ColumnModel();
+		jsonColumnModel.setName("jsonColumn");
+		jsonColumnModel.setColumnType(ColumnType.JSON);
+		jsonColumnModel.setId("3");
+		jsonColumnModel.setJsonSubColumns(List.of(
+			new JsonSubColumnModel().setName("a").setJsonPath("$.a").setFacetType(FacetType.enumeration).setColumnType(ColumnType.INTEGER)
+		));
 
-		schema = Arrays.asList(stringModel, stringListModel);
+		schema = Arrays.asList(stringModel, stringListModel, jsonColumnModel);
 
 		facets = new ArrayList<>();
 		selectedValue = "selectedValue";
@@ -118,7 +126,7 @@ public class FacetTransformerValueCountsTest {
 	
 	@Test
 	public void testConstructor() {
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		assertEquals(stringModel.getName(), ReflectionTestUtils.getField(facetTransformer, "columnName"));
 		assertEquals(facets, ReflectionTestUtils.getField(facetTransformer, "facets"));
@@ -134,7 +142,7 @@ public class FacetTransformerValueCountsTest {
 	/////////////////////////////////
 	@Test
 	public void testGenerateFacetSqlQuery(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		//check the non-transformed sql
 		String expectedString = "SELECT \"stringColumn\" AS value, COUNT(*) AS frequency"
@@ -161,9 +169,9 @@ public class FacetTransformerValueCountsTest {
 		
 		originalQuery = new TableQueryParser("with syn2 as (select * from syn1 where stringColumn like 'foo%') select * from syn2").queryExpression();
 		// call under test
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
-		String expectedString = "WITH T2 (_C1_, _C2_) AS (SELECT _C1_, _C2_ FROM T1 WHERE _C1_ LIKE :b1)"
+		String expectedString = "WITH T2 (_C1_, _C2_, _C3_) AS (SELECT _C1_, _C2_, _C3_ FROM T1 WHERE _C1_ LIKE :b1)"
 				+ " SELECT _C1_ AS value, COUNT(*) AS frequency FROM T2"
 				+ " GROUP BY _C1_ ORDER BY frequency DESC, value ASC LIMIT :b0";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
@@ -183,26 +191,24 @@ public class FacetTransformerValueCountsTest {
 		
 		originalQuery = new TableQueryParser("with syn2 as (select * from syn1) select * from syn2").queryExpression();
 		// call under test
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
-		String expectedString = "WITH T2 (_C1_, _C2_) AS (SELECT _C1_, _C2_ FROM T1)"
+		String expectedString = "WITH T2 (_C1_, _C2_, _C3_) AS (SELECT _C1_, _C2_, _C3_ FROM T1)"
 				+ " SELECT _C2_ AS value, COUNT(*) AS frequency FROM T2 WHERE ( ( _C1_ = :b0 ) )"
 				+ " GROUP BY _C2_ ORDER BY frequency DESC, value ASC LIMIT :b1";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
 		assertEquals("selectedValue", facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
 		assertEquals(100L, facetTransformer.getFacetSqlQuery().getParameters().get("b1"));
 	}
-	
-	
 
 	@Test
-	public void testGenerateFacetSqlQuery_ForListTypes(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), true, facets, originalQuery, dependencies, selectedValuesSet);
+	public void testGenerateFacetSqlQueryWithListTypes(){
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), null, true, facets, originalQuery, dependencies, selectedValuesSet);
 
 		//check the non-transformed sql
-		String expectedString = "SELECT T123_INDEX_C2_._C2__UNNEST AS value, COUNT(*) AS frequency"
-				+ " FROM T123 LEFT JOIN T123_INDEX_C2_ ON T123.ROW_ID = T123_INDEX_C2_.ROW_ID_REF_C2_ W"
-				+ "HERE ( _C1_ LIKE :b0 ) AND ( ( ( _C1_ = :b1 ) ) ) "
+		String expectedString = "SELECT T123_INDEX_C2_._C2__UNNEST AS value, COUNT(*) AS frequency "
+				+ "FROM T123 LEFT JOIN JSON_TABLE(T123._C2_, '$[*]' COLUMNS(_C2__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C2_ ON TRUE "
+				+ "WHERE ( _C1_ LIKE :b0 ) AND ( ( ( _C1_ = :b1 ) ) ) "
 				+ "GROUP BY T123_INDEX_C2_._C2__UNNEST ORDER BY frequency DESC, value ASC LIMIT :b2";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
 		assertEquals("asdf%", facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
@@ -210,14 +216,27 @@ public class FacetTransformerValueCountsTest {
 		assertEquals(100L, facetTransformer.getFacetSqlQuery().getParameters().get("b2"));
 	}
 
+	@Test
+	public void testGenerateFacetSqlQueryWithJsonPath(){
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(jsonColumnModel.getName(), jsonColumnModel.getJsonSubColumns().get(0).getJsonPath(), false, facets, originalQuery, dependencies, selectedValuesSet);
 
+		//check the non-transformed sql
+		String expectedString = "SELECT JSON_EXTRACT(\"jsonColumn\",'$.a') AS value, COUNT(*) AS frequency"
+				+ " FROM syn123"
+				+ " WHERE ( \"stringColumn\" LIKE 'asdf%' ) AND ( ( ( \"stringColumn\" = 'selectedValue' ) ) )"
+				+ " GROUP BY JSON_EXTRACT(\"jsonColumn\",'$.a')"
+				+ " ORDER BY frequency DESC, value ASC"
+				+ " LIMIT 100";
+		
+		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getInputSql());
+	}
 
 	////////////////////////////
 	// translateToResult() tests
 	////////////////////////////
 	@Test
 	public void testTranslateToResultNullRowSet(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, false, facets, originalQuery, dependencies, selectedValuesSet);
 		assertThrows(IllegalArgumentException.class, ()->{
 			facetTransformer.translateToResult(null);
 		});
@@ -225,7 +244,7 @@ public class FacetTransformerValueCountsTest {
 	
 	@Test
 	public void testTranslateToResultWrongHeaders(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		rowSet.setHeaders(Collections.emptyList());
 
@@ -236,7 +255,7 @@ public class FacetTransformerValueCountsTest {
 	
 	@Test 
 	public void testTranslateToResultNullValueColumn(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		Long row1Count = 42L;
 		rowSet.setHeaders(correctSelectList);
@@ -245,24 +264,23 @@ public class FacetTransformerValueCountsTest {
 		row1.setValues(Lists.newArrayList(null, row1Count.toString()));
 	
 		rowSet.setRows(Lists.newArrayList(row1));
+
+		FacetColumnResultValues expected = new FacetColumnResultValues()
+			.setColumnName(stringModel.getName())
+			.setFacetType(FacetType.enumeration)
+			.setFacetValues(List.of(
+				new FacetColumnResultValueCount().setCount(42L).setValue(NULL_VALUE_KEYWORD).setIsSelected(false)
+			));
+			
 		FacetColumnResultValues result = (FacetColumnResultValues) facetTransformer.translateToResult(rowSet);
-
-		assertEquals(stringModel.getName(), result.getColumnName());
-		assertEquals(FacetType.enumeration, result.getFacetType());
-
-		List<FacetColumnResultValueCount> valueCounts = result.getFacetValues();
-		assertEquals(1, valueCounts.size());
 		
-		FacetColumnResultValueCount valueCount1 = valueCounts.get(0);
-		assertEquals(NULL_VALUE_KEYWORD, valueCount1.getValue());
-		assertEquals(row1Count, valueCount1.getCount());
-		assertFalse(valueCount1.getIsSelected());
+		assertEquals(expected, result);
 
 	}
 	
 	@Test 
 	public void testTranslateToResultCorrectHeaders(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), false, facets, originalQuery, dependencies, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		Long row1Count = 42L;
 		Long row2Count = 23L;
@@ -272,23 +290,46 @@ public class FacetTransformerValueCountsTest {
 		Row row2 = new Row();
 		row2.setValues(Lists.newArrayList(notSelectedValue, row2Count.toString()));
 		rowSet.setRows(Lists.newArrayList(row1, row2));
+		
+		FacetColumnResultValues expected = new FacetColumnResultValues()
+			.setColumnName(stringModel.getName())
+			.setFacetType(FacetType.enumeration)
+			.setFacetValues(List.of(
+				new FacetColumnResultValueCount().setCount(42L).setValue(selectedValue).setIsSelected(true),
+				new FacetColumnResultValueCount().setCount(23L).setValue(notSelectedValue).setIsSelected(false)
+			));
+			
 		FacetColumnResultValues result = (FacetColumnResultValues) facetTransformer.translateToResult(rowSet);
-
-		assertEquals(stringModel.getName(), result.getColumnName());
-		assertEquals(FacetType.enumeration, result.getFacetType());
-
-		List<FacetColumnResultValueCount> valueCounts = result.getFacetValues();
-		assertEquals(2, valueCounts.size());
 		
-		FacetColumnResultValueCount valueCount1 = valueCounts.get(0);
-		assertEquals(selectedValue, valueCount1.getValue());
-		assertEquals(row1Count, valueCount1.getCount());
-		assertTrue(valueCount1.getIsSelected());
+		assertEquals(expected, result);
+	}
+	
+	@Test 
+	public void testTranslateToResultWithJsonPath(){
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(jsonColumnModel.getName(), jsonColumnModel.getJsonSubColumns().get(0).getJsonPath(), false, facets, originalQuery, dependencies, selectedValuesSet);
+
+		Long row1Count = 42L;
+		Long row2Count = 23L;
+		rowSet.setHeaders(correctSelectList);
+		Row row1 = new Row();
+		row1.setValues(Lists.newArrayList(selectedValue, row1Count.toString()));
+		Row row2 = new Row();
+		row2.setValues(Lists.newArrayList(notSelectedValue, row2Count.toString()));
+		rowSet.setRows(Lists.newArrayList(row1, row2));
 		
-		FacetColumnResultValueCount valueCount2 = valueCounts.get(1);
-		assertEquals(notSelectedValue, valueCount2.getValue());
-		assertEquals(row2Count, valueCount2.getCount());
-		assertFalse(valueCount2.getIsSelected());
+		FacetColumnResultValues expected = new FacetColumnResultValues()
+			.setColumnName(jsonColumnModel.getName())
+			.setJsonPath(jsonColumnModel.getJsonSubColumns().get(0).getJsonPath())
+			.setFacetType(FacetType.enumeration)
+			.setFacetValues(List.of(
+				new FacetColumnResultValueCount().setCount(42L).setValue(selectedValue).setIsSelected(true),
+				new FacetColumnResultValueCount().setCount(23L).setValue(notSelectedValue).setIsSelected(false)
+			));
+		
+		FacetColumnResultValues result = (FacetColumnResultValues) facetTransformer.translateToResult(rowSet);
+		
+		assertEquals(expected, result);
+
 	}
 	
 }

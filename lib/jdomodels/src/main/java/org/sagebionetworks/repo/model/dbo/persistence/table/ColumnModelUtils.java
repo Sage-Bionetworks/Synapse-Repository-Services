@@ -6,8 +6,10 @@ import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -18,10 +20,13 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
+import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.collect.Lists;
 
@@ -172,13 +177,17 @@ public class ColumnModelUtils {
 			case USERID:
 			case LARGETEXT:
 			case MEDIUMTEXT:
-			// Do not support default values for now
-			case JSON:
+				// Do not support default values for now
 				if (StringUtils.isEmpty(defaultValue)) {
 					defaultValue = null;
 				}
 				if (defaultValue != null) {
 					throw new IllegalArgumentException("Columns of type " + clone.getColumnType() + " cannot have default values.");
+				}
+				break;
+			case JSON:
+				if(clone.getFacetType() != null) {
+					throw new IllegalArgumentException("A column of type JSON cannot have a facet type.  Instead, the jsonSubColumns of a JSON column can be faceted.");
 				}
 				break;
 			case ENTITYID_LIST:
@@ -244,10 +253,39 @@ public class ColumnModelUtils {
 			} else {
 				clone.setDefaultValue(null);
 			}
-
+			
+			if(clone.getJsonSubColumns() != null) {
+				if(!ColumnType.JSON.equals(clone.getColumnType())) {
+					throw new IllegalArgumentException("JsonSubColumns can only set for a column of type: JSON");
+				}
+				if(clone.getJsonSubColumns().isEmpty()) {
+					clone.setJsonSubColumns(null);
+				} else {
+					Set<String> jsonPaths = new HashSet<>();
+					clone.getJsonSubColumns().forEach(subColumn -> {
+						if (!jsonPaths.add(subColumn.getJsonPath())) {
+							throw new IllegalArgumentException("Duplicate jsonPath found in jsonSubColumns: '" + subColumn.getJsonPath() + "'");
+						}
+						validateJsonSubColumn(subColumn);
+					});
+				}
+			}
 			return clone;
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
+		}
+	}
+	
+	static void validateJsonSubColumn(JsonSubColumnModel sub) {
+		ValidateArgument.required(sub, "JsonSubColumnModel");
+		ValidateArgument.required(sub.getName(), "JsonSubColumnModel.name");
+		ValidateArgument.required(sub.getJsonPath(), "JsonSubColumnModel.jsonPath");
+		ValidateArgument.required(sub.getColumnType(), "JsonSubColumnModel.columnType");
+		if (ColumnType.JSON.equals(sub.getColumnType())) {
+			throw new IllegalArgumentException("The columnType of a JsonSubColumnModel cannot be JSON.");
+		}
+		if (ColumnTypeListMappings.isList(sub.getColumnType())) {
+			throw new IllegalArgumentException("The columnType of a JsonSubColumnModel cannot be a list.");
 		}
 	}
 

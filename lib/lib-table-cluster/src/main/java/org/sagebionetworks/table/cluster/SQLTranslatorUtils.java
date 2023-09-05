@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -48,46 +49,51 @@ import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFactor;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
+import org.sagebionetworks.table.query.model.BooleanPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.BooleanTerm;
 import org.sagebionetworks.table.query.model.BooleanTest;
 import org.sagebionetworks.table.query.model.CastSpecification;
 import org.sagebionetworks.table.query.model.CastTarget;
-import org.sagebionetworks.table.query.model.CharacterFactor;
-import org.sagebionetworks.table.query.model.CharacterPrimary;
-import org.sagebionetworks.table.query.model.CharacterValueExpression;
 import org.sagebionetworks.table.query.model.ColumnList;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.CorrelationName;
+import org.sagebionetworks.table.query.model.CorrelationSpecification;
 import org.sagebionetworks.table.query.model.CurrentUserFunction;
 import org.sagebionetworks.table.query.model.DefiningClause;
 import org.sagebionetworks.table.query.model.DelimitedIdentifier;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Element;
-import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
+import org.sagebionetworks.table.query.model.Factor;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
+import org.sagebionetworks.table.query.model.GroupingColumnReference;
 import org.sagebionetworks.table.query.model.HasFunctionReturnType;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.HasSearchCondition;
 import org.sagebionetworks.table.query.model.HasSqlContext;
 import org.sagebionetworks.table.query.model.Identifier;
-import org.sagebionetworks.table.query.model.InPredicate;
-import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.InValueList;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.JoinCondition;
 import org.sagebionetworks.table.query.model.JoinType;
-import org.sagebionetworks.table.query.model.LikePredicate;
+import org.sagebionetworks.table.query.model.JsonTable;
+import org.sagebionetworks.table.query.model.JsonTableColumn;
 import org.sagebionetworks.table.query.model.MySqlFunction;
+import org.sagebionetworks.table.query.model.MySqlFunctionName;
 import org.sagebionetworks.table.query.model.NonJoinQueryExpression;
+import org.sagebionetworks.table.query.model.NullPredicate;
+import org.sagebionetworks.table.query.model.NumericPrimary;
+import org.sagebionetworks.table.query.model.NumericValueExpression;
+import org.sagebionetworks.table.query.model.NumericValueFunction;
 import org.sagebionetworks.table.query.model.OuterJoinType;
 import org.sagebionetworks.table.query.model.Pagination;
-import org.sagebionetworks.table.query.model.Pattern;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.PredicateLeftHandSide;
 import org.sagebionetworks.table.query.model.QualifiedJoin;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -100,10 +106,14 @@ import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableName;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.table.query.model.TableReference;
+import org.sagebionetworks.table.query.model.Term;
 import org.sagebionetworks.table.query.model.TextMatchesMySQLPredicate;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
+import org.sagebionetworks.table.query.model.TruthSpecification;
+import org.sagebionetworks.table.query.model.TruthValue;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
+import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.model.WithListElement;
@@ -361,12 +371,13 @@ public class SQLTranslatorUtils {
 		// translate all column references.
 		translateAllColumnReferences(transformedModel, mapper);
 		
+		translateCastToDouble(transformedModel);
+		
 		TableExpression tableExpression = transformedModel.getTableExpression();
 		if(tableExpression == null){
 			// nothing else to do.
 			return;
 		}
-
 
 		translateAllTableNameCorrelation(tableExpression.getFromClause(), mapper);
 
@@ -396,7 +407,7 @@ public class SQLTranslatorUtils {
 		}
 
 		/*
-		 *  By this point anything all remaining DelimitedIdentifier should be treated as a column
+		 * All remaining DelimitedIdentifier should be treated as a column
 		 *  reference and therefore should be enclosed in backticks.
 		 */
 		translateUnresolvedDelimitedIdentifiers(transformedModel);
@@ -413,14 +424,19 @@ public class SQLTranslatorUtils {
 	public static void translateCastSpecification(CastSpecification cast, TableAndColumnMapper mapper) {
 		ValidateArgument.required(cast, "CastSpecification");
 		ValidateArgument.required(mapper, "TableAndColumnMapper");
+		
 		CastTarget target = cast.getCastTarget();
-		if(target.getType() == null && target.getColumnId() == null) {
+		
+		if (target.getType() == null && target.getColumnId() == null) {
 			throw new IllegalArgumentException("Either ColumnType or ColumnId is required");
 		}
+		
 		ColumnType type = target.getType() != null ? target.getType()
 				: mapper.getColumnModel(target.getColumnId().toSql()).getColumnType();
-		target.replaceElement(
-				new CastTarget(ColumnTypeInfo.getInfoForType(type).getMySqlType().getMySqlCastType().name()));
+		
+		ColumnTypeInfo columnTypeInfo = ColumnTypeInfo.getInfoForType(type);
+		
+		target.replaceElement(new CastTarget(columnTypeInfo.getType(), columnTypeInfo.getMySqlType().getMySqlCastType().name()));
 	}
 
 	/**
@@ -434,6 +450,41 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(mapper, "TableAndColumnMapper");
 		for(ColumnReference hasReference: root.createIterable(ColumnReference.class)){
 			translateColumnReference(hasReference, mapper).ifPresent(replacement -> hasReference.replaceElement(replacement));
+		}
+	}
+	
+	/**
+	 * When there is a cast to a double within a {@link WithListElement} and
+	 * {@link SelectList}, we need to add a 'NULL' immediacy after it in the select
+	 * list. The NULL provides values for a virtual _DBL_C#_ column, which can be
+	 * used for double expansion in the root select statement.
+	 * 
+	 * @param model
+	 */
+	static void translateCastToDouble(QuerySpecification model) {
+		if (model.isInContext(WithListElement.class)) {
+			SelectList oldSelect = model.getSelectList();
+			List<DerivedColumn> oldList = oldSelect.getColumns();
+			if(oldList != null) {
+				List<DerivedColumn> newList = new ArrayList<>(oldList.size());
+				oldList.forEach(dc -> {
+					newList.add(dc);
+					dc.stream(CastTarget.class).findFirst().ifPresent(ct -> {
+						if (ColumnType.DOUBLE.equals(ct.getType())) {
+							newList.add(createNullDerivedColumn());
+						}
+					});
+				});
+				model.replaceSelectList(new SelectList(newList), model.getSetQuantifier());
+			}
+		}
+	}
+	
+	static DerivedColumn createNullDerivedColumn() {
+		try {
+			return new TableQueryParser("NULL").derivedColumn();
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
 		}
 	}
 	
@@ -452,25 +503,66 @@ public class SQLTranslatorUtils {
 		}
 		ColumnReferenceMatch match = optional.get();
 
-		/*
-		 * A ColumnReference within the select list that is of type Double needs to be
-		 * expanded to support NaN, +Inf, & -Inf, unless the reference is a function
-		 * parameter.
-		 */
-		if (ColumnType.DOUBLE.equals(match.getColumnTranslationReference().getColumnType())) {
-			if (columnReference.isInContext(SelectList.class)) {
-				if (!columnReference.isInContext(HasFunctionReturnType.class)) {
-					SqlContext context = columnReference.getContext(HasSqlContext.class).get().getSqlContext();
-					if(SqlContext.query.equals(context)) {
-						return Optional.of(createDoubleExpanstion(mapper.getNumberOfTables(),
-								match.getTableInfo().getTranslatedTableAlias(),
-								match.getColumnTranslationReference().getTranslatedColumnName()));
-					}
-				}
-			}
+		ColumnType type = match.getColumnTranslationReference().getColumnType();
+		if (isDoubleExpansion(columnReference, type)) {
+			return Optional.of(
+					createDoubleExpansion(mapper.getNumberOfTables(),
+							match.getTableInfo().getTranslatedTableAlias(),
+							match.getColumnTranslationReference().getTranslatedColumnName()));
+		}
+		if (isBothDoubleColumns(columnReference, type)) {
+			return Optional.of(
+					createBothDoubleColumns(mapper.getNumberOfTables(),
+							match.getTableInfo().getTranslatedTableAlias(),
+							match.getColumnTranslationReference().getTranslatedColumnName()));
 		}
 		// All other cases
 		return simpleTranslateColumn(mapper, match);
+	}
+
+	/**
+	 * Is this a case where both double columns should be expanded into a cast statement?
+	 * @param columnReference
+	 * @param type
+	 * @return
+	 */
+	static boolean isDoubleExpansion(ColumnReference columnReference, ColumnType type) {
+		if(!ColumnType.DOUBLE.equals(type)) {
+			return false;
+		}
+		if(!columnReference.isInContext(SelectList.class)) {
+			return false;
+		}
+		if(columnReference.isInContext(WithListElement.class)) {
+			return false;
+		}
+		if(columnReference.isInContext(HasFunctionReturnType.class)) {
+			return false;
+		}
+		return SqlContext.query.equals(columnReference.getContext(HasSqlContext.class).get().getSqlContext());
+	}
+	
+	/**
+	 * Is this a case where both double columns should be selected?
+	 * 
+	 * @param columnReference
+	 * @param type
+	 * @return
+	 */
+	static boolean isBothDoubleColumns(ColumnReference columnReference, ColumnType type) {
+		if(!ColumnType.DOUBLE.equals(type)) {
+			return false;
+		}
+		if(!columnReference.isInContext(SelectList.class) && !columnReference.isInContext(GroupingColumnReference.class)) {
+			return false;
+		}
+		if(!columnReference.isInContext(WithListElement.class)) {
+			return false;
+		}
+		if(columnReference.isInContext(HasFunctionReturnType.class)) {
+			return false;
+		}
+		return SqlContext.query.equals(columnReference.getContext(HasSqlContext.class).get().getSqlContext());
 	}
 
 
@@ -490,21 +582,39 @@ public class SQLTranslatorUtils {
 	
 
 	/**
-	 * Create the translated double expansion for the given table and column alias
-	 * 
+	 * Generates a select statement for a double column that uses both of the double's columns.
+	 * For example: 'CASE WHEN alias._DBL_C#_ IS NULL THEN alias._C#_ ELSE alias._DBL_C#_ END'
+	 * @param tableCount
 	 * @param translatedTableAlias
-	 * @param translatedColumnName
+	 * @param columnId value of #.
 	 * @return
 	 */
-	static ColumnReference createDoubleExpanstion(final int tableCount, final String translatedTableAlias,
-			final String translatedColumnName) {
+	static ColumnReference createDoubleExpansion(final int tableCount, final String translatedTableAlias,
+			final String columnId) {
+		return createColumReferenceFromTemplate("CASE WHEN %1$s_DBL%2$s IS NULL THEN %1$s%2$s ELSE %1$s_DBL%2$s END",
+				tableCount, translatedTableAlias, columnId);
+	}
+	
+	/**
+	 * Generates a simple select statement for both of a double's columns.  For example: 'alias._C#_, alias._DBL_C#_'
+	 * @param tableCount
+	 * @param translatedTableAlias
+	 * @param columnId
+	 * @return
+	 */
+	static ColumnReference createBothDoubleColumns(final int tableCount, final String translatedTableAlias,
+			final String columnId) {
+		return createColumReferenceFromTemplate("%1$s%2$s, %1$s_DBL%2$s", tableCount, translatedTableAlias,
+				columnId);
+	}
+	
+	static ColumnReference createColumReferenceFromTemplate(String template, int tableCount,
+			String translatedTableAlias, final String columnId) {
 		String tableAlias = (tableCount > 1) ? translatedTableAlias + "." : "";
-		String sql = String.format("CASE WHEN %1$s_DBL%2$s IS NULL THEN %1$s%2$s ELSE %1$s_DBL%2$s END", tableAlias,
-				translatedColumnName);
+		String sql = String.format(template, tableAlias, columnId);
 		return new ColumnReference(new ColumnName(new Identifier(new ActualIdentifier(new RegularIdentifier(sql)))),
 				null);
 	}
-
 
 	private static void replaceTextMatchesPredicate(BooleanPrimary booleanPrimary) {
 		if (booleanPrimary.getPredicate() == null) {
@@ -610,14 +720,25 @@ public class SQLTranslatorUtils {
 			String mainTableName = mapper.getNumberOfTables() > 1 ? columnMatch.getTableInfo().getTranslatedTableAlias() : columnMatch.getTableInfo().getTranslatedTableName();
 			String joinTableName = SQLUtils.getTableNameForMultiValueColumnIndex(referencedTable, columnReference.getId());
 			
-			TableReference joinedTableRef = tableReferenceForName(joinTableName);
-			JoinCondition joinOnRowId = new JoinCondition(new TableQueryParser(
-				mainTableName + "." + ROW_ID + "=" + joinTableName + "." + SQLUtils.getRowIdRefColumnNameForId(columnReference.getId())
-			).searchCondition());
-			JoinType leftOuterJoin = new JoinType(OuterJoinType.LEFT);
-			currentTableReference = new TableReference(new QualifiedJoin(
-					currentTableReference, leftOuterJoin, joinedTableRef, joinOnRowId
-			));
+			ColumnReference joinColumnReference = SqlElementUtils.createColumnReference(mainTableName + "." + columnMatch.getColumnTranslationReference().getTranslatedColumnName());
+			
+			String unnestColumnName = SQLUtils.getUnnestedColumnNameForId(columnReference.getId());
+			ColumnTypeInfo unnestColumnTypeInfo = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnReference.getColumnType()));
+			
+			String unnestColumnType = unnestColumnTypeInfo.getMySqlType().toString();
+			
+			if (unnestColumnTypeInfo.getMySqlType().hasSize && columnReference.getMaximumSize() != null) {
+				unnestColumnType += "(" + columnReference.getMaximumSize() + ")";
+			}
+			
+			List<JsonTableColumn> jsonColumns = List.of(new JsonTableColumn(unnestColumnName, unnestColumnType));
+			CorrelationSpecification jsonTableCorrelation = new CorrelationSpecification(true, new CorrelationName(new RegularIdentifier(joinTableName)));
+			
+			TableReference jsonTableRef = new TableReference(new JsonTable(joinColumnReference, jsonColumns, jsonTableCorrelation));
+			
+			JoinCondition joinOnTrue = new JoinCondition(new TruthSpecification(TruthValue.TRUE));
+			
+			currentTableReference = new TableReference(new QualifiedJoin(currentTableReference, new JoinType(OuterJoinType.LEFT), jsonTableRef, joinOnTrue));
 		}
 		
 		fromClause.setTableReference(currentTableReference);
@@ -684,7 +805,7 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(predicate, "predicate");
 		ValidateArgument.required(parameters, "parameters");
 		
-		ColumnType columnType = getColumnType(mapper, predicate.getLeftHandSide());	
+		ColumnType columnType = getColumnType(mapper, predicate);
 		
 		predicate.getRightHandSideColumn().ifPresent((rhs)->{
 			// The right=hand-side is a ColumnReference so validate that it exists.
@@ -704,6 +825,28 @@ public class SQLTranslatorUtils {
 				translateRightHandeSide(element, columnType, parameters);
 			}
 		}
+	}
+	
+	static ColumnType getColumnType(TableAndColumnMapper mapper, HasPredicate predicate) {
+		
+		Element leftHandSideElement = predicate.getLeftHandSide().getChild();
+				
+		if (leftHandSideElement instanceof ColumnReference) {
+			return getColumnType(mapper, (ColumnReference) leftHandSideElement);	
+		} 
+		
+		if (leftHandSideElement instanceof MySqlFunction) {
+			// A MySQLFunction always have a constant return column type that does not depend on the parameters
+			return ((MySqlFunction) leftHandSideElement).getFunctionReturnType().getColumnType(null);
+		} 
+		
+		if (leftHandSideElement instanceof CastSpecification) {
+			// At this point all the cast specifications have been translated so the type must be there
+			return ((CastSpecification) leftHandSideElement).getCastTarget().getType();
+		}
+		
+		throw new IllegalArgumentException("Unsupported left hand side of predicate '" + predicate.toSql() + "': expected a column reference, a mysql function or a cast specification.");
+		
 	}
 
 	static ColumnType getColumnType(TableAndColumnMapper mapper, ColumnReference columnReference) {
@@ -827,109 +970,124 @@ public class SQLTranslatorUtils {
 		if(booleanPrimary.getPredicate() == null) {
 			return; // "HAS" should always be under a Predicate
 		}
+		
 		ArrayHasPredicate arrayHasPredicate = booleanPrimary.getPredicate().getFirstElementOfType(ArrayHasPredicate.class);
+		
 		if (arrayHasPredicate == null) {
 			return; // no ArrayHasPredicate to replace
 		}
 		
-		IdAndVersion idAndVersion = mapper.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
+		mapper.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 
-		ColumnReference columnRefernece = arrayHasPredicate.getLeftHandSide();
-
-		ColumnReferenceMatch columnMatch = lookupAndRequireListColumn(mapper, columnRefernece, "The " + arrayHasPredicate.getKeyWord() + " keyword");
+		PredicateLeftHandSide leftHandSide = arrayHasPredicate.getLeftHandSide();
 		
-		SchemaColumnTranslationReference schemaColumnTranslationReference = (SchemaColumnTranslationReference) columnMatch.getColumnTranslationReference();
+		if (!(leftHandSide.getChild() instanceof ColumnReference)) {
+			throw new IllegalArgumentException("The HAS keyword only works for list column references");
+		}
+		
+		ColumnReference columnRefernece = (ColumnReference) leftHandSide.getChild();
 
-		//build up subquery against the flattened index table
-		String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, schemaColumnTranslationReference.getId());
+		lookupAndRequireListColumn(mapper, columnRefernece, "The " + arrayHasPredicate.getKeyWord() + " keyword");
+		
+		SearchCondition replacementSearchCondition;
 		
 		try {
-			
-			String rowIdRefColumnName = SQLUtils.getRowIdRefColumnNameForId(schemaColumnTranslationReference.getId());
-			ColumnReference unnestedColumn = SqlElementUtils.createColumnReference(SQLUtils.getUnnestedColumnNameForId(schemaColumnTranslationReference.getId()));
-			
-			QuerySpecification subquery;
-			
 			if (arrayHasPredicate instanceof ArrayHasLikePredicate) {
-				ArrayHasLikePredicate hasLikePredicate = (ArrayHasLikePredicate) arrayHasPredicate;
-				subquery = createArrayHasSubqueryWithLikeClause(columnFlattenedIndexTable, rowIdRefColumnName, unnestedColumn, arrayHasPredicate.getInPredicateValue(), hasLikePredicate.getEscapeCharacter());
+				replacementSearchCondition = createArrayHasLikeJsonSearchSearchCondition((ArrayHasLikePredicate) arrayHasPredicate, columnRefernece);
 			} else {
-				subquery = createArrayHasSubqueryWithInClause(columnFlattenedIndexTable, rowIdRefColumnName, unnestedColumn, arrayHasPredicate.getInPredicateValue());
+				replacementSearchCondition = createArrayHasSearchCondition(arrayHasPredicate, columnRefernece);
 			}
-			
-			//replace the "HAS" with "IN" predicate containing the subquery
-			Predicate replacementPredicate = new Predicate(new InPredicate(
-					SqlElementUtils.createColumnReference(ROW_ID),
-					arrayHasPredicate.getNot(),
-					new InPredicateValue(subquery)));
-
-			booleanPrimary.getPredicate().replaceChildren(replacementPredicate);
-		}catch (ParseException e){
+		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
+		
+		booleanPrimary.replaceSearchCondition(replacementSearchCondition);
 	}
 	
-	private static QuerySpecification createArrayHasSubqueryWithInClause(String columnFlattenedIndexTable, String rowIdRefColumnName, ColumnReference unnestedColumn, InPredicateValue value) throws ParseException {
-		StringBuilder sql = new StringBuilder("SELECT ")
-				.append(rowIdRefColumnName)
-				.append(" FROM ")
-				.append(columnFlattenedIndexTable)
-				.append(" WHERE ")
-				//use a placeholder predicate because the colons in bind variables (e.g. ":b1") are not accepted by the parser
-				.append(" placeholder IN ( placeholder )");
+	// Translate the expression foo HAS_LIKE ('a%', 'b%') -> JSON_SEARCH(foo, 'one', 'a%', NULL, '$[*]') IS NOT NULL OR JSON_SEARCH(foo, 'one', 'b%', NULL, '$[*]') IS NOT NULL
+	private static SearchCondition createArrayHasLikeJsonSearchSearchCondition(ArrayHasLikePredicate predicate, ColumnReference columnReference) throws ParseException {
 		
-		QuerySpecification subquery = TableQueryParser.parserQuery(sql.toString());
-
-		//create a "IN" predicate that has the same right hand side as the "HAS" predicate for the subquery
-		InPredicate subqueryInPredicate = new InPredicate(unnestedColumn, null, value);
-		subquery.getFirstElementOfType(Predicate.class).replaceChildren(subqueryInPredicate);
-		return subquery;
-	}
-	
-	private static QuerySpecification createArrayHasSubqueryWithLikeClause(String columnFlattenedIndexTable, String rowIdRefColumnName, ColumnReference unnestedColumn, InPredicateValue value, EscapeCharacter escapeCharacter) throws ParseException {
-		StringBuilder sql = new StringBuilder("SELECT ")
-				.append(rowIdRefColumnName)
-				.append(" FROM ")
-				.append(columnFlattenedIndexTable)
-				.append(" WHERE ");
+		List<ValueExpression> values = predicate.getFirstElementOfType(InValueList.class).getValueExpressions();
 		
-		// For each of the values in the "inPredicate" of the has_like we construct a like expression for variable bind replacement
-		InValueList inValueList = value.getFirstElementOfType(InValueList.class);
+		List<BooleanPrimary> booleanPrimaries = new ArrayList<>(values.size());
 		
-		List<ValueExpressionPrimary> valueExpressions = inValueList.getValueExpressions().stream()
-				.map((e) -> e.getFirstElementOfType(ValueExpressionPrimary.class))
-				.collect(Collectors.toList());
+		ValueExpression escapeCharacter = predicate.getEscapeCharacter() == null ? 
+			// The parser does not parse NULL as a VALUE expression
+			new ValueExpression(new StringOverride("NULL")) :
+			// The parser does not parse bind variables (e.g. :b1)
+			new ValueExpression(new StringOverride(predicate.getEscapeCharacter().toSql()));
 		
-		List<LikePredicate> likePredicates = new ArrayList<>(valueExpressions.size());
-		
-		for (int i = 0; i< valueExpressions.size(); i++) {
-			if (i > 0) {
-				sql.append(" OR ");
-			}
-			//use a placeholder predicate because the colons in bind variables (e.g. ":b1") are not accepted by the parser
-			String placeholder = "placeholder";
-			
-			sql.append(placeholder).append(" LIKE ").append(placeholder);
-			
-			if (escapeCharacter != null) {
-				sql.append(" ESCAPE ").append(placeholder);
-			}
-			
-			Pattern likePattern = new Pattern(new CharacterValueExpression(new CharacterFactor(new CharacterPrimary(valueExpressions.get(i)))));
-			
-			likePredicates.add(new LikePredicate(unnestedColumn, null, likePattern, escapeCharacter));
-		}
+		Boolean notNull = Boolean.TRUE.equals(predicate.getNot()) ? null : true;
 				
-		QuerySpecification subquery = TableQueryParser.parserQuery(sql.toString());
-		
-		int i=0;
-		
-		// Replace all the placeholder with the bind variables
-		for (Predicate predicate : subquery.createIterable(Predicate.class)) {
-			predicate.replaceChildren(likePredicates.get(i++));
+		for (ValueExpression value : values) {
+			MySqlFunction jsonSearchFunction = new MySqlFunction(MySqlFunctionName.JSON_SEARCH);
+			
+			jsonSearchFunction.startParentheses();
+			
+			// The first parameter is the column reference
+			jsonSearchFunction.addParameter(new ValueExpression(new NumericValueExpression(new Term(new Factor(null, new NumericPrimary(new ValueExpressionPrimary(columnReference)))))));
+			
+			// Next we have the special value 'one' (stop at the first match)
+			jsonSearchFunction.addParameter(SqlElementUtils.createValueExpression("'one'"));
+			
+			// The third parameter is the actual bind variable (search string)
+			// Note that the JSON_SEARCH function is case sensitive (unlike the LIKE predicate) and we need to specify collation of the argument to be case insensitive
+			jsonSearchFunction.addParameter(new ValueExpression(new StringOverride(value.toSql() + " COLLATE 'utf8mb4_0900_ai_ci'")));
+			
+			// Next we provide the escape character
+			jsonSearchFunction.addParameter(escapeCharacter);
+			
+			// Finally the path we are searching in (any element of the array)
+			jsonSearchFunction.addParameter(SqlElementUtils.createValueExpression("'$[*]'"));
+						
+			booleanPrimaries.add(new BooleanPrimary(new Predicate(new NullPredicate(new PredicateLeftHandSide(jsonSearchFunction), notNull))));
+			
 		}
 		
-		return subquery;
+		List<BooleanTerm> orTerms;
+		
+		if (notNull == null) {
+			// JSON_SEARCH(foo, 'a') IS NULL AND JSON_SEARCH(foo, 'b') IS NULL 
+			orTerms = List.of(
+				new BooleanTerm(booleanPrimaries.stream().map(
+					booleanPrimary -> new BooleanFactor(null, new BooleanTest(booleanPrimary, null, null, null))
+				).collect(Collectors.toList()))
+			);
+		} else {
+			// JSON_SEARCH(foo, 'a') IS NOT NULL OR JSON_SEARCH(foo, 'b') IS NOT NULL 
+			orTerms = booleanPrimaries.stream().map( booleanPrimary -> 
+				new BooleanTerm(List.of(new BooleanFactor(null, new BooleanTest(booleanPrimary, null, null, null))))
+			).collect(Collectors.toList());
+		}
+		
+		return new SearchCondition(orTerms);
+	}
+	
+	// Translate the expression foo HAS (1, 2, 3) -> JSON_OVERLAPS(foo, JSON_ARRAY(1, 2, 3)) IS TRUE
+	private static SearchCondition createArrayHasSearchCondition(ArrayHasPredicate predicate, ColumnReference columnReference) {
+		
+		// First build the JSON_ARRAY expression with the input values
+		MySqlFunction jsonArrayFunction = new MySqlFunction(MySqlFunctionName.JSON_ARRAY);
+		
+		jsonArrayFunction.startParentheses();
+		
+		predicate.getFirstElementOfType(InValueList.class).getValueExpressions().forEach(jsonArrayFunction::addParameter);
+		
+		MySqlFunction jsonOverlapFunction = new MySqlFunction(MySqlFunctionName.JSON_OVERLAPS);
+		
+		jsonOverlapFunction.startParentheses();
+		
+		// The first argument of the JSON_OVERLAPS is the column reference
+		jsonOverlapFunction.addParameter(new ValueExpression(new NumericValueExpression(new Term(new Factor(null, new NumericPrimary(new ValueExpressionPrimary(columnReference)))))));
+		
+		// The second argument of the JSON_OVERLAPS is the result of a JSON_ARRAY with the input values
+		jsonOverlapFunction.addParameter(new ValueExpression(new NumericValueExpression(new Term(new Factor(null, new NumericPrimary(new NumericValueFunction(jsonArrayFunction)))))));
+		
+		TruthValue truthValue = Boolean.TRUE.equals(predicate.getNot()) ? TruthValue.FALSE : TruthValue.TRUE;
+		
+		Predicate isPredicate = new Predicate(new BooleanPredicate(new PredicateLeftHandSide(jsonOverlapFunction), null, truthValue));
+		
+		return new SearchCondition(List.of(new BooleanTerm(List.of(new BooleanFactor(null, new BooleanTest(new BooleanPrimary(isPredicate), null, null, null))))));
 	}
 
 	/**
@@ -1133,7 +1291,7 @@ public class SQLTranslatorUtils {
 	 *         ColumnModels modified as needed.
 	 */
 	public static List<ColumnModel> createSchemaOfSelect(final List<List<ColumnModel>> selectSchemas) {
-		if (selectSchemas.size() < 2) {
+		if (selectSchemas.size() < 2 || !hasSameSize(selectSchemas)) {
 			return selectSchemas.get(0);
 		}
 		List<ColumnModel> firstSchema = selectSchemas.get(0);
@@ -1153,6 +1311,19 @@ public class SQLTranslatorUtils {
 			}
 		}
 		return newSchema;
+	}
+	
+	/**
+	 * Do all of the given lists have the same size?
+	 * @param listOfLists
+	 * @return true if each list has the same size.
+	 */
+	public static <T> boolean hasSameSize(final List<List<T>> listOfLists) {
+		if(listOfLists.isEmpty()) {
+			return true;
+		}
+		int rootSize = listOfLists.get(0).size();
+		return listOfLists.stream().skip(1).allMatch(l -> l.size() == rootSize);
 	}
 	
 	/**
@@ -1205,6 +1376,7 @@ public class SQLTranslatorUtils {
 		ColumnType columnType = selectColumn.getColumnType();
 		String defaultValue = null;
 		FacetType facetType = null;
+		List<JsonSubColumnModel> jsonSubColumns = null;
 		if(selectColumn.getId() != null) {
 			ColumnModel cm = tableAndColumnMapper.getColumnModel(selectColumn.getId());
 			maximumSize = cm.getMaximumSize();
@@ -1212,6 +1384,7 @@ public class SQLTranslatorUtils {
 			defaultValue = cm.getDefaultValue();
 			facetType = cm.getFacetType();
 			enumValues = cm.getEnumValues();
+			jsonSubColumns = cm.getJsonSubColumns();
 		}else {
 			for (ColumnReference cr : derivedColumn.createIterable(ColumnReference.class)) {
 				ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
@@ -1220,6 +1393,7 @@ public class SQLTranslatorUtils {
 					maxListLength = addLongsWithNull(maxListLength, ctr.getMaximumListLength());
 					defaultValue = ctr.getDefaultValues();
 					facetType = ctr.getFacetType();
+					jsonSubColumns = ctr.getJsonSubColumns();
 				}
 			}
 		}
@@ -1233,6 +1407,7 @@ public class SQLTranslatorUtils {
 		result.setFacetType(facetType);
 		result.setDefaultValue(defaultValue);
 		result.setEnumValues(enumValues);
+		result.setJsonSubColumns(jsonSubColumns);
 		result.setId(null);
 		return result;
 	}
@@ -1289,6 +1464,9 @@ public class SQLTranslatorUtils {
 			StringJoiner joiner = new StringJoiner(",");
 			for(ColumnModel cm: schema) {
 				joiner.add( new SchemaColumnTranslationReference(cm).getTranslatedColumnName());
+				if(ColumnType.DOUBLE.equals(cm.getColumnType())) {
+					joiner.add(String.format("_DBL_C%s_", cm.getId()));
+				}
 			}
 			ColumnList cl = new TableQueryParser(String.format("(%s)", joiner.toString())).columnList();
 			wle.setColumnList(cl);

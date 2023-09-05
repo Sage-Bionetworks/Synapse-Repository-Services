@@ -13,7 +13,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 
-import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
@@ -263,7 +262,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		maxSqlMap.put(type, mx);
 		String mi = DMLUtils.createGetMinByBackupKeyStatement(mapping);
 		minSqlMap.put(type,  mi);
-		String mtc = DMLUtils.createGetMinMaxCountByKeyStatement(mapping);
+		String mtc = DMLUtils.createGetMinMaxByBackupKeyStatement(mapping);
 		migrationTypeCountSqlMap.put(type, mtc);
 		String sumCrc = DMLUtils.createSelectChecksumStatement(mapping);
 		checksumRangeSqlMap.put(type, sumCrc);

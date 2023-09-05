@@ -34,17 +34,19 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	
 	
 	private String columnName;
+	private String jsonPath;
 	private List<FacetRequestColumnModel> facets;
 	
 	private QueryTranslator generatedFacetSqlQuery;
 	private Set<String> selectedValues;
 	
-	public FacetTransformerValueCounts(String columnName, boolean columnTypeIsList, List<FacetRequestColumnModel> facets,
+	public FacetTransformerValueCounts(String columnName, String jsonPath, boolean columnTypeIsList, List<FacetRequestColumnModel> facets,
 			QueryExpression originalQuery, TranslationDependencies dependencies, Set<String> selectedValues){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facets, "facets");
 		ValidateArgument.required(originalQuery, "originalQuery");
 		this.columnName = columnName;
+		this.jsonPath = jsonPath;
 		this.facets = facets;
 		this.selectedValues = selectedValues;
 		this.generatedFacetSqlQuery = generateFacetSqlQuery(originalQuery, dependencies, columnTypeIsList);
@@ -62,11 +64,13 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	}
 	
 	private QueryTranslator generateFacetSqlQuery(QueryExpression originalQuery, TranslationDependencies dependencies, boolean columnTypeIsList) {
-		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
+		String columnNameExpression = FacetUtils.getColumnNameExpression(columnName, jsonPath);
+		
+		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnNameExpression);
 		
 		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);
 
-		String columnToUse = columnTypeIsList ? "UNNEST(\"" + columnName + "\")" : "\"" + columnName + "\"";
+		String columnToUse = columnTypeIsList ? "UNNEST(" + columnNameExpression + ")" : columnNameExpression;
 		
 		NonJoinQueryExpression njqe = originalQuery.getNonJoinQueryExpression();
 
@@ -125,6 +129,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		
 		FacetColumnResultValues result = new FacetColumnResultValues();
 		result.setColumnName(this.columnName);
+		result.setJsonPath(this.jsonPath);
 		result.setFacetType(FacetType.enumeration);
 		result.setFacetValues(valueCounts);
 		

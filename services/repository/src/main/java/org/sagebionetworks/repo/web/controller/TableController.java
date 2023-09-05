@@ -1,5 +1,14 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
+import java.io.IOException;
+import java.util.List;
+
+import javax.servlet.http.HttpServletResponse;
+
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -23,8 +32,6 @@ import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
-import org.sagebionetworks.repo.model.table.SqlTransformRequest;
-import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -47,7 +54,6 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -59,14 +65,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
-
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.List;
-
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
 /**
  * <p>
@@ -1372,27 +1370,6 @@ public class TableController {
 	ViewColumnModelResponse getViewScopeColumnsAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken) throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
 		return (ViewColumnModelResponse) jobStatus.getResponseBody();
-	}
-
-	/**
-	 * Request to transform the provided SQL based on the request parameters. For
-	 * example, a <a href=
-	 * "${org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest}"
-	 * >TransformSqlWithFacetsRequest</a> can be used to alter the where clause
-	 * of the provided SQL based on the provided selected facets.
-	 * 
-	 * @param request
-	 * @return
-	 * @throws ParseException 
-	 */
-	/*The service is deprecated, Use QueryResultBundle to get transformed/combined sql.
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequiredScope({})
-	@RequestMapping(value = UrlHelpers.TABLE_SQL_TRANSFORM, method = RequestMethod.POST)
-	public @ResponseBody SqlTransformResponse transformSqlRequest(@RequestBody SqlTransformRequest request) throws ParseException {
-		return serviceProvider.getTableServices().transformSqlRequest(request);
 	}
 	
 	/**

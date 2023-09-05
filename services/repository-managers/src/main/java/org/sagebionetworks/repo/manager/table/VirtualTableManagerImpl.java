@@ -61,7 +61,7 @@ public class VirtualTableManagerImpl implements VirtualTableManager {
 			IndexDescription definingIndexDescription = tableManagerSupport.getIndexDescription(definingIds.get(0));
 			
 			QueryTranslator sqlQuery = QueryTranslator.builder().sql(definingSQL)
-					.schemaProvider(columModelManager).sqlContext(SqlContext.query).indexDescription(definingIndexDescription)
+					.schemaProvider(tableManagerSupport).sqlContext(SqlContext.query).indexDescription(definingIndexDescription)
 					.build();
 			List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
 					.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());

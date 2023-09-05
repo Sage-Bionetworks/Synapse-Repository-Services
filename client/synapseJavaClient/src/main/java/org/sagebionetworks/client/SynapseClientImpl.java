@@ -334,8 +334,6 @@ import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
-import org.sagebionetworks.repo.model.table.SqlTransformRequest;
-import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -5448,13 +5446,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return response;
 	}
 	
-	@Override
-	public String transformSqlRequest(SqlTransformRequest request) throws SynapseException {
-		SqlTransformResponse response = postJSONEntity(getRepoEndpoint(), "/table/sql/transform", request,
-				SqlTransformResponse.class);
-		return response.getTransformedSql();
-	}
-
 	@Override
 	public SubscriberPagedResults getSubscribers(Topic topic, String nextPageToken) throws SynapseException {
 		String url = SUBSCRIPTION+"/subscribers";

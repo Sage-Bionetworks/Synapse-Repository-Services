@@ -26,7 +26,7 @@ public class TextMatchesMySQLPredicate extends SQLElement implements HasPredicat
 	}
 
 	@Override
-	public ColumnReference getLeftHandSide() {
+	public PredicateLeftHandSide getLeftHandSide() {
 		return inputPredicate.getLeftHandSide();
 	}
 

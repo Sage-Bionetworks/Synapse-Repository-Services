@@ -9,9 +9,4 @@ public class InPredicateValue extends SimpleBranch {
 		super(inValueList);
 	}
 
-	//NOTE: this is currently only used for translating a ArrayHasPredicate into an InPredicate. DO NOT EXPOSE IN PARSER
-	public InPredicateValue(QuerySpecification subQuery){
-		super(subQuery);
-	}
-
 }
