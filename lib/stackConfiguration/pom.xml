@@ -161,6 +161,10 @@
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-stepfunctions</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk-cloudfront</artifactId>
+		</dependency>
 	</dependencies>
 
 	<properties>
