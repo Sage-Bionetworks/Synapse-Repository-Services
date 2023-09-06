@@ -466,14 +466,14 @@ public class TableIndexManagerImplTest {
 		info.setColumnType(ColumnType.BOOLEAN);
 
 		when(mockIndexDao.doesIndexHashMatchSchemaHash(any(), any())).thenReturn(false);
-		when(mockIndexDao.getDatabaseInfo(any())).thenReturn(List.of(info));
+		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class))).thenReturn(List.of(info));
 		when(mockIndexDao.alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean())).thenReturn(true);
 		// call under test
 		manager.setIndexSchema(new TableIndexDescription(tableId), schema);
 		
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(List.of(column.getId()));
 		verify(mockIndexDao).doesIndexHashMatchSchemaHash(tableId, schema);
-		verify(mockIndexDao, times(3)).getDatabaseInfo(tableId);
+		verify(mockIndexDao, times(3)).getDatabaseInfo(tableId, false);
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
 	
@@ -490,13 +490,13 @@ public class TableIndexManagerImplTest {
 		assertEquals(Collections.emptyList(), changes);
 		
 		verify(mockIndexDao).doesIndexHashMatchSchemaHash(tableId, schema);
-		verify(mockIndexDao, never()).getDatabaseInfo(any());
+		verify(mockIndexDao, never()).getDatabaseInfo(tableId, false);
 		verify(mockIndexDao, never()).setCurrentSchemaMD5Hex(any(), any());
 	}
 
 	@Test
 	public void testSetIndexSchemaWithNoColumns() {
-		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
+		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class))).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		when(mockIndexDao.alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean())).thenReturn(true);
 		// call under test
 		manager.setIndexSchema(new TableIndexDescription(tableId), new LinkedList<ColumnModel>());
@@ -516,7 +516,7 @@ public class TableIndexManagerImplTest {
 		info.setColumnName("_C44_");
 		info.setColumnType(ColumnType.BOOLEAN);
 
-		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(List.of(info));
+		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class))).thenReturn(List.of(info));
 		when(mockIndexDao.alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean())).thenReturn(true);
 		// call under test
 		manager.setIndexSchema(new TableIndexDescription(tableId), schema);
@@ -533,13 +533,13 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testOptimizeTableIndices() {
 		List<DatabaseColumnInfo> infoList = new LinkedList<DatabaseColumnInfo>();
-		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(infoList);
+		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class))).thenReturn(infoList);
 		// call under test
 		manager.optimizeTableIndices(tableId);
 		// column data must be gathered.
-		verify(mockIndexDao).getDatabaseInfo(tableId);
+		verify(mockIndexDao).getDatabaseInfo(tableId, false);
 		verify(mockIndexDao).provideCardinality(infoList, tableId);
-		verify(mockIndexDao).provideIndexInfo(infoList, tableId);
+		verify(mockIndexDao).provideIndexInfo(infoList, tableId, false);
 		// optimization called.
 		verify(mockIndexDao).optimizeTableIndices(infoList, tableId, TableIndexManagerImpl.MAX_MYSQL_INDEX_COUNT);
 	}
@@ -556,7 +556,7 @@ public class TableIndexManagerImplTest {
 		DatabaseColumnInfo createdColumn = new DatabaseColumnInfo();
 		createdColumn.setColumnName("_C12_");
 		createdColumn.setColumnType(ColumnType.BOOLEAN);
-		when(mockIndexDao.getDatabaseInfo(tableId))
+		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class)))
 				// first time called we only have 1 existing column
 				.thenReturn(Collections.singletonList(existingColumn))
 				// on the second time, our new column has been added
@@ -586,12 +586,12 @@ public class TableIndexManagerImplTest {
 		current.setColumnName(SQLUtils.getColumnNameForId(oldColumn.getId()));
 		current.setColumnType(ColumnType.STRING);
 		List<DatabaseColumnInfo> startSchema = List.of(current);
-		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(startSchema, new LinkedList<DatabaseColumnInfo>());
+		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class))).thenReturn(startSchema, new LinkedList<DatabaseColumnInfo>());
 		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		// call under test
 		managerSpy.updateTableSchema(new ViewIndexDescription(tableId, TableType.entityview), changes);
 		verify(managerSpy).createTableIfDoesNotExist(new ViewIndexDescription(tableId, TableType.entityview));
-		verify(mockIndexDao, times(2)).getDatabaseInfo(tableId);
+		verify(mockIndexDao, times(2)).getDatabaseInfo(tableId, false);
 		// The new schema is empty so the table is truncated.
 		verify(mockIndexDao).truncateTable(tableId);
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
@@ -605,13 +605,13 @@ public class TableIndexManagerImplTest {
 		List<ColumnChangeDetails> changes = new LinkedList<ColumnChangeDetails>();
 		boolean alterTemp = false;
 		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(false);
-		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Collections.emptyList());
+		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class))).thenReturn(Collections.emptyList());
 		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		// call under test
 		managerSpy.updateTableSchema(new ViewIndexDescription(tableId, TableType.entityview), changes);
 		verify(managerSpy).createTableIfDoesNotExist(new ViewIndexDescription(tableId, TableType.entityview));
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
-		verify(mockIndexDao, times(2)).getDatabaseInfo(tableId);
+		verify(mockIndexDao, times(2)).getDatabaseInfo(tableId, false);
 		verify(mockIndexDao).truncateTable(tableId);
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, TableModelUtils.createSchemaMD5Hex(Collections.emptyList()));
 	}
@@ -1014,7 +1014,7 @@ public class TableIndexManagerImplTest {
 		DatabaseColumnInfo two = new DatabaseColumnInfo();
 		two.setColumnName("_C222_");
 		List<DatabaseColumnInfo> curretIndexSchema = List.of(rowId, one, two);
-		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(curretIndexSchema);
+		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class))).thenReturn(curretIndexSchema);
 
 		// the old does not exist in the current
 		ColumnModel oldColumn = new ColumnModel();
@@ -1026,7 +1026,7 @@ public class TableIndexManagerImplTest {
 
 		// call under test
 		manager.alterTableAsNeededWithinAutoProgress(tableId, changes, true);
-		verify(mockIndexDao).provideIndexInfo(curretIndexSchema, tableId);
+		verify(mockIndexDao).provideIndexInfo(curretIndexSchema, tableId, true);
 		verify(mockIndexDao).alterTableAsNeeded(eq(tableId), changeCaptor.capture(), eq(true));
 		List<ColumnChangeDetails> captured = changeCaptor.getValue();
 		// the results should be changed
@@ -2013,7 +2013,7 @@ public class TableIndexManagerImplTest {
 		column2Info.setColumnName("_C45_");
 		column2Info.setColumnType(ColumnType.INTEGER);
 		
-		when(mockIndexDao.getDatabaseInfo(any())).thenReturn(Arrays.asList(column1Info, column2Info));
+		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class))).thenReturn(Arrays.asList(column1Info, column2Info));
 		
 		// This is the expected sub-schema for the search index
 		List<ColumnModel> expectedSearchSchema = Arrays.asList(
@@ -2058,7 +2058,7 @@ public class TableIndexManagerImplTest {
 		column2Info.setColumnName("_C45_");
 		column2Info.setColumnType(ColumnType.INTEGER);
 		
-		when(mockIndexDao.getDatabaseInfo(any())).thenReturn(Arrays.asList(column1Info, column2Info));
+		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class))).thenReturn(Arrays.asList(column1Info, column2Info));
 		
 		IndexDescription indexDescription = new TableIndexDescription(tableId);
 		

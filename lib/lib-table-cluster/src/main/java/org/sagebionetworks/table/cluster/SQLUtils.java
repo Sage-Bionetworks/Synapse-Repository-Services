@@ -44,6 +44,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -107,6 +108,8 @@ public class SQLUtils {
 	private static final String DOUBLE_NEGATIVE_INFINITY = Double.toString(Double.NEGATIVE_INFINITY);
 	private static final String DOUBLE_ENUM_CLAUSE = " ENUM ('" + DOUBLE_NAN + "', '" + DOUBLE_POSITIVE_INFINITY + "', '"
 			+ DOUBLE_NEGATIVE_INFINITY + "') DEFAULT null";
+	
+	public static Pattern COLUMN_ID_PATTERN = Pattern.compile("_C(\\d)+_");
 
 	public enum TableIndexType {
 		/**
@@ -237,6 +240,20 @@ public class SQLUtils {
 	}
 	
 	/**
+	 * Get the index table name for the given ID.
+	 * @param id
+	 * @param isTemporaryTable When true, the name will be prefixed with 'TEMP'.
+	 * @return
+	 */
+	public static String getTableNameForId(IdAndVersion id, boolean isTemporaryTable) {
+		if(isTemporaryTable) {
+			return getTemporaryTableName(id);
+		}else {
+			return getTableNameForId(id, TableIndexType.INDEX);
+		}
+	}
+	
+	/**
 	 * Get the table alias for the given index.
 	 * @param tableIndex
 	 * @return
@@ -308,6 +325,18 @@ public class SQLUtils {
 		StringBuilder builder = new StringBuilder();
 		appendColumnNameForId(columnId, builder);
 		return builder.toString();
+	}
+	
+	/**
+	 * Attempt to match the first case of a column name pattern (_C#_) in the provided string.
+	 * 
+	 * @param checkClause
+	 * @return The first column name matched in the string. Returns {@link  Optional#empty() } when
+	 * no matches are found. 
+	 */
+	public static Optional<String> getFirstColumnNameMatch(String checkClause) {
+		return COLUMN_ID_PATTERN.matcher(checkClause).results().findFirst()
+				.map(m -> checkClause.substring(m.start(), m.end()));
 	}
 
 	/**
@@ -757,7 +786,7 @@ public class SQLUtils {
 		}
 		if(change.getOldColumn() == null){
 			// add
-			appendAddColumn(builder, change.getNewColumn(), useDepricatedUtf8ThreeBytes, tableName);
+			appendAddColumn(builder, change.getNewColumn(), useDepricatedUtf8ThreeBytes);
 			return builder.toString();
 		}
 
@@ -784,7 +813,7 @@ public class SQLUtils {
 	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
 	public static void appendAddColumn(StringBuilder builder,
-			ColumnModel newColumn, boolean useDepricatedUtf8ThreeBytes, String tableName) {
+			ColumnModel newColumn, boolean useDepricatedUtf8ThreeBytes) {
 		builder.append("ADD COLUMN ");
 		appendColumnDefinition(builder, newColumn, useDepricatedUtf8ThreeBytes);
 		// doubles use two columns.
@@ -792,18 +821,16 @@ public class SQLUtils {
 			appendAddDoubleEnum(builder, newColumn.getId());
 		}
 		if (ColumnTypeListMappings.isList(newColumn.getColumnType())) {
-			addListValidationConstraint(builder, newColumn, tableName);
+			addListValidationConstraint(builder, newColumn);
 		}
 	}
 
-	static void addListValidationConstraint(StringBuilder builder, ColumnModel newColumn, String tableName) {
-		ColumnConstraintInfo info = new ColumnConstraintInfo(tableName,
-				SQLUtils.getColumnNameForId(newColumn.getId()));
+	static void addListValidationConstraint(StringBuilder builder, ColumnModel newColumn) {
 		builder.append(String.format(
-				", ADD CONSTRAINT `%s` CHECK (JSON_SCHEMA_VALID("
+				", ADD CONSTRAINT CHECK (JSON_SCHEMA_VALID("
 				+ "'{ \"type\": \"array\", \"items\": { \"maxLength\": %d }, \"maxItems\": %d }', %s))",
-				info.getConstraintName(), newColumn.getMaximumSize(), newColumn.getMaximumListLength(),
-				info.getColumnName()));
+				newColumn.getMaximumSize(), newColumn.getMaximumListLength(),
+				SQLUtils.getColumnNameForId(newColumn.getId())));
 	}
 	
 	/**
@@ -851,6 +878,12 @@ public class SQLUtils {
 			appendDropIndex(builder, change.getOldColumnInfo());	
 			builder.append(", ");
 		}
+		
+		if(change.getOldColumnInfo().getConstraintName() != null) {
+			appendDropConstraint(builder, change.getOldColumnInfo().getConstraintName());
+			builder.append(", ");
+		}
+		
 		builder.append("CHANGE COLUMN ");
 		appendColumnNameForId(change.getOldColumn().getId(), builder);
 		builder.append(" ");
@@ -892,7 +925,7 @@ public class SQLUtils {
 		builder.append("ALTER TABLE ");
 		builder.append(tableName);
 		builder.append(" ");
-		appendAddColumn(builder, change.getNewColumn(), useDepricatedUtf8ThreeBytes, tableName);
+		appendAddColumn(builder, change.getNewColumn(), useDepricatedUtf8ThreeBytes);
 		return builder.toString();
 	}
 	
@@ -1136,6 +1169,12 @@ public class SQLUtils {
 			isFirst = false;
 		}
 		return builder.toString();
+	}
+	
+	private static void appendDropConstraint(StringBuilder builder, String constraintName){
+		builder.append("DROP CONSTRAINT `");
+		builder.append(constraintName);	
+		builder.append("`");
 	}
 	
 	private static void appendDropIndex(StringBuilder builder, DatabaseColumnInfo info){

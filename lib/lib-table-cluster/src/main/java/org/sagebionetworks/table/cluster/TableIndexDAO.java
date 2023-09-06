@@ -251,9 +251,10 @@ public interface TableIndexDAO {
 	 * Get information about each column of a database table.
 	 * 
 	 * @param tableId
+	 * @param isTemporaryTable Is this a temporary table?
 	 * @return
 	 */
-	List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId);
+	List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId, boolean isTemporaryTable);
 	
 	/**
 	 * Provide the cardinality for the given columns and table.
@@ -272,7 +273,7 @@ public interface TableIndexDAO {
 	 * @param list
 	 * @param tableId
 	 */
-	void provideIndexInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId);
+	void provideIndexInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId, boolean isTemporaryTable);
 	
 	/**
 	 * Provide constraint information for each column of the given tableId.
@@ -280,7 +281,7 @@ public interface TableIndexDAO {
 	 * @param list The constraint information will be added to each provided {@link DatabaseColumnInfo}.
 	 * @param tableId
 	 */
-	void provideConstraintInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId);
+	void provideConstraintInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId, boolean isTemporaryTable);
 
 	/**
 	 * The provided column data is used to optimize the indices on the given table.

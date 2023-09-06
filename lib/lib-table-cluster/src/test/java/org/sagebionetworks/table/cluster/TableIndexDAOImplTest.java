@@ -42,7 +42,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndChecksum;
@@ -93,8 +92,6 @@ import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -106,22 +103,17 @@ import com.google.common.collect.Lists;
 public class TableIndexDAOImplTest {
 
 	@Autowired
-	ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
+	private ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
 	@Autowired
-	ConnectionFactory tableConnectionFactory;
-	@Autowired
-	StackConfiguration config;
+	private ConnectionFactory tableConnectionFactory;
 	
 	// not a bean
-	TableIndexDAO tableIndexDAO;
+	private TableIndexDAO tableIndexDAO;
 	
-	ProgressCallback mockProgressCallback;
+	private ProgressCallback mockProgressCallback;
 
-	IdAndVersion tableId;
-	IndexDescription indexDescription;
-	
-	ObjectDataDTO entityOne;
-	ObjectDataDTO entityTwo;
+	private IdAndVersion tableId;
+	private IndexDescription indexDescription;
 	
 	private ViewObjectType objectType;
 	private ViewObjectType otherObjectType;
@@ -129,12 +121,10 @@ public class TableIndexDAOImplTest {
 	private ReplicationType mainType;
 	private Set<SubType> subTypes;
 	
-	ObjectFieldTypeMapper fieldTypeMapper;
+	private ObjectFieldTypeMapper fieldTypeMapper;
 	
-	@SuppressWarnings("rawtypes")
-	Class<? extends Enum> objectSubType = EntityType.class;
-	
-	Long userId;
+	private Long userId;
+	private boolean isTemp;
 	
 	@BeforeEach
 	public void before() {
@@ -172,7 +162,7 @@ public class TableIndexDAOImplTest {
 			}
 		};
 		subTypes = Set.of(SubType.file);
-		
+		isTemp = false;
 	}
 
 	@AfterEach
@@ -191,7 +181,7 @@ public class TableIndexDAOImplTest {
 	 * @param tableId
 	 */
 	public boolean createOrUpdateTable(List<ColumnModel> newSchema, IndexDescription indexDescription){
-		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion());
+		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion(), isTemp);
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
 		boolean alterTemp = false;
@@ -211,8 +201,9 @@ public class TableIndexDAOImplTest {
 	 */
 	boolean alterTableAsNeeded(IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp){
 		// Lookup the current schema of the index.
-		List<DatabaseColumnInfo> currentIndedSchema = tableIndexDAO.getDatabaseInfo(tableId);
-		tableIndexDAO.provideIndexInfo(currentIndedSchema, tableId);
+		List<DatabaseColumnInfo> currentIndedSchema = tableIndexDAO.getDatabaseInfo(tableId, alterTemp);
+		tableIndexDAO.provideIndexInfo(currentIndedSchema, tableId, alterTemp);
+		tableIndexDAO.provideConstraintInfo(currentIndedSchema, tableId, alterTemp);
 		// Ensure all all updated columns actually exist.
 		changes = SQLUtils.matchChangesToCurrentInfo(currentIndedSchema, changes);
 		return tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
@@ -1982,9 +1973,10 @@ public class TableIndexDAOImplTest {
 	 * @return
 	 */
 	public List<DatabaseColumnInfo> getAllColumnInfo(IdAndVersion tableId){
-		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId);
+		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId, isTemp);
 		tableIndexDAO.provideCardinality(info, tableId);
-		tableIndexDAO.provideIndexInfo(info, tableId);
+		tableIndexDAO.provideIndexInfo(info, tableId, isTemp);
+		tableIndexDAO.provideConstraintInfo(info, tableId, isTemp);
 		return info;
 	}
 	
@@ -2002,7 +1994,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetDatabaseInfoEmpty(){
 		// table does not exist
-		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId);
+		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId, isTemp);
 		assertNotNull(info);
 		assertTrue(info.isEmpty());
 	}
@@ -4672,12 +4664,12 @@ public class TableIndexDAOImplTest {
 			new ColumnChangeDetails(intColumn, doubleColumn)
 		);		
 		
-		List<DatabaseColumnInfo> currentIndexSchema = tableIndexDAO.getDatabaseInfo(tableId);
+		List<DatabaseColumnInfo> currentIndexSchema = tableIndexDAO.getDatabaseInfo(tableId, isTemp);
 		schemaChanges = SQLUtils.matchChangesToCurrentInfo(currentIndexSchema, schemaChanges);
 		
 		tableIndexDAO.alterTableAsNeeded(tableId, schemaChanges, false);
 		
-		currentIndexSchema = tableIndexDAO.getDatabaseInfo(tableId);
+		currentIndexSchema = tableIndexDAO.getDatabaseInfo(tableId, isTemp);
 		
 		// The _DBL column is not appended as last
 		assertEquals(
@@ -4814,11 +4806,11 @@ public class TableIndexDAOImplTest {
 		createOrUpdateOrDeleteRows(sourceIndexDescription.getIdAndVersion(), set, schemaTwo);
 		
 		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_DBL_C1_", "_C2_", "_C3_"), 
-			tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
+			tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion(), isTemp).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
 		);
 		
 		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C4_", "_C5_", "_C6_"), 
-			tableIndexDAO.getDatabaseInfo(sourceIndexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
+			tableIndexDAO.getDatabaseInfo(sourceIndexDescription.getIdAndVersion(), isTemp).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
 		);
 		
 		assertEquals(2L, tableIndexDAO.getRowCountForTable(indexDescription.getIdAndVersion()));
@@ -4831,11 +4823,11 @@ public class TableIndexDAOImplTest {
 		assertEquals(2L, tableIndexDAO.getRowCountForTable(sourceIndexDescription.getIdAndVersion()));
 		
 		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C4_", "_C5_", "_C6_"), 
-			tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
+			tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion(), isTemp).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
 		);
 		
 		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_DBL_C1_", "_C2_", "_C3_"), 
-			tableIndexDAO.getDatabaseInfo(sourceIndexDescription.getIdAndVersion()).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
+			tableIndexDAO.getDatabaseInfo(sourceIndexDescription.getIdAndVersion(), isTemp).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
 		);
 		
 		tableIndexDAO.deleteTable(sourceIndexDescription.getIdAndVersion());

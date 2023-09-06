@@ -187,7 +187,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			return Collections.emptyList();
 		}
 		// Lookup the current schema of the index
-		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(indexDescription.getIdAndVersion());
+		boolean isTemporaryTable = false;
+		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(indexDescription.getIdAndVersion(), isTemporaryTable);
 		// create a change that replaces the old schema as needed.
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		
@@ -316,13 +317,27 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 */
 	boolean alterTableAsNeededWithinAutoProgress(final IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp){
-		// Lookup the current schema of the index.
-		List<DatabaseColumnInfo> currentIndedSchema = tableIndexDao.getDatabaseInfo(tableId);
-		// must also gather the names of each index currently applied to each column.
-		tableIndexDao.provideIndexInfo(currentIndedSchema, tableId);
+		boolean includeCardinality = false;
+		List<DatabaseColumnInfo> databaseInfo = getDatabaseInfo(tableId, includeCardinality, alterTemp);
 		// Ensure all all updated columns actually exist.
-		changes = SQLUtils.matchChangesToCurrentInfo(currentIndedSchema, changes);
+		changes = SQLUtils.matchChangesToCurrentInfo(databaseInfo, changes);
 		return tableIndexDao.alterTableAsNeeded(tableId, changes, alterTemp);
+	}
+	
+	/**
+	 * Get metadata about each column of the provided table.
+	 * @param tableId
+	 * @param includeCardinality
+	 * @return
+	 */
+	List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId, boolean includeCardinality, boolean isTemporaryTable){
+		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId, isTemporaryTable);
+		if(includeCardinality) {
+			tableIndexDao.provideCardinality(tableInfo, tableId);
+		}
+		tableIndexDao.provideIndexInfo(tableInfo, tableId, isTemporaryTable);
+		tableIndexDao.provideConstraintInfo(tableInfo, tableId, isTemporaryTable);
+		return tableInfo;
 	}
 	
 	/*
@@ -333,13 +348,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void optimizeTableIndices(final IdAndVersion tableId) {
 		// To optimize a table's indices, statistics must be gathered
 		// for each column of the table.
-		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
-		// must also gather cardinality data for each column.
-		tableIndexDao.provideCardinality(tableInfo, tableId);
-		// must also gather the names of each index currently applied to each column.
-		tableIndexDao.provideIndexInfo(tableInfo, tableId);
+		boolean includeCardinality = true;
+		boolean isTemporaryTable = false;
+		List<DatabaseColumnInfo> databaseInfo = getDatabaseInfo(tableId, includeCardinality, isTemporaryTable);
 		// All of the column data is then used to optimized the indices.
-		tableIndexDao.optimizeTableIndices(tableInfo, tableId, MAX_MYSQL_INDEX_COUNT);
+		tableIndexDao.optimizeTableIndices(databaseInfo, tableId, MAX_MYSQL_INDEX_COUNT);
 	}
 
 	@Override
@@ -950,7 +963,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 */
 	List<ColumnModel> getCurrentTableSchema(IdAndVersion tableId) {
 		// Get the current schema.
-		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
+		boolean isTemporaryTable = false;
+		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId, isTemporaryTable);
 		// Determine the current schema
 		return SQLUtils.extractSchemaFromInfo(tableInfo);
 	}

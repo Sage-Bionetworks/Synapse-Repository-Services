@@ -605,9 +605,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId) {
+	public List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId, boolean isTemporaryTable) {
 		try {
-			String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableIndexType.INDEX);
+			String tableName = SQLUtils.getTableNameForId(tableId, isTemporaryTable);
 			
 			// Bind variables do not seem to work here
 			return template.query(SQL_SHOW_COLUMNS + tableName, DB_COL_INFO_MAPPER);
@@ -644,7 +644,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void provideIndexInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId) {
+	public void provideIndexInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId, boolean isTemporaryTable) {
 		ValidateArgument.required(list, "list");
 		ValidateArgument.required(tableId, "tableId");
 		if(list.isEmpty()){
@@ -654,7 +654,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		for(DatabaseColumnInfo info: list){
 			nameToInfoMap.put(info.getColumnName(), info);
 		}
-		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableIndexType.INDEX);
+		String tableName = SQLUtils.getTableNameForId(tableId, isTemporaryTable);
 		template.query(SHOW_INDEXES_FROM+tableName, new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
@@ -681,7 +681,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public void provideConstraintInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId) {
+	public void provideConstraintInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId, boolean isTemporaryTable) {
 		ValidateArgument.required(list, "list");
 		ValidateArgument.required(tableId, "tableId");
 		if (list.isEmpty()) {
@@ -689,15 +689,18 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		final Map<String, DatabaseColumnInfo> nameToInfoMap = list.stream()
 				.collect(Collectors.toMap(DatabaseColumnInfo::getColumnName, Function.identity()));
-		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableIndexType.INDEX);
+		String tableName = SQLUtils.getTableNameForId(tableId, isTemporaryTable);
 		template.query(
-				"SELECT CONSTRAINT_NAME FROM information_schema.table_constraints WHERE"
-						+ " table_schema = DATABASE() AND table_name = ? AND constraint_type = 'CHECK'",
+				"SELECT TC.CONSTRAINT_NAME, CC.CHECK_CLAUSE FROM information_schema.table_constraints TC"
+				+ " JOIN information_schema.CHECK_CONSTRAINTS CC on (TC.CONSTRAINT_NAME = CC.CONSTRAINT_NAME)"
+				+ " WHERE TC.TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND TC.CONSTRAINT_TYPE = 'CHECK'",
 				(ResultSet rs) -> {
 					String constraintName = rs.getString("CONSTRAINT_NAME");
-					ColumnConstraintInfo.parseConstraintName(constraintName).ifPresent((c) -> {
-						DatabaseColumnInfo info = nameToInfoMap.get(c.getColumnName());
-						info.setConstraintName(c.getConstraintName());
+					String checkClause = rs.getString("CHECK_CLAUSE");
+					
+					SQLUtils.getFirstColumnNameMatch(checkClause).ifPresent((columnName)->{
+						DatabaseColumnInfo info = nameToInfoMap.get(columnName);
+						info.setConstraintName(constraintName);
 					});
 				}, tableName);
 	}
@@ -1431,7 +1434,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public List<String> streamTableIndexData(IdAndVersion tableId, CSVWriterStream stream) {
-		List<DatabaseColumnInfo> columnList = getDatabaseInfo(tableId);
+		boolean isTemporaryTable = false;
+		List<DatabaseColumnInfo> columnList = getDatabaseInfo(tableId, isTemporaryTable);
 		
 		String[] metadataColumns = columnList.stream()
 			.filter(column -> column.isMetadata() && !TableConstants.ROW_SEARCH_CONTENT.equalsIgnoreCase(column.getColumnName()))

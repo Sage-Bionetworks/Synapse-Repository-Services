@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -441,9 +442,8 @@ public class SQLUtilsTest {
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
 		cm.setColumnType(ColumnType.INTEGER);
-		String tableName = "T44";
 		// call under test
-		SQLUtils.appendAddColumn(builder, cm, useDepricatedUtf8ThreeBytes, tableName);
+		SQLUtils.appendAddColumn(builder, cm, useDepricatedUtf8ThreeBytes);
 		assertEquals("ADD COLUMN _C123_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 
@@ -453,9 +453,8 @@ public class SQLUtilsTest {
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
 		cm.setColumnType(ColumnType.DOUBLE);
-		String tableName = "T44";
 		// call under test
-		SQLUtils.appendAddColumn(builder, cm, useDepricatedUtf8ThreeBytes, tableName);
+		SQLUtils.appendAddColumn(builder, cm, useDepricatedUtf8ThreeBytes);
 		assertEquals("ADD COLUMN _C123_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
 				+ ", ADD COLUMN _DBL_C123_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
@@ -468,9 +467,8 @@ public class SQLUtilsTest {
 		cm.setColumnType(ColumnType.INTEGER_LIST);
 		cm.setMaximumSize(12L);
 		cm.setMaximumListLength(100L);
-		String tableName = "T44";
 		// call under test
-		SQLUtils.appendAddColumn(builder, cm, useDepricatedUtf8ThreeBytes, tableName);
+		SQLUtils.appendAddColumn(builder, cm, useDepricatedUtf8ThreeBytes);
 		assertEquals("ADD COLUMN _C123_ JSON DEFAULT NULL COMMENT 'INTEGER_LIST'"
 				+ ", ADD CONSTRAINT `T44CHK_C123_` CHECK (JSON_SCHEMA_VALID("
 				+ "'{ \"type\": \"array\", \"items\": { \"maxLength\": 12 }, \"maxItems\": 100 }', _C123_))", builder.toString());
@@ -1553,6 +1551,30 @@ public class SQLUtilsTest {
 
 		List<ColumnModel> expected = Lists.newArrayList(cm);
 		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetFirstColumnNameMatch() {
+		// call under test
+		Optional<String> result = SQLUtils.getFirstColumnNameMatch(
+				"json_schema_valid(_utf8mb4\\'{ \"type\": \"array\", \"items\": { \"maxLength\": 5 }, \"maxItems\": 100 }\\',`_C345_`)");
+		assertEquals(Optional.of("_C345_"), result);
+	}
+	
+	@Test
+	public void testGetFirstColumnNameMatchWithMultiple() {
+		// call under test
+		Optional<String> result = SQLUtils.getFirstColumnNameMatch(
+				"_C111_, _C222_, _C333_");
+		assertEquals(Optional.of("_C111_"), result);
+	}
+	
+	@Test
+	public void testGetFirstColumnNameMatcWithNoMatch() {
+		// call under test
+		Optional<String> result = SQLUtils.getFirstColumnNameMatch(
+				"this does not match _CMK_`)");
+		assertEquals(Optional.empty(), result);
 	}
 
 	@Test
