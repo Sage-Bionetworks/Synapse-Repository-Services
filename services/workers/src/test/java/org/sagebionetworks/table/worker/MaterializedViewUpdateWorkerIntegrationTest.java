@@ -191,6 +191,9 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 							.equals(entityManager.getEntityHeader(adminUserInfo, e.getId()).getBenefactorId()))
 					.map(e -> e.getId()).collect(Collectors.toList());
 			assertEquals(3, fileIdsUserCanSee.size());
+			
+			// Wait for the view to be available first
+			asyncHelper.waitForTableOrViewToBeAvailable(IdAndVersion.parse(view.getId()), MAX_WAIT_MS);
 
 			// Currently do not support doubles so the double key is excluded.
 			String definingSql = "select id, stringKey, longKey, doubleKey, dateKey, booleanKey from " + view.getId();
