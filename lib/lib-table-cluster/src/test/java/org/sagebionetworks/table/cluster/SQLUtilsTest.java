@@ -469,9 +469,9 @@ public class SQLUtilsTest {
 		cm.setMaximumListLength(100L);
 		// call under test
 		SQLUtils.appendAddColumn(builder, cm, useDepricatedUtf8ThreeBytes);
-		assertEquals("ADD COLUMN _C123_ JSON DEFAULT NULL COMMENT 'INTEGER_LIST'"
-				+ ", ADD CONSTRAINT `T44CHK_C123_` CHECK (JSON_SCHEMA_VALID("
-				+ "'{ \"type\": \"array\", \"items\": { \"maxLength\": 12 }, \"maxItems\": 100 }', _C123_))", builder.toString());
+		assertEquals("ADD COLUMN _C123_ JSON DEFAULT NULL COMMENT 'INTEGER_LIST', "
+				+ "ADD CONSTRAINT CHECK (JSON_SCHEMA_VALID('"
+				+ "{ \"type\": \"array\", \"items\": { \"maxLength\": 12 }, \"maxItems\": 100 }', _C123_))", builder.toString());
 	}
 
 	@Test
@@ -859,7 +859,9 @@ public class SQLUtilsTest {
 		String[] expected = {"ALTER TABLE TEMPT999 CHANGE COLUMN _C111_ _C222_ VARCHAR(15) " 
 				+ "CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
 				+ "DROP COLUMN _DBL_C111_",
-				"ALTER TABLE TEMPT999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST'",
+				"ALTER TABLE TEMPT999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST',"
+				+ " ADD CONSTRAINT CHECK (JSON_SCHEMA_VALID('"
+				+ "{ \"type\": \"array\", \"items\": { \"maxLength\": null }, \"maxItems\": null }', _C456_))",
 				"UPDATE TEMPT999 SET _C456_ = JSON_ARRAY(_C123_)",
 				"ALTER TABLE TEMPT999 DROP COLUMN _C123_"
 		};
@@ -896,7 +898,9 @@ public class SQLUtilsTest {
 		String[] expected = {"ALTER TABLE T999 CHANGE COLUMN _C111_ _C222_ VARCHAR(15) " 
 				+ "CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
 				+ "DROP COLUMN _DBL_C111_",
-				"ALTER TABLE T999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST'",
+				"ALTER TABLE T999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST',"
+				+ " ADD CONSTRAINT CHECK (JSON_SCHEMA_VALID('"
+				+ "{ \"type\": \"array\", \"items\": { \"maxLength\": null }, \"maxItems\": null }', _C456_))",
 				"UPDATE T999 SET _C456_ = JSON_ARRAY(_C123_)",
 				"ALTER TABLE T999 DROP COLUMN _C123_"
 		};
@@ -1576,7 +1580,7 @@ public class SQLUtilsTest {
 				"this does not match _CMK_`)");
 		assertEquals(Optional.empty(), result);
 	}
-
+	
 	@Test
 	public void testTemporaryTableName(){
 		String temp = SQLUtils.getTemporaryTableName(tableId);
@@ -2804,7 +2808,9 @@ public class SQLUtilsTest {
 		newColumn.setColumnType(ColumnType.BOOLEAN_LIST);
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		List<String> results = SQLUtils.createAlterToListColumnTypeSqlBatch(change, tableName, useDepricatedUtf8ThreeBytes);
-		assertEquals("ALTER TABLE T999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST'", results.get(0));
+		assertEquals("ALTER TABLE T999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST',"
+				+ " ADD CONSTRAINT CHECK (JSON_SCHEMA_VALID('"
+				+ "{ \"type\": \"array\", \"items\": { \"maxLength\": null }, \"maxItems\": null }', _C456_))", results.get(0));
 		assertEquals("UPDATE T999 SET _C456_ = JSON_ARRAY(_C123_)", results.get(1));
 		assertEquals("ALTER TABLE T999 DROP COLUMN _C123_", results.get(2));
 	}

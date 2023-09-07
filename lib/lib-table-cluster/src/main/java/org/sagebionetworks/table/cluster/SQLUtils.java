@@ -109,7 +109,7 @@ public class SQLUtils {
 	private static final String DOUBLE_ENUM_CLAUSE = " ENUM ('" + DOUBLE_NAN + "', '" + DOUBLE_POSITIVE_INFINITY + "', '"
 			+ DOUBLE_NEGATIVE_INFINITY + "') DEFAULT null";
 	
-	public static Pattern COLUMN_ID_PATTERN = Pattern.compile("_C(\\d)+_");
+	public static Pattern COLUMN_NAME_PATTERN = Pattern.compile("_C(\\d)+_");
 
 	public enum TableIndexType {
 		/**
@@ -335,7 +335,7 @@ public class SQLUtils {
 	 * no matches are found. 
 	 */
 	public static Optional<String> getFirstColumnNameMatch(String checkClause) {
-		return COLUMN_ID_PATTERN.matcher(checkClause).results().findFirst()
+		return COLUMN_NAME_PATTERN.matcher(checkClause).results().findFirst()
 				.map(m -> checkClause.substring(m.start(), m.end()));
 	}
 
@@ -825,6 +825,11 @@ public class SQLUtils {
 		}
 	}
 
+	/**
+	 * Add a JSON schema validation constraint to a list column.
+	 * @param builder
+	 * @param newColumn
+	 */
 	static void addListValidationConstraint(StringBuilder builder, ColumnModel newColumn) {
 		builder.append(String.format(
 				", ADD CONSTRAINT CHECK (JSON_SCHEMA_VALID("
@@ -847,6 +852,11 @@ public class SQLUtils {
 		// (See https://sagebionetworks.jira.com/browse/PLFM-7999)
 		if (change.getOldColumnInfo().hasIndex()) {
 			appendDropIndex(builder, change.getOldColumnInfo());
+			builder.append(", ");
+		}
+		
+		if(change.getOldColumnInfo().getConstraintName() != null) {
+			appendDropConstraint(builder, change.getOldColumnInfo().getConstraintName());
 			builder.append(", ");
 		}
 		
@@ -902,6 +912,10 @@ public class SQLUtils {
 		if(ColumnType.DOUBLE.equals(change.getOldColumn().getColumnType())
 				&& ColumnType.DOUBLE.equals(change.getNewColumn().getColumnType())){
 			appendRenameDoubleEnum(builder, change.getOldColumn().getId(), change.getNewColumn().getId());
+		}
+		
+		if (ColumnTypeListMappings.isList(change.getNewColumn().getColumnType())) {
+			addListValidationConstraint(builder, change.getNewColumn());
 		}
 	}
 	

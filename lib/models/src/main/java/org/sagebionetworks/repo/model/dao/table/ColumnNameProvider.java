@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dao.table;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public interface ColumnNameProvider {
@@ -11,5 +12,13 @@ public interface ColumnNameProvider {
 	 * @param columnIds
 	 * @return
 	 */
-	public Map<Long, String> getColumnNames(Set<Long> columnIds);
+	Map<Long, String> getColumnNames(Set<Long> columnIds);
+	
+
+	/**
+	 * Get the constraint clause for the given constraint name.
+	 * @param constraintName
+	 * @return {@link Optional#empty()} if the constraint does not exist.
+	 */
+	Optional<String> getConstraintClause(String constraintName);
 }

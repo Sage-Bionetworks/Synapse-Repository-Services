@@ -598,6 +598,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return true;
 	}
 
+
 	@Override
 	public void truncateTable(IdAndVersion tableId) {
 		String sql = SQLUtils.createTruncateSql(tableId);
