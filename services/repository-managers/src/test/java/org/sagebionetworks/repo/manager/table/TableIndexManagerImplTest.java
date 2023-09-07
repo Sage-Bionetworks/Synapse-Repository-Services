@@ -2869,6 +2869,54 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(IdAndVersion.parse("456"));
 		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(IdAndVersion.parse("789"));
 	}
+	
+	@Test
+	public void testGetDatabaseInfo() {
+		List<DatabaseColumnInfo> info = List.of(new DatabaseColumnInfo().setColumnName("foo"));
+		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class))).thenReturn(info);
+		
+		boolean includeCardnality = false;
+		boolean isTemp = false;
+		// call under test
+		manager.getDatabaseInfo(tableId, includeCardnality, isTemp);
+		
+		verify(mockIndexDao).getDatabaseInfo(tableId, false);
+		verify(mockIndexDao, never()).provideCardinality(any(), any());
+		verify(mockIndexDao).provideIndexInfo(info, tableId, false);
+		verify(mockIndexDao).provideConstraintInfo(info, tableId, false);
+	}
+	
+	@Test
+	public void testGetDatabaseInfoWithTempTrue() {
+		List<DatabaseColumnInfo> info = List.of(new DatabaseColumnInfo().setColumnName("foo"));
+		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class))).thenReturn(info);
+		
+		boolean includeCardnality = false;
+		boolean isTemp = true;
+		// call under test
+		manager.getDatabaseInfo(tableId, includeCardnality, isTemp);
+		
+		verify(mockIndexDao).getDatabaseInfo(tableId, true);
+		verify(mockIndexDao, never()).provideCardinality(any(), any());
+		verify(mockIndexDao).provideIndexInfo(info, tableId, true);
+		verify(mockIndexDao).provideConstraintInfo(info, tableId, true);
+	}
+	
+	@Test
+	public void testGetDatabaseInfoWithCardnality() {
+		List<DatabaseColumnInfo> info = List.of(new DatabaseColumnInfo().setColumnName("foo"));
+		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class))).thenReturn(info);
+		
+		boolean includeCardnality = true;
+		boolean isTemp = false;
+		// call under test
+		manager.getDatabaseInfo(tableId, includeCardnality, isTemp);
+		
+		verify(mockIndexDao).getDatabaseInfo(tableId, isTemp);
+		verify(mockIndexDao).provideCardinality(info, tableId);
+		verify(mockIndexDao).provideIndexInfo(info, tableId, isTemp);
+		verify(mockIndexDao).provideConstraintInfo(info, tableId, isTemp);
+	}
 			
 	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {
