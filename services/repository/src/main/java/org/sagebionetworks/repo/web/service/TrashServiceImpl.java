@@ -39,7 +39,7 @@ public class TrashServiceImpl implements TrashService {
 
 	@Override
 	public PaginatedResults<TrashedEntity> viewTrashForUser(Long currentUserId, Long userId,
-			Long offset, Long limit, HttpServletRequest request)
+			Long offset, Long limit)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 
 		if (offset == null){

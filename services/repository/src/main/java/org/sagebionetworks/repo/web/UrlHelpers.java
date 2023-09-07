@@ -430,7 +430,7 @@ public class UrlHelpers {
 	 * https://stackoverflow.com/questions/3526523/spring-mvc-pathvariable-getting-
 	 * truncated
 	 */
-	public static final String JSON_SHCEMA_TYPE_REG_ID = JSON_SCHEMA_TYPE_REG+"/{id:.+}";
+	public static final String JSON_SCHEMA_TYPE_REG_ID = JSON_SCHEMA_TYPE_REG+"/{id:.+}";
 	
 	public static final String FORM_DATA_ACCEPT = FORM_DATA_ID+"/accept";
 	public static final String FORM_DATA_REJECT = FORM_DATA_ID+"/reject";
@@ -1116,7 +1116,9 @@ public class UrlHelpers {
 
 	public static final String DATA_ACCESS_REQUEST_ID_SUBMISSION = DATA_ACCESS_REQUEST+"/{requestId}/submission";
 	public static final String DATA_ACCESS_SUBMISSION = "/dataAccessSubmission";
-	public static final String DATA_ACCESS_SUBMISSION_ID = DATA_ACCESS_SUBMISSION + "/{submissionId}";
+
+	public static final String SUBMISSION_ID_PATH_VARIABLE = "submissionId";
+	public static final String DATA_ACCESS_SUBMISSION_ID = DATA_ACCESS_SUBMISSION + "/{" + SUBMISSION_ID_PATH_VARIABLE + "}";
 	public static final String DATA_ACCESS_SUBMISSION_ID_CANCEL = DATA_ACCESS_SUBMISSION_ID +"/cancellation";
 	public static final String ACCESS_REQUIREMENT_ID_LIST_SUBMISSION =
 			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/submissions";

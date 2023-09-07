@@ -38,7 +38,7 @@ public interface TrashService {
 	 *             administrator.
 	 */
 	PaginatedResults<TrashedEntity> viewTrashForUser(Long currentUserId, Long userId,
-			Long offset, Long limit, HttpServletRequest request)
+			Long offset, Long limit)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**

@@ -150,7 +150,7 @@ public class EntityBundleController {
 	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.ENTITY_BUNDLE, method = RequestMethod.POST)
 	public @ResponseBody
-	String createEntityBundle(
+	String createEntityBundleDeprecated(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestBody EntityBundleCreate ebc)

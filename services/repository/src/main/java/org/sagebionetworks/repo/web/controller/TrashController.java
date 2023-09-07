@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.web.controller;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -51,8 +49,7 @@ public class TrashController {
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_TRASH}, method = RequestMethod.PUT)
 	public void moveToTrash(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id,
-			HttpServletRequest request)
+			@PathVariable String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		this.serviceProvider.getTrashService().moveToTrash(userId, id, false);
 	}
@@ -71,8 +68,7 @@ public class TrashController {
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_RESTORE}, method = RequestMethod.PUT)
 	public void restoreFromTrash(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id,
-			HttpServletRequest request)
+			@PathVariable String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		this.serviceProvider.getTrashService().restoreFromTrash(userId, id, null);
 	}
@@ -92,11 +88,10 @@ public class TrashController {
 	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_RESTORE_TO_PARENT}, method = RequestMethod.PUT)
-	public void restoreFromTrash(
+	public void restoreFromTrashToNewParent(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
-			@PathVariable String parentId,
-			HttpServletRequest request)
+			@PathVariable String parentId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		this.serviceProvider.getTrashService().restoreFromTrash(userId, id, parentId);
 	}
@@ -114,9 +109,8 @@ public class TrashController {
 	public @ResponseBody PaginatedResults<TrashedEntity> viewTrashForUser(
 	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit,
-			HttpServletRequest request) throws DatastoreException, NotFoundException {
-		return serviceProvider.getTrashService().viewTrashForUser(userId, userId, offset, limit, request);
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit) throws DatastoreException, NotFoundException {
+		return serviceProvider.getTrashService().viewTrashForUser(userId, userId, offset, limit);
 	}
 
 	/**
@@ -129,8 +123,7 @@ public class TrashController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_PURGE_ENTITY}, method = RequestMethod.PUT)
 	public void flagForPurge(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id,
-			HttpServletRequest request)
+			@PathVariable String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		this.serviceProvider.getTrashService().flagForPurge(userId, id);
 	}

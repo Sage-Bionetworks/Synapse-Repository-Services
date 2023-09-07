@@ -90,7 +90,7 @@ public class TeamController {
 	 * 
 	 * @param userId
 	 * @param team
-	 * @return
+	 * @return The newly created team.
 	 * @throws NotFoundException
 	 */
 	@RequiredScope({view,modify})
@@ -263,8 +263,8 @@ public class TeamController {
 	 */
 	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.TEAM_ID_ICON, method = RequestMethod.GET)
-	public
-	void fileRedirectURLForTeamIcon(
+	@ResponseStatus(HttpStatus.TEMPORARY_REDIRECT)
+	public void fileRedirectURLForTeamIcon(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = false) Boolean redirect,
@@ -284,8 +284,8 @@ public class TeamController {
 	 */
 	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.TEAM_ID_ICON_PREVIEW, method = RequestMethod.GET)
-	public
-	void filePreviewRedirectURLForTeamIcon(
+	@ResponseStatus(HttpStatus.TEMPORARY_REDIRECT)
+	public void filePreviewRedirectURLForTeamIcon(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = false) Boolean redirect,
@@ -300,7 +300,7 @@ public class TeamController {
 	 * Note: The client must be a Team administrator to make this request.
 	 * @param userId
 	 * @param team the new metadata for the Team
-	 * @return
+	 * @return the updated team object
 	 * @throws NotFoundException
 	 */
 	@RequiredScope({view,modify})

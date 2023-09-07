@@ -46,7 +46,7 @@ public class DockerCommitController {
 	 * Synapse Docker registry.)
 
 	 * @param userId 
-	 * @param entityId the ID of the Docker repository entity
+	 * @param id the ID of the Docker repository entity
 	 * @param dockerCommit the new tag/digest pair for the repository
 	 */
 	@RequiredScope({modify})
@@ -54,9 +54,9 @@ public class DockerCommitController {
 	@RequestMapping(value = UrlHelpers.ENITY_ID_DOCKER_COMMIT, method = RequestMethod.POST)
 	public void addDockerCommit(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String id,
 			@RequestBody DockerCommit dockerCommit) {
-		serviceProvider.getDockerService().addDockerCommit(userId, entityId, dockerCommit);
+		serviceProvider.getDockerService().addDockerCommit(userId, id, dockerCommit);
 	}
 
 	/**

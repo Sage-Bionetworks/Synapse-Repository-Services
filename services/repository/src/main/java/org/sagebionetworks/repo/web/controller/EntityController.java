@@ -61,12 +61,10 @@ import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -695,40 +693,15 @@ public class EntityController {
 	public @ResponseBody Versionable createNewVersion(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
-			@RequestHeader HttpHeaders header, HttpServletRequest request)
+			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, IOException,
 			ConflictingUpdateException, JSONObjectAdapterException {
 
-		// This is simply an update with a new version created.
-		return (Versionable) updateEntityImpl(userId, header, true, generatedBy, request);
-	}
-
-	/**
-	 * This is a duplicate of update and will be removed.
-	 * 
-	 * @param header
-	 * @param etag
-	 * @param newVersion - Should a new version be created to do this update?
-	 * @param request
-	 * @return
-	 * @throws IOException
-	 * @throws NotFoundException
-	 * @throws ConflictingUpdateException
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 */
-	@Deprecated
-	@RequiredScope({ view, modify })
-	private Entity updateEntityImpl(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			HttpHeaders header, boolean newVersion, String activityId, HttpServletRequest request)
-			throws IOException, NotFoundException, ConflictingUpdateException, DatastoreException,
-			InvalidModelException, UnauthorizedException, JSONObjectAdapterException {
 		Entity entity = JSONEntityHttpMessageConverter.readEntity(request.getReader());
 		// validate the entity
-		entity = serviceProvider.getEntityService().updateEntity(userId, entity, newVersion, activityId);
+		entity = serviceProvider.getEntityService().updateEntity(userId, entity, true, generatedBy);
 		// Return the result
-		return entity;
+		return (Versionable) entity;
 	}
 
 	/**
@@ -910,7 +883,7 @@ public class EntityController {
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID + UrlHelpers.ACCESS }, method = RequestMethod.GET)
-	public @ResponseBody BooleanResult hasAccess(@PathVariable String id,
+	public @ResponseBody BooleanResult hasAccessToEntity(@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM) String accessType, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
@@ -1495,6 +1468,7 @@ public class EntityController {
 	 */
 	@RequiredScope({ view })
 	@RequestMapping(value = UrlHelpers.ENTITY_FILE_HANDLES, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody FileHandleResults getEntityFileHandlesForCurrentVersion(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id)
 			throws DatastoreException, NotFoundException, IOException {
@@ -1518,6 +1492,7 @@ public class EntityController {
 	 */
 	@RequiredScope({ view })
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_FILE_HANDLES, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody FileHandleResults getEntityFileHandlesForVersion(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
 			@PathVariable Long versionNumber) throws DatastoreException, NotFoundException, IOException {

@@ -478,7 +478,7 @@ public class WikiController {
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestBody WikiPage toUpdate) throws DatastoreException,
 			NotFoundException, IOException {
-		validateUpateArguments(wikiId, toUpdate);
+		validateUpdateArguments(wikiId, toUpdate);
 		return serviceProvider.getWikiService().updateWikiPage(userId, ownerId,
 				ObjectType.ACCESS_REQUIREMENT, toUpdate);
 	}
@@ -522,7 +522,7 @@ public class WikiController {
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestBody WikiPage toUpdate) throws DatastoreException,
 			NotFoundException, IOException {
-		validateUpateArguments(wikiId, toUpdate);
+		validateUpdateArguments(wikiId, toUpdate);
 		return serviceProvider.getWikiService().updateWikiPage(userId, ownerId,
 				ObjectType.ENTITY, toUpdate);
 	}
@@ -566,7 +566,7 @@ public class WikiController {
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestBody WikiPage toUpdate) throws DatastoreException,
 			NotFoundException, IOException {
-		validateUpateArguments(wikiId, toUpdate);
+		validateUpdateArguments(wikiId, toUpdate);
 		return serviceProvider.getWikiService().updateWikiPage(userId, ownerId,
 				ObjectType.EVALUATION, toUpdate);
 	}
@@ -577,7 +577,7 @@ public class WikiController {
 	 * @param wikiId
 	 * @param wikiPage
 	 */
-	private static void validateUpateArguments(String wikiId, WikiPage wikiPage) {
+	private static void validateUpdateArguments(String wikiId, WikiPage wikiPage) {
 		if (wikiPage == null)
 			throw new IllegalArgumentException("WikiPage cannot be null");
 		if (!wikiId.equals(wikiPage.getId())) {
@@ -757,7 +757,7 @@ public class WikiController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_HANDLE, method = RequestMethod.GET)
 	public @ResponseBody
-	FileHandleResults getEntityWikiAttachmenthHandles(
+	FileHandleResults getEntityWikiAttachmentHandles(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId)
 			throws DatastoreException, NotFoundException {
@@ -790,7 +790,7 @@ public class WikiController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_ATTCHMENT_HANDLE, method = RequestMethod.GET)
 	public @ResponseBody
-	FileHandleResults getCompetitionWikiAttachmenthHandles(
+	FileHandleResults getCompetitionWikiAttachmentHandles(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId)
 			throws DatastoreException, NotFoundException {
@@ -934,7 +934,7 @@ public class WikiController {
 	 */
 	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_FILE_PREVIEW, method = RequestMethod.GET)
-	public void getEntityWikiAttachmenPreviewFile(
+	public void getEntityWikiAttachmentPreviewFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true) String fileName,
@@ -983,7 +983,7 @@ public class WikiController {
 	 */
 	@RequiredScope({download})
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW, method = RequestMethod.GET)
-	public void getCompetitionAttachmenthPreviewFile(
+	public void getCompetitionAttachmentPreviewFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true) String fileName,

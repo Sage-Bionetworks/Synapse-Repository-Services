@@ -8,4 +8,5 @@ package org.sagebionetworks.controller.model;
 public enum ParameterLocation {
 	path,
 	query,
+	header,
 }

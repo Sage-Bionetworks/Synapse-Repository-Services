@@ -8,17 +8,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
+import javax.lang.model.element.*;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import javax.tools.Diagnostic.Kind;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.controller.annotations.model.ControllerInfoModel;
 import org.sagebionetworks.controller.annotations.model.RequestMappingModel;
 import org.sagebionetworks.controller.annotations.model.ResponseStatusModel;
@@ -37,12 +33,7 @@ import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.*;
 
 import com.sun.source.doctree.DocCommentTree;
 import com.sun.source.doctree.DocTree;
@@ -52,39 +43,47 @@ import com.sun.source.util.DocTrees;
 
 import jdk.javadoc.doclet.DocletEnvironment;
 import jdk.javadoc.doclet.Reporter;
+import org.springframework.web.util.UriComponentsBuilder;
+
 
 /**
  * This translator pulls information from a generic doclet model into our
  * representation of a controller model. This is a layer of abstraction that is
  * then used to export the OpenAPI specification of our API.
- * 
- * @author lli
  *
+ * @author lli
  */
 public class ControllerToControllerModelTranslator {
+
+	static final Set<String> PARAMETERS_ALLOWED_TO_BE_UNANNOTATED = Set.of("javax.servlet.http.HttpServletResponse", UriComponentsBuilder.class.getName(), "javax.servlet.http.HttpServletRequest");
 
 	/**
 	 * Converts all controllers found in the doclet environment to controller
 	 * models. Populates schemaMap based on types found in all of the controllers.
-	 * 
+	 *
 	 * @param env                     the doclet environment being looked at
 	 * @param classNameToObjectSchema a mapping between class name to object schema
 	 *                                that represents it
 	 * @return
 	 */
 	public List<ControllerModel> extractControllerModels(DocletEnvironment env, Map<String, ObjectSchema> schemaMap,
-			Reporter reporter) {
+														 Reporter reporter) {
 		List<ControllerModel> controllerModels = new ArrayList<>();
 		for (TypeElement t : getControllers(ElementFilter.typesIn(env.getIncludedElements()))) {
 			ControllerModel controllerModel = translate(t, env.getDocTrees(), schemaMap, reporter);
-			controllerModels.add(controllerModel);
+			if (controllerModel.getMethods().size() > 0) {
+				controllerModels.add(controllerModel);
+			} else {
+				reporter.print(Kind.NOTE, "Controller " + controllerModel.getDisplayName() + " has no methods so was skipped during OpenAPI translation.");
+			}
 		}
+		reporter.print(Kind.NOTE, "All controllers have been successfully processed.");
 		return controllerModels;
 	}
 
 	/**
 	 * Returns the controllers present in a set of files
-	 * 
+	 *
 	 * @param files the files being examines
 	 * @return a list of Controllers in the files
 	 */
@@ -100,7 +99,7 @@ public class ControllerToControllerModelTranslator {
 
 	/**
 	 * Determines if a file is a controller
-	 * 
+	 *
 	 * @param file the file being examined
 	 * @return true if the file is a controller, false otherwise
 	 */
@@ -121,7 +120,7 @@ public class ControllerToControllerModelTranslator {
 	/**
 	 * Translates a Doclet controller (TypeElement) to a ControllerModel. Populates
 	 * schemaMap based on types found in the controllers
-	 * 
+	 *
 	 * @param controller the doclet representation of a controller
 	 * @param docTrees   stores the necessary javadoc comments for the methods and
 	 *                   classes
@@ -130,7 +129,7 @@ public class ControllerToControllerModelTranslator {
 	 * @return a model that represents the controller.
 	 */
 	public ControllerModel translate(TypeElement controller, DocTrees docTrees, Map<String, ObjectSchema> schemaMap,
-			Reporter reporter) {
+									 Reporter reporter) {
 		ControllerModel controllerModel = new ControllerModel();
 		reporter.print(Kind.NOTE, "Extracting controller " + controller.getSimpleName());
 		List<MethodModel> methods = getMethods(controller.getEnclosedElements(), docTrees, schemaMap, reporter);
@@ -142,7 +141,7 @@ public class ControllerToControllerModelTranslator {
 
 	/**
 	 * Get comment for controller description.
-	 * 
+	 *
 	 * @param controllerTree - the document tree for the controller
 	 * @return the overall comment for the controller.
 	 */
@@ -154,7 +153,7 @@ public class ControllerToControllerModelTranslator {
 
 	/**
 	 * Constructs a model that represents the annotations on a Controller.
-	 * 
+	 *
 	 * @param annotations - the annotations for a controller
 	 * @return a model that represents the annotations on a controller.
 	 */
@@ -184,44 +183,56 @@ public class ControllerToControllerModelTranslator {
 	/**
 	 * Creates a list of MethodModel that represents all the methods in a
 	 * Controller.
-	 * 
+	 *
 	 * @param enclosedElements - list of enclosed elements inside of a Controller.
 	 * @param docTrees         - tree used to get the document comment tree for a
 	 *                         method.
 	 * @return the created list of MethodModels
 	 */
 	List<MethodModel> getMethods(List<? extends Element> enclosedElements, DocTrees docTrees,
-			Map<String, ObjectSchema> schemaMap, Reporter reporter) {
+								 Map<String, ObjectSchema> schemaMap, Reporter reporter) {
 		List<MethodModel> methods = new ArrayList<>();
 		for (ExecutableElement method : ElementFilter.methodsIn(enclosedElements)) {
 			String methodName = method.getSimpleName().toString();
+
+			if (method.getModifiers().contains(Modifier.PRIVATE)) {
+				continue;
+			}
+
 			reporter.print(Kind.NOTE, "Extracting method " + methodName);
 
 			DocCommentTree docCommentTree = docTrees.getDocCommentTree(method);
-			Map<String, String> parameterToDescription = getParameterToDescription(docCommentTree.getBlockTags());
-			Map<Class, Object> annotationToModel = getAnnotationToModel(method.getAnnotationMirrors());
-			if (!annotationToModel.containsKey(RequestMapping.class)) {
-				throw new IllegalStateException("Method " + methodName + " missing RequestMapping annotation.");
-			}
+			if (docCommentTree != null) {
+				if (method.getAnnotation(Deprecated.class) != null) {
+					reporter.print(Kind.NOTE, "Method " + methodName + " is deprecated so was skipped during OpenAPI translation.");
+					continue;
+				}
+				Map<String, String> parameterToDescription = getParameterToDescription(docCommentTree.getBlockTags());
+				Map<Class, Object> annotationToModel = getAnnotationToModel(method.getAnnotationMirrors());
 
-			Optional<String> behaviorComment = getBehaviorComment(docCommentTree.getFullBody());
-			Optional<RequestBodyModel> requestBody = getRequestBody(method.getParameters(), parameterToDescription,
-					schemaMap);
-			MethodModel methodModel = new MethodModel()
-					.withPath(getMethodPath((RequestMappingModel) annotationToModel.get(RequestMapping.class)))
-					.withName(methodName).withDescription(behaviorComment.isEmpty() ? null : behaviorComment.get())
-					.withOperation(((RequestMappingModel) annotationToModel.get(RequestMapping.class)).getOperation())
-					.withParameters(getParameters(method.getParameters(), parameterToDescription, schemaMap))
-					.withRequestBody(requestBody.isEmpty() ? null : requestBody.get())
-					.withResponse(getResponseModel(method, docCommentTree.getBlockTags(), annotationToModel, schemaMap));
-			methods.add(methodModel);
+				if (!annotationToModel.containsKey(RequestMapping.class)) {
+					throw new IllegalStateException("Method " + methodName + " missing RequestMapping annotation.");
+				}
+
+				Optional<String> behaviorComment = getBehaviorComment(docCommentTree.getFullBody());
+				Optional<RequestBodyModel> requestBody = getRequestBody(method.getParameters(), parameterToDescription,
+						schemaMap);
+				MethodModel methodModel = new MethodModel()
+						.withPath(getMethodPath((RequestMappingModel) annotationToModel.get(RequestMapping.class)))
+						.withName(methodName).withDescription(behaviorComment.isEmpty() ? null : behaviorComment.get())
+						.withOperation(((RequestMappingModel) annotationToModel.get(RequestMapping.class)).getOperation())
+						.withParameters(getParameters(method.getParameters(), parameterToDescription, schemaMap))
+						.withRequestBody(requestBody.isEmpty() ? null : requestBody.get())
+						.withResponse(getResponseModel(method, docCommentTree.getBlockTags(), annotationToModel, schemaMap));
+				methods.add(methodModel);
+			}
 		}
 		return methods;
 	}
 
 	/**
 	 * Gets a model that represents the response of a method.
-	 * 
+	 *
 	 * @param returnType           - the return type of the method.
 	 * @param returnClassName      - the full class name of the returned element.
 	 * @param blockTags            - the parameter/return comments on the method.
@@ -230,7 +241,7 @@ public class ControllerToControllerModelTranslator {
 	 * @return a model that represents the response of a method.
 	 */
 	ResponseModel getResponseModel(ExecutableElement method, List<? extends DocTree> blockTags,
-			Map<Class, Object> annotationToModel, Map<String, ObjectSchema> schemaMap) {
+								   Map<Class, Object> annotationToModel, Map<String, ObjectSchema> schemaMap) {
 		ValidateArgument.required(method, "method");
 		ValidateArgument.required(blockTags, "blockTags");
 		ValidateArgument.required(annotationToModel, "annotationToModel");
@@ -242,10 +253,10 @@ public class ControllerToControllerModelTranslator {
 		}
 		return generateResponseModel(method.getReturnType(), annotationToModel, description, schemaMap);
 	}
-	
+
 	/**
 	 * Gets the description from a methods blocktags
-	 * 
+	 *
 	 * @param blockTags the blocktags of the method
 	 * @return the description
 	 */
@@ -256,7 +267,7 @@ public class ControllerToControllerModelTranslator {
 
 	/**
 	 * Generates a response model that represents when an endpoint will be redirected
-	 * 
+	 *
 	 * @param description the description for the response.
 	 * @return a response model that represents a redirected response.
 	 */
@@ -266,15 +277,15 @@ public class ControllerToControllerModelTranslator {
 
 	/**
 	 * Generates a response model that represents an endpoint with a normal ResponseStatus
-	 * 
-	 * @param returnType the return type of the method
+	 *
+	 * @param returnType        the return type of the method
 	 * @param annotationToModel a mapping between annotations to models that represent them
-	 * @param description the description for the returned value
-	 * @param schemaMap a mapping that we will populate which contains id's and schemas which represent those id's
+	 * @param description       the description for the returned value
+	 * @param schemaMap         a mapping that we will populate which contains id's and schemas which represent those id's
 	 * @return a response model that represents th response
 	 */
 	ResponseModel generateResponseModel(TypeMirror returnType, Map<Class, Object> annotationToModel, String description,
-			Map<String, ObjectSchema> schemaMap) {
+										Map<String, ObjectSchema> schemaMap) {
 		if (!annotationToModel.containsKey(ResponseStatus.class)) {
 			throw new IllegalArgumentException("Missing response status in annotationToModel.");
 		}
@@ -288,23 +299,24 @@ public class ControllerToControllerModelTranslator {
 
 	/**
 	 * Determines if an endpoint is being redirected
-	 * 
+	 *
 	 * @param method the method in question
 	 * @return true if the method is being redirected, false otherwise
 	 */
 	boolean isRedirect(ExecutableElement method) {
 		boolean returnsVoid = method.getReturnType().getKind().equals(TypeKind.VOID);
 		boolean containsRedirectParam = containsRedirectParam(method.getParameters());
-		if (returnsVoid && !containsRedirectParam) {
-			throw new IllegalArgumentException(
-					"Method " + method.getSimpleName() + " returns void but does not redirect.");
-		}
+		// TODO: What about DELETE methods?
+//        if (returnsVoid && !containsRedirectParam) {
+//            throw new IllegalArgumentException(
+//                    "Method " + method.getSimpleName() + " returns void but does not redirect.");
+//        }
 		return returnsVoid && containsRedirectParam;
 	}
 
 	/**
 	 * Determines if the method contains the 'redirect' parameter
-	 * 
+	 *
 	 * @param params the parameters for the method in question
 	 * @return true if one of the method's parameters is a boolean called "redirect", false otherwise
 	 */
@@ -324,7 +336,7 @@ public class ControllerToControllerModelTranslator {
 	/**
 	 * Populates the schemaMap by adding ObjectSchema that are associated with the
 	 * className and type.
-	 * 
+	 *
 	 * @param className - the name of the class
 	 * @param type      - the type of the class
 	 * @param schemaMap - a mapping between class names and schemas that represent
@@ -335,6 +347,7 @@ public class ControllerToControllerModelTranslator {
 		ValidateArgument.required(type, "type");
 		ValidateArgument.required(schemaMap, "schemaMap");
 		// TODO: will need to detection for other wrapper classes, ex: Double...
+		// TODO: I duplicated this somewhere else .... - Nick
 		boolean isPrimitive = type.isPrimitive() || className.equals(String.class.getName()) || className.equals(Boolean.class.getName());
 		if (!isPrimitive) {
 			SchemaUtils.recursiveAddTypes(schemaMap, className, null);
@@ -351,20 +364,21 @@ public class ControllerToControllerModelTranslator {
 
 	/**
 	 * Get the path that this method represents.
-	 * 
+	 *
 	 * @param requestMapping - model of the RequestMapping annotation
 	 * @return the path that this method represents.
 	 */
 	String getMethodPath(RequestMappingModel requestMapping) {
 		ValidateArgument.required(requestMapping, "RequestMapping");
 		ValidateArgument.required(requestMapping.getPath(), "RequestMapping.path");
-		return requestMapping.getPath();
+		// Must remove regular expressions in any path variables
+		return requestMapping.getPath().replace(":.+", "");
 	}
 
 	/**
 	 * Constructs a map that maps an annotation class to a model that represents
 	 * that annotation.
-	 * 
+	 *
 	 * @param methodAnnotations - all of the annotation present on a method.
 	 * @return map of an annotation class to model for that annotation.
 	 */
@@ -384,7 +398,7 @@ public class ControllerToControllerModelTranslator {
 
 	/**
 	 * Constructs a model that represents the ResponseStatus annotation.
-	 * 
+	 *
 	 * @param annotation the annotation being looked at
 	 * @return a model that represents the ResponseStatus annotation.
 	 */
@@ -403,7 +417,7 @@ public class ControllerToControllerModelTranslator {
 
 	/**
 	 * Constructs a model that represents a RequestMapping annotation.
-	 * 
+	 *
 	 * @param annotation the annotation being looked at
 	 * @return a model that represents a RequestMapping annotation.
 	 */
@@ -425,34 +439,45 @@ public class ControllerToControllerModelTranslator {
 
 	/**
 	 * Get the HttpStatus of an endpoint
-	 * 
+	 *
 	 * @param object - the status
 	 * @return HttpStatus of an endpoint.
 	 */
 	int getHttpStatusCode(String object) {
 		HttpStatus status = HttpStatus.valueOf(object);
 		switch (status) {
-		case OK:
-			return HttpStatus.OK.value();
-		case CREATED:
-			return HttpStatus.CREATED.value();
-		default:
-			throw new IllegalArgumentException("Could not translate HttpStatus for status " + status);
+			case OK:
+				return HttpStatus.OK.value();
+			case CREATED:
+				return HttpStatus.CREATED.value();
+			case TEMPORARY_REDIRECT:
+				return HttpStatus.TEMPORARY_REDIRECT.value();
+			case NO_CONTENT:
+				return HttpStatus.NO_CONTENT.value();
+			case GONE:
+				return HttpStatus.GONE.value();
+			case ACCEPTED:
+				return HttpStatus.ACCEPTED.value();
+			default:
+				throw new IllegalArgumentException("Could not translate HttpStatus for status " + status);
 		}
 	}
 
 	/**
 	 * Constructs a model that represents the request body for a method.
-	 * 
+	 *
 	 * @param parameters             - the parameters of this method.
 	 * @param parameterToDescription - maps a parameter name to that parameters
 	 *                               description
 	 * @return optional that stores a model that represents the request body, or
-	 *         empty if a request body does not exist.
+	 * empty if a request body does not exist.
 	 */
 	Optional<RequestBodyModel> getRequestBody(List<? extends VariableElement> parameters,
-			Map<String, String> paramToDescription, Map<String, ObjectSchema> schemaMap) {
+											  Map<String, String> paramToDescription, Map<String, ObjectSchema> schemaMap) {
 		for (VariableElement param : parameters) {
+			if (PARAMETERS_ALLOWED_TO_BE_UNANNOTATED.contains(param.asType().toString())) {
+				continue;
+			}
 			String simpleAnnotationName = getSimpleAnnotationName(getParameterAnnotation(param));
 			if (RequestBody.class.getSimpleName().equals(simpleAnnotationName)) {
 				String paramName = param.getSimpleName().toString();
@@ -470,21 +495,31 @@ public class ControllerToControllerModelTranslator {
 	/**
 	 * Constructs a list representing all of the parameters for a method (excluding
 	 * parameter present in RequestBody).
-	 * 
+	 *
 	 * @param params                 - the parameters of the method.
 	 * @param parameterToDescription - maps a parameter name to a description of
 	 *                               that parameter.
 	 * @return a list that represents all parameters for a method.
 	 */
 	List<ParameterModel> getParameters(List<? extends VariableElement> params,
-			Map<String, String> parameterToDescription, Map<String, ObjectSchema> schemaMap) {
+									   Map<String, String> parameterToDescription, Map<String, ObjectSchema> schemaMap) {
 		List<ParameterModel> parameters = new ArrayList<>();
 		for (VariableElement param : params) {
+			if (PARAMETERS_ALLOWED_TO_BE_UNANNOTATED.contains(param.asType().toString())) {
+				continue;
+			}
 			ParameterLocation paramLocation = getParameterLocation(param);
 			if (paramLocation == null) {
 				continue;
 			}
 			String paramName = param.getSimpleName().toString();
+			if (ParameterLocation.path.equals(paramLocation)) {
+				// TODO: paramName should come from the annotation, not the variable name
+				paramName = param.getAnnotation(PathVariable.class).value();
+				if (StringUtils.isEmpty(paramName)) {
+					paramName = param.getSimpleName().toString();
+				}
+			}
 			String paramDescription = parameterToDescription.get(paramName);
 			TypeKind parameterType = param.asType().getKind();
 			String paramTypeClassName = param.asType().toString();
@@ -498,7 +533,7 @@ public class ControllerToControllerModelTranslator {
 	/**
 	 * Generates a ObjectSchema for a primitive type. Since "STRING" does not exist
 	 * in TypeKind, we will pass it in as "DECLARED" type.
-	 * 
+	 *
 	 * @param type - the primitive type we are translating
 	 * @return an ObjectSchema that represents the given type
 	 */
@@ -538,7 +573,7 @@ public class ControllerToControllerModelTranslator {
 
 	/**
 	 * Get the location of a parameter in the HTTP request.
-	 * 
+	 *
 	 * @param param - the parameter being looked at
 	 * @return location of a parameter, null if it is the RequestBody annotation.
 	 */
@@ -553,28 +588,33 @@ public class ControllerToControllerModelTranslator {
 		if (RequestBody.class.getSimpleName().equals(simpleAnnotationName)) {
 			return null;
 		}
+		if (RequestHeader.class.getSimpleName().equals(simpleAnnotationName)) {
+			return ParameterLocation.header;
+		}
 		throw new IllegalArgumentException("Unable to get parameter location with annotation " + simpleAnnotationName);
 	}
 
 	/**
 	 * Get the annotation for a parameter.
-	 * 
+	 *
 	 * @param param - the parameter being looked at
 	 * @return annotation for the parameter
 	 */
 	AnnotationMirror getParameterAnnotation(VariableElement param) {
 		ValidateArgument.required(param, "Param");
 		List<? extends AnnotationMirror> annotations = param.getAnnotationMirrors();
+
+
 		if (annotations.size() != 1) {
 			throw new IllegalArgumentException(
-					"Each method parameter should have one annotation, this one has " + annotations.size());
+					"Each method parameter should have one annotation, " + param.getSimpleName() + "(" + param.asType().toString() + ")" + " has " + annotations.size());
 		}
 		return annotations.get(0);
 	}
 
 	/**
 	 * Get the simple name for an annotation.
-	 * 
+	 *
 	 * @param annotation - the annotation being looked at
 	 * @return the simple name for the annotation.
 	 */
@@ -585,7 +625,7 @@ public class ControllerToControllerModelTranslator {
 	/**
 	 * Constructs a map that maps a parameter name to a description of that
 	 * parameter.
-	 * 
+	 *
 	 * @param blockTags - list of param/return comments on the method.
 	 * @return map that maps a parameter name to a description of that parameter.
 	 */
@@ -609,10 +649,10 @@ public class ControllerToControllerModelTranslator {
 
 	/**
 	 * Get the return comment for a method.
-	 * 
+	 *
 	 * @param blockTags - list of param/return comments on the method.
 	 * @return return optional containing comment for a method, or empty optional if
-	 *         there is none.
+	 * there is none.
 	 */
 	Optional<String> getReturnComment(List<? extends DocTree> blockTags) {
 		if (blockTags == null) {
@@ -632,10 +672,10 @@ public class ControllerToControllerModelTranslator {
 
 	/**
 	 * Gets an optional that contains the behavior/overall comment.
-	 * 
+	 *
 	 * @param fullBody - the body comment.
 	 * @return optional with the behavior/overall comment inside, or empty optional
-	 *         if no behavior comment found.
+	 * if no behavior comment found.
 	 */
 	Optional<String> getBehaviorComment(List<? extends DocTree> fullBody) {
 		if (fullBody == null || fullBody.isEmpty()) {

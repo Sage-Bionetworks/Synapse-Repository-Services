@@ -24,6 +24,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+/**
+ * Services for both users and groups (teams).
+ */
 @ControllerInfo(displayName="User &#38 Group Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)

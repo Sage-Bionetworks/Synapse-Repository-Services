@@ -28,6 +28,6 @@ public class ControllersToOpenAPIJsonTranslator {
 		List<ControllerModel> controllerModels = new ControllerToControllerModelTranslator().extractControllerModels(env, classNameToObjectSchema, reporter);
 		Map<String, JsonSchema> classNameToJsonSchema = objectSchemaUtils.getClassNameToJsonSchema(classNameToObjectSchema);
 
-		return new ControllerModelsToOpenAPIModelTranslator(classNameToJsonSchema).translate(controllerModels).generateJSON();
+		return new ControllerModelsToOpenAPIModelTranslator(classNameToJsonSchema).translate(controllerModels, reporter).generateJSON();
 	}
 }

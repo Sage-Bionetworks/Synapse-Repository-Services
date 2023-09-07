@@ -532,7 +532,7 @@ public class EvaluationController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	Submission getSubmission(
+	Submission getEvaluationSubmission(
 			@PathVariable String subId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws DatastoreException, UnauthorizedException, NotFoundException
@@ -575,7 +575,7 @@ public class EvaluationController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_STATUS, method = RequestMethod.GET)
 	public @ResponseBody
-	SubmissionStatus getSubmissionStatus(
+	SubmissionStatus getEvaluationSubmissionStatus(
 			@PathVariable String subId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, UnauthorizedException, NotFoundException
 	{
@@ -704,7 +704,7 @@ public class EvaluationController {
 	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_ID, method = RequestMethod.DELETE)
-	public void deleteSubmission(
+	public void deleteEvaluationSubmission(
 			@PathVariable String subId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, UnauthorizedException, NotFoundException
 	{

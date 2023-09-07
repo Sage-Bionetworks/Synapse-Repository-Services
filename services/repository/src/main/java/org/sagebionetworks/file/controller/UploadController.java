@@ -429,7 +429,7 @@ public class UploadController {
 	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE_S3, method = RequestMethod.POST)
-	public @ResponseBody S3FileHandle createExternalFileHandle(
+	public @ResponseBody S3FileHandle createExternalS3FileHandle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody S3FileHandle fileHandle) throws DatastoreException,
 			NotFoundException {
@@ -459,7 +459,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE_GOOGLE_CLOUD, method = RequestMethod.POST)
 	public @ResponseBody
-	GoogleCloudFileHandle createExternalFileHandle(
+	GoogleCloudFileHandle createExternalGoogleCloudFileHandle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody GoogleCloudFileHandle fileHandle) throws DatastoreException,
 			NotFoundException {
@@ -488,7 +488,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE_PROXY, method = RequestMethod.POST)
 	@Deprecated
-	public @ResponseBody ProxyFileHandle createExternalFileHandle(
+	public @ResponseBody ProxyFileHandle createExternalProxyFileHandle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody ProxyFileHandle fileHandle) throws DatastoreException,
 			NotFoundException {

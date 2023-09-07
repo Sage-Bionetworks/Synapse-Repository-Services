@@ -284,7 +284,7 @@ public class JsonSchemaController {
 	 */
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ID }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_TYPE_REG_ID}, method = RequestMethod.GET)
 	public @ResponseBody JsonSchema getJsonSchemaNoVersion(@PathVariable(required = true) String id) {
 		return serviceProvider.getSchemaServices().getSchema(id);
 	}
@@ -337,7 +337,7 @@ public class JsonSchemaController {
 	 */
 	@RequiredScope({ modify })
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = { UrlHelpers.JSON_SHCEMA_TYPE_REG_ID }, method = RequestMethod.DELETE)
+	@RequestMapping(value = { UrlHelpers.JSON_SCHEMA_TYPE_REG_ID}, method = RequestMethod.DELETE)
 	public void deleteSchemaAllVersions(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(required = true) String id) {
 		serviceProvider.getSchemaServices().deleteSchemaById(userId, id);

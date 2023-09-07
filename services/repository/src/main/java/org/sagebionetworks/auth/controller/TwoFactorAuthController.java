@@ -133,7 +133,7 @@ public class TwoFactorAuthController {
 	@RequiredScope({})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TWO_FA_TOKEN, method = RequestMethod.POST)
-	public @ResponseBody LoginResponse login(@RequestBody TwoFactorAuthLoginRequest request, UriComponentsBuilder uriComponentsBuilder) {
+	public @ResponseBody LoginResponse loginWith2FA(@RequestBody TwoFactorAuthLoginRequest request, UriComponentsBuilder uriComponentsBuilder) {
 		return service.loginWith2Fa(request, EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 	

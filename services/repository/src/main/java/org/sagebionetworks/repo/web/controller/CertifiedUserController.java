@@ -180,7 +180,7 @@ public class CertifiedUserController {
 	/**
 	 * Set a user's certification status.  For Synapse administrators only.
 	 * @param userId
-	 * @param principalId the ID of the user whose status is to be set.
+	 * @param id the ID of the user whose status is to be set.
 	 * @param isCertified true to set as certified or false to 'de-certify'
 	 * @throws NotFoundException
 	 */
@@ -189,10 +189,10 @@ public class CertifiedUserController {
 	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_STATUS, method = RequestMethod.PUT)
 	public void setUserCertificationStatus(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = ID_PATH_VARIABLE) Long principalId,
+			@PathVariable(value = ID_PATH_VARIABLE) Long id,
 			@RequestParam(value = AuthorizationConstants.IS_CERTIFIED) Boolean isCertified
 	) throws NotFoundException {
-		serviceProvider.getCertifiedUserService().setUserCertificationStatus(userId, principalId, isCertified);
+		serviceProvider.getCertifiedUserService().setUserCertificationStatus(userId, id, isCertified);
 	}
 
 }

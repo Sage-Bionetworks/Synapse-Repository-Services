@@ -64,7 +64,7 @@ public class DataAccessController {
 	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.RESEARCH_PROJECT, method = RequestMethod.POST)
-	public @ResponseBody ResearchProject createOrUpdate(
+	public @ResponseBody ResearchProject createOrUpdateResearchProject(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody ResearchProject toCreateOrUpdate) throws NotFoundException {
 		return serviceProvider.getDataAccessService().createOrUpdate(userId, toCreateOrUpdate);
@@ -100,7 +100,7 @@ public class DataAccessController {
 	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST, method = RequestMethod.POST)
-	public @ResponseBody RequestInterface createOrUpdate(
+	public @ResponseBody RequestInterface createOrUpdateDataAccessRequest(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody RequestInterface toCreate) throws NotFoundException {
 		return serviceProvider.getDataAccessService().createOrUpdate(userId, toCreate);
@@ -138,9 +138,10 @@ public class DataAccessController {
 	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SUBMISSION, method = RequestMethod.POST)
-	public @ResponseBody SubmissionStatus submit(
+	public @ResponseBody SubmissionStatus submitDataAccessRequest(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody CreateSubmissionRequest request)
+			@RequestBody CreateSubmissionRequest request,
+			@PathVariable String requestId)
 					throws NotFoundException {
 		return serviceProvider.getDataAccessService().submit(userId, request);
 	}
@@ -177,7 +178,8 @@ public class DataAccessController {
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID, method = RequestMethod.PUT)
 	public @ResponseBody Submission updateState(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody SubmissionStateChangeRequest request) throws NotFoundException {
+			@RequestBody SubmissionStateChangeRequest request,
+			@PathVariable(value = UrlHelpers.SUBMISSION_ID_PATH_VARIABLE) String submissionId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().updateState(userId, request);
 	}
 
@@ -198,7 +200,8 @@ public class DataAccessController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody SubmissionPage listSubmissions(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody SubmissionPageRequest submissionPageRequest) throws NotFoundException {
+			@RequestBody SubmissionPageRequest submissionPageRequest,
+			@PathVariable String requirementId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().listSubmissions(userId, submissionPageRequest);
 	}
 	
@@ -213,7 +216,7 @@ public class DataAccessController {
 	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID, method = RequestMethod.DELETE)
-	public void deleteSubmission(
+	public void deleteDataAccessSubmission(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String submissionId) throws NotFoundException {
 		serviceProvider.getDataAccessService().deleteSubmission(userId, submissionId);
@@ -234,7 +237,8 @@ public class DataAccessController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_APPROVED_SUBMISISON_INFO, method = RequestMethod.POST)
 	public @ResponseBody SubmissionInfoPage listInfoForApprovedSubmissions(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody SubmissionInfoPageRequest submissionInfoPageRequest) throws NotFoundException {
+			@RequestBody SubmissionInfoPageRequest submissionInfoPageRequest,
+			@PathVariable String requirementId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().listInfoForApprovedSubmissions(userId, submissionInfoPageRequest);
 	}
 
@@ -323,7 +327,7 @@ public class DataAccessController {
 	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID, method = RequestMethod.GET)
-	public @ResponseBody Submission getSubmission(
+	public @ResponseBody Submission getDataAccessSubmission(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String submissionId) {
 		return serviceProvider.getDataAccessService().getSubmission(userId, submissionId);

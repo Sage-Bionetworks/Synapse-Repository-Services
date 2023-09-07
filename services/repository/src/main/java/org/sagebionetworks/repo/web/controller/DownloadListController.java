@@ -200,7 +200,7 @@ public class DownloadListController {
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_QUERY_START_ASYNCH, method = RequestMethod.POST)
-	public @ResponseBody AsyncJobId queryAsyncStart(
+	public @ResponseBody AsyncJobId downloadListQueryAsyncStart(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody DownloadListQueryRequest request) {
 		ValidateArgument.required(request, "request");
@@ -225,7 +225,7 @@ public class DownloadListController {
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_QUERY_GET_ASYNCH, method = RequestMethod.GET)
-	public @ResponseBody DownloadListQueryResponse getBulkFileDownloadResults(
+	public @ResponseBody DownloadListQueryResponse getDownloadListAsyncJobResult(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
 			throws Throwable {
 		ValidateArgument.required(asyncToken, "asyncToken");
@@ -253,7 +253,7 @@ public class DownloadListController {
 	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_START_ASYNCH, method = RequestMethod.POST)
-	public @ResponseBody AsyncJobId startAddFileToDownloadList(
+	public @ResponseBody AsyncJobId startAddToDownloadList(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AddToDownloadListRequest request) throws DatastoreException, NotFoundException, IOException {
 		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
@@ -282,7 +282,7 @@ public class DownloadListController {
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_GET_ASYNCH, method = RequestMethod.GET)
-	public @ResponseBody AddToDownloadListResponse getAddFileToDownloadListResults(
+	public @ResponseBody AddToDownloadListResponse getAddToDownloadListResults(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
 			throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId,
