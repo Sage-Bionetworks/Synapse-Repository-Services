@@ -2017,10 +2017,15 @@ public class TableIndexDAOImplTest {
 		List<DatabaseColumnInfo> info = getAllColumnInfo(tableId, isTemp);
 		assertNotNull(info);
 		assertEquals(4, info.size());
+		DatabaseColumnInfo fetched = info.get(3);
+		// case changes between OS
+		if(fetched.getConstraintName() != null) {
+			fetched.setConstraintName(fetched.getConstraintName().toLowerCase());
+		}
 		DatabaseColumnInfo expected = new DatabaseColumnInfo().setColumnName("_C2_").setHasIndex(false)
 				.setColumnType(ColumnType.STRING_LIST).setType(MySqlColumnType.JSON).setCardinality(0L)
 				.setConstraintName("tempt123_chk_1");
-		assertEquals(expected, info.get(3));
+		assertEquals(expected, fetched);
 		
 		tableIndexDAO.deleteTemporaryTable(tableId);
 		assertEquals(Collections.emptyList(), getAllColumnInfo(tableId, isTemp));
