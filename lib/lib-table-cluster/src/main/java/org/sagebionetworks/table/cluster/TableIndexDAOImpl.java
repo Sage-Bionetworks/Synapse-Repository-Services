@@ -1562,4 +1562,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(sqlBuilder.toString());
 	}
 	
+	@Override
+	public Optional<String> getConstraintClause(String constraintName){
+		ValidateArgument.required(constraintName, "constraintName");
+		try {
+			return Optional.of(template.queryForObject(
+					"SELECT CHECK_CLAUSE FROM information_schema.CHECK_CONSTRAINTS WHERE CONSTRAINT_NAME = ?",
+					String.class, constraintName));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+	
 }

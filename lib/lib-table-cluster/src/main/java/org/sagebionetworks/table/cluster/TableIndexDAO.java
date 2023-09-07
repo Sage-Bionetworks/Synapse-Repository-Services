@@ -596,6 +596,14 @@ public interface TableIndexDAO {
 	 * @param sourceIndexId
 	 * @param targetIndexId
 	 */
-	void swapTableIndex(IdAndVersion sourceIndexId, IdAndVersion targetIndexId);	
+	void swapTableIndex(IdAndVersion sourceIndexId, IdAndVersion targetIndexId);
+	
+
+	/**
+	 * Get the constraint clause for the given constraint name.
+	 * @param constraintName
+	 * @return {@link Optional#empty()} if the constraint does not exist.
+	 */
+	Optional<String> getConstraintClause(String constraintName);
 	
 }

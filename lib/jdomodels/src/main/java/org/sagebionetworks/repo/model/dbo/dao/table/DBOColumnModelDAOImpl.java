@@ -270,15 +270,4 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		return results;
 	}
 
-	@Override
-	public Optional<String> getConstraintClause(String constraintName){
-		try {
-			return Optional.of(jdbcTemplate.queryForObject(
-					"SELECT CHECK_CLAUSE FROM information_schema.CHECK_CONSTRAINTS WHERE CONSTRAINT_NAME = ?",
-					String.class, constraintName));
-		} catch (EmptyResultDataAccessException e) {
-			return Optional.empty();
-		}
-	}
-
 }

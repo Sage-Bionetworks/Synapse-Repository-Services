@@ -522,6 +522,23 @@ public class SQLUtilsTest {
 		SQLUtils.appendDeleteColumn(builder, change);
 		assertEquals("DROP INDEX _C123_idx_, DROP COLUMN _C123_", builder.toString());
 	}
+	
+	@Test
+	public void testAppendDropColumnWithConstraint(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.INTEGER);
+		
+		DatabaseColumnInfo cmInfo = new DatabaseColumnInfo();
+		cmInfo.setIndexName("_C123_idx_");
+		cmInfo.setConstraintName("deleteMe");
+		
+		ColumnChangeDetails change = new ColumnChangeDetails(cm, cmInfo, null);
+		// call under test
+		SQLUtils.appendDeleteColumn(builder, change);
+		assertEquals("DROP CONSTRAINT `deleteMe`, DROP COLUMN _C123_", builder.toString());
+	}
 
 	@Test
 	public void testAppendAddDoubleEnum(){
@@ -712,6 +729,30 @@ public class SQLUtilsTest {
 		SQLUtils.appendUpdateColumn(builder, change, useDepricatedUtf8ThreeBytes);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
 				+ ", CHANGE COLUMN _DBL_C123_ _DBL_C456_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
+	}
+	
+	@Test
+	public void testAppendUpdateWithOldListAndNewList(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.INTEGER_LIST);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setConstraintName("deleteMe");
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.INTEGER_LIST);
+		newColumn.setMaximumSize(10L);
+		newColumn.setMaximumListLength(3L);
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
+		// call under test
+		SQLUtils.appendUpdateColumn(builder, change, useDepricatedUtf8ThreeBytes);
+		assertEquals("DROP CONSTRAINT `deleteMe`, CHANGE COLUMN _C123_ _C456_ JSON DEFAULT NULL COMMENT 'INTEGER_LIST'"
+				+ ", ADD CONSTRAINT CHECK (JSON_SCHEMA_VALID('"
+				+ "{ \"type\": \"array\", \"items\": { \"maxLength\": 10 }, \"maxItems\": 3 }', _C456_))", builder.toString());
 	}
 
 	@Test

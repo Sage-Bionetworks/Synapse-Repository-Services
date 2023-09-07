@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import org.sagebionetworks.repo.model.dao.table.ColumnNameProvider;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -25,6 +26,9 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 
 	@Autowired
 	private ColumnNameProvider columnNameProvider;
+	
+	@Autowired
+	private ConnectionFactory connectionFactory;
 
 	/**
 	 * Attempt to translate the given exception into a human readable error message.
@@ -58,7 +62,7 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 	String replaceConstraintNameWithConstraintClause(String message) {
 		Optional<String> constraintName = getConstraintViolationName(message);
 		if(constraintName.isPresent()) {
-			Optional<String> clause = columnNameProvider.getConstraintClause(constraintName.get());
+			Optional<String> clause = connectionFactory.getFirstConnection().getConstraintClause(constraintName.get());
 			if(clause.isPresent()) {
 				return message.replaceAll(constraintName.get(), clause.get());
 			}

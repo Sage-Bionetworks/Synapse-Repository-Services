@@ -124,7 +124,6 @@ public class TableIndexDAOImplTest {
 	private ObjectFieldTypeMapper fieldTypeMapper;
 	
 	private Long userId;
-	private boolean isTemp;
 	
 	@BeforeEach
 	public void before() {
@@ -162,7 +161,6 @@ public class TableIndexDAOImplTest {
 			}
 		};
 		subTypes = Set.of(SubType.file);
-		isTemp = false;
 	}
 
 	@AfterEach
@@ -181,10 +179,11 @@ public class TableIndexDAOImplTest {
 	 * @param tableId
 	 */
 	public boolean createOrUpdateTable(List<ColumnModel> newSchema, IndexDescription indexDescription){
-		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion(), isTemp);
+		boolean alterTemp = false;
+		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion(), alterTemp);
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
-		boolean alterTemp = false;
+
 		// Ensure all all updated columns actually exist.
 		changes = SQLUtils.matchChangesToCurrentInfo(currentSchema, changes);
 		boolean altered = tableIndexDAO.alterTableAsNeeded(indexDescription.getIdAndVersion(), changes, alterTemp);
@@ -1972,12 +1971,17 @@ public class TableIndexDAOImplTest {
 	 * @param tableId
 	 * @return
 	 */
-	public List<DatabaseColumnInfo> getAllColumnInfo(IdAndVersion tableId){
+	public List<DatabaseColumnInfo> getAllColumnInfo(IdAndVersion tableId, boolean isTemp){
 		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId, isTemp);
 		tableIndexDAO.provideCardinality(info, tableId);
 		tableIndexDAO.provideIndexInfo(info, tableId, isTemp);
 		tableIndexDAO.provideConstraintInfo(info, tableId, isTemp);
 		return info;
+	}
+	
+	public List<DatabaseColumnInfo> getAllColumnInfo(IdAndVersion tableId){
+		boolean isTemp = false;
+		return getAllColumnInfo(tableId, isTemp);
 	}
 	
 	/**
@@ -1993,10 +1997,33 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testGetDatabaseInfoEmpty(){
+		boolean isTemp = false;
 		// table does not exist
 		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId, isTemp);
 		assertNotNull(info);
 		assertTrue(info.isEmpty());
+	}
+	
+	@Test
+	public void testgetDatabaseInfoWithTemp() {
+		List<ColumnModel> schemaOne = List.of(TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING_LIST)
+				.setMaximumSize(3L).setMaximumListLength(4L));
+
+		createOrUpdateTable(schemaOne, indexDescription);
+		tableIndexDAO.deleteTemporaryTable(tableId);
+		tableIndexDAO.createTemporaryTable(tableId);
+		boolean isTemp = true;
+		// call under test
+		List<DatabaseColumnInfo> info = getAllColumnInfo(tableId, isTemp);
+		assertNotNull(info);
+		assertEquals(4, info.size());
+		DatabaseColumnInfo expected = new DatabaseColumnInfo().setColumnName("_C2_").setHasIndex(false)
+				.setColumnType(ColumnType.STRING_LIST).setType(MySqlColumnType.JSON).setCardinality(0L)
+				.setConstraintName("tempt123_chk_1");
+		assertEquals(expected, info.get(3));
+		
+		tableIndexDAO.deleteTemporaryTable(tableId);
+		assertEquals(Collections.emptyList(), getAllColumnInfo(tableId, isTemp));
 	}
 		
 	@Test
@@ -4664,6 +4691,7 @@ public class TableIndexDAOImplTest {
 			new ColumnChangeDetails(intColumn, doubleColumn)
 		);		
 		
+		boolean isTemp = false;
 		List<DatabaseColumnInfo> currentIndexSchema = tableIndexDAO.getDatabaseInfo(tableId, isTemp);
 		schemaChanges = SQLUtils.matchChangesToCurrentInfo(currentIndexSchema, schemaChanges);
 		
@@ -4804,7 +4832,7 @@ public class TableIndexDAOImplTest {
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, new IdRange().setMinimumId(100L).setMaximumId(200L).setVersionNumber(4L));
 		
 		createOrUpdateOrDeleteRows(sourceIndexDescription.getIdAndVersion(), set, schemaTwo);
-		
+		boolean isTemp = false;
 		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_DBL_C1_", "_C2_", "_C3_"), 
 			tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion(), isTemp).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
 		);
@@ -4894,5 +4922,40 @@ public class TableIndexDAOImplTest {
 		};
 	}
 	
+	@Test
+	public void testGetConstraintClause() {
+		List<ColumnModel> schemaOne = List.of(TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING_LIST)
+				.setMaximumSize(3L).setMaximumListLength(4L));
+
+		createOrUpdateTable(schemaOne, indexDescription);
+
+		List<DatabaseColumnInfo> info = getAllColumnInfo(tableId);
+		assertEquals(4, info.size());
+		String constraintName = info.get(3).getConstraintName();
+		assertNotNull(constraintName);
+		// call under test
+		assertEquals(
+				Optional.of("json_schema_valid(_utf8mb4\\'"
+						+ "{ \"type\": \"array\", \"items\": { \"maxLength\": 3 }, \"maxItems\": 4 }\\',`_C2_`)"),
+				tableIndexDAO.getConstraintClause(constraintName));
+
+	}
+	
+	@Test
+	public void testGetConstraintClauseWithNotFound() {
+		String constraintName = "doesNotExist";
+		// call under test
+		assertEquals(Optional.empty(), tableIndexDAO.getConstraintClause(constraintName));
+
+	}
+	
+	@Test
+	public void testGetConstraintClauseWithNull() {
+		String constraintName = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			tableIndexDAO.getConstraintClause(constraintName);
+		}).getMessage();
+		assertEquals("constraintName is required.", message);
+	}
 
 }

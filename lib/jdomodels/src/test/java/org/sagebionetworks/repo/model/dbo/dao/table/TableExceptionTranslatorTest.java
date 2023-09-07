@@ -17,12 +17,14 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dao.table.ColumnNameProvider;
+import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.UncategorizedSQLException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Sets;
 
@@ -31,7 +33,12 @@ public class TableExceptionTranslatorTest {
 
 	@Mock
 	private ColumnNameProvider mockColumnNameProvider;
+	@Mock
+	private ConnectionFactory mockConnectionFactory;
+	@Mock
+	private TableIndexDAO mockTableIndexDao;
 	
+	@InjectMocks
 	private TableExceptionTranslatorImpl translator;
 
 	private Map<Long, String> columnIdToNameMap;
@@ -41,8 +48,6 @@ public class TableExceptionTranslatorTest {
 	
 	@BeforeEach
 	public void before(){
-		translator = new TableExceptionTranslatorImpl();
-		ReflectionTestUtils.setField(translator, "columnNameProvider", mockColumnNameProvider);
 		columnIdToNameMap = new HashMap<>(2);
 		columnIdToNameMap.put(123L, "foo");
 		columnIdToNameMap.put(456L, "bar");
@@ -215,19 +220,23 @@ public class TableExceptionTranslatorTest {
 	@Test
 	public void testReplaceConstraintNameWithConstraintClause() {
 		String message = "Check constraint 'tempt9602648_chk_1' is violated.";
-		when(mockColumnNameProvider.getConstraintClause(any())).thenReturn(Optional.of("The actual constraint"));
+		when(mockConnectionFactory.getFirstConnection()).thenReturn(mockTableIndexDao);
+		when(mockTableIndexDao.getConstraintClause(any())).thenReturn(Optional.of("The actual constraint"));
 		// call under test
 		assertEquals("Check constraint 'The actual constraint' is violated.", translator.replaceConstraintNameWithConstraintClause(message));
-		verify(mockColumnNameProvider).getConstraintClause("tempt9602648_chk_1");
+		verify(mockConnectionFactory).getFirstConnection();
+		verify(mockTableIndexDao).getConstraintClause("tempt9602648_chk_1");
 	}
 	
 	@Test
 	public void testReplaceConstraintNameWithConstraintClauseWithEmpty() {
 		String message = "Check constraint 'tempt9602648_chk_1' is violated.";
-		when(mockColumnNameProvider.getConstraintClause(any())).thenReturn(Optional.empty());
+		when(mockConnectionFactory.getFirstConnection()).thenReturn(mockTableIndexDao);
+		when(mockTableIndexDao.getConstraintClause(any())).thenReturn(Optional.empty());
 		// call under test
 		assertEquals("Check constraint 'tempt9602648_chk_1' is violated.", translator.replaceConstraintNameWithConstraintClause(message));
-		verify(mockColumnNameProvider).getConstraintClause("tempt9602648_chk_1");
+		verify(mockConnectionFactory).getFirstConnection();
+		verify(mockTableIndexDao).getConstraintClause("tempt9602648_chk_1");
 	}
 	
 	@Test
@@ -236,14 +245,15 @@ public class TableExceptionTranslatorTest {
 		String sqlState = "HY000";
 		int vendorCode = 1366;
 		SQLException sqlException = new SQLException(reason, sqlState, vendorCode);
-		
-		when(mockColumnNameProvider.getConstraintClause(any())).thenReturn(Optional.of("json_schema_valid(_utf8mb4\\'{ \"type\": \"array\", \"items\": { \"maxLength\": 5 }, \"maxItems\": 100 }\\',`_C123_`)"));
+		when(mockConnectionFactory.getFirstConnection()).thenReturn(mockTableIndexDao);
+		when(mockTableIndexDao.getConstraintClause(any())).thenReturn(Optional.of("json_schema_valid(_utf8mb4\\'{ \"type\": \"array\", \"items\": { \"maxLength\": 5 }, \"maxItems\": 100 }\\',`_C123_`)"));
 		when(mockColumnNameProvider.getColumnNames(any())).thenReturn(columnIdToNameMap);
 		// call under test
 		Exception result = translator.translateException(sqlException);
 		assertEquals("Check constraint 'json_schema_valid(_utf8mb4'{ \"type\": \"array\", \"items\": { \"maxLength\": 5 }, \"maxItems\": 100 }',`foo`)' is violated.", result.getMessage());
 		
-		verify(mockColumnNameProvider).getConstraintClause("tempt9602648_chk_1");
+		verify(mockConnectionFactory).getFirstConnection();
+		verify(mockTableIndexDao).getConstraintClause("tempt9602648_chk_1");
 		verify(mockColumnNameProvider).getColumnNames(Set.of(123L));
 	}
 }
