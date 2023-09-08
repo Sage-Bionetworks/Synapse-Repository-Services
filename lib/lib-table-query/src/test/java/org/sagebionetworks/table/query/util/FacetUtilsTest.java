@@ -192,6 +192,6 @@ public class FacetUtilsTest {
 	public void testGetColumnNameExpressionWithJsonPath() {
 		String jsonPath = "$.a";
 		
-		assertEquals("JSON_EXTRACT(\"foo bar\",'$.a')", FacetUtils.getColumnNameExpression("foo bar", jsonPath));
+		assertEquals("JSON_UNQUOTE(JSON_EXTRACT(\"foo bar\",'$.a'))", FacetUtils.getColumnNameExpression("foo bar", jsonPath));
 	}
 }

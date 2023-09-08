@@ -303,6 +303,7 @@ TOKEN [IGNORE_CASE]: {
    | "JSON_OVERLAPS"
    | "JSON_SEARCH"
    | "JSON_QUOTE"
+   | "JSON_UNQUOTE"
   >
 }
 
