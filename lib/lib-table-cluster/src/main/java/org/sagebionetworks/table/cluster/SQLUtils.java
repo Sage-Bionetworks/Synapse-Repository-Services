@@ -11,8 +11,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REP
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.FILE_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAM_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.INDEX_NUM;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
@@ -46,6 +44,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -109,6 +108,8 @@ public class SQLUtils {
 	private static final String DOUBLE_NEGATIVE_INFINITY = Double.toString(Double.NEGATIVE_INFINITY);
 	private static final String DOUBLE_ENUM_CLAUSE = " ENUM ('" + DOUBLE_NAN + "', '" + DOUBLE_POSITIVE_INFINITY + "', '"
 			+ DOUBLE_NEGATIVE_INFINITY + "') DEFAULT null";
+	
+	public static Pattern COLUMN_NAME_PATTERN = Pattern.compile("_C(\\d)+_");
 
 	public enum TableIndexType {
 		/**
@@ -239,6 +240,20 @@ public class SQLUtils {
 	}
 	
 	/**
+	 * Get the index table name for the given ID.
+	 * @param id
+	 * @param isTemporaryTable When true, the name will be prefixed with 'TEMP'.
+	 * @return
+	 */
+	public static String getTableNameForId(IdAndVersion id, boolean isTemporaryTable) {
+		if(isTemporaryTable) {
+			return getTemporaryTableName(id);
+		}else {
+			return getTableNameForId(id, TableIndexType.INDEX);
+		}
+	}
+	
+	/**
 	 * Get the table alias for the given index.
 	 * @param tableIndex
 	 * @return
@@ -310,6 +325,18 @@ public class SQLUtils {
 		StringBuilder builder = new StringBuilder();
 		appendColumnNameForId(columnId, builder);
 		return builder.toString();
+	}
+	
+	/**
+	 * Attempt to match the first case of a column name pattern (_C#_) in the provided string.
+	 * 
+	 * @param checkClause
+	 * @return The first column name matched in the string. Returns {@link  Optional#empty() } when
+	 * no matches are found. 
+	 */
+	public static Optional<String> getFirstColumnNameMatch(String checkClause) {
+		return COLUMN_NAME_PATTERN.matcher(checkClause).results().findFirst()
+				.map(m -> checkClause.substring(m.start(), m.end()));
 	}
 
 	/**
@@ -740,34 +767,6 @@ public class SQLUtils {
 			return Arrays.asList(sql);
 		}
 	}
-	
-	public static String createAlterListColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp){
-		String tableName = getTableNameForMultiValueColumnIndex(tableId, oldColumnId.toString(), alterTemp);
-		String oldColumnName = getUnnestedColumnNameForId(oldColumnId.toString());
-
-		String newColumnName = getUnnestedColumnNameForId(newColumn.getId());
-		String newColumnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(newColumn.getColumnType()))
-				.toSql(newColumn.getMaximumSize(), null, false);
-
-		String newTableName = getTableNameForMultiValueColumnIndex(tableId, newColumn.getId(), alterTemp);
-
-		String oldRowRefName = getRowIdRefColumnNameForId(oldColumnId.toString());
-		String newRowRefName = getRowIdRefColumnNameForId(newColumn.getId());
-		String parentTableName = alterTemp ? getTemporaryTableName(tableId) : getTableNameForId(tableId, TableIndexType.INDEX);
-
-		return  "ALTER TABLE " + tableName +
-				" DROP INDEX " + oldColumnName + "_IDX," +
-
-				//modify the row_id column which references the main table's row_ids
-				" DROP FOREIGN KEY " + getMultiValueIndexTableForeignKeyConstraintName(tableName) + "," +
-				" RENAME COLUMN " + oldRowRefName + " TO " + newRowRefName + "," +
-				" ADD " + getMultiValueIndexTableForeignKeyConstraint(parentTableName,newTableName,newRowRefName)+
-
-				", CHANGE COLUMN " + oldColumnName +  " " + newColumnName + " "+ newColumnTypeSql + "," +
-				" ADD INDEX " + newColumnName + "_IDX ("+newColumnName+" ASC)," +
-
-				" RENAME " + newTableName;
-	}
 
 	/**
 		 * Alter a single column for a given column change.
@@ -815,13 +814,28 @@ public class SQLUtils {
 	 */
 	public static void appendAddColumn(StringBuilder builder,
 			ColumnModel newColumn, boolean useDepricatedUtf8ThreeBytes) {
-		ValidateArgument.required(newColumn, "newColumn");
 		builder.append("ADD COLUMN ");
 		appendColumnDefinition(builder, newColumn, useDepricatedUtf8ThreeBytes);
 		// doubles use two columns.
 		if(ColumnType.DOUBLE.equals(newColumn.getColumnType())){
 			appendAddDoubleEnum(builder, newColumn.getId());
 		}
+		if (ColumnTypeListMappings.isList(newColumn.getColumnType())) {
+			addListValidationConstraint(builder, newColumn);
+		}
+	}
+
+	/**
+	 * Add a JSON schema validation constraint to a list column.
+	 * @param builder
+	 * @param newColumn
+	 */
+	static void addListValidationConstraint(StringBuilder builder, ColumnModel newColumn) {
+		builder.append(String.format(
+				", ADD CONSTRAINT CHECK (JSON_SCHEMA_VALID("
+				+ "'{ \"type\": \"array\", \"items\": { \"maxLength\": %d }, \"maxItems\": %d }', %s))",
+				newColumn.getMaximumSize(), newColumn.getMaximumListLength(),
+				SQLUtils.getColumnNameForId(newColumn.getId())));
 	}
 	
 	/**
@@ -838,6 +852,11 @@ public class SQLUtils {
 		// (See https://sagebionetworks.jira.com/browse/PLFM-7999)
 		if (change.getOldColumnInfo().hasIndex()) {
 			appendDropIndex(builder, change.getOldColumnInfo());
+			builder.append(", ");
+		}
+		
+		if(change.getOldColumnInfo().getConstraintName() != null) {
+			appendDropConstraint(builder, change.getOldColumnInfo().getConstraintName());
 			builder.append(", ");
 		}
 		
@@ -869,6 +888,12 @@ public class SQLUtils {
 			appendDropIndex(builder, change.getOldColumnInfo());	
 			builder.append(", ");
 		}
+		
+		if(change.getOldColumnInfo().getConstraintName() != null) {
+			appendDropConstraint(builder, change.getOldColumnInfo().getConstraintName());
+			builder.append(", ");
+		}
+		
 		builder.append("CHANGE COLUMN ");
 		appendColumnNameForId(change.getOldColumn().getId(), builder);
 		builder.append(" ");
@@ -887,6 +912,10 @@ public class SQLUtils {
 		if(ColumnType.DOUBLE.equals(change.getOldColumn().getColumnType())
 				&& ColumnType.DOUBLE.equals(change.getNewColumn().getColumnType())){
 			appendRenameDoubleEnum(builder, change.getOldColumn().getId(), change.getNewColumn().getId());
+		}
+		
+		if (ColumnTypeListMappings.isList(change.getNewColumn().getColumnType())) {
+			addListValidationConstraint(builder, change.getNewColumn());
 		}
 	}
 	
@@ -1156,6 +1185,12 @@ public class SQLUtils {
 		return builder.toString();
 	}
 	
+	private static void appendDropConstraint(StringBuilder builder, String constraintName){
+		builder.append("DROP CONSTRAINT `");
+		builder.append(constraintName);	
+		builder.append("`");
+	}
+	
 	private static void appendDropIndex(StringBuilder builder, DatabaseColumnInfo info){
 		builder.append("DROP INDEX ");
 		builder.append(info.getIndexName());	
@@ -1275,13 +1310,6 @@ public class SQLUtils {
 		}
 	}
 
-	static long getColumnIdFromMultivalueColumnIndexTableName(IdAndVersion tableId, String indexTableName){
-		ValidateArgument.required(tableId, "tableId");
-		ValidateArgument.requiredNotEmpty(indexTableName, "columnName");
-		boolean alterTemp = false;
-		return getColumnId(indexTableName.substring(getTableNamePrefixForMultiValueColumns(tableId, alterTemp).length()));
-	}
-
 	/**
 	 * The name of the temporary table for the given table Id.
 	 * 
@@ -1336,37 +1364,6 @@ public class SQLUtils {
 		return String.format(DROP_TABLE_IF_EXISTS, tempName);
 	}
 
-
-	/**
-	 * Create the SQL used to create a temporary multivalue column index table
-	 * @param tableId
-	 * @return
-	 */
-	public static String[] createTempMultiValueColumnIndexTableSql(IdAndVersion tableId, String columnId) {
-		String tableName = getTableNameForMultiValueColumnIndex(tableId, columnId, false);
-		String tempName = getTableNameForMultiValueColumnIndex(tableId, columnId, true);
-		String tempParentTable = getTemporaryTableName(tableId);
-		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableId, columnId, true);
-		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnId);
-
-		return new String[]{String.format(CREATE_TABLE_LIKE, tempName, tableName),
-				// foreign keys are not copied over so we manually add it
-				"ALTER TABLE " + tempName +
-				" ADD " + getMultiValueIndexTableForeignKeyConstraint(tempParentTable, columnIndexTableName, rowIdRefColumnName)};
-	}
-
-	/**
-	 * Create the SQL used to copy all of the data from a table to the temp table.
-	 *
-	 * @param tableId
-	 * @return
-	 */
-	public static String copyMultiValueColumnIndexTableToTempSql(IdAndVersion tableId, String columnId){
-		String tableName = getTableNameForMultiValueColumnIndex(tableId, columnId, false);
-		String tempName = getTableNameForMultiValueColumnIndex(tableId, columnId, true);
-		return String.format(SQL_COPY_TABLE_TO_TEMP, tempName, tableName);
-	}
-	
 	/**
 	 * Translate form ColumnType to AnnotationType;
 	 * @param type
@@ -1946,74 +1943,6 @@ public class SQLUtils {
 			}
 		}
 		return rowSize;
-	}
-
-
-	static String createListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnModel, boolean alterTemp){
-		ValidateArgument.required(tableIdAndVersion, "tableIdAndVersion");
-		ValidateArgument.required(columnModel, "columnModel");
-		ValidateArgument.requirement(ColumnTypeListMappings.isList(columnModel.getColumnType()), "columnModel's type must be a LIST type");
-
-		String parentTable = alterTemp ? getTemporaryTableName(tableIdAndVersion) : getTableNameForId(tableIdAndVersion, TableIndexType.INDEX);
-		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnModel.getId(), alterTemp);
-		String columnName = getUnnestedColumnNameForId(columnModel.getId());
-		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnModel.getId());
-		String columnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnModel.getColumnType())).toSql(columnModel.getMaximumSize(), null, false);
-		return "CREATE TABLE IF NOT EXISTS " + columnIndexTableName + " (" +
-				rowIdRefColumnName + " BIGINT NOT NULL, " +
-				INDEX_NUM + " BIGINT NOT NULL, " + //index of value in its list
-				columnName + " " + columnTypeSql + ", " +
-				"PRIMARY KEY (" + rowIdRefColumnName + ", " + INDEX_NUM + "), " +
-				"INDEX " + columnName + "_IDX (" + columnName + " ASC), " +
-				getMultiValueIndexTableForeignKeyConstraint(parentTable, columnIndexTableName, rowIdRefColumnName) +
-				");";
-	}
-
-	private static String getMultiValueIndexTableForeignKeyConstraint(String parentTable, String columnIndexTableName, String rowIdRefColumnName) {
-		return "CONSTRAINT " + getMultiValueIndexTableForeignKeyConstraintName(columnIndexTableName) + " FOREIGN KEY (" + rowIdRefColumnName + ") REFERENCES " + parentTable + "(" + ROW_ID + ") ON DELETE CASCADE";
-	}
-	
-	static String getMultiValueIndexTableForeignKeyConstraintName(String columnIndexTableName) {
-		// Note: the pattern tableName + _ibfk_ is important so that when renaming the table the FK is renamed automatically (See https://dev.mysql.com/doc/refman/8.0/en/rename-table.html)
-		return columnIndexTableName + "_ibfk_FK";
-	}
-
-	/**
-	 * 
-	 * @param tableIdAndVersion
-	 * @param columnInfo
-	 * @param filterRows When true a where clause to filter by ROW_ID will be included.
-	 * @param alterTemp
-	 * @return
-	 */
-	public static String insertIntoListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo, boolean filterRows, boolean alterTemp){
-		String columnName = getColumnNameForId(columnInfo.getId());
-		String unnestedColumnName = getUnnestedColumnNameForId(columnInfo.getId());
-
-		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnInfo.getId());
-		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId(), alterTemp);
-		String tableName = alterTemp ? getTemporaryTableName(tableIdAndVersion) : getTableNameForId(tableIdAndVersion, TableIndexType.INDEX);
-		MySqlColumnType mySqlColumnType = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).getMySqlType();
-
-		String columnExpandTypeSQl =  mySqlColumnType.name() + (mySqlColumnType.hasSize() && columnInfo.getMaximumSize() != null ? "("  + columnInfo.getMaximumSize() + ")" : "");
-		String rowFilter = "";
-		if(filterRows) {
-			rowFilter = " WHERE "+tableName+"."+ROW_ID+" IN (:"+ID_PARAM_NAME+")";
-		}
-
-		
-		return "INSERT INTO " + columnIndexTableName + " (" + rowIdRefColumnName + "," + INDEX_NUM + ","+ unnestedColumnName +") " +
-				"SELECT " + ROW_ID + " ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
-				" FROM "+ tableName + ", JSON_TABLE(" +
-				columnName +
-				", '$[*]'" +
-				" COLUMNS (" +
-				" ORDINAL FOR ORDINALITY, " +
-				// "error on error" ensures that data will not be replicated if varchar() size is too small to fit the values
-				// see PLFM-6690
-				" COLUMN_EXPAND " + columnExpandTypeSQl + " PATH '$' ERROR ON ERROR" +
-				" )" +
-				") TEMP_JSON_TABLE"+rowFilter;
 	}
 	
 	/**

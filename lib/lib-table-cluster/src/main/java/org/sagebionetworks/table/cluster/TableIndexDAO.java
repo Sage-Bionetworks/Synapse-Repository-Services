@@ -241,51 +241,6 @@ public interface TableIndexDAO {
 	Set<Long> getDistinctLongValues(IdAndVersion tableId, String columnIds);
 
 	/**
-	 * Get list of Column ids for existing index tables a multi-value column in the
-	 * provided tableId 
-	 * <p>Note: This call is expensive and should only be executed if
-	 * it has already been determined that an index change is needed, by calling
-	 * {@link #doesIndexHashMatchSchemaHash(IdAndVersion, List)}.
-	 * See: PLFM-7458
-	 * </p>
-	 * 
-	 * @param tableId
-	 * @return
-	 */
-	Set<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId);
-
-	/**
-	 * Creates an index table for the multi-value column described in the
-	 * columnModel.
-	 * 
-	 * @param tableId
-	 * @param columnModel
-	 * @param alterTemp
-	 */
-	void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel, boolean alterTemp);
-
-	/**
-	 * Drop the multi-value column index table associated with the table id and
-	 * column id
-	 * 
-	 * @param tableId
-	 * @param columnId
-	 * @param alterTemp
-	 */
-	void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId, boolean alterTemp);
-
-	/**
-	 * Drop the multi-value column index table associated with the table id and
-	 * column id
-	 * 
-	 * @param columnId
-	 * @param tableId
-	 * @param alterTemp
-	 */
-	void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn,
-			boolean alterTemp);
-
-	/**
 	 * Truncate all of the data in the given table.
 	 * 
 	 * @param tableId
@@ -296,9 +251,10 @@ public interface TableIndexDAO {
 	 * Get information about each column of a database table.
 	 * 
 	 * @param tableId
+	 * @param isTemporaryTable Is this a temporary table?
 	 * @return
 	 */
-	List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId);
+	List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId, boolean isTemporaryTable);
 	
 	/**
 	 * Provide the cardinality for the given columns and table.
@@ -317,7 +273,15 @@ public interface TableIndexDAO {
 	 * @param list
 	 * @param tableId
 	 */
-	void provideIndexInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId);
+	void provideIndexInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId, boolean isTemporaryTable);
+	
+	/**
+	 * Provide constraint information for each column of the given tableId.
+	 * 
+	 * @param list The constraint information will be added to each provided {@link DatabaseColumnInfo}.
+	 * @param tableId
+	 */
+	void provideConstraintInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId, boolean isTemporaryTable);
 
 	/**
 	 * The provided column data is used to optimize the indices on the given table.
@@ -333,27 +297,6 @@ public interface TableIndexDAO {
 	 *                         table.
 	 */
 	void optimizeTableIndices(List<DatabaseColumnInfo> list, IdAndVersion tableId, int maxNumberOfIndex);
-
-	/**
-	 * Populate the separate index table for the given list column.
-	 * 
-	 * @param tableId
-	 * @param listColumn
-	 * @param rowIds     Optional. When included, only rows with the given IDs will
-	 *                   be populated.
-	 * @param alterTemp
-	 */
-	void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds,
-			boolean alterTemp);
-
-	/**
-	 * Delete rows from an a specific list column's index table.
-	 * 
-	 * @param tableId
-	 * @param listColumn
-	 * @param rowIds
-	 */
-	void deleteFromListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds);
 
 	/**
 	 * Create a temporary table like the given table.
@@ -381,35 +324,6 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	long getTempTableCount(IdAndVersion tableId);
-
-	/**
-	 * Create a temporary multivalue column index table like the given table.
-	 * 
-	 * @param tableId
-	 */
-	void createTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId);
-
-	/**
-	 * Copy all of the data from the original multivalue column index table to the
-	 * temporary table.
-	 * 
-	 * @param tableId
-	 */
-	void copyAllDataToTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId);
-
-	/**
-	 * Delete all of the temporary multivalue column index table associated with the
-	 * given table.
-	 */
-	void deleteAllTemporaryMultiValueColumnIndexTable(IdAndVersion tableId);
-
-	/**
-	 * Count the rows in the temp multi value index table.
-	 * 
-	 * @param tableId
-	 * @return
-	 */
-	long getTempTableMultiValueColumnIndexCount(IdAndVersion tableId, String columnName);
 
 	/**
 	 * Create the entity replication tables if they do not exist.
@@ -682,6 +596,14 @@ public interface TableIndexDAO {
 	 * @param sourceIndexId
 	 * @param targetIndexId
 	 */
-	void swapTableIndex(IdAndVersion sourceIndexId, IdAndVersion targetIndexId);	
+	void swapTableIndex(IdAndVersion sourceIndexId, IdAndVersion targetIndexId);
+	
+
+	/**
+	 * Get the constraint clause for the given constraint name.
+	 * @param constraintName
+	 * @return {@link Optional#empty()} if the constraint does not exist.
+	 */
+	Optional<String> getConstraintClause(String constraintName);
 	
 }
