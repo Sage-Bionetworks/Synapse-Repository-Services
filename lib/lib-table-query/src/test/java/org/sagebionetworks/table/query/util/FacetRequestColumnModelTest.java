@@ -118,7 +118,7 @@ public class FacetRequestColumnModelTest {
 		assertEquals("$.bar", result.getJsonPath());
 		assertEquals(FacetType.enumeration, result.getFacetType());
 		assertEquals("someColumn", result.getColumnName());
-		assertEquals("(JSON_EXTRACT(\"someColumn\",'$.bar')=CAST('10' AS INTEGER))", result.getSearchConditionString());
+		assertEquals("(JSON_UNQUOTE(JSON_EXTRACT(\"someColumn\",'$.bar'))=CAST('10' AS INTEGER))", result.getSearchConditionString());
 	}
 	
 	@Test
@@ -352,7 +352,7 @@ public class FacetRequestColumnModelTest {
 		facetValues.setFacetValues(Set.of(value));
 		facetValues.setJsonPath("$.foo");
 		String searchConditionString = FacetRequestColumnModel.createSingleValueColumnEnumerationSearchCondition(facetValues, null);
-		assertEquals("(JSON_EXTRACT(\"someColumn\",'$.foo')='hello world')", searchConditionString);
+		assertEquals("(JSON_UNQUOTE(JSON_EXTRACT(\"someColumn\",'$.foo'))='hello world')", searchConditionString);
 	}
 	
 	@Test
@@ -361,7 +361,7 @@ public class FacetRequestColumnModelTest {
 		facetValues.setFacetValues(Set.of(value));
 		facetValues.setJsonPath("$.foo");
 		String searchConditionString = FacetRequestColumnModel.createSingleValueColumnEnumerationSearchCondition(facetValues, ColumnType.STRING);
-		assertEquals("(JSON_EXTRACT(\"someColumn\",'$.foo')=CAST('hello world' AS STRING))", searchConditionString);
+		assertEquals("(JSON_UNQUOTE(JSON_EXTRACT(\"someColumn\",'$.foo'))=CAST('hello world' AS STRING))", searchConditionString);
 	}
 
 	@Test
@@ -530,7 +530,7 @@ public class FacetRequestColumnModelTest {
 		facetRange.setMin(min);
 		facetRange.setMax(max);
 		String searchConditionString = FacetRequestColumnModel.createRangeSearchCondition(facetRange, null);
-		assertEquals("(JSON_EXTRACT(\"someColumn\",'$.foo') BETWEEN '123' AND '456')", searchConditionString);
+		assertEquals("(JSON_UNQUOTE(JSON_EXTRACT(\"someColumn\",'$.foo')) BETWEEN '123' AND '456')", searchConditionString);
 	}
 	
 	@Test
@@ -541,7 +541,7 @@ public class FacetRequestColumnModelTest {
 		facetRange.setMin(min);
 		facetRange.setMax(max);
 		String searchConditionString = FacetRequestColumnModel.createRangeSearchCondition(facetRange, ColumnType.INTEGER);
-		assertEquals("(JSON_EXTRACT(\"someColumn\",'$.foo') BETWEEN CAST('123' AS INTEGER) AND CAST('456' AS INTEGER))", searchConditionString);
+		assertEquals("(JSON_UNQUOTE(JSON_EXTRACT(\"someColumn\",'$.foo')) BETWEEN CAST('123' AS INTEGER) AND CAST('456' AS INTEGER))", searchConditionString);
 	}
 
 	//////////////////////////////////////
