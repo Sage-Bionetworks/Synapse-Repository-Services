@@ -275,6 +275,13 @@ public class MySqlFunctionTest {
 		assertEquals("JSON_QUOTE('one')", element.toSql());
 		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
 	}
+	
+	@Test
+	public void testJsonUnquote() throws ParseException {
+		MySqlFunction element = new TableQueryParser("JSON_UNQUOTE('one')").mysqlFunction();
+		assertEquals("JSON_UNQUOTE('one')", element.toSql());
+		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
+	}
 
 	@Test
 	public void testGetChildren() throws ParseException {

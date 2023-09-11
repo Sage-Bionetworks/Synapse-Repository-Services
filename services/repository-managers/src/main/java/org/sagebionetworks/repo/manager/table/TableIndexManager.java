@@ -122,23 +122,6 @@ public interface TableIndexManager {
 	void optimizeTableIndices(IdAndVersion tableId);
 
 	/**
-	 * For _LIST type columns, create a separate table as an index for the multiple
-	 * values in that table
-	 * 
-	 * @param tableIdAndVersion
-	 * @param schemas
-	 */
-	void populateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> schemas);
-
-	/**
-	 * 
-	 * @param tableIdAndVersion
-	 * @param schema
-	 * @param rowIds
-	 */
-	void populateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> schema, Set<Long> rowIds);
-
-	/**
 	 * Create a temporary copy of the table's index table.
 	 *
 	 */

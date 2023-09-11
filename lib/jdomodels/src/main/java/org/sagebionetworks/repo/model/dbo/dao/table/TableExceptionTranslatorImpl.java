@@ -2,12 +2,14 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import org.sagebionetworks.repo.model.dao.table.ColumnNameProvider;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -18,9 +20,15 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 	private static Pattern PATTERN_COLUMM_ID = Pattern
 			.compile(SQLUtils.COLUMN_PREFIX + "[0-9]+" + SQLUtils.COLUMN_POSTFIX);
 	private static String UNKNOWN_COLUMN_MESSAGE = "Unknown column";
+	
+	private static final String CHECK_CONSTRAINT_SUFFIX = "' is violated.";
+	private static final String CHECK_CONSTRAINT_PREFIX = "Check constraint '";
 
 	@Autowired
-	ColumnNameProvider columnNameProvider;
+	private ColumnNameProvider columnNameProvider;
+	
+	@Autowired
+	private ConnectionFactory connectionFactory;
 
 	/**
 	 * Attempt to translate the given exception into a human readable error message.
@@ -36,8 +44,8 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 		SQLException sqlException = findSQLException(exception);
 		if (sqlException != null) {
 			// found a SQLException so we can translate it.
-			String originalMessage = sqlException.getMessage();
-			String newMessage = replaceColumnIdsAndTableNames(originalMessage);
+			String newMessage = replaceConstraintNameWithConstraintClause(sqlException.getMessage());
+			newMessage = replaceColumnIdsAndTableNames(newMessage);
 			newMessage = appendUnquotedKeyWordMessage(newMessage);
 			return new IllegalArgumentException(newMessage, exception);
 		} else if (exception instanceof RuntimeException) {
@@ -48,6 +56,18 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 			// RuntimeException
 			return new RuntimeException(exception);
 		}
+	}
+	
+	
+	String replaceConstraintNameWithConstraintClause(String message) {
+		Optional<String> constraintName = getConstraintViolationName(message);
+		if(constraintName.isPresent()) {
+			Optional<String> clause = connectionFactory.getFirstConnection().getConstraintClause(constraintName.get());
+			if(clause.isPresent()) {
+				return message.replaceAll(constraintName.get(), clause.get());
+			}
+		}
+		return message;
 	}
 
 	/**
@@ -164,5 +184,22 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 			return input + TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE;
 		}
 		return input;
+	}
+	
+	/**
+	 * Extract the constraint name from a raw error message
+	 * @param rawMessage
+	 * @return
+	 */
+	public static Optional<String> getConstraintViolationName(String rawMessage){
+		int start = rawMessage.indexOf(CHECK_CONSTRAINT_PREFIX);
+		if(start > -1) {
+			start += CHECK_CONSTRAINT_PREFIX.length();
+			int end = rawMessage.indexOf(CHECK_CONSTRAINT_SUFFIX);
+			if(end > 0) {
+				return Optional.of(rawMessage.substring(start, end));
+			}
+		}
+		return Optional.empty();
 	}
 }

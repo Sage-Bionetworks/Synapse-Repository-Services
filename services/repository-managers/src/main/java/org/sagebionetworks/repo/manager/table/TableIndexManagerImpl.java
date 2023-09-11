@@ -1,22 +1,18 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.table.change.ListColumnIndexTableChange;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
@@ -59,7 +55,6 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
-import org.sagebionetworks.table.model.ListColumnRowChanges;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -155,12 +150,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				if (!fileHandleIds.isEmpty()) {
 					tableIndexDao.applyFileHandleIdsToTable(tableId, fileHandleIds);
 				}
-				boolean alterTemp = false;
-				//once all changes to main table are applied, populate the list-type columns with the changes.
-				for(ListColumnRowChanges listColumnChange : rowset.groupListColumnChanges()){
-					tableIndexDao.deleteFromListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
-					tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds(), alterTemp);
-				}
+
 				// Once the values are added or updated we check if the search column needs to be populated
 				if (isSearchEnabled) {
 					// We only consider the column that match the given type filter
@@ -197,17 +187,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			return Collections.emptyList();
 		}
 		// Lookup the current schema of the index
-		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(indexDescription.getIdAndVersion());
+		boolean isTemporaryTable = false;
+		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(indexDescription.getIdAndVersion(), isTemporaryTable);
 		// create a change that replaces the old schema as needed.
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		
 		updateTableSchema(indexDescription, changes);
 
-		//apply changes to multi-value column indexes
-		Set<Long> existingListColumnIndexTableNames = tableIndexDao.getMultivalueColumnIndexTableColumnIds(indexDescription.getIdAndVersion());
-		List<ListColumnIndexTableChange> listColumnIndexTableChanges = listColumnIndexTableChangesFromExpectedSchema(newSchema, existingListColumnIndexTableNames);
-		boolean alterTemp = false;
-		applyListColumnIndexTableChanges(indexDescription.getIdAndVersion(), listColumnIndexTableChanges, alterTemp);
 		return changes;
 	}
 
@@ -225,108 +211,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public void setSearchEnabled(IdAndVersion tableId, boolean searchEnabled) {
 		tableIndexDao.setSearchEnabled(tableId, searchEnabled);
-	}
-
-	/**
-	 * Given the expected schema, figure out changes that need to be applied to list column index tables.
-	 * NOTE: !!!!!!!This should ONLY BE USED for reconciling schema before RowSet changes!!!!!!!!
-	 *       ONLY additions and deletions will be. RENAMES and TYPE CHANGES can NOT BE HANDLED by this.
-	 *       USE {@link #listColumnIndexTableChangesFromChangeDetails(List, Set)}
-	 *       for SCHEMA-ONLY changes
-	 * @param expectedSchema
-	 * @return
-	 */
-	static List<ListColumnIndexTableChange> listColumnIndexTableChangesFromExpectedSchema(List<ColumnModel> expectedSchema, Set<Long> existingListIndexColumns){
-		ValidateArgument.required(expectedSchema, "expectedSchema");
-		ValidateArgument.required(existingListIndexColumns, "existingMultiValueIndexColumns");
-
-		Map<Long,ColumnModel> listsColumnsOnly = expectedSchema.stream()
-				.filter((columnModel) ->ColumnTypeListMappings.isList(columnModel.getColumnType()))
-				.collect(Collectors.toMap((ColumnModel cm) -> Long.parseLong(cm.getId()), Function.identity()));
-
-		List<ListColumnIndexTableChange> result = new ArrayList<>();
-
-		for(ColumnModel columnModel : listsColumnsOnly.values()){
-			long columnModelId = Long.parseLong(columnModel.getId());
-			if(existingListIndexColumns.contains(columnModelId)){
-				//index table already exists so skip
-				continue;
-			}
-
-			//otherwise, we need to create a new column index for this
-			result.add(ListColumnIndexTableChange.newAddition(columnModel));
-		}
-
-		for(Long existingIndexTableColumnId : existingListIndexColumns){
-			if(listsColumnsOnly.containsKey(existingIndexTableColumnId)){
-				//no deletion necessary for existing table
-				continue;
-			}
-			result.add(ListColumnIndexTableChange.newRemoval(existingIndexTableColumnId));
-		}
-
-		return result;
-	}
-
-	/**
-	 * Determine changes that need to be made to a column given the column change set and the existing set of tables for a table's list columns
-	 * @param changes
-	 * @param existingListIndexColumns
-	 * @return
-	 */
-	static List<ListColumnIndexTableChange> listColumnIndexTableChangesFromChangeDetails(List<ColumnChangeDetails> changes, Set<Long> existingListIndexColumns){
-		ValidateArgument.required(changes, "changes");
-		ValidateArgument.required(existingListIndexColumns, "existingListIndexColumns");
-
-		List<ListColumnIndexTableChange> result = new ArrayList<>();
-
-		for(ColumnChangeDetails changeDetails : changes){
-			ColumnModel oldColumn = changeDetails.getOldColumn();
-			ColumnModel newColumn = changeDetails.getNewColumn();
-
-			boolean oldColumnIsListType = oldColumn != null && ColumnTypeListMappings.isList(oldColumn.getColumnType());
-			boolean newColumnIsListType = newColumn != null && ColumnTypeListMappings.isList(newColumn.getColumnType());
-
-			Long oldColumnId = oldColumnIsListType ? Long.parseLong(oldColumn.getId()) : null;
-			Long newColumnId = newColumnIsListType ? Long.parseLong(newColumn.getId()) : null;
-
-			//either no change, rename, or type change
-			if( oldColumnIsListType && existingListIndexColumns.contains(oldColumnId)
-				&& newColumnIsListType && !existingListIndexColumns.contains(newColumnId)
-			){
-				//update
-				result.add(ListColumnIndexTableChange.newUpdate(oldColumnId, newColumn));
-			}else if (oldColumnIsListType && existingListIndexColumns.contains(oldColumnId) ){
-				//no change necessary
-				if(oldColumnId.equals(newColumnId)){
-					continue;
-				}
-				//delete old column
-				result.add(ListColumnIndexTableChange.newRemoval(oldColumnId) );
-			} else if (newColumnIsListType && !existingListIndexColumns.contains(newColumnId) ){
-				//add new column
-				result.add(ListColumnIndexTableChange.newAddition(newColumn));
-			}
-		}
-
-		return result;
-	}
-
-	void applyListColumnIndexTableChanges(IdAndVersion tableId, List<ListColumnIndexTableChange> changes, boolean alterTemp){
-		for(ListColumnIndexTableChange change : changes){
-			switch (change.getListIndexTableChangeType()){
-				case ADD:
-					tableIndexDao.createMultivalueColumnIndexTable(tableId, change.getNewColumnChange(), alterTemp);
-					tableIndexDao.populateListColumnIndexTable(tableId, change.getNewColumnChange(), null, alterTemp);
-					break;
-				case REMOVE:
-					tableIndexDao.deleteMultivalueColumnIndexTable(tableId, change.getOldColumnId(), alterTemp);
-					break;
-				case UPDATE:
-					tableIndexDao.updateMultivalueColumnIndexTable(tableId, change.getOldColumnId(), change.getNewColumnChange(), alterTemp);
-					break;
-			}
-		}
 	}
 
 	void createTableIfDoesNotExist(IndexDescription indexDescription) {
@@ -369,7 +253,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		validateTableMaximumListLengthChanges(tableId,changes);
 		validateSchemaChangeToMediumText(tableId, changes);
 		alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
-		alterListColumnIndexTableWithSchemaChange(tableId,changes, alterTemp);
 	}
 
 	void validateTableMaximumListLengthChanges(final IdAndVersion tableId, final List<ColumnChangeDetails> changes){
@@ -434,13 +317,27 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 */
 	boolean alterTableAsNeededWithinAutoProgress(final IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp){
-		// Lookup the current schema of the index.
-		List<DatabaseColumnInfo> currentIndedSchema = tableIndexDao.getDatabaseInfo(tableId);
-		// must also gather the names of each index currently applied to each column.
-		tableIndexDao.provideIndexInfo(currentIndedSchema, tableId);
+		boolean includeCardinality = false;
+		List<DatabaseColumnInfo> databaseInfo = getDatabaseInfo(tableId, includeCardinality, alterTemp);
 		// Ensure all all updated columns actually exist.
-		changes = SQLUtils.matchChangesToCurrentInfo(currentIndedSchema, changes);
+		changes = SQLUtils.matchChangesToCurrentInfo(databaseInfo, changes);
 		return tableIndexDao.alterTableAsNeeded(tableId, changes, alterTemp);
+	}
+	
+	/**
+	 * Get metadata about each column of the provided table.
+	 * @param tableId
+	 * @param includeCardinality
+	 * @return
+	 */
+	List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId, boolean includeCardinality, boolean isTemporaryTable){
+		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId, isTemporaryTable);
+		if(includeCardinality) {
+			tableIndexDao.provideCardinality(tableInfo, tableId);
+		}
+		tableIndexDao.provideIndexInfo(tableInfo, tableId, isTemporaryTable);
+		tableIndexDao.provideConstraintInfo(tableInfo, tableId, isTemporaryTable);
+		return tableInfo;
 	}
 	
 	/*
@@ -451,32 +348,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void optimizeTableIndices(final IdAndVersion tableId) {
 		// To optimize a table's indices, statistics must be gathered
 		// for each column of the table.
-		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
-		// must also gather cardinality data for each column.
-		tableIndexDao.provideCardinality(tableInfo, tableId);
-		// must also gather the names of each index currently applied to each column.
-		tableIndexDao.provideIndexInfo(tableInfo, tableId);
+		boolean includeCardinality = true;
+		boolean isTemporaryTable = false;
+		List<DatabaseColumnInfo> databaseInfo = getDatabaseInfo(tableId, includeCardinality, isTemporaryTable);
 		// All of the column data is then used to optimized the indices.
-		tableIndexDao.optimizeTableIndices(tableInfo, tableId, MAX_MYSQL_INDEX_COUNT);
-	}
-
-	@Override
-	public void populateListColumnIndexTables(final IdAndVersion tableIdAndVersion, final List<ColumnModel> schema){
-		Set<Long> rowIds = null;
-		populateListColumnIndexTables(tableIdAndVersion, schema, rowIds);
-	}
-	
-	@Override
-	public void populateListColumnIndexTables(final IdAndVersion tableIdAndVersion, final List<ColumnModel> schema, Set<Long> rowIds){
-		ValidateArgument.required(tableIdAndVersion, "tableIdAndVersion");
-		ValidateArgument.required(schema, "schema");
-		boolean alterTemp = false;
-
-		for(ColumnModel column: schema) {
-			if (ColumnTypeListMappings.isList(column.getColumnType())) {
-				tableIndexDao.populateListColumnIndexTable(tableIdAndVersion, column, rowIds, alterTemp);
-			}
-		}
+		tableIndexDao.optimizeTableIndices(databaseInfo, tableId, MAX_MYSQL_INDEX_COUNT);
 	}
 
 	@Override
@@ -486,18 +362,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		tableIndexDao.createTemporaryTable(tableId);
 		// copy all the data from the original to the temp.
 		tableIndexDao.copyAllDataToTemporaryTable(tableId);
-
-		// if any multi-value column index tables exist, create a copy of them
-		for(Long columnId: tableIndexDao.getMultivalueColumnIndexTableColumnIds(tableId)) {
-			String colIdStr = columnId.toString();
-			tableIndexDao.createTemporaryMultiValueColumnIndexTable(tableId, colIdStr);
-			tableIndexDao.copyAllDataToTemporaryMultiValueColumnIndexTable(tableId, colIdStr);
-		}
 	}
 	@Override
 	public void deleteTemporaryTableCopy(final IdAndVersion tableId) {
-		// delete multi-value index table first as they have a foreign key ref to the temp table
-		tableIndexDao.deleteAllTemporaryMultiValueColumnIndexTable(tableId);
 		// delete
 		tableIndexDao.deleteTemporaryTable(tableId);
 	}
@@ -807,19 +674,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		
 		updateSearchIndexFromSchemaChange(index, changes);
 
-		boolean alterTemp = false;
-		alterListColumnIndexTableWithSchemaChange(idAndVersion, changes, alterTemp);
-
 		// set the new max version for the index
 		setIndexVersion(idAndVersion, schemaChangeData.getChangeNumber());
-	}
-
-	void alterListColumnIndexTableWithSchemaChange(IdAndVersion idAndVersion, List<ColumnChangeDetails> columnChangeDetails, boolean alterTemp) {
-		//apply changes to multi-value column indexes
-		Set<Long> existingListColumnIndexTableNames = tableIndexDao.getMultivalueColumnIndexTableColumnIds(idAndVersion);
-		List<ListColumnIndexTableChange> listColumnIndexTableChanges = listColumnIndexTableChangesFromChangeDetails(columnChangeDetails, existingListColumnIndexTableNames);
-
-		applyListColumnIndexTableChanges(idAndVersion, listColumnIndexTableChanges, alterTemp);
 	}
 
 	/**
@@ -899,7 +755,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			try {
 				// Apply any updates to the view for the given Ids
 				tableIndexDao.copyObjectReplicationToView(viewId.getId(), filter, currentSchema, provider);
-				populateListColumnIndexTables(viewId, currentSchema, filter.getLimitObjectIds().get());
 				
 				if (isSearchEnabled & !searchSchema.isEmpty()) {
 					List<TableRowData> rowsData = tableIndexDao.getTableDataForRowIds(viewId, searchSchema, rowIdsSet);
@@ -1068,10 +923,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// Optimize the table
 		optimizeTableIndices(index.getIdAndVersion());
 		
-		
-		// Makes sure to populate the multi-value indices
-		populateListColumnIndexTables(index.getIdAndVersion(), schema);
-		
 		// Re-build the search index if needed
 		if (tableIndexDao.isSearchEnabled(index.getIdAndVersion())) {
 			updateSearchIndex(index);
@@ -1112,7 +963,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 */
 	List<ColumnModel> getCurrentTableSchema(IdAndVersion tableId) {
 		// Get the current schema.
-		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
+		boolean isTemporaryTable = false;
+		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId, isTemporaryTable);
 		// Determine the current schema
 		return SQLUtils.extractSchemaFromInfo(tableInfo);
 	}

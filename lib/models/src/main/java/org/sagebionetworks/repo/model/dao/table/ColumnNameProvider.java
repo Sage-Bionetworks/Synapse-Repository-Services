@@ -11,5 +11,6 @@ public interface ColumnNameProvider {
 	 * @param columnIds
 	 * @return
 	 */
-	public Map<Long, String> getColumnNames(Set<Long> columnIds);
+	Map<Long, String> getColumnNames(Set<Long> columnIds);
+	
 }

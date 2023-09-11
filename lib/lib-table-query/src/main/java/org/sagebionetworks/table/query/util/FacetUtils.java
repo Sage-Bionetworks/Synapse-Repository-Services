@@ -80,13 +80,13 @@ public class FacetUtils {
 		// If a json path is supplied then we need to extract the value
 		StringBuilder builder = new StringBuilder();
 		if (jsonPath != null) {
-			builder.append("JSON_EXTRACT(");
+			builder.append("JSON_UNQUOTE(JSON_EXTRACT(");
 		}
 		
 		builder.append(SqlElementUtils.wrapInDoubleQuotes(columnName));
 		
 		if (jsonPath != null) {
-			builder.append(",'").append(jsonPath).append("')");
+			builder.append(",'").append(jsonPath).append("'))");
 		}
 		return builder.toString();
 	}

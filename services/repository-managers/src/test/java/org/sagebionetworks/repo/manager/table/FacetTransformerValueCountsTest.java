@@ -221,10 +221,10 @@ public class FacetTransformerValueCountsTest {
 		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(jsonColumnModel.getName(), jsonColumnModel.getJsonSubColumns().get(0).getJsonPath(), false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		//check the non-transformed sql
-		String expectedString = "SELECT JSON_EXTRACT(\"jsonColumn\",'$.a') AS value, COUNT(*) AS frequency"
+		String expectedString = "SELECT JSON_UNQUOTE(JSON_EXTRACT(\"jsonColumn\",'$.a')) AS value, COUNT(*) AS frequency"
 				+ " FROM syn123"
 				+ " WHERE ( \"stringColumn\" LIKE 'asdf%' ) AND ( ( ( \"stringColumn\" = 'selectedValue' ) ) )"
-				+ " GROUP BY JSON_EXTRACT(\"jsonColumn\",'$.a')"
+				+ " GROUP BY JSON_UNQUOTE(JSON_EXTRACT(\"jsonColumn\",'$.a'))"
 				+ " ORDER BY frequency DESC, value ASC"
 				+ " LIMIT 100";
 		

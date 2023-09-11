@@ -127,7 +127,7 @@ public class FacetTransformerRangeTest {
 		
 		facetTransformer = new FacetTransformerRange(jsonColumn.getName(), "$.a", facets, originalQuery, dependencies, selectedMin, selectedMax);	
 
-		assertEquals("SELECT MIN(JSON_EXTRACT(\"i19\",'$.a')) AS minimum, MAX(JSON_EXTRACT(\"i19\",'$.a')) AS maximum FROM syn123 WHERE i0 LIKE 'asdf%'", facetTransformer.getFacetSqlQuery().getInputSql());
+		assertEquals("SELECT MIN(JSON_UNQUOTE(JSON_EXTRACT(\"i19\",'$.a'))) AS minimum, MAX(JSON_UNQUOTE(JSON_EXTRACT(\"i19\",'$.a'))) AS maximum FROM syn123 WHERE i0 LIKE 'asdf%'", facetTransformer.getFacetSqlQuery().getInputSql());
 		
 	}
 	
