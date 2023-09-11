@@ -1832,11 +1832,11 @@ public class TableViewIntegrationTest {
 				updateView(rowset,fileViewId)
 		).getMessage();
 		
-		assertEquals("Value at [0,20] was not a valid STRING_LIST. Exceeds the maximum number of list elements defined in the ColumnModel (3): \"[\"val1\",\"val2\",\"val3\",\"val4\"]\"", error);
+		assertEquals("Value at [0,21] was not a valid STRING_LIST. Exceeds the maximum number of list elements defined in the ColumnModel (3): \"[\"val1\",\"val2\",\"val3\",\"val4\"]\"", error);
 	}
 	
 	/**
-	 * Test for PLFM-5651 and PLFM-7295 and the addition of both file size, file MD5s, file type, bucket and key in views.
+	 * Test for PLFM-5651, PLFM-7295 and PLFM-7295 and the addition of both file size, file MD5s, file type, bucket, key and file name in views.
 	 * @throws Exception 
 	 */
 	@Test
@@ -1849,7 +1849,8 @@ public class TableViewIntegrationTest {
 			+ ObjectField.dataFileSizeBytes + "," 
 			+ ObjectField.dataFileConcreteType + "," 
 			+ ObjectField.dataFileBucket + "," 
-			+ ObjectField.dataFileKey 
+			+ ObjectField.dataFileKey + ","
+			+ ObjectField.dataFileName
 		+ " from " + fileViewId + " where " + ObjectField.id + " = '" + fileZero+"'";
 		
 		List<Row> expectedRows = List.of(new Row()
@@ -1860,7 +1861,8 @@ public class TableViewIntegrationTest {
 				sharedHandle.getContentSize().toString(),
 				sharedHandle.getClass().getName(),
 				sharedHandle.getBucketName(),
-				sharedHandle.getKey()
+				sharedHandle.getKey(),
+				sharedHandle.getFileName()
 			))
 		);
 		
