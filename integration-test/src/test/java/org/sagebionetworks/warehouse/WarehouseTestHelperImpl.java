@@ -1,5 +1,7 @@
 package org.sagebionetworks.warehouse;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
+
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
@@ -33,9 +35,25 @@ public class WarehouseTestHelperImpl implements WarehouseTestHelper {
 	public void assertWarehouseQuery(String queryString, int maxNumberOfHours) {
 		
 		Instant now = Instant.ofEpochMilli(clock.currentTimeMillis());
-		saveQueryToS3(queryString, maxNumberOfHours, now);
+		// this method call is at index zero so the caller's index is one.
+		StackTraceElement callersElement = Thread.currentThread().getStackTrace()[1];
+		String callersPath = String.format("%s/%s/%s/%d", stackConfig.getStackInstance(),
+				callersElement.getClassName().replaceAll("\\.", "/"), callersElement.getMethodName(),
+				callersElement.getLineNumber());
+		
+		saveQueryToS3(queryString, maxNumberOfHours, now, callersPath);
 		
 		
+		s3Client.listObjectsV2(BUCKET_NAME, callersPath).getObjectSummaries().stream().forEach(s->{
+			String fileName = s.getKey().substring(callersPath.length());
+		});
+		
+//		assertAll(
+//				  "Previous queries for path: "+callersPath,
+//				  () -> assertEquals("admin", user.getUsername(), "Username should be admin"),
+//				  () -> assertEquals("admin@baeldung.com", user.getEmail(), "Email should be admin@baeldung.com"),
+//				  () -> assertTrue(user.getActivated(), "User should be activated")
+//		);
 		
 	}
 
@@ -46,19 +64,10 @@ public class WarehouseTestHelperImpl implements WarehouseTestHelper {
 	 * @param maxNumberOfHours
 	 * @param now
 	 */
-	void saveQueryToS3(String queryString, int maxNumberOfHours, Instant now) {
+	void saveQueryToS3(String queryString, int maxNumberOfHours, Instant now, String callersPath) {
 		Instant expiresOn = now.plus(maxNumberOfHours, ChronoUnit.HOURS);
-		
-		JSONObject json = new JSONObject();
-		json.put("query", queryString);
-		json.put("maxNumberOfHours", maxNumberOfHours);
-		String jsonString = json.toString();
-		
-		StackTraceElement e = Thread.currentThread().getStackTrace()[2];
-		
-		String key =  String.format("%s/%s/%s/%d/%d.json", stackConfig.getStackInstance(), e.getClassName().replaceAll("\\.","/"), e.getMethodName(), e.getLineNumber(), expiresOn.toEpochMilli());
-		
-		this.s3Client.putObject(BUCKET_NAME, key, jsonString);
+		String key = String.format("%s/%d.sql", callersPath, expiresOn.toEpochMilli());
+		this.s3Client.putObject(BUCKET_NAME, key, queryString);
 	}
 	
 	/**
