@@ -697,6 +697,43 @@ public class TableViewIntegrationTest {
 				e.getStatus().getErrorMessage());
 		
 	}
+	
+	@Test
+	public void testListAnnotationTooLarge() throws Exception {
+		createFileView();
+		String fileId = fileIds.get(0);
+		// Add a string column to the view
+		ColumnModel stringColumn = new ColumnModel();
+		stringColumn.setName("aStringList");
+		stringColumn.setColumnType(ColumnType.STRING_LIST);
+		stringColumn.setMaximumSize(4L);
+		stringColumn.setMaximumListLength(2L);
+		stringColumn = columnModelManager.createColumnModel(adminUserInfo, stringColumn);
+		defaultColumnIds.add(stringColumn.getId());
+		
+		updateFileViewSchema(defaultColumnIds);
+		
+		// Add an annotation with the same name and a value larger than the size
+		// of the column.
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), List.of("12345"), AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		waitForEntityReplication(fileId);
+
+		
+		String sql = "select * from " + fileViewId;
+		
+		AsynchJobFailedException e = assertThrows(AsynchJobFailedException.class, () -> {
+			waitForConsistentQuery(adminUserInfo, sql, (response) -> {
+				fail("Should eventually fail");
+			});
+		});
+		
+		assertEquals(
+				"Check constraint 'json_schema_valid(_utf8mb4'{ \"type\": \"array\", \"items\": { \"maxLength\": 4 }, \"maxItems\": 2 }',`aStringList`)' is violated.",
+				e.getStatus().getErrorMessage());
+		
+	}
 
 	/**
 	 * See PLFM-4371.

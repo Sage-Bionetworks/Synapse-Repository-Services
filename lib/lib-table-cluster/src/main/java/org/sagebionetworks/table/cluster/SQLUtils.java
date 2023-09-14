@@ -82,6 +82,7 @@ import com.google.common.collect.Lists;
  */
 public class SQLUtils {
 
+	public static final String THE_SIZE_OF_THE_COLUMN = "The size of the column '";
 	private static final String VIEW_ROWS_OUT_OF_DATE_TEMPLATE = SQLUtils.loadSQLFromClasspath("sql/ViewOutOfDate.sql");
 	private static final String SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE = SQLUtils.loadSQLFromClasspath("sql/ViewDistinctAnnotations.sql");
 	
@@ -1743,7 +1744,7 @@ public class SQLUtils {
 				if (ColumnType.STRING.equals(columnModel.getColumnType())) {
 					if (columnModel.getMaximumSize() != null && annotationModel.getMaximumSize() != null) {
 						if (columnModel.getMaximumSize() < annotationModel.getMaximumSize()) {
-							throw new IllegalArgumentException("The size of the column '" + columnModel.getName()
+							throw new IllegalArgumentException(THE_SIZE_OF_THE_COLUMN + columnModel.getName()
 									+ "' is too small.  The column size needs to be at least "
 									+ annotationModel.getMaximumSize() + " characters.", exception);
 						}
