@@ -77,6 +77,10 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 	 * @return Null if no SQLException is found in the stack.
 	 */
 	public static SQLException findSQLException(Throwable exception) {
+		// ignore exceptions that are already translated.
+		if(exception.getMessage().startsWith(SQLUtils.THE_SIZE_OF_THE_COLUMN)) {
+			return null;
+		}
 		Throwable cause = exception;
 		while (cause != null) {
 			if (cause instanceof SQLException) {
