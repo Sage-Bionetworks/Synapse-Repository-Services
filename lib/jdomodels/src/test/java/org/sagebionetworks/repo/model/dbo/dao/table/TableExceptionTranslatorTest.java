@@ -5,7 +5,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySetOf;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.sql.SQLException;
@@ -22,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dao.table.ColumnNameProvider;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.UncategorizedSQLException;
@@ -183,6 +186,14 @@ public class TableExceptionTranslatorTest {
 	}
 	
 	@Test
+	public void testFindSQLExceptionWithAlreadyTranslated() {
+		// There is no SQLException in this stack
+		SQLException inputException = new SQLException(SQLUtils.THE_SIZE_OF_THE_COLUMN);
+		SQLException sqlException = TableExceptionTranslatorImpl.findSQLException(inputException);
+		assertEquals(null, sqlException);
+	}
+	
+	@Test
 	public void testFindSQLExceptionWithSQLException() {
 		// There is no SQLException in this stack
 		SQLException inputException = new SQLException("This is what we are looking for");
@@ -255,5 +266,20 @@ public class TableExceptionTranslatorTest {
 		verify(mockConnectionFactory).getFirstConnection();
 		verify(mockTableIndexDao).getConstraintClause("tempt9602648_chk_1");
 		verify(mockColumnNameProvider).getColumnNames(Set.of(123L));
+	}
+	
+	@Test
+	public void testTranslateExceptionWithAlreadyTranslated() {
+		String sqlState = "HY000";
+		int vendorCode = 1366;
+		String reason = SQLUtils.THE_SIZE_OF_THE_COLUMN + " more stuff";
+		IllegalArgumentException translated = new IllegalArgumentException(reason,
+				new SQLException("some sql message", sqlState, vendorCode));
+
+		// call under test
+		Exception result = translator.translateException(translated);
+		assertEquals(reason, result.getMessage());
+
+		verifyZeroInteractions(mockConnectionFactory, mockTableIndexDao, mockColumnNameProvider);
 	}
 }
