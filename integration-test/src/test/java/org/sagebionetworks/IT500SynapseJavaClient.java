@@ -77,6 +77,7 @@ import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.warehouse.WarehouseTestHelper;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -119,10 +120,12 @@ public class IT500SynapseJavaClient {
 	
 	private SynapseAdminClient adminSynapse;
 	private SynapseClient synapse;
+	private WarehouseTestHelper warehouseHelper;
 	
-	public IT500SynapseJavaClient(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+	public IT500SynapseJavaClient(SynapseAdminClient adminSynapse, SynapseClient synapse, WarehouseTestHelper warehouseHelper) {
 		this.adminSynapse = adminSynapse;
 		this.synapse = synapse;
+		this.warehouseHelper = warehouseHelper;
 	}
 
 	@BeforeAll
@@ -739,7 +742,10 @@ public class IT500SynapseJavaClient {
 		assertNotNull(profileURL);
 		URL profilePreviewURL = waitForProfilePreview(synapse, profile.getOwnerId());
 		assertNotNull(profilePreviewURL);
-
+		
+		warehouseHelper.assertWarehouseQuery("select * from filedownloadrecords where record_date = date('2023-09-15') and instance = 'jmhill' and association_object_type = 'UserProfileAttachment'\r\n"
+				+ " and association_object_id = 3412403 and user_id = 3412403 and timestamp between from_iso8601_timestamp('2023-09-15T00:50:20.000Z') and from_iso8601_timestamp('2023-09-15T00:50:23.000Z')  \r\n"
+				+ "limit 100");
 	}
 	
 	/**

@@ -1,18 +1,30 @@
 package org.sagebionetworks;
 
 import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
+import org.sagebionetworks.aws.SynapseAWSCredentialsProviderChain;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.common.util.ClockImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
+import org.sagebionetworks.warehouse.WarehouseTestHelper;
+import org.sagebionetworks.warehouse.WarehouseTestHelperImpl;
+
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.athena.AmazonAthena;
+import com.amazonaws.services.athena.AmazonAthenaClientBuilder;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 
 /**
  * The extension will setup a {@link SynapseAdminClient} for the admin user, the
@@ -67,12 +79,14 @@ public class ITTestExtension implements BeforeAllCallback, AfterAllCallback, Par
 	private Long userToDelete;
 	// The stack configuration
 	private StackConfiguration config;
+	private WarehouseTestHelper warehouseHelper;
 
 	@Override
 	public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
 			throws ParameterResolutionException {
 		Class<?> paramType = parameterContext.getParameter().getType();
-		return paramType == SynapseClient.class || paramType == SynapseAdminClient.class || paramType == StackConfiguration.class;
+		return paramType == SynapseClient.class || paramType == SynapseAdminClient.class || paramType == StackConfiguration.class
+				|| paramType == WarehouseTestHelper.class;
 	}
 
 	@Override
@@ -94,6 +108,8 @@ public class ITTestExtension implements BeforeAllCallback, AfterAllCallback, Par
 			return synapse;
 		} else if (paramType == StackConfiguration.class) {
 			return config;
+		} else if (paramType == WarehouseTestHelper.class) {
+			return warehouseHelper;
 		}
 		throw new ParameterResolutionException("Unsupported parameter " + parameterContext);
 	}
@@ -120,6 +136,12 @@ public class ITTestExtension implements BeforeAllCallback, AfterAllCallback, Par
 		// Clear the auth header to use the bearer token instead with the access token
 		adminSynapse.removeAuthorizationHeader();
 		adminSynapse.setBearerAuthorizationToken(response.getAccessToken());
+		
+		AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_1)
+				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance()).build();
+		AmazonAthena athenaClient = AmazonAthenaClientBuilder.standard().withRegion(Regions.US_EAST_1)
+				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance()).build();
+		warehouseHelper = new WarehouseTestHelperImpl(s3Client, athenaClient, new ClockImpl(), config);
 	}
 
 	@Override

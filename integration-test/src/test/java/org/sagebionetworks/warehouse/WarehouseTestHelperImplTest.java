@@ -1,5 +1,7 @@
 package org.sagebionetworks.warehouse;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +17,7 @@ import org.sagebionetworks.common.util.Clock;
 
 import com.amazonaws.services.athena.AmazonAthena;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
 
 @ExtendWith(MockitoExtension.class)
 public class WarehouseTestHelperImplTest {
@@ -33,19 +36,36 @@ public class WarehouseTestHelperImplTest {
 
 	@Test
 	public void testSaveQueryToS3() {
-		
-		when(mockStackConfig.getStackInstance()).thenReturn("instance");
-
 		String query = "select count(*) from foo";
-		int maxHours = 3;
 		Instant now = Instant.ofEpochMilli(1001L);
+		String path = "instance/foo/bar";
 
 		// call under test
-		warehouseHelper.saveQueryToS3(query, maxHours, now);
+		warehouseHelper.saveQueryToS3(query, now, path);
 
-		// Note: The path includes the line number of the above call (45). 
 		verify(mockS3Client).putObject(WarehouseTestHelperImpl.BUCKET_NAME,
-				"instance/org/sagebionetworks/warehouse/WarehouseTestHelperImplTest/testSaveQueryToS3/44/10801001.json",
-				"{\"query\":\"select count(*) from foo\",\"maxNumberOfHours\":3}");
+				"instance/foo/bar/90001001.sql",query);
+	}
+	
+	@Test
+	public void testGetExpiresOnFromKey() {
+		// call under test
+		assertEquals(123L, WarehouseTestHelperImpl.getExpiresOnFromKey("istance/org/sage/44/123.sql"));
+	}
+	
+	@Test
+	public void testAssertWarehouseQuery() throws Exception {
+		when(mockStackConfig.getStackInstance()).thenReturn("anInstance");
+		when(mockClock.currentTimeMillis()).thenReturn(1001L);
+		when(mockS3Client.listObjectsV2(any(), any())).thenReturn(new ListObjectsV2Result());
+		
+		String query = "select count(*) from foo";
+		
+		// call under test
+		warehouseHelper.assertWarehouseQuery(query);
+		
+		verify(mockS3Client).putObject(WarehouseTestHelperImpl.BUCKET_NAME,
+				"anInstance/org/sagebionetworks/warehouse/WarehouseTestHelperImplTest/testAssertWarehouseQuery/60/90001001.sql",query);
+		verify(mockClock).currentTimeMillis();
 	}
 }
