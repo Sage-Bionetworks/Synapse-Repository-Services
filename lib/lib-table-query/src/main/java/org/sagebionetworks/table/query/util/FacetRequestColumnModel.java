@@ -26,6 +26,7 @@ public class FacetRequestColumnModel {
 	private String searchConditionString;
 	private boolean columnTypeIsList;
 	private String jsonPath;
+	private ColumnType jsonPathType;
 	
 	/**
 	 * Constructor.
@@ -72,6 +73,7 @@ public class FacetRequestColumnModel {
 		this.columnTypeIsList = false;
 		this.searchConditionString = createFacetSearchConditionString(facetColumnRequest, this.columnTypeIsList, subColumn.getColumnType());
 		this.jsonPath = subColumn.getJsonPath();
+		this.jsonPathType = subColumn.getColumnType();
 	}
 	
 	public String getColumnName() {
@@ -104,6 +106,10 @@ public class FacetRequestColumnModel {
 	
 	public String getJsonPath() {
 		return jsonPath;
+	}
+	
+	public ColumnType getJsonPathType() {
+		return jsonPathType;
 	}
 	
 	static void validateFacetRequestType(FacetType facetType, FacetColumnRequest facetColumnRequest) {
@@ -153,7 +159,7 @@ public class FacetRequestColumnModel {
 
 		StringBuilder builder = new StringBuilder("(");
 
-		builder.append(FacetUtils.getColumnNameExpression(facetRange.getColumnName(), facetRange.getJsonPath()));
+		builder.append(FacetUtils.getColumnNameExpression(facetRange.getColumnName(), facetRange.getJsonPath(), jsonPathType));
 		
 		if (NULL_VALUE_KEYWORD.equals(min) || NULL_VALUE_KEYWORD.equals(max)){
 			builder.append(" IS NULL");
@@ -179,7 +185,7 @@ public class FacetRequestColumnModel {
 			return null;
 		}
 		StringBuilder builder = new StringBuilder("(");
-		String columnNameExpression = FacetUtils.getColumnNameExpression(facetValues.getColumnName(), facetValues.getJsonPath());
+		String columnNameExpression = FacetUtils.getColumnNameExpression(facetValues.getColumnName(), facetValues.getJsonPath(), jsonPathType);
 		int initialSize = builder.length();
 		for(String value : facetValues.getFacetValues()){
 			if(builder.length() > initialSize){
