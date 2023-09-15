@@ -89,7 +89,7 @@ public class FacetTransformerRangeTest {
 		col2.setName(FacetTransformerRange.MAX_ALIAS);
 		correctSelectList = Lists.newArrayList(col1, col2);
 		
-		facetTransformer = new FacetTransformerRange(columnName, null, facets, originalQuery, dependencies, selectedMin, selectedMax);		
+		facetTransformer = new FacetTransformerRange(columnName, null, null, facets, originalQuery, dependencies, selectedMin, selectedMax);		
 
 	}
 	/////////////////////////////////
@@ -125,9 +125,9 @@ public class FacetTransformerRangeTest {
 			new JsonSubColumnModel().setName("a").setJsonPath("$.a").setFacetType(FacetType.range).setColumnType(ColumnType.INTEGER)
 		));
 		
-		facetTransformer = new FacetTransformerRange(jsonColumn.getName(), "$.a", facets, originalQuery, dependencies, selectedMin, selectedMax);	
+		facetTransformer = new FacetTransformerRange(jsonColumn.getName(), "$.a", ColumnType.INTEGER, facets, originalQuery, dependencies, selectedMin, selectedMax);	
 
-		assertEquals("SELECT MIN(JSON_UNQUOTE(JSON_EXTRACT(\"i19\",'$.a'))) AS minimum, MAX(JSON_UNQUOTE(JSON_EXTRACT(\"i19\",'$.a'))) AS maximum FROM syn123 WHERE i0 LIKE 'asdf%'", facetTransformer.getFacetSqlQuery().getInputSql());
+		assertEquals("SELECT MIN(JSON_EXTRACT(\"i19\",'$.a')) AS minimum, MAX(JSON_EXTRACT(\"i19\",'$.a')) AS maximum FROM syn123 WHERE i0 LIKE 'asdf%'", facetTransformer.getFacetSqlQuery().getInputSql());
 		
 	}
 	
@@ -145,7 +145,7 @@ public class FacetTransformerRangeTest {
 		originalQuery = new TableQueryParser("with syn2 as (select i0, i2 from syn1) select * from syn2 where i0 > 100 order by i2").queryExpression();
 		
 		// call under test
-		facetTransformer = new FacetTransformerRange(columnName, null, facets, originalQuery, dependencies, selectedMin, selectedMax);
+		facetTransformer = new FacetTransformerRange(columnName, null, null, facets, originalQuery, dependencies, selectedMin, selectedMax);
 		//check the non-transformed sql
 		String expectedString = "WITH T2 (_C0_, _C2_) AS (SELECT _C0_, _C2_ FROM T1)"
 				+ " SELECT MIN(_C2_) AS minimum, MAX(_C2_) AS maximum FROM T2 WHERE _C0_ > :b0";
@@ -209,7 +209,7 @@ public class FacetTransformerRangeTest {
 			new JsonSubColumnModel().setName("a").setJsonPath("$.a").setFacetType(FacetType.range).setColumnType(ColumnType.INTEGER)
 		));
 		
-		facetTransformer = new FacetTransformerRange(jsonColumn.getName(), "$.a", facets, originalQuery, dependencies, selectedMin, selectedMax);
+		facetTransformer = new FacetTransformerRange(jsonColumn.getName(), "$.a", ColumnType.INTEGER, facets, originalQuery, dependencies, selectedMin, selectedMax);
 		
 		String colMin = "2";
 		String colMax = "42";
