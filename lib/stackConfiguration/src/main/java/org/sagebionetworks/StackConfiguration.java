@@ -864,13 +864,12 @@ public interface StackConfiguration {
 	public String getCloudFrontPrivateKey();
 
 	/**
-	 * The domain of the CloudFront distribution in front of the Synapse data bucket
-	 */
-	public String getCloudFrontDistributionDomain();
-
-	/**
-	 * The ID of the key pair for the CloudFront distribution in front of the Synapse data bucket
+	 * The ID of the key pair for the CloudFront distribution in front of the Synapse data S3 bucket
 	 */
 	public String getCloudFrontKeyPairId();
-	
+
+	/**
+	 * The domain name for the CloudFront distribution in front of the Synapse data S3 bucket
+	 */
+	public String getCloudFrontDomainName();
 }

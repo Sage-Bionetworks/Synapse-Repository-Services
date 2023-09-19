@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.file;
 
 import com.amazonaws.HttpMethod;
-import com.amazonaws.services.cloudfront.util.SignerUtils;
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
@@ -16,7 +15,6 @@ import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.services.s3.transfer.model.UploadResult;
 import com.amazonaws.services.cloudfront.CloudFrontUrlSigner;
-import com.amazonaws.services.cloudfront.util.SignerUtils.Protocol;
 import com.amazonaws.util.BinaryUtils;
 import com.google.cloud.storage.Blob;
 import com.google.common.collect.Lists;
@@ -25,6 +23,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -38,6 +37,7 @@ import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
@@ -111,13 +111,13 @@ import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -130,8 +130,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.Base64;
-import java.security.KeyFactory;
 
 import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
 
@@ -211,9 +209,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	private TransactionalMessenger messenger;
-
-	@Autowired
-	private StackConfiguration stackConfiguration;
 	/**
 	 * Used by spring
 	 */
@@ -428,13 +423,24 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	private String getCloudFrontSignedUrlForS3FileHandle(S3FileHandle handle) {
-		String cloudFrontPrivateKey = stackConfiguration.getCloudFrontPrivateKey();
-		String distributionDomain = stackConfiguration.getCloudFrontDistributionDomain();
-		String keyPairId = stackConfiguration.getCloudFrontKeyPairId();
+		String cloudFrontPrivateKey = config.getCloudFrontPrivateKey();
+		String keyPairId = config.getCloudFrontKeyPairId();
+		String distributionDomainName = config.getCloudFrontDomainName();
+		PrivateKey privateKey = KeyPairUtil.getPrivateKeyFromPEM(cloudFrontPrivateKey, RSA);
 		Date expirationDate = new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS);
-		String resourceUrl = "https://" + distributionDomain + "/" + handle.getKey();
 
-		PrivateKey privateKey = getPrivateKeyFromString(cloudFrontPrivateKey);
+		String resourceUrl;
+		try {
+			resourceUrl = new URIBuilder()
+					.setScheme("https")
+					.setHost(distributionDomainName)
+					.setPath(handle.getKey())
+					.addParameter("response-content-disposition", ContentDispositionUtils.getContentDispositionValue(handle.getKey()))
+					.addParameter("response-content-type", handle.getContentType())
+					.build().toString();
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to build resource URL for " + handle.getKey(), e);
+		}
 
 		String signedUrl = CloudFrontUrlSigner.getSignedURLWithCannedPolicy(
 				resourceUrl,
@@ -444,24 +450,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		);
 
 		return signedUrl;
-	}
-
-	private PrivateKey getPrivateKeyFromString(String privateKeyString) {
-		PrivateKey privateKey;
-		privateKeyString = privateKeyString.replace("-----BEGIN PRIVATE KEY-----", "")
-				.replace("-----END PRIVATE KEY-----", "")
-				.replaceAll("\\s", "");
-
-		try {
-			byte[] privateKeyBytes = Base64.getDecoder().decode(privateKeyString);
-			PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
-			KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-			privateKey = keyFactory.generatePrivate(keySpec);
-		} catch (Exception e) {
-			throw new RuntimeException();
-		}
-
-		return privateKey;
 	}
 
 	private String getUrlForGoogleCloudFileHandle(GoogleCloudFileHandle handle) {

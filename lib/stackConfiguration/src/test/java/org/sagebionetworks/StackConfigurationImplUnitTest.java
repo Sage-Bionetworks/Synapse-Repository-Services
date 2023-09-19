@@ -170,4 +170,34 @@ public class StackConfigurationImplUnitTest {
 		verify(mockProperties).getProperty("org.sagebionetworks.repositoryservice.endpoint.prod");
 		
 	}
+
+	@Test
+	public void testGetCloudFrontPrivateKey() {
+
+		// Call under test
+		config.getCloudFrontPrivateKey();
+
+		verify(stackEncrypter).getDecryptedProperty("org.sagebionetworks.cloudfront.private.key.secret");
+
+	}
+
+	@Test
+	public void testGetCloudFrontKeyPairId() {
+
+		// Call under test
+		config.getCloudFrontKeyPairId();
+
+		verify(mockProperties).getProperty("org.sagebionetworks.cloudfront.keypair");
+
+	}
+
+	@Test
+	public void testGetCloudFrontDomainName() {
+
+		// Call under test
+		config.getCloudFrontDomainName();
+
+		verify(mockProperties).getProperty("org.sagebionetworks.cloudfront.domainname");
+
+	}
 }

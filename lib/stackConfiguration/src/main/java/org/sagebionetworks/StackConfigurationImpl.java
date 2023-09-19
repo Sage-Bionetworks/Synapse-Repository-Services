@@ -1271,16 +1271,16 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * The ID of the CloudFront distribution in front of the Synapse data bucket
-	 */
-	public String getCloudFrontDistributionDomain() {
-		return configuration.getProperty("org.sagebionetworks.cloudfront.distribution.domain");
-	}
-
-	/**
-	 * The ID of the key pair for the CloudFront distribution in front of the Synapse data bucket
+	 * The ID of the key pair for the CloudFront distribution in front of the Synapse data S3 bucket
 	 */
 	public String getCloudFrontKeyPairId() {
 		return configuration.getProperty("org.sagebionetworks.cloudfront.keypair");
+	}
+
+	/**
+	 * The domain name for the CloudFront distribution in front of the Synapse data S3 bucket
+	 */
+	public String getCloudFrontDomainName() {
+		return configuration.getProperty("org.sagebionetworks.cloudfront.domainname");
 	}
 }

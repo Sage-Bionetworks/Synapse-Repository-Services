@@ -87,6 +87,8 @@ import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.upload.multipart.MultipartUtils;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -584,12 +586,71 @@ public class FileHandleManagerImplTest {
 		
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expectedURL = "https://amamzon.com";
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
 			thenReturn(new URL(expectedURL));
 		// fire!
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 		assertNotNull(redirect);
 		assertEquals(expectedURL, redirect.toString());
+	}
+
+	@Test
+	public void testGetRedirectURLForFileHandleCloudFront() throws DatastoreException, NotFoundException, MalformedURLException {
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setBucketName("devdata.sagebase.org");
+		s3FileHandle.setKey("testkey");
+		s3FileHandle.setContentType("text/plain");
+		s3FileHandle.setCreatedBy(mockUser.getId().toString());
+		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
+
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
+		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(
+				"MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDcL+FZG6YvUVFV" +
+				"b7BZm0Z6BNkm75DmCZeX5u8Zmcm1+iKBtDqAUJZONtXtnXtRedUiME1erzP6yBJg" +
+				"rec/zLqGa0DeJF0OZGdHIJ/ul0GnpFFCHjHwzndxSg43F5BHiht1kBlH6xnkR8KF" +
+				"kLRYVoQx8qVTeNo3MbGJqK72sLH4aFae/x8E50fsxRmzUueTsXLTd1FZa6cfB1xW" +
+				"0oDAUNHWpEkiiBFD0x1tm6/ABF10hPi25IQ5vWTQC0J5cFe4b3FDxH5OCaAec2Jc" +
+				"VncZrhzX0tvsG6384bVLJe6Trm/bm4HeSY+jVPWtQW0DQidCdmXgQRzG7ZLljjvq" +
+				"kLRx7EuvAgMBAAECggEBANRtERCB30uJPVmavl1Es7KmmMW6nGWCXZE8R/K/7t20" +
+				"67OMqGAA33Gn764ln8KUMq6gQRSXHSPV//zr6c0ge9eRA+0M0gY/kXAKpqFtpfbR" +
+				"TV/nd7Dl0FAo7RvzjMuoDyPVmL5MsBcPsDhhycvr8++oNB4a2xQiyjCP3/S5tYl7" +
+				"ffCJRRRFTaL7GS21Jf+EQTeSBdlTC7j+QjCogG+yZ5GC3g0LNdRG4ijbmRZtFvHb" +
+				"3XnFgJJN3+l3rCi7Pfy2kPMDBOy5UN24Hu+dhgJanrYtCl7CTxXNDQQLexGHEWcB" +
+				"sM+QLmSJOjWn7nG3jiqjumMo4kCKfWGqqCNomwGYYwkCgYEA7sO8zodFPlBaIzij" +
+				"erAxNgMlkJoERES5AwxR0uFxmRuMRaFlSyhw6NU5dXdkOnj30jrQrfQvACWgshcG" +
+				"DpWfdwwC9jZaYl83tH5IvbA6dG8NrrlhxQSgO737jiMjTBNUY2r7YVuMpD7y44GF" +
+				"y1LMBp9AoXr567uLsLB3QY8s2H0CgYEA7BTWb98iD2hrOKa4RPOfZRrnOX4eqNiS" +
+				"vPJvq1r82Kq584tE6SHObDptA6CgsqyijS2w2Rg188CmhYxFZ8YzGZguROsPg309" +
+				"d1Rp0GTcoSNkrUUSthIPEh0cMWU32qegiBfmxJbHM52ADxHCYmW/hwn0uNFrvV4e" +
+				"gaF7KMYXmJsCgYEApwAzfEUzEm3DTiVcewDnur6itKx1VYa33UDtrlFPUmbpSv6j" +
+				"SdlkeAZDpTy31worVFkdAr7rbO/koQvniaXvnqXBIJNNzsaIwO8fU8YCbNQMPuyd" +
+				"TN96b67nVziOhLR0bwEyCJuvGGaLHsPGYDtuRyd2XjwUuGQ6RYB4OVu6Y0UCgYAk" +
+				"Pgqxf/LNpL0ZJFcTlsb4kYm/xMHWL/FO+nT0PHKmnIcRgWbh12PGL63+qZEh/Oiz" +
+				"fbkxisr1kbS+ucsJ5F6B5l/sCp4GFJr0D8xyxpksT6+r/feiZeFUaY2jc6OAeM1n" +
+				"NywhL/iCzwISziomSvJ9O6ULHnNIzgMm6XBr0QVcUwKBgGJ77FJ3EgkQuPVWY/el" +
+				"GDdHpmncGC2x3vuYagoRN+ohvKB602u5m4zqaJxFubGVxLpq9tk/QGK7h81kHxP5" +
+				"33cECA5B5qremHjW6K6m+Gt3YwfZDdtrvOgYiU8avScqc1irT5NaBhBUaluzksHI" +
+				"hUw//Ehq13Ww/37qI/XroV3x");
+		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
+
+		// Call under test
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+
+		URL redirectUrl = new URL(redirect);
+		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
+
+		assertEquals("https", redirectUrl.getProtocol().toLowerCase());
+		assertEquals("data.dev.sagebase.org", redirectUrl.getHost().toLowerCase());
+		assertEquals("/testkey", redirectUrl.getPath().toLowerCase());
+		assertEquals("attachment%3B+filename%3D%22testkey%22%3B+filename*%3Dutf-8%27%27testkey", queryStrings.get("response-content-disposition").get(0));
+		assertEquals("text%2Fplain", queryStrings.get("response-content-type").get(0));
+		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
+		assertNotNull(queryStrings.get("Signature"));
+		assertNotNull(queryStrings.get("Expires"));
 	}
 
 	@Test
