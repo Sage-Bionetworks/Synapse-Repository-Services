@@ -5,6 +5,8 @@ import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssoc
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -241,6 +243,11 @@ public class RepositoryConfiguration {
 	@Bean
 	public WriteReadSemaphore getWriteReadSemaphore(StackConfiguration config, CountingSemaphore countingSemaphore) {
 		return new WriteReadSemaphoreImpl(countingSemaphore, config.getWriteReadSemaphoreRunnerMaxReaders());
+	}
+	
+	@Bean
+	public ExecutorService cachedThreadPool() {
+		return Executors.newCachedThreadPool();
 	}
 	
 }
