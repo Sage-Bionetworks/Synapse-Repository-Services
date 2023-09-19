@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import static org.sagebionetworks.repo.model.table.TableConstants.RESERVED_COLUMNS_NAMES;
 
 import java.util.Comparator;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
@@ -15,55 +16,70 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class DatabaseColumnInfo {
 	
-	String columnName;
-	boolean hasIndex;
-	MySqlColumnType type;
-	Integer maxSize;
-	Long cardinality;
-	String indexName;
-	ColumnType columnType;
+	private String columnName;
+	private boolean hasIndex;
+	private MySqlColumnType type;
+	private Integer maxSize;
+	private Long cardinality;
+	private String indexName;
+	private ColumnType columnType;
+	private String constraintName;
 	
 	public String getColumnName() {
 		return columnName;
 	}
-	public void setColumnName(String columnName) {
+	public DatabaseColumnInfo setColumnName(String columnName) {
 		this.columnName = columnName;
+		return this;
 	}
 	public boolean hasIndex() {
 		return hasIndex;
 	}
-	public void setHasIndex(boolean hasIndex) {
+	public DatabaseColumnInfo setHasIndex(boolean hasIndex) {
 		this.hasIndex = hasIndex;
+		return this;
 	}
 	public Long getCardinality() {
 		return cardinality;
 	}
-	public void setCardinality(Long cardinality) {
+	public DatabaseColumnInfo setCardinality(Long cardinality) {
 		this.cardinality = cardinality;
+		return this;
 	}
 	public String getIndexName() {
 		return indexName;
 	}
-	public void setIndexName(String indexName) {
+	public DatabaseColumnInfo setIndexName(String indexName) {
 		this.indexName = indexName;
+		return this;
 	}
 	public MySqlColumnType getType() {
 		return type;
 	}
-	public void setType(MySqlColumnType type) {
+	public DatabaseColumnInfo setType(MySqlColumnType type) {
 		this.type = type;
+		return this;
 	}
 	public Integer getMaxSize() {
 		return maxSize;
 	}
-	public void setMaxSize(Integer maxSize) {
+	public DatabaseColumnInfo setMaxSize(Integer maxSize) {
 		this.maxSize = maxSize;
+		return this;
 	}
 	public ColumnType getColumnType() {
 		return columnType;
 	}
-	public void setColumnType(ColumnType columnType) {
+	public DatabaseColumnInfo setColumnType(ColumnType columnType) {
 		this.columnType = columnType;
+		return this;
+	}
+	public String getConstraintName() {
+		return constraintName;
+	}
+	public DatabaseColumnInfo setConstraintName(String constraintName) {
+		this.constraintName = constraintName;
+		return this;
 	}
 	/**
 	 * Is this column for for metadata such as:
@@ -151,20 +167,7 @@ public class DatabaseColumnInfo {
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result
-				+ ((cardinality == null) ? 0 : cardinality.hashCode());
-		result = prime * result
-				+ ((columnName == null) ? 0 : columnName.hashCode());
-		result = prime * result
-				+ ((columnType == null) ? 0 : columnType.hashCode());
-		result = prime * result + (hasIndex ? 1231 : 1237);
-		result = prime * result
-				+ ((indexName == null) ? 0 : indexName.hashCode());
-		result = prime * result + ((maxSize == null) ? 0 : maxSize.hashCode());
-		result = prime * result + ((type == null) ? 0 : type.hashCode());
-		return result;
+		return Objects.hash(cardinality, columnName, columnType, constraintName, hasIndex, indexName, maxSize, type);
 	}
 	@Override
 	public boolean equals(Object obj) {
@@ -175,42 +178,17 @@ public class DatabaseColumnInfo {
 		if (getClass() != obj.getClass())
 			return false;
 		DatabaseColumnInfo other = (DatabaseColumnInfo) obj;
-		if (cardinality == null) {
-			if (other.cardinality != null)
-				return false;
-		} else if (!cardinality.equals(other.cardinality))
-			return false;
-		if (columnName == null) {
-			if (other.columnName != null)
-				return false;
-		} else if (!columnName.equals(other.columnName))
-			return false;
-		if (columnType != other.columnType)
-			return false;
-		if (hasIndex != other.hasIndex)
-			return false;
-		if (indexName == null) {
-			if (other.indexName != null)
-				return false;
-		} else if (!indexName.equals(other.indexName))
-			return false;
-		if (maxSize == null) {
-			if (other.maxSize != null)
-				return false;
-		} else if (!maxSize.equals(other.maxSize))
-			return false;
-		if (type != other.type)
-			return false;
-		return true;
+		return Objects.equals(cardinality, other.cardinality) && Objects.equals(columnName, other.columnName)
+				&& columnType == other.columnType && Objects.equals(constraintName, other.constraintName)
+				&& hasIndex == other.hasIndex && Objects.equals(indexName, other.indexName)
+				&& Objects.equals(maxSize, other.maxSize) && type == other.type;
 	}
-	
 	@Override
 	public String toString() {
-		return "DatabaseColumnInfo [columnName=" + columnName + ", hasIndex="
-				+ hasIndex + ", type=" + type + ", maxSize=" + maxSize
-				+ ", cardinality=" + cardinality + ", indexName=" + indexName
-				+ ", columnType=" + columnType + "]";
+		return "DatabaseColumnInfo [columnName=" + columnName + ", hasIndex=" + hasIndex + ", type=" + type
+				+ ", maxSize=" + maxSize + ", cardinality=" + cardinality + ", indexName=" + indexName + ", columnType="
+				+ columnType + ", constraintName=" + constraintName + "]";
 	}
 
-	
+
 }

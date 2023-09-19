@@ -68,6 +68,7 @@ import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
@@ -170,6 +171,8 @@ public class TableManagerSupportTest {
 	private Logger mockLogger;
 	@Mock
 	private JdbcTemplate mockJdbcTemplate;
+	@Mock
+	private TableExceptionTranslator mockTableExceptionTranslator;
 	
 	private TableManagerSupportImpl manager;
 	private TableManagerSupportImpl managerSpy;
@@ -217,7 +220,7 @@ public class TableManagerSupportTest {
 		manager = new TableManagerSupportImpl(mockTableStatusDAO, mockTimeoutUtils, mockTransactionalMessenger,
 				mockTableConnectionFactory, mockColumnModelManager, mockNodeDao, mockTableTruthDao, mockViewScopeDao,
 				mockWriteReadSemaphore, mockAuthorizationManager, mockViewSnapshotDao, mockMetadataIndexProviderFactory,
-				mockDefaultColumnModelMapper, mockMaterializedViewDao, mockFileProvider, mockS3Client, mockClock, mockLoggerProvider);
+				mockDefaultColumnModelMapper, mockMaterializedViewDao, mockFileProvider, mockS3Client, mockClock, mockLoggerProvider, mockTableExceptionTranslator);
 		managerSpy = Mockito.spy(manager);
 			
 		userInfo = new UserInfo(false, 8L);
@@ -1726,6 +1729,20 @@ public class TableManagerSupportTest {
 		verify(mockTableConnectionFactory).getConnection(idAndVersion);
 		verify(mockTableIndexDAO).getConnection();
 		
+	}
+	
+	@Test
+	public void testAttemptToSetTableStatusToFailed() {
+		IllegalArgumentException e = new IllegalArgumentException("abc");
+		RuntimeException translated = new IllegalArgumentException("translated");
+		when(mockTableExceptionTranslator.translateException(any())).thenReturn(translated);
+		// call under test
+		manager.attemptToSetTableStatusToFailed(idAndVersion, e);
+		
+		verify(mockTableExceptionTranslator).translateException(e);
+		ArgumentCaptor<String> stackCaptor = ArgumentCaptor.forClass(String.class);
+		verify(mockTableStatusDAO).attemptToSetTableStatusToFailed(eq(idAndVersion), eq("translated"), stackCaptor.capture());
+		assertTrue(stackCaptor.getValue().startsWith("java.lang.IllegalArgumentException: translated"));
 	}
 	
 }

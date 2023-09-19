@@ -19,6 +19,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CUR_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_BUCKET;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE;
 
 /**
@@ -46,7 +47,8 @@ public enum ObjectField {
 	datasetItemCount        (OBJECT_REPLICATION_COL_ITEM_COUNT,			ColumnType.INTEGER,			null,	null),
 	dataFileConcreteType	(OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE,	ColumnType.STRING,			65L,	FacetType.enumeration),
 	dataFileBucket			(OBJECT_REPLICATION_COL_FILE_BUCKET,		ColumnType.STRING,			100L,	FacetType.enumeration),
-	dataFileKey				(OBJECT_REPLICATION_COL_FILE_KEY,			ColumnType.STRING,			700L,	null);
+	dataFileKey				(OBJECT_REPLICATION_COL_FILE_KEY,			ColumnType.STRING,			700L,	null),
+	dataFileName			(OBJECT_REPLICATION_COL_FILE_NAME,			ColumnType.STRING,			256L,	null);
 	
 	private String databaseColumnName;
 	// Note that this column type for id, parentId and benefactorId is not known a priori and is dynamically computed

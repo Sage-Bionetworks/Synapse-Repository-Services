@@ -150,7 +150,7 @@ public class FacetModel {
 					if ( facetValuesRequest != null){
 						selectedValues = facetValuesRequest.getFacetValues();
 					}
-					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.getJsonPath(), facet.isColumnTypeIsList(), validatedFacets, queryClone , dependencies, selectedValues));
+					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.getJsonPath(), facet.getJsonPathType(), facet.isColumnTypeIsList(), validatedFacets, queryClone , dependencies, selectedValues));
 					break;
 				case range:
 					String selectedMin = null;
@@ -160,7 +160,7 @@ public class FacetModel {
 						selectedMin = facetRangeRequest.getMin();
 						selectedMax = facetRangeRequest.getMax();
 					}
-					transformersList.add(new FacetTransformerRange(facet.getColumnName(), facet.getJsonPath(), validatedFacets, queryClone, dependencies, selectedMin, selectedMax ));
+					transformersList.add(new FacetTransformerRange(facet.getColumnName(), facet.getJsonPath(), facet.getJsonPathType(), validatedFacets, queryClone, dependencies, selectedMin, selectedMax ));
 					break;
 				default:
 					throw new RuntimeException("Found unexpected FacetType");

@@ -6,6 +6,8 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -77,12 +79,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	private TableManagerSupport tableManagerSupport;
 	private ConnectionFactory tableConnectionFactory;
 	private EntityAuthorizationManager entityAuthorizationManager;
+	private ExecutorService threadPool;
 
 	@Autowired
-	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager) {
+	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool) {
 		this.tableManagerSupport = tableManagerSupport;
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.entityAuthorizationManager = entityAuthorizationManager;
+		this.threadPool = cachedThreadPool;
 	}
 	
 	/**
@@ -403,13 +407,23 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	public List<FacetColumnResult> runFacetQueries(FacetQueries facetQuereis, TableIndexDAO indexDao) {
 		ValidateArgument.required(facetQuereis, "facetQuereis");
 		ValidateArgument.required(indexDao, "indexDao");
-
-		List<FacetColumnResult> facetResults = new ArrayList<>();
-		for (FacetTransformer facetQueryTransformer : facetQuereis.getFacetInformationQueries()) {
-			RowSet rowSet = indexDao.query(null, facetQueryTransformer.getFacetSqlQuery());
-			facetResults.add(facetQueryTransformer.translateToResult(rowSet));
+		List<FacetTransformer> transformers = facetQuereis.getFacetInformationQueries();
+		List<Future<FacetColumnResult>> futures = new ArrayList<>(transformers.size());
+		for (FacetTransformer facetQueryTransformer : transformers) {
+			futures.add(threadPool.submit(() -> {
+				RowSet rowSet = indexDao.query(null, facetQueryTransformer.getFacetSqlQuery());
+				return facetQueryTransformer.translateToResult(rowSet);
+			}));
 		}
-		return facetResults;
+		List<FacetColumnResult> results = new ArrayList<>(futures.size());
+		for(Future<FacetColumnResult> future: futures) {
+			try {
+				results.add(future.get());
+			}  catch (Exception e) {
+				new IllegalStateException(e);
+			}
+		}
+		return results;
 	}
 
 	/**

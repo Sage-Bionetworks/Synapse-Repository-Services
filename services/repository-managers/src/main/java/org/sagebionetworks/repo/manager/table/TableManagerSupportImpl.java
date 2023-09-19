@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
@@ -111,6 +112,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	private final SynapseS3Client s3Client;
 	private final Clock clock;
 	private final Logger log;
+	private final TableExceptionTranslator tableExceptionTranslator;
 	
 	@Autowired
 	public TableManagerSupportImpl(TableStatusDAO tableStatusDAO, TimeoutUtils timeoutUtils,
@@ -119,7 +121,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			ViewScopeDao viewScopeDao, WriteReadSemaphore writeReadSemaphoreRunner,
 			AuthorizationManager authorizationManager, TableSnapshotDao tableSnapshotDao,
 			MetadataIndexProviderFactory metadataIndexProviderFactory, DefaultColumnModelMapper defaultColumnMapper,
-			MaterializedViewDao materializedViewDao, FileProvider fileProvider, SynapseS3Client s3Client, Clock clock, LoggerProvider loggerProvider) {
+			MaterializedViewDao materializedViewDao, FileProvider fileProvider, SynapseS3Client s3Client, Clock clock, LoggerProvider loggerProvider
+			, TableExceptionTranslator tableExceptionTranslator) {
 		super();
 		this.tableStatusDAO = tableStatusDAO;
 		this.timeoutUtils = timeoutUtils;
@@ -139,6 +142,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		this.s3Client = s3Client;
 		this.clock = clock;
 		this.log = loggerProvider.getLogger(TableManagerSupportImpl.class.getName());
+		this.tableExceptionTranslator = tableExceptionTranslator;
 	}
 
 	/*
@@ -247,9 +251,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public void attemptToSetTableStatusToFailed(IdAndVersion idAndVersion, Exception error)
 			throws ConflictingUpdateException, NotFoundException {
-		String errorMessage = error.getMessage();
+		RuntimeException translated = tableExceptionTranslator.translateException(error);
+		String errorMessage = translated.getMessage();
 		StringWriter writer = new StringWriter();
-		error.printStackTrace(new PrintWriter(writer));
+		translated.printStackTrace(new PrintWriter(writer));
 		String errorDetails = writer.toString();
 		tableStatusDAO.attemptToSetTableStatusToFailed(idAndVersion, errorMessage, errorDetails);
 	}

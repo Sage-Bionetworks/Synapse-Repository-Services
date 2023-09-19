@@ -158,6 +158,7 @@ public class TableConstants {
 	public static final String OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE    = "FILE_CONCRETE_TYPE";
 	public static final String OBJECT_REPLICATION_COL_FILE_BUCKET			= "FILE_BUCKET";
 	public static final String OBJECT_REPLICATION_COL_FILE_KEY			    = "FILE_KEY";
+	public static final String OBJECT_REPLICATION_COL_FILE_NAME			    = "FILE_NAME";
 
 	// REPLICATION_SYNC_EXPIRATION
 	public static final String REPLICATION_SYNC_EXPIRATION_TABLE			= "REPLICATION_SYNC_EXPIRATION";
@@ -236,8 +237,9 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_COL_ITEM_COUNT			+ ","
 			+ OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE + ","
 			+ OBJECT_REPLICATION_COL_FILE_BUCKET		+ ","
-			+ OBJECT_REPLICATION_COL_FILE_KEY
-			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+			+ OBJECT_REPLICATION_COL_FILE_KEY			+ ","
+			+ OBJECT_REPLICATION_COL_FILE_NAME
+			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 			+ " ON DUPLICATE KEY UPDATE "
 			+ OBJECT_REPLICATION_COL_CUR_VERSION 		+ "=?,"
 			+ OBJECT_REPLICATION_COL_CREATED_BY 		+ "=?,"
@@ -258,7 +260,8 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_COL_ITEM_COUNT			+ "=?,"
 			+ OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE + "=?,"
 			+ OBJECT_REPLICATION_COL_FILE_BUCKET		+ "=?,"
-			+ OBJECT_REPLICATION_COL_FILE_KEY			+ "=?";
+			+ OBJECT_REPLICATION_COL_FILE_KEY			+ "=?,"
+			+ OBJECT_REPLICATION_COL_FILE_NAME			+ "=?";
 	
 	public static final String TRUNCATE_OBJECT_REPLICATION_TABLE = 
 			"DELETE FROM "+OBJECT_REPLICATION_TABLE;	

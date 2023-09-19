@@ -14,6 +14,8 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -126,7 +128,7 @@ public class FacetUtilsTest {
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		assertEquals(1, validatedQueryFacetColumns.size());
 		
-		String columnNameExpressionToIgnore = FacetUtils.getColumnNameExpression(facetColumnName, null);
+		String columnNameExpressionToIgnore = FacetUtils.getColumnNameExpression(facetColumnName, null, null);
 		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, columnNameExpressionToIgnore);
 		assertNull(result);
 	}
@@ -135,11 +137,12 @@ public class FacetUtilsTest {
 	public void testConcatFacetSearchConditionStringsOnlyFacetInListIsIgnoredWithJsonPath(){
 		when(mockFacetColumn.getColumnName()).thenReturn(facetColumnName);
 		when(mockFacetColumn.getJsonPath()).thenReturn("$.a");
+		when(mockFacetColumn.getJsonPathType()).thenReturn(ColumnType.STRING);
 		
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		assertEquals(1, validatedQueryFacetColumns.size());
 		
-		String columnNameExpressionToIgnore = FacetUtils.getColumnNameExpression(facetColumnName, "$.a");
+		String columnNameExpressionToIgnore = FacetUtils.getColumnNameExpression(facetColumnName, "$.a", ColumnType.STRING);
 		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, columnNameExpressionToIgnore);
 		assertNull(result);
 	}
@@ -184,14 +187,33 @@ public class FacetUtilsTest {
 	@Test
 	public void testGetColumnNameExpressionWithNoJsonPath() {
 		String jsonPath = null;
+		ColumnType jsonPathType = null;
 		
-		assertEquals("\"foo bar\"", FacetUtils.getColumnNameExpression("foo bar", jsonPath));
+		assertEquals("\"foo bar\"", FacetUtils.getColumnNameExpression("foo bar", jsonPath, jsonPathType));
 	}
 	
 	@Test
-	public void testGetColumnNameExpressionWithJsonPath() {
+	public void testGetColumnNameExpressionWithJsonPathAndNoType() {
+		String jsonPath = "$.a";
+		ColumnType jsonPathType = null;
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			FacetUtils.getColumnNameExpression("foo bar", jsonPath, jsonPathType);
+		}).getMessage();
+		
+		assertEquals("When the jsonPath is supplied the columnType is required.", result);
+	}
+	
+	@ParameterizedTest
+	@EnumSource(ColumnType.class)
+	public void testGetColumnNameExpressionWithJsonPath(ColumnType jsonPathType) {
 		String jsonPath = "$.a";
 		
-		assertEquals("JSON_EXTRACT(\"foo bar\",'$.a')", FacetUtils.getColumnNameExpression("foo bar", jsonPath));
+		if (ColumnType.STRING == jsonPathType) {
+			assertEquals("JSON_UNQUOTE(JSON_EXTRACT(\"foo bar\",'$.a'))", FacetUtils.getColumnNameExpression("foo bar", jsonPath, jsonPathType));
+		} else {
+			assertEquals("JSON_EXTRACT(\"foo bar\",'$.a')", FacetUtils.getColumnNameExpression("foo bar", jsonPath, jsonPathType));
+		}
 	}
+	
 }

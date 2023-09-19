@@ -2,12 +2,14 @@ package org.sagebionetworks.table.query.util;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class FacetUtils {
+		
 	/**
 	 * Concatenates a list of search condition Strings with AND and then wraps that search condition with a parenthesis
 	 * e.g. ["(col1 = 1 OR col1 = b)", "(col2 = c OR col2 = d)"] => "( (col1 = 1 OR col1 = b) AND (col2 = c OR col2 = d) )"
@@ -27,7 +29,7 @@ public class FacetUtils {
 		
 		for(FacetRequestColumnModel facetColumn : validatedFacets){
 			if (columNameExpressionToIgnore != null) {
-				String columnNameExpression = getColumnNameExpression(facetColumn.getColumnName(), facetColumn.getJsonPath());				
+				String columnNameExpression = getColumnNameExpression(facetColumn.getColumnName(), facetColumn.getJsonPath(), facetColumn.getJsonPathType());				
 				//make sure not to include the ignored column
 				if (columnNameExpression.equals(columNameExpressionToIgnore)) {
 					continue;
@@ -75,19 +77,23 @@ public class FacetUtils {
 		return originalWhereClause;
 	}
 	
-	public static String getColumnNameExpression(String columnName, String jsonPath) {
+	public static String getColumnNameExpression(String columnName, String jsonPath, ColumnType jsonPathType) {
 		ValidateArgument.required(columnName, "The columnName");
+		ValidateArgument.requirement(jsonPath == null || jsonPathType != null, "When the jsonPath is supplied the columnType is required.");
+		
+		String columnExpression = SqlElementUtils.wrapInDoubleQuotes(columnName);
+		
 		// If a json path is supplied then we need to extract the value
-		StringBuilder builder = new StringBuilder();
 		if (jsonPath != null) {
-			builder.append("JSON_EXTRACT(");
+			
+			columnExpression = "JSON_EXTRACT(" + columnExpression + ",'" + jsonPath + "')";
+			
+			// We only unquote String types for now since this returns a utf string and aggregations might now work (See https://sagebionetworks.jira.com/browse/PLFM-8045)
+			if (ColumnType.STRING.equals(jsonPathType)) {
+				columnExpression = "JSON_UNQUOTE(" + columnExpression + ")";
+			}
 		}
 		
-		builder.append(SqlElementUtils.wrapInDoubleQuotes(columnName));
-		
-		if (jsonPath != null) {
-			builder.append(",'").append(jsonPath).append("')");
-		}
-		return builder.toString();
+		return columnExpression;
 	}
 }

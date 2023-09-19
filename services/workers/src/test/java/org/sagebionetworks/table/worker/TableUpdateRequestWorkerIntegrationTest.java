@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.worker;
 
-
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -12,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -332,8 +329,7 @@ public class TableUpdateRequestWorkerIntegrationTest {
 				fail("This should eventually fail");
 			}, MAX_WAIT_MS);			
 		});
-		
-		assertEquals("Data truncated for column 'aString_UNNEST' at row 1", ex.getMessage());
+		assertTrue(ex.getMessage().startsWith("Check constraint"));
 	}
 	
 	@Test

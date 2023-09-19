@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -255,63 +256,6 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testGetTableNameForMultiValueColumnMaterlization_nullId(){
-		assertThrows(IllegalArgumentException.class, ()-> {
-			SQLUtils.getTableNameForMultiValueColumnIndex(null, null);
-		});
-	}
-
-	@Test
-	public void testGetTableNameForMultiValueColumnMaterlization_nullColumnModelId(){
-		assertThrows(IllegalArgumentException.class, ()-> {
-			SQLUtils.getTableNameForMultiValueColumnIndex(tableId, null );
-		});
-	}
-
-	@Test
-	public void testGetTableNameForMultiValueColumnIndex(){
-		String temp = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, "123", true);
-		assertEquals("TEMPT999_INDEX_C123_", temp);
-	}
-	
-	@Test
-	public void testGetTableNamePrefixForMultiValueColumns_Id_NoVersion(){
-		String tableName = SQLUtils.getTableNamePrefixForMultiValueColumns(IdAndVersion.parse("syn123"), false);
-		assertEquals("T123_INDEX", tableName);
-	}
-
-	@Test
-	public void testGetTableNamePrefixForMultiValueColumns_Id_WithVersion(){
-		String tableName = SQLUtils.getTableNamePrefixForMultiValueColumns(IdAndVersion.parse("syn123.456"), false);
-		assertEquals("T123_456_INDEX", tableName);
-	}
-	
-	@Test
-	public void testGetTableNamePrefixForMultiValueColumnsWithNegativeId(){
-		tableId = IdAndVersion.newBuilder().setId(-123L).build();
-		String tableName = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId, false);
-		assertEquals("T__123_INDEX", tableName);
-	}
-
-	@Test
-	public void testGetTableNamePrefixForMultiValueColumns_alterTempTrue(){
-		String tableName = SQLUtils.getTableNamePrefixForMultiValueColumns(IdAndVersion.parse("syn123"), true);
-		assertEquals("TEMPT123_INDEX", tableName);
-	}
-
-	@Test
-	public void testGetTableNameForMultiValueColumnMaterlization_Id_NoVersion(){
-		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(IdAndVersion.parse("syn123"), "456");
-		assertEquals("T123_INDEX_C456_", tableName);
-	}
-
-	@Test
-	public void testGetTableNameForMultiValueColumnMaterlization_Id_WithVersion(){
-		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(IdAndVersion.parse("syn123.456"), "456");
-		assertEquals("T123_456_INDEX_C456_", tableName);
-	}
-
-	@Test
 	public void testGetColumnNames() {
 		assertEquals("", createColNames());
 		assertEquals("_C0_", createColNames(ColumnType.STRING));
@@ -514,6 +458,21 @@ public class SQLUtilsTest {
 		assertEquals("ADD COLUMN _C123_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
 				+ ", ADD COLUMN _DBL_C123_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
+	
+	@Test
+	public void testAppendAddColumnWithList(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.INTEGER_LIST);
+		cm.setMaximumSize(12L);
+		cm.setMaximumListLength(100L);
+		// call under test
+		SQLUtils.appendAddColumn(builder, cm, useDepricatedUtf8ThreeBytes);
+		assertEquals("ADD COLUMN _C123_ JSON DEFAULT NULL COMMENT 'INTEGER_LIST', "
+				+ "ADD CONSTRAINT CHECK (JSON_SCHEMA_VALID('"
+				+ "{ \"type\": \"array\", \"items\": { \"maxLength\": 12 }, \"maxItems\": 100 }', _C123_))", builder.toString());
+	}
 
 	@Test
 	public void testAppendDropColumn(){
@@ -562,6 +521,23 @@ public class SQLUtilsTest {
 		// call under test
 		SQLUtils.appendDeleteColumn(builder, change);
 		assertEquals("DROP INDEX _C123_idx_, DROP COLUMN _C123_", builder.toString());
+	}
+	
+	@Test
+	public void testAppendDropColumnWithConstraint(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.INTEGER);
+		
+		DatabaseColumnInfo cmInfo = new DatabaseColumnInfo();
+		cmInfo.setIndexName("_C123_idx_");
+		cmInfo.setConstraintName("deleteMe");
+		
+		ColumnChangeDetails change = new ColumnChangeDetails(cm, cmInfo, null);
+		// call under test
+		SQLUtils.appendDeleteColumn(builder, change);
+		assertEquals("DROP CONSTRAINT `deleteMe`, DROP COLUMN _C123_", builder.toString());
 	}
 
 	@Test
@@ -754,6 +730,30 @@ public class SQLUtilsTest {
 		assertEquals("CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
 				+ ", CHANGE COLUMN _DBL_C123_ _DBL_C456_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
+	
+	@Test
+	public void testAppendUpdateWithOldListAndNewList(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.INTEGER_LIST);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setConstraintName("deleteMe");
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.INTEGER_LIST);
+		newColumn.setMaximumSize(10L);
+		newColumn.setMaximumListLength(3L);
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
+		// call under test
+		SQLUtils.appendUpdateColumn(builder, change, useDepricatedUtf8ThreeBytes);
+		assertEquals("DROP CONSTRAINT `deleteMe`, CHANGE COLUMN _C123_ _C456_ JSON DEFAULT NULL COMMENT 'INTEGER_LIST'"
+				+ ", ADD CONSTRAINT CHECK (JSON_SCHEMA_VALID('"
+				+ "{ \"type\": \"array\", \"items\": { \"maxLength\": 10 }, \"maxItems\": 3 }', _C456_))", builder.toString());
+	}
 
 	@Test
 	public void testAppendAlterTableSql(){
@@ -900,7 +900,9 @@ public class SQLUtilsTest {
 		String[] expected = {"ALTER TABLE TEMPT999 CHANGE COLUMN _C111_ _C222_ VARCHAR(15) " 
 				+ "CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
 				+ "DROP COLUMN _DBL_C111_",
-				"ALTER TABLE TEMPT999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST'",
+				"ALTER TABLE TEMPT999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST',"
+				+ " ADD CONSTRAINT CHECK (JSON_SCHEMA_VALID('"
+				+ "{ \"type\": \"array\", \"items\": { \"maxLength\": null }, \"maxItems\": null }', _C456_))",
 				"UPDATE TEMPT999 SET _C456_ = JSON_ARRAY(_C123_)",
 				"ALTER TABLE TEMPT999 DROP COLUMN _C123_"
 		};
@@ -937,59 +939,15 @@ public class SQLUtilsTest {
 		String[] expected = {"ALTER TABLE T999 CHANGE COLUMN _C111_ _C222_ VARCHAR(15) " 
 				+ "CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
 				+ "DROP COLUMN _DBL_C111_",
-				"ALTER TABLE T999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST'",
+				"ALTER TABLE T999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST',"
+				+ " ADD CONSTRAINT CHECK (JSON_SCHEMA_VALID('"
+				+ "{ \"type\": \"array\", \"items\": { \"maxLength\": null }, \"maxItems\": null }', _C456_))",
 				"UPDATE T999 SET _C456_ = JSON_ARRAY(_C123_)",
 				"ALTER TABLE T999 DROP COLUMN _C123_"
 		};
 		// call under test
 		String[] results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp);
 		assertArrayEquals(results, expected);
-	}
-
-	@Test
-	public void testCreateAlterListColumnIndexTable(){
-		ColumnModel newColumn = new ColumnModel();
-		newColumn.setId("42");
-		newColumn.setName("testerino");
-		newColumn.setColumnType(ColumnType.STRING_LIST);
-		newColumn.setMaximumSize(58L);
-
-		Long oldColumn = 21L;
-
-
-		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumn, newColumn, false);
-		String expected = "ALTER TABLE T999_INDEX_C21_" +
-				" DROP INDEX _C21__UNNEST_IDX," +
-				" DROP FOREIGN KEY T999_INDEX_C21__ibfk_FK," +
-				" RENAME COLUMN ROW_ID_REF_C21_ TO ROW_ID_REF_C42_," +
-				" ADD CONSTRAINT T999_INDEX_C42__ibfk_FK FOREIGN KEY (ROW_ID_REF_C42_) REFERENCES T999(ROW_ID) ON DELETE CASCADE," +
-				" CHANGE COLUMN _C21__UNNEST _C42__UNNEST VARCHAR(58) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'," +
-				" ADD INDEX _C42__UNNEST_IDX (_C42__UNNEST ASC)," +
-				" RENAME T999_INDEX_C42_";
-		assertEquals(expected, sql);
-	}
-
-	@Test
-	public void testCreateAlterListColumnIndexTable_alterTempTrue(){
-		ColumnModel newColumn = new ColumnModel();
-		newColumn.setId("42");
-		newColumn.setName("testerino");
-		newColumn.setColumnType(ColumnType.STRING_LIST);
-		newColumn.setMaximumSize(58L);
-
-		Long oldColumn = 21L;
-
-
-		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumn, newColumn, true);
-		String expected = "ALTER TABLE TEMPT999_INDEX_C21_" +
-				" DROP INDEX _C21__UNNEST_IDX," +
-				" DROP FOREIGN KEY TEMPT999_INDEX_C21__ibfk_FK," +
-				" RENAME COLUMN ROW_ID_REF_C21_ TO ROW_ID_REF_C42_," +
-				" ADD CONSTRAINT TEMPT999_INDEX_C42__ibfk_FK FOREIGN KEY (ROW_ID_REF_C42_) REFERENCES TEMPT999(ROW_ID) ON DELETE CASCADE," +
-				" CHANGE COLUMN _C21__UNNEST _C42__UNNEST VARCHAR(58) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'," +
-				" ADD INDEX _C42__UNNEST_IDX (_C42__UNNEST ASC)," +
-				" RENAME TEMPT999_INDEX_C42_";
-		assertEquals(expected, sql);
 	}
 
 	@Test
@@ -1639,30 +1597,31 @@ public class SQLUtilsTest {
 		List<ColumnModel> expected = Lists.newArrayList(cm);
 		assertEquals(expected, results);
 	}
-
+	
 	@Test
-	public void testGetColumnIdFromMultivalueColumnIndexTableName_nullTableId(){
-		assertThrows(IllegalArgumentException.class, () -> {
-			SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(null, "_T123_123__INDEX_C555_");
-		});
+	public void testGetFirstColumnNameMatch() {
+		// call under test
+		Optional<String> result = SQLUtils.getFirstColumnNameMatch(
+				"json_schema_valid(_utf8mb4\\'{ \"type\": \"array\", \"items\": { \"maxLength\": 5 }, \"maxItems\": 100 }\\',`_C345_`)");
+		assertEquals(Optional.of("_C345_"), result);
 	}
+	
 	@Test
-	public void testGetColumnIdFromMultivalueColumnIndexTableName_nullIndexTableName(){
-		IdAndVersion tableId = IdAndVersion.parse("syn123");
-		assertThrows(IllegalArgumentException.class, () -> {
-			SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(tableId, null);
-		});
-
+	public void testGetFirstColumnNameMatchWithMultiple() {
+		// call under test
+		Optional<String> result = SQLUtils.getFirstColumnNameMatch(
+				"_C111_, _C222_, _C333_");
+		assertEquals(Optional.of("_C111_"), result);
 	}
-
+	
 	@Test
-	public void testGetColumnIdFromMultivalueColumnIndexTableName(){
-		IdAndVersion tableId = IdAndVersion.parse("syn123.456");
-		String indexTableName = "T123_456_INDEX_C555_";
-
-		assertEquals(555, SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(tableId, indexTableName));
+	public void testGetFirstColumnNameMatcWithNoMatch() {
+		// call under test
+		Optional<String> result = SQLUtils.getFirstColumnNameMatch(
+				"this does not match _CMK_`)");
+		assertEquals(Optional.empty(), result);
 	}
-
+	
 	@Test
 	public void testTemporaryTableName(){
 		String temp = SQLUtils.getTemporaryTableName(tableId);
@@ -1677,25 +1636,9 @@ public class SQLUtilsTest {
 
 
 	@Test
-	public void testTempMultiValueColumnIndexTableSql(){
-		String[] sql = SQLUtils.createTempMultiValueColumnIndexTableSql(tableId, "123");
-		String[] expected = new String[]{"CREATE TABLE TEMPT999_INDEX_C123_ LIKE T999_INDEX_C123_",
-				"ALTER TABLE TEMPT999_INDEX_C123_ " +
-				"ADD CONSTRAINT TEMPT999_INDEX_C123__ibfk_FK FOREIGN KEY (ROW_ID_REF_C123_) REFERENCES TEMPT999(ROW_ID) " +
-				"ON DELETE CASCADE"};
-		assertArrayEquals(expected, sql);
-	}
-
-	@Test
 	public void testCopyTableToTempSql(){
 		String sql = SQLUtils.copyTableToTempSql(tableId);
 		assertEquals("INSERT INTO TEMPT999 SELECT * FROM T999", sql);
-	}
-
-	@Test
-	public void testMultiValueColumnIndexTableToTempSql(){
-		String sql = SQLUtils.copyMultiValueColumnIndexTableToTempSql(tableId, "123");
-		assertEquals("INSERT INTO TEMPT999_INDEX_C123_ SELECT * FROM T999_INDEX_C123_", sql);
 	}
 
 	@Test
@@ -1841,7 +1784,8 @@ public class SQLUtilsTest {
 				+ " MAX(R.ITEM_COUNT) AS ITEM_COUNT,"
 				+ " MAX(R.FILE_CONCRETE_TYPE) AS FILE_CONCRETE_TYPE,"
 				+ " MAX(R.FILE_BUCKET) AS FILE_BUCKET,"
-				+ " MAX(R.FILE_KEY) AS FILE_KEY"
+				+ " MAX(R.FILE_KEY) AS FILE_KEY,"
+				+ " MAX(R.FILE_NAME) AS FILE_NAME"
 				, builder.toString());
 	}
 	
@@ -2847,154 +2791,6 @@ public class SQLUtilsTest {
 		long bytes = SQLUtils.calculateBytes(row);
 		assertEquals(3*4+6*4, bytes);
 	}
-
-	@Test
-	public void testCreateListColumnIndexTable__nullTableId(){
-		ColumnModel columnModel = new ColumnModel();
-		columnModel.setColumnType(ColumnType.STRING_LIST);
-		columnModel.setId("0");
-		columnModel.setMaximumSize(42L);
-
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			SQLUtils.createListColumnIndexTable(null, columnModel, false);
-		}).getMessage();
-		assertEquals("tableIdAndVersion is required.", errorMessage);
-	}
-
-	@Test
-	public void testCreateListColumnIndexTable__nullColumnModel(){
-		ColumnModel nullColumnModel = null;
-		String errorMessage = assertThrows(IllegalArgumentException.class, () ->{
-			SQLUtils.createListColumnIndexTable(tableId, nullColumnModel, false);
-		}).getMessage();
-		assertEquals("columnModel is required.", errorMessage);
-	}
-
-	@Test
-	public void testCreateListColumnIndexTable__columnModelNotListType(){
-		ColumnModel columnModel = new ColumnModel();
-		columnModel.setColumnType(ColumnType.STRING);
-		columnModel.setId("0");
-		columnModel.setMaximumSize(42L);
-
-		String errorMessage = assertThrows(IllegalArgumentException.class, () ->{
-			SQLUtils.createListColumnIndexTable(tableId, columnModel, false);
-		}).getMessage();
-
-		assertEquals("columnModel's type must be a LIST type", errorMessage);
-	}
-
-	@Test
-	public void testCreateListColumnIndexTable_alterTempTrue(){
-		ColumnModel columnInfo = new ColumnModel();
-		columnInfo.setColumnType(ColumnType.STRING_LIST);
-		columnInfo.setId("0");
-		columnInfo.setMaximumSize(42L);
-		String sql = SQLUtils.createListColumnIndexTable(tableId, columnInfo, false);
-		String expected = "CREATE TABLE IF NOT EXISTS T999_INDEX_C0_ (" +
-				"ROW_ID_REF_C0_ BIGINT NOT NULL, " +
-				"INDEX_NUM BIGINT NOT NULL, " +
-				"_C0__UNNEST VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
-				"PRIMARY KEY (ROW_ID_REF_C0_, INDEX_NUM)," +
-				" INDEX _C0__UNNEST_IDX (_C0__UNNEST ASC)," +
-				" CONSTRAINT T999_INDEX_C0__ibfk_FK FOREIGN KEY (ROW_ID_REF_C0_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);";
-		assertEquals(expected, sql);
-	}
-
-	@Test
-	public void testCreateListColumnIndexTable_alterTempFalse(){
-		ColumnModel columnInfo = new ColumnModel();
-		columnInfo.setColumnType(ColumnType.STRING_LIST);
-		columnInfo.setId("0");
-		columnInfo.setMaximumSize(42L);
-		String sql = SQLUtils.createListColumnIndexTable(tableId, columnInfo, true);
-		String expected = "CREATE TABLE IF NOT EXISTS TEMPT999_INDEX_C0_ (" +
-				"ROW_ID_REF_C0_ BIGINT NOT NULL, " +
-				"INDEX_NUM BIGINT NOT NULL, " +
-				"_C0__UNNEST VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
-				"PRIMARY KEY (ROW_ID_REF_C0_, INDEX_NUM)," +
-				" INDEX _C0__UNNEST_IDX (_C0__UNNEST ASC)," +
-				" CONSTRAINT TEMPT999_INDEX_C0__ibfk_FK FOREIGN KEY (ROW_ID_REF_C0_) REFERENCES TEMPT999(ROW_ID) ON DELETE CASCADE);";
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testCreateListColumnIndexTableWithNegativeID(){
-		ColumnModel columnInfo = new ColumnModel();
-		columnInfo.setColumnType(ColumnType.STRING_LIST);
-		columnInfo.setId("0");
-		columnInfo.setMaximumSize(42L);
-		tableId = IdAndVersion.newBuilder().setId(-999L).build();
-		String sql = SQLUtils.createListColumnIndexTable(tableId, columnInfo, true);
-		String expected = "CREATE TABLE IF NOT EXISTS TEMPT__999_INDEX_C0_ (" +
-				"ROW_ID_REF_C0_ BIGINT NOT NULL, " +
-				"INDEX_NUM BIGINT NOT NULL, " +
-				"_C0__UNNEST VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
-				"PRIMARY KEY (ROW_ID_REF_C0_, INDEX_NUM)," +
-				" INDEX _C0__UNNEST_IDX (_C0__UNNEST ASC)," +
-				" CONSTRAINT TEMPT__999_INDEX_C0__ibfk_FK FOREIGN KEY (ROW_ID_REF_C0_) REFERENCES TEMPT__999(ROW_ID) ON DELETE CASCADE);";
-		assertEquals(expected, sql);
-	}
-
-	@Test
-	public void testInsertIntoListColumnIndexTable(){
-		ColumnModel columnInfo = new ColumnModel();
-		columnInfo.setColumnType(ColumnType.STRING_LIST);
-		columnInfo.setId("0");
-		columnInfo.setMaximumSize(42L);
-		boolean filterRows = false;
-		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo, filterRows, false);
-		String expected = "INSERT INTO T999_INDEX_C0_ (ROW_ID_REF_C0_,INDEX_NUM,_C0__UNNEST) " +
-				"SELECT ROW_ID ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
-				" FROM T999, JSON_TABLE(" +
-				"_C0_," +
-				" '$[*]' COLUMNS (" +
-				" ORDINAL FOR ORDINALITY," +
-				"  COLUMN_EXPAND VARCHAR(42) PATH '$' ERROR ON ERROR " +
-				")" +
-				") TEMP_JSON_TABLE";
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testInsertIntoListColumnIndexTableFilterRows_alterTempFalse(){
-		ColumnModel columnInfo = new ColumnModel();
-		columnInfo.setColumnType(ColumnType.STRING_LIST);
-		columnInfo.setId("0");
-		columnInfo.setMaximumSize(42L);
-		boolean filterRows = true;
-		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo, filterRows, false);
-		String expected = "INSERT INTO T999_INDEX_C0_ (ROW_ID_REF_C0_,INDEX_NUM,_C0__UNNEST) " +
-				"SELECT ROW_ID ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
-				" FROM T999, JSON_TABLE(" +
-				"_C0_," +
-				" '$[*]' COLUMNS (" +
-				" ORDINAL FOR ORDINALITY," +
-				"  COLUMN_EXPAND VARCHAR(42) PATH '$' ERROR ON ERROR " +
-				")" +
-				") TEMP_JSON_TABLE WHERE T999.ROW_ID IN (:ids)";
-		assertEquals(expected, sql);
-	}
-
-	@Test
-	public void testInsertIntoListColumnIndexTableFilterRows_alterTempTrue(){
-		ColumnModel columnInfo = new ColumnModel();
-		columnInfo.setColumnType(ColumnType.STRING_LIST);
-		columnInfo.setId("0");
-		columnInfo.setMaximumSize(42L);
-		boolean filterRows = true;
-		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo, filterRows, true);
-		String expected = "INSERT INTO TEMPT999_INDEX_C0_ (ROW_ID_REF_C0_,INDEX_NUM,_C0__UNNEST) " +
-				"SELECT ROW_ID ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
-				" FROM TEMPT999, JSON_TABLE(" +
-				"_C0_," +
-				" '$[*]' COLUMNS (" +
-				" ORDINAL FOR ORDINALITY," +
-				"  COLUMN_EXPAND VARCHAR(42) PATH '$' ERROR ON ERROR " +
-				")" +
-				") TEMP_JSON_TABLE WHERE TEMPT999.ROW_ID IN (:ids)";
-		assertEquals(expected, sql);
-	}
 	
 	@Test
 	public void testGetOutOfDateRowsForViewSql() {
@@ -3054,7 +2850,9 @@ public class SQLUtilsTest {
 		newColumn.setColumnType(ColumnType.BOOLEAN_LIST);
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		List<String> results = SQLUtils.createAlterToListColumnTypeSqlBatch(change, tableName, useDepricatedUtf8ThreeBytes);
-		assertEquals("ALTER TABLE T999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST'", results.get(0));
+		assertEquals("ALTER TABLE T999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST',"
+				+ " ADD CONSTRAINT CHECK (JSON_SCHEMA_VALID('"
+				+ "{ \"type\": \"array\", \"items\": { \"maxLength\": null }, \"maxItems\": null }', _C456_))", results.get(0));
 		assertEquals("UPDATE T999 SET _C456_ = JSON_ARRAY(_C123_)", results.get(1));
 		assertEquals("ALTER TABLE T999 DROP COLUMN _C123_", results.get(2));
 	}
