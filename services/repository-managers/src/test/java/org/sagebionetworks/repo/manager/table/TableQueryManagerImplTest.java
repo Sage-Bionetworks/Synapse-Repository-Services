@@ -11,6 +11,8 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -36,6 +38,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -138,6 +143,9 @@ public class TableQueryManagerImplTest {
 	private ProgressCallback mockProgressCallback2;
 	@Mock
 	private ActionsRequiredDao mockActionsRequiredDao;
+	@Mock
+	private ExecutorService mockThreadPool;
+	
 	@InjectMocks
 	private TableQueryManagerImpl manager;
 	
@@ -879,6 +887,9 @@ public class TableQueryManagerImplTest {
 		
 		assertEquals(1, facetRequestList.size());
 		
+		setupThreadPool();
+		
+		// call under test
 		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
 		assertNotNull(results);
 		assertNull(results.getColumnModels());
@@ -891,6 +902,8 @@ public class TableQueryManagerImplTest {
 		assertEquals(3, results.getFacets().size());
 		FacetColumnResult facetResultColumn = results.getFacets().get(1);
 		assertEquals(expectedRangeResult, facetResultColumn);
+		
+		verify(mockThreadPool, times(3)).submit(any(Callable.class));
 	}
 	
 	@Test
@@ -1208,7 +1221,12 @@ public class TableQueryManagerImplTest {
 		queryBundle.setQuery(query);
 		
 		queryBundle.setPartMask(BUNDLE_MASK_QUERY_FACETS);
+		
+		setupThreadPool();
+		
+		// call under test
 		QueryResultBundle bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
+		
 		assertNull(bundle.getQueryResult());
 		assertNull(bundle.getQueryCount());
 		assertNull(bundle.getSelectColumns());
@@ -1217,6 +1235,8 @@ public class TableQueryManagerImplTest {
 		assertEquals(3, bundle.getFacets().size());
 		//we don't care about the first facet result because it has no useful data and only exists to make sure for loops work
 		assertEquals(expectedRangeResult, bundle.getFacets().get(1));
+		
+		verify(mockThreadPool, times(3)).submit(any(Callable.class));
 	}
 	
 	@Test
@@ -2309,6 +2329,15 @@ public class TableQueryManagerImplTest {
 		});
 	}	
 	
+	void setupThreadPool() {
+		doAnswer((invocation) -> {
+			Callable<FacetColumnResult> callable = invocation.getArgument(0);
+			Future<FacetColumnResult> future = Mockito.mock(Future.class);
+			doReturn(callable.call()).when(future).get();
+			return future;
+		}).when(mockThreadPool).submit(any(Callable.class));
+	}
+	
 	@Test
 	public void testRunFacetQueries(){
 		//setup
@@ -2322,6 +2351,7 @@ public class TableQueryManagerImplTest {
 		FacetColumnResultValues result1 = new FacetColumnResultValues();
 		FacetColumnResultRange result2 = new FacetColumnResultRange();
 		
+		setupThreadPool();
 		
 		when(mockTransformer1.getFacetSqlQuery()).thenReturn(mockSql1);
 		when(mockTransformer2.getFacetSqlQuery()).thenReturn(mockSql2);
@@ -2343,6 +2373,8 @@ public class TableQueryManagerImplTest {
 		verify(mockTableIndexDAO).query(null, mockSql2);
 		verify(mockTransformer1).translateToResult(rs1);
 		verify(mockTransformer2).translateToResult(rs2);
+		
+		verify(mockThreadPool, times(2)).submit(any(Callable.class));
 		
 		
 		assertEquals(2, results.size());
