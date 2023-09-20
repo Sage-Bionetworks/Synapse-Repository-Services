@@ -828,6 +828,7 @@ public class FileHandleManagerImplTest {
 		
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedURL));
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		
 		FileHandleUrlRequest request = new FileHandleUrlRequest(mockUser, s3FileHandle.getId());
 		
@@ -854,6 +855,7 @@ public class FileHandleManagerImplTest {
 		
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedURL));
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 		
 		FileHandleAssociation association = new FileHandleAssociation();
 		
@@ -897,6 +899,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expecedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expecedURL));
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 		mockUser = new UserInfo(false, 456L);
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 		assertEquals(expecedURL, redirect);
@@ -941,6 +944,7 @@ public class FileHandleManagerImplTest {
 		thenReturn(Collections.singletonList(authorizationResult));
 		when(mockStackConfig.getStack()).thenReturn(STACK);
 		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 		
 		// method under test
 		String redirect = manager.getRedirectURLForFileHandle(mockUser,
@@ -1724,6 +1728,7 @@ public class FileHandleManagerImplTest {
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
 		when(mockStackConfig.getStack()).thenReturn(STACK);
 		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1800,6 +1805,7 @@ public class FileHandleManagerImplTest {
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
 		when(mockStackConfig.getStack()).thenReturn(STACK);
 		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1846,6 +1852,7 @@ public class FileHandleManagerImplTest {
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
 		when(mockStackConfig.getStack()).thenReturn(STACK);
 		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1891,6 +1898,7 @@ public class FileHandleManagerImplTest {
 		Map<String, FileHandle> handleMap = new HashMap<String, FileHandle>();
 		handleMap.put(fh.getId(), fh);
 		when(mockFileHandleDao.getAllFileHandlesBatch(any(Iterable.class))).thenReturn(handleMap);
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
@@ -2661,6 +2669,8 @@ public class FileHandleManagerImplTest {
 		handle.setStatus(FileHandleStatus.AVAILABLE);
 		
 		String expectedUrl = "http://someurl.org";
+
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
 			thenReturn(new URL(expectedUrl));
@@ -2686,6 +2696,7 @@ public class FileHandleManagerImplTest {
 		
 		when(mockStackConfig.getStackInstance()).thenReturn("instance");
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedUrl));
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 
 		ProfileData expectedData = new ProfileData();
 		
