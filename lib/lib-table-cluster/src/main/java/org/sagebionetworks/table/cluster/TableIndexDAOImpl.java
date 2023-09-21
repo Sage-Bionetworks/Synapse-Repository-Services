@@ -139,6 +139,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static String OBJECT_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/ObjectReplication.sql");
 	private static String ANNOTATION_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/AnnotationReplication.sql");
 	private static String REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/ReplicationSynchExpiration.sql");
+	private static String QUERY_CACHE_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/QueryCache.sql");
 	private static String GET_ID_AND_CHECKSUMS_SQL_TEMPLATE = SQLUtils.loadSQLFromClasspath("sql/GetIdAndChecksumsTemplate.sql");
 	
 	public static RowMapper<ObjectDataDTO> OBJECT_DATA_ROW_MAPPER = (ResultSet rs, int rowNum) -> {
@@ -432,7 +433,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public RowSet query(ProgressCallback callback, final QueryTranslator query) {
+	public RowSet query(ProgressCallback callback, final TranslatedQuery query) {
 		if (query == null)
 			throw new IllegalArgumentException("SqlQuery cannot be null");
 		final List<Row> rows = new LinkedList<Row>();
@@ -446,7 +447,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				rows.add(row);
 			}
 		});
-		rowSet.setTableId(query.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+		if(query.getSingleTableId() == null) {
+			throw TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT.get();
+		}
+		rowSet.setTableId(query.getSingleTableId());
 		return rowSet;
 	}
 	
@@ -459,7 +463,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public boolean queryAsStream(final ProgressCallback callback, final QueryTranslator query, final RowHandler handler) {
+	public boolean queryAsStream(final ProgressCallback callback, final TranslatedQuery query, final RowHandler handler) {
 		ValidateArgument.required(query, "Query");
 		final ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(query.getSelectColumns());
 		// We use spring to create create the prepared statement
@@ -750,6 +754,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(OBJECT_REPLICATION_TABLE_CREATE);
 		template.update(ANNOTATION_REPLICATION_TABLE_CREATE);
 		template.update(REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
+		template.update(QUERY_CACHE_TABLE_CREATE);
 	}
 
 	@Override
@@ -1346,6 +1351,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		truncateReplicationSyncExpiration();
 		template.update(TRUNCATE_ANNOTATION_REPLICATION_TABLE);
 		template.update(TRUNCATE_OBJECT_REPLICATION_TABLE);
+		template.update("DELETE FROM QUERY_CACHE");
 	}
 
 	@Override
@@ -1573,5 +1579,56 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return Optional.empty();
 		}
 	}
+
+	@Override
+	public Optional<String> getCachedQueryResults(String requestHash) {
+		ValidateArgument.required(requestHash, "requestHash");
+		try {
+			return Optional.of(template.queryForObject(
+					"SELECT RESULTS FROM QUERY_CACHE WHERE REQUEST_HASH = ?",
+					String.class, requestHash));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+
+	@Override
+	public void saveCachedQuery(String requestHash, String requestJson, String resultJson, long runtimeMS,
+			int expiresInSec) {
+		ValidateArgument.required(requestHash, "requestHash");
+		ValidateArgument.required(requestJson, "requestJson");
+		ValidateArgument.required(resultJson, "resultJson");
+		template.update(
+				"INSERT INTO QUERY_CACHE (REQUEST_HASH, REQUEST, RESULTS, EXPIRES_ON, RUNTIME_MS) VALUES (?,?,?,TIMESTAMPADD(SECOND, ?, NOW()),?) "
+						+ "  ON DUPLICATE KEY UPDATE RESULTS = ?, EXPIRES_ON = TIMESTAMPADD(SECOND, ?, NOW()), RUNTIME_MS = ?",
+				requestHash, requestJson, resultJson, expiresInSec, runtimeMS, resultJson, expiresInSec, runtimeMS);
+	}
 	
+	@Override
+	public Optional<String> getExpiredCachedQueryRequest(String requestHash) {
+		ValidateArgument.required(requestHash, "requestHash");
+		try {
+			return Optional.of(template.queryForObject(
+					"SELECT REQUEST FROM QUERY_CACHE WHERE REQUEST_HASH = ? AND EXPIRES_ON <= NOW()",
+					String.class, requestHash));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+
+	@Override
+	public Optional<CachedQueryDto> getCachedQuery(String requestHash) {
+		ValidateArgument.required(requestHash, "requestHash");
+		try {
+			return Optional.of(template.queryForObject("SELECT * FROM QUERY_CACHE WHERE REQUEST_HASH = ?",
+					(ResultSet rs, int rowNum) -> {
+						return new CachedQueryDto().setRequestHash(rs.getString("REQUEST_HASH"))
+								.setRequestJson(rs.getString("REQUEST")).setResultJson(rs.getString("RESULTS"))
+								.setRuntimeMS(rs.getLong("RUNTIME_MS")).setExpiresOn(rs.getTimestamp("EXPIRES_ON"));
+					}, requestHash));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+
 }

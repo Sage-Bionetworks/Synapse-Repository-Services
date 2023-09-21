@@ -32,11 +32,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -4962,5 +4965,134 @@ public class TableIndexDAOImplTest {
 		}).getMessage();
 		assertEquals("constraintName is required.", message);
 	}
+	
+	@Test
+	public void testCachedQuery() throws InterruptedException {
+		String requestHash = DigestUtils.sha256Hex(UUID.randomUUID().toString());
+		String requestJson = "{\"request\": \"bar\"}";
+		String resultJson = "{\"result\": \"foo\"}";
+		long runtimeMS = 10L;
+		int expiresInSec = 1;
+		
+		// call under test
+		tableIndexDAO.saveCachedQuery(requestHash, requestJson, resultJson, runtimeMS, expiresInSec);
+		
+		// call under test
+		Optional<CachedQueryDto> resultOption = tableIndexDAO.getCachedQuery(requestHash);
+		assertTrue(resultOption.isPresent());
+		CachedQueryDto result = resultOption.get();
+		assertNotNull(result.getExpiresOn());
+		assertEquals(requestHash, result.getRequestHash());
+		assertEquals(requestJson, result.getRequestJson());
+		assertEquals(resultJson, result.getResultJson());
+		assertEquals(runtimeMS, result.getRuntimeMS());
+		
+		// call under test
+		assertEquals(Optional.of(resultJson), tableIndexDAO.getCachedQueryResults(requestHash));
+		
+		// call under test
+		assertEquals(Optional.empty(), tableIndexDAO.getExpiredCachedQueryRequest(requestHash));
+		
+		Thread.sleep(expiresInSec*1001);
+		
+		// call under test
+		assertEquals(Optional.of(requestJson), tableIndexDAO.getExpiredCachedQueryRequest(requestHash));
 
+		runtimeMS = 18L;
+		resultJson = "{\"result\": \"foo\", \"updated\": true}";
+		// call under test
+		tableIndexDAO.saveCachedQuery(requestHash, requestJson, resultJson, runtimeMS, expiresInSec);
+		
+		// call under test
+		Optional<CachedQueryDto> updatedOption = tableIndexDAO.getCachedQuery(requestHash);
+		assertTrue(resultOption.isPresent());
+		CachedQueryDto updatedResult = updatedOption.get();
+		assertNotNull(updatedResult.getExpiresOn());
+		assertTrue(updatedResult.getExpiresOn().toInstant().isAfter(result.getExpiresOn().toInstant()));
+		assertEquals(requestHash, updatedResult.getRequestHash());
+		assertEquals(requestJson, updatedResult.getRequestJson());
+		assertEquals(resultJson, updatedResult.getResultJson());
+		assertEquals(runtimeMS, updatedResult.getRuntimeMS());
+	}
+	
+	@Test
+	public void testCachedQueryWithDoesNotExist() {
+		String requestHash = "does not exist";
+		assertEquals(Optional.empty(), tableIndexDAO.getCachedQuery(requestHash));
+		assertEquals(Optional.empty(), tableIndexDAO.getCachedQueryResults(requestHash));
+		assertEquals(Optional.empty(), tableIndexDAO.getExpiredCachedQueryRequest(requestHash));
+	}
+	
+	@Test
+	public void testGetCachedQuerysWithNull() {
+		String requestHash = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getCachedQuery(requestHash);
+		}).getMessage();
+		assertEquals("requestHash is required.", message);
+	}
+	
+	@Test
+	public void testGetCachedQueryResultsWithNull() {
+		String requestHash = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getCachedQueryResults(requestHash);
+		}).getMessage();
+		assertEquals("requestHash is required.", message);
+	}
+	
+	@Test
+	public void testGetCachedQueryRequestWithNull() {
+		String requestHash = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getExpiredCachedQueryRequest(requestHash);
+		}).getMessage();
+		assertEquals("requestHash is required.", message);
+	}
+	
+	@Test
+	public void testSaveCachedQueryWithNullHash() {
+		String requestHash = null;
+		String requestJson = "{\"request\": \"bar\"}";
+		String resultJson = "{\"result\": \"foo\"}";
+		long runtimeMS = 10L;
+		int expiresInSec = 12;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.saveCachedQuery(requestHash, requestJson, resultJson, runtimeMS, expiresInSec);
+		}).getMessage();
+		assertEquals("requestHash is required.", message);
+	}
+	
+	@Test
+	public void testSaveCachedQueryWithNullRequest() {
+		String requestHash = DigestUtils.sha256Hex(UUID.randomUUID().toString());
+		String requestJson = null;
+		String resultJson = "{\"result\": \"foo\"}";
+		Long runtimeMS = 10L;
+		int expiresInSec = 12;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.saveCachedQuery(requestHash, requestJson, resultJson, runtimeMS, expiresInSec);
+		}).getMessage();
+		assertEquals("requestJson is required.", message);
+	}
+
+	@Test
+	public void testSaveCachedQueryWithNullResult() {
+		String requestHash = DigestUtils.sha256Hex(UUID.randomUUID().toString());
+		String requestJson = "{\"request\": \"bar\"}";
+		String resultJson = null;
+		Long runtimeMS = 10L;
+		int expiresInSec = 12;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.saveCachedQuery(requestHash, requestJson, resultJson, runtimeMS, expiresInSec);
+		}).getMessage();
+		assertEquals("resultJson is required.", message);
+	}
+	
 }
