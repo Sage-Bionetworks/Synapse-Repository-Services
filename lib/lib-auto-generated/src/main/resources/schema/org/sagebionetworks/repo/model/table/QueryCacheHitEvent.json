@@ -1,0 +1,14 @@
+{
+	"description": "An event fired when a user runs a query that results in a cache hit.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.message.LocalStackMessage"
+		}
+	],
+	"properties": {
+		"queryRequestHash": {
+			"type": "string",
+			"description": "The has (SHA 256 Hex) of a query request that resulted in the cache hit. "
+		}
+	}
+}
