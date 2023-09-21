@@ -4972,7 +4972,7 @@ public class TableIndexDAOImplTest {
 		String requestJson = "{\"request\": \"bar\"}";
 		String resultJson = "{\"result\": \"foo\"}";
 		long runtimeMS = 10L;
-		int expiresInSec = 1;
+		int expiresInSec = 3;
 		
 		// call under test
 		tableIndexDAO.saveCachedQuery(requestHash, requestJson, resultJson, runtimeMS, expiresInSec);

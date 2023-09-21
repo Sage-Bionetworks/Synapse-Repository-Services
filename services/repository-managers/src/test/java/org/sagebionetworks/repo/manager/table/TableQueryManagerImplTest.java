@@ -104,6 +104,7 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.SchemaProvider;
@@ -145,6 +146,8 @@ public class TableQueryManagerImplTest {
 	private ActionsRequiredDao mockActionsRequiredDao;
 	@Mock
 	private ExecutorService mockThreadPool;
+	@Mock
+	private QueryCacheManager mockQueryCacheManager;
 	
 	@InjectMocks
 	private TableQueryManagerImpl manager;
@@ -872,7 +875,7 @@ public class TableQueryManagerImplTest {
 		
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
-		when(mockTableIndexDAO.query(isNull(), any(QueryTranslator.class))).thenReturn(enumerationFacetResults, rangeFacetResults, enumerationFacetResults);
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(enumerationFacetResults, rangeFacetResults, enumerationFacetResults);
 		List<FacetColumnRequest> facetRequestList = new ArrayList<>();
 		facetRequestList.add(facetColumnRequest);
 		expectedRangeResult.setSelectedMin(facetColumnRequest.getMin());
@@ -904,6 +907,7 @@ public class TableQueryManagerImplTest {
 		assertEquals(expectedRangeResult, facetResultColumn);
 		
 		verify(mockThreadPool, times(3)).submit(any(Callable.class));
+		verify(mockQueryCacheManager, times(3)).getQueryResults(any(), any());
 	}
 	
 	@Test
@@ -1211,8 +1215,8 @@ public class TableQueryManagerImplTest {
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
-		when(mockTableIndexDAO.query(isNull(), any(QueryTranslator.class))).thenReturn(enumerationFacetResults, rangeFacetResults, enumerationFacetResults);
-		
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(enumerationFacetResults, rangeFacetResults, enumerationFacetResults);
+
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		query.setOffset(0L);
@@ -1237,6 +1241,7 @@ public class TableQueryManagerImplTest {
 		assertEquals(expectedRangeResult, bundle.getFacets().get(1));
 		
 		verify(mockThreadPool, times(3)).submit(any(Callable.class));
+		verify(mockQueryCacheManager, times(3)).getQueryResults(any(), any());
 	}
 	
 	@Test
@@ -2345,7 +2350,9 @@ public class TableQueryManagerImplTest {
 		FacetTransformer mockTransformer1 = Mockito.mock(FacetTransformerValueCounts.class);
 		FacetTransformer mockTransformer2 = Mockito.mock(FacetTransformerRange.class);
 		QueryTranslator mockSql1 = Mockito.mock(QueryTranslator.class);
+		when(mockSql1.getSingleTableId()).thenReturn("syn1");
 		QueryTranslator mockSql2 = Mockito.mock(QueryTranslator.class);
+		when(mockSql2.getSingleTableId()).thenReturn("syn2");
 		RowSet rs1 = new RowSet();
 		RowSet rs2 = new RowSet();
 		FacetColumnResultValues result1 = new FacetColumnResultValues();
@@ -2355,8 +2362,10 @@ public class TableQueryManagerImplTest {
 		
 		when(mockTransformer1.getFacetSqlQuery()).thenReturn(mockSql1);
 		when(mockTransformer2.getFacetSqlQuery()).thenReturn(mockSql2);
-		when(mockTableIndexDAO.query(null, mockSql1)).thenReturn(rs1);
-		when(mockTableIndexDAO.query(null, mockSql2)).thenReturn(rs2);
+		when(mockQueryCacheManager.getQueryResults(mockTableIndexDAO, CachedQueryRequest.clone(mockSql1)
+				.setExpiresInSec(TableQueryManagerImpl.CACHED_QUERY_EXPIRES_IN_SEC))).thenReturn(rs1);
+		when(mockQueryCacheManager.getQueryResults(mockTableIndexDAO, CachedQueryRequest.clone(mockSql2)
+				.setExpiresInSec(TableQueryManagerImpl.CACHED_QUERY_EXPIRES_IN_SEC))).thenReturn(rs2);
 		when(mockTransformer1.translateToResult(rs1)).thenReturn(result1);
 		when(mockTransformer2.translateToResult(rs2)).thenReturn(result2);
 		List<FacetTransformer> transformersList = Arrays.asList(mockTransformer1, mockTransformer2);
@@ -2369,8 +2378,10 @@ public class TableQueryManagerImplTest {
 		verify(mockFacetModel).getFacetInformationQueries();
 		verify(mockTransformer1).getFacetSqlQuery();
 		verify(mockTransformer2).getFacetSqlQuery();
-		verify(mockTableIndexDAO).query(null, mockSql1);
-		verify(mockTableIndexDAO).query(null, mockSql2);
+		verify(mockQueryCacheManager).getQueryResults(mockTableIndexDAO,  CachedQueryRequest.clone(mockSql1)
+				.setExpiresInSec(TableQueryManagerImpl.CACHED_QUERY_EXPIRES_IN_SEC));
+		verify(mockQueryCacheManager).getQueryResults(mockTableIndexDAO,  CachedQueryRequest.clone(mockSql2)
+				.setExpiresInSec(TableQueryManagerImpl.CACHED_QUERY_EXPIRES_IN_SEC));
 		verify(mockTransformer1).translateToResult(rs1);
 		verify(mockTransformer2).translateToResult(rs2);
 		
