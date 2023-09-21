@@ -54,6 +54,7 @@ import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -72,6 +73,7 @@ import org.springframework.jdbc.BadSqlGrammarException;
 
 public class TableQueryManagerImpl implements TableQueryManager {
 
+	public static final int CACHED_QUERY_EXPIRES_IN_SEC = 60*5;
 	public static final long MAX_ROWS_PER_CALL = 100;
 	public static final long ACTIONS_REQUIRED_BATCH_SIZE = 10_000;
 	public static final long MAX_ACTIONS_REQUIRED = 50;
@@ -80,13 +82,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	private ConnectionFactory tableConnectionFactory;
 	private EntityAuthorizationManager entityAuthorizationManager;
 	private ExecutorService threadPool;
+	private QueryCacheManager queryCacheManager;
 
 	@Autowired
-	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool) {
+	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager) {
 		this.tableManagerSupport = tableManagerSupport;
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.threadPool = cachedThreadPool;
+		this.queryCacheManager = queryCacheManager;
 	}
 	
 	/**
@@ -270,7 +274,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws DatastoreException, NotFoundException, TableUnavailableException, TableFailedException,
 			LockUnavilableException, EmptyResultException {
 		// run with a read lock on the table and include the current etag.
-		IdAndVersion idAndVersion = IdAndVersion.parse(query.getMainQuery().getTranslator().getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+		IdAndVersion idAndVersion = IdAndVersion.parse(query.getMainQuery().getTranslator().getSingleTableIdOptional().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		return tryRunWithTableReadLock(progressCallback, idAndVersion, (ProgressCallback callback) -> {
 					// We can only run this query if the table is available.
 					final TableStatus status = validateTableIsAvailable(idAndVersion.toString());
@@ -343,7 +347,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 
 		IdAndVersion idAndVersion = IdAndVersion
-				.parse(query.getMainQuery().getTranslator().getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+				.parse(query.getMainQuery().getTranslator().getSingleTableIdOptional().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		
 		if (query.getMainQuery().getTranslator().isIncludeSearch() && !indexDao.isSearchEnabled(idAndVersion)) {
@@ -411,15 +415,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		List<Future<FacetColumnResult>> futures = new ArrayList<>(transformers.size());
 		for (FacetTransformer facetQueryTransformer : transformers) {
 			futures.add(threadPool.submit(() -> {
-				RowSet rowSet = indexDao.query(null, facetQueryTransformer.getFacetSqlQuery());
+				RowSet rowSet = queryCacheManager.getQueryResults(indexDao, CachedQueryRequest
+						.clone(facetQueryTransformer.getFacetSqlQuery()).setExpiresInSec(CACHED_QUERY_EXPIRES_IN_SEC));
 				return facetQueryTransformer.translateToResult(rowSet);
 			}));
 		}
 		List<FacetColumnResult> results = new ArrayList<>(futures.size());
-		for(Future<FacetColumnResult> future: futures) {
+		for (Future<FacetColumnResult> future : futures) {
 			try {
 				results.add(future.get());
-			}  catch (Exception e) {
+			} catch (Exception e) {
 				new IllegalStateException(e);
 			}
 		}
@@ -528,13 +533,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			final QueryTranslations query = queryPreflight(user, request, maxBytes, options);
 
 			// Do not include rowId and version if it is not provided (PLFM-2993)
-			if (!query.getMainQuery().getTranslator().includesRowIdAndVersion()) {
+			if (!query.getMainQuery().getTranslator().getIncludesRowIdAndVersion()) {
 				request.setIncludeRowIdAndRowVersion(false);
 				request.setIncludeEntityEtag(false);
 			}
 			// This handler will capture the row data.
 			CSVWriterRowHandler handler = new CSVWriterRowHandler(writer, query.getMainQuery().getTranslator().getSelectColumns(),
-					request.getIncludeRowIdAndRowVersion(), query.getMainQuery().getTranslator().includeEntityEtag());
+					request.getIncludeRowIdAndRowVersion(), query.getMainQuery().getTranslator().getIncludeEntityEtag());
 
 			if (request.getWriteHeader()) {
 				handler.writeHeader();
@@ -568,7 +573,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		indexDao.queryAsStream(callback, query, rowHandler);
 		RowSet results = new RowSet();
 		results.setHeaders(query.getSelectColumns());
-		results.setTableId(query.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+		results.setTableId(query.getSingleTableIdOptional().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		return results;
 	}
 
