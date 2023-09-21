@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
-import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -522,17 +521,12 @@ public class TableViewManagerImpl implements TableViewManager {
 			// both the version and schema MD5 are used to determine if the view is up-to-date. 
 			// The schema MD5 is already set when resetting the index
 			indexManager.setIndexVersion(idAndVersion, viewVersion);
-			// Attempt to set the table to complete.
-			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
+			// Attempt to set the table to complete.			
+			tableManagerSupport.setTableStatusToAvailable(idAndVersion);
 			log.info(String.format("Set view: '%s' to AVAILABLE.", idAndVersion.toString()));
 		} catch (RecoverableMessageException e) {
 			log.warn("Recoverable failure while building view " + idAndVersion, e);
 			throw e;
-		} catch (InvalidStatusTokenException e) {
-			// PLFM-6069, invalid tokens should not cause the view state to be set to failed, but
-			// instead should be retried later.
-			log.warn("InvalidStatusTokenException occurred for "+idAndVersion+", message will be returned to the queue");
-			throw new RecoverableMessageException(e);
 		} catch (Exception e) {
 			log.error(String.format("Set view: '%s' to PROCESSING_FAILED. ", idAndVersion.toString()), e);
 			// failed.

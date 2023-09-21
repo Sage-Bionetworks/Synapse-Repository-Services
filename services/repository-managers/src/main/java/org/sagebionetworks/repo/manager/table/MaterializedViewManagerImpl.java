@@ -10,7 +10,6 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
@@ -42,9 +41,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	private static final Log LOG = LogFactory.getLog(MaterializedViewManagerImpl.class);	
 	
 	private static final long PAGE_SIZE_LIMIT = 1000;
-	
-	public static final String DEFAULT_ETAG = "DEFAULT";
-	
+		
 	final private ColumnModelManager columModelManager;
 	final private TableManagerSupport tableManagerSupport;
 	final private TableIndexConnectionFactory connectionFactory;
@@ -241,10 +238,8 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(sqlQuery, tableManagerSupport.getTableSchema(idAndVersion), tableManagerSupport.isTableSearchEnabled(idAndVersion));
 				return null;
 			}, dependentArray);
-		} catch (RecoverableMessageException e) {
+		} catch (RecoverableMessageException | LockUnavilableException | TableIndexConnectionUnavailableException | TableUnavailableException e) {
 			throw e;
-		} catch (InvalidStatusTokenException | LockUnavilableException | TableIndexConnectionUnavailableException | TableUnavailableException e) {
-			throw new RecoverableMessageException(e);
 		} catch (Exception e) {
 			LOG.error("Failed to build materialized view " + idAndVersion, e);
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
@@ -315,11 +310,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 				return null;
 			});
 			
-		} catch (RecoverableMessageException e) {
-			throw e;
-		}  catch (LockUnavilableException e) {
-			throw new RecoverableMessageException(e);
-		} catch (InvalidStatusTokenException | TableIndexConnectionUnavailableException | TableUnavailableException e) {
+		} catch (RecoverableMessageException | LockUnavilableException | TableIndexConnectionUnavailableException | TableUnavailableException e) {
 			throw e;
 		} catch (Exception e) {
 			LOG.error("Failed to build available materialized view " + idAndVersion, e);
@@ -349,8 +340,8 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		// The schema MD5 is already set when resetting the index
 		indexManager.setIndexVersion(idAndVersion, viewVersion);
 		
-		// Attempt to set the table to complete.
-		tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
+		// Attempt to set the table to complete, we do this unconditionally (See https://sagebionetworks.jira.com/browse/PLFM-8053).
+		tableManagerSupport.setTableStatusToAvailable(idAndVersion);
 		
 		LOG.info("Materialized view " + idAndVersion + " set to AVAILABLE");
 	}

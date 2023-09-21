@@ -246,6 +246,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			throws ConflictingUpdateException, NotFoundException {
 		tableStatusDAO.attemptToSetTableStatusToAvailable(idAndVersion, resetToken, tableChangeEtag);
 	}
+	
+	@NewWriteTransaction
+	@Override
+	public void setTableStatusToAvailable(IdAndVersion tableId) {
+		tableStatusDAO.setTableStatusToAvailable(tableId);
+	}
 
 	@NewWriteTransaction
 	@Override
