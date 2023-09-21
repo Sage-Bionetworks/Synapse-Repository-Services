@@ -13,9 +13,9 @@ public interface TranslatedQuery {
 
 	String getOutputSQL();
 
-	boolean includesRowIdAndVersion();
+	boolean getIncludesRowIdAndVersion();
 
-	boolean includeEntityEtag();
+	boolean getIncludeEntityEtag();
 
 	String getSingleTableId();
 

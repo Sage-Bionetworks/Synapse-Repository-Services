@@ -470,7 +470,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
-				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), query.includeEntityEtag(), infoArray);
+				Row row = SQLTranslatorUtils.readRow(rs, query.getIncludesRowIdAndVersion(), query.getIncludeEntityEtag(), infoArray);
 				handler.nextRow(row);
 			}
 		});

@@ -233,7 +233,7 @@ public class QueryTranslatorTest {
 		setupGetColumns(tableSchema);
 		
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123", mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertTrue(translator.includesRowIdAndVersion());
+		assertTrue(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -244,7 +244,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo from syn123", mockSchemaProvider, userId)
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertTrue(translator.includesRowIdAndVersion());
+		assertTrue(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -255,7 +255,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select distinct foo from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertFalse(translator.includesRowIdAndVersion());
+		assertFalse(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -265,7 +265,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select count(*) from syn123", mockSchemaProvider, userId)
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertFalse(translator.includesRowIdAndVersion());
+		assertFalse(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -275,7 +275,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select max(foo) from syn123", mockSchemaProvider, userId)
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertFalse(translator.includesRowIdAndVersion());
+		assertFalse(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -285,7 +285,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select concat('a',foo) from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertTrue(translator.includesRowIdAndVersion());
+		assertTrue(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -295,7 +295,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select 'a constant' from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertTrue(translator.includesRowIdAndVersion());
+		assertTrue(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -306,7 +306,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo, 'a constant' from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertTrue(translator.includesRowIdAndVersion());
+		assertTrue(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -316,7 +316,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select 5 div 2 from syn123", mockSchemaProvider, userId)
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertTrue(translator.includesRowIdAndVersion());
+		assertTrue(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -327,7 +327,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select 5 div 2, foo from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertTrue(translator.includesRowIdAndVersion());
+		assertTrue(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -337,7 +337,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select 5 div foo from syn123", mockSchemaProvider, userId)
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertTrue(translator.includesRowIdAndVersion());
+		assertTrue(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -348,7 +348,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo, count(*) from syn123 group by foo",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertFalse(translator.includesRowIdAndVersion());
+		assertFalse(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -359,7 +359,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo, max(bar) from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertFalse(translator.includesRowIdAndVersion());
+		assertFalse(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -370,7 +370,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo, DAYOFMONTH(bar) from syn123",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertTrue(translator.includesRowIdAndVersion());
+		assertTrue(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -380,7 +380,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select DAYOFMONTH(bar) from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertTrue(translator.includesRowIdAndVersion());
+		assertTrue(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -390,7 +390,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select DAYOFMONTH('2017-12-12') from syn123",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertTrue(translator.includesRowIdAndVersion());
+		assertTrue(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -400,7 +400,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator translator = QueryTranslator.builder("select foo as \"cats\" from syn123", mockSchemaProvider,
 				userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertTrue(translator.includesRowIdAndVersion());
+		assertTrue(translator.getIncludesRowIdAndVersion());
 	}
 
 	@Test
@@ -1129,7 +1129,7 @@ public class QueryTranslatorTest {
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
 		// should default to false
-		assertFalse(query.includeEntityEtag());
+		assertFalse(query.getIncludeEntityEtag());
 	}
 	
 	@Test
@@ -1141,7 +1141,7 @@ public class QueryTranslatorTest {
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).includeEntityEtag(null).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
-		assertFalse(query.includeEntityEtag());
+		assertFalse(query.getIncludeEntityEtag());
 	}
 
 	@Test
@@ -1153,7 +1153,7 @@ public class QueryTranslatorTest {
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).build();
 		// should default to false
-		assertFalse(query.includeEntityEtag());
+		assertFalse(query.getIncludeEntityEtag());
 	}
 
 	@Test
@@ -1166,7 +1166,7 @@ public class QueryTranslatorTest {
 				.includeEntityEtag(true)
 				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123", query.getOutputSQL());
-		assertTrue(query.includeEntityEtag());
+		assertTrue(query.getIncludeEntityEtag());
 	}
 	
 	@Test
@@ -1179,7 +1179,7 @@ public class QueryTranslatorTest {
 				.includeEntityEtag(false)
 				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
-		assertFalse(query.includeEntityEtag());
+		assertFalse(query.getIncludeEntityEtag());
 	}
 
 	@Test
@@ -1191,7 +1191,7 @@ public class QueryTranslatorTest {
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
-		assertFalse(query.includeEntityEtag());
+		assertFalse(query.getIncludeEntityEtag());
 	}
 
 	@Test
@@ -2320,8 +2320,8 @@ public class QueryTranslatorTest {
 				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
 		
 		assertEquals("WITH T2 (_C11_) AS (SELECT _C11_ FROM T1) SELECT _C11_ FROM T2", query.getOutputSQL());
-		assertFalse(query.includesRowIdAndVersion());
-		assertFalse(query.includeEntityEtag());
+		assertFalse(query.getIncludesRowIdAndVersion());
+		assertFalse(query.getIncludeEntityEtag());
 		assertFalse(query.isAggregatedResult());
 	}
 		

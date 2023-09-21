@@ -246,7 +246,7 @@ public class QueryTranslator implements TranslatedQuery {
 	 * 
 	 * @return
 	 */
-	public boolean includesRowIdAndVersion() {
+	public boolean getIncludesRowIdAndVersion() {
 		return this.includesRowIdAndVersion;
 	}
 
@@ -255,7 +255,7 @@ public class QueryTranslator implements TranslatedQuery {
 	 * 
 	 * @return
 	 */
-	public boolean includeEntityEtag() {
+	public boolean getIncludeEntityEtag() {
 		return this.includeEntityEtag;
 	}
 

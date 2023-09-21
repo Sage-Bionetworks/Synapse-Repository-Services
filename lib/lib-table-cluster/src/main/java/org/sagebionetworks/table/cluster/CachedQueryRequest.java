@@ -19,8 +19,8 @@ public class CachedQueryRequest implements TranslatedQuery {
 	public static CachedQueryRequest clone(TranslatedQuery toClone) {
 		return new CachedQueryRequest().setSelectColumns(toClone.getSelectColumns())
 				.setParameters(toClone.getParameters()).setOutputSQL(toClone.getOutputSQL())
-				.setIncludesRowIdAndVersion(toClone.includesRowIdAndVersion())
-				.setIncludeEntityEtag(toClone.includeEntityEtag())
+				.setIncludesRowIdAndVersion(toClone.getIncludesRowIdAndVersion())
+				.setIncludeEntityEtag(toClone.getIncludeEntityEtag())
 				.setSingleTableId(toClone.getSingleTableId());
 	}
 	
@@ -40,12 +40,12 @@ public class CachedQueryRequest implements TranslatedQuery {
 	}
 
 	@Override
-	public boolean includesRowIdAndVersion() {
+	public boolean getIncludesRowIdAndVersion() {
 		return includesRowIdAndVersion;
 	}
 
 	@Override
-	public boolean includeEntityEtag() {
+	public boolean getIncludeEntityEtag() {
 		return includeEntityEtag;
 	}
 

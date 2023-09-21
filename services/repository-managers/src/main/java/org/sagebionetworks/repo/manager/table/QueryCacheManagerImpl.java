@@ -39,7 +39,7 @@ public class QueryCacheManagerImpl implements QueryCacheManager {
 		ValidateArgument.required(indexDao, "TableIndexDAO");
 		ValidateArgument.required(request, "CachedQueryRequest");
 
-		String requestJson = writeToJSON(request);
+		String requestJson = requestToJson(request);
 		String hash = DigestUtils.sha256Hex(requestJson);
 
 		Optional<String> optional = indexDao.getCachedQueryResults(hash);
@@ -78,15 +78,15 @@ public class QueryCacheManagerImpl implements QueryCacheManager {
 		}
 	}
 
-	String writeToJSON(CachedQueryRequest serial) {
+	String requestToJson(CachedQueryRequest request) {
 		try {
-			return objectMapper.writeValueAsString(serial);
+			return objectMapper.writeValueAsString(request);
 		} catch (JsonProcessingException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	CachedQueryRequest readRequestFromJson(String requestJson) {
+	CachedQueryRequest parseRequestJson(String requestJson) {
 		try {
 			return objectMapper.readValue(requestJson, CachedQueryRequest.class);
 		} catch (JsonProcessingException e) {
@@ -99,7 +99,7 @@ public class QueryCacheManagerImpl implements QueryCacheManager {
 		ValidateArgument.required(indexDao, "TableIndexDAO");
 		ValidateArgument.required(requestHash, "requestHash");
 		indexDao.getExpiredCachedQueryRequest(requestHash).ifPresent((requestJson) -> {
-			CachedQueryRequest request = readRequestFromJson(requestJson);
+			CachedQueryRequest request = parseRequestJson(requestJson);
 			executeQueryAndSaveToCache(indexDao, request, requestJson, requestHash, request.getExpiresInSec());
 		});
 	}

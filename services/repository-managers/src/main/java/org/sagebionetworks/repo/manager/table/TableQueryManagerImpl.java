@@ -533,13 +533,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			final QueryTranslations query = queryPreflight(user, request, maxBytes, options);
 
 			// Do not include rowId and version if it is not provided (PLFM-2993)
-			if (!query.getMainQuery().getTranslator().includesRowIdAndVersion()) {
+			if (!query.getMainQuery().getTranslator().getIncludesRowIdAndVersion()) {
 				request.setIncludeRowIdAndRowVersion(false);
 				request.setIncludeEntityEtag(false);
 			}
 			// This handler will capture the row data.
 			CSVWriterRowHandler handler = new CSVWriterRowHandler(writer, query.getMainQuery().getTranslator().getSelectColumns(),
-					request.getIncludeRowIdAndRowVersion(), query.getMainQuery().getTranslator().includeEntityEtag());
+					request.getIncludeRowIdAndRowVersion(), query.getMainQuery().getTranslator().getIncludeEntityEtag());
 
 			if (request.getWriteHeader()) {
 				handler.writeHeader();

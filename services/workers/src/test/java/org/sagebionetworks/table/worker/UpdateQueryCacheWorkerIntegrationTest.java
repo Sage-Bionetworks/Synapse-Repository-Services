@@ -48,7 +48,6 @@ public class UpdateQueryCacheWorkerIntegrationTest {
 				.setSelectColumns(selectColumns).setSingleTableId("syn123").setParameters(Map.of("limit", 100L))
 				.setExpiresInSec(2);
 
-		// call under test
 		RowSet results = queryCacheManager.getQueryResults(indexDao, query);
 		RowSet expected = new RowSet().setTableId("syn123").setHeaders(selectColumns)
 				.setRows(List.of(new Row().setValues(List.of("1"))));
@@ -60,7 +59,7 @@ public class UpdateQueryCacheWorkerIntegrationTest {
 				.setRows(List.of(new Row().setValues(List.of("2"))));
 
 		TimeUtils.waitFor(MAX_WAIT_MS, 1000, () -> {
-
+			// call under test
 			RowSet current = queryCacheManager.getQueryResults(indexDao, query);
 			System.out.println("Waiting for cache worker to update the value");
 			return new Pair<Boolean, Void>(current.equals(updatedExpected), null);
