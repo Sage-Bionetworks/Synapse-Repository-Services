@@ -165,10 +165,6 @@
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-cloudfront</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk-cloudformation</artifactId>
-		</dependency>
 	</dependencies>
 
 	<properties>
