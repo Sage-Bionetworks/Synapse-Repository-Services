@@ -78,14 +78,6 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 			throws ConflictingUpdateException, NotFoundException;
 
 	/**
-	 * Unconditionally sets the table as available, independently of the reset token
-	 * 
-	 * @param tableId
-	 */
-	void setTableStatusToAvailable(IdAndVersion tableId);
-
-	
-	/**
 	 * Attempt to set the table status to FAILED. The state will be changed will be
 	 * applied as long as the passed resetToken matches the current restToken
 	 * indicating all changes have been accounted for.

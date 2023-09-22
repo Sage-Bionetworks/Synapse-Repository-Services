@@ -1157,7 +1157,7 @@ public class MaterializedViewManagerImplTest {
 		when(mockTableIndexManager.populateMaterializedViewFromDefiningSql(any(), any())).thenReturn(123L);
 		doNothing().when(mockTableIndexManager).buildTableIndexIndices(any(), any());
 		doNothing().when(mockTableIndexManager).setIndexVersion(any(), any());
-		doNothing().when(mockTableManagerSupport).setTableStatusToAvailable(any());
+		doNothing().when(mockTableManagerSupport).attemptToSetTableStatusToAvailable(any(), any(), any());
 		
 		// Call under test
 		manager.createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(mockQuery, syn123Schema, false);
@@ -1168,7 +1168,7 @@ public class MaterializedViewManagerImplTest {
 		verify(mockTableIndexManager).populateMaterializedViewFromDefiningSql(syn123Schema, mockQuery);
 		verify(mockTableIndexManager).buildTableIndexIndices(index, syn123Schema);
 		verify(mockTableIndexManager).setIndexVersion(idAndVersion, 123L);
-		verify(mockTableManagerSupport).setTableStatusToAvailable(idAndVersion);
+		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, "token", "DEFAULT");
 	}
 	
 	@Test
@@ -1186,7 +1186,7 @@ public class MaterializedViewManagerImplTest {
 		when(mockTableIndexManager.populateMaterializedViewFromDefiningSql(any(), any())).thenReturn(123L);
 		doNothing().when(mockTableIndexManager).buildTableIndexIndices(any(), any());
 		doNothing().when(mockTableIndexManager).setIndexVersion(any(), any());
-		doNothing().when(mockTableManagerSupport).setTableStatusToAvailable(any());
+		doNothing().when(mockTableManagerSupport).attemptToSetTableStatusToAvailable(any(), any(), any());
 		
 		// Call under test
 		manager.createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(mockQuery, syn123Schema, true);
@@ -1197,6 +1197,6 @@ public class MaterializedViewManagerImplTest {
 		verify(mockTableIndexManager).populateMaterializedViewFromDefiningSql(syn123Schema, mockQuery);
 		verify(mockTableIndexManager).buildTableIndexIndices(index, syn123Schema);
 		verify(mockTableIndexManager).setIndexVersion(idAndVersion, 123L);
-		verify(mockTableManagerSupport).setTableStatusToAvailable(idAndVersion);
+		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, "token", "DEFAULT");
 	}
 }

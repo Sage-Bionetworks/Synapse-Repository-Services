@@ -273,7 +273,7 @@ public class TableManagerSupportTest {
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 		assertNotNull(result);
-		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(idAndVersion);
+		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(idAndVersion, true);
 		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(tableId, ObjectType.TABLE, ChangeType.UPDATE);
 	}
 	
@@ -286,7 +286,7 @@ public class TableManagerSupportTest {
 	public void testGetTableStatusOrCreateIfNotExistsAvailableNotSynchronized() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);		
-		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(etag);
+		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion, true)).thenReturn(etag);
 		when(mockColumnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(columnIds);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 
@@ -299,7 +299,7 @@ public class TableManagerSupportTest {
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 		assertNotNull(result);
 		// must trigger processing
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion, true);
 		verify(mockTransactionalMessenger)
 		.sendMessageAfterCommit(new MessageToSend().withObjectId(tableId).withObjectType(ObjectType.TABLE)
 				.withChangeType(ChangeType.UPDATE).withObjectVersion(null));
@@ -313,7 +313,7 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetTableStatusOrCreateIfNotExistsStatusNotFoundTableExits() throws Exception {
 		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);		
-		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(etag);
+		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion, true)).thenReturn(etag);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		// Available
 		status.setState(TableState.PROCESSING);
@@ -324,7 +324,7 @@ public class TableManagerSupportTest {
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 		assertNotNull(result);
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion, true);
 		verify(mockNodeDao).isNodeAvailable(tableIdLong);
 		verify(mockTransactionalMessenger)
 				.sendMessageAfterCommit(new MessageToSend().withObjectId(tableId).withObjectType(ObjectType.TABLE)
@@ -369,7 +369,7 @@ public class TableManagerSupportTest {
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 		assertNotNull(result);
-		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(idAndVersion);
+		verify(mockTableStatusDAO, never()).resetTableStatusToProcessing(idAndVersion, true);
 		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(any(MessageToSend.class));
 	}
 	
@@ -381,7 +381,7 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetTableStatusOrCreateIfNotExistsProcessingExpired() throws Exception {
 		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);		
-		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(etag);
+		when(mockTableStatusDAO.resetTableStatusToProcessing(any(), anyBoolean())).thenReturn(etag);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		// Available
 		status.setState(TableState.PROCESSING);
@@ -391,7 +391,7 @@ public class TableManagerSupportTest {
 		// call under test
 		TableStatus result = manager.getTableStatusOrCreateIfNotExists(idAndVersion);
 		assertNotNull(result);
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion, false);
 		verify(mockTransactionalMessenger)
 		.sendMessageAfterCommit(new MessageToSend().withObjectId(tableId).withObjectType(ObjectType.TABLE)
 				.withChangeType(ChangeType.UPDATE).withObjectVersion(null));
@@ -411,7 +411,7 @@ public class TableManagerSupportTest {
 	@Test
 	public void testStartTableProcessing(){
 		String token = "a unique token";
-		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(token);
+		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion, true)).thenReturn(token);
 		// call under test
 		String resultToken = manager.startTableProcessing(idAndVersion);
 		assertEquals(token, resultToken);
@@ -815,14 +815,14 @@ public class TableManagerSupportTest {
 	@Test
 	public void testRebuildTableAuthorizedForTableEntity() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(etag);
+		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion, true)).thenReturn(etag);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		UserInfo mockAdmin = Mockito.mock(UserInfo.class);
 		when(mockAdmin.isAdmin()).thenReturn(true);
 		// call under test
 		manager.rebuildTable(mockAdmin, idAndVersion);
 		verify(mockTableIndexDAO).deleteTable(idAndVersion);
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion, true);
 		ArgumentCaptor<ChangeMessage> captor = ArgumentCaptor.forClass(ChangeMessage.class);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(captor.capture());
 		ChangeMessage message = captor.getValue();
@@ -834,7 +834,7 @@ public class TableManagerSupportTest {
 	@Test
 	public void testRebuildTableAuthorizedForFileView() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(etag);
+		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion, true)).thenReturn(etag);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		UserInfo mockAdmin = Mockito.mock(UserInfo.class);
 		when(mockAdmin.isAdmin()).thenReturn(true);
@@ -842,7 +842,7 @@ public class TableManagerSupportTest {
 		// call under test
 		manager.rebuildTable(mockAdmin, idAndVersion);
 		verify(mockTableIndexDAO).deleteTable(idAndVersion);
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion, true);
 		ArgumentCaptor<ChangeMessage> captor = ArgumentCaptor.forClass(ChangeMessage.class);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(captor.capture());
 		ChangeMessage message = captor.getValue();
@@ -880,7 +880,7 @@ public class TableManagerSupportTest {
 	public void testSetTableToProcessingAndTriggerUpdateWithVersion() {
 		IdAndVersion idAndVersion = IdAndVersion.parse("syn123.3");
 		String resetToken = "a reset token";
-		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(resetToken);
+		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion, true)).thenReturn(resetToken);
 		EntityType type = EntityType.entityview;
 		when(mockNodeDao.getNodeTypeById("123")).thenReturn(type);
 		TableStatus status = new TableStatus();
@@ -892,14 +892,14 @@ public class TableManagerSupportTest {
 		verify(mockTransactionalMessenger)
 				.sendMessageAfterCommit(new MessageToSend().withObjectId("123").withObjectVersion(3L)
 						.withObjectType(ObjectType.ENTITY_VIEW).withChangeType(ChangeType.UPDATE));
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion, true);
 	}
 	
 	@Test
 	public void testSetTableToProcessingAndTriggerUpdateNoVersion() {
 		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
 		String resetToken = "a reset token";
-		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion)).thenReturn(resetToken);
+		when(mockTableStatusDAO.resetTableStatusToProcessing(idAndVersion, true)).thenReturn(resetToken);
 		EntityType type = EntityType.entityview;
 		when(mockNodeDao.getNodeTypeById("123")).thenReturn(type);
 		TableStatus status = new TableStatus();
@@ -911,9 +911,33 @@ public class TableManagerSupportTest {
 		verify(mockTransactionalMessenger)
 		.sendMessageAfterCommit(new MessageToSend().withObjectId("123").withObjectVersion(null)
 				.withObjectType(ObjectType.ENTITY_VIEW).withChangeType(ChangeType.UPDATE));
-		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion, true);
 	}
 	
+	@Test
+	public void testSetTableToProcessingAndTriggerUpdateWithResetTokenFalse() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123.3");
+		String resetToken = "a reset token";
+		when(mockTableStatusDAO.resetTableStatusToProcessing(any(), anyBoolean())).thenReturn(resetToken);
+		EntityType type = EntityType.entityview;
+		when(mockNodeDao.getNodeTypeById("123")).thenReturn(type);
+		TableStatus status = new TableStatus();
+		status.setResetToken(resetToken);
+		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
+		
+		boolean isResetToken = false;
+		
+		// call under test
+		TableStatus resultStatus = manager.setTableToProcessingAndTriggerUpdate(idAndVersion, isResetToken);
+		
+		assertEquals(status, resultStatus);
+		
+		verify(mockTransactionalMessenger)
+				.sendMessageAfterCommit(new MessageToSend().withObjectId("123").withObjectVersion(3L)
+						.withObjectType(ObjectType.ENTITY_VIEW).withChangeType(ChangeType.UPDATE));
+		
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion, isResetToken);
+	}
 	
 	@Test
 	public void testIsTableIndexStateInvalidWithNoEtag() {
@@ -1743,15 +1767,6 @@ public class TableManagerSupportTest {
 		ArgumentCaptor<String> stackCaptor = ArgumentCaptor.forClass(String.class);
 		verify(mockTableStatusDAO).attemptToSetTableStatusToFailed(eq(idAndVersion), eq("translated"), stackCaptor.capture());
 		assertTrue(stackCaptor.getValue().startsWith("java.lang.IllegalArgumentException: translated"));
-	}
-	
-	@Test
-	public void testSetTableStatusToAvailable() {
-				
-		// call under test
-		manager.setTableStatusToAvailable(idAndVersion);
-		
-		verify(mockTableStatusDAO).setTableStatusToAvailable(idAndVersion);
 	}
 	
 }

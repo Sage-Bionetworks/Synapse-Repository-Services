@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
+import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -67,6 +68,8 @@ import com.google.common.collect.Sets;
 public class TableViewManagerImpl implements TableViewManager {
 	
 	static Log log = LogFactory.getLog(TableViewManagerImpl.class);	
+
+	public static final String DEFAULT_ETAG = "DEFAULT";
 
 	public static final String ETG_COLUMN_MISSING = "The view schema must include '" + ObjectField.etag.name() + "' column.";
 	public static final String ETAG_MISSING_MESSAGE = "The '" + ObjectField.etag.name() + "' must be included to update an Entity's annotations.";
@@ -519,12 +522,17 @@ public class TableViewManagerImpl implements TableViewManager {
 			// both the version and schema MD5 are used to determine if the view is up-to-date. 
 			// The schema MD5 is already set when resetting the index
 			indexManager.setIndexVersion(idAndVersion, viewVersion);
-			// Attempt to set the table to complete.			
-			tableManagerSupport.setTableStatusToAvailable(idAndVersion);
+			// Attempt to set the table to complete.
+			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
 			log.info(String.format("Set view: '%s' to AVAILABLE.", idAndVersion.toString()));
 		} catch (RecoverableMessageException e) {
 			log.warn("Recoverable failure while building view " + idAndVersion, e);
 			throw e;
+		} catch (InvalidStatusTokenException e) {
+			// PLFM-6069, invalid tokens should not cause the view state to be set to failed, but
+			// instead should be retried later.
+			log.warn("InvalidStatusTokenException occurred for "+idAndVersion+", message will be returned to the queue");
+			throw new RecoverableMessageException(e);
 		} catch (Exception e) {
 			log.error(String.format("Set view: '%s' to PROCESSING_FAILED. ", idAndVersion.toString()), e);
 			// failed.
