@@ -243,8 +243,11 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			}, dependentArray);
 		} catch (RecoverableMessageException e) {
 			throw e;
-		} catch (InvalidStatusTokenException | LockUnavilableException | TableIndexConnectionUnavailableException | TableUnavailableException e) {
+		} catch (InvalidStatusTokenException e) {
+			LOG.warn("InvalidStatusTokenException occurred for "+idAndVersion+", message will be returned to the queue");
 			throw new RecoverableMessageException(e);
+		}  catch (LockUnavilableException | TableIndexConnectionUnavailableException | TableUnavailableException e) {
+			throw e;
 		} catch (Exception e) {
 			LOG.error("Failed to build materialized view " + idAndVersion, e);
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
@@ -317,9 +320,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			
 		} catch (RecoverableMessageException e) {
 			throw e;
-		}  catch (LockUnavilableException e) {
-			throw new RecoverableMessageException(e);
-		} catch (InvalidStatusTokenException | TableIndexConnectionUnavailableException | TableUnavailableException e) {
+		} catch (LockUnavilableException | TableIndexConnectionUnavailableException | TableUnavailableException e) {
 			throw e;
 		} catch (Exception e) {
 			LOG.error("Failed to build available materialized view " + idAndVersion, e);

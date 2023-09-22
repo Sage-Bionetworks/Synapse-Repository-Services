@@ -1128,7 +1128,7 @@ public class MaterializedViewManagerImplTest {
 				
 		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456") };
 
-		assertThrows(RecoverableMessageException.class, () -> {			
+		assertThrows(LockUnavilableException.class, () -> {			
 			// call under test
 			managerSpy.rebuildAvailableViewHoldingTemporaryExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion, temporaryId);
 		});
