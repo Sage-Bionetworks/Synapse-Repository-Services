@@ -166,8 +166,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 				// Processing or Failed.
 				// Is progress being made?
 				if (timeoutUtils.hasExpired(TABLE_PROCESSING_TIMEOUT_MS, status.getChangedOn().getTime())) {
-					// progress has not been made so trigger another update
-					return setTableToProcessingAndTriggerUpdate(idAndVersion);
+					// We do not know if the table is actually in an invalid state, we let the worker finish what they are doing
+					boolean resetToken = false;
+					// progress has not been made so trigger another update					
+					return setTableToProcessingAndTriggerUpdate(idAndVersion, resetToken);
 				} else {
 					// progress has been made so just return the status
 					return status;
@@ -213,6 +215,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@WriteTransaction
 	@Override
 	public TableStatus setTableToProcessingAndTriggerUpdate(IdAndVersion idAndVersion) {
+		boolean resetToken = true;
+		return setTableToProcessingAndTriggerUpdate(idAndVersion, resetToken);
+	}
+	
+	TableStatus setTableToProcessingAndTriggerUpdate(IdAndVersion idAndVersion, boolean resetToken) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		// lookup the table type.
 		ObjectType tableType = getTableObjectType(idAndVersion);
@@ -220,7 +227,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// we get here, if the index for this table is not (yet?) being build. We need
 		// to kick off the
 		// building of the index and report the table as unavailable
-		tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
+		tableStatusDAO.resetTableStatusToProcessing(idAndVersion, resetToken);
 		
 		// notify all listeners.
 		triggerIndexUpdate(tableType, idAndVersion);
@@ -245,12 +252,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public void attemptToSetTableStatusToAvailable(IdAndVersion idAndVersion, String resetToken, String tableChangeEtag)
 			throws ConflictingUpdateException, NotFoundException {
 		tableStatusDAO.attemptToSetTableStatusToAvailable(idAndVersion, resetToken, tableChangeEtag);
-	}
-	
-	@NewWriteTransaction
-	@Override
-	public void setTableStatusToAvailable(IdAndVersion tableId) {
-		tableStatusDAO.setTableStatusToAvailable(tableId);
 	}
 
 	@NewWriteTransaction
@@ -282,7 +283,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@NewWriteTransaction
 	@Override
 	public String startTableProcessing(IdAndVersion idAndVersion) {
-		return tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
+		boolean resetToken = true;
+		return tableStatusDAO.resetTableStatusToProcessing(idAndVersion, resetToken);
 	}
 
 	/*
@@ -578,7 +580,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		if (indexDao != null) {
 			indexDao.deleteTable(idAndVersion);
 		}
-		tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
+		boolean resetToken = true;
+		tableStatusDAO.resetTableStatusToProcessing(idAndVersion, resetToken);
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(ChangeType.UPDATE);
 		message.setObjectType(getTableObjectType(idAndVersion));

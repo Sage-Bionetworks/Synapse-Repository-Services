@@ -2,9 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -48,7 +46,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class TableStatusDAOImplTest {
 
 	@Autowired
-	private TableStatusDAO tableStatusDAO;
+	private TableStatusDAOImpl tableStatusDAO;
 
 	@Autowired
 	private NodeDaoObjectHelper nodeDaoObjectHelper;
@@ -60,6 +58,8 @@ public class TableStatusDAOImplTest {
 
 	IdAndVersion tableIdNoVersion;
 	IdAndVersion tableIdWithVersion;
+	
+	private boolean isResetToken;
 
 	@BeforeEach
 	public void before() {
@@ -67,6 +67,8 @@ public class TableStatusDAOImplTest {
 
 		tableIdNoVersion = IdAndVersion.parse("syn123");
 		tableIdWithVersion = IdAndVersion.parse("syn123.456");
+		
+		isResetToken = true;
 	}
 
 	@AfterEach
@@ -85,7 +87,7 @@ public class TableStatusDAOImplTest {
 			// expected
 		}
 		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		assertNotNull(resetToken);
 		// We should now have a status for this table
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
@@ -102,9 +104,49 @@ public class TableStatusDAOImplTest {
 		assertEquals(null, status.getTotalTimeMS());
 		assertEquals(null, status.getVersion());
 		// Now if we call it again we should get a new rest-token
-		String newResetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String newResetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		assertNotNull(newResetToken);
 		assertFalse(newResetToken.equals(resetToken));
+	}
+	
+	@Test
+	public void testResetTableStatusToPendingWithResetTokenFalse() throws NotFoundException {
+		// Before we start the status should not exist
+		try {
+			tableStatusDAO.getTableStatus(tableIdNoVersion);
+			fail("The status for this table should not exist yet");
+		} catch (NotFoundException e) {
+			// expected
+		}
+		
+		isResetToken = false;
+		
+		// This should insert a row for this table.
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
+		
+		assertNotNull(resetToken);
+		// We should now have a status for this table
+		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
+		assertNotNull(status);
+		assertEquals("123", status.getTableId());
+		assertEquals(TableState.PROCESSING, status.getState());
+		assertNotNull(status.getChangedOn());
+		assertNotNull(status.getStartedOn());
+		assertEquals(resetToken, status.getResetToken());
+		
+		// The rest should be null
+		assertEquals(null, status.getErrorDetails());
+		assertEquals(null, status.getErrorMessage());
+		assertEquals(null, status.getProgressCurrent());
+		assertEquals(null, status.getProgressTotal());
+		assertEquals(null, status.getTotalTimeMS());
+		assertEquals(null, status.getVersion());
+		
+		// Now if we call it again we should get a new rest-token
+		String newResetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
+		
+		assertNotNull(newResetToken);
+		assertEquals(resetToken, newResetToken);
 	}
 
 	@Test
@@ -116,7 +158,7 @@ public class TableStatusDAOImplTest {
 		} catch (NotFoundException e) {
 			// expected
 		}
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		assertNotNull(resetToken);
 		// We should now have a status for this table
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
@@ -129,7 +171,7 @@ public class TableStatusDAOImplTest {
 	@Test
 	public void testAttemptToSetTableStatusToAvailableHappy() throws NotFoundException {
 		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		// Status should start as processing
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
@@ -147,38 +189,14 @@ public class TableStatusDAOImplTest {
 		assertNotNull(status.getTotalTimeMS());
 		assertEquals(lastTableChangeEtag, status.getLastTableChangeEtag());
 	}
-	
-	@Test
-	public void testSetTableStatusToAvailable() throws NotFoundException {
-		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
-		// Status should start as processing
-		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
-		assertNotNull(status);
-		assertEquals("123", status.getTableId());
-		assertEquals(TableState.PROCESSING, status.getState());
-		assertNotNull(status.getChangedOn());
-		
-		// Not make available
-		tableStatusDAO.setTableStatusToAvailable(tableIdNoVersion);
-		
-		// the state should have changed
-		status = tableStatusDAO.getTableStatus(tableIdNoVersion);
-		assertNotNull(status);
-		assertEquals("123", status.getTableId());
-		assertEquals(TableState.AVAILABLE, status.getState());
-		assertNotNull(status.getTotalTimeMS());
-		assertNull(status.getLastTableChangeEtag());
-		assertNotEquals(resetToken, status.getResetToken());
-	}
 
 	@Test
 	public void testDeleteTableStatus() throws NotFoundException {
 		IdAndVersion tableId1 = IdAndVersion.parse("syn1");
 		IdAndVersion tableId2 = IdAndVersion.parse("syn2");
 		// This should insert a row for this table.
-		tableStatusDAO.resetTableStatusToProcessing(tableId1);
-		tableStatusDAO.resetTableStatusToProcessing(tableId2);
+		tableStatusDAO.resetTableStatusToProcessing(tableId1, isResetToken);
+		tableStatusDAO.resetTableStatusToProcessing(tableId2, isResetToken);
 		TableStatus status = tableStatusDAO.getTableStatus(tableId1);
 		assertNotNull(status);
 		status = tableStatusDAO.getTableStatus(tableId2);
@@ -202,7 +220,7 @@ public class TableStatusDAOImplTest {
 	@Test
 	public void testAttemptToSetTableStatusToAvailableNullEtag() throws NotFoundException {
 		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		// Status should start as processing
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
@@ -248,7 +266,7 @@ public class TableStatusDAOImplTest {
 	@Test
 	public void testAttemptToSetTableStatusToAvailableConflict() throws NotFoundException {
 		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		// Status should start as processing
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
@@ -262,7 +280,7 @@ public class TableStatusDAOImplTest {
 	@Test
 	public void testAttemptToSetTableStatusToAvailableMultilpeTimes() throws NotFoundException {
 		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		// Status should start as processing
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
@@ -278,7 +296,7 @@ public class TableStatusDAOImplTest {
 	@Test
 	public void testAttemptToSetTableStatusToAvailableNullReset() throws NotFoundException {
 		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		// Status should start as processing
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
@@ -292,7 +310,7 @@ public class TableStatusDAOImplTest {
 	@Test
 	public void testAttemptToSetTableStatusToFailedHappy() throws NotFoundException {
 		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		// Status should start as processing
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
@@ -334,7 +352,7 @@ public class TableStatusDAOImplTest {
 	@Test
 	public void testAttemptToSetTableStatusToFailedMessageAtLimit() {
 		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		// Status should start as processing
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
@@ -356,7 +374,7 @@ public class TableStatusDAOImplTest {
 	@Test
 	public void testAttemptToSetTableStatusToFailedMessageOverLimit() {
 		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		// Status should start as processing
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
@@ -374,7 +392,7 @@ public class TableStatusDAOImplTest {
 	@Test
 	public void testAttemptToUpdateTableProgressHappy() throws NotFoundException {
 		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		// Status should start as processing
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
@@ -405,7 +423,7 @@ public class TableStatusDAOImplTest {
 	@Test
 	public void testAttemptToUpdateTableProgressConflict() throws NotFoundException {
 		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		// Status should start as processing
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
@@ -464,7 +482,7 @@ public class TableStatusDAOImplTest {
 			// expected
 		}
 		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion, isResetToken);
 		assertNotNull(resetToken);
 		// We should now have a status for this table
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdWithVersion);
@@ -481,7 +499,7 @@ public class TableStatusDAOImplTest {
 		assertEquals(null, status.getTotalTimeMS());
 		assertEquals(tableIdWithVersion.getVersion().get(), status.getVersion());
 		// Now if we call it again we should get a new rest-token
-		String newResetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
+		String newResetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion, isResetToken);
 		assertNotNull(newResetToken);
 		assertFalse(newResetToken.equals(resetToken));
 	}
@@ -489,8 +507,8 @@ public class TableStatusDAOImplTest {
 	@Test
 	public void testWithAndWithoutVersion() {
 		// This should insert a row for this table.
-		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
-		tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion, isResetToken);
+		tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 
 		TableStatus withVersion = tableStatusDAO.getTableStatus(tableIdWithVersion);
 		assertNotNull(withVersion);
@@ -504,7 +522,7 @@ public class TableStatusDAOImplTest {
 	@Test
 	public void testGetTableStatusStateWithVersion() {
 		// This should insert a row for this table.
-		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
+		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion, isResetToken);
 		// call under test
 		Optional<TableState> optional = tableStatusDAO.getTableStatusState(tableIdWithVersion);
 		assertNotNull(optional);
@@ -515,7 +533,7 @@ public class TableStatusDAOImplTest {
 	@Test
 	public void testGetTableStatusStateWithNoVersion() {
 		// This should insert a row for this table.
-		tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		// call under test
 		Optional<TableState> optional = tableStatusDAO.getTableStatusState(tableIdNoVersion);
 		assertNotNull(optional);
@@ -531,10 +549,31 @@ public class TableStatusDAOImplTest {
 		assertNotNull(optional);
 		assertFalse(optional.isPresent());
 	}
+	
+	@Test
+	public void testGetTableStatusToken() {
+		
+		String token = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
+		
+		// call under test
+		Optional<String> result = tableStatusDAO.getTableStatusToken(tableIdNoVersion);
+		
+		assertEquals(Optional.of(token), result);
+	}
+	
+	@Test
+	public void testGetTableStatusTokenDoesNotExist() {
+		IdAndVersion doesNotExist = IdAndVersion.parse("syn999.888");
+		
+		// call under test
+		Optional<String> result = tableStatusDAO.getTableStatusToken(doesNotExist);
+		
+		assertEquals(Optional.empty(), result);
+	}
 
 	@Test
 	public void testGetLastChangedOn_NoVersion() {
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		String lastTableChangeEtag = UUID.randomUUID().toString();
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken, lastTableChangeEtag);
 		TableStatus lastStatus = tableStatusDAO.getTableStatus(tableIdNoVersion);
@@ -545,7 +584,7 @@ public class TableStatusDAOImplTest {
 
 	@Test
 	public void testGetLastChangedOn_WithVersion() {
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion, isResetToken);
 		String lastTableChangeEtag = UUID.randomUUID().toString();
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdWithVersion, resetToken, lastTableChangeEtag);
 		TableStatus lastStatus = tableStatusDAO.getTableStatus(tableIdWithVersion);
@@ -563,7 +602,7 @@ public class TableStatusDAOImplTest {
 
 	@Test
 	public void testUpdateChangedOnIfAvailable_NoVersion() throws InterruptedException {
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		String lastTableChangeEtag = UUID.randomUUID().toString();
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken, lastTableChangeEtag);
 		Date startingChangedOn = tableStatusDAO.getLastChangedOn(tableIdNoVersion).get();
@@ -579,7 +618,7 @@ public class TableStatusDAOImplTest {
 
 	@Test
 	public void testUpdateChangedOnIfAvailable_WithVersion() throws InterruptedException {
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion, isResetToken);
 		String lastTableChangeEtag = UUID.randomUUID().toString();
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdWithVersion, resetToken, lastTableChangeEtag);
 		Date startingChangedOn = tableStatusDAO.getLastChangedOn(tableIdWithVersion).get();
@@ -595,7 +634,7 @@ public class TableStatusDAOImplTest {
 
 	@Test
 	public void testUpdateChangedOnIfAvailable_Processing() throws InterruptedException {
-		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
+		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion, isResetToken);
 		Date startingChangedOn = tableStatusDAO.getLastChangedOn(tableIdWithVersion).get();
 		// Sleep to update time
 		Thread.sleep(101L);
@@ -609,7 +648,7 @@ public class TableStatusDAOImplTest {
 
 	@Test
 	public void testUpdateChangedOnIfAvailable_Failed() throws InterruptedException {
-		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
+		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion, isResetToken);
 		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdWithVersion, "error", "details");
 		Date startingChangedOn = tableStatusDAO.getLastChangedOn(tableIdWithVersion).get();
 		// Sleep to update time
@@ -625,7 +664,7 @@ public class TableStatusDAOImplTest {
 
 	@Test
 	public void testGetLastChangeEtagWithNoEtag() throws InterruptedException {
-		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
+		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion, isResetToken);
 		// no etag set for this case
 		// call under test
 		Optional<String> optional = tableStatusDAO.getLastChangeEtag(tableIdWithVersion);
@@ -635,7 +674,7 @@ public class TableStatusDAOImplTest {
 
 	@Test
 	public void testGetLastChangeEtagWithVersion() throws InterruptedException {
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion, isResetToken);
 		String lastTableChangeEtag = UUID.randomUUID().toString();
 		// set the etag
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdWithVersion, resetToken, lastTableChangeEtag);
@@ -656,7 +695,7 @@ public class TableStatusDAOImplTest {
 
 	@Test
 	public void testGetLastChangeEtagWithNoVersion() throws InterruptedException {
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion, isResetToken);
 		String lastTableChangeEtag = UUID.randomUUID().toString();
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken, lastTableChangeEtag);
 		// call under test
@@ -702,7 +741,7 @@ public class TableStatusDAOImplTest {
 		List<IdVersionTableType> expected = List.of(new IdVersionTableType(idAndVersion, TableType.table));
 		assertEquals(expected, missing);
 		
-		tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
+		tableStatusDAO.resetTableStatusToProcessing(idAndVersion, isResetToken);
 		
 		// call under test
 		missing = tableStatusDAO.getAllTablesAndViewsWithMissingStatus(limit);
@@ -745,9 +784,9 @@ public class TableStatusDAOImplTest {
 				new IdVersionTableType(versionTwo, TableType.table));
 		assertEquals(expected, missing);
 		
-		tableStatusDAO.resetTableStatusToProcessing(current);
-		tableStatusDAO.resetTableStatusToProcessing(versionOne);
-		tableStatusDAO.resetTableStatusToProcessing(versionTwo);
+		tableStatusDAO.resetTableStatusToProcessing(current, isResetToken);
+		tableStatusDAO.resetTableStatusToProcessing(versionOne, isResetToken);
+		tableStatusDAO.resetTableStatusToProcessing(versionTwo, isResetToken);
 		
 		// call under test
 		missing = tableStatusDAO.getAllTablesAndViewsWithMissingStatus(limit);

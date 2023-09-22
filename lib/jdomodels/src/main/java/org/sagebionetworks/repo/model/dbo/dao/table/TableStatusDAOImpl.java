@@ -88,13 +88,6 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	private static final String SQL_DELETE_ALL_STATE = "DELETE FROM " + TABLE_STATUS + " WHERE " + COL_TABLE_STATUS_ID
 			+ " > -1";
 
-	private static final String SQL_RESET_TO_PENDING = "INSERT INTO " + TABLE_STATUS + " (" + COL_TABLE_STATUS_ID + ", "
-			+ COL_TABLE_STATUS_VERSION + ", " + COL_TABLE_STATUS_STATE + ", " + COL_TABLE_STATUS_RESET_TOKEN + ", "
-			+ COL_TABLE_STATUS_STARTED_ON + ", " + COL_TABLE_STATUS_CHANGE_ON
-			+ ") VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE " + COL_TABLE_STATUS_STATE + " = ?, "
-			+ COL_TABLE_STATUS_RESET_TOKEN + " = ?, " + COL_TABLE_STATUS_STARTED_ON + " = ?, "
-			+ COL_TABLE_STATUS_CHANGE_ON + " = ?";
-
 	private static final String SQL_DELETE_TABLE_STATUS = "DELETE FROM " + TABLE_STATUS + " WHERE "
 			+ COL_TABLE_STATUS_ID + " = ? AND " + COL_TABLE_STATUS_VERSION + " = ?";
 
@@ -127,22 +120,34 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 						String.format("Table status for '%s' does not exist", idAndVersion.toString())));
 		return TableStatusUtils.createDTOFromDBO(dbo);
 	}
-
+	
 	@WriteTransaction
 	@Override
-	public String resetTableStatusToProcessing(IdAndVersion idAndVersion) {
+	public String resetTableStatusToProcessing(IdAndVersion idAndVersion, boolean resetToken) {
 		long version = validateAndGetVersion(idAndVersion);
-		String state = TableState.PROCESSING.name();
-		String resetToken = UUID.randomUUID().toString();
+		String state = TableState.PROCESSING.name();		
+		String token = UUID.randomUUID().toString();
+		
+		if (!resetToken) {
+			token = getTableStatusToken(idAndVersion).orElse(token);
+		}
+		
 		long now = System.currentTimeMillis();
+		
 		// We are not unconditionally replacing this row. Instead we are only setting
 		// the columns that we wish to change.
-		jdbcTemplate.update(SQL_RESET_TO_PENDING, idAndVersion.getId(), version, state, resetToken, now, now, state,
-				resetToken, now, now);
+		
+		String sql = "INSERT INTO " + TABLE_STATUS + " (" + COL_TABLE_STATUS_ID + ", "
+				+ COL_TABLE_STATUS_VERSION + ", " + COL_TABLE_STATUS_STATE + ", " + COL_TABLE_STATUS_RESET_TOKEN + ", "
+				+ COL_TABLE_STATUS_STARTED_ON + ", " + COL_TABLE_STATUS_CHANGE_ON
+				+ ") VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE " + COL_TABLE_STATUS_STATE + " = ?, "
+				+ COL_TABLE_STATUS_RESET_TOKEN + " = ?, " + COL_TABLE_STATUS_CHANGE_ON + " = ?";
+		
+		jdbcTemplate.update(sql, idAndVersion.getId(), version, state, token, now, now, state, token, now);
 		
 		sendTableStatusEvent(idAndVersion, TableState.PROCESSING);
 				
-		return resetToken;
+		return token;
 	}
 
 	@WriteTransaction
@@ -162,13 +167,6 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 			String tableChangeEtag) throws InvalidStatusTokenException, NotFoundException {
 		ValidateArgument.required(resetToken, "resetToken");
 		attemptToSetTableEndState(tableIdString, resetToken, TableState.AVAILABLE, null, null, null, tableChangeEtag);
-	}
-	
-	@WriteTransaction
-	@Override
-	public void setTableStatusToAvailable(IdAndVersion tableIdString) {
-		String resetToken = null;
-		attemptToSetTableEndState(tableIdString, resetToken, TableState.AVAILABLE, null, null, null, null);
 	}
 	
 	/**
@@ -225,7 +223,6 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		current.setErrorDetails(errorDetailsBytes);
 		current.setTotalRunTimeMS(runtimeMS);
 		current.setLastTableChangeEtag(tableChangeEtag);
-		
 		current.setResetToken(UUID.randomUUID().toString());
 		
 		basicDao.createOrUpdate(current);
@@ -302,6 +299,16 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 					String.format(SELECT_STATUS_TEMPLATE, COL_TABLE_STATUS_STATE), (ResultSet rs, int rowNum) -> {
 						return TableState.valueOf(rs.getString(COL_TABLE_STATUS_STATE));
 					}, tableId.getId(), version));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+	
+	Optional<String> getTableStatusToken(IdAndVersion tableId) {
+		long version = validateAndGetVersion(tableId);
+		try {
+			return Optional.of(jdbcTemplate.queryForObject(
+					String.format(SELECT_STATUS_TEMPLATE, COL_TABLE_STATUS_RESET_TOKEN), String.class, tableId.getId(), version));
 		} catch (EmptyResultDataAccessException e) {
 			return Optional.empty();
 		}

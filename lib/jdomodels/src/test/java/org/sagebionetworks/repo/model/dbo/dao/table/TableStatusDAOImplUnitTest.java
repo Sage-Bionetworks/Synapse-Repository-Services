@@ -71,8 +71,10 @@ public class TableStatusDAOImplUnitTest {
 			.setObjectVersion(idAndVersion.getVersion().orElse(null))
 			.setState(TableState.PROCESSING);
 		
+		boolean resetToken = true;
+		
 		// Call under test
-		dao.resetTableStatusToProcessing(idAndVersion);
+		dao.resetTableStatusToProcessing(idAndVersion, resetToken);
 		
 		verify(mockMessenger).publishMessageAfterCommit(argThat(matchStatus(expectedEvent)));
 	}
@@ -108,23 +110,6 @@ public class TableStatusDAOImplUnitTest {
 		
 		// Call under test
 		daoSpy.attemptToSetTableStatusToAvailable(idAndVersion, "resetToken", "etag");
-		
-		verify(mockMessenger).publishMessageAfterCommit(argThat(matchStatus(expectedEvent)));
-	}
-	
-	@Test
-	public void testPublishMessageWhenSetTableStatusToAvailable() {
-
-		doReturn(Optional.of(mockStatus)).when(daoSpy).selectResetTokenForUpdate(any());
-		
-		TableStatusChangeEvent expectedEvent = new TableStatusChangeEvent()
-			.setObjectType(ObjectType.TABLE_STATUS_EVENT)
-			.setObjectId(idAndVersion.getId().toString())
-			.setObjectVersion(idAndVersion.getVersion().orElse(null))
-			.setState(TableState.AVAILABLE);
-		
-		// Call under test
-		daoSpy.setTableStatusToAvailable(idAndVersion);
 		
 		verify(mockMessenger).publishMessageAfterCommit(argThat(matchStatus(expectedEvent)));
 	}
