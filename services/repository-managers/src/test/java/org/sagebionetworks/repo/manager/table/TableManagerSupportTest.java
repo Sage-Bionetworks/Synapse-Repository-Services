@@ -1745,4 +1745,13 @@ public class TableManagerSupportTest {
 		assertTrue(stackCaptor.getValue().startsWith("java.lang.IllegalArgumentException: translated"));
 	}
 	
+	@Test
+	public void testSetTableStatusToAvailable() {
+				
+		// call under test
+		manager.setTableStatusToAvailable(idAndVersion);
+		
+		verify(mockTableStatusDAO).setTableStatusToAvailable(idAndVersion);
+	}
+	
 }

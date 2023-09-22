@@ -1128,7 +1128,7 @@ public class MaterializedViewManagerImplTest {
 				
 		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456") };
 
-		assertThrows(RecoverableMessageException.class, () -> {			
+		assertThrows(LockUnavilableException.class, () -> {			
 			// call under test
 			managerSpy.rebuildAvailableViewHoldingTemporaryExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion, temporaryId);
 		});
@@ -1157,7 +1157,7 @@ public class MaterializedViewManagerImplTest {
 		when(mockTableIndexManager.populateMaterializedViewFromDefiningSql(any(), any())).thenReturn(123L);
 		doNothing().when(mockTableIndexManager).buildTableIndexIndices(any(), any());
 		doNothing().when(mockTableIndexManager).setIndexVersion(any(), any());
-		doNothing().when(mockTableManagerSupport).attemptToSetTableStatusToAvailable(any(), any(), any());
+		doNothing().when(mockTableManagerSupport).setTableStatusToAvailable(any());
 		
 		// Call under test
 		manager.createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(mockQuery, syn123Schema, false);
@@ -1168,7 +1168,7 @@ public class MaterializedViewManagerImplTest {
 		verify(mockTableIndexManager).populateMaterializedViewFromDefiningSql(syn123Schema, mockQuery);
 		verify(mockTableIndexManager).buildTableIndexIndices(index, syn123Schema);
 		verify(mockTableIndexManager).setIndexVersion(idAndVersion, 123L);
-		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, "token", "DEFAULT");
+		verify(mockTableManagerSupport).setTableStatusToAvailable(idAndVersion);
 	}
 	
 	@Test
@@ -1186,7 +1186,7 @@ public class MaterializedViewManagerImplTest {
 		when(mockTableIndexManager.populateMaterializedViewFromDefiningSql(any(), any())).thenReturn(123L);
 		doNothing().when(mockTableIndexManager).buildTableIndexIndices(any(), any());
 		doNothing().when(mockTableIndexManager).setIndexVersion(any(), any());
-		doNothing().when(mockTableManagerSupport).attemptToSetTableStatusToAvailable(any(), any(), any());
+		doNothing().when(mockTableManagerSupport).setTableStatusToAvailable(any());
 		
 		// Call under test
 		manager.createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(mockQuery, syn123Schema, true);
@@ -1197,6 +1197,6 @@ public class MaterializedViewManagerImplTest {
 		verify(mockTableIndexManager).populateMaterializedViewFromDefiningSql(syn123Schema, mockQuery);
 		verify(mockTableIndexManager).buildTableIndexIndices(index, syn123Schema);
 		verify(mockTableIndexManager).setIndexVersion(idAndVersion, 123L);
-		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, "token", "DEFAULT");
+		verify(mockTableManagerSupport).setTableStatusToAvailable(idAndVersion);
 	}
 }
