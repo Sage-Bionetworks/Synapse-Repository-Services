@@ -153,5 +153,11 @@ public interface TableStatusDAO {
 	 * @return
 	 */
 	List<IdVersionTableType> getAllTablesAndViewsWithMissingStatus(long limit);
+
+	/**
+	 * Unconditionally set the table to AVAILABLE independently of the reset token
+	 * @param tableIdString
+	 */
+	void setTableStatusToAvailable(IdAndVersion tableIdString);
 	
 }

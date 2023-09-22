@@ -113,6 +113,23 @@ public class TableStatusDAOImplUnitTest {
 	}
 	
 	@Test
+	public void testPublishMessageWhenSetTableStatusToAvailable() {
+
+		doReturn(Optional.of(mockStatus)).when(daoSpy).selectResetTokenForUpdate(any());
+		
+		TableStatusChangeEvent expectedEvent = new TableStatusChangeEvent()
+			.setObjectType(ObjectType.TABLE_STATUS_EVENT)
+			.setObjectId(idAndVersion.getId().toString())
+			.setObjectVersion(idAndVersion.getVersion().orElse(null))
+			.setState(TableState.AVAILABLE);
+		
+		// Call under test
+		daoSpy.setTableStatusToAvailable(idAndVersion);
+		
+		verify(mockMessenger).publishMessageAfterCommit(argThat(matchStatus(expectedEvent)));
+	}
+	
+	@Test
 	public void testPublishMessageWhenUpdateChangedOnIfAvailable() {
 		
 		when(mockJdbcTemplate.update(anyString(), anyLong(), any(), anyLong())).thenReturn(1);
