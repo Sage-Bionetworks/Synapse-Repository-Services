@@ -68,8 +68,6 @@ public class TableViewManagerImpl implements TableViewManager {
 	
 	static Log log = LogFactory.getLog(TableViewManagerImpl.class);	
 
-	public static final String DEFAULT_ETAG = "DEFAULT";
-
 	public static final String ETG_COLUMN_MISSING = "The view schema must include '" + ObjectField.etag.name() + "' column.";
 	public static final String ETAG_MISSING_MESSAGE = "The '" + ObjectField.etag.name() + "' must be included to update an Entity's annotations.";
 

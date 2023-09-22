@@ -178,7 +178,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		request.setSql(sql);
 		request.setWriteHeader(true);
 		request.setIncludeRowIdAndRowVersion(true);
-		List<String[]> results = downloadCSV(adminUserInfo, request);
+		List<String[]> results = downloadCSV(adminUserInfo, request, result.getEtag());
 		checkResults(results, input, true);
 	}
 
@@ -199,7 +199,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		request.setFileName(customFileName);
 
 		// Call under test
-		List<String[]> results = downloadCSV(adminUserInfo, request);
+		List<String[]> results = downloadCSV(adminUserInfo, request, result.getEtag());
 
 		checkResults(results, input, true);
 	}
@@ -216,8 +216,10 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		request.setWriteHeader(true);
 		request.setIncludeRowIdAndRowVersion(true);
 		
+		String lastChangeEtag = tableEntityManager.getLastTableRowChange(tableId).getEtag();
+		
 		assertThrows(UnauthorizedException.class, () -> {
-			downloadCSV(anonymousUser, request);
+			downloadCSV(anonymousUser, request, lastChangeEtag);
 		});
 				
 		// Now set the table as open data
@@ -236,7 +238,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		
 		entityAclManager.updateACL(acl, adminUserInfo);
 		
-		List<String[]> results = downloadCSV(anonymousUser, request);
+		List<String[]> results = downloadCSV(anonymousUser, request, lastChangeEtag);
 		checkResults(results, input, true);
 	}
 
@@ -257,7 +259,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		sortItem.setColumn("c");
 		sortItem.setDirection(SortDirection.DESC);
 		request.setSort(Lists.newArrayList(sortItem));
-		List<String[]> results = downloadCSV(adminUserInfo, request);
+		List<String[]> results = downloadCSV(adminUserInfo, request, result.getEtag());
 		input = Lists.newArrayList(input.get(0), input.get(4), input.get(2), input.get(1), input.get(3));
 		checkResults(results, input, true);
 	}
@@ -275,7 +277,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		request.setSql(sql);
 		request.setWriteHeader(true);
 		request.setIncludeRowIdAndRowVersion(true);
-		List<String[]> results = downloadCSV(adminUserInfo, request);
+		List<String[]> results = downloadCSV(adminUserInfo, request, result.getEtag());
 		checkResults(results, Lists.<String[]> newArrayList(new String[] { "a", "b", "c" }), true);
 	}
 	
@@ -289,7 +291,11 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		request.setSql(sql);
 		request.setWriteHeader(true);
 		request.setIncludeRowIdAndRowVersion(false);
-		List<String[]> results = downloadCSV(adminUserInfo, request);
+		
+		String lastChangeEtag = tableEntityManager.getLastTableRowChange(tableId).getEtag();
+		
+		List<String[]> results = downloadCSV(adminUserInfo, request, lastChangeEtag);
+		
 		checkResults(results, input, false);
 	}
 	
@@ -304,7 +310,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		request.setIncludeRowIdAndRowVersion(true);
 		// null should default to false
 		request.setIncludeEntityEtag(null);
-		List<String[]> results = downloadCSV(adminUserInfo, request);
+		List<String[]> results = downloadCSV(adminUserInfo, request, null);
 		assertEquals(4, results.size());
 		String[] headers = results.get(0);
 		String headerString = Arrays.toString(headers);
@@ -323,7 +329,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		request.setWriteHeader(true);
 		request.setIncludeRowIdAndRowVersion(true);
 		request.setIncludeEntityEtag(true);
-		List<String[]> results = downloadCSV(adminUserInfo, request);
+		List<String[]> results = downloadCSV(adminUserInfo, request, null);
 		assertEquals(4, results.size());
 		String[] headers = results.get(0);
 		String headerString = Arrays.toString(headers);
@@ -423,7 +429,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	 * @throws InterruptedException 
 	 * @throws NotFoundException 
 	 */
-	List<String[]> downloadCSV(UserInfo user, DownloadFromTableRequest request) throws Throwable {
+	List<String[]> downloadCSV(UserInfo user, DownloadFromTableRequest request, String lastChangeEtag) throws Throwable {
 		// submit the job
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(user, request);
 		// Wait for the job to complete.
@@ -432,7 +438,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		assertNotNull(status.getResponseBody());
 		assertTrue(status.getResponseBody() instanceof DownloadFromTableResult);
 		DownloadFromTableResult response = (DownloadFromTableResult) status.getResponseBody();
-		assertNotNull(response.getEtag());
+		assertEquals(lastChangeEtag, response.getEtag());
 		assertNotNull(response.getResultsFileHandleId());
 		// Get the filehandle
 		fileHandle = (S3FileHandle) fileHandleDao.get(response.getResultsFileHandleId());
