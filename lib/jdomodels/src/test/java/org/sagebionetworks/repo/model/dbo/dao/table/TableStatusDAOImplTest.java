@@ -2,9 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -146,30 +144,6 @@ public class TableStatusDAOImplTest {
 		assertEquals(TableState.AVAILABLE, status.getState());
 		assertNotNull(status.getTotalTimeMS());
 		assertEquals(lastTableChangeEtag, status.getLastTableChangeEtag());
-	}
-	
-	@Test
-	public void testSetTableStatusToAvailable() throws NotFoundException {
-		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
-		// Status should start as processing
-		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
-		assertNotNull(status);
-		assertEquals("123", status.getTableId());
-		assertEquals(TableState.PROCESSING, status.getState());
-		assertNotNull(status.getChangedOn());
-		
-		// Not make available
-		tableStatusDAO.setTableStatusToAvailable(tableIdNoVersion);
-		
-		// the state should have changed
-		status = tableStatusDAO.getTableStatus(tableIdNoVersion);
-		assertNotNull(status);
-		assertEquals("123", status.getTableId());
-		assertEquals(TableState.AVAILABLE, status.getState());
-		assertNotNull(status.getTotalTimeMS());
-		assertNull(status.getLastTableChangeEtag());
-		assertNotEquals(resetToken, status.getResetToken());
 	}
 
 	@Test

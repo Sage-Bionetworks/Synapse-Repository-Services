@@ -56,6 +56,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
+import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -875,7 +876,8 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport, never()).restoreTableIndexFromS3(any(), any(), any());
 		verify(mockIndexManager).buildTableIndexIndices(indexDescription, viewSchema);
 		verify(mockIndexManager).setIndexVersion(idAndVersion, viewCRC);
-		verify(mockTableManagerSupport).setTableStatusToAvailable(idAndVersion);
+		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
+				TableViewManagerImpl.DEFAULT_ETAG);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 		verify(mockViewSnapshotDao, never()).getSnapshot(any(IdAndVersion.class));
@@ -917,7 +919,8 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport).restoreTableIndexFromS3(idAndVersion, "bucket", "key");
 		verify(mockIndexManager).buildTableIndexIndices(indexDescription, viewSchema);
 		verify(mockIndexManager).setIndexVersion(idAndVersion, 101L);
-		verify(mockTableManagerSupport).setTableStatusToAvailable(idAndVersion);
+		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
+				TableViewManagerImpl.DEFAULT_ETAG);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 	}
@@ -957,7 +960,43 @@ public class TableViewManagerImplTest {
 				anyString(), anyString());
 		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, exception);
 	}
+	
+	/**
+	 * A InvalidStatusTokenException thrown while attempting to set the view to available should not
+	 * result in setting the view's state to failed.  Instead, the message should returned to the queue
+	 * for a retry at a later time.
+	 * 
+	 * @throws IOException
+	 */
+	@Test
+	public void testCreateOrRebuildViewHoldingLockInvalidStatusTokenException() throws IOException {
+		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
+		String token = "the token";
+		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
+		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockIndexManager.resetTableIndex(any())).thenReturn(viewSchema);
+		doNothing().when(mockIndexManager).buildTableIndexIndices(any(), any());
+		viewCRC = 987L;
+		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema))
+				.thenReturn(viewCRC);
 		
+		// conflict is thrown if the state has changed since the process was started.
+		InvalidStatusTokenException conflictException = new InvalidStatusTokenException();
+		doThrow(conflictException).when(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
+				TableViewManagerImpl.DEFAULT_ETAG);
+		
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {
+			// call under test
+			manager.createOrRebuildViewHoldingLock(idAndVersion);
+		});
+		assertEquals(conflictException, result.getCause());
+		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
+				TableViewManagerImpl.DEFAULT_ETAG);
+		// conflict should not set the view to failed.
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(), any());
+	}
+	
 	@Test
 	public void testCreateOrRebuildViewHoldingLockWithRecoverableMessageException() throws IOException {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);

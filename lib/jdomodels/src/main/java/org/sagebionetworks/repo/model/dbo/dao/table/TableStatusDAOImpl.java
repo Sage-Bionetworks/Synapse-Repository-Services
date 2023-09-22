@@ -164,13 +164,6 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		attemptToSetTableEndState(tableIdString, resetToken, TableState.AVAILABLE, null, null, null, tableChangeEtag);
 	}
 	
-	@WriteTransaction
-	@Override
-	public void setTableStatusToAvailable(IdAndVersion tableIdString) {
-		String resetToken = null;
-		attemptToSetTableEndState(tableIdString, resetToken, TableState.AVAILABLE, null, null, null, null);
-	}
-	
 	/**
 	 * Private method to attempt to set the end (or final) state on a table.
 	 * 
@@ -225,7 +218,6 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		current.setErrorDetails(errorDetailsBytes);
 		current.setTotalRunTimeMS(runtimeMS);
 		current.setLastTableChangeEtag(tableChangeEtag);
-		
 		current.setResetToken(UUID.randomUUID().toString());
 		
 		basicDao.createOrUpdate(current);
