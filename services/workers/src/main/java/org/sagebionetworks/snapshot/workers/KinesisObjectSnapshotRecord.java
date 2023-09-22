@@ -109,13 +109,6 @@ public class KinesisObjectSnapshotRecord<T extends JSONEntity> implements AwsKin
 			.withSnapshot(snapshot);
 	}
 
-	public static final <T extends JSONEntity> KinesisObjectSnapshotRecord<T> map(long changeTimestamp, T snapshot) {
-		return new KinesisObjectSnapshotRecord<T>()
-				.withChangeTimestamp(changeTimestamp)
-				.withSnapshotTimestamp(Instant.now().toEpochMilli())
-				.withSnapshot(snapshot);
-	}
-
 	@Override
 	public int hashCode() {
 		return Objects.hash(changeTimestamp, changeType, instance, objectType, snapshot, snapshotTimestamp, stack, userId);
