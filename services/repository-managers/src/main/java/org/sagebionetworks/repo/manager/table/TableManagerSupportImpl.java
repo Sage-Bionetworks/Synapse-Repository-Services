@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
@@ -111,6 +112,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	private final SynapseS3Client s3Client;
 	private final Clock clock;
 	private final Logger log;
+	private final TableExceptionTranslator tableExceptionTranslator;
 	
 	@Autowired
 	public TableManagerSupportImpl(TableStatusDAO tableStatusDAO, TimeoutUtils timeoutUtils,
@@ -119,7 +121,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			ViewScopeDao viewScopeDao, WriteReadSemaphore writeReadSemaphoreRunner,
 			AuthorizationManager authorizationManager, TableSnapshotDao tableSnapshotDao,
 			MetadataIndexProviderFactory metadataIndexProviderFactory, DefaultColumnModelMapper defaultColumnMapper,
-			MaterializedViewDao materializedViewDao, FileProvider fileProvider, SynapseS3Client s3Client, Clock clock, LoggerProvider loggerProvider) {
+			MaterializedViewDao materializedViewDao, FileProvider fileProvider, SynapseS3Client s3Client, Clock clock, LoggerProvider loggerProvider
+			, TableExceptionTranslator tableExceptionTranslator) {
 		super();
 		this.tableStatusDAO = tableStatusDAO;
 		this.timeoutUtils = timeoutUtils;
@@ -139,6 +142,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		this.s3Client = s3Client;
 		this.clock = clock;
 		this.log = loggerProvider.getLogger(TableManagerSupportImpl.class.getName());
+		this.tableExceptionTranslator = tableExceptionTranslator;
 	}
 
 	/*
@@ -162,8 +166,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 				// Processing or Failed.
 				// Is progress being made?
 				if (timeoutUtils.hasExpired(TABLE_PROCESSING_TIMEOUT_MS, status.getChangedOn().getTime())) {
-					// progress has not been made so trigger another update
-					return setTableToProcessingAndTriggerUpdate(idAndVersion);
+					// We do not know if the table is actually in an invalid state, we let the worker finish what they are doing
+					boolean resetToken = false;
+					// progress has not been made so trigger another update					
+					return setTableToProcessingAndTriggerUpdate(idAndVersion, resetToken);
 				} else {
 					// progress has been made so just return the status
 					return status;
@@ -209,6 +215,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@WriteTransaction
 	@Override
 	public TableStatus setTableToProcessingAndTriggerUpdate(IdAndVersion idAndVersion) {
+		boolean resetToken = true;
+		return setTableToProcessingAndTriggerUpdate(idAndVersion, resetToken);
+	}
+	
+	TableStatus setTableToProcessingAndTriggerUpdate(IdAndVersion idAndVersion, boolean resetToken) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		// lookup the table type.
 		ObjectType tableType = getTableObjectType(idAndVersion);
@@ -216,7 +227,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// we get here, if the index for this table is not (yet?) being build. We need
 		// to kick off the
 		// building of the index and report the table as unavailable
-		tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
+		tableStatusDAO.resetTableStatusToProcessing(idAndVersion, resetToken);
 		
 		// notify all listeners.
 		triggerIndexUpdate(tableType, idAndVersion);
@@ -247,9 +258,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public void attemptToSetTableStatusToFailed(IdAndVersion idAndVersion, Exception error)
 			throws ConflictingUpdateException, NotFoundException {
-		String errorMessage = error.getMessage();
+		RuntimeException translated = tableExceptionTranslator.translateException(error);
+		String errorMessage = translated.getMessage();
 		StringWriter writer = new StringWriter();
-		error.printStackTrace(new PrintWriter(writer));
+		translated.printStackTrace(new PrintWriter(writer));
 		String errorDetails = writer.toString();
 		tableStatusDAO.attemptToSetTableStatusToFailed(idAndVersion, errorMessage, errorDetails);
 	}
@@ -271,7 +283,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@NewWriteTransaction
 	@Override
 	public String startTableProcessing(IdAndVersion idAndVersion) {
-		return tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
+		boolean resetToken = true;
+		return tableStatusDAO.resetTableStatusToProcessing(idAndVersion, resetToken);
 	}
 
 	/*
@@ -567,7 +580,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		if (indexDao != null) {
 			indexDao.deleteTable(idAndVersion);
 		}
-		tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
+		boolean resetToken = true;
+		tableStatusDAO.resetTableStatusToProcessing(idAndVersion, resetToken);
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(ChangeType.UPDATE);
 		message.setObjectType(getTableObjectType(idAndVersion));

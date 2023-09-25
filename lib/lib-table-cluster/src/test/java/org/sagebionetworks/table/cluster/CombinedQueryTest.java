@@ -164,7 +164,7 @@ public class CombinedQueryTest {
 				.setOverrideLimit(overrideLimit).setOverrideOffset(overrideOffset).setSelectedFacets(selectedFacets)
 				.build();
 
-		assertEquals("SELECT * FROM syn123 WHERE ( ( JSON_UNQUOTE(JSON_EXTRACT(\"aJson\",'$.a')) = CAST('b' AS INTEGER) ) )", combined.getCombinedSql());
+		assertEquals("SELECT * FROM syn123 WHERE ( ( JSON_EXTRACT(\"aJson\",'$.a') = CAST('b' AS INTEGER) ) )", combined.getCombinedSql());
 	}
 	
 	@Test

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
@@ -35,18 +36,20 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	
 	private String columnName;
 	private String jsonPath;
+	private ColumnType jsonPathType;
 	private List<FacetRequestColumnModel> facets;
 	
 	private QueryTranslator generatedFacetSqlQuery;
 	private Set<String> selectedValues;
 	
-	public FacetTransformerValueCounts(String columnName, String jsonPath, boolean columnTypeIsList, List<FacetRequestColumnModel> facets,
+	public FacetTransformerValueCounts(String columnName, String jsonPath, ColumnType jsonPathType, boolean columnTypeIsList, List<FacetRequestColumnModel> facets,
 			QueryExpression originalQuery, TranslationDependencies dependencies, Set<String> selectedValues){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facets, "facets");
 		ValidateArgument.required(originalQuery, "originalQuery");
 		this.columnName = columnName;
 		this.jsonPath = jsonPath;
+		this.jsonPathType = jsonPathType;
 		this.facets = facets;
 		this.selectedValues = selectedValues;
 		this.generatedFacetSqlQuery = generateFacetSqlQuery(originalQuery, dependencies, columnTypeIsList);
@@ -64,7 +67,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	}
 	
 	private QueryTranslator generateFacetSqlQuery(QueryExpression originalQuery, TranslationDependencies dependencies, boolean columnTypeIsList) {
-		String columnNameExpression = FacetUtils.getColumnNameExpression(columnName, jsonPath);
+		String columnNameExpression = FacetUtils.getColumnNameExpression(columnName, jsonPath, jsonPathType);
 		
 		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnNameExpression);
 		

@@ -71,8 +71,10 @@ public class TableStatusDAOImplUnitTest {
 			.setObjectVersion(idAndVersion.getVersion().orElse(null))
 			.setState(TableState.PROCESSING);
 		
+		boolean resetToken = true;
+		
 		// Call under test
-		dao.resetTableStatusToProcessing(idAndVersion);
+		dao.resetTableStatusToProcessing(idAndVersion, resetToken);
 		
 		verify(mockMessenger).publishMessageAfterCommit(argThat(matchStatus(expectedEvent)));
 	}

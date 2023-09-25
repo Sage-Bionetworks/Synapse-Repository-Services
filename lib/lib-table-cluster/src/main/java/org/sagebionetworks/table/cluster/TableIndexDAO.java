@@ -79,7 +79,7 @@ public interface TableIndexDAO {
 	 * @param query
 	 * @return
 	 */
-	RowSet query(ProgressCallback callback, QueryTranslator query);
+	RowSet query(ProgressCallback callback, TranslatedQuery query);
 
 	/**
 	 * Run a simple count query.
@@ -98,8 +98,8 @@ public interface TableIndexDAO {
 	 * @param handler
 	 * @return
 	 */
-	boolean queryAsStream(ProgressCallback callback, QueryTranslator query, RowHandler handler);
-	
+	boolean queryAsStream(ProgressCallback callback, TranslatedQuery query, RowHandler handler);
+
 	/**
 	 * 
 	 * @param <T>
@@ -108,7 +108,8 @@ public interface TableIndexDAO {
 	 * @param columnType
 	 * @param limit
 	 * @param offset
-	 * @return The list of results from the given SQL query on the index, expecting each row to contain a single column of the given type
+	 * @return The list of results from the given SQL query on the index, expecting
+	 *         each row to contain a single column of the given type
 	 */
 	<T> List<T> querySingleColumn(String sql, Map<String, ?> params, Class<T> columnType);
 
@@ -129,11 +130,12 @@ public interface TableIndexDAO {
 	 *         then -1L.
 	 */
 	Long getMaxCurrentCompleteVersionForTable(IdAndVersion tableId);
-	
+
 	/**
 	 * 
 	 * @param tableId
-	 * @return The current status of the search enabled flag in the building process of the table
+	 * @return The current status of the search enabled flag in the building process
+	 *         of the table
 	 */
 	boolean isSearchEnabled(IdAndVersion tableId);
 
@@ -144,7 +146,7 @@ public interface TableIndexDAO {
 	 * @param highestVersion
 	 */
 	void setMaxCurrentCompleteVersionForTable(IdAndVersion tableId, Long highestVersion);
-	
+
 	/**
 	 * Set the MD5 hex of the table's current schema.
 	 * 
@@ -160,9 +162,9 @@ public interface TableIndexDAO {
 	 * @return Optional.empty() if there is no stored state for this table.
 	 */
 	Optional<String> getCurrentSchemaMD5Hex(IdAndVersion tableId);
-	
+
 	void setSearchEnabled(IdAndVersion tableId, boolean searchStatus);
-	
+
 	/**
 	 * Does the current index schema MD5 hash match the MD5 has of the provided
 	 * schema? This is a fast and efficient check to determine if additional work is
@@ -255,7 +257,7 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId, boolean isTemporaryTable);
-	
+
 	/**
 	 * Provide the cardinality for the given columns and table.
 	 * 
@@ -274,11 +276,12 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 */
 	void provideIndexInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId, boolean isTemporaryTable);
-	
+
 	/**
 	 * Provide constraint information for each column of the given tableId.
 	 * 
-	 * @param list The constraint information will be added to each provided {@link DatabaseColumnInfo}.
+	 * @param list    The constraint information will be added to each provided
+	 *                {@link DatabaseColumnInfo}.
 	 * @param tableId
 	 */
 	void provideConstraintInfo(List<DatabaseColumnInfo> list, IdAndVersion tableId, boolean isTemporaryTable);
@@ -357,13 +360,15 @@ public interface TableIndexDAO {
 	 * @return max list value length of the column
 	 */
 	long tempTableListColumnMaxLength(IdAndVersion tableId, String columnId);
-	
+
 	/**
 	 * 
 	 * @param tableId
 	 * @param columnId
 	 * @param characterLimit
-	 * @return The first row id if the any value in the column with the given id in the temporary copy of the given table exceeds the given character limit
+	 * @return The first row id if the any value in the column with the given id in
+	 *         the temporary copy of the given table exceeds the given character
+	 *         limit
 	 */
 	Optional<Long> tempTableColumnExceedsCharacterLimit(IdAndVersion tableId, String columnId, long characterLimit);
 
@@ -398,6 +403,7 @@ public interface TableIndexDAO {
 
 	/**
 	 * Set the synchronization lock to be expired for the given object.
+	 * 
 	 * @param mainType
 	 * @param objectId
 	 * @param newExpirationDateMS
@@ -512,24 +518,28 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	List<IdAndChecksum> getIdAndChecksumsForFilter(Long salt, ViewFilter filter, Long limit, Long offset);
-		
+
 	/**
-	 * @param idAndVersion The id of the table
+	 * @param idAndVersion  The id of the table
 	 * @param selectColumns The columns to fetch
-	 * @param rowIds The id of the rows to restrict the data to
-	 * @return A batch over the table row content matching the given set of columns for the rows with the given ids 
+	 * @param rowIds        The id of the rows to restrict the data to
+	 * @return A batch over the table row content matching the given set of columns
+	 *         for the rows with the given ids
 	 */
-	List<TableRowData> getTableDataForRowIds(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, Set<Long> rowIds);
-	
+	List<TableRowData> getTableDataForRowIds(IdAndVersion idAndVersion, List<ColumnModel> selectColumns,
+			Set<Long> rowIds);
+
 	/**
 	 * 
-	 * @param idAndVersion The id of the table
+	 * @param idAndVersion  The id of the table
 	 * @param selectColumns The columns to fetch
 	 * @param limit
 	 * @param offset
-	 * @return A page of table row content matching the given set of columns paginated according to the given limit and offset (ordered by row id)
+	 * @return A page of table row content matching the given set of columns
+	 *         paginated according to the given limit and offset (ordered by row id)
 	 */
-	List<TableRowData> getTableDataPage(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, long limit, long offset);
+	List<TableRowData> getTableDataPage(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, long limit,
+			long offset);
 
 	/**
 	 * Stream the data of the table with the given id to the given CSV stream writer
@@ -539,7 +549,7 @@ public interface TableIndexDAO {
 	 * @return The column model ids from the table index
 	 */
 	List<String> streamTableIndexData(IdAndVersion tableId, CSVWriterStream stream);
-	
+
 	/**
 	 * Restore the table index using the data from the given iterator
 	 * 
@@ -552,16 +562,18 @@ public interface TableIndexDAO {
 	 *                         than maxBytesPerBatch.
 	 */
 	void restoreTableIndexData(IdAndVersion idAndVersion, Iterator<String[]> input, long maxBytesPerBatch);
-	
+
 	/**
 	 * Updates the search index content for the given batch of rows
-	 * @param idAndVersion The id of the table
+	 * 
+	 * @param idAndVersion      The id of the table
 	 * @param searchContentRows The batch of rows to update
 	 */
 	void updateSearchIndex(IdAndVersion idAndVersion, List<RowSearchContent> searchContentRows);
-	
+
 	/**
 	 * Clear all the content of the search index for the table with the given id
+	 * 
 	 * @param idAndVersion The id of the table
 	 */
 	void clearSearchIndex(IdAndVersion idAndVersion);
@@ -577,7 +589,7 @@ public interface TableIndexDAO {
 	 * Cleanup all the index tables
 	 */
 	void truncateIndex();
-	
+
 	/**
 	 * fetch the current search content for the given set of rows
 	 */
@@ -585,6 +597,7 @@ public interface TableIndexDAO {
 
 	/**
 	 * Execute an update statement with the given parameters;
+	 * 
 	 * @param string
 	 * @param parameters
 	 */
@@ -597,13 +610,49 @@ public interface TableIndexDAO {
 	 * @param targetIndexId
 	 */
 	void swapTableIndex(IdAndVersion sourceIndexId, IdAndVersion targetIndexId);
-	
 
 	/**
 	 * Get the constraint clause for the given constraint name.
+	 * 
 	 * @param constraintName
 	 * @return {@link Optional#empty()} if the constraint does not exist.
 	 */
 	Optional<String> getConstraintClause(String constraintName);
+
+	/**
+	 * Get the JSON results for a cached query for the given request hash.
+	 * 
+	 * @param requestHash
+	 * @return {@link Optional#empty()} if there is no entry for the the given hash.
+	 */
+	Optional<String> getCachedQueryResults(String requestHash);
+
+	/**
+	 * Get the JSON request for a cached query for the given request hash if it is
+	 * expired.
+	 * 
+	 * @param requestHash The SHA 256 Hex of the query request.
+	 * @return {@link Optional#empty()} if there is no entry for the the given hash
+	 *         or if the cached result has not expired.
+	 */
+	Optional<String> getExpiredCachedQueryRequest(String requestHash);
+
+	/**
+	 * Save the provided query results to the cache.
+	 * 
+	 * @param requestHash The SHA 256 Hex of the query request.
+	 * @param requestJson The JSON of the query request.
+	 * @param resultJson  The JSON of the query results.
+	 * @param runtimeMS   The runtime in MS it took to execute the query.
+	 * @param expiresInSec The number of seconds until this cached result will expire.
+	 */
+	void saveCachedQuery(String requestHash, String requestJson, String resultJson, long runtimeMS, int expiresInSec);
 	
+	/**
+	 * Get a cached query result for the given request hash.
+	 * @param requestHash
+	 * @return
+	 */
+	Optional<CachedQueryDto> getCachedQuery(String requestHash);
+
 }

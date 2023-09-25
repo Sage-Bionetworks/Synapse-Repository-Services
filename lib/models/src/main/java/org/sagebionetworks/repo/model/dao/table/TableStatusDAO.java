@@ -19,17 +19,18 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * 
  */
 public interface TableStatusDAO {
-
+	
 	/**
 	 * When the truth data of a table changes either due to row changes or column
 	 * changes the table status must be rest to PROCESSING. This is the only method
-	 * that will change the reset-token. The resulting reset-token will be needed to
+	 * that can change the reset-token. The resulting reset-token will be needed to
 	 * change the status to available or failed.
 	 * 
 	 * @param tableId
-	 * @return The new reset-token for this table status.
+	 * @param resetToken True if the current token should be reset too, do this only if you know that the table is invalid
+	 * @return The new reset-token for this table status if resetToken is true or if the status didn't exist, the existing one if false.
 	 */
-	public String resetTableStatusToProcessing(IdAndVersion tableId);
+	String resetTableStatusToProcessing(IdAndVersion tableId, boolean resetToken);
 
 	/**
 	 * Attempt to set the table status to AVAILABLE. The state will be changed will
