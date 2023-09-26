@@ -37,7 +37,6 @@ import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
@@ -115,6 +114,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.security.PrivateKey;
@@ -171,6 +171,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	public static final String RSA = "RSA";
 
+	public static final String RESPONSE_CONTENT_DISPOSITION = "response-content-disposition";
+
+	public static final String RESPONSE_CONTENT_TYPE = "response-content-type";
+
 	@Autowired
 	private FileHandleDao fileHandleDao;
 
@@ -209,6 +213,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	private TransactionalMessenger messenger;
+
+	@Autowired
+	private CloudFrontCache cloudFrontCache;
 	/**
 	 * Used by spring
 	 */
@@ -409,36 +416,38 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 		ResponseHeaderOverrides responseHeaderOverrides = new ResponseHeaderOverrides();
 
-		String contentType = handle.getContentType();
-		if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
-			responseHeaderOverrides.setContentType(contentType);
-		}
-		String fileName = handle.getFileName();
-		if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
-			responseHeaderOverrides.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(fileName));
-		}
+		Optional<String> contentType = getFileHandleResponseContent(handle).get(RESPONSE_CONTENT_TYPE);
+		contentType.ifPresent(type -> responseHeaderOverrides.setContentType(type));
+
+		Optional<String> fileName = getFileHandleResponseContent(handle).get(RESPONSE_CONTENT_DISPOSITION);
+		fileName.ifPresent(name -> responseHeaderOverrides.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(name)));
 
 		request.setResponseHeaders(responseHeaderOverrides);
 		return s3Client.generatePresignedUrl(request).toExternalForm();
 	}
 
 	private String getCloudFrontSignedUrlForS3FileHandle(S3FileHandle handle) {
-		String cloudFrontPrivateKey = config.getCloudFrontPrivateKey();
-		String keyPairId = config.getCloudFrontKeyPairId();
-		String distributionDomainName = config.getCloudFrontDomainName();
-		PrivateKey privateKey = KeyPairUtil.getPrivateKeyFromPEM(cloudFrontPrivateKey, RSA);
+		String keyPairId = cloudFrontCache.getKeyPairId();
+		String distributionDomainName = cloudFrontCache.getDomainName();
+		PrivateKey privateKey = cloudFrontCache.getPrivateKey();
 		Date expirationDate = new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS);
 
 		String resourceUrl;
+
+		URIBuilder resourceUrlBuilder = new URIBuilder()
+				.setScheme("https")
+				.setHost(distributionDomainName)
+				.setPath(handle.getKey());
+
+		Optional<String> contentType = getFileHandleResponseContent(handle).get(RESPONSE_CONTENT_TYPE);
+		contentType.ifPresent(type -> resourceUrlBuilder.addParameter(RESPONSE_CONTENT_TYPE, type));
+
+		Optional<String> fileName = getFileHandleResponseContent(handle).get(RESPONSE_CONTENT_DISPOSITION);
+		fileName.ifPresent(name -> resourceUrlBuilder.addParameter(RESPONSE_CONTENT_DISPOSITION, ContentDispositionUtils.getContentDispositionValue(name)));
+
 		try {
-			resourceUrl = new URIBuilder()
-					.setScheme("https")
-					.setHost(distributionDomainName)
-					.setPath(handle.getKey())
-					.addParameter("response-content-disposition", ContentDispositionUtils.getContentDispositionValue(handle.getKey()))
-					.addParameter("response-content-type", handle.getContentType())
-					.build().toString();
-		} catch (Exception e) {
+			resourceUrl = resourceUrlBuilder.build().toString();
+		} catch (URISyntaxException e) {
 			throw new RuntimeException("Failed to build resource URL for " + handle.getKey(), e);
 		}
 
@@ -465,18 +474,39 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			  We still attempt to override content type because it does not seem to interfere with the call, and
 			  perhaps one day Google may decide to allow us to override content type with this parameter.
 			 */
-			String contentType = handle.getContentType();
-			if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
-				signedUrl += "&response-content-type=" + URLEncoder.encode(contentType, "UTF-8");
+			Optional<String> contentType = getFileHandleResponseContent(handle).get(RESPONSE_CONTENT_TYPE);
+			if (contentType.isPresent()) {
+				signedUrl += "&" + RESPONSE_CONTENT_TYPE + "=" + URLEncoder.encode(contentType.get(), "UTF-8");
 			}
-			String fileName = handle.getFileName();
-			if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
-				signedUrl += "&response-content-disposition=" + URLEncoder.encode(ContentDispositionUtils.getContentDispositionValue(fileName), "UTF-8");
+
+			Optional<String> fileName = getFileHandleResponseContent(handle).get(RESPONSE_CONTENT_DISPOSITION);
+			if (fileName.isPresent()) {
+				signedUrl += "&" + RESPONSE_CONTENT_DISPOSITION + "=" + URLEncoder.encode(ContentDispositionUtils.getContentDispositionValue(fileName.get()), "UTF-8");
 			}
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException("Error encoding query string for signed URL", e);
 		}
 		return signedUrl;
+	}
+
+	private static Map<String, Optional<String>> getFileHandleResponseContent(FileHandle handle) {
+		Map<String, Optional<String>> responseContent = new HashMap<>();
+
+		String contentType = handle.getContentType();
+		if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
+			responseContent.put(RESPONSE_CONTENT_TYPE, Optional.of(contentType));
+		} else {
+			responseContent.put(RESPONSE_CONTENT_TYPE, Optional.empty());
+		}
+
+		String fileName = handle.getFileName();
+		if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
+			responseContent.put(RESPONSE_CONTENT_DISPOSITION, Optional.of(fileName));
+		} else {
+			responseContent.put(RESPONSE_CONTENT_DISPOSITION, Optional.empty());
+		}
+
+		return responseContent;
 	}
 
 	@Override
