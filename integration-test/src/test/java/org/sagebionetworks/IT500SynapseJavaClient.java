@@ -15,6 +15,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -91,6 +92,7 @@ import com.google.common.collect.Sets;
 @ExtendWith(ITTestExtension.class)
 public class IT500SynapseJavaClient {
 
+	private static final int WAREHOUSE_QUERY_EXPIRATION_HOURS = 25;
 	private static SynapseClient synapseTwo;
 	private static SynapseAdminClient synapseAnonymous;
 	
@@ -121,11 +123,13 @@ public class IT500SynapseJavaClient {
 	private SynapseAdminClient adminSynapse;
 	private SynapseClient synapse;
 	private WarehouseTestHelper warehouseHelper;
+	private StackConfiguration stackConfig;
 	
-	public IT500SynapseJavaClient(SynapseAdminClient adminSynapse, SynapseClient synapse, WarehouseTestHelper warehouseHelper) {
+	public IT500SynapseJavaClient(SynapseAdminClient adminSynapse, SynapseClient synapse, WarehouseTestHelper warehouseHelper, StackConfiguration stackConfig) {
 		this.adminSynapse = adminSynapse;
 		this.synapse = synapse;
 		this.warehouseHelper = warehouseHelper;
+		this.stackConfig = stackConfig;
 	}
 
 	@BeforeAll
@@ -724,11 +728,11 @@ public class IT500SynapseJavaClient {
 	 * @throws Exception 
 	 */
 	@Test
-	public void testProfileImageRoundTrip() throws Exception{
+	public void testProfileImageRoundTrip() throws Exception {
 		// First load an image from the classpath
 		String fileName = "images/profile_pic.png";
 		URL url = IT500SynapseJavaClient.class.getClassLoader().getResource(fileName);
-		assertNotNull(url, "Failed to find: "+fileName+" on the classpath");
+		assertNotNull(url, "Failed to find: " + fileName + " on the classpath");
 		File originalFile = new File(url.getFile());
 
 		// Get the profile to update.
@@ -742,10 +746,16 @@ public class IT500SynapseJavaClient {
 		assertNotNull(profileURL);
 		URL profilePreviewURL = waitForProfilePreview(synapse, profile.getOwnerId());
 		assertNotNull(profilePreviewURL);
-		
-		warehouseHelper.assertWarehouseQuery("select * from filedownloadrecords where record_date = date('2023-09-15') and instance = 'jmhill' and association_object_type = 'UserProfileAttachment'\r\n"
-				+ " and association_object_id = 3412403 and user_id = 3412403 and timestamp between from_iso8601_timestamp('2023-09-15T00:50:20.000Z') and from_iso8601_timestamp('2023-09-15T00:50:23.000Z')  \r\n"
-				+ "limit 100");
+
+		Instant now = Instant.now();
+		String query = String.format(
+				"select count(*) from filedownloadrecords where record_date %s and timestamp %s and instance = '%s'"
+						+ " and association_object_type = 'UserProfileAttachment' and association_object_id = %s"
+						+ " and file_handle_id = %s ",
+				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
+				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(now), stackConfig.getStackInstance(),
+				profile.getOwnerId(), fileHandle.getId());
+		warehouseHelper.assertWarehouseQuery(query, WAREHOUSE_QUERY_EXPIRATION_HOURS);
 	}
 	
 	/**
