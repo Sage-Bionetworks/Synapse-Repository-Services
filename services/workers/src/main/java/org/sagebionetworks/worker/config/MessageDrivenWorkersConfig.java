@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.ses.workers.SESNotificationWorker;
 import org.sagebionetworks.table.worker.MaterializedViewSourceUpdateWorker;
 import org.sagebionetworks.table.worker.TableSnapshotWorker;
+import org.sagebionetworks.table.worker.UpdateQueryCacheWorker;
 import org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter;
 import org.sagebionetworks.worker.utils.StackStatusGate;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
@@ -175,6 +176,29 @@ public class MessageDrivenWorkersConfig {
 						.withSemaphoreMaxLockCount(5)
 						.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
 						.withMaxThreadsPerMachine(1)
+						.withSingleton(concurrentStackManager)
+						.withCanRunInReadOnly(true)
+						.withQueueName(queueName)
+						.withWorker(worker)
+						.build()
+				)
+				.withRepeatInterval(934)
+				.withStartDelay(578)
+				.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean updateQueryCacheTrigger(UpdateQueryCacheWorker cacheWorker) {
+
+		String queueName = stackConfig.getQueueName("UPDATE_QUERY_CACHE");
+		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, cacheWorker);
+
+		return new WorkerTriggerBuilder()
+				.withStack(ConcurrentWorkerStack.builder()
+						.withSemaphoreLockKey("updateQueryCacheWorker")
+						.withSemaphoreMaxLockCount(5)
+						.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
+						.withMaxThreadsPerMachine(10)
 						.withSingleton(concurrentStackManager)
 						.withCanRunInReadOnly(true)
 						.withQueueName(queueName)

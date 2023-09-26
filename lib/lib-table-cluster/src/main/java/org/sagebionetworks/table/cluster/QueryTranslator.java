@@ -1,8 +1,8 @@
 package org.sagebionetworks.table.cluster;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +33,7 @@ import org.sagebionetworks.util.ValidateArgument;
  * Provides the translation from the user provided SQL query to the SQL that
  * will be executed against the actual index.
  */
-public class QueryTranslator {
+public class QueryTranslator implements TranslatedQuery {
 
 	/**
 	 * The input SQL is parsed into this object model.
@@ -152,8 +152,8 @@ public class QueryTranslator {
 			} else {
 				this.includeEntityEtag = false;
 			}
-			// This map will contain all of the
-			this.parameters = new HashMap<String, Object>();
+			// A LinkedHashMap is used to ensure serialization is stable.
+			this.parameters = new LinkedHashMap<String, Object>();
 
 			List<ColumnModel> unionOfSchemas = firstPart.getMapper().getUnionOfAllTableSchemas();
 
@@ -246,7 +246,7 @@ public class QueryTranslator {
 	 * 
 	 * @return
 	 */
-	public boolean includesRowIdAndVersion() {
+	public boolean getIncludesRowIdAndVersion() {
 		return this.includesRowIdAndVersion;
 	}
 
@@ -255,7 +255,7 @@ public class QueryTranslator {
 	 * 
 	 * @return
 	 */
-	public boolean includeEntityEtag() {
+	public boolean getIncludeEntityEtag() {
 		return this.includeEntityEtag;
 	}
 
@@ -304,13 +304,17 @@ public class QueryTranslator {
 	 * 
 	 * @return
 	 */
-	public Optional<String> getSingleTableId() {
+	public Optional<String> getSingleTableIdOptional() {
 		int maxParts = isCommonTableExpression ? 2 : 1;
 		if (distinctTableIds.size() <= maxParts) {
 			return Optional.of(distinctTableIds.iterator().next().toString());
 		} else {
 			return Optional.empty();
 		}
+	}
+	
+	public String getSingleTableId() {
+		return getSingleTableIdOptional().orElse(null);
 	}
 
 	/**

@@ -173,6 +173,10 @@
         {
             "name": "FILE_EVENT",
             "description": "An event fired when a user uploads or downloads the file"
+        },
+        {
+            "name": "QUERY_CACHE_HIT",
+            "description": "An event fired when a user's query hits the query cache."
         }
     ]
 }

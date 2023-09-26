@@ -76,7 +76,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 				userGroup = userGroupDAO.get(principalId);
 				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(userGroup, message.getTimestamp().getTime());
 				objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
-				kinesisUserGroups.add(KinesisObjectSnapshotRecord.map(message.getTimestamp().getTime(), userGroup));
+				kinesisUserGroups.add(KinesisObjectSnapshotRecord.map(message, userGroup));
 
 				if(userGroup.getIsIndividual()){
 					// User
@@ -85,18 +85,18 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 						profile.setSummary(null);
 						ObjectRecord upRecord = ObjectRecordBuilderUtils.buildObjectRecord(profile, message.getTimestamp().getTime());
 						individuals.add(upRecord);
-                        kinesisUserProfileRecords.add(KinesisObjectSnapshotRecord.map(message.getTimestamp().getTime(), profile));
+                        kinesisUserProfileRecords.add(KinesisObjectSnapshotRecord.map(message, profile));
 					} catch (NotFoundException e) {
 						log.warn("UserProfile not found: "+principalId);
 					}
 				} else {
 					// Group
-					captureAllMembers(message.getObjectId(), message.getTimestamp().getTime());
+					captureAllMembers(message);
 					try {
 						Team team = teamDAO.get(message.getObjectId());
 						ObjectRecord teamRecord = ObjectRecordBuilderUtils.buildObjectRecord(team, message.getTimestamp().getTime());
 						groups.add(teamRecord);
-                        kinesisTeamRecords.add(KinesisObjectSnapshotRecord.map(message.getTimestamp().getTime(), team));
+                        kinesisTeamRecords.add(KinesisObjectSnapshotRecord.map(message, team));
 					} catch (NotFoundException e) {
 						log.warn("Team not found: "+principalId);
 					}
@@ -131,11 +131,12 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	/**
 	 * Log all members that belongs to this group
 	 * 
-	 * @param groupId
-	 * @param timestamp - the timestamp of the change message
+	 * @param message- the change message retrieved from queue
 	 * @throws IOException 
 	 */
-	public void captureAllMembers(String groupId, long timestamp) throws IOException {
+	public void captureAllMembers(ChangeMessage message) throws IOException {
+		String groupId= message.getObjectId();
+		long timestamp= message.getTimestamp().getTime();
 		List<UserGroup> members = groupMembersDAO.getMembers(groupId);
 		List<ObjectRecord> records = new ArrayList<ObjectRecord>();
 		List<KinesisObjectSnapshotRecord<TeamMember>> kinesisTeamMemberRecords = new ArrayList<>();
@@ -147,7 +148,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 			teamMember.setMember(ugh);
 			teamMember.setIsAdmin(false);
 			records.add(ObjectRecordBuilderUtils.buildObjectRecord(teamMember, timestamp));
-            kinesisTeamMemberRecords.add(KinesisObjectSnapshotRecord.map(timestamp, teamMember));
+            kinesisTeamMemberRecords.add(KinesisObjectSnapshotRecord.map(message, teamMember));
 		}
 		if (records.size() > 0) {
 			objectRecordDAO.saveBatch(records, records.get(0).getJsonClassName());

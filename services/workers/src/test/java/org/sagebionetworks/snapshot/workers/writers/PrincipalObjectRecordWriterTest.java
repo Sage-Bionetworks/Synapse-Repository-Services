@@ -209,7 +209,7 @@ public class PrincipalObjectRecordWriterTest {
 	@Test
 	public void logGroupMembersWithZeroMembersTest() throws IOException {
 		Mockito.when(mockGroupMembersDao.getMembers(principalID.toString())).thenReturn(new ArrayList<UserGroup>());
-		writer.captureAllMembers(principalID.toString(), timestamp);
+		writer.captureAllMembers(new ChangeMessage().setObjectId(principalID.toString()).setTimestamp(new Date(timestamp)));
 		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
 		Mockito.verify(mockObjectRecordDao, Mockito.never()).saveBatch(Mockito.anyList(), Mockito.anyString());
 		verify(firehoseLogger,never()).logBatch(anyString(),anyList());
@@ -219,7 +219,7 @@ public class PrincipalObjectRecordWriterTest {
 	public void logGroupMembersTest() throws IOException {
 		List<UserGroup> list = createListOfMembers(2);
 		Mockito.when(mockGroupMembersDao.getMembers(principalID.toString())).thenReturn(list);
-		writer.captureAllMembers(principalID.toString(), timestamp);
+		writer.captureAllMembers(new ChangeMessage().setObjectId(principalID.toString()).setTimestamp(new Date(timestamp)));
 		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.anyList(), Mockito.anyString());
 		verify(firehoseLogger).logBatch(streamNameCaptor.capture(), anyList());
 		assertTrue(streamNameCaptor.getValue().equals("teamMemberSnapshots"));
