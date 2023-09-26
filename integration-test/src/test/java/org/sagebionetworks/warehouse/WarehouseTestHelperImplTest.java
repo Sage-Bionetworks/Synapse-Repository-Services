@@ -1,11 +1,17 @@
 package org.sagebionetworks.warehouse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,20 +21,31 @@ import java.util.concurrent.TimeoutException;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.Clock;
 
 import com.amazonaws.services.athena.AmazonAthena;
+import com.amazonaws.services.athena.model.ColumnInfo;
+import com.amazonaws.services.athena.model.Datum;
 import com.amazonaws.services.athena.model.GetQueryExecutionRequest;
 import com.amazonaws.services.athena.model.GetQueryExecutionResult;
+import com.amazonaws.services.athena.model.GetQueryResultsRequest;
+import com.amazonaws.services.athena.model.GetQueryResultsResult;
 import com.amazonaws.services.athena.model.QueryExecution;
+import com.amazonaws.services.athena.model.QueryExecutionContext;
 import com.amazonaws.services.athena.model.QueryExecutionState;
 import com.amazonaws.services.athena.model.QueryExecutionStatus;
+import com.amazonaws.services.athena.model.ResultSet;
+import com.amazonaws.services.athena.model.ResultSetMetadata;
+import com.amazonaws.services.athena.model.Row;
+import com.amazonaws.services.athena.model.StartQueryExecutionRequest;
+import com.amazonaws.services.athena.model.StartQueryExecutionResult;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -45,9 +62,7 @@ public class WarehouseTestHelperImplTest {
 	@Mock
 	private StackConfiguration mockStackConfig;
 
-	@Captor
-	ArgumentCaptor<String> stringCaptor;
-
+	@Spy
 	@InjectMocks
 	private WarehouseTestHelperImpl warehouseHelper;
 
@@ -72,22 +87,139 @@ public class WarehouseTestHelperImplTest {
 
 	@Test
 	public void testAssertWarehouseQuery() throws Exception {
-		when(mockStackConfig.getStackInstance()).thenReturn("anInstance");
-		when(mockClock.currentTimeMillis()).thenReturn(1001L);
-		when(mockS3Client.listObjectsV2(any(), any())).thenReturn(createListObjectV2Result("one/123.sql", "two/"+Integer.MAX_VALUE+".sql", "three/456.sql"));
+		long nowMS = 1001L;
+		Instant nowInstant = Instant.ofEpochMilli(nowMS);
+		when(mockClock.currentTimeMillis()).thenReturn(nowMS);
+		String keyOne = "one/999.sql";
+		String keyTwo = "two/1001.sql";
+		String keyThree = "three/1002.sql";
+		when(mockS3Client.listObjectsV2(any(), any())).thenReturn(createListObjectV2Result(keyOne, keyTwo, keyThree));
 		int maxNumberHours = 2;
-		
+
+		doReturn(Mockito.mock(Executable.class)).when(warehouseHelper).executeQueryAndAssertResults(any());
+		String callersPath = "org/sage/bar/12";
+		doReturn(callersPath).when(warehouseHelper).getCallersPath(any());
+		doNothing().when(warehouseHelper).saveQueryToS3(any(), any(), any(), anyInt());
+
 		String query = "select count(*) from foo";
-		
+
 		// call under test
 		warehouseHelper.assertWarehouseQuery(query, maxNumberHours);
-		
-		verify(mockS3Client).putObject(eq(WarehouseTestHelperImpl.BUCKET_NAME),stringCaptor.capture(),eq(query));
-		
-		assertTrue(stringCaptor.getValue().startsWith("anInstance/org/sagebionetworks/warehouse/WarehouseTestHelperImplTest/testAssertWarehouseQuery/"));
-		assertTrue(stringCaptor.getValue().endsWith("/7201001.sql"));
 
 		verify(mockClock).currentTimeMillis();
+		verify(mockS3Client).listObjectsV2(WarehouseTestHelperImpl.BUCKET_NAME, callersPath);
+
+		verify(warehouseHelper).saveQueryToS3(query, nowInstant, callersPath, maxNumberHours);
+		verify(warehouseHelper).executeQueryAndAssertResults(keyOne);
+		verify(warehouseHelper).executeQueryAndAssertResults(keyTwo);
+		verify(warehouseHelper, never()).executeQueryAndAssertResults(keyThree);
+		verify(warehouseHelper, times(2)).executeQueryAndAssertResults(any());
+
+		verify(mockS3Client).deleteObject(WarehouseTestHelperImpl.BUCKET_NAME, keyOne);
+		verify(mockS3Client).deleteObject(WarehouseTestHelperImpl.BUCKET_NAME, keyTwo);
+		verify(mockS3Client, never()).deleteObject(WarehouseTestHelperImpl.BUCKET_NAME, keyThree);
+		verify(mockS3Client, times(2)).deleteObject(any(String.class), any(String.class));
+
+	}
+
+	@Test
+	public void testAssertWarehouseQueryWithDeleteFilesOnException() throws Exception {
+		long nowMS = 1001L;
+		when(mockClock.currentTimeMillis()).thenReturn(nowMS);
+		String keyOne = "one/999.sql";
+		String keyTwo = "two/1001.sql";
+		String keyThree = "three/1002.sql";
+		when(mockS3Client.listObjectsV2(any(), any())).thenReturn(createListObjectV2Result(keyOne, keyTwo, keyThree));
+		int maxNumberHours = 2;
+
+		Exception exception = new IllegalArgumentException("wrong");
+		doThrow(exception).when(warehouseHelper).executeQueryAndAssertResults(any());
+		String callersPath = "org/sage/bar/12";
+		doReturn(callersPath).when(warehouseHelper).getCallersPath(any());
+		doNothing().when(warehouseHelper).saveQueryToS3(any(), any(), any(), anyInt());
+
+		String query = "select count(*) from foo";
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			warehouseHelper.assertWarehouseQuery(query, maxNumberHours);
+		});
+
+		verify(mockClock).currentTimeMillis();
+		verify(mockS3Client).listObjectsV2(WarehouseTestHelperImpl.BUCKET_NAME, callersPath);
+
+		verify(warehouseHelper).executeQueryAndAssertResults(any());
+		// both expired keys should still be deleted.
+		verify(mockS3Client).deleteObject(WarehouseTestHelperImpl.BUCKET_NAME, keyOne);
+		verify(mockS3Client).deleteObject(WarehouseTestHelperImpl.BUCKET_NAME, keyTwo);
+		verify(mockS3Client, never()).deleteObject(WarehouseTestHelperImpl.BUCKET_NAME, keyThree);
+		verify(mockS3Client, times(2)).deleteObject(any(String.class), any(String.class));
+	}
+
+	@Test
+	public void testGetCallersPath() {
+		String declaringClass = "org.example.TheClass";
+		String methodName = "getMethod";
+		String fileName = "foo.bar";
+		int lineNumber = 12;
+		StackTraceElement element = new StackTraceElement(declaringClass, methodName, fileName, lineNumber);
+		when(mockStackConfig.getStackInstance()).thenReturn("anInstance");
+
+		// call under test
+		String path = warehouseHelper.getCallersPath(element);
+		assertEquals("anInstance/org/example/TheClass/getMethod/12", path);
+
+		verify(mockStackConfig).getStackInstance();
+	}
+
+	@Test
+	public void testExecuteQueryAndAssertResults() throws Throwable {
+		String key = "foo/bar/1/123/sql";
+		String query = "select count(*) from goo";
+
+		when(mockS3Client.getObjectAsString(any(), any())).thenReturn(query);
+		int count = 12;
+		doReturn(count).when(warehouseHelper).executeCountQuery(any());
+
+		// call under test
+		Executable e = warehouseHelper.executeQueryAndAssertResults(key);
+		assertNotNull(e);
+		e.execute();
+
+		verify(mockS3Client).getObjectAsString(WarehouseTestHelperImpl.BUCKET_NAME, key);
+		verify(warehouseHelper).executeCountQuery(query);
+	}
+
+	@Test
+	public void testExecuteCountQuery() throws Exception {
+		String query = "select count(*) from foo";
+		String executionId = "executionId";
+		int count = 12;
+
+		doNothing().when(warehouseHelper).waitForQueryToFinish(any(), anyInt(), anyInt());
+
+		when(mockAthenaClient.startQueryExecution(any()))
+				.thenReturn(new StartQueryExecutionResult().withQueryExecutionId(executionId));
+		when(mockAthenaClient.getQueryResults(any()))
+				.thenReturn(new GetQueryResultsResult().withResultSet(setupResultSet(count)));
+
+		// call under test
+		int result = warehouseHelper.executeCountQuery(query);
+		assertEquals(count, result);
+
+		verify(warehouseHelper).waitForQueryToFinish(executionId, WarehouseTestHelperImpl.MAX_WAIT_MS,
+				WarehouseTestHelperImpl.WAIT_INTERAVAL_MS);
+		verify(mockAthenaClient)
+				.startQueryExecution(new StartQueryExecutionRequest().withQueryString(query).withQueryExecutionContext(
+						new QueryExecutionContext().withCatalog("AwsDataCatalog").withDatabase("datawarehouse")));
+		verify(mockAthenaClient).getQueryResults(new GetQueryResultsRequest().withQueryExecutionId(executionId));
+	}
+
+	ResultSet setupResultSet(int count) {
+		Row header = new Row().withData(new Datum().withVarCharValue("_c_"));
+		Row value = new Row().withData(new Datum().withVarCharValue("" + count));
+		return new ResultSet().withResultSetMetadata(new ResultSetMetadata().withColumnInfo(new ColumnInfo()))
+				.withRows(header, value);
 	}
 
 	@Test

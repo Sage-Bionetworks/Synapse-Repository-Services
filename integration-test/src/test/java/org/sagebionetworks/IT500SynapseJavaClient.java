@@ -92,7 +92,7 @@ import com.google.common.collect.Sets;
 @ExtendWith(ITTestExtension.class)
 public class IT500SynapseJavaClient {
 
-	private static final int WAREHOUSE_QUERY_EXPIRATION_HOURS = 25;
+	private static final int WAREHOUSE_QUERY_EXPIRATION_HOURS = 2;
 	private static SynapseClient synapseTwo;
 	private static SynapseAdminClient synapseAnonymous;
 	

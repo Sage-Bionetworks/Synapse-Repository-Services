@@ -54,42 +54,52 @@ public class WarehouseTestHelperImpl implements WarehouseTestHelper {
 		Instant now = Instant.ofEpochMilli(clock.currentTimeMillis());
 
 		StackTraceElement callersElement = Thread.currentThread().getStackTrace()[2];
-		String callersPath = String.format("%s/%s/%s/%d", stackConfig.getStackInstance(),
-				callersElement.getClassName().replaceAll("\\.", "/"), callersElement.getMethodName(),
-				callersElement.getLineNumber());
+		String callersPath = getCallersPath(callersElement);
 
 		saveQueryToS3(queryString, now, callersPath, maxNumberOfHours);
 
 		List<String> previousQueryKeysToCheck = s3Client.listObjectsV2(BUCKET_NAME, callersPath).getObjectSummaries()
 				.stream().filter(s -> now.toEpochMilli() >= getExpiresOnFromKey(s.getKey())).map(s -> s.getKey())
 				.collect(Collectors.toList());
-
+		
 		try {
 			assertAll("Group of all previous queries ready to be tested",
-					previousQueryKeysToCheck.stream().map((key) -> new Executable() {
-						@Override
-						public void execute() throws Throwable {
-							String previousQueryString = s3Client.getObjectAsString(BUCKET_NAME, key);
-							String queryExecutionId = athenaClient
-									.startQueryExecution(new StartQueryExecutionRequest()
-											.withQueryExecutionContext(new QueryExecutionContext()
-													.withCatalog("AwsDataCatalog").withDatabase("datawarehouse"))
-											.withQueryString(previousQueryString))
-									.getQueryExecutionId();
-
-							waitForQueryToFinish(queryExecutionId, MAX_WAIT_MS, WAIT_INTERAVAL_MS);
-
-							ResultSet queryResults = athenaClient
-									.getQueryResults(
-											new GetQueryResultsRequest().withQueryExecutionId(queryExecutionId))
-									.getResultSet();
-							int count = extractCountFromResult(queryResults);
-							assertTrue(count > 0, "Expected count > 0 for query: " + queryString);
-						}
-					}));
+					previousQueryKeysToCheck.stream().map(this::executeQueryAndAssertResults));
 		} finally {
-//			previousQueryKeysToCheck.forEach(key -> s3Client.deleteObject(BUCKET_NAME, key));
+			previousQueryKeysToCheck.forEach(key -> s3Client.deleteObject(BUCKET_NAME, key));
 		}
+	}
+
+	String getCallersPath(StackTraceElement callersElement) {
+		String callersPath = String.format("%s/%s/%s/%d", stackConfig.getStackInstance(),
+				callersElement.getClassName().replaceAll("\\.", "/"), callersElement.getMethodName(),
+				callersElement.getLineNumber());
+		return callersPath;
+	}
+	
+	Executable executeQueryAndAssertResults(String key) {
+		return ()->{
+			String previousQueryString = s3Client.getObjectAsString(BUCKET_NAME, key);
+			int count = executeCountQuery(previousQueryString);
+			assertTrue(count > 0, "Expected count > 0 for query: " + previousQueryString);
+		};
+	}
+	
+	int executeCountQuery(String previousQueryString) throws Exception {
+		String queryExecutionId = athenaClient
+				.startQueryExecution(new StartQueryExecutionRequest()
+						.withQueryExecutionContext(new QueryExecutionContext()
+								.withCatalog("AwsDataCatalog").withDatabase("datawarehouse"))
+						.withQueryString(previousQueryString))
+				.getQueryExecutionId();
+
+		waitForQueryToFinish(queryExecutionId, MAX_WAIT_MS, WAIT_INTERAVAL_MS);
+
+		ResultSet queryResults = athenaClient
+				.getQueryResults(
+						new GetQueryResultsRequest().withQueryExecutionId(queryExecutionId))
+				.getResultSet();
+		return extractCountFromResult(queryResults);
 	}
 
 	int extractCountFromResult(ResultSet queryResults) {
