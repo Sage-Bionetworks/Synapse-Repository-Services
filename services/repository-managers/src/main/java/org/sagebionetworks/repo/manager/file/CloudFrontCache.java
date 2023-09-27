@@ -22,7 +22,7 @@ public class CloudFrontCache {
 	private static final int CACHE_EXPIRATION_MINUTES = 5;
 
 	private LoadingCache<String, PrivateKey> privateKeyCache = CacheBuilder.newBuilder()
-			.expireAfterWrite(CACHE_EXPIRATION_MINUTES, TimeUnit.MINUTES)
+			.expireAfterAccess(CACHE_EXPIRATION_MINUTES, TimeUnit.MINUTES)
 			.build(	new CacheLoader<>() {
 						@Override
 						public PrivateKey load(String key) {
@@ -32,7 +32,7 @@ public class CloudFrontCache {
 					});
 
 	private LoadingCache<String, String> propertyCache = CacheBuilder.newBuilder()
-			.expireAfterWrite(CACHE_EXPIRATION_MINUTES, TimeUnit.MINUTES)
+			.expireAfterAccess(CACHE_EXPIRATION_MINUTES, TimeUnit.MINUTES)
 			.build( new CacheLoader<>() {
 						@Override
 						public String load(String key) {
