@@ -15,13 +15,13 @@ public class CloudFrontCache {
 	@Autowired
 	private StackConfiguration config;
 
-	public static final String RSA = "RSA";
-	public static final String CLOUDFRONT_PRIVATE_KEY = "CloudFrontPrivateKey";
-	public static final String CLOUDFRONT_DOMAIN_NAME = "CloudFrontDomainName";
-	public static final String CLOUDFRONT_KEY_PAIR_ID = "CloudFrontKeyPairId";
-	public static final int CACHE_EXPIRATION_MINUTES = 5;
+	private static final String RSA = "RSA";
+	private static final String CLOUDFRONT_PRIVATE_KEY = "CloudFrontPrivateKey";
+	private static final String CLOUDFRONT_DOMAIN_NAME = "CloudFrontDomainName";
+	private static final String CLOUDFRONT_KEY_PAIR_ID = "CloudFrontKeyPairId";
+	private static final int CACHE_EXPIRATION_MINUTES = 5;
 
-	LoadingCache<String, PrivateKey> privateKeyCache = CacheBuilder.newBuilder()
+	private LoadingCache<String, PrivateKey> privateKeyCache = CacheBuilder.newBuilder()
 			.expireAfterWrite(CACHE_EXPIRATION_MINUTES, TimeUnit.MINUTES)
 			.build(	new CacheLoader<>() {
 						@Override
@@ -31,7 +31,7 @@ public class CloudFrontCache {
 						}
 					});
 
-	LoadingCache<String, String> propertyCache = CacheBuilder.newBuilder()
+	private LoadingCache<String, String> propertyCache = CacheBuilder.newBuilder()
 			.expireAfterWrite(CACHE_EXPIRATION_MINUTES, TimeUnit.MINUTES)
 			.build( new CacheLoader<>() {
 						@Override

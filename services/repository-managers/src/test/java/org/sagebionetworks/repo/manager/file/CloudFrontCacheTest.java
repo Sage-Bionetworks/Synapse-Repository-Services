@@ -53,7 +53,7 @@ public class CloudFrontCacheTest {
 					"KVLO30STVTmxgLTbhXQ157Kg4Q==";
 
 	@Test
-	public void testGetPrivateKey() throws ExecutionException {
+	public void testGetPrivateKey() {
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY);
 
 		// Call under test
@@ -67,7 +67,7 @@ public class CloudFrontCacheTest {
 	}
 
 	@Test
-	public void testGetDomainName() throws ExecutionException {
+	public void testGetDomainName() {
 		String expectedDomain = "data.dev.sagebase.org";
 
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn(expectedDomain);
@@ -81,7 +81,7 @@ public class CloudFrontCacheTest {
 	}
 
 	@Test
-	public void testGetKeyPairId() throws ExecutionException {
+	public void testGetKeyPairId() {
 		String expectedId = "12345";
 
 		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn(expectedId);
