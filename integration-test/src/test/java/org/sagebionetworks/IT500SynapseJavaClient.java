@@ -15,6 +15,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -77,6 +78,7 @@ import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.warehouse.WarehouseTestHelper;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -90,6 +92,7 @@ import com.google.common.collect.Sets;
 @ExtendWith(ITTestExtension.class)
 public class IT500SynapseJavaClient {
 
+	private static final int WAREHOUSE_QUERY_EXPIRATION_HOURS = 2;
 	private static SynapseClient synapseTwo;
 	private static SynapseAdminClient synapseAnonymous;
 	
@@ -119,10 +122,14 @@ public class IT500SynapseJavaClient {
 	
 	private SynapseAdminClient adminSynapse;
 	private SynapseClient synapse;
+	private WarehouseTestHelper warehouseHelper;
+	private StackConfiguration stackConfig;
 	
-	public IT500SynapseJavaClient(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+	public IT500SynapseJavaClient(SynapseAdminClient adminSynapse, SynapseClient synapse, WarehouseTestHelper warehouseHelper, StackConfiguration stackConfig) {
 		this.adminSynapse = adminSynapse;
 		this.synapse = synapse;
+		this.warehouseHelper = warehouseHelper;
+		this.stackConfig = stackConfig;
 	}
 
 	@BeforeAll
@@ -721,11 +728,11 @@ public class IT500SynapseJavaClient {
 	 * @throws Exception 
 	 */
 	@Test
-	public void testProfileImageRoundTrip() throws Exception{
+	public void testProfileImageRoundTrip() throws Exception {
 		// First load an image from the classpath
 		String fileName = "images/profile_pic.png";
 		URL url = IT500SynapseJavaClient.class.getClassLoader().getResource(fileName);
-		assertNotNull(url, "Failed to find: "+fileName+" on the classpath");
+		assertNotNull(url, "Failed to find: " + fileName + " on the classpath");
 		File originalFile = new File(url.getFile());
 
 		// Get the profile to update.
@@ -740,6 +747,15 @@ public class IT500SynapseJavaClient {
 		URL profilePreviewURL = waitForProfilePreview(synapse, profile.getOwnerId());
 		assertNotNull(profilePreviewURL);
 
+		Instant now = Instant.now();
+		String query = String.format(
+				"select count(*) from filedownloadrecords where record_date %s and timestamp %s and instance = '%s'"
+						+ " and association_object_type = 'UserProfileAttachment' and association_object_id = %s"
+						+ " and file_handle_id = %s ",
+				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
+				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(now), stackConfig.getStackInstance(),
+				profile.getOwnerId(), fileHandle.getId());
+		warehouseHelper.assertWarehouseQuery(query, WAREHOUSE_QUERY_EXPIRATION_HOURS);
 	}
 	
 	/**
