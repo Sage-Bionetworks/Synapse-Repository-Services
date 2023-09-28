@@ -49,8 +49,6 @@
 	<!-- File Upload manager -->
 	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" init-method="initialize" />
 
-	<bean name="cloudFrontCache" class="org.sagebionetworks.repo.manager.file.CloudFrontCache" scope="singleton"/>
-	
 	<!-- The preview manager -->
 	<bean id="previewManager" class="org.sagebionetworks.repo.manager.file.preview.PreviewManagerImpl" init-method="initialize">
 	    <!-- The list of preview generators, order is important, first generator found wins-->

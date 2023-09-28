@@ -182,8 +182,6 @@ public class FileHandleManagerImplTest {
 		"8PkstKI0as7Y9y34pXdcpLVHl37a2wIWbF3q1uF6jtXjXcX/mql6XuLyX6waboiX" +
 		"KVLO30STVTmxgLTbhXQ157Kg4Q==";
 
-	private static final PrivateKey FAKE_PRIVATE_KEY = KeyPairUtil.getPrivateKeyFromPEM(FAKE_PRIVATE_KEY_VALUE, "RSA");
-
 	@Mock
 	FileHandleDao mockFileHandleDao;
 	@Mock
@@ -204,9 +202,6 @@ public class FileHandleManagerImplTest {
 	@Mock
 	StackConfiguration mockStackConfig;
 
-	@Mock
-	CloudFrontCache mockCloudFrontCache;
-	
 	@Mock
 	Consumer mockCloudWatchClient;
 	
@@ -691,9 +686,9 @@ public class FileHandleManagerImplTest {
 
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
-		when(mockCloudFrontCache.getPrivateKey()).thenReturn(FAKE_PRIVATE_KEY);
-		when(mockCloudFrontCache.getKeyPairId()).thenReturn("K123456");
-		when(mockCloudFrontCache.getDomainName()).thenReturn("data.dev.sagebase.org");
+		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
+		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
 
 		// Call under test
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
@@ -701,15 +696,12 @@ public class FileHandleManagerImplTest {
 		URL redirectUrl = new URL(redirect);
 		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
 
-		String expectedResponseContentDisposition = URLEncoder.encode(ContentDispositionUtils.getContentDispositionValue(s3FileHandle.getFileName()), "UTF-8");
-		String expectedResponseContentType = URLEncoder.encode(s3FileHandle.getContentType(), "UTF-8");
-
 		assertEquals(5, queryStrings.size());
 		assertEquals("https", redirectUrl.getProtocol().toLowerCase());
 		assertEquals("data.dev.sagebase.org", redirectUrl.getHost().toLowerCase());
 		assertEquals("/testkey", redirectUrl.getPath().toLowerCase());
-		assertEquals(expectedResponseContentDisposition, queryStrings.get("response-content-disposition").get(0));
-		assertEquals(expectedResponseContentType, queryStrings.get("response-content-type").get(0));
+		assertEquals("attachment%3B+filename%3D%22testName%22%3B+filename*%3Dutf-8%27%27testName", queryStrings.get("response-content-disposition").get(0));
+		assertEquals("text%2Fplain", queryStrings.get("response-content-type").get(0));
 		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
 		assertNotNull(queryStrings.get("Signature"));
 		assertNotNull(queryStrings.get("Expires"));
@@ -727,9 +719,9 @@ public class FileHandleManagerImplTest {
 
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
-		when(mockCloudFrontCache.getPrivateKey()).thenReturn(FAKE_PRIVATE_KEY);
-		when(mockCloudFrontCache.getKeyPairId()).thenReturn("K123456");
-		when(mockCloudFrontCache.getDomainName()).thenReturn("data.dev.sagebase.org");
+		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
+		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
 
 		// Call under test
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
@@ -737,13 +729,11 @@ public class FileHandleManagerImplTest {
 		URL redirectUrl = new URL(redirect);
 		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
 
-		String expectedResponseContentDisposition = URLEncoder.encode(ContentDispositionUtils.getContentDispositionValue(s3FileHandle.getFileName()), "UTF-8");
-
 		assertEquals(4, queryStrings.size());
 		assertEquals("https", redirectUrl.getProtocol().toLowerCase());
 		assertEquals("data.dev.sagebase.org", redirectUrl.getHost().toLowerCase());
 		assertEquals("/testkey", redirectUrl.getPath().toLowerCase());
-		assertEquals(expectedResponseContentDisposition, queryStrings.get("response-content-disposition").get(0));
+		assertEquals("attachment%3B+filename%3D%22testName%22%3B+filename*%3Dutf-8%27%27testName", queryStrings.get("response-content-disposition").get(0));
 		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
 		assertNotNull(queryStrings.get("Signature"));
 		assertNotNull(queryStrings.get("Expires"));
@@ -762,14 +752,12 @@ public class FileHandleManagerImplTest {
 
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
-		when(mockCloudFrontCache.getPrivateKey()).thenReturn(FAKE_PRIVATE_KEY);
-		when(mockCloudFrontCache.getKeyPairId()).thenReturn("K123456");
-		when(mockCloudFrontCache.getDomainName()).thenReturn("data.dev.sagebase.org");
+		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
+		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
 
 		// Call under test
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
-
-		String expectedResponseContentType = URLEncoder.encode(s3FileHandle.getContentType(), "UTF-8");
 
 		URL redirectUrl = new URL(redirect);
 		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
@@ -778,7 +766,7 @@ public class FileHandleManagerImplTest {
 		assertEquals("https", redirectUrl.getProtocol().toLowerCase());
 		assertEquals("data.dev.sagebase.org", redirectUrl.getHost().toLowerCase());
 		assertEquals("/testkey", redirectUrl.getPath().toLowerCase());
-		assertEquals(expectedResponseContentType, queryStrings.get("response-content-type").get(0));
+		assertEquals("text%2Fplain", queryStrings.get("response-content-type").get(0));
 		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
 		assertNotNull(queryStrings.get("Signature"));
 		assertNotNull(queryStrings.get("Expires"));
@@ -797,9 +785,7 @@ public class FileHandleManagerImplTest {
 		googleCloudFileHandle.setContentType("text/plain");
 		
 		when(mockFileHandleDao.get(googleCloudFileHandle.getId())).thenReturn(googleCloudFileHandle);
-		String expectedURL = "https://google.com";
-		expectedURL += "&" + RESPONSE_CONTENT_TYPE + "=" + URLEncoder.encode(googleCloudFileHandle.getContentType(), "UTF-8");
-		expectedURL += "&" + RESPONSE_CONTENT_DISPOSITION + "=" + URLEncoder.encode(ContentDispositionUtils.getContentDispositionValue(googleCloudFileHandle.getFileName()), "UTF-8");
+		String expectedURL = "https://google.com?response-content-disposition=attachment%3B+filename%3D%22testName%22%3B+filename*%3Dutf-8%27%27testName&response-content-type=text%2Fplain";
 		when(mockGoogleCloudStorageClient.createSignedUrl(anyString(), anyString(), anyLong(), any(HttpMethod.class))).
 				thenReturn(new URL("https://google.com"));
 		// fire!
@@ -819,8 +805,7 @@ public class FileHandleManagerImplTest {
 		googleCloudFileHandle.setFileName("testName");
 
 		when(mockFileHandleDao.get(googleCloudFileHandle.getId())).thenReturn(googleCloudFileHandle);
-		String expectedURL = "https://google.com";
-		expectedURL += "&" + RESPONSE_CONTENT_DISPOSITION + "=" + URLEncoder.encode(ContentDispositionUtils.getContentDispositionValue(googleCloudFileHandle.getFileName()), "UTF-8");
+		String expectedURL = "https://google.com?response-content-disposition=attachment%3B+filename%3D%22testName%22%3B+filename*%3Dutf-8%27%27testName";
 		when(mockGoogleCloudStorageClient.createSignedUrl(anyString(), anyString(), anyLong(), any(HttpMethod.class))).
 				thenReturn(new URL("https://google.com"));
 		// fire!
@@ -840,8 +825,7 @@ public class FileHandleManagerImplTest {
 		googleCloudFileHandle.setContentType("text/plain");
 
 		when(mockFileHandleDao.get(googleCloudFileHandle.getId())).thenReturn(googleCloudFileHandle);
-		String expectedURL = "https://google.com";
-		expectedURL += "&" + RESPONSE_CONTENT_TYPE + "=" + URLEncoder.encode(googleCloudFileHandle.getContentType(), "UTF-8");
+		String expectedURL = "https://google.com?response-content-type=text%2Fplain";
 		when(mockGoogleCloudStorageClient.createSignedUrl(anyString(), anyString(), anyLong(), any(HttpMethod.class))).
 				thenReturn(new URL("https://google.com"));
 		// fire!
