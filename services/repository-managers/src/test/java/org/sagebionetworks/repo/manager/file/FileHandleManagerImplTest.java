@@ -674,6 +674,26 @@ public class FileHandleManagerImplTest {
 	}
 
 	@Test
+	public void testGetRedirectURLForFileHandleS3NoFileNameOrContentType() throws DatastoreException, NotFoundException, MalformedURLException{
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setBucketName("bucket");
+		s3FileHandle.setKey("key");
+		s3FileHandle.setCreatedBy(mockUser.getId().toString());
+		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
+
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		String expectedURL = "https://amamzon.com";
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
+				thenReturn(new URL(expectedURL));
+		// fire!
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+		assertNotNull(redirect);
+		assertEquals(expectedURL, redirect.toString());
+	}
+
+	@Test
 	public void testGetRedirectURLForFileHandleCloudFront() throws DatastoreException, NotFoundException, IOException {
 		S3FileHandle s3FileHandle = new S3FileHandle();
 		s3FileHandle.setId("123");
@@ -774,6 +794,37 @@ public class FileHandleManagerImplTest {
 	}
 
 	@Test
+	public void testGetRedirectURLForFileHandleCloudFrontNoFileNameOrContentType() throws DatastoreException, NotFoundException, IOException {
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setBucketName("devdata.sagebase.org");
+		s3FileHandle.setKey("testkey");
+		s3FileHandle.setCreatedBy(mockUser.getId().toString());
+		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
+
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
+		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
+		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
+
+		// Call under test
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+
+		URL redirectUrl = new URL(redirect);
+		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
+
+		assertEquals(3, queryStrings.size());
+		assertEquals("https", redirectUrl.getProtocol().toLowerCase());
+		assertEquals("data.dev.sagebase.org", redirectUrl.getHost().toLowerCase());
+		assertEquals("/testkey", redirectUrl.getPath().toLowerCase());
+		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
+		assertNotNull(queryStrings.get("Signature"));
+		assertNotNull(queryStrings.get("Expires"));
+		assertEquals(null, queryStrings.get("response-content-disposition"));
+	}
+
+	@Test
 	public void testGetRedirectURLForFileHandleGoogleCloud() throws DatastoreException, NotFoundException, MalformedURLException, UnsupportedEncodingException {
 		GoogleCloudFileHandle googleCloudFileHandle = new GoogleCloudFileHandle();
 		googleCloudFileHandle.setId("123");
@@ -826,6 +877,25 @@ public class FileHandleManagerImplTest {
 
 		when(mockFileHandleDao.get(googleCloudFileHandle.getId())).thenReturn(googleCloudFileHandle);
 		String expectedURL = "https://google.com?response-content-type=text%2Fplain";
+		when(mockGoogleCloudStorageClient.createSignedUrl(anyString(), anyString(), anyLong(), any(HttpMethod.class))).
+				thenReturn(new URL("https://google.com"));
+		// fire!
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, googleCloudFileHandle.getId());
+		assertNotNull(redirect);
+		assertEquals(expectedURL, redirect);
+	}
+
+	@Test
+	public void testGetRedirectURLForFileHandleGoogleCloudNoFileNameOrContentType() throws DatastoreException, NotFoundException, MalformedURLException, UnsupportedEncodingException {
+		GoogleCloudFileHandle googleCloudFileHandle = new GoogleCloudFileHandle();
+		googleCloudFileHandle.setId("123");
+		googleCloudFileHandle.setBucketName("bucket");
+		googleCloudFileHandle.setKey("key");
+		googleCloudFileHandle.setCreatedBy(mockUser.getId().toString());
+		googleCloudFileHandle.setStatus(FileHandleStatus.AVAILABLE);
+
+		when(mockFileHandleDao.get(googleCloudFileHandle.getId())).thenReturn(googleCloudFileHandle);
+		String expectedURL = "https://google.com";
 		when(mockGoogleCloudStorageClient.createSignedUrl(anyString(), anyString(), anyLong(), any(HttpMethod.class))).
 				thenReturn(new URL("https://google.com"));
 		// fire!

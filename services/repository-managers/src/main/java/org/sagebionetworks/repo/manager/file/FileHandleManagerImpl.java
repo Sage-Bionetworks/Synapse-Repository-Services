@@ -116,6 +116,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.security.PrivateKey;
@@ -417,13 +418,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 		Map<String, String> queryParameters = getQueryParameters(handle);
 
-		if (queryParameters.containsKey(RESPONSE_CONTENT_TYPE)) {
-			String contentType = queryParameters.get(RESPONSE_CONTENT_TYPE);
+		String contentType = queryParameters.get(RESPONSE_CONTENT_TYPE);
+		if (contentType != null) {
 			responseHeaderOverrides.setContentType(contentType);
 		}
 
-		if (queryParameters.containsKey(RESPONSE_CONTENT_DISPOSITION)) {
-			String contentDisposition = queryParameters.get(RESPONSE_CONTENT_DISPOSITION);
+		String contentDisposition = queryParameters.get(RESPONSE_CONTENT_DISPOSITION);
+		if (contentDisposition != null) {
 			responseHeaderOverrides.setContentDisposition(contentDisposition);
 		}
 
@@ -440,16 +441,17 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 		String resourceUrl;
 		try {
-		resourceUrl = new URIBuilder()
+		URIBuilder uriBuilder = new URIBuilder()
 				.setScheme("https")
 				.setHost(distributionDomainName)
-				.setPath(handle.getKey())
-				.build().toString();
+				.setPath(handle.getKey());
+
+		addQueryParametersToUrl(uriBuilder, handle);
+
+		resourceUrl = uriBuilder.build().toString();
 		} catch (URISyntaxException e) {
 			throw new RuntimeException("Failed to build resource URL for file handle: " + handle.getId(), e);
 		}
-
-		resourceUrl = addQueryParametersToUrl(resourceUrl, handle);
 
 		String signedUrl = CloudFrontUrlSigner.getSignedURLWithCannedPolicy(
 				resourceUrl,
@@ -462,32 +464,34 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	private String getUrlForGoogleCloudFileHandle(GoogleCloudFileHandle handle) {
-		String signedUrl = googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET).toExternalForm();
+		URL signedUrl = googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET);
 
-		/* We have to override content type and content disposition to match the file handle metadata stored in Synapse
+		String signedUrlWithQueryParameters;
+		try {
+			URIBuilder uriBuilder = new URIBuilder(signedUrl.toURI());
+
+			/* We have to override content type and content disposition to match the file handle metadata stored in Synapse
 		 Currently, we cannot override content-type in Google Cloud... In short:
 		  - Google provides this parameter to override the content type, which will only work if the content type is null on Google Cloud
 		  - Google does not allow a null content type (defaults to application/octet-stream)
 		  We still attempt to override content type because it does not seem to interfere with the call, and
 		  perhaps one day Google may decide to allow us to override content type with this parameter.
 		 */
-		return addQueryParametersToUrl(signedUrl, handle);
-	}
-
-	private static String addQueryParametersToUrl(String url, FileHandle handle) {
-		Map<String, String> urlQueryParameters = getQueryParameters(handle);
-
-		try {
-			URIBuilder builder = new URIBuilder(url);
-
-			for (String queryParameterKey: urlQueryParameters.keySet()) {
-				builder.addParameter(queryParameterKey, urlQueryParameters.get(queryParameterKey));
-			}
-
-			return builder.build().toString();
+			addQueryParametersToUrl(uriBuilder, handle);
+			signedUrlWithQueryParameters = uriBuilder.build().toString();
 		} catch (URISyntaxException e) {
 			throw new RuntimeException("Failed to build resource URL for file handle: " + handle.getId(), e);
 		}
+
+		return signedUrlWithQueryParameters;
+	}
+
+	private static void addQueryParametersToUrl(URIBuilder uriBuilder, FileHandle handle) {
+		Map<String, String> urlQueryParameters = getQueryParameters(handle);
+
+		urlQueryParameters.entrySet().forEach(queryParameter -> {
+			uriBuilder.addParameter(queryParameter.getKey(), queryParameter.getValue());
+		});
 	}
 
 	private static Map<String, String> getQueryParameters(FileHandle handle) {
