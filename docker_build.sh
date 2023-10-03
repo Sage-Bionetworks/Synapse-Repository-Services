@@ -22,6 +22,9 @@
 # org.sagebionetworks.doi.datacite.api.endpoint - the endpoint used to connect to DataCite for minting DOIs (e.g. mds.test.datacite.org)
 # org.sagebionetworks.google.cloud.enabled - when set to true, enable Google Cloud features
 # org.sagebionetworks.google.cloud.key - the private key used to log into the Google Cloud service account
+# org.sagebionetworks.cloudfront.keypair - the public key ID used for creating signed URLs for CloudFront distribution in front of the S3 data bucket
+# org.sagebionetworks.cloudfront.domainname - the domain name for the CloudFront distribution in front of the S3 data bucket
+# org.sagebionetworks.cloudfront.private.key.secret - the private key for the CloudFront distribution in front of the S3 data bucket
 
 # if anything fails, stop
 set -e
@@ -107,6 +110,9 @@ ${AWS_CREDS} \
 -Dorg.sagebionetworks.google.cloud.enabled=${org_sagebionetworks_google_cloud_enabled} \
 -Dorg.sagebionetworks.sts.iam.arn=${org_sagebionetworks_sts_iam_arn} \
 -Dorg.sagebionetworks.google.cloud.key="${org_sagebionetworks_google_cloud_key}" \
+-Dorg.sagebionetworks.cloudfront.keypair="${org_sagebionetworks_cloudfront_keypair}" \
+-Dorg.sagebionetworks.cloudfront.domainname="${org_sagebionetworks_cloudfront_domainname}" \
+-Dorg.sagebionetworks.cloudfront.private.key.secret="${org_sagebionetworks_cloudfront_private_key_secret}" \
 -Duser.home=/tmp"
 
 clean_up_container ${build_container_name}
