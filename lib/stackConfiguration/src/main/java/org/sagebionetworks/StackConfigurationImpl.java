@@ -1262,4 +1262,25 @@ public class StackConfigurationImpl implements StackConfiguration {
 	public String getOtpSecretsPassword() {
 		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.otp.secrets.encryption.password");
 	}
+
+	/**
+	 * Credentials for signing CloudFront Urls
+	 */
+	public String getCloudFrontPrivateKey() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.cloudfront.private.key.secret");
+	}
+
+	/**
+	 * The ID of the key pair for the CloudFront distribution in front of the Synapse data S3 bucket
+	 */
+	public String getCloudFrontKeyPairId() {
+		return configuration.getProperty("org.sagebionetworks.cloudfront.keypair");
+	}
+
+	/**
+	 * The domain name for the CloudFront distribution in front of the Synapse data S3 bucket
+	 */
+	public String getCloudFrontDomainName() {
+		return configuration.getProperty("org.sagebionetworks.cloudfront.domainname");
+	}
 }

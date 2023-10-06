@@ -113,6 +113,9 @@
 							<org.sagebionetworks.google.cloud.enabled>${org.sagebionetworks.google.cloud.enabled}</org.sagebionetworks.google.cloud.enabled>
 							<org.sagebionetworks.google.cloud.key>${org.sagebionetworks.google.cloud.key}</org.sagebionetworks.google.cloud.key>
 							<org.sagebionetworks.sts.iam.arn>${org.sagebionetworks.sts.iam.arn}</org.sagebionetworks.sts.iam.arn>
+							<org.sagebionetworks.cloudfront.keypair>${org.sagebionetworks.cloudfront.keypair}</org.sagebionetworks.cloudfront.keypair>
+							<org.sagebionetworks.cloudfront.domainname>${org.sagebionetworks.cloudfront.domainname}</org.sagebionetworks.cloudfront.domainname>
+							<org.sagebionetworks.cloudfront.private.key.secret>${org.sagebionetworks.cloudfront.private.key.secret}</org.sagebionetworks.cloudfront.private.key.secret>
 						</systemProperties>
 					</container>
 					<configuration>

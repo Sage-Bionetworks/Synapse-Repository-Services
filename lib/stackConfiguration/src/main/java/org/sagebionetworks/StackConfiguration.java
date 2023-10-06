@@ -857,5 +857,19 @@ public interface StackConfiguration {
 	 * @return The password used to derive an encryption key for OTP user secrets
 	 */
 	String getOtpSecretsPassword();
-	
+
+	/**
+	 * Credentials for signing CloudFront URLs
+	 */
+	public String getCloudFrontPrivateKey();
+
+	/**
+	 * The ID of the key pair for the CloudFront distribution in front of the Synapse data S3 bucket
+	 */
+	public String getCloudFrontKeyPairId();
+
+	/**
+	 * The domain name for the CloudFront distribution in front of the Synapse data S3 bucket
+	 */
+	public String getCloudFrontDomainName();
 }

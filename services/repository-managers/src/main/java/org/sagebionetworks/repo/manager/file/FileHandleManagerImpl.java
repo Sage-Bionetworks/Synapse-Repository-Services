@@ -14,6 +14,7 @@ import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.services.s3.transfer.model.UploadResult;
+import com.amazonaws.services.cloudfront.CloudFrontUrlSigner;
 import com.amazonaws.util.BinaryUtils;
 import com.google.cloud.storage.Blob;
 import com.google.common.collect.Lists;
@@ -22,6 +23,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -35,6 +37,7 @@ import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
@@ -112,8 +115,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
+import java.security.PrivateKey;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -165,6 +171,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	private static final String GZIP_CONTENT_ENCODING = "gzip";
 
+	public static final String RSA = "RSA";
+
+	public static final String RESPONSE_CONTENT_DISPOSITION = "response-content-disposition";
+
+	public static final String RESPONSE_CONTENT_TYPE = "response-content-type";
+
 	@Autowired
 	private FileHandleDao fileHandleDao;
 
@@ -203,6 +215,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	private TransactionalMessenger messenger;
+
 	/**
 	 * Used by spring
 	 */
@@ -389,50 +402,112 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 
 	private String getUrlForS3FileHandle(S3FileHandle handle) {
+		if (config.getS3Bucket().equals(handle.getBucketName())) {
+			return getCloudFrontSignedUrlForS3FileHandle(handle);
+		} else {
+			return getS3SignedUrlForS3FileHandle(handle);
+		}
+	}
+
+	private String getS3SignedUrlForS3FileHandle(S3FileHandle handle) {
 		// Create a pre-signed url
 		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(handle.getBucketName(), handle.getKey(), HttpMethod.GET);
 		request.setExpiration(new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
 
 		ResponseHeaderOverrides responseHeaderOverrides = new ResponseHeaderOverrides();
 
-		String contentType = handle.getContentType();
-		if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
+		Map<String, String> queryParameters = getQueryParameters(handle);
+
+		String contentType = queryParameters.get(RESPONSE_CONTENT_TYPE);
+		if (contentType != null) {
 			responseHeaderOverrides.setContentType(contentType);
 		}
-		String fileName = handle.getFileName();
-		if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
-			responseHeaderOverrides.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(fileName));
+
+		String contentDisposition = queryParameters.get(RESPONSE_CONTENT_DISPOSITION);
+		if (contentDisposition != null) {
+			responseHeaderOverrides.setContentDisposition(contentDisposition);
 		}
 
 		request.setResponseHeaders(responseHeaderOverrides);
 		return s3Client.generatePresignedUrl(request).toExternalForm();
 	}
 
-	private String getUrlForGoogleCloudFileHandle(GoogleCloudFileHandle handle) {
-		String signedUrl = googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET).toExternalForm();
+	private String getCloudFrontSignedUrlForS3FileHandle(S3FileHandle handle) {
+		String keyPairId = config.getCloudFrontKeyPairId();
+		String distributionDomainName = config.getCloudFrontDomainName();
+		String privateKeyValue = config.getCloudFrontPrivateKey();
+		PrivateKey privateKey = KeyPairUtil.getPrivateKeyFromPEM(privateKeyValue, RSA);
+		Date expirationDate = new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS);
 
-		// We have to override content type and content disposition to match the file handle metadata stored in Synapse
+		String resourceUrl;
 		try {
-			/*
-			 Currently, we cannot override content-type in Google Cloud... In short:
-			  - Google provides this parameter to override the content type, which will only work if the content type is null on Google Cloud
-			  - Google does not allow a null content type (defaults to application/octet-stream)
+		URIBuilder uriBuilder = new URIBuilder()
+				.setScheme("https")
+				.setHost(distributionDomainName)
+				.setPath(handle.getKey());
 
-			  We still attempt to override content type because it does not seem to interfere with the call, and
-			  perhaps one day Google may decide to allow us to override content type with this parameter.
-			 */
-			String contentType = handle.getContentType();
-			if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
-				signedUrl += "&response-content-type=" + URLEncoder.encode(contentType, "UTF-8");
-			}
-			String fileName = handle.getFileName();
-			if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
-				signedUrl += "&response-content-disposition=" + URLEncoder.encode(ContentDispositionUtils.getContentDispositionValue(fileName), "UTF-8");
-			}
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException("Error encoding query string for signed URL", e);
+		addQueryParametersToUrl(uriBuilder, handle);
+
+		resourceUrl = uriBuilder.build().toString();
+		} catch (URISyntaxException e) {
+			throw new RuntimeException("Failed to build resource URL for file handle: " + handle.getId(), e);
 		}
+
+		String signedUrl = CloudFrontUrlSigner.getSignedURLWithCannedPolicy(
+				resourceUrl,
+				keyPairId,
+				privateKey,
+				expirationDate
+		);
+
 		return signedUrl;
+	}
+
+	private String getUrlForGoogleCloudFileHandle(GoogleCloudFileHandle handle) {
+		URL signedUrl = googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET);
+
+		String signedUrlWithQueryParameters;
+		try {
+			URIBuilder uriBuilder = new URIBuilder(signedUrl.toURI());
+
+			/* We have to override content type and content disposition to match the file handle metadata stored in Synapse
+		 Currently, we cannot override content-type in Google Cloud... In short:
+		  - Google provides this parameter to override the content type, which will only work if the content type is null on Google Cloud
+		  - Google does not allow a null content type (defaults to application/octet-stream)
+		  We still attempt to override content type because it does not seem to interfere with the call, and
+		  perhaps one day Google may decide to allow us to override content type with this parameter.
+		 */
+			addQueryParametersToUrl(uriBuilder, handle);
+			signedUrlWithQueryParameters = uriBuilder.build().toString();
+		} catch (URISyntaxException e) {
+			throw new RuntimeException("Failed to build resource URL for file handle: " + handle.getId(), e);
+		}
+
+		return signedUrlWithQueryParameters;
+	}
+
+	private static void addQueryParametersToUrl(URIBuilder uriBuilder, FileHandle handle) {
+		Map<String, String> urlQueryParameters = getQueryParameters(handle);
+
+		urlQueryParameters.entrySet().forEach(queryParameter -> {
+			uriBuilder.addParameter(queryParameter.getKey(), queryParameter.getValue());
+		});
+	}
+
+	private static Map<String, String> getQueryParameters(FileHandle handle) {
+		Map<String, String> queryParameters = new HashMap<>();
+
+		String contentType = handle.getContentType();
+		if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
+			queryParameters.put(RESPONSE_CONTENT_TYPE, contentType);
+		}
+
+		String fileName = handle.getFileName();
+		if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
+			queryParameters.put(RESPONSE_CONTENT_DISPOSITION, ContentDispositionUtils.getContentDispositionValue(fileName));
+		}
+
+		return queryParameters;
 	}
 
 	@Override

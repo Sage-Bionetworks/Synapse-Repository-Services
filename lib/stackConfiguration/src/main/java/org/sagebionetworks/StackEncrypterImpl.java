@@ -5,6 +5,11 @@ import static org.sagebionetworks.ConfigurationPropertiesImpl.PROPERTY_WITH_KEY_
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import org.apache.commons.codec.binary.Base64;
 
 import org.apache.logging.log4j.Logger;
@@ -23,16 +28,26 @@ public class StackEncrypterImpl implements StackEncrypter {
 	private AWSKMS awsKeyManagerClient;
 	private Logger log;
 	private ConfigurationProperties configuration;
-	
+	private LoadingCache<String, String> decryptedPropertyCache;
+
 	public static final String PROPERTY_KEY_STACK_CMK_ALIAS = "org.sagebionetworks.stack.cmk.alias";
 	public static final String WILL_NOT_DECRYPT_MESSAGE = "Property: '%s' does not exist so the value of '%s' will not be decrypted.";
 	public static final String DECRYPTING_PROPERTY = "Decrypting property '%s'...";
+	private static final int CACHE_EXPIRATION_MINUTES = 5;
 
 	@Inject
 	public StackEncrypterImpl(ConfigurationProperties configuration, AWSKMS awsKeyManagerClient, LoggerProvider logProvider) {
 		this.awsKeyManagerClient=awsKeyManagerClient;
 		this.configuration=configuration;
 		this.log = logProvider.getLogger(StackEncrypterImpl.class.getName());
+		this.decryptedPropertyCache = CacheBuilder.newBuilder()
+				.expireAfterAccess(CACHE_EXPIRATION_MINUTES, TimeUnit.MINUTES)
+				.build( new CacheLoader<String, String>() {
+					@Override
+					public String load(String key) {
+						return decryptProperty(key);
+					}
+				});
 	}
 
 	private boolean encryptionEnabled() {
@@ -70,6 +85,10 @@ public class StackEncrypterImpl implements StackEncrypter {
 			log.warn(String.format(WILL_NOT_DECRYPT_MESSAGE, PROPERTY_KEY_STACK_CMK_ALIAS, propertyKey));
 			return propertyValue;
 		}
+		return decryptedPropertyCache.getUnchecked(propertyKey);
+	}
+
+	private String decryptProperty(String propertyKey) {
 		log.info(String.format(DECRYPTING_PROPERTY, propertyKey));
 		// load the Base64 encoded encrypted string from the properties.
 		String encryptedValueBase64 = configuration.getProperty(propertyKey);

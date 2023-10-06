@@ -36,6 +36,7 @@ import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
@@ -87,14 +88,20 @@ import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.upload.multipart.MultipartUtils;
+import org.sagebionetworks.util.ContentDispositionUtils;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -131,6 +138,8 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.FILE_HANDLE_COPY_RECORD_TYPE;
 import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.MAX_REQUESTS_PER_CALL;
+import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.RESPONSE_CONTENT_DISPOSITION;
+import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.RESPONSE_CONTENT_TYPE;
 
 /**
  * A unit test for the FileUploadManagerImpl.
@@ -145,6 +154,33 @@ public class FileHandleManagerImplTest {
 	private static final String PARENT_ENTITY_ID = "syn123";
 	private static final String STACK = "stack";
 	private static final String INSTANCE = "instance";
+	private static final String FAKE_PRIVATE_KEY_VALUE =
+		"MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDY+638Ns56F57p" +
+		"JwXhp9y4BJ5pn3mlcV6G33XwxQYTYOgAWD284C4ZME8+/boLGjcbtZEcoZXEwelx" +
+		"Ouwu8Zbc7LMRI8lafYpXtVNkICjArEQKyfA/17Ikdl4w5xu9kyfItthfyzsZxnke" +
+		"eiBQr7yl+0qbaCCLUcWJHew5BkNstH+NtQSFQpEmLnXDDkn07IIxtHJ2r497qBb+" +
+		"w+wCxv6GGpZZ/xPrLigHjixE1rG/yzpWf+6u91LgznJmv928VNW0QZmYinZd83jq" +
+		"eNpuYoERRtJleqjmXyfWTxtP/b2zRZqTmPWCh9IgJT+sq3Rev8LI0wRC6KeTuKgs" +
+		"rSAxzT2nAgMBAAECggEAcTKry96TzWIxRxVSnizCm0XdluDZx5Pjap19nARNbSKr" +
+		"JjLi0nxp0D5BuW0I9+3PPid08ujhh2pabPX+bWcf+1WI/bIbw5em6qbwQFX+rLWy" +
+		"Maa0LbpLd3ZBIWYQNNBmevHY4/DUflfqrBmubimgUz9L5tNl1wjr8uKncABygGyc" +
+		"CVTry9GUeaOXKugn7ODLvbkQeVFzwzibmzkMCTk5RH6ZOA92ZfHEmBlgQSNL1x0S" +
+		"Kfhm9ZV5qhnZFnrCRYlG2BCJgjL1hXYoubDchT3uiL9KgsMZw+4ydDTAivKoxYue" +
+		"wdDz5VbjQzU+zKlXzgAE+A585nFrYTxFD/WpGIcHYQKBgQDuOUbT+o7DgLLi/T+w" +
+		"dlkw1I5dwvlbV/ee4XkKHcmMVMGUfi4TcHmHFs/sx+KKiUmGfkxR2oq/Vhv0uIS0" +
+		"i0WdTkmYbzv+bmhsYuLLiKeYtSh3nYSBP4Ki3AZ8VUnQ7rfBlfYCwZXyUSVUawRI" +
+		"QUX2uYKOKo9qxboxNeo0nkkPmQKBgQDpLKY32Bk6TAF5mIMmCxjFiX/D99ljHINy" +
+		"nqw9x6jF4D5LM7NNgDrr862ypKBQpWQG9rd6CupX2qNfQ31M64xZhzuyAyGikRjs" +
+		"COJ1s3CxSooAYDOjjGK5SGZiz7rrnPjMPHWbDp1wnhJ1SHNerRazCSng0OKEFNgQ" +
+		"85ijMzH/PwKBgQDkZgHkZ0vNYW0heFFB7JYi3QgKGU9eJn8A04hrDJgadYCL0FZ4" +
+		"yNObk2GS0SoATRQzYI/nwrJYNETlYqvJNeZupYqmHa/VhyGTGVP8dG7LWJUN6fYK" +
+		"vUuQvYdyWYtGSDnh3tdZWSVciDRUNa6LYBmmLcJgb6nFYwHbAKgl/sRpsQKBgQDW" +
+		"wjnhi1ZI/EILhW2dd3D8V1Tm4HtHLrbetcf8Ks2GWq/lQZvuUKF0On6L39aMEJid" +
+		"VVTNwgnumsAH+LgKRZSBzO0tWnb7LNqgYtp4/6lWkUmjaPeGtcEj18v9TEhjw7Lf" +
+		"IPxMsNxPIjfr76va0l7qzRDWMG3AqxYKHuJBxeBRrwKBgQC8wo3O4fXHeD5F23os" +
+		"ElJr6aAq5D2Jn/bB7uNIgLFo3DHS0Rit/Gx9fkC0etYHAB+lTuLkced4DT9I4VTS" +
+		"8PkstKI0as7Y9y34pXdcpLVHl37a2wIWbF3q1uF6jtXjXcX/mql6XuLyX6waboiX" +
+		"KVLO30STVTmxgLTbhXQ157Kg4Q==";
 
 	@Mock
 	FileHandleDao mockFileHandleDao;
@@ -165,7 +201,7 @@ public class FileHandleManagerImplTest {
 	
 	@Mock
 	StackConfiguration mockStackConfig;
-	
+
 	@Mock
 	Consumer mockCloudWatchClient;
 	
@@ -581,9 +617,12 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setKey("key");
 		s3FileHandle.setCreatedBy(mockUser.getId().toString());
 		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
+		s3FileHandle.setContentType("text/plain");
+		s3FileHandle.setFileName("testName");
 		
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expectedURL = "https://amamzon.com";
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
 			thenReturn(new URL(expectedURL));
 		// fire!
@@ -593,18 +632,272 @@ public class FileHandleManagerImplTest {
 	}
 
 	@Test
-	public void testGetRedirectURLForFileHandleGoogleCloud() throws DatastoreException, NotFoundException, MalformedURLException{
+	public void testGetRedirectURLForFileHandleS3NoContentType() throws DatastoreException, NotFoundException, MalformedURLException{
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setBucketName("bucket");
+		s3FileHandle.setKey("key");
+		s3FileHandle.setCreatedBy(mockUser.getId().toString());
+		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
+		s3FileHandle.setFileName("testName");
+
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		String expectedURL = "https://amamzon.com";
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
+				thenReturn(new URL(expectedURL));
+		// fire!
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+		assertNotNull(redirect);
+		assertEquals(expectedURL, redirect.toString());
+	}
+
+	@Test
+	public void testGetRedirectURLForFileHandleS3NoFileName() throws DatastoreException, NotFoundException, MalformedURLException{
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setBucketName("bucket");
+		s3FileHandle.setKey("key");
+		s3FileHandle.setCreatedBy(mockUser.getId().toString());
+		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
+		s3FileHandle.setContentType("text/plain");
+
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		String expectedURL = "https://amamzon.com";
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
+				thenReturn(new URL(expectedURL));
+		// fire!
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+		assertNotNull(redirect);
+		assertEquals(expectedURL, redirect.toString());
+	}
+
+	@Test
+	public void testGetRedirectURLForFileHandleS3NoFileNameOrContentType() throws DatastoreException, NotFoundException, MalformedURLException{
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setBucketName("bucket");
+		s3FileHandle.setKey("key");
+		s3FileHandle.setCreatedBy(mockUser.getId().toString());
+		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
+
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		String expectedURL = "https://amamzon.com";
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
+				thenReturn(new URL(expectedURL));
+		// fire!
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+		assertNotNull(redirect);
+		assertEquals(expectedURL, redirect.toString());
+	}
+
+	@Test
+	public void testGetRedirectURLForFileHandleCloudFront() throws DatastoreException, NotFoundException, IOException {
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setBucketName("devdata.sagebase.org");
+		s3FileHandle.setKey("testkey");
+		s3FileHandle.setFileName("testName");
+		s3FileHandle.setContentType("text/plain");
+		s3FileHandle.setCreatedBy(mockUser.getId().toString());
+		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
+
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
+		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
+		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
+
+		// Call under test
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+
+		URL redirectUrl = new URL(redirect);
+		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
+
+		assertEquals(5, queryStrings.size());
+		assertEquals("https", redirectUrl.getProtocol().toLowerCase());
+		assertEquals("data.dev.sagebase.org", redirectUrl.getHost().toLowerCase());
+		assertEquals("/testkey", redirectUrl.getPath().toLowerCase());
+		assertEquals("attachment%3B+filename%3D%22testName%22%3B+filename*%3Dutf-8%27%27testName", queryStrings.get("response-content-disposition").get(0));
+		assertEquals("text%2Fplain", queryStrings.get("response-content-type").get(0));
+		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
+		assertNotNull(queryStrings.get("Signature"));
+		assertNotNull(queryStrings.get("Expires"));
+	}
+
+	@Test
+	public void testGetRedirectURLForFileHandleCloudFrontNoContentType() throws DatastoreException, NotFoundException, IOException {
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setBucketName("devdata.sagebase.org");
+		s3FileHandle.setKey("testkey");
+		s3FileHandle.setFileName("testName");
+		s3FileHandle.setCreatedBy(mockUser.getId().toString());
+		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
+
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
+		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
+		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
+
+		// Call under test
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+
+		URL redirectUrl = new URL(redirect);
+		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
+
+		assertEquals(4, queryStrings.size());
+		assertEquals("https", redirectUrl.getProtocol().toLowerCase());
+		assertEquals("data.dev.sagebase.org", redirectUrl.getHost().toLowerCase());
+		assertEquals("/testkey", redirectUrl.getPath().toLowerCase());
+		assertEquals("attachment%3B+filename%3D%22testName%22%3B+filename*%3Dutf-8%27%27testName", queryStrings.get("response-content-disposition").get(0));
+		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
+		assertNotNull(queryStrings.get("Signature"));
+		assertNotNull(queryStrings.get("Expires"));
+		assertEquals(null, queryStrings.get("response-content-type"));
+	}
+
+	@Test
+	public void testGetRedirectURLForFileHandleCloudFrontNoFileName() throws DatastoreException, NotFoundException, IOException {
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setBucketName("devdata.sagebase.org");
+		s3FileHandle.setKey("testkey");
+		s3FileHandle.setContentType("text/plain");
+		s3FileHandle.setCreatedBy(mockUser.getId().toString());
+		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
+
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
+		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
+		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
+
+		// Call under test
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+
+		URL redirectUrl = new URL(redirect);
+		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
+
+		assertEquals(4, queryStrings.size());
+		assertEquals("https", redirectUrl.getProtocol().toLowerCase());
+		assertEquals("data.dev.sagebase.org", redirectUrl.getHost().toLowerCase());
+		assertEquals("/testkey", redirectUrl.getPath().toLowerCase());
+		assertEquals("text%2Fplain", queryStrings.get("response-content-type").get(0));
+		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
+		assertNotNull(queryStrings.get("Signature"));
+		assertNotNull(queryStrings.get("Expires"));
+		assertEquals(null, queryStrings.get("response-content-disposition"));
+	}
+
+	@Test
+	public void testGetRedirectURLForFileHandleCloudFrontNoFileNameOrContentType() throws DatastoreException, NotFoundException, IOException {
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setBucketName("devdata.sagebase.org");
+		s3FileHandle.setKey("testkey");
+		s3FileHandle.setCreatedBy(mockUser.getId().toString());
+		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
+
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
+		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
+		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
+
+		// Call under test
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+
+		URL redirectUrl = new URL(redirect);
+		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
+
+		assertEquals(3, queryStrings.size());
+		assertEquals("https", redirectUrl.getProtocol().toLowerCase());
+		assertEquals("data.dev.sagebase.org", redirectUrl.getHost().toLowerCase());
+		assertEquals("/testkey", redirectUrl.getPath().toLowerCase());
+		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
+		assertNotNull(queryStrings.get("Signature"));
+		assertNotNull(queryStrings.get("Expires"));
+		assertEquals(null, queryStrings.get("response-content-disposition"));
+	}
+
+	@Test
+	public void testGetRedirectURLForFileHandleGoogleCloud() throws DatastoreException, NotFoundException, MalformedURLException, UnsupportedEncodingException {
 		GoogleCloudFileHandle googleCloudFileHandle = new GoogleCloudFileHandle();
 		googleCloudFileHandle.setId("123");
 		googleCloudFileHandle.setBucketName("bucket");
 		googleCloudFileHandle.setKey("key");
 		googleCloudFileHandle.setCreatedBy(mockUser.getId().toString());
 		googleCloudFileHandle.setStatus(FileHandleStatus.AVAILABLE);
+		googleCloudFileHandle.setFileName("testName");
+		googleCloudFileHandle.setContentType("text/plain");
 		
+		when(mockFileHandleDao.get(googleCloudFileHandle.getId())).thenReturn(googleCloudFileHandle);
+		String expectedURL = "https://google.com?response-content-disposition=attachment%3B+filename%3D%22testName%22%3B+filename*%3Dutf-8%27%27testName&response-content-type=text%2Fplain";
+		when(mockGoogleCloudStorageClient.createSignedUrl(anyString(), anyString(), anyLong(), any(HttpMethod.class))).
+				thenReturn(new URL("https://google.com"));
+		// fire!
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, googleCloudFileHandle.getId());
+		assertNotNull(redirect);
+		assertEquals(expectedURL, redirect);
+	}
+
+	@Test
+	public void testGetRedirectURLForFileHandleGoogleCloudNoContentType() throws DatastoreException, NotFoundException, MalformedURLException, UnsupportedEncodingException {
+		GoogleCloudFileHandle googleCloudFileHandle = new GoogleCloudFileHandle();
+		googleCloudFileHandle.setId("123");
+		googleCloudFileHandle.setBucketName("bucket");
+		googleCloudFileHandle.setKey("key");
+		googleCloudFileHandle.setCreatedBy(mockUser.getId().toString());
+		googleCloudFileHandle.setStatus(FileHandleStatus.AVAILABLE);
+		googleCloudFileHandle.setFileName("testName");
+
+		when(mockFileHandleDao.get(googleCloudFileHandle.getId())).thenReturn(googleCloudFileHandle);
+		String expectedURL = "https://google.com?response-content-disposition=attachment%3B+filename%3D%22testName%22%3B+filename*%3Dutf-8%27%27testName";
+		when(mockGoogleCloudStorageClient.createSignedUrl(anyString(), anyString(), anyLong(), any(HttpMethod.class))).
+				thenReturn(new URL("https://google.com"));
+		// fire!
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, googleCloudFileHandle.getId());
+		assertNotNull(redirect);
+		assertEquals(expectedURL, redirect);
+	}
+
+	@Test
+	public void testGetRedirectURLForFileHandleGoogleCloudNoFileName() throws DatastoreException, NotFoundException, MalformedURLException, UnsupportedEncodingException {
+		GoogleCloudFileHandle googleCloudFileHandle = new GoogleCloudFileHandle();
+		googleCloudFileHandle.setId("123");
+		googleCloudFileHandle.setBucketName("bucket");
+		googleCloudFileHandle.setKey("key");
+		googleCloudFileHandle.setCreatedBy(mockUser.getId().toString());
+		googleCloudFileHandle.setStatus(FileHandleStatus.AVAILABLE);
+		googleCloudFileHandle.setContentType("text/plain");
+
+		when(mockFileHandleDao.get(googleCloudFileHandle.getId())).thenReturn(googleCloudFileHandle);
+		String expectedURL = "https://google.com?response-content-type=text%2Fplain";
+		when(mockGoogleCloudStorageClient.createSignedUrl(anyString(), anyString(), anyLong(), any(HttpMethod.class))).
+				thenReturn(new URL("https://google.com"));
+		// fire!
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, googleCloudFileHandle.getId());
+		assertNotNull(redirect);
+		assertEquals(expectedURL, redirect);
+	}
+
+	@Test
+	public void testGetRedirectURLForFileHandleGoogleCloudNoFileNameOrContentType() throws DatastoreException, NotFoundException, MalformedURLException, UnsupportedEncodingException {
+		GoogleCloudFileHandle googleCloudFileHandle = new GoogleCloudFileHandle();
+		googleCloudFileHandle.setId("123");
+		googleCloudFileHandle.setBucketName("bucket");
+		googleCloudFileHandle.setKey("key");
+		googleCloudFileHandle.setCreatedBy(mockUser.getId().toString());
+		googleCloudFileHandle.setStatus(FileHandleStatus.AVAILABLE);
+
 		when(mockFileHandleDao.get(googleCloudFileHandle.getId())).thenReturn(googleCloudFileHandle);
 		String expectedURL = "https://google.com";
 		when(mockGoogleCloudStorageClient.createSignedUrl(anyString(), anyString(), anyLong(), any(HttpMethod.class))).
-				thenReturn(new URL(expectedURL));
+				thenReturn(new URL("https://google.com"));
 		// fire!
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, googleCloudFileHandle.getId());
 		assertNotNull(redirect);
@@ -767,6 +1060,7 @@ public class FileHandleManagerImplTest {
 		
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedURL));
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		
 		FileHandleUrlRequest request = new FileHandleUrlRequest(mockUser, s3FileHandle.getId());
 		
@@ -793,6 +1087,7 @@ public class FileHandleManagerImplTest {
 		
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedURL));
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 		
 		FileHandleAssociation association = new FileHandleAssociation();
 		
@@ -836,6 +1131,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expecedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expecedURL));
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 		mockUser = new UserInfo(false, 456L);
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 		assertEquals(expecedURL, redirect);
@@ -880,6 +1176,7 @@ public class FileHandleManagerImplTest {
 		thenReturn(Collections.singletonList(authorizationResult));
 		when(mockStackConfig.getStack()).thenReturn(STACK);
 		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 		
 		// method under test
 		String redirect = manager.getRedirectURLForFileHandle(mockUser,
@@ -1663,6 +1960,7 @@ public class FileHandleManagerImplTest {
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
 		when(mockStackConfig.getStack()).thenReturn(STACK);
 		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1739,6 +2037,7 @@ public class FileHandleManagerImplTest {
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
 		when(mockStackConfig.getStack()).thenReturn(STACK);
 		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1785,6 +2084,7 @@ public class FileHandleManagerImplTest {
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
 		when(mockStackConfig.getStack()).thenReturn(STACK);
 		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1830,6 +2130,7 @@ public class FileHandleManagerImplTest {
 		Map<String, FileHandle> handleMap = new HashMap<String, FileHandle>();
 		handleMap.put(fh.getId(), fh);
 		when(mockFileHandleDao.getAllFileHandlesBatch(any(Iterable.class))).thenReturn(handleMap);
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
@@ -2600,6 +2901,8 @@ public class FileHandleManagerImplTest {
 		handle.setStatus(FileHandleStatus.AVAILABLE);
 		
 		String expectedUrl = "http://someurl.org";
+
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
 			thenReturn(new URL(expectedUrl));
@@ -2625,6 +2928,7 @@ public class FileHandleManagerImplTest {
 		
 		when(mockStackConfig.getStackInstance()).thenReturn("instance");
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedUrl));
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 
 		ProfileData expectedData = new ProfileData();
 		
