@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.file;
 
 import com.amazonaws.HttpMethod;
+import com.amazonaws.auth.internal.AWS4SignerUtils;
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
@@ -133,6 +134,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import static com.amazonaws.auth.internal.SignerConstants.X_AMZ_DATE;
+import static com.amazonaws.auth.internal.SignerConstants.X_AMZ_EXPIRES;
 import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
 
 /**
@@ -155,7 +158,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	public static final String UNAUTHORIZED_PROXY_FILE_HANDLE_MSG = "Only the creator of the ProxyStorageLocationSettings or a user with the 'create' permission on ProxyStorageLocationSettings.benefactorId can create a ProxyFileHandle using this storage location ID.";
 	
-	public static final long PRESIGNED_URL_EXPIRE_TIME_MS = 30 * 1000; // 30 secs
+	public static final long PRESIGNED_URL_EXPIRE_TIME_S = 30; // 30 secs
+	public static final long PRESIGNED_URL_EXPIRE_TIME_MS = PRESIGNED_URL_EXPIRE_TIME_S * 1000;
 
 	public static final int MAX_REQUESTS_PER_CALL = 100;
 
@@ -437,7 +441,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String distributionDomainName = config.getCloudFrontDomainName();
 		String privateKeyValue = config.getCloudFrontPrivateKey();
 		PrivateKey privateKey = KeyPairUtil.getPrivateKeyFromPEM(privateKeyValue, RSA);
-		Date expirationDate = new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS);
+		Long creationTimeMS = System.currentTimeMillis();
+		String creationDate = AWS4SignerUtils.formatTimestamp(creationTimeMS);
+		Date expirationDate = new Date(creationTimeMS + PRESIGNED_URL_EXPIRE_TIME_MS);
 
 		String resourceUrl;
 		try {
@@ -447,6 +453,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				.setPath(handle.getKey());
 
 		addQueryParametersToUrl(uriBuilder, handle);
+
+		/*
+		The current implementation of the python client assumes that the custom AWS parameters X-Amz-Date and
+		X-Amz-Expires are present in AWS pre-signed URLs when using a multi-threaded download from S3 buckets.
+		CloudFront does not use these parameters. However, we must add them to CloudFront signed URLs to maintain
+		backwards compatibility with the python client. See: https://sagebionetworks.jira.com/browse/PLFM-8085
+		 */
+		uriBuilder.addParameter(X_AMZ_DATE, creationDate);
+		uriBuilder.addParameter(X_AMZ_EXPIRES, String.valueOf(PRESIGNED_URL_EXPIRE_TIME_S));
 
 		resourceUrl = uriBuilder.build().toString();
 		} catch (URISyntaxException e) {
