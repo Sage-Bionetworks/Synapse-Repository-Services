@@ -790,25 +790,6 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 	
 	@Test
-	public void testIsRedirectWithVoidReturnAndMissingRedirectParam() {
-		ExecutableElement method = Mockito.mock(ExecutableElement.class);
-		Mockito.doReturn(new ArrayList<>()).when(method).getParameters();
-		TypeMirror returnType = Mockito.mock(TypeMirror.class);
-		Mockito.doReturn(returnType).when(method).getReturnType();
-		Mockito.doReturn(TypeKind.VOID).when(returnType).getKind();
-		Mockito.doReturn(false).when(translator).containsRedirectParam(any());
-		Name methodName = Mockito.mock(Name.class);
-		Mockito.doReturn("METHOD_NAME").when(methodName).toString();
-		Mockito.doReturn(methodName).when(method).getSimpleName();
-		
-		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			translator.isRedirect(method);
-		});
-		assertEquals("Method METHOD_NAME returns void but does not redirect.", exception.getMessage());
-	}
-	
-	@Test
 	public void testIsRedirect() {
 		ExecutableElement method = Mockito.mock(ExecutableElement.class);
 		Mockito.doReturn(new ArrayList<>()).when(method).getParameters();

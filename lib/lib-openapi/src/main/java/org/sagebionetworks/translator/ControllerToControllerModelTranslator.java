@@ -295,10 +295,6 @@ public class ControllerToControllerModelTranslator {
 	boolean isRedirect(ExecutableElement method) {
 		boolean returnsVoid = method.getReturnType().getKind().equals(TypeKind.VOID);
 		boolean containsRedirectParam = containsRedirectParam(method.getParameters());
-		if (returnsVoid && !containsRedirectParam) {
-			throw new IllegalArgumentException(
-					"Method " + method.getSimpleName() + " returns void but does not redirect.");
-		}
 		return returnsVoid && containsRedirectParam;
 	}
 
