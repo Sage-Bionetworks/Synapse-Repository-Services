@@ -16,6 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,7 +39,6 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SqlContext;
 
 import com.google.common.collect.ImmutableMap;
@@ -116,6 +116,25 @@ public class QueryTranslatorTest {
 		assertEquals(translator.getSelectColumns().size(), 10);
 		assertEquals(TableModelUtils.getSelectColumns(this.tableSchema), translator.getSelectColumns());
 		assertEquals("syn123", translator.getSingleTableId());
+	}
+	
+	@Test
+	public void testTranslateWithTableHash() throws ParseException {
+		
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
+		TableIndexDescription tid = new TableIndexDescription(idAndVersion, 99L);
+		
+		// call under test
+		QueryTranslator translator = QueryTranslator.builder("select * from syn123", mockSchemaProvider, userId).indexDescription(tid).build();
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
+		assertFalse(translator.isAggregatedResult());
+		assertNotNull(translator.getSelectColumns());
+		assertEquals(translator.getSelectColumns().size(), 10);
+		assertEquals(TableModelUtils.getSelectColumns(this.tableSchema), translator.getSelectColumns());
+		assertEquals("syn123", translator.getSingleTableId());
+		String expectedHash = DigestUtils.md5Hex("+syn123-99");
+		assertEquals(expectedHash, translator.getTableHash());
 	}
 
 	@Test

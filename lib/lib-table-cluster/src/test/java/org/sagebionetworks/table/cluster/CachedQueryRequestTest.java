@@ -15,7 +15,7 @@ public class CachedQueryRequestTest {
 		CachedQueryRequest request = new CachedQueryRequest().setExpiresInSec(60).setIncludeEntityEtag(true)
 				.setIncludesRowIdAndVersion(false).setOutputSQL("select * from syn123")
 				.setParameters(Map.of("key", "value")).setSingleTableId("syn123")
-				.setSelectColumns(List.of(new SelectColumn().setName("foo")));
+				.setSelectColumns(List.of(new SelectColumn().setName("foo"))).setTableHash("hash");
 
 		// call under test
 		CachedQueryRequest clone = CachedQueryRequest.clone(request);

@@ -1,7 +1,9 @@
 package org.sagebionetworks.table.cluster.description;
 
 import java.util.List;
+import java.util.Optional;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.query.model.SqlContext;
@@ -52,6 +54,29 @@ public interface IndexDescription extends Comparable<IndexDescription> {
 	 */
 	List<IndexDescription> getDependencies();
 	
+	default Optional<Long> getLastTableChangeNumber() {
+		return Optional.empty();
+	}
+	
+	default void recursiveAppendIdAndChangeNumber(StringBuilder builder) {
+		getLastTableChangeNumber().ifPresent(n->{
+			builder.append("+");
+			builder.append(getIdAndVersion().toString());
+			builder.append("-");
+			builder.append(n);
+		});
+		for(IndexDescription dependency: getDependencies()) {
+			dependency.recursiveAppendIdAndChangeNumber(builder);
+		}
+	}
+	
+	default String getTableHash() {
+		StringBuilder builder = new StringBuilder();
+		recursiveAppendIdAndChangeNumber(builder);
+		return DigestUtils.md5Hex(builder.toString());
+	}
+	
+	
 	/**
 	 * @return True if the row id should be included in the search index when search is enabled
 	 */
@@ -75,5 +100,7 @@ public interface IndexDescription extends Comparable<IndexDescription> {
 	public default int compareTo(IndexDescription o) {
 		return this.getIdAndVersion().compareTo(o.getIdAndVersion());
 	}
+
+
 
 }

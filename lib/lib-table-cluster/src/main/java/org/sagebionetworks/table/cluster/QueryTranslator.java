@@ -101,6 +101,8 @@ public class QueryTranslator implements TranslatedQuery {
 	private final List<ColumnModel> tableSchema;
 	
 	private boolean isCommonTableExpression;
+	
+	private final String tableHash;
 
 	/**
 	 * @param tableId
@@ -109,9 +111,10 @@ public class QueryTranslator implements TranslatedQuery {
 	 * @throws ParseException
 	 */
 	QueryTranslator(String startingSql, SchemaProvider schemaProvider, Long maxBytesPerPage,
-			Boolean includeEntityEtag, Long userId, IndexDescription indexDescription, SqlContext sqlContextIn) {
+			Boolean includeEntityEtag, Long userId, IndexDescription indexDescription, SqlContext sqlContextIn, Long changeNumber) {
 		ValidateArgument.required(schemaProvider, "schemaProvider");
 		ValidateArgument.required(indexDescription, "indexDescription");
+		this.tableHash = indexDescription.getTableHash();
 		this.inputSql = startingSql;
 		try {
 
@@ -375,6 +378,11 @@ public class QueryTranslator implements TranslatedQuery {
 	public QueryExpression getTranslatedModel() {
 		return this.translated;
 	}
+	
+	@Override
+	public String getTableHash() {
+		return tableHash;
+	}
 
 	/**
 	 * The type of table.
@@ -435,6 +443,7 @@ public class QueryTranslator implements TranslatedQuery {
 		private Long userId;
 		private IndexDescription indexDescription;
 		private SqlContext sqlContext;
+		private Long changeNumber;
 		
 		
 		public Builder sql(String sql) {
@@ -477,9 +486,8 @@ public class QueryTranslator implements TranslatedQuery {
 
 		public QueryTranslator build() {
 			return new QueryTranslator(sql, schemaProvider, maxBytesPerPage, includeEntityEtag, userId, indexDescription,
-					sqlContext);
+					sqlContext, changeNumber);
 		}
 
 	}
-
 }

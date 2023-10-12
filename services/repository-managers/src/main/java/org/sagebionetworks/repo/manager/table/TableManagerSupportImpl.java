@@ -649,7 +649,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		TableType type = getTableType(idAndVersion);
 		switch (type) {
 		case table:
-			return new TableIndexDescription(idAndVersion);
+			return new TableIndexDescription(idAndVersion, getLastTableChangeNumber(idAndVersion).orElse(null));
 		case entityview:
 		case dataset:
 		case datasetcollection:
