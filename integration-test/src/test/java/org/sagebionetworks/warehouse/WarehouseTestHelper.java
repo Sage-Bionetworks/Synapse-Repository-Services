@@ -3,6 +3,12 @@ package org.sagebionetworks.warehouse;
 import java.time.Instant;
 
 public interface WarehouseTestHelper {
+	
+	public static final int WAREHOUSE_QUERY_EXPIRATION_HOURS = 2;
+	
+	default void assertWarehouseQuery(String queryString) throws Exception {
+		assertWarehouseQuery(queryString, WAREHOUSE_QUERY_EXPIRATION_HOURS);
+	}
 
 	/**
 	 * Assert that the given count query will return a value greater than one. The

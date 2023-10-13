@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -71,6 +72,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.warehouse.WarehouseTestHelper;
 
 @ExtendWith(ITTestExtension.class)
 public class ITDataAccessTest {
@@ -81,12 +83,16 @@ public class ITDataAccessTest {
 	
 	private SynapseAdminClient adminSynapse;
 	private SynapseClient synapse;
+	private WarehouseTestHelper warehouseHelper;
+	private StackConfiguration config; 
 	private Long userTwoId;
 	private String submissionId;
 	
-	public ITDataAccessTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+	public ITDataAccessTest(SynapseAdminClient adminSynapse, SynapseClient synapse, WarehouseTestHelper warehouseHelper, StackConfiguration config) {
 		this.adminSynapse = adminSynapse;
 		this.synapse = synapse;
+		this.warehouseHelper = warehouseHelper;
+		this.config = config;
 	}
 	
 	@BeforeEach
@@ -120,7 +126,7 @@ public class ITDataAccessTest {
 	}
 
 	@Test
-	public void test() throws SynapseException {
+	public void test() throws Exception {
 		RestrictionInformationRequest restrictionInformationRequest = new RestrictionInformationRequest();
 		restrictionInformationRequest.setObjectId(project.getId());
 		restrictionInformationRequest.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -137,6 +143,25 @@ public class ITDataAccessTest {
 		
 		managedAR.setIsIDUPublic(true);
 		managedAR = (ManagedACTAccessRequirement) adminSynapse.updateAccessRequirement(managedAR);
+		
+		Instant now = Instant.now();
+		
+		String query = String.format(
+				"select count(*) from accessrequirementsnpashots where"
+						+ " snapshot_date %s and"
+						+ " change_timestamp %s and"
+						+ " instance = '%s' and"
+						+ " id = %s and"
+						+ " change_type = 'UPDATE' and"
+						+ " is_idu_public = true and"
+						+ " concrete_type = '%s'",
+				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
+				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(now), 
+				config.getStackInstance(),
+				managedAR.getId(),
+				managedAR.getConcreteType());
+		
+		warehouseHelper.assertWarehouseQuery(query);
 
 		assertNotNull(synapse.getSubjects(managedAR.getId().toString(), null));
 
@@ -239,7 +264,8 @@ public class ITDataAccessTest {
 		approvalInfoRequest.setAccessRequirementIds(Arrays.asList(managedAR.getId().toString()));
 		assertNotNull(synapse.getBatchAccessApprovalInfo(approvalInfoRequest ));
 
-		adminSynapse.revokeGroup(managedAR.getId().toString(), userId);
+		adminSynapse.revokeGroup(managedAR.getId().toString(), userId);		
+		
 	}
 	
 	// This test is used solely to verify the controller integration

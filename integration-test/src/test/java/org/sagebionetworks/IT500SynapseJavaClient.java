@@ -92,7 +92,6 @@ import com.google.common.collect.Sets;
 @ExtendWith(ITTestExtension.class)
 public class IT500SynapseJavaClient {
 
-	private static final int WAREHOUSE_QUERY_EXPIRATION_HOURS = 2;
 	private static SynapseClient synapseTwo;
 	private static SynapseAdminClient synapseAnonymous;
 	
@@ -755,7 +754,7 @@ public class IT500SynapseJavaClient {
 				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
 				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(now), stackConfig.getStackInstance(),
 				profile.getOwnerId(), fileHandle.getId());
-		warehouseHelper.assertWarehouseQuery(query, WAREHOUSE_QUERY_EXPIRATION_HOURS);
+		warehouseHelper.assertWarehouseQuery(query);
 	}
 	
 	/**
