@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -18,10 +19,18 @@ import org.sagebionetworks.table.query.model.SqlContext;
 public class TableIndexDescription implements IndexDescription {
 	
 	private final IdAndVersion idAndVersion;
+	private final Long lastTableVersionNumber;
 	
 	public TableIndexDescription(IdAndVersion idAndVersion) {
 		super();
 		this.idAndVersion = idAndVersion;
+		this.lastTableVersionNumber = null;
+	}
+
+	public TableIndexDescription(IdAndVersion idAndVersion, Long lastTableVersionNumber) {
+		super();
+		this.idAndVersion = idAndVersion;
+		this.lastTableVersionNumber = lastTableVersionNumber;
 	}
 
 	@Override
@@ -69,26 +78,33 @@ public class TableIndexDescription implements IndexDescription {
 	public List<IndexDescription> getDependencies() {
 		return Collections.emptyList();
 	}
+	
+	@Override
+	public Optional<Long> getLastTableChangeNumber() {
+		return Optional.ofNullable(this.lastTableVersionNumber);
+	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(idAndVersion);
+		return Objects.hash(idAndVersion, lastTableVersionNumber);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (!(obj instanceof TableIndexDescription)) {
+		if (obj == null)
 			return false;
-		}
+		if (getClass() != obj.getClass())
+			return false;
 		TableIndexDescription other = (TableIndexDescription) obj;
-		return Objects.equals(idAndVersion, other.idAndVersion);
+		return Objects.equals(idAndVersion, other.idAndVersion)
+				&& Objects.equals(lastTableVersionNumber, other.lastTableVersionNumber);
 	}
 
 	@Override
 	public String toString() {
-		return "TableIndexDescription [idAndVersion=" + idAndVersion + "]";
+		return "TableIndexDescription [idAndVersion=" + idAndVersion + ", lastTableVersionNumber="
+				+ lastTableVersionNumber + "]";
 	}
 }
