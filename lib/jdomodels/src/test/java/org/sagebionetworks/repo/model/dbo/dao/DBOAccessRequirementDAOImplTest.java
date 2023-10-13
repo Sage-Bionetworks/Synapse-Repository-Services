@@ -181,7 +181,6 @@ public class DBOAccessRequirementDAOImplTest {
 		// Create it
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 		assertNotNull(accessRequirement.getId());
-		assertEquals(accessRequirement.getSubjectIds(), accessRequirementDAO.getSubjects(accessRequirement.getId()));
 		assertEquals(accessRequirement.getSubjectIds(), accessRequirementDAO.getSubjects(accessRequirement.getId(), 10L, 0L));
 
 		// Fetch it

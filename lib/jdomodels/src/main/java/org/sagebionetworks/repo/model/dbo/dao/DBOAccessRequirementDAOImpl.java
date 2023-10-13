@@ -291,15 +291,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 
 	@Override
-	public List<RestrictableObjectDescriptor> getSubjects(long accessRequirementId) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID, accessRequirementId);
-		List<DBOSubjectAccessRequirement> nars = namedJdbcTemplate.query(GET_SUBJECT_ACCESS_REQUIREMENT_SQL, param,
-				subjectAccessRequirementRowMapper);
-		return AccessRequirementUtils.copyDBOSubjectsToDTOSubjects(nars);
-	}
-
-	@Override
 	public List<RestrictableObjectDescriptor> getSubjects(long accessRequirementId, long limit, long offset) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID, accessRequirementId);
