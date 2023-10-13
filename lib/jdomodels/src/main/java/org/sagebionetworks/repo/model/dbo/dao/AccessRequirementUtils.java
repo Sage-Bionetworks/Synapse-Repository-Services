@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
-import org.sagebionetworks.repo.model.ar.BindingType;
+import org.sagebionetworks.repo.model.dataaccess.BindingType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
@@ -154,6 +154,7 @@ public class AccessRequirementUtils {
 			} else {
 				subjectId.setId(dbo.getSubjectId().toString());
 			}
+			subjectId.setBindingType(BindingType.valueOf(dbo.getBindingType()));
 			rodList.add(subjectId);
 		}
 		return rodList;
