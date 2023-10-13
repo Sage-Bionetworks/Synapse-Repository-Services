@@ -50,7 +50,7 @@ public class ViewIndexDescription implements IndexDescription {
 		builder.append(ROW_ETAG).append(" varchar(36) NOT NULL, ");
 		builder.append(ROW_BENEFACTOR).append(" BIGINT NOT NULL, ");
 		builder.append(ROW_SEARCH_CONTENT).append(" MEDIUMTEXT NULL, ");
-		builder.append(ROW_HASH_CODE).append(" INT NOT NULL, ");
+		builder.append(ROW_HASH_CODE).append(" INT NOT NULL DEFAULT 0, ");
 		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
 		builder.append(", KEY `IDX_ETAG` (").append(ROW_ETAG).append(")");
 		builder.append(", KEY `IDX_BENEFACTOR` (").append(ROW_BENEFACTOR).append("), ");

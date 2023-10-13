@@ -2601,6 +2601,36 @@ public class TableIndexDAOImplTest {
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(rows.size()-1, count);
 	}
+	
+	@Test
+	public void testRestoreTableIndexDataWithHashCode(){
+		tableId = IdAndVersion.parse("syn123.45");
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteTable(tableId);
+		
+		List<ColumnModel> schema = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER_LIST), 
+			TableModelTestUtils.createColumn(2L, "bar", ColumnType.DOUBLE)
+		);
+		
+		createOrUpdateTable(schema, indexDescription);
+		
+		List<String[]> rows = Arrays.asList(
+			new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "ROW_HASH_CODE", "_C1_", "_C2_", "_DBL_C2_"},
+			new String[] {"2", "2", "etag2", "2","88", "[123, 456, 789]", null, "NaN"}, 
+			new String[] {"3", "2", "etag3", "2", "99","[321, 654]", "1.7976931348623157E308", "Infinity"}
+		);
+		
+		// small batch size to force multiple batches.
+		long maxBytesPerBatch = 10;
+		// call under test
+		tableIndexDAO.restoreTableIndexData(tableId, rows.iterator(), maxBytesPerBatch);
+		
+		long count = tableIndexDAO.getRowCountForTable(tableId);
+		assertEquals(rows.size()-1, count);
+	}
 
 	@Test
 	public void testCopyEntityReplicationToTableScopeEmpty(){
@@ -4714,10 +4744,12 @@ public class TableIndexDAOImplTest {
 		assertEquals(schema.stream().map(ColumnModel::getId).collect(Collectors.toList()), result);
 		
 		List<String[]> rows = stream.getRows();
+		assertNotNull(rows.get(1)[4]);
+		assertNotNull(rows.get(2)[4]);
 		
-		assertArrayEquals(new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR" , "_C1_", "_C2_", "_DBL_C2_"}, rows.get(0));
-		assertArrayEquals(new String[] {"2", "2", "etag2", "2", "[123, 456, 789]", null, "NaN"}, rows.get(1));
-		assertArrayEquals(new String[] {"3", "2", "etag3", "2", "[321, 654]", "1.7976931348623157E308", "Infinity"}, rows.get(2));
+		assertArrayEquals(new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "ROW_HASH_CODE" , "_C1_", "_C2_", "_DBL_C2_"}, rows.get(0));
+		assertArrayEquals(new String[] {"2", "2", "etag2", "2", rows.get(1)[4], "[123, 456, 789]", null, "NaN"}, rows.get(1));
+		assertArrayEquals(new String[] {"3", "2", "etag3", "2", rows.get(2)[4], "[321, 654]", "1.7976931348623157E308", "Infinity"}, rows.get(2));
 	}
 	
 	// Test to reproduce https://sagebionetworks.jira.com/browse/PLFM-7622
