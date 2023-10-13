@@ -84,15 +84,13 @@ public class ITDataAccessTest {
 	private SynapseAdminClient adminSynapse;
 	private SynapseClient synapse;
 	private WarehouseTestHelper warehouseHelper;
-	private StackConfiguration config; 
 	private Long userTwoId;
 	private String submissionId;
 	
-	public ITDataAccessTest(SynapseAdminClient adminSynapse, SynapseClient synapse, WarehouseTestHelper warehouseHelper, StackConfiguration config) {
+	public ITDataAccessTest(SynapseAdminClient adminSynapse, SynapseClient synapse, WarehouseTestHelper warehouseHelper) {
 		this.adminSynapse = adminSynapse;
 		this.synapse = synapse;
 		this.warehouseHelper = warehouseHelper;
-		this.config = config;
 	}
 	
 	@BeforeEach
@@ -147,17 +145,15 @@ public class ITDataAccessTest {
 		Instant now = Instant.now();
 		
 		String query = String.format(
-				"select count(*) from accessrequirementsnpashots where"
+				"select count(*) from accessrequirementsnapshots where"
 						+ " snapshot_date %s and"
 						+ " change_timestamp %s and"
-						+ " instance = '%s' and"
 						+ " id = %s and"
 						+ " change_type = 'UPDATE' and"
 						+ " is_idu_public = true and"
 						+ " concrete_type = '%s'",
 				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
-				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(now), 
-				config.getStackInstance(),
+				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(now),
 				managedAR.getId(),
 				managedAR.getConcreteType());
 		

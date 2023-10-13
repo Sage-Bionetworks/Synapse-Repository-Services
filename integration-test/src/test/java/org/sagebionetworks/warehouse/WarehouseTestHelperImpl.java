@@ -33,6 +33,7 @@ public class WarehouseTestHelperImpl implements WarehouseTestHelper {
 	public static final int MAX_WAIT_MS = 60_000;
 	public static final int WAIT_INTERAVAL_MS = 1000;
 	public static final String BUCKET_NAME = "dev.testdata.sagebase.org";
+	public static final int WAREHOUSE_QUERY_EXPIRATION_HOURS = 2;
 
 	private final AmazonS3 s3Client;
 	private final AmazonAthena athenaClient;
@@ -49,14 +50,14 @@ public class WarehouseTestHelperImpl implements WarehouseTestHelper {
 	}
 
 	@Override
-	public void assertWarehouseQuery(String queryString, int maxNumberOfHours) throws Exception {
+	public void assertWarehouseQuery(String queryString) throws Exception {
 
 		Instant now = Instant.ofEpochMilli(clock.currentTimeMillis());
 
 		StackTraceElement callersElement = Thread.currentThread().getStackTrace()[2];
 		String callersPath = getCallersPath(callersElement);
 
-		saveQueryToS3(queryString, now, callersPath, maxNumberOfHours);
+		saveQueryToS3(queryString, now, callersPath, WAREHOUSE_QUERY_EXPIRATION_HOURS);
 
 		List<String> previousQueryKeysToCheck = s3Client.listObjectsV2(BUCKET_NAME, callersPath).getObjectSummaries()
 				.stream().filter(s -> now.toEpochMilli() >= getExpiresOnFromKey(s.getKey())).map(s -> s.getKey())

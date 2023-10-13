@@ -3,13 +3,7 @@ package org.sagebionetworks.warehouse;
 import java.time.Instant;
 
 public interface WarehouseTestHelper {
-	
-	public static final int WAREHOUSE_QUERY_EXPIRATION_HOURS = 2;
-	
-	default void assertWarehouseQuery(String queryString) throws Exception {
-		assertWarehouseQuery(queryString, WAREHOUSE_QUERY_EXPIRATION_HOURS);
-	}
-
+		
 	/**
 	 * Assert that the given count query will return a value greater than one. The
 	 * given query is not executed immediately. Instead, the query is saved to S3
@@ -22,7 +16,7 @@ public interface WarehouseTestHelper {
 	 * @param queryString
 	 * @throws Exception
 	 */
-	void assertWarehouseQuery(String queryString, int maxNumberOfHours) throws Exception;
+	void assertWarehouseQuery(String queryString) throws Exception;
 
 	/**
 	 * Generate a between predicate for the given Instant. For example, given an
