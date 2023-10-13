@@ -5,22 +5,6 @@
 		},
 		"type":{
 			"$ref":"org.sagebionetworks.repo.model.RestrictableObjectType"
-		},
-		"bindingType": {
-			"type": "string",
-			"description": "The type of binding",
-			"id": "org.sagebionetworks.repo.model.dataaccess.BindingType",
-			"name": "BindingType",
-			"enum": [
-				{
-					"name": "MANUAL",
-					"description": "The subject is explicitely bound to the AR"
-				},
-				{
-					"name": "DYNAMIC",
-					"description": "The subject is bound to the AR from derived annotations"
-				}
-			]
 		}
 	}
 }
