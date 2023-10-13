@@ -918,7 +918,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		}, MAX_WAIT_MS);
 		
 		asynchronousJobWorkerHelper.assertQueryResult(adminUserInfo, sql, (r)->{
-			assertQueryResults(r, "999", "myAnnotationValue", "someBoolean was false", "456");
+			assertQueryResults(r, null, "myAnnotationValue", "someBoolean was false", "456");
 		}, MAX_WAIT_MS);
 		
 		// Now switch the boolean

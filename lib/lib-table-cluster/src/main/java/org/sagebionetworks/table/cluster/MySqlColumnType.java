@@ -13,7 +13,8 @@ public enum MySqlColumnType {
 	TEXT(false, true, MySqlCastType.CHAR),
 	TINYINT(false, true, MySqlCastType.UNSIGNED),
 	ENUM(false, true, MySqlCastType.CHAR),
-	JSON(false, false, MySqlCastType.JSON);
+	JSON(false, false, MySqlCastType.JSON),
+	INT(false, false, MySqlCastType.SIGNED);
 
 	
 	boolean hasSize;
