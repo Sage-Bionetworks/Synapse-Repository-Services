@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaValidationManager;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
+import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
@@ -51,7 +52,10 @@ import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
 import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -122,6 +126,9 @@ public class JsonSchemaWorkerIntegrationTest {
 	
 	@Autowired
 	private AccessRequirementManager accessRequirementManager;
+	
+	@Autowired
+	private ColumnModelManager columnModleManager;
 	
 
 	UserInfo adminUserInfo;
@@ -852,6 +859,21 @@ public class JsonSchemaWorkerIntegrationTest {
 			), 
 			data.getAnnotations());
 		}, MAX_WAIT_MS);
+		
+		
+		List<ColumnModel> viewColumns = columnModleManager.createColumnModels(adminUserInfo,
+				List.of(new ColumnModel().setName("conditionalLong").setColumnType(ColumnType.INTEGER),
+						new ColumnModel().setName("myAnnotation").setColumnType(ColumnType.STRING).setMaximumSize(100L),
+						new ColumnModel().setName("someConditional").setColumnType(ColumnType.STRING).setMaximumSize(200L),
+						new ColumnModel().setName("unconditionalDefault").setColumnType(ColumnType.INTEGER)));
+		EntityView view = asynchronousJobWorkerHelper.createEntityView(adminUserInfo, "derivedView", projectId,
+				viewColumns.stream().map(ColumnModel::getId).collect(Collectors.toList()), List.of(projectId),
+				ViewTypeMask.Folder.getMask(), false);
+		
+		String sql = String.format("select * from %s where row_id = %d", view.getId(), KeyFactory.stringToKey(folderId));
+		asynchronousJobWorkerHelper.assertQueryResult(adminUserInfo, sql, (r)->{
+			assertQueryResults(r, null, "myAnnotationValue", null, null);
+		}, MAX_WAIT_MS);
 
 		// create the schema
 		String fileName = "schema/DerivedConditionalConst.json";
@@ -877,6 +899,10 @@ public class JsonSchemaWorkerIntegrationTest {
 			data.getAnnotations());
 		}, MAX_WAIT_MS);
 		
+		asynchronousJobWorkerHelper.assertQueryResult(adminUserInfo, sql, (r)->{
+			assertQueryResults(r, "999", "myAnnotationValue", "someBoolean was true", "456");
+		}, MAX_WAIT_MS);
+		
 		// Now we put an explicit property that should be replicated as well
 		folderJson.put("someBoolean", false);
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
@@ -889,6 +915,10 @@ public class JsonSchemaWorkerIntegrationTest {
 				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "unconditionalDefault", AnnotationType.LONG, List.of("456"), true)
 			), 
 			data.getAnnotations());
+		}, MAX_WAIT_MS);
+		
+		asynchronousJobWorkerHelper.assertQueryResult(adminUserInfo, sql, (r)->{
+			assertQueryResults(r, "999", "myAnnotationValue", "someBoolean was false", "456");
 		}, MAX_WAIT_MS);
 		
 		// Now switch the boolean
@@ -905,6 +935,28 @@ public class JsonSchemaWorkerIntegrationTest {
 			), 
 			data.getAnnotations());
 		}, MAX_WAIT_MS);
+		
+		asynchronousJobWorkerHelper.assertQueryResult(adminUserInfo, sql, (r)->{
+			assertQueryResults(r, "999", "myAnnotationValue", "someBoolean was true", "456");
+		}, MAX_WAIT_MS);
+	}
+	
+	/**
+	 * Helper to assert the expected values for a query result that returns a single row.
+	 * @param expected
+	 * @param bundle
+	 */
+	void assertQueryResults(QueryResultBundle bundle, String...values){
+		assertNotNull(bundle);
+		assertEquals(1L, bundle.getQueryCount());
+		assertNotNull(bundle.getQueryResult());
+		assertNotNull(bundle.getQueryResult().getQueryResults());
+		assertNotNull(bundle.getQueryResult().getQueryResults().getRows());
+		assertEquals(1, bundle.getQueryResult().getQueryResults().getRows().size());
+		Row row = bundle.getQueryResult().getQueryResults().getRows().get(0);
+		assertNotNull(row);
+		assertNotNull(row.getValues());
+		assertEquals(Arrays.asList(values), row.getValues());
 	}
 	
 	@Test

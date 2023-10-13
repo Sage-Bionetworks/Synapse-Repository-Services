@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,7 +40,6 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.ListUtils;
-import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -3666,6 +3666,55 @@ public class TableIndexDAOImplTest {
 		// change the etag of the first entity
 		ObjectDataDTO first = dtos.get(0);
 		first.setEtag(first.getEtag()+"updated");
+		List<Long> toUpdate = Lists.newArrayList(first.getId());
+		tableIndexDAO.deleteObjectData(mainType, toUpdate);
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(first));
+		
+		long limit = 100L;
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
+		assertNotNull(results);
+		Set<Long> expected = new HashSet<Long>(toUpdate);
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * An update to a ObjectDataDTO that does not change the etag or benefactor
+	 * should still show up with a call to getOutOfDateRowsForView().
+	 */
+	@Test
+	public void testGetOutOfDateRowsForViewWithHashCodeChange(){
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+		int rowCount = 2;
+		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, indexDescription);
+		
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
+
+		// add all of the rows to the view.
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
+		
+		// change the etag of the first entity
+		ObjectDataDTO first = dtos.get(0);
+		int startHashCode = first.hashCode();
+
+		ObjectAnnotationDTO anno = new ObjectAnnotationDTO(first);
+		anno.setKey("multiValue");
+		anno.setType(AnnotationType.STRING);
+		anno.setValue(List.of("a new value"));
+		anno.setDerived(true);
+		first.getAnnotations().add(anno);
+		
+		assertNotEquals(startHashCode, first.hashCode());
+				
 		List<Long> toUpdate = Lists.newArrayList(first.getId());
 		tableIndexDAO.deleteObjectData(mainType, toUpdate);
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(first));

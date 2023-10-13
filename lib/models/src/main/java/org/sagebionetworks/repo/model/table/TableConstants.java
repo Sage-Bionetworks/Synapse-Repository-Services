@@ -36,6 +36,7 @@ public class TableConstants {
 	public static final String ROW_ETAG = "ROW_ETAG";
 	public static final String ROW_BENEFACTOR = "ROW_BENEFACTOR";
 	public static final String ROW_SEARCH_CONTENT = "ROW_SEARCH_CONTENT";
+	public static final String ROW_HASH_CODE = "ROW_HASH_CODE";
 	
 	/**
 	 * For a given view alias, get the benefactor column name.
@@ -74,7 +75,7 @@ public class TableConstants {
 	 * ROW_VERSION
 	 */
 	public static final Set<String> RESERVED_COLUMNS_NAMES = new HashSet<String>(
-			Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, ROW_SEARCH_CONTENT));
+			Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, ROW_SEARCH_CONTENT, ROW_HASH_CODE));
 
 	/**
 	 * The Map of reserved column names like ROW_ID and
@@ -159,6 +160,7 @@ public class TableConstants {
 	public static final String OBJECT_REPLICATION_COL_FILE_BUCKET			= "FILE_BUCKET";
 	public static final String OBJECT_REPLICATION_COL_FILE_KEY			    = "FILE_KEY";
 	public static final String OBJECT_REPLICATION_COL_FILE_NAME			    = "FILE_NAME";
+	public static final String OBJECT_REPLICATION_COL_HASH_CODE			    = "HASH_CODE";
 
 	// REPLICATION_SYNC_EXPIRATION
 	public static final String REPLICATION_SYNC_EXPIRATION_TABLE			= "REPLICATION_SYNC_EXPIRATION";
@@ -238,8 +240,9 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE + ","
 			+ OBJECT_REPLICATION_COL_FILE_BUCKET		+ ","
 			+ OBJECT_REPLICATION_COL_FILE_KEY			+ ","
-			+ OBJECT_REPLICATION_COL_FILE_NAME
-			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+			+ OBJECT_REPLICATION_COL_FILE_NAME			+ ","
+			+ OBJECT_REPLICATION_COL_HASH_CODE
+			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 			+ " ON DUPLICATE KEY UPDATE "
 			+ OBJECT_REPLICATION_COL_CUR_VERSION 		+ "=?,"
 			+ OBJECT_REPLICATION_COL_CREATED_BY 		+ "=?,"
@@ -261,7 +264,8 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE + "=?,"
 			+ OBJECT_REPLICATION_COL_FILE_BUCKET		+ "=?,"
 			+ OBJECT_REPLICATION_COL_FILE_KEY			+ "=?,"
-			+ OBJECT_REPLICATION_COL_FILE_NAME			+ "=?";
+			+ OBJECT_REPLICATION_COL_FILE_NAME			+ "=?,"
+			+ OBJECT_REPLICATION_COL_HASH_CODE			+ "=?";
 	
 	public static final String TRUNCATE_OBJECT_REPLICATION_TABLE = 
 			"DELETE FROM "+OBJECT_REPLICATION_TABLE;	

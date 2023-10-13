@@ -1179,7 +1179,7 @@ public class SQLUtilsTest {
 		String results = SQLUtils.createCardinalitySql(list, tableId);
 		
 		assertEquals(
-			"SELECT MAX(0) AS ROW_BENEFACTOR, MAX(0) AS ROW_ETAG, MAX(0) AS ROW_ID, MAX(0) AS ROW_SEARCH_CONTENT, MAX(0) AS ROW_VERSION FROM T999", results
+			"SELECT MAX(0) AS ROW_BENEFACTOR, MAX(0) AS ROW_ETAG, MAX(0) AS ROW_HASH_CODE, MAX(0) AS ROW_ID, MAX(0) AS ROW_SEARCH_CONTENT, MAX(0) AS ROW_VERSION FROM T999", results
 		);
 	}
 	
@@ -1699,7 +1699,7 @@ public class SQLUtilsTest {
 		StringBuilder builder = new StringBuilder();
 		// call under test
 		SQLUtils.buildInsertValues(builder, metaList);
-		assertEquals("ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_, _DBL_C3_, _C3_", builder.toString());
+		assertEquals("ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, ROW_HASH_CODE, _C1_, _C2_, _DBL_C3_, _C3_", builder.toString());
 	}
 
 	@Test
@@ -1721,6 +1721,7 @@ public class SQLUtilsTest {
 				+ " R.OBJECT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(R.HASH_CODE) AS HASH_CODE,"
 				+ " MAX(IF(A.ANNO_KEY ='string', A.STRING_VALUE, NULL)) AS _C0_,"
 				+ " MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C1_,"
 				+ " MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_VALUE, NULL)) AS _C1_,"
@@ -1763,6 +1764,7 @@ public class SQLUtilsTest {
 				+ " R.OBJECT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(R.HASH_CODE) AS HASH_CODE,"
 				+ " MAX(R.OBJECT_ID) AS OBJECT_ID,"
 				+ " MAX(R.NAME) AS NAME,"
 				+ " MAX(R.DESCRIPTION) AS DESCRIPTION,"
@@ -1899,7 +1901,8 @@ public class SQLUtilsTest {
 		assertEquals("R.OBJECT_ID"
 				+ ", R.OBJECT_VERSION"
 				+ ", MAX(R.ETAG) AS ETAG"
-				+ ", MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID", builder.toString());
+				+ ", MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID"
+				+ ", MAX(R.HASH_CODE) AS HASH_CODE", builder.toString());
 	}
 
 	@Test
@@ -1917,6 +1920,7 @@ public class SQLUtilsTest {
 				+ " R.OBJECT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(R.HASH_CODE) AS HASH_CODE,"
 				+ " MAX(IF(A.ANNO_KEY ='string', A.STRING_VALUE, NULL)) AS _C1_,"
 				+ " MAX(R.OBJECT_ID) AS OBJECT_ID"
 				+ " FROM"
@@ -1980,6 +1984,7 @@ public class SQLUtilsTest {
 				+ " R.OBJECT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(R.HASH_CODE) AS HASH_CODE,"
 				+ " MAX(IF(A.ANNO_KEY ='string', A.STRING_VALUE, NULL)) AS _C1_,"
 				+ " MAX(R.OBJECT_ID) AS OBJECT_ID"
 				+ " FROM"
@@ -1999,12 +2004,13 @@ public class SQLUtilsTest {
 		String filter = " the-filter";
 		List<ColumnMetadata> metadata = ImmutableList.of(one, id);
 		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, filter);
-		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
+		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, ROW_HASH_CODE, _C1_, _C2_)"
 				+ " SELECT"
 				+ " R.OBJECT_ID,"
 				+ " R.OBJECT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(R.HASH_CODE) AS HASH_CODE,"
 				+ " MAX(IF(A.ANNO_KEY ='string', A.STRING_VALUE, NULL)) AS _C1_,"
 				+ " MAX(R.OBJECT_ID) AS OBJECT_ID"
 				+ " FROM"
@@ -2022,11 +2028,12 @@ public class SQLUtilsTest {
 		String filter = " the-filter";
 		List<ColumnMetadata> metadata = ImmutableList.of(one);
 		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, filter);
-		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _DBL_C3_, _C3_)"
+		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, ROW_HASH_CODE, _DBL_C3_, _C3_)"
 				+ " SELECT"
 				+ " R.OBJECT_ID, R.OBJECT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(R.HASH_CODE) AS HASH_CODE,"
 				+ " MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C3_,"
 				+ " MAX(IF(A.ANNO_KEY ='double', A.DOUBLE_VALUE, NULL)) AS _C3_"
 				+ " FROM OBJECT_REPLICATION R"
