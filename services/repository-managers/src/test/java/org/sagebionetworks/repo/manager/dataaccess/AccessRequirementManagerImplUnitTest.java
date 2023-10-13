@@ -15,7 +15,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl.DEFAULT_LIMIT;
@@ -1990,13 +1989,7 @@ public class AccessRequirementManagerImplUnitTest {
 		verify(accessRequirementDAO).getDynamicallyBoundAccessRequirementIdsForSubject(subject);
 		verify(accessRequirementDAO, never()).removeDynamicallyBoundAccessRequirementsFromSubject(any(), any());
 		verify(accessRequirementDAO).addDynamicallyBoundAccessRequirmentsToSubject(subject, expectedAdd);
-		
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(
-			new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId("111").setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(1L)
-		);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(
-			new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId("222").setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(1L)
-		);
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 	
 	@Test
@@ -2011,15 +2004,7 @@ public class AccessRequirementManagerImplUnitTest {
 		verify(accessRequirementDAO).getDynamicallyBoundAccessRequirementIdsForSubject(subject);
 		verify(accessRequirementDAO).removeDynamicallyBoundAccessRequirementsFromSubject(subject, expectedToRemove);
 		verify(accessRequirementDAO, never()).addDynamicallyBoundAccessRequirmentsToSubject(any(), any());
-		
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(
-			new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId("111").setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(1L)
-		);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(
-			new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId("222").setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(1L)
-		);
-		
-		verifyNoMoreInteractions(mockTransactionalMessenger);
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 	
 	@Test
@@ -2049,20 +2034,7 @@ public class AccessRequirementManagerImplUnitTest {
 		List<Long> expectedToRemove = List.of(444L,555L);
 		verify(accessRequirementDAO).removeDynamicallyBoundAccessRequirementsFromSubject(subject, expectedToRemove);
 		verify(accessRequirementDAO).addDynamicallyBoundAccessRequirmentsToSubject(subject, expectedAdd);
-		
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(
-			new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId("222").setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(1L)
-		);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(
-			new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId("333").setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(1L)
-		);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(
-			new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId("444").setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(1L)
-		);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(
-			new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId("555").setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(1L)
-		);
-		verifyNoMoreInteractions(mockTransactionalMessenger);
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 }

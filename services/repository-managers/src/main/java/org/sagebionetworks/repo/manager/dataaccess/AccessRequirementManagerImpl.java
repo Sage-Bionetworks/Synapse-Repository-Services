@@ -13,7 +13,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,7 +26,6 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -651,12 +649,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (!toAdd.isEmpty()) {
 			accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subject, toAdd);
 		}
- 
-		Set<Long> modifiedArs = Stream.concat(toRemove.stream(), toAdd.stream()).collect(Collectors.toSet());
-		
-		// This is a system change, use the admin user
-		sendChangeMessage(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), ChangeType.UPDATE, modifiedArs);
-		
 	}
 	
 	void sendChangeMessage(Long userId, ChangeType changeType, Collection<Long> ids) {
