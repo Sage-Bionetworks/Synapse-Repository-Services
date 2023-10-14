@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -213,6 +214,7 @@ public class TableManagerSupportTest {
 	private ViewScopeType scopeType;
 	
 	private LockContext lockContext;
+	private String emptyStringMD5;
 	
 	@BeforeEach
 	public void before() throws Exception {
@@ -250,7 +252,7 @@ public class TableManagerSupportTest {
 		scopeType = new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.File.getMask());
 		
 		lockContext = new LockContext(ContextType.Query, idAndVersion);
-		
+		emptyStringMD5 = DigestUtils.md5Hex("");
 	}
 	
 	
@@ -1027,11 +1029,15 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetIndexDescriptionWithTable() {
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.table);
+		doReturn(Optional.of(14L)).when(managerSpy).getLastTableChangeNumber(any());
 		// call under test
-		IndexDescription result = manager.getIndexDescription(idAndVersion);
-		IndexDescription expected = new TableIndexDescription(idAndVersion);
+		IndexDescription result = managerSpy.getIndexDescription(idAndVersion);
+		IndexDescription expected = new TableIndexDescription(idAndVersion, 14L);
 		assertEquals(expected, result);
+		String expectedHash = DigestUtils.md5Hex("+syn123-14");
+		assertEquals(expectedHash, result.getTableHash());
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
+		verify(managerSpy).getLastTableChangeNumber(idAndVersion);
 		verifyZeroInteractions(mockMaterializedViewDao);
 	}
 	
@@ -1039,9 +1045,11 @@ public class TableManagerSupportTest {
 	public void testGetIndexDescriptionWithEntityView() {
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.entityview);
 		// call under test
-		IndexDescription result = manager.getIndexDescription(idAndVersion);
+		IndexDescription result = managerSpy.getIndexDescription(idAndVersion);
 		IndexDescription expected = new ViewIndexDescription(idAndVersion, TableType.entityview);
 		assertEquals(expected, result);
+		assertEquals(emptyStringMD5, result.getTableHash());
+		verify(managerSpy, never()).getLastTableChangeNumber(any());
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
 		verifyZeroInteractions(mockMaterializedViewDao);
 	}
@@ -1050,9 +1058,11 @@ public class TableManagerSupportTest {
 	public void testGetIndexDescriptionWithDataset() {
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.dataset);
 		// call under test
-		IndexDescription result = manager.getIndexDescription(idAndVersion);
+		IndexDescription result = managerSpy.getIndexDescription(idAndVersion);
 		IndexDescription expected = new ViewIndexDescription(idAndVersion, TableType.dataset);
 		assertEquals(expected, result);
+		assertEquals(emptyStringMD5, result.getTableHash());
+		verify(managerSpy, never()).getLastTableChangeNumber(any());
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
 		verifyZeroInteractions(mockMaterializedViewDao);
 	}
@@ -1061,9 +1071,11 @@ public class TableManagerSupportTest {
 	public void testGetIndexDescriptionWithSubmissionView() {
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.submissionview);
 		// call under test
-		IndexDescription result = manager.getIndexDescription(idAndVersion);
+		IndexDescription result = managerSpy.getIndexDescription(idAndVersion);
 		IndexDescription expected = new ViewIndexDescription(idAndVersion, TableType.submissionview);
 		assertEquals(expected, result);
+		assertEquals(emptyStringMD5, result.getTableHash());
+		verify(managerSpy, never()).getLastTableChangeNumber(any());
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
 		verifyZeroInteractions(mockMaterializedViewDao);
 	}
@@ -1071,7 +1083,7 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetIndexDescriptionWithMaterializedView() {
 		IdAndVersion tableId = IdAndVersion.parse("syn111");
-		IndexDescription tableIndexDescription = new TableIndexDescription(tableId);
+		IndexDescription tableIndexDescription = new TableIndexDescription(tableId, 11L);
 		IdAndVersion fileViewId = IdAndVersion.parse("syn222");
 		IndexDescription fileViewIndexDescription = new ViewIndexDescription(fileViewId, TableType.entityview);
 		IdAndVersion submissionViewId = IdAndVersion.parse("syn333");
@@ -1080,9 +1092,10 @@ public class TableManagerSupportTest {
 				EntityType.entityview, EntityType.submissionview);
 		when(mockMaterializedViewDao.getSourceTablesIds(any()))
 				.thenReturn(Sets.newHashSet(tableId, fileViewId, submissionViewId));
+		doReturn(Optional.of(11L)).when(managerSpy).getLastTableChangeNumber(any());
 		
 		// call under test
-		IndexDescription result = manager.getIndexDescription(idAndVersion);
+		IndexDescription result = managerSpy.getIndexDescription(idAndVersion);
 		
 		IndexDescription expected = new MaterializedViewIndexDescription(idAndVersion,
 				Arrays.asList(tableIndexDescription, fileViewIndexDescription, submissionViewIndexDescription));
@@ -1093,6 +1106,7 @@ public class TableManagerSupportTest {
 		verify(mockNodeDao).getNodeTypeById(fileViewId.getId().toString());
 		verify(mockNodeDao).getNodeTypeById(submissionViewId.getId().toString());
 		verify(mockNodeDao, times(4)).getNodeTypeById(any());
+		verify(managerSpy).getLastTableChangeNumber(tableId);
 		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
 	}
 	

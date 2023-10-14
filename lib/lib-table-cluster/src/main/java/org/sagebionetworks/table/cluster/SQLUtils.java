@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_HASH_CODE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_VERSION;
@@ -22,6 +23,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.P_LIMIT;
 import static org.sagebionetworks.repo.model.table.TableConstants.P_OFFSET;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_HASH_CODE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_SEARCH_CONTENT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -1561,7 +1563,8 @@ public class SQLUtils {
 		builder.append(OBJECT_REPLICATION_COL_OBJECT_VERSION);
 		buildObjectReplicationSelect(builder,
 				OBEJCT_REPLICATION_COL_ETAG,
-				OBJECT_REPLICATION_COL_BENEFACTOR_ID);
+				OBJECT_REPLICATION_COL_BENEFACTOR_ID,
+				OBJECT_REPLICATION_COL_HASH_CODE);
 	}
 	/**
 	 * For each provided name: ', MAX(R.name) AS name'
@@ -1608,6 +1611,8 @@ public class SQLUtils {
 		builder.append(ROW_ETAG);
 		builder.append(", ");
 		builder.append(ROW_BENEFACTOR);
+		builder.append(", ");
+		builder.append(ROW_HASH_CODE);
 		for(ColumnMetadata meta: metadata){
 			if (ColumnType.DOUBLE.equals(meta.getColumnModel().getColumnType())) {
 				builder.append(", _DBL");

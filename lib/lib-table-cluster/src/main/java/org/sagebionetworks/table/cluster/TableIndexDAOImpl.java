@@ -795,7 +795,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					throws SQLException {
 				ObjectDataDTO dto = sorted.get(i);
 				int parameterIndex = 1;
-				int updateOffset = 20;
+				int updateOffset = 21;
 				
 				ps.setString(parameterIndex++, mainType.name());
 				ps.setLong(parameterIndex++, dto.getId());
@@ -918,6 +918,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					ps.setNull(parameterIndex + updateOffset, java.sql.Types.VARCHAR);
 				}
+				int hashCode = dto.hashCode();
+				ps.setLong(parameterIndex++, hashCode);
+				ps.setLong(parameterIndex + updateOffset, hashCode);
+				
 			}
 
 			@Override
