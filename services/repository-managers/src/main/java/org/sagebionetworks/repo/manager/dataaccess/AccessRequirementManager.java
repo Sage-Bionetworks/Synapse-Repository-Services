@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -33,6 +34,8 @@ public interface AccessRequirementManager {
 	 * @throws DatastoreException 
 	 */
 	AccessRequirement getAccessRequirement(String requirementId) throws DatastoreException, NotFoundException;
+	
+	Optional<AccessRequirement> getAccessRequirementVersion(String requirementId, Long versionNumber);
 
 	/**
 	 *  get a page of the access requirements for an entity

@@ -44,6 +44,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -124,6 +125,12 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			+ COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER + " = REV." + COL_ACCESS_REQUIREMENT_REVISION_NUMBER + ")"
 			+ " WHERE REQ." + COL_ACCESS_REQUIREMENT_ID + " IN (:" + COL_ACCESS_REQUIREMENT_ID.toLowerCase() + ")"
 			+ " ORDER BY REQ." + COL_ACCESS_REQUIREMENT_ID;
+	
+	private static final String SELECT_REQUIREMENT_BY_ID_AND_VERSION = "SELECT * FROM " + TABLE_ACCESS_REQUIREMENT
+			+ " REQ JOIN " + TABLE_ACCESS_REQUIREMENT_REVISION + " REV" + " ON (REQ." + COL_ACCESS_REQUIREMENT_ID
+			+ " = REV." + COL_ACCESS_REQUIREMENT_REVISION_OWNER_ID + ")"
+			+ " WHERE REQ." + COL_ACCESS_REQUIREMENT_ID + " =:" + COL_ACCESS_REQUIREMENT_ID
+			+ " AND REV." + COL_ACCESS_REQUIREMENT_REVISION_NUMBER + "=:" + COL_ACCESS_REQUIREMENT_REVISION_NUMBER;
 
 	private static final String GET_ACCESS_REQUIREMENTS_IDS_FOR_SUBJECTS_SQL = "SELECT DISTINCT "
 			+ COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID + " FROM " + TABLE_SUBJECT_ACCESS_REQUIREMENT + " WHERE "
@@ -288,6 +295,20 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			throw new NotFoundException("An access requirement with id " + id + " cannot be found.");
 		}
 		return results.get(0);
+	}
+	
+	@Override
+	public Optional<AccessRequirement> getVersion(String id, Long versionNumber) throws NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource()
+				.addValue(COL_ACCESS_REQUIREMENT_ID, id)
+				.addValue(COL_ACCESS_REQUIREMENT_REVISION_NUMBER, versionNumber);
+
+		try {
+			AccessRequirement accessRequirement = namedJdbcTemplate.queryForObject(SELECT_REQUIREMENT_BY_ID_AND_VERSION, param, requirementMapper);
+			return Optional.of(accessRequirement);
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
 	}
 
 	@Override

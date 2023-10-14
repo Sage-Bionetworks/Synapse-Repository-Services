@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -212,7 +213,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
 	}
-	
+		
 	@Test
 	public void testMultipleNodes() throws Exception {
 		// Create a new object
@@ -1293,6 +1294,31 @@ public class DBOAccessRequirementDAOImplTest {
 		AccessRequirement ar = accessRequirementDAO.get(AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.toString());
 		assertTrue(ar instanceof LockAccessRequirement);
 		assertEquals(AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID, ar.getId());
+	}
+	
+	@Test
+	public void testGetVersion() {
+		// Call under test
+		assertTrue(accessRequirementDAO.getVersion("123", -1L).isEmpty());
+		
+		accessRequirement = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+		
+		Long versionNumber = accessRequirement.getVersionNumber();
+		
+		// Call under test
+		assertEquals(accessRequirement, accessRequirementDAO.getVersion(accessRequirement.getId().toString(), accessRequirement.getVersionNumber()).get());
+		
+		accessRequirement.setName("Updated");
+		accessRequirement.setVersionNumber(versionNumber + 1);
+		
+		accessRequirement = accessRequirementDAO.update(accessRequirement);
+		
+		assertNotEquals(versionNumber, accessRequirement.getVersionNumber());
+		
+		assertEquals(accessRequirement, accessRequirementDAO.getVersion(accessRequirement.getId().toString(), accessRequirement.getVersionNumber()).get());
+		
+		// Delete the access requirements
+		accessRequirementDAO.delete(accessRequirement.getId().toString());
 	}
 		
 	/**

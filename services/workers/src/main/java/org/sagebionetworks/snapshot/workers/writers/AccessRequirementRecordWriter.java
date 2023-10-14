@@ -10,9 +10,10 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 import org.springframework.stereotype.Service;
 
@@ -43,15 +44,22 @@ public class AccessRequirementRecordWriter implements ObjectRecordWriter {
 		List<KinesisObjectSnapshotRecord<AccessRequirement>> records = new ArrayList<>(messages.size());
 		
 		messages.forEach(message -> {
-			try {
-				AccessRequirement ar = arManager.getAccessRequirement(message.getObjectId());
+			if (ChangeType.DELETE == message.getChangeType()) {
 				
-				records.add(
-					KinesisObjectSnapshotRecord.map(message, ar)
+				// On a delete we do not have the data, just log the id
+				AccessRequirement ar = new ManagedACTAccessRequirement()
+					.setId(Long.valueOf(message.getObjectId()))
+					.setConcreteType(null);
+				
+				records.add(KinesisObjectSnapshotRecord.map(message, ar));
+				
+			} else {
+				arManager.getAccessRequirementVersion(message.getObjectId(), message.getObjectVersion()).ifPresentOrElse(
+					ar -> records.add(
+						KinesisObjectSnapshotRecord.map(message, ar)
+					), 
+					() -> log.warn("Could not find an ar with id " + message.getObjectId() + " and version " + message.getObjectVersion() + " (changeType: " +message.getChangeType() + ")")
 				);
-				
-			} catch (NotFoundException e) {
-				log.warn("Could not find an ar with id " + message.getObjectId() + "(changeType: " +message.getChangeType() + ")");
 			}
 		});
 		
