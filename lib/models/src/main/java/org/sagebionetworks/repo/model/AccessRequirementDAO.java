@@ -82,14 +82,6 @@ public interface AccessRequirementDAO {
 	AccessRequirementStats getAccessRequirementStats(List<Long> subjectIds, RestrictableObjectType type);
 
 	/**
-	 * Retrieving the subjects under a given access requirement
-	 * 
-	 * @param accessRequirementId
-	 * @return
-	 */
-	List<RestrictableObjectDescriptor> getSubjects(long accessRequirementId);
-
-	/**
 	 * Retrieve information to update an AccessRequirement.
 	 * 
 	 * @param accessRequirementId
