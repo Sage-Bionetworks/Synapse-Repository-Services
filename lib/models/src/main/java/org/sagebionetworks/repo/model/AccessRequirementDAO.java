@@ -2,9 +2,12 @@ package org.sagebionetworks.repo.model;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessRequirementDAO {
@@ -30,6 +33,14 @@ public interface AccessRequirementDAO {
 	 * @throws NotFoundException
 	 */
 	AccessRequirement get(String id) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * 
+	 * @param id
+	 * @param versionNumber
+	 * @return The access requirement with the given id and version
+	 */
+	Optional<AccessRequirement> getVersion(String id, Long versionNumber);
 	
 	/**
 	 * Updates the 'shallow' properties of an object.
@@ -185,11 +196,12 @@ public interface AccessRequirementDAO {
 	 * @param arIds
 	 */
 	void removeDynamicallyBoundAccessRequirementsFromSubject(RestrictableObjectDescriptor subject, List<Long> arIds);
+	
+	List<ChangeMessage> getMissingArChangeMessages(long limit);
 
 	/**
 	 * Bootstrap any access requirements.
 	 */
-	void bootstrap();
-		
+	void bootstrap();		
 	
 }

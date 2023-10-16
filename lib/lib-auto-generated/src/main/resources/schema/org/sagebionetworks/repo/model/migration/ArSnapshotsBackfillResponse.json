@@ -1,0 +1,14 @@
+{
+	"description": "AR snapshots backfill.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminResponse"
+		}
+	],
+	"properties": {
+         "count":{
+         	"description": "Number of changes added to the DB",
+        	"type":"integer"
+         }
+	}
+}

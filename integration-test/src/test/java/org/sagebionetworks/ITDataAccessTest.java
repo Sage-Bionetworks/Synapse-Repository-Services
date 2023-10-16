@@ -149,12 +149,14 @@ public class ITDataAccessTest {
 						+ " snapshot_date %s and"
 						+ " change_timestamp %s and"
 						+ " id = %s and"
+						+ " version_number = %s and"
 						+ " change_type = 'UPDATE' and"
 						+ " is_idu_public = true and"
 						+ " concrete_type = '%s'",
 				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
 				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(now),
 				managedAR.getId(),
+				managedAR.getVersionNumber(),
 				managedAR.getConcreteType());
 		
 		warehouseHelper.assertWarehouseQuery(query);
