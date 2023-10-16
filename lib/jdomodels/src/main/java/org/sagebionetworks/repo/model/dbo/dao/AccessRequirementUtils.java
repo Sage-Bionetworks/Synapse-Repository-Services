@@ -95,7 +95,7 @@ public class AccessRequirementUtils {
 		dto.setModifiedBy(revision.getModifiedBy().toString());
 		dto.setModifiedOn(new Date(revision.getModifiedOn()));
 		dto.setAccessType(ACCESS_TYPE.valueOf(dbo.getAccessType()));
-		dto.setVersionNumber(dbo.getCurrentRevNumber());
+		dto.setVersionNumber(revision.getNumber());
 		if (dto instanceof ManagedACTAccessRequirement) {
 			((ManagedACTAccessRequirement) dto).setIsTwoFaRequired(dbo.getIsTwoFaRequired());
 		}

@@ -153,4 +153,9 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * @return
 	 */
 	public DBOSentMessage getSentMessage(String objectId, Long objectVersion, ObjectType objectType);
+
+	/**
+	 *  Store the change messages as is, generates a new change number
+	 */
+	List<ChangeMessage> storeChangeMessages(List<ChangeMessage> changes);
 }

@@ -150,5 +150,7 @@ public interface AccessRequirementManager {
 	 */
 	void setDynamicallyBoundAccessRequirementsForSubject(RestrictableObjectDescriptor subject, Set<Long> newArIds);
 
+	void backFillAccessRequirementSnapshots(long limit);
+
 
 }

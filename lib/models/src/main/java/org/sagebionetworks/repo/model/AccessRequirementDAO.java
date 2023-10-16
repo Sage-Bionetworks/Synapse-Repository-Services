@@ -6,6 +6,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessRequirementDAO {
@@ -194,6 +196,8 @@ public interface AccessRequirementDAO {
 	 * @param arIds
 	 */
 	void removeDynamicallyBoundAccessRequirementsFromSubject(RestrictableObjectDescriptor subject, List<Long> arIds);
+	
+	List<ChangeMessage> getMissingArChangeMessages(long limit);
 
 	/**
 	 * Bootstrap any access requirements.

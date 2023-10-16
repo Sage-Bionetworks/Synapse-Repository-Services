@@ -74,6 +74,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -722,6 +724,39 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 				.setEtag("start")
 				.setName("Invalid Annotations Lock");
 		bootstrap(lock);
+	}
+	
+	@Override
+	public List<ChangeMessage> getMissingArChangeMessages(long limit) {
+		String sql = "SELECT R.OWNER_ID, R.NUMBER, R.MODIFIED_ON, R.MODIFIED_BY"
+				+ "	FROM ACCESS_REQUIREMENT_REVISION R"
+				+ " LEFT JOIN CHANGES C ON (R.OWNER_ID = C.OBJECT_ID AND R.NUMBER = C.OBJECT_VERSION AND C.OBJECT_TYPE = 'ACCESS_REQUIREMENT')"
+				+ "	WHERE C.OBJECT_ID IS NULL"
+				+ " ORDER BY R.OWNER_ID, R.NUMBER"
+				+ " LIMIT :limit";
+		
+		return namedJdbcTemplate.query(sql, Map.of("limit", limit), (rs, rowNumber) -> {
+			Long id = rs.getLong("OWNER_ID");
+			Long version = rs.getLong("NUMBER");
+			Long modifiedOn = rs.getLong("MODIFIED_ON");
+			Long modifiedBy = rs.getLong("MODIFIED_BY");
+			
+			ChangeMessage message = new ChangeMessage()
+				.setObjectId(id.toString())
+				.setObjectVersion(version)
+				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
+				.setUserId(modifiedBy)				
+				.setTimestamp(new Date(modifiedOn));
+			
+			// The invalid annotation ar id starts from 1 instead of the default 0
+			if (id.equals(INVALID_ANNOTATIONS_LOCK_ID) || DEFAULT_VERSION.equals(version)) {
+				message.setChangeType(ChangeType.CREATE);
+			} else {
+				message.setChangeType(ChangeType.UPDATE);
+			}
+			
+			return message;
+		});
 	}
 	
 	/**

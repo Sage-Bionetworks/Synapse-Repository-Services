@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResult;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSortField;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
+import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -655,6 +656,16 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (!toAdd.isEmpty()) {
 			accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subject, toAdd);
 		}
+	}
+	
+	@Autowired
+	private DBOChangeDAO changeDao;
+	
+	@Override
+	@WriteTransaction
+	public void backFillAccessRequirementSnapshots(long limit) {
+		List<ChangeMessage> messages = accessRequirementDAO.getMissingArChangeMessages(limit);
+		changeDao.storeChangeMessages(messages);
 	}
 	
 	void sendChangeMessage(Long userId, ChangeType changeType, Long id, Long versionNumber) {

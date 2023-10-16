@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -143,6 +142,20 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	Clock clock;
 	
 	private TableMapping<DBOChange> rowMapper = new DBOChange().getTableMapping();
+	
+	@WriteTransaction
+	@Override
+	public List<ChangeMessage> storeChangeMessages(List<ChangeMessage> batch) {
+		List<DBOChange> changeDbos = ChangeMessageUtils.createDBOList(batch);
+
+		changeDbos.forEach( change -> {			
+			change.setChangeNumber(idGenerator.generateNewId(IdType.CHANGE_ID));
+		});
+		
+		basicDao.createOrUpdateBatch(changeDbos);
+		
+		return ChangeMessageUtils.createDTOList(changeDbos);
+	}
 
 	@WriteTransaction
 	@Override
