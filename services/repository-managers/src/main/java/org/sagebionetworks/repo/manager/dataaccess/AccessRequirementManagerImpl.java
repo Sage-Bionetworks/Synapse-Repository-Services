@@ -663,9 +663,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Override
 	@WriteTransaction
-	public void backFillAccessRequirementSnapshots(long limit) {
+	public long backFillAccessRequirementSnapshots(long limit) {
 		List<ChangeMessage> messages = accessRequirementDAO.getMissingArChangeMessages(limit);
-		changeDao.storeChangeMessages(messages);
+		return changeDao.storeChangeMessages(messages).size();
 	}
 	
 	void sendChangeMessage(Long userId, ChangeType changeType, Long id, Long versionNumber) {
