@@ -226,7 +226,12 @@ public class AccessRequirementManagerImplUnitTest {
 				ACCESS_TYPE.UPDATE);
 		
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(
-			new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId(ar.getId().toString()).setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(userInfo.getId())
+			new ChangeMessage()
+				.setChangeType(ChangeType.UPDATE)
+				.setObjectId(ar.getId().toString())
+				.setObjectVersion(ar.getVersionNumber())
+				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
+				.setUserId(userInfo.getId())
 		);
 		
 		
@@ -301,7 +306,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirementStats stats = new AccessRequirementStats();
 		stats.setRequirementIdSet(ars);
 		when(accessRequirementDAO.getAccessRequirementStats(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(stats);
-		when(accessRequirementDAO.create(any())).thenReturn(new LockAccessRequirement().setId(123L));
+		when(accessRequirementDAO.create(any())).thenReturn(new LockAccessRequirement().setId(123L).setVersionNumber(1L));
 
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 
@@ -327,7 +332,12 @@ public class AccessRequirementManagerImplUnitTest {
 
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(
-			new ChangeMessage().setObjectId("123").setChangeType(ChangeType.CREATE).setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(userInfo.getId())
+			new ChangeMessage()
+				.setObjectId("123")
+				.setObjectVersion(1L)
+				.setChangeType(ChangeType.CREATE)
+				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
+				.setUserId(userInfo.getId())
 		);
 	}
 
@@ -708,7 +718,12 @@ public class AccessRequirementManagerImplUnitTest {
 
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(
-			new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId(toUpdate.getId().toString()).setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(userInfo.getId())
+			new ChangeMessage()
+				.setChangeType(ChangeType.UPDATE)
+				.setObjectId(toUpdate.getId().toString())
+				.setObjectVersion(toUpdate.getVersionNumber())
+				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
+				.setUserId(userInfo.getId())
 		);
 	}
 
@@ -750,7 +765,12 @@ public class AccessRequirementManagerImplUnitTest {
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 		
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(
-			new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId(ar.getId().toString()).setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(userInfo.getId())
+			new ChangeMessage()
+				.setChangeType(ChangeType.UPDATE)
+				.setObjectId(ar.getId().toString())
+				.setObjectVersion(ar.getVersionNumber())
+				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
+				.setUserId(userInfo.getId())
 		);
 	}
 
@@ -878,6 +898,14 @@ public class AccessRequirementManagerImplUnitTest {
 		verify(mockAclDao).delete("1", ObjectType.ACCESS_REQUIREMENT);
 		verify(accessRequirementDAO).delete("1");
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(
+			new ChangeMessage()
+				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
+				.setObjectId(expectedAr.getId().toString())
+				.setObjectVersion(null)
+				.setUserId(userInfo.getId())
+				.setChangeType(ChangeType.DELETE)
+		);
 	}
 
 	@Test
@@ -1064,7 +1092,7 @@ public class AccessRequirementManagerImplUnitTest {
 		request.setEtag(current.getEtag());
 		request.setCurrentVersion(current.getVersionNumber());
 		
-		when(accessRequirementDAO.update(any())).thenReturn(new ManagedACTAccessRequirement().setId(current.getId()));
+		when(accessRequirementDAO.update(any())).thenReturn(new ManagedACTAccessRequirement().setId(current.getId()).setVersionNumber(2L));
 		
 		arm.convertAccessRequirement(userInfo, request);
 		
@@ -1081,7 +1109,12 @@ public class AccessRequirementManagerImplUnitTest {
 		assertEquals(userInfo.getId().toString(), updated.getModifiedBy());
 		assertFalse(updated.getEtag().equals(current.getEtag()));
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(
-			new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId(current.getId().toString()).setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(userInfo.getId())
+			new ChangeMessage()
+				.setChangeType(ChangeType.UPDATE)
+				.setObjectId(updated.getId().toString())
+				.setObjectVersion(updated.getVersionNumber())
+				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
+				.setUserId(userInfo.getId())
 		);
 	}
 

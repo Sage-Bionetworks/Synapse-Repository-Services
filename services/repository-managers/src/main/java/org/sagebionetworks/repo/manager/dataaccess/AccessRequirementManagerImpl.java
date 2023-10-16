@@ -3,13 +3,13 @@ package org.sagebionetworks.repo.manager.dataaccess;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResult;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSortField;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
+import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -61,6 +62,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.jrjc.JRJCHelper;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -235,7 +237,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		
 		T ar = (T) accessRequirementDAO.create(setDefaultValues(accessRequirement));
 		
-		sendChangeMessage(userInfo.getId(), ChangeType.CREATE, Collections.singleton(ar.getId()));
+		sendChangeMessage(userInfo.getId(), ChangeType.CREATE, ar.getId(), ar.getVersionNumber());
 		
 		return ar;
 	}
@@ -287,7 +289,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		LockAccessRequirement accessRequirement = newLockAccessRequirement(userInfo, entityId, jiraKey);
 		LockAccessRequirement ar = (LockAccessRequirement) accessRequirementDAO.create(setDefaultValues(accessRequirement));
 		
-		sendChangeMessage(userInfo.getId(), ChangeType.CREATE, Collections.singleton(ar.getId()));
+		sendChangeMessage(userInfo.getId(), ChangeType.CREATE, ar.getId(), ar.getVersionNumber());
 		
 		return ar;
 	}
@@ -295,6 +297,11 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Override
 	public AccessRequirement getAccessRequirement(String requirementId) throws DatastoreException, NotFoundException {
 		return accessRequirementDAO.get(requirementId);
+	}
+	
+	@Override
+	public Optional<AccessRequirement> getAccessRequirementVersion(String requirementId, Long versionNumber) {
+		return accessRequirementDAO.getVersion(requirementId, versionNumber);
 	}
 
 	@Override
@@ -355,7 +362,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		
 		T ar = (T) accessRequirementDAO.update(setDefaultValues(toUpdate));
 		
-		sendChangeMessage(userInfo.getId(), ChangeType.UPDATE, Collections.singleton(ar.getId()));
+		sendChangeMessage(userInfo.getId(), ChangeType.UPDATE, ar.getId(), ar.getVersionNumber());
 		
 		return ar;
 	}
@@ -380,7 +387,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		aclDao.delete(accessRequirementId, ObjectType.ACCESS_REQUIREMENT);
 		accessRequirementDAO.delete(accessRequirementId);
 		
-		sendChangeMessage(userInfo.getId(), ChangeType.DELETE, Collections.singleton(ar.getId()));
+		// When deleting we do not specify a version since all the history is cleared
+		sendChangeMessage(userInfo.getId(), ChangeType.DELETE, ar.getId(), null);
 	}
 
 	static <T extends AccessRequirement> T setDefaultValues(T ar) {
@@ -463,7 +471,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		
 		toUpdate = accessRequirementDAO.update(setDefaultValues(toUpdate));
 		
-		sendChangeMessage(userInfo.getId(), ChangeType.UPDATE, Collections.singleton(toUpdate.getId()));
+		sendChangeMessage(userInfo.getId(), ChangeType.UPDATE, toUpdate.getId(), toUpdate.getVersionNumber());
 		
 		return toUpdate;
 	}
@@ -651,15 +659,26 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		}
 	}
 	
-	void sendChangeMessage(Long userId, ChangeType changeType, Collection<Long> ids) {
-		ids.forEach( id -> {
-			transactionalMessenger.sendMessageAfterCommit(new ChangeMessage()
+	@Autowired
+	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
+	private DBOChangeDAO changeDao;
+	
+	@Override
+	@WriteTransaction
+	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
+	public long backFillAccessRequirementSnapshots(long limit) {
+		List<ChangeMessage> messages = accessRequirementDAO.getMissingArChangeMessages(limit);
+		return changeDao.storeChangeMessages(messages).size();
+	}
+	
+	void sendChangeMessage(Long userId, ChangeType changeType, Long id, Long versionNumber) {
+		transactionalMessenger.sendMessageAfterCommit(new ChangeMessage()
 					.setUserId(userId)
 					.setChangeType(changeType)
 					.setObjectType(ObjectType.ACCESS_REQUIREMENT)
 					.setObjectId(id.toString())
-			);
-		});
+					.setObjectVersion(versionNumber)
+		);
 	}
 	
 }
