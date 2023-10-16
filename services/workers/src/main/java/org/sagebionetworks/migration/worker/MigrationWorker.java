@@ -1,6 +1,7 @@
 package org.sagebionetworks.migration.worker;
 
-import org.sagebionetworks.repo.manager.migration.DatasetBackFillFileSummary;
+import java.io.IOException;
+
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -16,7 +17,6 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
-import org.sagebionetworks.repo.model.migration.DatasetBackfillRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.worker.AsyncJobRunner;
@@ -24,20 +24,14 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-
 @Service
 public class MigrationWorker implements AsyncJobRunner<AsyncMigrationRequest, AsyncMigrationResponse> {
 	
-	@Autowired
 	private MigrationManager migrationManager;
 
-	private DatasetBackFillFileSummary datasetBackFillFileSummary;
-	
 	@Autowired
-	public MigrationWorker(MigrationManager migrationManager, DatasetBackFillFileSummary datasetBackFillFileSummary) {
+	public MigrationWorker(MigrationManager migrationManager) {
 		this.migrationManager = migrationManager;
-		this.datasetBackFillFileSummary = datasetBackFillFileSummary;
 	}
 	
 	@Override
@@ -78,8 +72,6 @@ public class MigrationWorker implements AsyncJobRunner<AsyncMigrationRequest, As
 			return migrationManager.calculateOptimalRanges(user, (CalculateOptimalRangeRequest)req);
 		} else if (req instanceof BatchChecksumRequest) {
 			return migrationManager.calculateBatchChecksums(user, (BatchChecksumRequest)req);
-		} else if (req instanceof DatasetBackfillRequest) {
-			return datasetBackFillFileSummary.backFillDatasetFileSummary(user);
 		} else {
 			throw new IllegalArgumentException("AsyncMigrationRequest not supported.");
 		}
