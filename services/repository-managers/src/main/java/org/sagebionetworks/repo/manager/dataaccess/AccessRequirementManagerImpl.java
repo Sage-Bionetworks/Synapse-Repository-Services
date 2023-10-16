@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.jrjc.JRJCHelper;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -659,10 +660,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}
 	
 	@Autowired
+	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
 	private DBOChangeDAO changeDao;
 	
 	@Override
 	@WriteTransaction
+	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
 	public long backFillAccessRequirementSnapshots(long limit) {
 		List<ChangeMessage> messages = accessRequirementDAO.getMissingArChangeMessages(limit);
 		return changeDao.storeChangeMessages(messages).size();

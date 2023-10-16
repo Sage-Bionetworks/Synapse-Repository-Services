@@ -79,6 +79,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -727,6 +728,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 	
 	@Override
+	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
 	public List<ChangeMessage> getMissingArChangeMessages(long limit) {
 		String sql = "SELECT R.OWNER_ID, R.NUMBER, R.MODIFIED_ON, R.MODIFIED_BY"
 				+ "	FROM ACCESS_REQUIREMENT_REVISION R"

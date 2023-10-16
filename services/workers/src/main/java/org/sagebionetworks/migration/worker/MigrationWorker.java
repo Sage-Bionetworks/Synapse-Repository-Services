@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,6 +79,7 @@ public class MigrationWorker implements AsyncJobRunner<AsyncMigrationRequest, As
 		} else if (req instanceof BatchChecksumRequest) {
 			return migrationManager.calculateBatchChecksums(user, (BatchChecksumRequest)req);
 		} else if (req instanceof ArSnapshotsBackfillRequest) {
+			@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
 			long result = arManager.backFillAccessRequirementSnapshots(((ArSnapshotsBackfillRequest) req).getLimit());
 			return new ArSnapshotsBackfillResponse().setCount(result);
 		} else {

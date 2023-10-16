@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -1324,9 +1325,11 @@ public class DBOAccessRequirementDAOImplTest {
 	}
 		
 	@Autowired
+	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
 	private DBOChangeDAO changeDao;
 	
 	@Test
+	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
 	public void testGetMissingChangeMessages() {
 		changeDao.deleteAllChanges();
 		
