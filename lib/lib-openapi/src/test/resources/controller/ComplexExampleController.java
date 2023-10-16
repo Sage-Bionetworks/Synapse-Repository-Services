@@ -69,4 +69,14 @@ public class ComplexExampleController {
 	 */
 	@RequestMapping(value = "/complex-pet/redirected", method = RequestMethod.GET)
 	public void redirected(@RequestBody Boolean redirect) {}
+
+	/**
+	 * Example of an endpoint that returns void but is not redirected.
+	 *
+	 * @param name
+	 * 	the name of the pet
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/complex-pet/cat/{name}", method = RequestMethod.DELETE)
+	public void deleteCat(@PathVariable String name) {}
 }

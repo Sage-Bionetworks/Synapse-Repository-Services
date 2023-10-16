@@ -251,7 +251,7 @@ public class ControllerToControllerModelTranslator {
 	 */
 	String getResponseDescription(List<? extends DocTree> blockTags) {
 		Optional<String> returnComment = getReturnComment(blockTags);
-		return returnComment.isEmpty() ? null : returnComment.get();
+		return returnComment.isEmpty() ? "No response object description is provided." : returnComment.get();
 	}
 
 	/**

@@ -734,7 +734,7 @@ public class ControllerToControllerModelTranslatorTest {
 		List<? extends DocTree> blockTags = new ArrayList<>();
 
 		// call under test
-		assertEquals(null, translator.getResponseDescription(blockTags));
+		assertEquals("No response object description is provided.", translator.getResponseDescription(blockTags));
 		Mockito.verify(translator).getReturnComment(blockTags);
 	}
 
@@ -788,7 +788,19 @@ public class ControllerToControllerModelTranslatorTest {
 		});
 		assertEquals("Missing response status in annotationToModel.", exception.getMessage());
 	}
-	
+
+	@Test
+	public void testIsRedirectWithVoidReturnAndNoRedirectParam() {
+		ExecutableElement method = Mockito.mock(ExecutableElement.class);
+		Mockito.doReturn(new ArrayList<>()).when(method).getParameters();
+		TypeMirror returnType = Mockito.mock(TypeMirror.class);
+		Mockito.doReturn(returnType).when(method).getReturnType();
+		Mockito.doReturn(TypeKind.VOID).when(returnType).getKind();
+		Mockito.doReturn(false).when(translator).containsRedirectParam(any());
+
+		assertFalse(translator.isRedirect(method));
+	}
+
 	@Test
 	public void testIsRedirect() {
 		ExecutableElement method = Mockito.mock(ExecutableElement.class);
