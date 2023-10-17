@@ -651,7 +651,7 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testGetResponseModelWithRedirectedEndpoint() {
 		Mockito.doReturn(true).when(translator).isRedirect(any());
-		Mockito.doReturn("DESCRIPTION").when(translator).getResponseDescription(any());
+		Mockito.doReturn("DESCRIPTION").when(translator).getResponseDescription(any(), any());
 
 		ResponseModel response = new ResponseModel();
 		Mockito.doReturn(response).when(translator).generateRedirectedResponseModel(any());
@@ -665,13 +665,13 @@ public class ControllerToControllerModelTranslatorTest {
 		assertEquals(response, translator.getResponseModel(method, blockTags, annotationToModel, schemaMap));
 		Mockito.verify(translator).isRedirect(method);
 		Mockito.verify(translator).generateRedirectedResponseModel("DESCRIPTION");
-		Mockito.verify(translator).getResponseDescription(blockTags);
+		Mockito.verify(translator).getResponseDescription(blockTags, method);
 	}
 
 	@Test
 	public void testGetResponseModelWithNonRedirectedEndpoint() {
 		Mockito.doReturn(false).when(translator).isRedirect(any());
-		Mockito.doReturn("DESCRIPTION").when(translator).getResponseDescription(any());
+		Mockito.doReturn("DESCRIPTION").when(translator).getResponseDescription(any(), any());
 
 		ResponseModel response = new ResponseModel();
 		Mockito.doReturn(response).when(translator).generateResponseModel(any(), any(), any(), any());
@@ -687,7 +687,7 @@ public class ControllerToControllerModelTranslatorTest {
 		assertEquals(response, translator.getResponseModel(method, blockTags, annotationToModel, schemaMap));
 		Mockito.verify(translator).isRedirect(method);
 		Mockito.verify(translator).generateResponseModel(returnType, annotationToModel, "DESCRIPTION", schemaMap);
-		Mockito.verify(translator).getResponseDescription(blockTags);
+		Mockito.verify(translator).getResponseDescription(blockTags, method);
 	}
 
 	@Test
@@ -732,9 +732,13 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetResponseDescriptionWithEmptyReturnComment() {
 		Mockito.doReturn(Optional.empty()).when(translator).getReturnComment(any());
 		List<? extends DocTree> blockTags = new ArrayList<>();
+		ExecutableElement method = Mockito.mock(ExecutableElement.class);
+		TypeMirror returnType = Mockito.mock(TypeMirror.class);
+		Mockito.doReturn(returnType).when(method).getReturnType();
+		Mockito.doReturn(TypeKind.VOID).when(returnType).getKind();
 
 		// call under test
-		assertEquals("No response object description is provided.", translator.getResponseDescription(blockTags));
+		assertEquals("No response object is provided.", translator.getResponseDescription(blockTags, method));
 		Mockito.verify(translator).getReturnComment(blockTags);
 	}
 
@@ -744,7 +748,7 @@ public class ControllerToControllerModelTranslatorTest {
 		List<? extends DocTree> blockTags = new ArrayList<>();
 
 		// call under test
-		assertEquals("DESCRIPTION", translator.getResponseDescription(blockTags));
+		assertEquals("DESCRIPTION", translator.getResponseDescription(blockTags, Mockito.mock(ExecutableElement.class)));
 		Mockito.verify(translator).getReturnComment(blockTags);
 	}
 
