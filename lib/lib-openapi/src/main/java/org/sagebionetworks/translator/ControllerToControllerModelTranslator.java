@@ -236,7 +236,7 @@ public class ControllerToControllerModelTranslator {
 		ValidateArgument.required(annotationToModel, "annotationToModel");
 		ValidateArgument.required(schemaMap, "schemaMap");
 
-		String description = getResponseDescription(blockTags);
+		String description = getResponseDescription(blockTags, method);
 		if (isRedirect(method)) {
 			return generateRedirectedResponseModel(description);
 		}
@@ -249,9 +249,12 @@ public class ControllerToControllerModelTranslator {
 	 * @param blockTags the blocktags of the method
 	 * @return the description
 	 */
-	String getResponseDescription(List<? extends DocTree> blockTags) {
+	String getResponseDescription(List<? extends DocTree> blockTags, ExecutableElement method) {
 		Optional<String> returnComment = getReturnComment(blockTags);
-		return returnComment.isEmpty() ? "No response object description is provided." : returnComment.get();
+		if (returnComment.isEmpty() && method.getReturnType().getKind().equals(TypeKind.VOID)) {
+			return "No response object is provided.";
+		}
+		return returnComment.isEmpty() ? null : returnComment.get();
 	}
 
 	/**
