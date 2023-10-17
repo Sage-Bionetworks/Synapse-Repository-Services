@@ -1234,6 +1234,9 @@ public class ControllerToControllerModelTranslatorTest {
 		List<VariableElement> parameters = new ArrayList<>();
 
 		VariableElement param1 = Mockito.mock(VariableElement.class);
+		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		when(param1.asType()).thenReturn(paramType);
+		when(paramType.toString()).thenReturn(MOCK_CLASS_NAME);
 		parameters.add(param1);
 
 		VariableElement param2 = Mockito.mock(VariableElement.class);
@@ -1261,7 +1264,7 @@ public class ControllerToControllerModelTranslatorTest {
 				translator.getRequestBody(parameters, mockParamToDescription, schemaMap));
 
 		Mockito.verify(param2).getSimpleName();
-		Mockito.verify(param2, Mockito.times(2)).asType();
+		Mockito.verify(param2, Mockito.times(3)).asType();
 		Mockito.verify(type).getKind();
 		Mockito.verify(translator).populateSchemaMap(MOCK_CLASS_NAME, TypeKind.INT, schemaMap);
 		;
@@ -1275,9 +1278,54 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 
 	@Test
+	public void testGetRequestBodyWithHttpServletResponseParameter() {
+		List<VariableElement> parameters = new ArrayList<>();
+
+		VariableElement param = Mockito.mock(VariableElement.class);
+		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		when(param.asType()).thenReturn(paramType);
+		when(paramType.toString()).thenReturn("javax.servlet.http.HttpServletResponse");
+		parameters.add(param);
+
+		// call under test
+		assertEquals(Optional.empty(), translator.getRequestBody(parameters, new HashMap<>(), new HashMap<>()));
+	}
+
+	@Test
+	public void testGetRequestBodyWithHttpServletRequestParameter() {
+		List<VariableElement> parameters = new ArrayList<>();
+
+		VariableElement param = Mockito.mock(VariableElement.class);
+		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		when(param.asType()).thenReturn(paramType);
+		when(paramType.toString()).thenReturn("javax.servlet.http.HttpServletRequest");
+		parameters.add(param);
+
+		// call under test
+		assertEquals(Optional.empty(), translator.getRequestBody(parameters, new HashMap<>(), new HashMap<>()));
+	}
+
+	@Test
+	public void testGetRequestBodyWithUriComponentsBuilderParameter() {
+		List<VariableElement> parameters = new ArrayList<>();
+
+		VariableElement param = Mockito.mock(VariableElement.class);
+		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		when(param.asType()).thenReturn(paramType);
+		when(paramType.toString()).thenReturn("org.springframework.web.util.UriComponentsBuilder");
+		parameters.add(param);
+
+		// call under test
+		assertEquals(Optional.empty(), translator.getRequestBody(parameters, new HashMap<>(), new HashMap<>()));
+	}
+
+	@Test
 	public void testGetParametersWithRequestBodyAnnotation() {
 		List<VariableElement> params = new ArrayList<>();
 		VariableElement param = Mockito.mock(VariableElement.class);
+		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		when(param.asType()).thenReturn(paramType);
+		when(paramType.toString()).thenReturn(MOCK_CLASS_NAME);
 		params.add(param);
 		AnnotationMirror mockAnnoMirror = Mockito.mock(AnnotationMirror.class);
 		Mockito.doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
@@ -1318,7 +1366,7 @@ public class ControllerToControllerModelTranslatorTest {
 		Mockito.verify(translator).getParameterLocation(param);
 		Mockito.verify(translator).populateSchemaMap(MOCK_CLASS_NAME, TypeKind.INT, schemaMap);
 		Mockito.verify(param).getSimpleName();
-		Mockito.verify(param, Mockito.times(2)).asType();
+		Mockito.verify(param, Mockito.times(3)).asType();
 		Mockito.verify(paramType).getKind();
 	}
 
@@ -1326,6 +1374,48 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetParametersWithEmptyArray() {
 		// call under test
 		assertEquals(new ArrayList<>(), translator.getParameters(new ArrayList<>(), new HashMap<>(), new HashMap<>()));
+	}
+
+	@Test
+	public void testGetParametersWithHttpServletRequestParameter() {
+		List<VariableElement> parameters = new ArrayList<>();
+
+		VariableElement param = Mockito.mock(VariableElement.class);
+		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		when(param.asType()).thenReturn(paramType);
+		when(paramType.toString()).thenReturn("javax.servlet.http.HttpServletRequest");
+		parameters.add(param);
+
+		// call under test
+		assertEquals(new ArrayList<>(), translator.getParameters(parameters, new HashMap<>(), new HashMap<>()));
+	}
+
+	@Test
+	public void testGetParametersWithHttpServletResponseParameter() {
+		List<VariableElement> parameters = new ArrayList<>();
+
+		VariableElement param = Mockito.mock(VariableElement.class);
+		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		when(param.asType()).thenReturn(paramType);
+		when(paramType.toString()).thenReturn("javax.servlet.http.HttpServletResponse");
+		parameters.add(param);
+
+		// call under test
+		assertEquals(new ArrayList<>(), translator.getParameters(parameters, new HashMap<>(), new HashMap<>()));
+	}
+
+	@Test
+	public void testGetParametersWithUriComponentsBuilderParameter() {
+		List<VariableElement> parameters = new ArrayList<>();
+
+		VariableElement param = Mockito.mock(VariableElement.class);
+		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		when(param.asType()).thenReturn(paramType);
+		when(paramType.toString()).thenReturn("org.springframework.web.util.UriComponentsBuilder");
+		parameters.add(param);
+
+		// call under test
+		assertEquals(new ArrayList<>(), translator.getParameters(parameters, new HashMap<>(), new HashMap<>()));
 	}
 
 	@Test
@@ -1477,11 +1567,14 @@ public class ControllerToControllerModelTranslatorTest {
 		VariableElement mockParameter = Mockito.mock(VariableElement.class);
 		List<? extends AnnotationMirror> annotationMirrors = Mockito.mock(List.class);
 		Mockito.doReturn(annotationMirrors).when(mockParameter).getAnnotationMirrors();
+		Name mockParamName = Mockito.mock(Name.class);
+		when(mockParameter.getSimpleName()).thenReturn(mockParamName);
+		when(mockParamName.toString()).thenReturn("testMethod");
 		when(annotationMirrors.size()).thenReturn(2);
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			translator.getParameterAnnotation(mockParameter);
 		});
-		assertEquals("Each method parameter should have one annotation, this one has 2", exception.getMessage());
+		assertEquals("Each method parameter should have one annotation, testMethod has 2", exception.getMessage());
 		Mockito.verify(mockParameter).getAnnotationMirrors();
 		Mockito.verify(annotationMirrors, Mockito.times(2)).size();
 	}
@@ -1490,11 +1583,14 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetParameterAnnotationWithEmptyAnnotationMirrors() throws Exception {
 		VariableElement mockParameter = Mockito.mock(VariableElement.class);
 		when(mockParameter.getAnnotationMirrors()).thenReturn(new ArrayList<>());
+		Name mockParamName = Mockito.mock(Name.class);
+		when(mockParameter.getSimpleName()).thenReturn(mockParamName);
+		when(mockParamName.toString()).thenReturn("testMethod");
 		// call under test
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			translator.getParameterAnnotation(mockParameter);
 		});
-		assertEquals("Each method parameter should have one annotation, this one has 0", exception.getMessage());
+		assertEquals("Each method parameter should have one annotation, testMethod has 0", exception.getMessage());
 		Mockito.verify(mockParameter).getAnnotationMirrors();
 	}
 
