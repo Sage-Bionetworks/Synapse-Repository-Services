@@ -30,7 +30,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class CertifiedUserPassingRecordWriter implements ObjectRecordWriter {
-	private static final String KINESIS_STREAM = "certifiedUserPassingRecords";
+	private static final String KINESIS_STREAM = "certifiedUserPassingSnapshots";
 	public static final long LIMIT = 10L;
 
 	private static Logger log = LogManager.getLogger(CertifiedUserPassingRecordWriter.class);
@@ -55,7 +55,7 @@ public class CertifiedUserPassingRecordWriter implements ObjectRecordWriter {
 	@Override
 	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException {
 		List<ObjectRecord> toWrite = new LinkedList<ObjectRecord>();
-		List<KinesisJsonEntityRecord> kinesisCertificationRecords = new ArrayList<>();
+		List<KinesisObjectSnapshotRecord<PassingRecord>> kinesisCertificationSnapshots = new ArrayList<>();
 		UserInfo adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		for (ChangeMessage message : messages) {
 			if (message.getObjectType() != ObjectType.CERTIFIED_USER_PASSING_RECORD) {
@@ -75,8 +75,7 @@ public class CertifiedUserPassingRecordWriter implements ObjectRecordWriter {
 					records = certifiedUserManager.getPassingRecords(adminUser, userId, LIMIT , offset);
 					for (PassingRecord record : records.getResults()) {
 						toWrite.add(ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime()));
-						kinesisCertificationRecords.add(new KinesisJsonEntityRecord(message.getTimestamp().getTime(), record,
-								stack, instance));
+						kinesisCertificationSnapshots.add(KinesisObjectSnapshotRecord.map(message, record));
 					}
 					offset += LIMIT;
 				} while (offset < records.getTotalNumberOfResults());
@@ -87,8 +86,8 @@ public class CertifiedUserPassingRecordWriter implements ObjectRecordWriter {
 		if (!toWrite.isEmpty()) {
 			objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
 		}
-		if (!kinesisCertificationRecords.isEmpty()) {
-			kinesisLogger.logBatch(KINESIS_STREAM, kinesisCertificationRecords);
+		if (!kinesisCertificationSnapshots.isEmpty()) {
+			kinesisLogger.logBatch(KINESIS_STREAM, kinesisCertificationSnapshots);
 		}
 	}
 
