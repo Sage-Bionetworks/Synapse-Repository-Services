@@ -8,10 +8,12 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -84,8 +86,18 @@ public class ComplexExampleController {
 	 * 	the name of the pet
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/complex-pet/cat/{name}", method = RequestMethod.DELETE)
+	@RequestMapping(value = "/complex-pet/voidreturnnoredirect/{name}", method = RequestMethod.DELETE)
 	public void deleteCat(@PathVariable String name) {}
+
+	/**
+	 * Example of an endpoint that returns an object but does not have a comment description for the return
+	 *
+	 * @param name
+	 * 	the name of the pet
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/complex-pet/noreturndescription/{name}", method = RequestMethod.GET)
+	public Pet getPetNoReturnDescription(@PathVariable String name) {}
 
 	/**
 	 * Example of an endpoint with an HttpServletResponse parameter, which does not have an annotation
@@ -93,7 +105,7 @@ public class ComplexExampleController {
 	 * @param fileId
 	 * 	the file for the pet
 	 */
-	@RequestMapping(value = "/complex-pet/file/{fileId}/url", method = RequestMethod.GET)
+	@RequestMapping(value = "/complex-pet/file/{fileId}/url/httpservletresponse", method = RequestMethod.GET)
 	public void getPetFileHandleURL(
 			@PathVariable String fileId,
 			@RequestParam(required = false) Boolean redirect,
@@ -106,7 +118,7 @@ public class ComplexExampleController {
 	 * 	the name for the dog
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/complex-pet/dog/{name}", method = RequestMethod.DELETE)
+	@RequestMapping(value = "/complex-pet/dog/{name}/httpservletrequest", method = RequestMethod.DELETE)
 	public void deleteDog(
 			@PathVariable String name,
 			HttpServletRequest request) {}
@@ -118,9 +130,18 @@ public class ComplexExampleController {
 	 * @return an access token, allowing the client to begin making authenticated requests
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/complex-pet/account", method = RequestMethod.POST)
+	@RequestMapping(value = "/complex-pet/account/uricomponentsbuilder", method = RequestMethod.POST)
 	@ResponseBody
 	public LoginResponse createNewAccount(
 			@RequestBody AccountSetupInfo accountSetupInfo,
 			UriComponentsBuilder uriComponentsBuilder) {}
+
+	/**
+	 * Example of an endpoint that uses an @RequestHeader annotation
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/complex-pet/requestheader", method = RequestMethod.POST)
+	public void revokeToken(
+			@RequestHeader(value = "testClientId", required=true) String verifiedClientId,
+			@RequestBody OAuthTokenRevocationRequest revokeRequest) {}
 }

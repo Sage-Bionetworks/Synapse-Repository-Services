@@ -254,20 +254,36 @@ public class ControllerModelDocletTest {
 	@Test
 	public void testDescriptionandContentForVoidReturnMethodWithNoRedirect() {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
-		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/cat/{name}");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/voidreturnnoredirect/{name}");
 		JSONObject deleteObj = pathObj.getJSONObject("delete");
 		JSONObject responsesObj = deleteObj.getJSONObject("responses");
 		JSONObject okObj = responsesObj.getJSONObject("200");
 
 		// Should be a reference to the place the complex type lives in the "components" section
-		assertEquals("The request was successful, but there is no response content.", okObj.getString("description"));
-		assertThrows(JSONException.class, () -> okObj.getString("content"));
+		assertEquals("Void", okObj.getString("description"));
+		assertTrue(okObj.isNull("content"));
+	}
+
+	@Test
+	public void testDescriptionForMethodWithNoReturnComment() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/noreturndescription/{name}");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONObject responsesObj = getObj.getJSONObject("responses");
+		JSONObject okObj = responsesObj.getJSONObject("200");
+		JSONObject contentObj = okObj.getJSONObject("content");
+		JSONObject contentType = contentObj.getJSONObject("application/json");
+		JSONObject responseSchema = contentType.getJSONObject("schema");
+
+		// Should be a reference to the place the complex type lives in the "components" section
+		assertEquals("Auto-generated description", okObj.getString("description"));
+		assertEquals("#/components/schemas/org.sagebionetworks.openapi.pet.Pet", responseSchema.getString("$ref"));
 	}
 
 	@Test
 	public void testHttpServletResponseNotIncludedAsParameter() {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
-		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/file/{fileId}/url");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/file/{fileId}/url/httpservletresponse");
 		JSONObject getObj = pathObj.getJSONObject("get");
 		JSONArray responsesObjs = getObj.getJSONArray("parameters");
 
@@ -275,7 +291,6 @@ public class ControllerModelDocletTest {
 			JSONObject parameterObj = responsesObjs.getJSONObject(i);
 			JSONObject schemaObj = parameterObj.getJSONObject("schema");
 			String schema = schemaObj.getString("$ref");
-			System.out.println(schema);
 			assertFalse(schema.toLowerCase().contains("httpservletresponse"));
 		}
 	}
@@ -283,7 +298,7 @@ public class ControllerModelDocletTest {
 	@Test
 	public void testHttpServletRequestNotIncludedAsParameter() {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
-		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/dog/{name}");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/dog/{name}/httpservletrequest");
 		JSONObject deleteObj = pathObj.getJSONObject("delete");
 		JSONArray responsesObjs = deleteObj.getJSONArray("parameters");
 
@@ -291,7 +306,6 @@ public class ControllerModelDocletTest {
 			JSONObject parameterObj = responsesObjs.getJSONObject(i);
 			JSONObject schemaObj = parameterObj.getJSONObject("schema");
 			String schema = schemaObj.getString("$ref");
-			System.out.println(schema);
 			assertFalse(schema.toLowerCase().contains("httpservletrequest"));
 		}
 	}
@@ -299,7 +313,7 @@ public class ControllerModelDocletTest {
 	@Test
 	public void testUriComponentsBuilderNotIncludedAsParameter() {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
-		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/account");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/account/uricomponentsbuilder");
 		JSONObject postObj = pathObj.getJSONObject("post");
 		JSONArray responsesObjs = postObj.getJSONArray("parameters");
 
@@ -307,8 +321,19 @@ public class ControllerModelDocletTest {
 			JSONObject parameterObj = responsesObjs.getJSONObject(i);
 			JSONObject schemaObj = parameterObj.getJSONObject("schema");
 			String schema = schemaObj.getString("$ref");
-			System.out.println(schema);
 			assertFalse(schema.toLowerCase().contains("uricomponentsbuilder"));
 		}
+	}
+
+	@Test
+	public void testRequestHeaderAnnotationMappedToParameterLocation() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/requestheader");
+		JSONObject postObj = pathObj.getJSONObject("post");
+		JSONArray responsesObjs = postObj.getJSONArray("parameters");
+		JSONObject parameterObj = responsesObjs.getJSONObject(0);
+		String in = parameterObj.getString("in");
+
+		assertEquals("header", in);
 	}
 }

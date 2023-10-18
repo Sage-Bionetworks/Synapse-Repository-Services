@@ -729,7 +729,7 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 
 	@Test
-	public void testGetResponseDescriptionWithEmptyReturnComment() {
+	public void testGetResponseDescriptionVoidReturnTypeWithEmptyReturnComment() {
 		Mockito.doReturn(Optional.empty()).when(translator).getReturnComment(any());
 		List<? extends DocTree> blockTags = new ArrayList<>();
 		ExecutableElement method = Mockito.mock(ExecutableElement.class);
@@ -738,7 +738,21 @@ public class ControllerToControllerModelTranslatorTest {
 		Mockito.doReturn(TypeKind.VOID).when(returnType).getKind();
 
 		// call under test
-		assertEquals("The request was successful, but there is no response content.", translator.getResponseDescription(blockTags, method));
+		assertEquals("Void", translator.getResponseDescription(blockTags, method));
+		Mockito.verify(translator).getReturnComment(blockTags);
+	}
+
+	@Test
+	public void testGetResponseDescriptionWithEmptyReturnComment() {
+		Mockito.doReturn(Optional.empty()).when(translator).getReturnComment(any());
+		List<? extends DocTree> blockTags = new ArrayList<>();
+		ExecutableElement method = Mockito.mock(ExecutableElement.class);
+		TypeMirror returnType = Mockito.mock(TypeMirror.class);
+		Mockito.doReturn(returnType).when(method).getReturnType();
+		Mockito.doReturn(TypeKind.INT).when(returnType).getKind();
+
+		// call under test
+		assertEquals("Auto-generated description", translator.getResponseDescription(blockTags, method));
 		Mockito.verify(translator).getReturnComment(blockTags);
 	}
 
@@ -1548,6 +1562,20 @@ public class ControllerToControllerModelTranslatorTest {
 		Mockito.doReturn(Mockito.mock(AnnotationMirror.class)).when(translator).getParameterAnnotation(any());
 		// call under test
 		assertEquals(ParameterLocation.path, translator.getParameterLocation(null));
+	}
+
+	@Test
+	public void testGetParameterLocationWithRequestHeaderAnnotation() {
+		Mockito.doReturn("RequestHeader").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
+		AnnotationMirror mockAnnoMirror = Mockito.mock(AnnotationMirror.class);
+		Mockito.doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
+		VariableElement mockVarElement = Mockito.mock(VariableElement.class);
+
+		// call under test
+		assertEquals(ParameterLocation.header, translator.getParameterLocation(mockVarElement));
+
+		Mockito.verify(translator).getSimpleAnnotationName(mockAnnoMirror);
+		Mockito.verify(translator).getParameterAnnotation(mockVarElement);
 	}
 
 	@Test
