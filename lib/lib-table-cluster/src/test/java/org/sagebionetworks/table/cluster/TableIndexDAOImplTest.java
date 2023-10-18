@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,7 +40,6 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.ListUtils;
-import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -2601,6 +2601,36 @@ public class TableIndexDAOImplTest {
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(rows.size()-1, count);
 	}
+	
+	@Test
+	public void testRestoreTableIndexDataWithHashCode(){
+		tableId = IdAndVersion.parse("syn123.45");
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteTable(tableId);
+		
+		List<ColumnModel> schema = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER_LIST), 
+			TableModelTestUtils.createColumn(2L, "bar", ColumnType.DOUBLE)
+		);
+		
+		createOrUpdateTable(schema, indexDescription);
+		
+		List<String[]> rows = Arrays.asList(
+			new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "ROW_HASH_CODE", "_C1_", "_C2_", "_DBL_C2_"},
+			new String[] {"2", "2", "etag2", "2","88", "[123, 456, 789]", null, "NaN"}, 
+			new String[] {"3", "2", "etag3", "2", "99","[321, 654]", "1.7976931348623157E308", "Infinity"}
+		);
+		
+		// small batch size to force multiple batches.
+		long maxBytesPerBatch = 10;
+		// call under test
+		tableIndexDAO.restoreTableIndexData(tableId, rows.iterator(), maxBytesPerBatch);
+		
+		long count = tableIndexDAO.getRowCountForTable(tableId);
+		assertEquals(rows.size()-1, count);
+	}
 
 	@Test
 	public void testCopyEntityReplicationToTableScopeEmpty(){
@@ -3679,6 +3709,55 @@ public class TableIndexDAOImplTest {
 	}
 	
 	/**
+	 * An update to a ObjectDataDTO that does not change the etag or benefactor
+	 * should still show up with a call to getOutOfDateRowsForView().
+	 */
+	@Test
+	public void testGetOutOfDateRowsForViewWithHashCodeChange(){
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+		int rowCount = 2;
+		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
+		
+		// Make additional object with a different type but same ids
+		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
+		
+		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, indexDescription);
+		
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
+
+		// add all of the rows to the view.
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
+		
+		// change the etag of the first entity
+		ObjectDataDTO first = dtos.get(0);
+		int startHashCode = first.hashCode();
+
+		ObjectAnnotationDTO anno = new ObjectAnnotationDTO(first);
+		anno.setKey("multiValue");
+		anno.setType(AnnotationType.STRING);
+		anno.setValue(List.of("a new value"));
+		anno.setDerived(true);
+		first.getAnnotations().add(anno);
+		
+		assertNotEquals(startHashCode, first.hashCode());
+				
+		List<Long> toUpdate = Lists.newArrayList(first.getId());
+		tableIndexDAO.deleteObjectData(mainType, toUpdate);
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(first));
+		
+		long limit = 100L;
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
+		assertNotNull(results);
+		Set<Long> expected = new HashSet<Long>(toUpdate);
+		assertEquals(expected, results);
+	}
+	
+	/**
 	 * Test for the cases where an entity benefactor differs between replication and the view.
 	 */
 	@Test
@@ -4665,10 +4744,12 @@ public class TableIndexDAOImplTest {
 		assertEquals(schema.stream().map(ColumnModel::getId).collect(Collectors.toList()), result);
 		
 		List<String[]> rows = stream.getRows();
+		assertNotNull(rows.get(1)[4]);
+		assertNotNull(rows.get(2)[4]);
 		
-		assertArrayEquals(new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR" , "_C1_", "_C2_", "_DBL_C2_"}, rows.get(0));
-		assertArrayEquals(new String[] {"2", "2", "etag2", "2", "[123, 456, 789]", null, "NaN"}, rows.get(1));
-		assertArrayEquals(new String[] {"3", "2", "etag3", "2", "[321, 654]", "1.7976931348623157E308", "Infinity"}, rows.get(2));
+		assertArrayEquals(new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "ROW_HASH_CODE" , "_C1_", "_C2_", "_DBL_C2_"}, rows.get(0));
+		assertArrayEquals(new String[] {"2", "2", "etag2", "2", rows.get(1)[4], "[123, 456, 789]", null, "NaN"}, rows.get(1));
+		assertArrayEquals(new String[] {"3", "2", "etag3", "2", rows.get(2)[4], "[321, 654]", "1.7976931348623157E308", "Infinity"}, rows.get(2));
 	}
 	
 	// Test to reproduce https://sagebionetworks.jira.com/browse/PLFM-7622

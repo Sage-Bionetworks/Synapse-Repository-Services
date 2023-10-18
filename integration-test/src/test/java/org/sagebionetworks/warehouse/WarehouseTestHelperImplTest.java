@@ -94,7 +94,6 @@ public class WarehouseTestHelperImplTest {
 		String keyTwo = "two/1001.sql";
 		String keyThree = "three/1002.sql";
 		when(mockS3Client.listObjectsV2(any(), any())).thenReturn(createListObjectV2Result(keyOne, keyTwo, keyThree));
-		int maxNumberHours = 2;
 
 		doReturn(Mockito.mock(Executable.class)).when(warehouseHelper).executeQueryAndAssertResults(any());
 		String callersPath = "org/sage/bar/12";
@@ -104,12 +103,12 @@ public class WarehouseTestHelperImplTest {
 		String query = "select count(*) from foo";
 
 		// call under test
-		warehouseHelper.assertWarehouseQuery(query, maxNumberHours);
+		warehouseHelper.assertWarehouseQuery(query);
 
 		verify(mockClock).currentTimeMillis();
 		verify(mockS3Client).listObjectsV2(WarehouseTestHelperImpl.BUCKET_NAME, callersPath);
 
-		verify(warehouseHelper).saveQueryToS3(query, nowInstant, callersPath, maxNumberHours);
+		verify(warehouseHelper).saveQueryToS3(query, nowInstant, callersPath, WarehouseTestHelperImpl.WAREHOUSE_QUERY_EXPIRATION_HOURS);
 		verify(warehouseHelper).executeQueryAndAssertResults(keyOne);
 		verify(warehouseHelper).executeQueryAndAssertResults(keyTwo);
 		verify(warehouseHelper, never()).executeQueryAndAssertResults(keyThree);
@@ -130,8 +129,7 @@ public class WarehouseTestHelperImplTest {
 		String keyTwo = "two/1001.sql";
 		String keyThree = "three/1002.sql";
 		when(mockS3Client.listObjectsV2(any(), any())).thenReturn(createListObjectV2Result(keyOne, keyTwo, keyThree));
-		int maxNumberHours = 2;
-
+		
 		Exception exception = new IllegalArgumentException("wrong");
 		doThrow(exception).when(warehouseHelper).executeQueryAndAssertResults(any());
 		String callersPath = "org/sage/bar/12";
@@ -142,7 +140,7 @@ public class WarehouseTestHelperImplTest {
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			warehouseHelper.assertWarehouseQuery(query, maxNumberHours);
+			warehouseHelper.assertWarehouseQuery(query);
 		});
 
 		verify(mockClock).currentTimeMillis();

@@ -2156,6 +2156,50 @@ public class TableWorkerIntegrationTest {
 			assertEquals((Long) 1L, enumListValues.get(3).getCount());
 		});
 	}
+	
+	/**
+	 * This test was added for PLFM-8065.
+	 * @throws Exception
+	 */
+	@Test
+	public void testCachedFacetStats() throws Exception {
+		schema = columnManager.createColumnModels(adminUserInfo, List.of(new ColumnModel().setName("foo")
+				.setColumnType(ColumnType.INTEGER).setFacetType(FacetType.enumeration)));
+		createTableWithSchema();
+
+		referenceSet = appendRows(adminUserInfo, tableId,
+				new RowSet().setRows(List.of(new Row().setValues(List.of("1"))))
+						.setHeaders(TableModelUtils.getSelectColumns(schema)).setTableId(tableId),
+				mockProgressCallback);
+		simpleSql = "select * from " + tableId;
+
+		query.setSql(simpleSql);
+		queryOptions.withReturnFacets(true).withRunQuery(false).withRunCount(false);
+
+		waitForConsistentQueryBundle(adminUserInfo, query, queryOptions, (queryResultBundle) -> {
+			List<FacetColumnResult> facets = queryResultBundle.getFacets();
+			List<FacetColumnResult> expected = List.of(new FacetColumnResultValues().setColumnName("foo")
+					.setFacetType(FacetType.enumeration).setFacetValues(List
+							.of(new FacetColumnResultValueCount().setCount(1L).setIsSelected(false).setValue("1"))));
+			assertEquals(expected, facets);
+		});
+
+		// change the facet results
+		referenceSet = appendRows(adminUserInfo, tableId,
+				new RowSet().setRows(List.of(new Row().setValues(List.of("2"))))
+						.setHeaders(TableModelUtils.getSelectColumns(schema)).setTableId(tableId),
+				mockProgressCallback);
+
+		waitForConsistentQueryBundle(adminUserInfo, query, queryOptions, (queryResultBundle) -> {
+			List<FacetColumnResult> facets = queryResultBundle.getFacets();
+			List<FacetColumnResult> expected = List.of(new FacetColumnResultValues().setColumnName("foo")
+					.setFacetType(FacetType.enumeration)
+					.setFacetValues(List.of(
+							new FacetColumnResultValueCount().setCount(1L).setIsSelected(false).setValue("1"),
+							new FacetColumnResultValueCount().setCount(1L).setIsSelected(false).setValue("2"))));
+			assertEquals(expected, facets);
+		});
+	}
 
 
 	@Test

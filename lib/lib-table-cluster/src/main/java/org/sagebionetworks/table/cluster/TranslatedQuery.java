@@ -48,5 +48,13 @@ public interface TranslatedQuery {
 	 * @return
 	 */
 	String getSingleTableId();
+	
+	/**
+	 * Get a hash for the table/view. A change in the hash can prevent a stale cache
+	 * hit.
+	 * 
+	 * @return
+	 */
+	String getTableHash();
 
 }

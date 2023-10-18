@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -33,6 +34,8 @@ public interface AccessRequirementManager {
 	 * @throws DatastoreException 
 	 */
 	AccessRequirement getAccessRequirement(String requirementId) throws DatastoreException, NotFoundException;
+	
+	Optional<AccessRequirement> getAccessRequirementVersion(String requirementId, Long versionNumber);
 
 	/**
 	 *  get a page of the access requirements for an entity
@@ -146,6 +149,8 @@ public interface AccessRequirementManager {
 	 * @param newArIds  The list of dynamic AR ID for this subject. An empty list will clear all dynamically bound ARs for this subject.
 	 */
 	void setDynamicallyBoundAccessRequirementsForSubject(RestrictableObjectDescriptor subject, Set<Long> newArIds);
+
+	long backFillAccessRequirementSnapshots(long limit);
 
 
 }

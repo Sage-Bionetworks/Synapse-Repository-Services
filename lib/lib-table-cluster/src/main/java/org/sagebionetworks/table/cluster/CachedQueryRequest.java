@@ -15,13 +15,15 @@ public class CachedQueryRequest implements TranslatedQuery {
 	private boolean includeEntityEtag = false;
 	private String singleTableId;
 	private int expiresInSec = 60;
+	private String tableHash;
 
 	public static CachedQueryRequest clone(TranslatedQuery toClone) {
 		return new CachedQueryRequest().setSelectColumns(toClone.getSelectColumns())
 				.setParameters(toClone.getParameters()).setOutputSQL(toClone.getOutputSQL())
 				.setIncludesRowIdAndVersion(toClone.getIncludesRowIdAndVersion())
 				.setIncludeEntityEtag(toClone.getIncludeEntityEtag())
-				.setSingleTableId(toClone.getSingleTableId());
+				.setSingleTableId(toClone.getSingleTableId())
+				.setTableHash(toClone.getTableHash());
 	}
 	
 	@Override
@@ -93,10 +95,19 @@ public class CachedQueryRequest implements TranslatedQuery {
 		return this;
 	}
 
+	public CachedQueryRequest setTableHash(String hash) {
+		this.tableHash = hash;
+		return this;
+	}
+
+	public String getTableHash() {
+		return tableHash;
+	}
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(expiresInSec, includeEntityEtag, includesRowIdAndVersion, outputSQL, parameters,
-				selectColumns, singleTableId);
+				selectColumns, singleTableId, tableHash);
 	}
 
 	@Override
@@ -112,16 +123,16 @@ public class CachedQueryRequest implements TranslatedQuery {
 				&& includesRowIdAndVersion == other.includesRowIdAndVersion
 				&& Objects.equals(outputSQL, other.outputSQL) && Objects.equals(parameters, other.parameters)
 				&& Objects.equals(selectColumns, other.selectColumns)
-				&& Objects.equals(singleTableId, other.singleTableId);
+				&& Objects.equals(singleTableId, other.singleTableId) && Objects.equals(tableHash, other.tableHash);
 	}
 
 	@Override
 	public String toString() {
 		return "CachedQueryRequest [selectColumns=" + selectColumns + ", parameters=" + parameters + ", outputSQL="
 				+ outputSQL + ", includesRowIdAndVersion=" + includesRowIdAndVersion + ", includeEntityEtag="
-				+ includeEntityEtag + ", singleTableId=" + singleTableId + ", expiresInSec=" + expiresInSec + "]";
+				+ includeEntityEtag + ", singleTableId=" + singleTableId + ", expiresInSec=" + expiresInSec
+				+ ", tableHash=" + tableHash + "]";
 	}
-	
 	
 
 }

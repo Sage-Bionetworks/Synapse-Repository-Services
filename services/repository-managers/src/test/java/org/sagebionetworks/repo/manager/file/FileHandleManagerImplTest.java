@@ -716,15 +716,17 @@ public class FileHandleManagerImplTest {
 		URL redirectUrl = new URL(redirect);
 		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
 
-		assertEquals(5, queryStrings.size());
+		assertEquals(7, queryStrings.size());
 		assertEquals("https", redirectUrl.getProtocol().toLowerCase());
 		assertEquals("data.dev.sagebase.org", redirectUrl.getHost().toLowerCase());
 		assertEquals("/testkey", redirectUrl.getPath().toLowerCase());
 		assertEquals("attachment%3B+filename%3D%22testName%22%3B+filename*%3Dutf-8%27%27testName", queryStrings.get("response-content-disposition").get(0));
 		assertEquals("text%2Fplain", queryStrings.get("response-content-type").get(0));
 		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
+		assertEquals("30", queryStrings.get("X-Amz-Expires").get(0));
 		assertNotNull(queryStrings.get("Signature"));
 		assertNotNull(queryStrings.get("Expires"));
+		assertNotNull(queryStrings.get("X-Amz-Date"));
 	}
 
 	@Test
@@ -749,14 +751,16 @@ public class FileHandleManagerImplTest {
 		URL redirectUrl = new URL(redirect);
 		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
 
-		assertEquals(4, queryStrings.size());
+		assertEquals(6, queryStrings.size());
 		assertEquals("https", redirectUrl.getProtocol().toLowerCase());
 		assertEquals("data.dev.sagebase.org", redirectUrl.getHost().toLowerCase());
 		assertEquals("/testkey", redirectUrl.getPath().toLowerCase());
 		assertEquals("attachment%3B+filename%3D%22testName%22%3B+filename*%3Dutf-8%27%27testName", queryStrings.get("response-content-disposition").get(0));
 		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
+		assertEquals("30", queryStrings.get("X-Amz-Expires").get(0));
 		assertNotNull(queryStrings.get("Signature"));
 		assertNotNull(queryStrings.get("Expires"));
+		assertNotNull(queryStrings.get("X-Amz-Date"));
 		assertEquals(null, queryStrings.get("response-content-type"));
 	}
 
@@ -782,14 +786,16 @@ public class FileHandleManagerImplTest {
 		URL redirectUrl = new URL(redirect);
 		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
 
-		assertEquals(4, queryStrings.size());
+		assertEquals(6, queryStrings.size());
 		assertEquals("https", redirectUrl.getProtocol().toLowerCase());
 		assertEquals("data.dev.sagebase.org", redirectUrl.getHost().toLowerCase());
 		assertEquals("/testkey", redirectUrl.getPath().toLowerCase());
 		assertEquals("text%2Fplain", queryStrings.get("response-content-type").get(0));
 		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
+		assertEquals("30", queryStrings.get("X-Amz-Expires").get(0));
 		assertNotNull(queryStrings.get("Signature"));
 		assertNotNull(queryStrings.get("Expires"));
+		assertNotNull(queryStrings.get("X-Amz-Date"));
 		assertEquals(null, queryStrings.get("response-content-disposition"));
 	}
 
@@ -814,13 +820,15 @@ public class FileHandleManagerImplTest {
 		URL redirectUrl = new URL(redirect);
 		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
 
-		assertEquals(3, queryStrings.size());
+		assertEquals(5, queryStrings.size());
 		assertEquals("https", redirectUrl.getProtocol().toLowerCase());
 		assertEquals("data.dev.sagebase.org", redirectUrl.getHost().toLowerCase());
 		assertEquals("/testkey", redirectUrl.getPath().toLowerCase());
 		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
+		assertEquals("30", queryStrings.get("X-Amz-Expires").get(0));
 		assertNotNull(queryStrings.get("Signature"));
 		assertNotNull(queryStrings.get("Expires"));
+		assertNotNull(queryStrings.get("X-Amz-Date"));
 		assertEquals(null, queryStrings.get("response-content-disposition"));
 	}
 

@@ -2,10 +2,10 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ACCESS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CONCRETE_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_PROJECT_AR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID;
@@ -44,6 +44,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -66,16 +67,19 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.ar.BindingType;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
+import org.sagebionetworks.repo.model.dataaccess.BindingType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -124,6 +128,12 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			+ COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER + " = REV." + COL_ACCESS_REQUIREMENT_REVISION_NUMBER + ")"
 			+ " WHERE REQ." + COL_ACCESS_REQUIREMENT_ID + " IN (:" + COL_ACCESS_REQUIREMENT_ID.toLowerCase() + ")"
 			+ " ORDER BY REQ." + COL_ACCESS_REQUIREMENT_ID;
+	
+	private static final String SELECT_REQUIREMENT_BY_ID_AND_VERSION = "SELECT * FROM " + TABLE_ACCESS_REQUIREMENT
+			+ " REQ JOIN " + TABLE_ACCESS_REQUIREMENT_REVISION + " REV" + " ON (REQ." + COL_ACCESS_REQUIREMENT_ID
+			+ " = REV." + COL_ACCESS_REQUIREMENT_REVISION_OWNER_ID + ")"
+			+ " WHERE REQ." + COL_ACCESS_REQUIREMENT_ID + " =:" + COL_ACCESS_REQUIREMENT_ID
+			+ " AND REV." + COL_ACCESS_REQUIREMENT_REVISION_NUMBER + "=:" + COL_ACCESS_REQUIREMENT_REVISION_NUMBER;
 
 	private static final String GET_ACCESS_REQUIREMENTS_IDS_FOR_SUBJECTS_SQL = "SELECT DISTINCT "
 			+ COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID + " FROM " + TABLE_SUBJECT_ACCESS_REQUIREMENT + " WHERE "
@@ -289,14 +299,19 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		}
 		return results.get(0);
 	}
-
+	
 	@Override
-	public List<RestrictableObjectDescriptor> getSubjects(long accessRequirementId) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID, accessRequirementId);
-		List<DBOSubjectAccessRequirement> nars = namedJdbcTemplate.query(GET_SUBJECT_ACCESS_REQUIREMENT_SQL, param,
-				subjectAccessRequirementRowMapper);
-		return AccessRequirementUtils.copyDBOSubjectsToDTOSubjects(nars);
+	public Optional<AccessRequirement> getVersion(String id, Long versionNumber) throws NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource()
+				.addValue(COL_ACCESS_REQUIREMENT_ID, id)
+				.addValue(COL_ACCESS_REQUIREMENT_REVISION_NUMBER, versionNumber);
+
+		try {
+			AccessRequirement accessRequirement = namedJdbcTemplate.queryForObject(SELECT_REQUIREMENT_BY_ID_AND_VERSION, param, requirementMapper);
+			return Optional.of(accessRequirement);
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
 	}
 
 	@Override
@@ -710,6 +725,40 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 				.setEtag("start")
 				.setName("Invalid Annotations Lock");
 		bootstrap(lock);
+	}
+	
+	@Override
+	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
+	public List<ChangeMessage> getMissingArChangeMessages(long limit) {
+		String sql = "SELECT R.OWNER_ID, R.NUMBER, R.MODIFIED_ON, R.MODIFIED_BY"
+				+ "	FROM ACCESS_REQUIREMENT_REVISION R"
+				+ " LEFT JOIN CHANGES C ON (R.OWNER_ID = C.OBJECT_ID AND R.NUMBER = C.OBJECT_VERSION AND C.OBJECT_TYPE = 'ACCESS_REQUIREMENT')"
+				+ "	WHERE C.OBJECT_ID IS NULL"
+				+ " ORDER BY R.OWNER_ID, R.NUMBER"
+				+ " LIMIT :limit";
+		
+		return namedJdbcTemplate.query(sql, Map.of("limit", limit), (rs, rowNumber) -> {
+			Long id = rs.getLong("OWNER_ID");
+			Long version = rs.getLong("NUMBER");
+			Long modifiedOn = rs.getLong("MODIFIED_ON");
+			Long modifiedBy = rs.getLong("MODIFIED_BY");
+			
+			ChangeMessage message = new ChangeMessage()
+				.setObjectId(id.toString())
+				.setObjectVersion(version)
+				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
+				.setUserId(modifiedBy)				
+				.setTimestamp(new Date(modifiedOn));
+			
+			// The invalid annotation ar id starts from 1 instead of the default 0
+			if (id.equals(INVALID_ANNOTATIONS_LOCK_ID) || DEFAULT_VERSION.equals(version)) {
+				message.setChangeType(ChangeType.CREATE);
+			} else {
+				message.setChangeType(ChangeType.UPDATE);
+			}
+			
+			return message;
+		});
 	}
 	
 	/**

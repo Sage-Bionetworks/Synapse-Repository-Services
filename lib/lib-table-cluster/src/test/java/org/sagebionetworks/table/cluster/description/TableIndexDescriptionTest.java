@@ -8,10 +8,13 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.query.model.SqlContext;
+
 
 public class TableIndexDescriptionTest {
 
@@ -86,4 +89,47 @@ public class TableIndexDescriptionTest {
 		assertEquals(Collections.emptyList(), tid.getDependencies());
 	}
 	
+	@Test
+	public void testGetLastTableChangeNumber() {
+		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"), 12L);
+		assertEquals(Optional.of(Long.valueOf(12L)), tid.getLastTableChangeNumber());
+	}
+	
+	@Test
+	public void testGetLastTableChangeNumberWithNull() {
+		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"), null);
+		assertEquals(Optional.empty(), tid.getLastTableChangeNumber());
+	}
+	
+	@Test
+	public void testGetLastTableChangeNumberWithNullConstructor() {
+		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"));
+		assertEquals(Optional.empty(), tid.getLastTableChangeNumber());
+	}
+	
+	@Test
+	public void testGetTableHash() {
+		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"), 12L);
+		String expectedHash = DigestUtils.md5Hex("+syn999-12");
+		assertEquals(expectedHash, tid.getTableHash());
+	}
+	
+	@Test
+	public void testGetTableHashWithNull() {
+		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"), null);
+		String expectedHash = DigestUtils.md5Hex("");
+		assertEquals(expectedHash, tid.getTableHash());
+	}
+	
+	@Test
+	public void testGetTableHashRecursive() {
+		TableIndexDescription one = new TableIndexDescription(IdAndVersion.parse("syn1.1"), 1L);
+		TableIndexDescription two = new TableIndexDescription(IdAndVersion.parse("syn1.2"), 2L);
+		TableIndexDescription three = new TableIndexDescription(IdAndVersion.parse("syn3"), 3L);
+		MaterializedViewIndexDescription mv1 = new MaterializedViewIndexDescription(IdAndVersion.parse("syn4"), List.of(one, two));
+		MaterializedViewIndexDescription mv2 = new MaterializedViewIndexDescription(IdAndVersion.parse("syn5"), List.of(mv1, three));
+		// call under test
+		String expectedHash = DigestUtils.md5Hex("+syn3-3+syn1.1-1+syn1.2-2");
+		assertEquals(expectedHash, mv2.getTableHash());
+	}
 }

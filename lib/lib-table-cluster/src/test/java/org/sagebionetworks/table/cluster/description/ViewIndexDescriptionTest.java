@@ -31,6 +31,7 @@ public class ViewIndexDescriptionTest {
 				+ "ROW_ETAG varchar(36) NOT NULL, "
 				+ "ROW_BENEFACTOR BIGINT NOT NULL, "
 				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
+				+ "ROW_HASH_CODE INT NOT NULL DEFAULT 0, "
 				+ "PRIMARY KEY (ROW_ID), "
 				+ "KEY `IDX_ETAG` (ROW_ETAG), "
 				+ "KEY `IDX_BENEFACTOR` (ROW_BENEFACTOR), "

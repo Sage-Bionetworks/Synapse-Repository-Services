@@ -6,7 +6,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.table.ReplicationType;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**

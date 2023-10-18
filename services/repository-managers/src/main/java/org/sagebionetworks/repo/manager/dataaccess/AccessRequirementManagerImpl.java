@@ -5,11 +5,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -51,15 +51,18 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResult;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSortField;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
+import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.jrjc.JRJCHelper;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -231,7 +234,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			}
 		}
 		signalSubjectIds(Collections.emptyList(), subjects);
-		return (T) accessRequirementDAO.create(setDefaultValues(accessRequirement));
+		
+		T ar = (T) accessRequirementDAO.create(setDefaultValues(accessRequirement));
+		
+		sendChangeMessage(userInfo.getId(), ChangeType.CREATE, ar.getId(), ar.getVersionNumber());
+		
+		return ar;
 	}
 
 	public static LockAccessRequirement newLockAccessRequirement(UserInfo userInfo, String entityId, String jiraKey) {
@@ -279,12 +287,21 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				entityId);
 
 		LockAccessRequirement accessRequirement = newLockAccessRequirement(userInfo, entityId, jiraKey);
-		return (LockAccessRequirement) accessRequirementDAO.create(setDefaultValues(accessRequirement));
+		LockAccessRequirement ar = (LockAccessRequirement) accessRequirementDAO.create(setDefaultValues(accessRequirement));
+		
+		sendChangeMessage(userInfo.getId(), ChangeType.CREATE, ar.getId(), ar.getVersionNumber());
+		
+		return ar;
 	}
 
 	@Override
 	public AccessRequirement getAccessRequirement(String requirementId) throws DatastoreException, NotFoundException {
 		return accessRequirementDAO.get(requirementId);
+	}
+	
+	@Override
+	public Optional<AccessRequirement> getAccessRequirementVersion(String requirementId, Long versionNumber) {
+		return accessRequirementDAO.getVersion(requirementId, versionNumber);
 	}
 
 	@Override
@@ -342,7 +359,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 		toUpdate.setVersionNumber(current.getCurrentVersion()+1);
 		populateModifiedFields(userInfo, toUpdate);
-		return (T) accessRequirementDAO.update(setDefaultValues(toUpdate));
+		
+		T ar = (T) accessRequirementDAO.update(setDefaultValues(toUpdate));
+		
+		sendChangeMessage(userInfo.getId(), ChangeType.UPDATE, ar.getId(), ar.getVersionNumber());
+		
+		return ar;
 	}
 
 	@WriteTransaction
@@ -364,13 +386,16 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		signalSubjectIds(ar.getSubjectIds(), new ArrayList<RestrictableObjectDescriptor>());
 		aclDao.delete(accessRequirementId, ObjectType.ACCESS_REQUIREMENT);
 		accessRequirementDAO.delete(accessRequirementId);
+		
+		// When deleting we do not specify a version since all the history is cleared
+		sendChangeMessage(userInfo.getId(), ChangeType.DELETE, ar.getId(), null);
 	}
 
-	static AccessRequirement setDefaultValues(AccessRequirement ar) {
+	static <T extends AccessRequirement> T setDefaultValues(T ar) {
 		if (ar instanceof ManagedACTAccessRequirement) {
-			return setDefaultValuesForManagedACTAccessRequirement((ManagedACTAccessRequirement) ar);
+			setDefaultValuesForManagedACTAccessRequirement((ManagedACTAccessRequirement) ar);
 		} else if (ar instanceof SelfSignAccessRequirement) {
-			return setDefaultValuesForSelfSignAccessRequirement((SelfSignAccessRequirement) ar);
+			setDefaultValuesForSelfSignAccessRequirement((SelfSignAccessRequirement) ar);
 		}
 		return ar;
 	}
@@ -379,21 +404,20 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	 * @param ar
 	 * @return
 	 */
-	public static AccessRequirement setDefaultValuesForSelfSignAccessRequirement(SelfSignAccessRequirement ar) {
+	public static void setDefaultValuesForSelfSignAccessRequirement(SelfSignAccessRequirement ar) {
 		if (ar.getIsCertifiedUserRequired() == null) {
 			ar.setIsCertifiedUserRequired(false);
 		}
 		if (ar.getIsValidatedProfileRequired() == null) {
 			ar.setIsValidatedProfileRequired(false);
 		}
-		return ar;
 	}
 
 	/**
 	 * @param ar
 	 * @return
 	 */
-	public static AccessRequirement setDefaultValuesForManagedACTAccessRequirement(ManagedACTAccessRequirement ar) {
+	public static void setDefaultValuesForManagedACTAccessRequirement(ManagedACTAccessRequirement ar) {
 		if (ar.getIsCertifiedUserRequired() == null) {
 			ar.setIsCertifiedUserRequired(false);
 		}
@@ -421,7 +445,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (ar.getIsTwoFaRequired() == null) {
 			ar.setIsTwoFaRequired(false);
 		}
-		return ar;
 	}
 
 	@WriteTransaction
@@ -445,7 +468,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		}
 
 		ManagedACTAccessRequirement toUpdate = convert((ACTAccessRequirement) current, userInfo.getId().toString());
-		return accessRequirementDAO.update(setDefaultValues(toUpdate));
+		
+		toUpdate = accessRequirementDAO.update(setDefaultValues(toUpdate));
+		
+		sendChangeMessage(userInfo.getId(), ChangeType.UPDATE, toUpdate.getId(), toUpdate.getVersionNumber());
+		
+		return toUpdate;
 	}
 
 	public static ManagedACTAccessRequirement convert(ACTAccessRequirement current, String modifiedBy) {
@@ -629,6 +657,28 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (!toAdd.isEmpty()) {
 			accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subject, toAdd);
 		}
+	}
+	
+	@Autowired
+	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
+	private DBOChangeDAO changeDao;
+	
+	@Override
+	@WriteTransaction
+	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
+	public long backFillAccessRequirementSnapshots(long limit) {
+		List<ChangeMessage> messages = accessRequirementDAO.getMissingArChangeMessages(limit);
+		return changeDao.storeChangeMessages(messages).size();
+	}
+	
+	void sendChangeMessage(Long userId, ChangeType changeType, Long id, Long versionNumber) {
+		transactionalMessenger.sendMessageAfterCommit(new ChangeMessage()
+					.setUserId(userId)
+					.setChangeType(changeType)
+					.setObjectType(ObjectType.ACCESS_REQUIREMENT)
+					.setObjectId(id.toString())
+					.setObjectVersion(versionNumber)
+		);
 	}
 	
 }
