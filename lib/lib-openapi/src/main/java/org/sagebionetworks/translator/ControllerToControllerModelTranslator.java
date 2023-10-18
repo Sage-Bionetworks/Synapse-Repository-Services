@@ -252,7 +252,7 @@ public class ControllerToControllerModelTranslator {
 	String getResponseDescription(List<? extends DocTree> blockTags, ExecutableElement method) {
 		Optional<String> returnComment = getReturnComment(blockTags);
 		if (returnComment.isEmpty() && method.getReturnType().getKind().equals(TypeKind.VOID)) {
-			return "No response object is provided.";
+			return "The request was successful, but there is no response content.";
 		}
 		return returnComment.isEmpty() ? null : returnComment.get();
 	}

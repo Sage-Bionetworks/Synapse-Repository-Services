@@ -738,7 +738,7 @@ public class ControllerToControllerModelTranslatorTest {
 		Mockito.doReturn(TypeKind.VOID).when(returnType).getKind();
 
 		// call under test
-		assertEquals("No response object is provided.", translator.getResponseDescription(blockTags, method));
+		assertEquals("The request was successful, but there is no response content.", translator.getResponseDescription(blockTags, method));
 		Mockito.verify(translator).getReturnComment(blockTags);
 	}
 
