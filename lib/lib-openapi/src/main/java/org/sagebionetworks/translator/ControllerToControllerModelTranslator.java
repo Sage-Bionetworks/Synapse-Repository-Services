@@ -236,7 +236,7 @@ public class ControllerToControllerModelTranslator {
 		ValidateArgument.required(annotationToModel, "annotationToModel");
 		ValidateArgument.required(schemaMap, "schemaMap");
 
-		String description = getResponseDescription(blockTags);
+		String description = getResponseDescription(blockTags, method);
 		if (isRedirect(method)) {
 			return generateRedirectedResponseModel(description);
 		}
@@ -249,8 +249,11 @@ public class ControllerToControllerModelTranslator {
 	 * @param blockTags the blocktags of the method
 	 * @return the description
 	 */
-	String getResponseDescription(List<? extends DocTree> blockTags) {
+	String getResponseDescription(List<? extends DocTree> blockTags, ExecutableElement method) {
 		Optional<String> returnComment = getReturnComment(blockTags);
+		if (returnComment.isEmpty() && method.getReturnType().getKind().equals(TypeKind.VOID)) {
+			return "The request was successful, but there is no response content.";
+		}
 		return returnComment.isEmpty() ? null : returnComment.get();
 	}
 
@@ -295,10 +298,6 @@ public class ControllerToControllerModelTranslator {
 	boolean isRedirect(ExecutableElement method) {
 		boolean returnsVoid = method.getReturnType().getKind().equals(TypeKind.VOID);
 		boolean containsRedirectParam = containsRedirectParam(method.getParameters());
-		if (returnsVoid && !containsRedirectParam) {
-			throw new IllegalArgumentException(
-					"Method " + method.getSimpleName() + " returns void but does not redirect.");
-		}
 		return returnsVoid && containsRedirectParam;
 	}
 

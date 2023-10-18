@@ -3,6 +3,7 @@ package org.sagebionetworks.translator;
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.io.InputStream;
@@ -16,6 +17,7 @@ import javax.tools.ToolProvider;
 
 import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -246,5 +248,18 @@ public class ControllerModelDocletTest {
 		
 		// Should be a reference to the place the complex type lives in the "components" section
 		assertEquals("#/components/schemas/org.sagebionetworks.openapi.pet.Owner", ownerProperty.getString("$ref"));
+	}
+
+	@Test
+	public void testDescriptionandContentForVoidReturnMethodWithNoRedirect() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/cat/{name}");
+		JSONObject deleteObj = pathObj.getJSONObject("delete");
+		JSONObject responsesObj = deleteObj.getJSONObject("responses");
+		JSONObject okObj = responsesObj.getJSONObject("200");
+
+		// Should be a reference to the place the complex type lives in the "components" section
+		assertEquals("The request was successful, but there is no response content.", okObj.getString("description"));
+		assertThrows(JSONException.class, () -> okObj.getString("content"));
 	}
 }

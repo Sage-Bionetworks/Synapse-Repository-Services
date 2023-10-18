@@ -179,10 +179,13 @@ public class ControllerModelsToOpenAPIModelTranslator {
 			return generateResponsesForRedirectedEndpoint();
 		}
 		Map<String, ResponseInfo> responses = new LinkedHashMap<>();
-		Map<String, Schema> contentTypeToSchema = new HashMap<>();
-		contentTypeToSchema.put(response.getContentType(), new Schema().withSchema(getReferenceSchema(response.getId())));
-		ResponseInfo responseInfo = new ResponseInfo().withDescription(response.getDescription())
-				.withContent(contentTypeToSchema);
+		ResponseInfo responseInfo = new ResponseInfo().withDescription(response.getDescription());
+
+		if (!"void".equals(response.getId())) {
+			Map<String, Schema> contentTypeToSchema = new HashMap<>();
+			contentTypeToSchema.put(response.getContentType(), new Schema().withSchema(getReferenceSchema(response.getId())));
+			responseInfo.withContent(contentTypeToSchema);
+		}
 
 		String statusCode = "" + response.getStatusCode();
 		responses.put(statusCode, responseInfo);
