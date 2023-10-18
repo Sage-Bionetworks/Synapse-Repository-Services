@@ -1,6 +1,7 @@
 package org.sagebionetworks.translator;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -261,5 +262,53 @@ public class ControllerModelDocletTest {
 		// Should be a reference to the place the complex type lives in the "components" section
 		assertEquals("The request was successful, but there is no response content.", okObj.getString("description"));
 		assertThrows(JSONException.class, () -> okObj.getString("content"));
+	}
+
+	@Test
+	public void testHttpServletResponseNotIncludedAsParameter() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/file/{fileId}/url");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray responsesObjs = getObj.getJSONArray("parameters");
+
+		for (int i = 0; i < responsesObjs.length(); i++) {
+			JSONObject parameterObj = responsesObjs.getJSONObject(i);
+			JSONObject schemaObj = parameterObj.getJSONObject("schema");
+			String schema = schemaObj.getString("$ref");
+			System.out.println(schema);
+			assertFalse(schema.toLowerCase().contains("httpservletresponse"));
+		}
+	}
+
+	@Test
+	public void testHttpServletRequestNotIncludedAsParameter() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/dog/{name}");
+		JSONObject deleteObj = pathObj.getJSONObject("delete");
+		JSONArray responsesObjs = deleteObj.getJSONArray("parameters");
+
+		for (int i = 0; i < responsesObjs.length(); i++) {
+			JSONObject parameterObj = responsesObjs.getJSONObject(i);
+			JSONObject schemaObj = parameterObj.getJSONObject("schema");
+			String schema = schemaObj.getString("$ref");
+			System.out.println(schema);
+			assertFalse(schema.toLowerCase().contains("httpservletrequest"));
+		}
+	}
+
+	@Test
+	public void testUriComponentsBuilderNotIncludedAsParameter() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/account");
+		JSONObject postObj = pathObj.getJSONObject("post");
+		JSONArray responsesObjs = postObj.getJSONArray("parameters");
+
+		for (int i = 0; i < responsesObjs.length(); i++) {
+			JSONObject parameterObj = responsesObjs.getJSONObject(i);
+			JSONObject schemaObj = parameterObj.getJSONObject("schema");
+			String schema = schemaObj.getString("$ref");
+			System.out.println(schema);
+			assertFalse(schema.toLowerCase().contains("uricomponentsbuilder"));
+		}
 	}
 }

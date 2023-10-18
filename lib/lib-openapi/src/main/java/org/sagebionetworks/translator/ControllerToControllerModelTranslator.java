@@ -62,6 +62,8 @@ import jdk.javadoc.doclet.Reporter;
  *
  */
 public class ControllerToControllerModelTranslator {
+	static final Set<String> PARAMETERS_NOT_REQUIRED_TO_BE_ANNOTATED = Set.of("javax.servlet.http.HttpServletResponse",
+			"org.springframework.web.util.UriComponentsBuilder", "javax.servlet.http.HttpServletRequest");
 
 	/**
 	 * Converts all controllers found in the doclet environment to controller
@@ -452,6 +454,9 @@ public class ControllerToControllerModelTranslator {
 	Optional<RequestBodyModel> getRequestBody(List<? extends VariableElement> parameters,
 			Map<String, String> paramToDescription, Map<String, ObjectSchema> schemaMap) {
 		for (VariableElement param : parameters) {
+			if (PARAMETERS_NOT_REQUIRED_TO_BE_ANNOTATED.contains(param.asType().toString())) {
+				continue;
+			}
 			String simpleAnnotationName = getSimpleAnnotationName(getParameterAnnotation(param));
 			if (RequestBody.class.getSimpleName().equals(simpleAnnotationName)) {
 				String paramName = param.getSimpleName().toString();
@@ -479,6 +484,9 @@ public class ControllerToControllerModelTranslator {
 			Map<String, String> parameterToDescription, Map<String, ObjectSchema> schemaMap) {
 		List<ParameterModel> parameters = new ArrayList<>();
 		for (VariableElement param : params) {
+			if (PARAMETERS_NOT_REQUIRED_TO_BE_ANNOTATED.contains(param.asType().toString())) {
+				continue;
+			}
 			ParameterLocation paramLocation = getParameterLocation(param);
 			if (paramLocation == null) {
 				continue;
@@ -566,7 +574,7 @@ public class ControllerToControllerModelTranslator {
 		List<? extends AnnotationMirror> annotations = param.getAnnotationMirrors();
 		if (annotations.size() != 1) {
 			throw new IllegalArgumentException(
-					"Each method parameter should have one annotation, this one has " + annotations.size());
+					"Each method parameter should have one annotation, " + param.getSimpleName().toString() + " has " + annotations.size());
 		}
 		return annotations.get(0);
 	}
