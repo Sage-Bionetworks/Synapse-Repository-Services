@@ -372,6 +372,20 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		});
 		assertEquals("response is required.", exception.getMessage());
 	}
+
+	@Test
+	public void testGetResponsesWithVoidMethodReturnType() {
+		ResponseModel input = new ResponseModel().withDescription(DESCRIPTION).withId("void").withStatusCode(200);
+
+		Map<String, ResponseInfo> expectedResponses = new LinkedHashMap<>();
+		ResponseInfo responseInfo = new ResponseInfo().withDescription(DESCRIPTION);
+		String statusCode = "200";
+		expectedResponses.put(statusCode, responseInfo);
+
+		// call under test.
+		assertEquals(expectedResponses, translator.getResponses(input));
+		Mockito.verify(translator, Mockito.times(0)).getReferenceSchema(MOCK_CLASS_NAME);
+	}
 	
 	@Test
 	public void testGenerateResponsesForRedirectedEndpoint() {
