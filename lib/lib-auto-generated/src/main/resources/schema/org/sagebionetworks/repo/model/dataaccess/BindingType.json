@@ -1,0 +1,15 @@
+{
+    "description": "Type of subject binding for an AR",
+    "name": "BindingType",
+    "type": "string",
+    "enum": [
+        {
+            "name": "MANUAL",
+            "description": "Subjects that are bound via the subjects list of the AccessRequirement."
+        },
+        {
+            "name": "DYNAMIC",
+            "description": "Subjects that are bound dynamically from derived annotations."
+        }
+    ]
+}

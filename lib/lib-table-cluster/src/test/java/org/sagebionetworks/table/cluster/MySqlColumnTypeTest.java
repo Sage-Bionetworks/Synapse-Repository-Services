@@ -61,6 +61,13 @@ public class MySqlColumnTypeTest {
 		Integer size = MySqlColumnType.parseSize(typeString);
 		assertEquals(null, size);
 	}
+	
+	@Test
+	public void testParseSizeIntN(){
+		String typeString = "int";
+		Integer size = MySqlColumnType.parseSize(typeString);
+		assertEquals(null, size);
+	}
 
 	@Test
 	public void testBigIntHasSize(){
@@ -105,5 +112,10 @@ public class MySqlColumnTypeTest {
 	@Test
 	public void testJsonHasSize(){
 		assertFalse(MySqlColumnType.JSON.hasSize());
+	}
+	
+	@Test
+	public void testIntHasSize(){
+		assertFalse(MySqlColumnType.INT.hasSize());
 	}
 }

@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
-import org.sagebionetworks.repo.model.ar.BindingType;
+import org.sagebionetworks.repo.model.dataaccess.BindingType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
@@ -95,7 +95,7 @@ public class AccessRequirementUtils {
 		dto.setModifiedBy(revision.getModifiedBy().toString());
 		dto.setModifiedOn(new Date(revision.getModifiedOn()));
 		dto.setAccessType(ACCESS_TYPE.valueOf(dbo.getAccessType()));
-		dto.setVersionNumber(dbo.getCurrentRevNumber());
+		dto.setVersionNumber(revision.getNumber());
 		if (dto instanceof ManagedACTAccessRequirement) {
 			((ManagedACTAccessRequirement) dto).setIsTwoFaRequired(dbo.getIsTwoFaRequired());
 		}
