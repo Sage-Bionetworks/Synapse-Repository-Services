@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 
 import com.amazonaws.services.sqs.model.Message;
+import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -65,7 +66,7 @@ public class CertifiedUserPassingRecordWriterTest {
 	@InjectMocks
 	private CertifiedUserPassingRecordWriter writer;
 	@Captor
-	private ArgumentCaptor<List<KinesisJsonEntityRecord>> recordCaptor;
+	private ArgumentCaptor<List<KinesisObjectSnapshotRecord>> recordCaptor;
 	
 	private UserInfo admin = new UserInfo(true);
 	private Long userId = 123L;
@@ -125,13 +126,13 @@ public class CertifiedUserPassingRecordWriterTest {
 
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		KinesisJsonEntityRecord expectedRecord = new KinesisJsonEntityRecord(changeMessage.getTimestamp().getTime(), passingRecord,
-				STACK, INSTANCE);
+		KinesisObjectSnapshotRecord expectedSnapshot = KinesisObjectSnapshotRecord.map(changeMessage, passingRecord);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 
 		verify(mockObjectRecordDAO).saveBatch(orList, record.getJsonClassName());
-		verify(logger).logBatch(eq("certifiedUserPassingRecords"), recordCaptor.capture());
-		assertEquals(List.of(expectedRecord), recordCaptor.getValue());
+		verify(logger).logBatch(eq("certifiedUserPassingSnapshots"), recordCaptor.capture());
+		expectedSnapshot.withSnapshotTimestamp(recordCaptor.getValue().get(0).getSnapshotTimestamp());
+		assertEquals(List.of(expectedSnapshot), recordCaptor.getValue());
 	}
 
 	@Test
@@ -148,15 +149,14 @@ public class CertifiedUserPassingRecordWriterTest {
 		Mockito.when(stackConfiguration.getStackInstance()).thenReturn(INSTANCE);
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		KinesisJsonEntityRecord expectedRecordOne = new KinesisJsonEntityRecord(changeMessage.getTimestamp().getTime(), passingRecord,
-				STACK, INSTANCE);
-		KinesisJsonEntityRecord expectedRecordTwo = new KinesisJsonEntityRecord(changeMessage.getTimestamp().getTime(), passingRecord,
-				STACK, INSTANCE);
+		KinesisObjectSnapshotRecord expectedSnapshotOne = KinesisObjectSnapshotRecord.map(changeMessage, passingRecord);
+		KinesisObjectSnapshotRecord expectedSnapshotTwo = KinesisObjectSnapshotRecord.map(changeMessage, passingRecord);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 
 		verify(mockObjectRecordDAO).saveBatch(Arrays.asList(record, record), record.getJsonClassName());
-		verify(logger).logBatch(eq("certifiedUserPassingRecords"), recordCaptor.capture());
-
-		assertEquals(List.of(expectedRecordOne, expectedRecordTwo), recordCaptor.getValue());
+		verify(logger).logBatch(eq("certifiedUserPassingSnapshots"), recordCaptor.capture());
+		expectedSnapshotOne.withSnapshotTimestamp(recordCaptor.getAllValues().get(0).get(0).getSnapshotTimestamp());
+		expectedSnapshotTwo.withSnapshotTimestamp(recordCaptor.getAllValues().get(0).get(1).getSnapshotTimestamp());
+		assertEquals(List.of(expectedSnapshotOne, expectedSnapshotTwo), recordCaptor.getValue());
 	}
 }
