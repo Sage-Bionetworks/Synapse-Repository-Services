@@ -39,6 +39,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -254,9 +255,9 @@ public class ControllerToControllerModelTranslator {
 	String getResponseDescription(List<? extends DocTree> blockTags, ExecutableElement method) {
 		Optional<String> returnComment = getReturnComment(blockTags);
 		if (returnComment.isEmpty() && method.getReturnType().getKind().equals(TypeKind.VOID)) {
-			return "The request was successful, but there is no response content.";
+			return "Void";
 		}
-		return returnComment.isEmpty() ? null : returnComment.get();
+		return returnComment.orElse("Auto-generated description");
 	}
 
 	/**
@@ -557,6 +558,9 @@ public class ControllerToControllerModelTranslator {
 		if (RequestParam.class.getSimpleName().equals(simpleAnnotationName)) {
 			return ParameterLocation.query;
 		}
+		if (RequestHeader.class.getSimpleName().equals(simpleAnnotationName)) {
+			return ParameterLocation.header;
+		}
 		if (RequestBody.class.getSimpleName().equals(simpleAnnotationName)) {
 			return null;
 		}
@@ -574,7 +578,8 @@ public class ControllerToControllerModelTranslator {
 		List<? extends AnnotationMirror> annotations = param.getAnnotationMirrors();
 		if (annotations.size() != 1) {
 			throw new IllegalArgumentException(
-					"Each method parameter should have one annotation, " + param.getSimpleName().toString() + " has " + annotations.size());
+					String.format("Each method parameter should have one annotation, %s has %d", param.getSimpleName().toString(), annotations.size())
+					);
 		}
 		return annotations.get(0);
 	}
