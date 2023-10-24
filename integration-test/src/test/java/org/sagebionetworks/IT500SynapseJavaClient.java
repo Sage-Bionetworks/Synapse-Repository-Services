@@ -75,7 +75,9 @@ import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
+import org.sagebionetworks.repo.model.quiz.MultichoiceResponse;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.warehouse.WarehouseTestHelper;
@@ -821,6 +823,48 @@ public class IT500SynapseJavaClient {
 	}
 
 	@Test
+	public void testCertifiedPassingQuizSnapshot() throws Exception {
+		// before taking the test there's no passing record
+		String myId = synapse.getMyProfile().getOwnerId();
+		assertThrows(SynapseNotFoundException.class, () -> synapse.getCertifiedUserPassingRecord(myId));
+		Quiz quiz = synapse.getCertifiedUserTest();
+		assertNotNull(quiz);
+		assertNotNull(quiz.getId());
+		QuizResponse response = createPassingQuizResponse(quiz.getId());
+		// this quiz will fail
+		PassingRecord pr = synapse.submitCertifiedUserTestResponse(response);
+		assertEquals(new Long(0L), pr.getScore());
+		assertFalse(pr.getPassed());
+		assertEquals(quiz.getId(), pr.getQuizId());
+		assertNotNull(pr.getResponseId());
+		Instant now = Instant.now();
+
+		String query = String.format(
+				"select count(*) from certifiedquizsnapshots where"
+						+ " snapshot_date %s and"
+						+ " change_timestamp %s and"
+						+ " response_id = %s and"
+						+ " change_type = 'CREATE' and"
+						+ " passed = false",
+				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
+				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(now),
+				pr.getResponseId());
+
+		warehouseHelper.assertWarehouseQuery(query);
+
+		String queryTwo = String.format(
+				"select count(*) from certifiedquizquestionsnapshots where"
+						+ " snapshot_date %s and"
+						+ " change_timestamp %s and"
+						+ " response_id = %s",
+				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
+				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(now),
+				pr.getResponseId());
+
+		warehouseHelper.assertWarehouseQuery(queryTwo);
+	}
+
+	@Test
 	public void testLogService() throws Exception {
 		String label1 = UUID.randomUUID().toString();
 		String label2 = UUID.randomUUID().toString();
@@ -883,5 +927,20 @@ public class IT500SynapseJavaClient {
 	@Test
 	public void testLookupEntity() throws SynapseException {
 		assertEquals(dataset.getId(), synapse.lookupChild(project.getId(), dataset.getName()));
+	}
+
+	private static QuizResponse createPassingQuizResponse(long quizId) {
+		QuizResponse resp = new QuizResponse();
+		resp.setQuizId(quizId);
+		List<QuestionResponse> questionResponses = new ArrayList<QuestionResponse>();
+		resp.setQuestionResponses(questionResponses);
+		MultichoiceResponse tr = new MultichoiceResponse();
+		questionResponses.add(tr);
+		tr.setQuestionIndex(1L);
+		Set<Long> set = new HashSet<>();
+		set.add(1L);
+		set.add(2L);
+		tr.setAnswerIndex(set);
+		return resp;
 	}
 }
