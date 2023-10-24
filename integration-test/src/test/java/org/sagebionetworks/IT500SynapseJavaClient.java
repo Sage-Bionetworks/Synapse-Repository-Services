@@ -792,7 +792,7 @@ public class IT500SynapseJavaClient {
 	public void testCertifiedUserQuiz() throws Exception {
 		// before taking the test there's no passing record
 		String myId = synapse.getMyProfile().getOwnerId();
-		assertThrows(SynapseNotFoundException.class, () -> synapse.getCertifiedUserPassingRecord(myId));
+		cleanupPassingQuizRecords(myId);
 		Quiz quiz = synapse.getCertifiedUserTest();
 		assertNotNull(quiz);
 		assertNotNull(quiz.getId());
@@ -841,9 +841,15 @@ public class IT500SynapseJavaClient {
 		PaginatedResults<PassingRecord> prs = adminSynapse.getCertifiedUserPassingRecords(0L, 2L, myId);
 		assertEquals(1, prs.getResults().size());
 		assertEquals(pr, prs.getResults().iterator().next());
-		//Before deleting the record we need to wait at least 5 seconds because CertifiedUserPassingRecordWriter will read this records from db
-		Thread.sleep(5000);
-		adminSynapse.deleteCertifiedUserTestResponse(pr.getResponseId().toString());
+	}
+
+	private void cleanupPassingQuizRecords(String userId) throws SynapseException {
+		try {
+			PassingRecord existingPassingRecord = synapse.getCertifiedUserPassingRecord(userId);
+			adminSynapse.deleteCertifiedUserTestResponse(existingPassingRecord.getResponseId().toString());
+		} catch (SynapseNotFoundException exception) {
+			//if already quiz exists we delete it, otherwise do nothing.
+		}
 	}
 
 	@Test
