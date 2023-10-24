@@ -9,6 +9,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -144,4 +145,58 @@ public class ComplexExampleController {
 	public void revokeToken(
 			@RequestHeader(value = "testClientId", required=true) String verifiedClientId,
 			@RequestBody OAuthTokenRevocationRequest revokeRequest) {}
+
+	/**
+	 * Example of an endpoint with a response status of 'NO_CONTENT'
+	 *
+	 * @param name a name
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = "/complex-pet/nocontentresponsestatus", method = RequestMethod.POST)
+	public void getNoContentResponseStatus(@PathVariable String name) {}
+
+	/**
+	 * Example of an endpoint with a response status of 'ACCEPTED'
+	 *
+	 * @param name a name
+	 * @return the name that was added
+	 */
+	@ResponseStatus(HttpStatus.ACCEPTED)
+	@RequestMapping(value = "/complex-pet/acceptedresponsestatus", method = RequestMethod.POST)
+	public @ResponseBody String getAcceptedResponseStatus(@PathVariable String name) {}
+
+	/**
+	 * Example of an endpoint with a response status of 'GONE'
+	 *
+	 * @param name a name
+	 * @return the name that was added
+	 */
+	@ResponseStatus(HttpStatus.GONE)
+	@RequestMapping(value = "/complex-pet/goneresponsestatus", method = RequestMethod.POST)
+	public @ResponseBody String getGoneResponseStatus(@PathVariable String name) {}
+
+	/**
+	 * Example of an endpoint with no response status
+	 *
+	 * @param name a name
+	 * @return the name that was added
+	 */
+	@RequestMapping(value = "/complex-pet/noresponsestatus", method = RequestMethod.POST)
+	public @ResponseBody String getNoResponseStatus(@PathVariable String name) {}
+
+	/**
+	 * Example of a private method included in the controller
+	 *
+	 * @param wikiId
+	 * @param wikiPage
+	 */
+	private static void validateUpateArguments(String wikiId, WikiPage wikiPage) {
+	}
+
+	/**
+	 * Example of an endpoint that has been deprecated
+	 */
+	@Deprecated
+	@RequestMapping(value = "/complex-pet/deprecated", method = RequestMethod.GET)
+	public void getDeprecated() {}
 }
