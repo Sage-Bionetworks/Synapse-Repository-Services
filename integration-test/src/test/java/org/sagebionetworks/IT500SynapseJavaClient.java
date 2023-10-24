@@ -796,41 +796,7 @@ public class IT500SynapseJavaClient {
 		Quiz quiz = synapse.getCertifiedUserTest();
 		assertNotNull(quiz);
 		assertNotNull(quiz.getId());
-		QuizResponse response = new QuizResponse();
-		response.setQuizId(quiz.getId());
-		response.setQuestionResponses(new ArrayList<>());
-		// this quiz will fail
-		PassingRecord pr = synapse.submitCertifiedUserTestResponse(response);
-		assertEquals(new Long(0L), pr.getScore());
-		assertFalse(pr.getPassed());
-		assertEquals(quiz.getId(), pr.getQuizId());
-		assertNotNull(pr.getResponseId());
-		PassingRecord pr2 = synapse.getCertifiedUserPassingRecord(myId);
-		assertEquals(pr, pr2);
-		
-		PaginatedResults<QuizResponse> qrs = adminSynapse.getCertifiedUserTestResponses(0L, 2L, myId);
-		assertEquals(1, qrs.getResults().size());
-		assertEquals(pr.getResponseId(), qrs.getResults().iterator().next().getId());
-		qrs = adminSynapse.getCertifiedUserTestResponses(0L, 2L, null);
-		assertEquals(1, qrs.getResults().size());
-		assertEquals(pr.getResponseId(), qrs.getResults().iterator().next().getId());
-
-		PaginatedResults<PassingRecord> prs = adminSynapse.getCertifiedUserPassingRecords(0L, 2L, myId);
-		assertEquals(1, prs.getResults().size());
-		assertEquals(pr, prs.getResults().iterator().next());
-
-		adminSynapse.deleteCertifiedUserTestResponse(pr.getResponseId().toString());
-	}
-
-	@Test
-	public void testCertifiedPassingQuizSnapshot() throws Exception {
-		// before taking the test there's no passing record
-		String myId = synapse.getMyProfile().getOwnerId();
-		assertThrows(SynapseNotFoundException.class, () -> synapse.getCertifiedUserPassingRecord(myId));
-		Quiz quiz = synapse.getCertifiedUserTest();
-		assertNotNull(quiz);
-		assertNotNull(quiz.getId());
-		QuizResponse response = createPassingQuizResponse(quiz.getId());
+		QuizResponse response = createMultichoiceQuizResponse(quiz.getId());
 		// this quiz will fail
 		PassingRecord pr = synapse.submitCertifiedUserTestResponse(response);
 		assertEquals(new Long(0L), pr.getScore());
@@ -862,6 +828,22 @@ public class IT500SynapseJavaClient {
 				pr.getResponseId());
 
 		warehouseHelper.assertWarehouseQuery(queryTwo);
+
+		PassingRecord pr2 = synapse.getCertifiedUserPassingRecord(myId);
+		assertEquals(pr, pr2);
+		PaginatedResults<QuizResponse> qrs = adminSynapse.getCertifiedUserTestResponses(0L, 2L, myId);
+		assertEquals(1, qrs.getResults().size());
+		assertEquals(pr.getResponseId(), qrs.getResults().iterator().next().getId());
+		qrs = adminSynapse.getCertifiedUserTestResponses(0L, 2L, null);
+		assertEquals(1, qrs.getResults().size());
+		assertEquals(pr.getResponseId(), qrs.getResults().iterator().next().getId());
+
+		PaginatedResults<PassingRecord> prs = adminSynapse.getCertifiedUserPassingRecords(0L, 2L, myId);
+		assertEquals(1, prs.getResults().size());
+		assertEquals(pr, prs.getResults().iterator().next());
+		//Before deleting the record we need to wait at least 5 seconds because CertifiedUserPassingRecordWriter will read this records from db
+		Thread.sleep(5000);
+		adminSynapse.deleteCertifiedUserTestResponse(pr.getResponseId().toString());
 	}
 
 	@Test
@@ -929,7 +911,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(dataset.getId(), synapse.lookupChild(project.getId(), dataset.getName()));
 	}
 
-	private static QuizResponse createPassingQuizResponse(long quizId) {
+	private static QuizResponse createMultichoiceQuizResponse(long quizId) {
 		QuizResponse resp = new QuizResponse();
 		resp.setQuizId(quizId);
 		List<QuestionResponse> questionResponses = new ArrayList<QuestionResponse>();
