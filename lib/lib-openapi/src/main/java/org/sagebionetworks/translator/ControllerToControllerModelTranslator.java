@@ -12,6 +12,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
@@ -138,8 +139,10 @@ public class ControllerToControllerModelTranslator {
 		reporter.print(Kind.NOTE, "Extracting controller " + controller.getSimpleName());
 		List<MethodModel> methods = getMethods(controller.getEnclosedElements(), docTrees, schemaMap, reporter);
 		ControllerInfoModel controllerInfo = getControllerInfoModel(controller.getAnnotationMirrors());
+		DocCommentTree controllerDocComments = docTrees.getDocCommentTree(controller);
+		String controllerDescription = controllerDocComments == null ? "Auto-generated description" : getControllerDescription(controllerDocComments);
 		controllerModel.withDisplayName(controllerInfo.getDisplayName()).withPath(controllerInfo.getPath())
-				.withMethods(methods).withDescription(getControllerDescription(docTrees.getDocCommentTree(controller)));
+				.withMethods(methods).withDescription(controllerDescription);
 		return controllerModel;
 	}
 
@@ -197,8 +200,18 @@ public class ControllerToControllerModelTranslator {
 			Map<String, ObjectSchema> schemaMap, Reporter reporter) {
 		List<MethodModel> methods = new ArrayList<>();
 		for (ExecutableElement method : ElementFilter.methodsIn(enclosedElements)) {
+			Set<Modifier> methodModifiers = method.getModifiers();
+			if (methodModifiers.contains(Modifier.PRIVATE) || methodModifiers.contains(Modifier.STATIC)) {
+				continue;
+			}
+
 			String methodName = method.getSimpleName().toString();
 			reporter.print(Kind.NOTE, "Extracting method " + methodName);
+
+			if (method.getAnnotation(Deprecated.class) != null) {
+				reporter.print(Kind.NOTE,  String.format("Method %s has been deprecated and is not included in the OpenAPI translation.", methodName));
+				continue;
+			}
 
 			DocCommentTree docCommentTree = docTrees.getDocCommentTree(method);
 			Map<String, String> parameterToDescription = getParameterToDescription(docCommentTree.getBlockTags());
@@ -381,6 +394,11 @@ public class ControllerToControllerModelTranslator {
 				annotationToModel.put(ResponseStatus.class, getResponseStatusModel(annotation));
 			}
 		}
+
+		if (!annotationToModel.containsKey(ResponseStatus.class)) {
+			annotationToModel.put(ResponseStatus.class, new ResponseStatusModel().withStatusCode(200));
+		}
+
 		return annotationToModel;
 	}
 
@@ -434,12 +452,18 @@ public class ControllerToControllerModelTranslator {
 	int getHttpStatusCode(String object) {
 		HttpStatus status = HttpStatus.valueOf(object);
 		switch (status) {
-		case OK:
-			return HttpStatus.OK.value();
-		case CREATED:
-			return HttpStatus.CREATED.value();
-		default:
-			throw new IllegalArgumentException("Could not translate HttpStatus for status " + status);
+			case OK:
+				return HttpStatus.OK.value();
+			case CREATED:
+				return HttpStatus.CREATED.value();
+			case NO_CONTENT:
+				return  HttpStatus.NO_CONTENT.value();
+			case ACCEPTED:
+				return  HttpStatus.ACCEPTED.value();
+			case GONE:
+				return  HttpStatus.GONE.value();
+			default:
+				throw new IllegalArgumentException("Could not translate HttpStatus for status " + status);
 		}
 	}
 

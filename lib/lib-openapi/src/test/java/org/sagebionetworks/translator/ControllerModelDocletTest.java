@@ -285,10 +285,10 @@ public class ControllerModelDocletTest {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
 		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/file/{fileId}/url/httpservletresponse");
 		JSONObject getObj = pathObj.getJSONObject("get");
-		JSONArray responsesObjs = getObj.getJSONArray("parameters");
+		JSONArray parametersObj = getObj.getJSONArray("parameters");
 
-		for (int i = 0; i < responsesObjs.length(); i++) {
-			JSONObject parameterObj = responsesObjs.getJSONObject(i);
+		for (int i = 0; i < parametersObj.length(); i++) {
+			JSONObject parameterObj = parametersObj.getJSONObject(i);
 			JSONObject schemaObj = parameterObj.getJSONObject("schema");
 			String schema = schemaObj.getString("$ref");
 			assertFalse(schema.toLowerCase().contains("httpservletresponse"));
@@ -300,10 +300,10 @@ public class ControllerModelDocletTest {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
 		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/dog/{name}/httpservletrequest");
 		JSONObject deleteObj = pathObj.getJSONObject("delete");
-		JSONArray responsesObjs = deleteObj.getJSONArray("parameters");
+		JSONArray parametersObj = deleteObj.getJSONArray("parameters");
 
-		for (int i = 0; i < responsesObjs.length(); i++) {
-			JSONObject parameterObj = responsesObjs.getJSONObject(i);
+		for (int i = 0; i < parametersObj.length(); i++) {
+			JSONObject parameterObj = parametersObj.getJSONObject(i);
 			JSONObject schemaObj = parameterObj.getJSONObject("schema");
 			String schema = schemaObj.getString("$ref");
 			assertFalse(schema.toLowerCase().contains("httpservletrequest"));
@@ -315,10 +315,10 @@ public class ControllerModelDocletTest {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
 		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/account/uricomponentsbuilder");
 		JSONObject postObj = pathObj.getJSONObject("post");
-		JSONArray responsesObjs = postObj.getJSONArray("parameters");
+		JSONArray parametersObj = postObj.getJSONArray("parameters");
 
-		for (int i = 0; i < responsesObjs.length(); i++) {
-			JSONObject parameterObj = responsesObjs.getJSONObject(i);
+		for (int i = 0; i < parametersObj.length(); i++) {
+			JSONObject parameterObj = parametersObj.getJSONObject(i);
 			JSONObject schemaObj = parameterObj.getJSONObject("schema");
 			String schema = schemaObj.getString("$ref");
 			assertFalse(schema.toLowerCase().contains("uricomponentsbuilder"));
@@ -330,10 +330,72 @@ public class ControllerModelDocletTest {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
 		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/requestheader");
 		JSONObject postObj = pathObj.getJSONObject("post");
-		JSONArray responsesObjs = postObj.getJSONArray("parameters");
-		JSONObject parameterObj = responsesObjs.getJSONObject(0);
+		JSONArray parametersObj = postObj.getJSONArray("parameters");
+		JSONObject parameterObj = parametersObj.getJSONObject(0);
 		String in = parameterObj.getString("in");
 
 		assertEquals("header", in);
+	}
+
+	@Test
+	public void testResponseStatusNoContent() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/nocontentresponsestatus");
+		JSONObject postObj = pathObj.getJSONObject("post");
+		JSONObject responsesObj = postObj.getJSONObject("responses");
+
+		JSONObject responseObj = responsesObj.getJSONObject("204");
+		assertEquals("Void", responseObj.getString("description"));
+	}
+
+	@Test
+	public void testResponseStatusAccepted() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/acceptedresponsestatus");
+		JSONObject postObj = pathObj.getJSONObject("post");
+		JSONObject responsesObj = postObj.getJSONObject("responses");
+
+		JSONObject responseObj = responsesObj.getJSONObject("202");
+		assertEquals("the name that was added", responseObj.getString("description"));
+	}
+
+	@Test
+	public void testResponseStatusGone() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/goneresponsestatus");
+		JSONObject postObj = pathObj.getJSONObject("post");
+		JSONObject responsesObj = postObj.getJSONObject("responses");
+
+		JSONObject responseObj = responsesObj.getJSONObject("410");
+		assertEquals("the name that was added", responseObj.getString("description"));
+	}
+
+	@Test
+	public void testNoResponseStatus() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/noresponsestatus");
+		JSONObject postObj = pathObj.getJSONObject("post");
+		JSONObject responsesObj = postObj.getJSONObject("responses");
+
+		JSONObject responseObj = responsesObj.getJSONObject("200");
+		assertEquals("the name that was added", responseObj.getString("description"));
+	}
+
+	@Test
+	public void testDeprecatedMethod() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		assertTrue(pathsObj.isNull("/repo/v1/complex-pet/deprecated"));
+	}
+
+	@Test
+	public void testNoControllerComment() {
+		JSONArray array = generatedOpenAPISpec.getJSONArray("tags");
+		for (int i = 0; i < array.length(); i++) {
+			JSONObject obj = array.getJSONObject(i);
+			String controllerName = obj.get("name").toString();
+			if (controllerName.equals("NoComment")) {
+				assertEquals("Auto-generated description", obj.get("description").toString());
+			}
+		}
 	}
 }
