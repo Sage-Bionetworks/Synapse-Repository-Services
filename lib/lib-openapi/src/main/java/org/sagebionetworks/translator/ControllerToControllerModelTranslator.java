@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -373,7 +374,7 @@ public class ControllerToControllerModelTranslator {
 	String getMethodPath(RequestMappingModel requestMapping) {
 		ValidateArgument.required(requestMapping, "RequestMapping");
 		ValidateArgument.required(requestMapping.getPath(), "RequestMapping.path");
-		return requestMapping.getPath();
+		return requestMapping.getPath().replaceAll("\\:[^\\}]+", "").replace("*", "");
 	}
 
 	/**
@@ -516,7 +517,17 @@ public class ControllerToControllerModelTranslator {
 			if (paramLocation == null) {
 				continue;
 			}
+
+			AnnotationMirror paramAnnotation = getParameterAnnotation(param);
 			String paramName = param.getSimpleName().toString();
+			if (ParameterLocation.path.equals(paramLocation)) {
+				for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> elements: paramAnnotation.getElementValues().entrySet()) {
+					if ("value".equals(elements.getKey().getSimpleName().toString())) {
+						paramName = elements.getValue().getValue().toString();
+					}
+				}
+			}
+
 			String paramDescription = parameterToDescription.get(paramName);
 			TypeKind parameterType = param.asType().getKind();
 			String paramTypeClassName = param.asType().toString();
