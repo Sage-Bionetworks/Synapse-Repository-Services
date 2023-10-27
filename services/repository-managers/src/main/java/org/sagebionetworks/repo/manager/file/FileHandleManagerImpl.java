@@ -406,11 +406,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 
 	private String getUrlForS3FileHandle(S3FileHandle handle) {
-//		if (config.getS3Bucket().equals(handle.getBucketName())) {
-//			return getCloudFrontSignedUrlForS3FileHandle(handle);
-//		} else {
+		if (config.getS3Bucket().equals(handle.getBucketName())) {
+			return getCloudFrontSignedUrlForS3FileHandle(handle);
+		} else {
 			return getS3SignedUrlForS3FileHandle(handle);
-//		}
+		}
 	}
 
 	private String getS3SignedUrlForS3FileHandle(S3FileHandle handle) {
