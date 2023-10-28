@@ -1091,7 +1091,7 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testGetMethodPathWithRegularExpression() {
 		String fakePath = "/test/{id:.+}/test";
-		assertEquals("/test/{id}", translator.getMethodPath(new RequestMappingModel().withPath(fakePath)));
+		assertEquals("/test/{id}/test", translator.getMethodPath(new RequestMappingModel().withPath(fakePath)));
 	}
 
 	@Test
