@@ -108,7 +108,7 @@ public class ControllerModelsToOpenAPIModelTranslator {
 				fullPath = "/" + fullPath;
 			}
 			paths.putIfAbsent(fullPath, new LinkedHashMap<>());
-			insertOperationAndEndpointInfo(paths.get(fullPath), method, displayName);
+			insertOperationAndEndpointInfo(paths.get(fullPath), method, displayName, fullPath);
 		}
 	}
 
@@ -119,17 +119,19 @@ public class ControllerModelsToOpenAPIModelTranslator {
 	 * @param method              - the method being looked at
 	 * @param displayName         - the display name of the controller in which this
 	 *                            method resides.
+	 * @param fullPath            - the full path to the method
 	 */
 	void insertOperationAndEndpointInfo(Map<String, EndpointInfo> operationToEndpoint, MethodModel method,
-			String displayName) {
+			String displayName, String fullPath) {
 		ValidateArgument.required(operationToEndpoint, "operationToEndpoint");
 		ValidateArgument.required(method, "method");
 		ValidateArgument.required(displayName, "displayName");
+		ValidateArgument.required(fullPath, "fullPath");
 		String operation = method.getOperation().toString();
 		if (operationToEndpoint.containsKey(operation)) {
 			throw new IllegalArgumentException("OperationToEndpoint already contains operation " + operation);
 		}
-		operationToEndpoint.put(operation, getEndpointInfo(method, displayName));
+		operationToEndpoint.put(operation, getEndpointInfo(method, displayName, fullPath));
 	}
 
 	/**
@@ -138,13 +140,15 @@ public class ControllerModelsToOpenAPIModelTranslator {
 	 * 
 	 * @param method      - the method being looked at
 	 * @param displayName - the name of the controller where this method resides.
+	 * @param fullPath    - the full path to the method
 	 * @return an object that represents the endpoint of the method.
 	 */
-	EndpointInfo getEndpointInfo(MethodModel method, String displayName) {
+	EndpointInfo getEndpointInfo(MethodModel method, String displayName, String fullPath) {
 		ValidateArgument.required(method, "method");
 		ValidateArgument.required(displayName, "displayName");
+		ValidateArgument.required(fullPath, "fullPath");
 		List<String> tags = new ArrayList<>(Arrays.asList(displayName));
-		String operationId = method.getName();
+		String operationId = fullPath;
 		EndpointInfo endpointInfo = new EndpointInfo().withTags(tags).withOperationId(operationId)
 				.withParameters(getParameters(method.getParameters()))
 				.withRequestBody(method.getRequestBody() == null ? null : getRequestBodyInfo(method.getRequestBody()))

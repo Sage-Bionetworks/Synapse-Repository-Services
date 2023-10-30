@@ -148,12 +148,13 @@ public class ControllerModelDocletTest {
 	
 	@Test
 	public void testOperationIdIsCorrectInPath() {
+		String fullPath = "/repo/v1/complex-pet/{petName}";
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
-		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/{petName}");
+		JSONObject pathObj = pathsObj.getJSONObject(fullPath);
 		JSONObject operationObj = pathObj.getJSONObject("get");
 		
 		// test operationId is correct
-		assertEquals("getPet", operationObj.getString("operationId"));
+		assertEquals(fullPath, operationObj.getString("operationId"));
 	}
 	
 	@Test
@@ -397,5 +398,24 @@ public class ControllerModelDocletTest {
 				assertEquals("Auto-generated description", obj.get("description").toString());
 			}
 		}
+	}
+
+	@Test
+	public void testDifferentPathAndMethodParameterNames() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/differentpathandmethodparameternames/{petName}");
+		JSONObject postObj = pathObj.getJSONObject("get");
+		JSONArray parametersObj = postObj.getJSONArray("parameters");
+		JSONObject parameterObj = parametersObj.getJSONObject(0);
+		assertEquals("petName", parameterObj.getString("name"));
+		assertEquals("the name of the pet", parameterObj.getString("description"));
+	}
+
+	@Test
+	public void testRegularExpressionInPathParameter() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/regularexpression/{id}/test");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		assertEquals("/repo/v1/complex-pet/regularexpression/{id}/test", getObj.getString("operationId"));
 	}
 }

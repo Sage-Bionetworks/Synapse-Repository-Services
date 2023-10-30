@@ -4,6 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,7 +19,6 @@ import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.sagebionetworks.controller.model.ControllerModel;
 import org.sagebionetworks.controller.model.MethodModel;
 import org.sagebionetworks.controller.model.Operation;
@@ -49,7 +53,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		schemaMap.put(MOCK_CLASS_NAME, js);
 		this.schemaMap = schemaMap;
 
-		this.translator = Mockito.spy(new ControllerModelsToOpenAPIModelTranslator(schemaMap));
+		this.translator = spy(new ControllerModelsToOpenAPIModelTranslator(schemaMap));
 	}
 	
 	@Test
@@ -63,11 +67,11 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		List<ServerInfo> servers = new ArrayList<>();
 		Map<String, Map<String, JsonSchema>> components = new LinkedHashMap<>();
 
-		Mockito.doNothing().when(translator).insertPaths(any(List.class), any(String.class), any(String.class),
+		doNothing().when(translator).insertPaths(any(List.class), any(String.class), any(String.class),
 				any(Map.class));
-		Mockito.doReturn(apiInfo).when(translator).getApiInfo();
-		Mockito.doReturn(servers).when(translator).getServers();
-		Mockito.doReturn(components).when(translator).getComponents();
+		doReturn(apiInfo).when(translator).getApiInfo();
+		doReturn(servers).when(translator).getServers();
+		doReturn(components).when(translator).getComponents();
 
 		OpenAPISpecModel result = translator.translate(Arrays.asList(controllerModel));
 		List<TagInfo> tags = new ArrayList<>();
@@ -76,10 +80,10 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 				.withComponents(components).withPaths(new LinkedHashMap<>()).withTags(tags);
 		assertEquals(expected, result);
 
-		Mockito.verify(translator).insertPaths(methods, basePath, displayName, result.getPaths());
-		Mockito.verify(translator).getApiInfo();
-		Mockito.verify(translator).getServers();
-		Mockito.verify(translator).getComponents();
+		verify(translator).insertPaths(methods, basePath, displayName, result.getPaths());
+		verify(translator).getApiInfo();
+		verify(translator).getServers();
+		verify(translator).getComponents();
 	}
 
 	@Test
@@ -125,7 +129,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		methods.add(method);
 
 		EndpointInfo endpointInfo = new EndpointInfo();
-		Mockito.doReturn(endpointInfo).when(translator).getEndpointInfo(any(MethodModel.class), any(String.class));
+		doReturn(endpointInfo).when(translator).getEndpointInfo(any(MethodModel.class), any(String.class), any(String.class));
 
 		// call under test.
 		translator.insertPaths(methods, basePath, displayName, paths);
@@ -136,7 +140,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		expectedPaths.put(basePath + methodPath, operationToEndpoint);
 
 		assertEquals(expectedPaths, paths);
-		Mockito.verify(translator).getEndpointInfo(method, displayName);
+		verify(translator).getEndpointInfo(method, displayName, basePath + methodPath);
 	}
 	
 	@Test
@@ -153,7 +157,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		methods.add(method);
 
 		EndpointInfo endpointInfo = new EndpointInfo();
-		Mockito.doReturn(endpointInfo).when(translator).getEndpointInfo(any(MethodModel.class), any(String.class));
+		doReturn(endpointInfo).when(translator).getEndpointInfo(any(MethodModel.class), any(String.class), any(String.class));
 
 		// call under test.
 		translator.insertPaths(methods, basePath, displayName, paths);
@@ -162,10 +166,11 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		Map<String, EndpointInfo> operationToEndpoint = new LinkedHashMap<>();
 		operationToEndpoint.put("get", endpointInfo);
 		// "/" should be added automatically
-		expectedPaths.put("/" + basePath + methodPath, operationToEndpoint);
+		String fullPath = "/" + basePath + methodPath;
+		expectedPaths.put(fullPath, operationToEndpoint);
 
 		assertEquals(expectedPaths, paths);
-		Mockito.verify(translator).getEndpointInfo(method, displayName);
+		verify(translator).getEndpointInfo(method, displayName, fullPath);
 	}
 
 	@Test
@@ -209,17 +214,18 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		Map<String, EndpointInfo> operationToEndpointInfo = new LinkedHashMap<>();
 		MethodModel method1 = new MethodModel().withOperation(Operation.get);
 		String displayName = "DISPLAY_NAME";
+		String fullPath = "/test/path";
 		EndpointInfo endpointInfo = new EndpointInfo();
-		Mockito.doReturn(endpointInfo).when(translator).getEndpointInfo(any(MethodModel.class), any(String.class));
-		translator.insertOperationAndEndpointInfo(operationToEndpointInfo, method1, displayName);
+		doReturn(endpointInfo).when(translator).getEndpointInfo(any(MethodModel.class), any(String.class), any(String.class));
+		translator.insertOperationAndEndpointInfo(operationToEndpointInfo, method1, displayName, fullPath);
 
 		MethodModel method2 = new MethodModel().withOperation(Operation.get);
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test.
-			translator.insertOperationAndEndpointInfo(operationToEndpointInfo, method2, displayName);
+			translator.insertOperationAndEndpointInfo(operationToEndpointInfo, method2, displayName, fullPath);
 		});
 		assertEquals("OperationToEndpoint already contains operation get", exception.getMessage());
-		Mockito.verify(translator).getEndpointInfo(method1, displayName);
+		verify(translator).getEndpointInfo(method1, displayName, fullPath);
 	}
 
 	@Test
@@ -227,47 +233,61 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		Map<String, EndpointInfo> operationToEndpointInfo = new LinkedHashMap<>();
 		MethodModel method = new MethodModel().withOperation(Operation.get);
 		String displayName = "DISPLAY_NAME";
+		String fullPath = "/test/path";
 		EndpointInfo endpointInfo = new EndpointInfo();
-		Mockito.doReturn(endpointInfo).when(translator).getEndpointInfo(any(MethodModel.class), any(String.class));
+		doReturn(endpointInfo).when(translator).getEndpointInfo(any(MethodModel.class), any(String.class), any(String.class));
 
 		// call under test.
-		translator.insertOperationAndEndpointInfo(operationToEndpointInfo, method, displayName);
-		Mockito.verify(translator).getEndpointInfo(method, displayName);
+		translator.insertOperationAndEndpointInfo(operationToEndpointInfo, method, displayName, fullPath);
+		verify(translator).getEndpointInfo(method, displayName, fullPath);
 		assertTrue(operationToEndpointInfo.containsKey("get"));
 		assertEquals(endpointInfo, operationToEndpointInfo.get("get"));
 	}
 
 	@Test
 	public void testInsertOperationAndEndpointInfoWithNullDisplayName() {
+		String fullPath = "/test/path";
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test.
-			translator.insertOperationAndEndpointInfo(new HashMap<>(), new MethodModel(), null);
+			translator.insertOperationAndEndpointInfo(new HashMap<>(), new MethodModel(), null, fullPath);
 		});
 		assertEquals("displayName is required.", exception.getMessage());
 	}
 
 	@Test
 	public void testInsertOperationAndEndpointInfoWithNullMethod() {
+		String fullPath = "/test/path";
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test.
-			translator.insertOperationAndEndpointInfo(new HashMap<>(), null, "");
+			translator.insertOperationAndEndpointInfo(new HashMap<>(), null, "", fullPath);
 		});
 		assertEquals("method is required.", exception.getMessage());
 	}
 
 	@Test
 	public void testInsertOperationAndEndpointInfoWithNullOperationToEndpoints() {
+		String fullPath = "/test/path";
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test.
-			translator.insertOperationAndEndpointInfo(null, new MethodModel(), "");
+			translator.insertOperationAndEndpointInfo(null, new MethodModel(), "", fullPath);
 		});
 		assertEquals("operationToEndpoint is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testInsertOperationAndEndpointInfoWithNullFullPath() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test.
+			translator.insertOperationAndEndpointInfo(new HashMap<>(), new MethodModel(), "", null);
+		});
+		assertEquals("fullPath is required.", exception.getMessage());
 	}
 
 	@Test
 	public void testGetEndpointInfo() {
 		String methodName = "METHOD_NAME";
 		String displayName = "DISPLAY_NAME";
+		String fullPath = "/test/path";
 		List<ParameterModel> parameters = new ArrayList<>();
 		RequestBodyModel requestBodyModel = new RequestBodyModel();
 		ResponseModel responses = new ResponseModel();
@@ -278,24 +298,25 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		List<ParameterInfo> expectedParameters = new ArrayList<>();
 		RequestBodyInfo requestBodyInfo = new RequestBodyInfo();
 		Map<String, ResponseInfo> respones = new LinkedHashMap<>();
-		Mockito.doReturn(expectedParameters).when(translator).getParameters(any(List.class));
-		Mockito.doReturn(requestBodyInfo).when(translator).getRequestBodyInfo(any(RequestBodyModel.class));
-		Mockito.doReturn(respones).when(translator).getResponses(any(ResponseModel.class));
+		doReturn(expectedParameters).when(translator).getParameters(any(List.class));
+		doReturn(requestBodyInfo).when(translator).getRequestBodyInfo(any(RequestBodyModel.class));
+		doReturn(respones).when(translator).getResponses(any(ResponseModel.class));
 
-		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags).withOperationId(methodName)
+		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags).withOperationId(fullPath)
 				.withParameters(expectedParameters).withRequestBody(requestBodyInfo).withResponses(respones);
 
 		// call under test.
-		assertEquals(expectedEndpointInfo, translator.getEndpointInfo(method, displayName));
-		Mockito.verify(translator).getParameters(parameters);
-		Mockito.verify(translator).getRequestBodyInfo(requestBodyModel);
-		Mockito.verify(translator).getResponses(responses);
+		assertEquals(expectedEndpointInfo, translator.getEndpointInfo(method, displayName, fullPath));
+		verify(translator).getParameters(parameters);
+		verify(translator).getRequestBodyInfo(requestBodyModel);
+		verify(translator).getResponses(responses);
 	}
 	
 	@Test
 	public void testGetEndpointInfoWithNullRequestBodyModel() {
 		String methodName = "METHOD_NAME";
 		String displayName = "DISPLAY_NAME";
+		String fullPath = "/test/path";
 		List<ParameterModel> parameters = new ArrayList<>();
 		RequestBodyModel requestBodyModel = null;
 		ResponseModel responses = new ResponseModel();
@@ -305,46 +326,57 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 
 		List<ParameterInfo> expectedParameters = new ArrayList<>();
 		Map<String, ResponseInfo> respones = new LinkedHashMap<>();
-		Mockito.doReturn(expectedParameters).when(translator).getParameters(any(List.class));
-		Mockito.doReturn(respones).when(translator).getResponses(any(ResponseModel.class));
+		doReturn(expectedParameters).when(translator).getParameters(any(List.class));
+		doReturn(respones).when(translator).getResponses(any(ResponseModel.class));
 
-		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags).withOperationId(methodName)
+		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags).withOperationId(fullPath)
 				.withParameters(expectedParameters).withRequestBody(null).withResponses(respones);
 
 		// call under test.
-		assertEquals(expectedEndpointInfo, translator.getEndpointInfo(method, displayName));
-		Mockito.verify(translator).getParameters(parameters);
-		Mockito.verify(translator, Mockito.times(0)).getRequestBodyInfo(any());
-		Mockito.verify(translator).getResponses(responses);
+		assertEquals(expectedEndpointInfo, translator.getEndpointInfo(method, displayName, fullPath));
+		verify(translator).getParameters(parameters);
+		verify(translator, times(0)).getRequestBodyInfo(any());
+		verify(translator).getResponses(responses);
 	}
 
 	@Test
 	public void testGetEndpointInfoWithNullDisplayName() {
+		String fullPath = "/test/path";
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test.
-			translator.getEndpointInfo(new MethodModel(), null);
+			translator.getEndpointInfo(new MethodModel(), null, fullPath);
 		});
 		assertEquals("displayName is required.", exception.getMessage());
 	}
 
 	@Test
 	public void testGetEndpointInfoWithNullMethod() {
+		String fullPath = "/test/path";
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test.
-			translator.getEndpointInfo(null, "");
+			translator.getEndpointInfo(null, "", fullPath);
 		});
 		assertEquals("method is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetEndpointInfoWithNullFullPath() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test.
+			translator.getEndpointInfo(new MethodModel(), "", null);
+		});
+		assertEquals("fullPath is required.", exception.getMessage());
 	}
 	
 	@Test
 	public void testGetResponsesWithRedirectedEndpoint() {
 		ResponseModel input = new ResponseModel().withIsRedirected(true);
 		Map<String, ResponseInfo> responses = new HashMap<>();
-		Mockito.doReturn(responses).when(translator).generateResponsesForRedirectedEndpoint();
+		doReturn(responses).when(translator).generateResponsesForRedirectedEndpoint();
 		
 		// call under test
 		assertEquals(responses, translator.getResponses(input));
-		Mockito.verify(translator).generateResponsesForRedirectedEndpoint();
+		verify(translator).generateResponsesForRedirectedEndpoint();
 	}
 
 	@Test
@@ -361,7 +393,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 
 		// call under test.
 		assertEquals(expectedResponses, translator.getResponses(input));
-		Mockito.verify(translator, Mockito.times(2)).getReferenceSchema(MOCK_CLASS_NAME);
+		verify(translator, times(2)).getReferenceSchema(MOCK_CLASS_NAME);
 	}
 
 	@Test
@@ -384,7 +416,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 
 		// call under test.
 		assertEquals(expectedResponses, translator.getResponses(input));
-		Mockito.verify(translator, Mockito.times(0)).getReferenceSchema(MOCK_CLASS_NAME);
+		verify(translator, times(0)).getReferenceSchema(MOCK_CLASS_NAME);
 	}
 	
 	@Test
@@ -417,7 +449,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 
 		// call under test.
 		assertEquals(expected, translator.getRequestBodyInfo(input));
-		Mockito.verify(translator, Mockito.times(2)).getReferenceSchema(MOCK_CLASS_NAME);
+		verify(translator, times(2)).getReferenceSchema(MOCK_CLASS_NAME);
 	}
 
 	@Test
@@ -433,10 +465,10 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 	public void testGetParameters() {
 		ParameterInfo paramInfo = new ParameterInfo();
 		ParameterModel paramModel = new ParameterModel();
-		Mockito.doReturn(paramInfo).when(translator).getParameterInfo(any(ParameterModel.class));
+		doReturn(paramInfo).when(translator).getParameterInfo(any(ParameterModel.class));
 		// call under test.
 		assertEquals(Arrays.asList(paramInfo), translator.getParameters(Arrays.asList(paramModel)));
-		Mockito.verify(translator).getParameterInfo(paramModel);
+		verify(translator).getParameterInfo(paramModel);
 	}
 
 	@Test
@@ -457,7 +489,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 
 		// call under test.
 		assertEquals(expected, translator.getParameterInfo(input));
-		Mockito.verify(translator, Mockito.times(2)).getReferenceSchema(MOCK_CLASS_NAME);
+		verify(translator, times(2)).getReferenceSchema(MOCK_CLASS_NAME);
 	}
 
 	@Test

@@ -190,7 +190,13 @@ public class ComplexExampleController {
 	 * @param wikiId
 	 * @param wikiPage
 	 */
-	private static void validateUpateArguments(String wikiId, WikiPage wikiPage) {
+	private void validateUpateArguments(String wikiId, WikiPage wikiPage) {
+	}
+
+	/**
+	 * Example of a static method included in the controller
+	 */
+	public static void staticMethod() {
 	}
 
 	/**
@@ -199,4 +205,26 @@ public class ComplexExampleController {
 	@Deprecated
 	@RequestMapping(value = "/complex-pet/deprecated", method = RequestMethod.GET)
 	public void getDeprecated() {}
+
+	/**
+	 * Example of an endpoint where the method parameter name does not match the path variable name
+	 *
+	 * @param petName the name of the pet
+	 * @return boolean on if the pet as a tail or not
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/complex-pet/differentpathandmethodparameternames/{petName}", method = RequestMethod.GET)
+	public @ResponseBody Boolean doesPetHaveTail(
+			@PathVariable(value = "petName") String nameOfPet) {
+		return petNameToPet.get(petName).getHasTail();
+	}
+
+	/**
+	 * Example of an endpoint with a regular expression in a path parameter
+	 *
+	 * @param id an id
+	 * @return a string
+	 */
+	@RequestMapping(value = "/complex-pet/regularexpression/{id:.+}/test", method = RequestMethod.GET)
+	public @ResponseBody String getRegularExpression(@PathVariable String id) {}
 }

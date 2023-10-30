@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
@@ -84,6 +86,12 @@ public class ControllerToControllerModelTranslatorTest {
 	DocTrees mockDocTrees;
 	@Mock
 	Reporter mockReporter;
+	@Mock
+	VariableElement mockParameter;
+	@Mock
+	TypeMirror mockParameterType;
+	@Mock
+	AnnotationMirror mockAnnotationMirror;
 
 	private ControllerToControllerModelTranslator translator;
 
@@ -1081,6 +1089,12 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 
 	@Test
+	public void testGetMethodPathWithRegularExpression() {
+		String fakePath = "/test/{id:.+}/test";
+		assertEquals("/test/{id}/test", translator.getMethodPath(new RequestMappingModel().withPath(fakePath)));
+	}
+
+	@Test
 	public void testAnnotationToModelWithPathAndCodeAnnotations() {
 		List<AnnotationMirror> methodAnnotations = new ArrayList<>();
 
@@ -1460,6 +1474,11 @@ public class ControllerToControllerModelTranslatorTest {
 		Map<String, String> mockParamToDescription = new HashMap<>();
 		mockParamToDescription.put(PARAM_1_NAME, PARAM_1_DESCRIPTION);
 
+		doReturn(mockAnnotationMirror).when(translator).getParameterAnnotation(any());
+		Map<ExecutableElement, AnnotationValue> elementValues = new HashMap<>();
+		addAnnotationElementValues(elementValues, "value", PARAM_1_NAME);
+		doReturn(elementValues).when(mockAnnotationMirror).getElementValues();
+
 		// call under test
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
 		assertEquals(getExpectedParameters(), translator.getParameters(parameters, mockParamToDescription, schemaMap));
@@ -1469,6 +1488,8 @@ public class ControllerToControllerModelTranslatorTest {
 		verify(param).getSimpleName();
 		verify(param, Mockito.times(3)).asType();
 		verify(paramType).getKind();
+		verify(translator).getParameterAnnotation(param);
+		verify(mockAnnotationMirror).getElementValues();
 	}
 
 	@Test
@@ -1517,6 +1538,40 @@ public class ControllerToControllerModelTranslatorTest {
 
 		// call under test
 		assertEquals(new ArrayList<>(), translator.getParameters(parameters, new HashMap<>(), new HashMap<>()));
+	}
+
+	@Test
+	public void testGetParametersWithPathVariableNameDifferentFromMethodVariableName() {
+		List<VariableElement> parameters = new ArrayList<>();
+		parameters.add(mockParameter);
+		when(mockParameter.asType()).thenReturn(mockParameterType);
+		when(mockParameterType.toString()).thenReturn(MOCK_CLASS_NAME);
+		when(mockParameter.getSimpleName()).thenReturn(mockName);
+		when(mockName.toString()).thenReturn(PARAM_1_NAME);
+		when(mockParameterType.getKind()).thenReturn(TypeKind.INT);
+
+		doReturn(ParameterLocation.path).when(translator).getParameterLocation(any());
+		doReturn(mockAnnotationMirror).when(translator).getParameterAnnotation(any());
+		Map<ExecutableElement, AnnotationValue> elementValues = new HashMap<>();
+		addAnnotationElementValues(elementValues, "value", PARAM_2_NAME);
+		doReturn(elementValues).when(mockAnnotationMirror).getElementValues();
+
+		Map<String, String> paramToDescription = new HashMap<>();
+		paramToDescription.put(PARAM_2_NAME, PARAM_2_DESCRIPTION);
+
+		ParameterModel expectedParam = new ParameterModel().withDescription(PARAM_2_DESCRIPTION).withIn(ParameterLocation.path)
+				.withName(PARAM_2_NAME).withRequired(true).withId(MOCK_CLASS_NAME);
+		List<ParameterModel> expectedParameters = Arrays.asList(expectedParam);
+
+		// call under test
+		assertEquals(expectedParameters, translator.getParameters(parameters, paramToDescription, new HashMap<>()));
+
+		verify(mockParameter, times(3)).asType();
+		verify(mockParameter).getSimpleName();
+		verify(mockParameterType).getKind();
+		verify(translator).getParameterLocation(mockParameter);
+		verify(translator).getParameterAnnotation(mockParameter);
+		verify(mockAnnotationMirror).getElementValues();
 	}
 
 	@Test
