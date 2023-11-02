@@ -405,7 +405,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		cloudWatchQueue.addProfileData(cloudWatchData);
 	}
 	
-	@TemporaryCode(comment = "Patch for PLFM-8126")
+	@TemporaryCode(author = "xschildw", comment = "Patch for PLFM-8126")
 	private String getUrlForS3FileHandle(S3FileHandle handle) {
 //		if (config.getS3Bucket().equals(handle.getBucketName())) {
 //			return getCloudFrontSignedUrlForS3FileHandle(handle);
