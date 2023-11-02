@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -145,6 +146,8 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 
 	@Override
 	public BulkFileDownloadResponse buildZip(UserInfo user, BulkFileDownloadRequest request, boolean skipFileSizeCheck) throws IOException {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(user.getSessionId(), "UserInfo.sessionId");
 		// fix for PLFM-6626
 		if (request.getZipFileName() != null) {
 			NameValidation.validateName(request.getZipFileName());
@@ -164,7 +167,7 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 				resultFileHandleId = resultHandle.getId();
 			}
 
-			collectDownloadStatistics(user.getId(), resultFileHandleId, results);
+			collectDownloadStatistics(user, resultFileHandleId, results);
 
 			// All of the parts are ready.
 			BulkFileDownloadResponse response = new BulkFileDownloadResponse();
@@ -279,12 +282,15 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 		}
 	}
 
-	void collectDownloadStatistics(Long userId, String resultFileHandleId, List<FileDownloadSummary> results) {
+	void collectDownloadStatistics(UserInfo userInfo, String resultFileHandleId, List<FileDownloadSummary> results) {
 		List<FileEvent> downloadFileEvents = results.stream()
 				// Only collects stats for successful summaries
 				.filter(summary -> FileDownloadStatus.SUCCESS.equals(summary.getStatus()))
-				.map(summary -> FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userId, summary.getFileHandleId(), resultFileHandleId,
-						summary.getAssociateObjectId(), summary.getAssociateObjectType(), configuration.getStack(), configuration.getStackInstance()))
+				.map(summary -> FileEventUtils
+						.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(), summary.getFileHandleId(),
+								resultFileHandleId, summary.getAssociateObjectId(), summary.getAssociateObjectType(),
+								configuration.getStack(), configuration.getStackInstance())
+						.setSessionId(userInfo.getSessionId()))
 				.collect(Collectors.toList());
 
 		downloadFileEvents.forEach(messenger::publishMessageAfterCommit);

@@ -20,6 +20,7 @@ public class UserInfo {
 	private Date creationDate;
 	private boolean acceptsTermsOfUse;
 	private boolean hasTwoFactorAuthEnabled;
+	private String sessionId;
 
 	public UserInfo(boolean isAdmin) {
 		this.isAdmin = isAdmin;
@@ -100,29 +101,47 @@ public class UserInfo {
 		this.hasTwoFactorAuthEnabled = isTwoFactorAuthEnabled;
 	}
 
+	/**
+	 * The session ID of the access record associated with the current request.
+	 * @return
+	 */
+	public String getSessionId() {
+		return sessionId;
+	}
+
+	/**
+	 * The session ID of the access record associated with the current request.
+	 * @param sessionId
+	 */
+	public void setSessionId(String sessionId) {
+		this.sessionId = sessionId;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(acceptsTermsOfUse, creationDate, groups, id, isAdmin, hasTwoFactorAuthEnabled);
+		return Objects.hash(acceptsTermsOfUse, creationDate, groups, hasTwoFactorAuthEnabled, id, isAdmin, sessionId);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (!(obj instanceof UserInfo)) {
+		if (obj == null)
 			return false;
-		}
+		if (getClass() != obj.getClass())
+			return false;
 		UserInfo other = (UserInfo) obj;
 		return acceptsTermsOfUse == other.acceptsTermsOfUse && Objects.equals(creationDate, other.creationDate)
-				&& Objects.equals(groups, other.groups) && Objects.equals(id, other.id) && isAdmin == other.isAdmin
-				&& hasTwoFactorAuthEnabled == other.hasTwoFactorAuthEnabled;
+				&& Objects.equals(groups, other.groups) && hasTwoFactorAuthEnabled == other.hasTwoFactorAuthEnabled
+				&& Objects.equals(id, other.id) && isAdmin == other.isAdmin
+				&& Objects.equals(sessionId, other.sessionId);
 	}
 
 	@Override
 	public String toString() {
 		return "UserInfo [groups=" + groups + ", isAdmin=" + isAdmin + ", id=" + id + ", creationDate=" + creationDate
-				+ ", acceptsTermsOfUse=" + acceptsTermsOfUse + ", hasTwoFactorAuthEnabled=" + hasTwoFactorAuthEnabled + "]";
+				+ ", acceptsTermsOfUse=" + acceptsTermsOfUse + ", hasTwoFactorAuthEnabled=" + hasTwoFactorAuthEnabled
+				+ ", sessionId=" + sessionId + "]";
 	}
 	
 }

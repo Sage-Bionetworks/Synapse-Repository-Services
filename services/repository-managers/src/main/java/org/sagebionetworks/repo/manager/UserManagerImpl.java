@@ -7,10 +7,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.logging.log4j.ThreadContext;
 import org.sagebionetworks.repo.manager.principal.NewUserUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.GlobalConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.TeamConstants;
@@ -227,6 +229,7 @@ public class UserManagerImpl implements UserManager {
 		ui.setGroups(groups);
 		ui.setAcceptsTermsOfUse(authDAO.hasUserAcceptedToU(principalId));
 		ui.setTwoFactorAuthEnabled(authDAO.isTwoFactorAuthEnabled(principalId));
+		ui.setSessionId(ThreadContext.get(GlobalConstants.SESSION_ID));
 		return ui;
 	}
 

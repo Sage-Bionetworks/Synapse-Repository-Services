@@ -15,6 +15,7 @@ import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.GlobalConstants;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AccessRecorder;
 import org.sagebionetworks.util.Clock;
@@ -30,7 +31,7 @@ import org.springframework.web.servlet.ModelAndView;
  */
 public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 
-	public static final String SESSION_ID = "sessionId";
+
 
 	/**
 	 * This map keeps track of the current record for each thread.
@@ -101,7 +102,7 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		}
 		data.setAuthenticationMethod(request.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 		// push the session id to the logging thread context
-		ThreadContext.put(SESSION_ID, data.getSessionId());
+		ThreadContext.put(GlobalConstants.SESSION_ID, data.getSessionId());
 		// Bind this record to this thread.
 		threadToRecordMap.put(Thread.currentThread().getId(), data);
 		return true;

@@ -26,6 +26,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
+import org.apache.logging.log4j.ThreadContext;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
@@ -47,6 +48,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.GlobalConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -1281,6 +1283,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo, BatchFileRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(userInfo.getSessionId(), "userInfo.sessionId");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getRequestedFiles(), "requestedFiles");
 		String userId = userInfo.getId().toString();
@@ -1358,7 +1361,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
 
 							fileEvents.add(FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(),
-									association, config.getStack(), config.getStackInstance()));
+									association, config.getStack(), config.getStackInstance()).setSessionId(userInfo.getSessionId()));
 							
 							ObjectRecord record = createObjectRecord(userId, association, now);
 							downloadRecords.add(record);
