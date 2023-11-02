@@ -107,6 +107,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.upload.multipart.MultipartUtils;
 import org.sagebionetworks.util.ContentDispositionUtils;
+import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
@@ -404,13 +405,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		cloudWatchQueue.addProfileData(cloudWatchData);
 	}
 	
-
+	@TemporaryCode(comment = "Patch for PLFM-8126")
 	private String getUrlForS3FileHandle(S3FileHandle handle) {
-		if (config.getS3Bucket().equals(handle.getBucketName())) {
-			return getCloudFrontSignedUrlForS3FileHandle(handle);
-		} else {
+//		if (config.getS3Bucket().equals(handle.getBucketName())) {
+//			return getCloudFrontSignedUrlForS3FileHandle(handle);
+//		} else {
 			return getS3SignedUrlForS3FileHandle(handle);
-		}
+//		}
 	}
 
 	private String getS3SignedUrlForS3FileHandle(S3FileHandle handle) {
