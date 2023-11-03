@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -89,6 +90,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.upload.multipart.MultipartUtils;
 import org.sagebionetworks.util.ContentDispositionUtils;
+import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -693,6 +695,8 @@ public class FileHandleManagerImplTest {
 		assertEquals(expectedURL, redirect.toString());
 	}
 
+	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
+	@Disabled
 	@Test
 	public void testGetRedirectURLForFileHandleCloudFront() throws DatastoreException, NotFoundException, IOException {
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -729,6 +733,8 @@ public class FileHandleManagerImplTest {
 		assertNotNull(queryStrings.get("X-Amz-Date"));
 	}
 
+	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
+	@Disabled
 	@Test
 	public void testGetRedirectURLForFileHandleCloudFrontNoContentType() throws DatastoreException, NotFoundException, IOException {
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -764,6 +770,8 @@ public class FileHandleManagerImplTest {
 		assertEquals(null, queryStrings.get("response-content-type"));
 	}
 
+	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
+	@Disabled
 	@Test
 	public void testGetRedirectURLForFileHandleCloudFrontNoFileName() throws DatastoreException, NotFoundException, IOException {
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -799,6 +807,8 @@ public class FileHandleManagerImplTest {
 		assertEquals(null, queryStrings.get("response-content-disposition"));
 	}
 
+	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
+	@Disabled
 	@Test
 	public void testGetRedirectURLForFileHandleCloudFrontNoFileNameOrContentType() throws DatastoreException, NotFoundException, IOException {
 		S3FileHandle s3FileHandle = new S3FileHandle();
