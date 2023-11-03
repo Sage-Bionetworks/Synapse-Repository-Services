@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
+import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -52,6 +53,7 @@ import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
@@ -224,6 +226,9 @@ public class FileHandleManagerImplTest {
 	ObjectMetadata mockObjectMeta;
 	@Mock
 	TransactionalMessenger messenger;
+	@Mock
+	FeatureManager mockFeatureManager;
+
 	@Captor
 	private ArgumentCaptor<FileEvent> fileEventCaptor;
 
@@ -695,8 +700,6 @@ public class FileHandleManagerImplTest {
 		assertEquals(expectedURL, redirect.toString());
 	}
 
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
-	@Disabled
 	@Test
 	public void testGetRedirectURLForFileHandleCloudFront() throws DatastoreException, NotFoundException, IOException {
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -713,6 +716,8 @@ public class FileHandleManagerImplTest {
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
 		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
+
+		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
 
 		// Call under test
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
@@ -731,6 +736,13 @@ public class FileHandleManagerImplTest {
 		assertNotNull(queryStrings.get("Signature"));
 		assertNotNull(queryStrings.get("Expires"));
 		assertNotNull(queryStrings.get("X-Amz-Date"));
+
+		verify(mockFileHandleDao).get("123");
+		verify(mockStackConfig).getS3Bucket();
+		verify(mockStackConfig).getCloudFrontPrivateKey();
+		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontDomainName();
+		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}
 
 	@Test
@@ -750,6 +762,8 @@ public class FileHandleManagerImplTest {
 		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
 
+		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
+
 		// Call under test
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 
@@ -767,10 +781,15 @@ public class FileHandleManagerImplTest {
 		assertNotNull(queryStrings.get("Signature"));
 		assertNotNull(queryStrings.get("Expires"));
 		assertNotNull(queryStrings.get("X-Amz-Date"));
+
+		verify(mockFileHandleDao).get("123");
+		verify(mockStackConfig).getS3Bucket();
+		verify(mockStackConfig).getCloudFrontPrivateKey();
+		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontDomainName();
+		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}
 
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
-	@Disabled
 	@Test
 	public void testGetRedirectURLForFileHandleCloudFrontNoContentType() throws DatastoreException, NotFoundException, IOException {
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -786,6 +805,8 @@ public class FileHandleManagerImplTest {
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
 		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
+
+		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
 
 		// Call under test
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
@@ -804,10 +825,15 @@ public class FileHandleManagerImplTest {
 		assertNotNull(queryStrings.get("Expires"));
 		assertNotNull(queryStrings.get("X-Amz-Date"));
 		assertEquals(null, queryStrings.get("response-content-type"));
+
+		verify(mockFileHandleDao).get("123");
+		verify(mockStackConfig).getS3Bucket();
+		verify(mockStackConfig).getCloudFrontPrivateKey();
+		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontDomainName();
+		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}
 
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
-	@Disabled
 	@Test
 	public void testGetRedirectURLForFileHandleCloudFrontNoFileName() throws DatastoreException, NotFoundException, IOException {
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -823,6 +849,8 @@ public class FileHandleManagerImplTest {
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
 		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
+
+		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
 
 		// Call under test
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
@@ -841,10 +869,15 @@ public class FileHandleManagerImplTest {
 		assertNotNull(queryStrings.get("Expires"));
 		assertNotNull(queryStrings.get("X-Amz-Date"));
 		assertEquals(null, queryStrings.get("response-content-disposition"));
+
+		verify(mockFileHandleDao).get("123");
+		verify(mockStackConfig).getS3Bucket();
+		verify(mockStackConfig).getCloudFrontPrivateKey();
+		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontDomainName();
+		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}
 
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
-	@Disabled
 	@Test
 	public void testGetRedirectURLForFileHandleCloudFrontNoFileNameOrContentType() throws DatastoreException, NotFoundException, IOException {
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -859,6 +892,8 @@ public class FileHandleManagerImplTest {
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
 		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
+
+		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
 
 		// Call under test
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
@@ -876,6 +911,13 @@ public class FileHandleManagerImplTest {
 		assertNotNull(queryStrings.get("Expires"));
 		assertNotNull(queryStrings.get("X-Amz-Date"));
 		assertEquals(null, queryStrings.get("response-content-disposition"));
+
+		verify(mockFileHandleDao).get("123");
+		verify(mockStackConfig).getS3Bucket();
+		verify(mockStackConfig).getCloudFrontPrivateKey();
+		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontDomainName();
+		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}
 
 	@Test
