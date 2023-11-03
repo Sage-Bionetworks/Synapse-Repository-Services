@@ -412,6 +412,49 @@ public class IT054FileEntityTest {
 			}
 		}
 	}
+
+	/**
+	 * Test for PLFM-8126 to verify that special characters in a file name are valid
+	 * @throws FileNotFoundException
+	 * @throws SynapseException
+	 * @throws IOException
+	 */
+	@Test
+	public void testSpecialCharactersInName() throws FileNotFoundException, SynapseException, IOException {
+		String name = "test file12345_-.+()";
+		String fileContents = "some data";
+		File source = File.createTempFile(name, ".txt");
+		File downloaded = File.createTempFile(name, ".txt");
+		try {
+			FileUtils.write(source, fileContents, StandardCharsets.UTF_8);
+			fileHandle = synapse.multipartUpload(source, null, true, true);
+			fileHandlesToDelete.add(fileHandle.getId());
+
+			file = new FileEntity();
+			file.setName(name);
+			file.setParentId(folder.getId());
+			file.setDataFileHandleId(this.fileHandle.getId());
+			file = this.synapse.createEntity(file);
+
+			FileHandleAssociation fileHandleAssociation = new FileHandleAssociation();
+			fileHandleAssociation.setAssociateObjectId(file.getId());
+			fileHandleAssociation.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+			fileHandleAssociation.setFileHandleId(fileHandle.getId());
+			URL url = this.synapse.getFileURL(fileHandleAssociation);
+			System.out.println(url.toString());
+			// download the file to a temp file using the pre-signed URL.
+			FileUtils.copyURLToFile(url, downloaded);
+			String resultContent = FileUtils.readFileToString(downloaded, StandardCharsets.UTF_8);
+			assertEquals(fileContents, resultContent);
+		}finally {
+			if(source != null) {
+				source.delete();
+			}
+			if(downloaded != null) {
+				downloaded.delete();
+			}
+		}
+	}
 	
 	/**
 	 * Test to try reproducing https://sagebionetworks.jira.com/browse/PLFM-7746:

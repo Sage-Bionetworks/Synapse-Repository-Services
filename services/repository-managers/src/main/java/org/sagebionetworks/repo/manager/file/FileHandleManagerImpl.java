@@ -17,6 +17,7 @@ import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.services.s3.transfer.model.UploadResult;
 import com.amazonaws.services.cloudfront.CloudFrontUrlSigner;
 import com.amazonaws.util.BinaryUtils;
+import com.amazonaws.util.SdkHttpUtils;
 import com.google.cloud.storage.Blob;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FilenameUtils;
@@ -445,14 +446,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String creationDate = AWS4SignerUtils.formatTimestamp(creationTimeMS);
 		Date expirationDate = new Date(creationTimeMS + PRESIGNED_URL_EXPIRE_TIME_MS);
 
-		String resourceUrl;
-		try {
-		URIBuilder uriBuilder = new URIBuilder()
-				.setScheme("https")
-				.setHost(distributionDomainName)
-				.setPath(handle.getKey());
 
-		addQueryParametersToUrl(uriBuilder, handle);
+		String resourceUrl = String.format("https://%s/%s", distributionDomainName, SdkHttpUtils.urlEncode(handle.getKey(), true));
+		Map<String, String> urlQueryParameters = getQueryParameters(handle);
+		StringBuilder builder = new StringBuilder(resourceUrl).append(getQueryParameterString(handle, urlQueryParameters));
 
 		/*
 		The current implementation of the python client assumes that the custom AWS parameters X-Amz-Date and
@@ -460,13 +457,19 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		CloudFront does not use these parameters. However, we must add them to CloudFront signed URLs to maintain
 		backwards compatibility with the python client. See: https://sagebionetworks.jira.com/browse/PLFM-8085
 		 */
-		uriBuilder.addParameter(X_AMZ_DATE, creationDate);
-		uriBuilder.addParameter(X_AMZ_EXPIRES, String.valueOf(PRESIGNED_URL_EXPIRE_TIME_S));
-
-		resourceUrl = uriBuilder.build().toString();
-		} catch (URISyntaxException e) {
-			throw new RuntimeException("Failed to build resource URL for file handle: " + handle.getId(), e);
+		if (urlQueryParameters.size() == 0) {
+			builder.append("?");
 		}
+		builder.append("&")
+				.append(X_AMZ_DATE)
+				.append("=")
+				.append(creationDate);
+		builder.append("&")
+				.append(X_AMZ_EXPIRES)
+				.append("=")
+				.append(PRESIGNED_URL_EXPIRE_TIME_S);
+
+		resourceUrl = builder.toString();
 
 		String signedUrl = CloudFrontUrlSigner.getSignedURLWithCannedPolicy(
 				resourceUrl,
@@ -481,32 +484,34 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	private String getUrlForGoogleCloudFileHandle(GoogleCloudFileHandle handle) {
 		URL signedUrl = googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET);
 
-		String signedUrlWithQueryParameters;
-		try {
-			URIBuilder uriBuilder = new URIBuilder(signedUrl.toURI());
-
-			/* We have to override content type and content disposition to match the file handle metadata stored in Synapse
+		/* We have to override content type and content disposition to match the file handle metadata stored in Synapse
 		 Currently, we cannot override content-type in Google Cloud... In short:
 		  - Google provides this parameter to override the content type, which will only work if the content type is null on Google Cloud
 		  - Google does not allow a null content type (defaults to application/octet-stream)
 		  We still attempt to override content type because it does not seem to interfere with the call, and
 		  perhaps one day Google may decide to allow us to override content type with this parameter.
 		 */
-			addQueryParametersToUrl(uriBuilder, handle);
-			signedUrlWithQueryParameters = uriBuilder.build().toString();
-		} catch (URISyntaxException e) {
-			throw new RuntimeException("Failed to build resource URL for file handle: " + handle.getId(), e);
-		}
+		Map<String, String> urlQueryParameters = getQueryParameters(handle);
+		StringBuilder builder = new StringBuilder(signedUrl.toString()).append(getQueryParameterString(handle, urlQueryParameters));
 
-		return signedUrlWithQueryParameters;
+		return builder.toString();
 	}
 
-	private static void addQueryParametersToUrl(URIBuilder uriBuilder, FileHandle handle) {
-		Map<String, String> urlQueryParameters = getQueryParameters(handle);
-
+	private static String getQueryParameterString(FileHandle handle, Map<String, String> urlQueryParameters) {
+		StringBuilder queryParams = new StringBuilder();
 		urlQueryParameters.entrySet().forEach(queryParameter -> {
-			uriBuilder.addParameter(queryParameter.getKey(), queryParameter.getValue());
+			if (queryParams.length() > 0) {
+				queryParams.append("&");
+			} else {
+				queryParams.append("?");
+			}
+
+			queryParams.append(queryParameter.getKey())
+					.append("=")
+					.append(SdkHttpUtils.urlEncode(queryParameter.getValue(), false));
 		});
+
+		return queryParams.toString();
 	}
 
 	private static Map<String, String> getQueryParameters(FileHandle handle) {
