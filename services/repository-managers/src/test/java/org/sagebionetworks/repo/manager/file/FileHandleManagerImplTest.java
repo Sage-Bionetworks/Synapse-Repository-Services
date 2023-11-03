@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -37,6 +36,7 @@ import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
@@ -89,7 +89,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.upload.multipart.MultipartUtils;
 import org.sagebionetworks.util.ContentDispositionUtils;
-import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -609,8 +608,7 @@ public class FileHandleManagerImplTest {
 		assertNotNull(redirect);
 		assertEquals(external.getExternalURL(), redirect.toString());
 	}
-
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
+	
 	@Test
 	public void testGetRedirectURLForFileHandleS3() throws DatastoreException, NotFoundException, MalformedURLException{
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -624,6 +622,7 @@ public class FileHandleManagerImplTest {
 		
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expectedURL = "https://amamzon.com";
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
 			thenReturn(new URL(expectedURL));
 		// fire!
@@ -632,7 +631,6 @@ public class FileHandleManagerImplTest {
 		assertEquals(expectedURL, redirect.toString());
 	}
 
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
 	@Test
 	public void testGetRedirectURLForFileHandleS3NoContentType() throws DatastoreException, NotFoundException, MalformedURLException{
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -645,6 +643,7 @@ public class FileHandleManagerImplTest {
 
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expectedURL = "https://amamzon.com";
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
 				thenReturn(new URL(expectedURL));
 		// fire!
@@ -653,7 +652,6 @@ public class FileHandleManagerImplTest {
 		assertEquals(expectedURL, redirect.toString());
 	}
 
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
 	@Test
 	public void testGetRedirectURLForFileHandleS3NoFileName() throws DatastoreException, NotFoundException, MalformedURLException{
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -666,6 +664,7 @@ public class FileHandleManagerImplTest {
 
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expectedURL = "https://amamzon.com";
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
 				thenReturn(new URL(expectedURL));
 		// fire!
@@ -674,7 +673,6 @@ public class FileHandleManagerImplTest {
 		assertEquals(expectedURL, redirect.toString());
 	}
 
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
 	@Test
 	public void testGetRedirectURLForFileHandleS3NoFileNameOrContentType() throws DatastoreException, NotFoundException, MalformedURLException{
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -686,6 +684,7 @@ public class FileHandleManagerImplTest {
 
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expectedURL = "https://amamzon.com";
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
 				thenReturn(new URL(expectedURL));
 		// fire!
@@ -694,8 +693,6 @@ public class FileHandleManagerImplTest {
 		assertEquals(expectedURL, redirect.toString());
 	}
 
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
-	@Disabled
 	@Test
 	public void testGetRedirectURLForFileHandleCloudFront() throws DatastoreException, NotFoundException, IOException {
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -732,8 +729,6 @@ public class FileHandleManagerImplTest {
 		assertNotNull(queryStrings.get("X-Amz-Date"));
 	}
 
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
-	@Disabled
 	@Test
 	public void testGetRedirectURLForFileHandleCloudFrontNoContentType() throws DatastoreException, NotFoundException, IOException {
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -769,8 +764,6 @@ public class FileHandleManagerImplTest {
 		assertEquals(null, queryStrings.get("response-content-type"));
 	}
 
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
-	@Disabled
 	@Test
 	public void testGetRedirectURLForFileHandleCloudFrontNoFileName() throws DatastoreException, NotFoundException, IOException {
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -782,6 +775,7 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
 
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
 		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
@@ -805,8 +799,6 @@ public class FileHandleManagerImplTest {
 		assertEquals(null, queryStrings.get("response-content-disposition"));
 	}
 
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
-	@Disabled
 	@Test
 	public void testGetRedirectURLForFileHandleCloudFrontNoFileNameOrContentType() throws DatastoreException, NotFoundException, IOException {
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -1060,8 +1052,7 @@ public class FileHandleManagerImplTest {
 		// Method under test
 		assertThrows(UnauthorizedException.class, () -> manager.createExternalFileHandle(anonymousUser, efh));
 	}
-
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
+	
 	@Test
 	public void testGetURLRequestWithOwnerAuthCheck() throws Exception {
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -1071,11 +1062,14 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setKey("key");
 		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
 		
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		
 		String expectedURL = "https://amamzon.com";
 		
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedURL));
-
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
+		
 		FileHandleUrlRequest request = new FileHandleUrlRequest(mockUser, s3FileHandle.getId());
 		
 		String redirectURL = manager.getRedirectURLForFileHandle(request);
@@ -1085,8 +1079,7 @@ public class FileHandleManagerImplTest {
 		verifyZeroInteractions(messenger);
 		assertEquals(expectedURL, redirectURL);
 	}
-
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
+	
 	@Test
 	public void testGetURLRequestWithAssociateAuthCheck() throws Exception {
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -1102,7 +1095,8 @@ public class FileHandleManagerImplTest {
 		
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedURL));
-
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
+		
 		FileHandleAssociation association = new FileHandleAssociation();
 		
 		association.setAssociateObjectId("999");
@@ -1132,8 +1126,7 @@ public class FileHandleManagerImplTest {
 		assertEquals(expectedFileEvent, actualFileEvent);
 		assertEquals(expectedURL, redirectURL);
 	}
-
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
+	
 	@Test
 	public void testGetURLAuthorized() throws Exception{
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -1146,6 +1139,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expecedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expecedURL));
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 		mockUser = new UserInfo(false, 456L);
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 		assertEquals(expecedURL, redirect);
@@ -1162,9 +1156,8 @@ public class FileHandleManagerImplTest {
 		mockUser = new UserInfo(false, 896L);
 		assertThrows(UnauthorizedException.class, () -> manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId()));
 	}
-
-
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
+	
+	
 	@Test
 	public void testGetURLforAssociatedFileAuthorized() throws Exception{
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -1191,7 +1184,8 @@ public class FileHandleManagerImplTest {
 		thenReturn(Collections.singletonList(authorizationResult));
 		when(mockStackConfig.getStack()).thenReturn(STACK);
 		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
-
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
+		
 		// method under test
 		String redirect = manager.getRedirectURLForFileHandle(mockUser,
 				s3FileHandle.getId(), FileHandleAssociateType.VerificationSubmission, associateObjectId);
@@ -1956,8 +1950,7 @@ public class FileHandleManagerImplTest {
 
 		assertThrows(UnauthorizedException.class, () -> manager.createS3FileHandleCopy(mockUser, "123", null, "image"));
 	}
-
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
+	
 	@Test
 	public void testGetFileHandleAndUrlBatch() throws Exception {
 		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.accessDenied(""));
@@ -1975,6 +1968,7 @@ public class FileHandleManagerImplTest {
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
 		when(mockStackConfig.getStack()).thenReturn(STACK);
 		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -2029,8 +2023,7 @@ public class FileHandleManagerImplTest {
 		assertEquals(successRecord.getJsonString(), record.getJsonString());
 		assertNotNull(successRecord.getTimestamp());
 	}
-
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
+	
 	@Test
 	public void testGetFileHandleAndUrlBatchUrlsOnlyWithNullValue() throws Exception {
 		batchRequest.setIncludeFileHandles(null);
@@ -2052,6 +2045,7 @@ public class FileHandleManagerImplTest {
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
 		when(mockStackConfig.getStack()).thenReturn(STACK);
 		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -2076,7 +2070,6 @@ public class FileHandleManagerImplTest {
 		assertEquals(expectedFileEvent, actualFileEvent);
 	}
 
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
 	@Test
 	public void testGetFileHandleAndUrlBatchUrlsOnly() throws Exception {
 		batchRequest.setIncludeFileHandles(false);
@@ -2099,6 +2092,7 @@ public class FileHandleManagerImplTest {
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
 		when(mockStackConfig.getStack()).thenReturn(STACK);
 		when(mockStackConfig.getStackInstance()).thenReturn(INSTANCE);
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -2123,7 +2117,6 @@ public class FileHandleManagerImplTest {
 		assertEquals(expectedFileEvent, actualFileEvent);
 	}
 
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
 	@Test
 	public void testGetFileHandleAndUrlBatchPreviewPreSignedURLOnly() throws Exception {
 		batchRequest.setIncludeFileHandles(false);
@@ -2145,6 +2138,7 @@ public class FileHandleManagerImplTest {
 		Map<String, FileHandle> handleMap = new HashMap<String, FileHandle>();
 		handleMap.put(fh.getId(), fh);
 		when(mockFileHandleDao.getAllFileHandlesBatch(any(Iterable.class))).thenReturn(handleMap);
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
@@ -2904,8 +2898,7 @@ public class FileHandleManagerImplTest {
 		assertEquals("The targetFileHandleId is required.", ex.getMessage());
 		
 	}
-
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
+	
 	@Test
 	public void getURLForFileHandleWithAvailableStatus() throws SdkClientException, MalformedURLException {
 		S3FileHandle handle = new S3FileHandle();
@@ -2917,6 +2910,8 @@ public class FileHandleManagerImplTest {
 		
 		String expectedUrl = "http://someurl.org";
 
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
+		
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
 			thenReturn(new URL(expectedUrl));
 		
@@ -2928,8 +2923,7 @@ public class FileHandleManagerImplTest {
 		verifyZeroInteractions(mockCloudWatchClient);
 		
 	}
-
-	@TemporaryCode(author = "xschildw", comment = "PLFM-8126")
+	
 	@Test
 	public void getURLForFileHandleWithUnavailableStatus() throws SdkClientException, MalformedURLException {
 		S3FileHandle handle = new S3FileHandle();
@@ -2942,6 +2936,7 @@ public class FileHandleManagerImplTest {
 		
 		when(mockStackConfig.getStackInstance()).thenReturn("instance");
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedUrl));
+		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
 
 		ProfileData expectedData = new ProfileData();
 		
