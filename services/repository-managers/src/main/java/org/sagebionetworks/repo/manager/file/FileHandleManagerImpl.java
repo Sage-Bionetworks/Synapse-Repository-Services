@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
+import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -57,6 +58,7 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.file.BaseKeyUploadDestination;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
@@ -220,6 +222,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	private TransactionalMessenger messenger;
+
+	@Autowired
+	private FeatureManager featureManager;
 
 	/**
 	 * Used by spring
@@ -407,7 +412,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 
 	private String getUrlForS3FileHandle(S3FileHandle handle) {
-		if (config.getS3Bucket().equals(handle.getBucketName())) {
+		if (config.getS3Bucket().equals(handle.getBucketName()) && featureManager.isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT)) {
 			return getCloudFrontSignedUrlForS3FileHandle(handle);
 		} else {
 			return getS3SignedUrlForS3FileHandle(handle);
@@ -446,10 +451,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String creationDate = AWS4SignerUtils.formatTimestamp(creationTimeMS);
 		Date expirationDate = new Date(creationTimeMS + PRESIGNED_URL_EXPIRE_TIME_MS);
 
-
 		String resourceUrl = String.format("https://%s/%s", distributionDomainName, SdkHttpUtils.urlEncode(handle.getKey(), true));
 		Map<String, String> urlQueryParameters = getQueryParameters(handle);
-		StringBuilder builder = new StringBuilder(resourceUrl).append(getQueryParameterString(handle, urlQueryParameters));
+		StringBuilder builder = new StringBuilder(resourceUrl).append(getQueryParameterString(urlQueryParameters));
 
 		/*
 		The current implementation of the python client assumes that the custom AWS parameters X-Amz-Date and
@@ -492,12 +496,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		  perhaps one day Google may decide to allow us to override content type with this parameter.
 		 */
 		Map<String, String> urlQueryParameters = getQueryParameters(handle);
-		StringBuilder builder = new StringBuilder(signedUrl.toString()).append(getQueryParameterString(handle, urlQueryParameters));
+		StringBuilder builder = new StringBuilder(signedUrl.toString()).append(getQueryParameterString(urlQueryParameters));
 
 		return builder.toString();
 	}
 
-	private static String getQueryParameterString(FileHandle handle, Map<String, String> urlQueryParameters) {
+	private static String getQueryParameterString(Map<String, String> urlQueryParameters) {
 		StringBuilder queryParams = new StringBuilder();
 		urlQueryParameters.entrySet().forEach(queryParameter -> {
 			if (queryParams.length() > 0) {
