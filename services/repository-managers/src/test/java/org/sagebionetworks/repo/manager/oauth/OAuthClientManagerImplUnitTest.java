@@ -49,7 +49,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
@@ -218,7 +217,7 @@ public class OAuthClientManagerImplUnitTest {
 		when(mockHttpResponse.getStatusCode()).thenReturn(400);
 		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
 
-		assertThrows(ServiceUnavailableException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
 		});
@@ -229,7 +228,7 @@ public class OAuthClientManagerImplUnitTest {
 		// try throwing IOException
 		when(mockHttpClient.get((SimpleHttpRequest)any())).thenThrow(new IOException());
 		
-		assertThrows(ServiceUnavailableException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
 		});

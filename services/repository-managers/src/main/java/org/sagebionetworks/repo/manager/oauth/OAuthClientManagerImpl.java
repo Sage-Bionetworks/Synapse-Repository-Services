@@ -83,18 +83,18 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		}
 	}
 
-	public List<String> readSectorIdentifierFile(URI uri) throws ServiceUnavailableException {
+	public List<String> readSectorIdentifierFile(URI uri) {
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(uri.toString());
 		SimpleHttpResponse response = null;
 		try {
 			response = httpClient.get(request);
 		} catch (IOException e) {
-			throw new ServiceUnavailableException("Failed to read the content of "+uri+
+			throw new IllegalArgumentException("Failed to read the content of "+uri+
 					".  Please check the URL and the file at the address, then try again.", e);
 		}
 		if (response.getStatusCode() != HttpStatus.SC_OK) {
-			throw new ServiceUnavailableException("Received "+response.getStatusCode()+" status while trying to read the content of "+uri+
+			throw new IllegalArgumentException("Received "+response.getStatusCode()+" status while trying to read the content of "+uri+
 					".  Please check the URL and the file at the address, then try again.");
 		}
 		List<String> result = new ArrayList<String>();
