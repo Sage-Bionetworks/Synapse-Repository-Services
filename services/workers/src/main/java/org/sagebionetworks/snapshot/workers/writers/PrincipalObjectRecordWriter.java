@@ -29,6 +29,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
@@ -138,6 +140,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 		String groupId= message.getObjectId();
 		long timestamp= message.getTimestamp().getTime();
 		List<UserGroup> members = groupMembersDAO.getMembers(groupId);
+		Set<String> adminIds = teamDAO.getAdminTeamMemberIds(groupId).stream().collect(Collectors.toSet());
 		List<ObjectRecord> records = new ArrayList<ObjectRecord>();
 		List<KinesisObjectSnapshotRecord<TeamMember>> kinesisTeamMemberRecords = new ArrayList<>();
 		for (UserGroup member : members) {
@@ -146,7 +149,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 			UserGroupHeader ugh = new UserGroupHeader();
 			ugh.setOwnerId(member.getId());
 			teamMember.setMember(ugh);
-			teamMember.setIsAdmin(false);
+			teamMember.setIsAdmin(adminIds.contains(member.getId()));
 			records.add(ObjectRecordBuilderUtils.buildObjectRecord(teamMember, timestamp));
             kinesisTeamMemberRecords.add(KinesisObjectSnapshotRecord.map(message, teamMember));
 		}
