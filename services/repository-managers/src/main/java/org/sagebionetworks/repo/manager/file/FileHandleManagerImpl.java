@@ -25,7 +25,6 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -114,6 +113,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -451,9 +451,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String creationDate = AWS4SignerUtils.formatTimestamp(creationTimeMS);
 		Date expirationDate = new Date(creationTimeMS + PRESIGNED_URL_EXPIRE_TIME_MS);
 
-		String resourceUrl = String.format("https://%s/%s", distributionDomainName, SdkHttpUtils.urlEncode(handle.getKey(), true));
-		Map<String, String> urlQueryParameters = getQueryParameters(handle);
-		StringBuilder builder = new StringBuilder(resourceUrl).append(getQueryParameterString(urlQueryParameters));
+		UriComponentsBuilder uriBuilder = UriComponentsBuilder.newInstance()
+				.scheme("https")
+				.host(distributionDomainName)
+				.path(SdkHttpUtils.urlEncode(handle.getKey(), true));
+
+		addQueryParametersToUrl(uriBuilder, handle);
 
 		/*
 		The current implementation of the python client assumes that the custom AWS parameters X-Amz-Date and
@@ -461,19 +464,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		CloudFront does not use these parameters. However, we must add them to CloudFront signed URLs to maintain
 		backwards compatibility with the python client. See: https://sagebionetworks.jira.com/browse/PLFM-8085
 		 */
-		if (urlQueryParameters.size() == 0) {
-			builder.append("?");
-		}
-		builder.append("&")
-				.append(X_AMZ_DATE)
-				.append("=")
-				.append(creationDate);
-		builder.append("&")
-				.append(X_AMZ_EXPIRES)
-				.append("=")
-				.append(PRESIGNED_URL_EXPIRE_TIME_S);
+		uriBuilder.queryParam(X_AMZ_DATE, creationDate);
+		uriBuilder.queryParam(X_AMZ_EXPIRES, String.valueOf(PRESIGNED_URL_EXPIRE_TIME_S));
 
-		resourceUrl = builder.toString();
+		String resourceUrl = uriBuilder.build(true).toString();
 
 		String signedUrl = CloudFrontUrlSigner.getSignedURLWithCannedPolicy(
 				resourceUrl,
@@ -488,34 +482,31 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	private String getUrlForGoogleCloudFileHandle(GoogleCloudFileHandle handle) {
 		URL signedUrl = googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET);
 
-		/* We have to override content type and content disposition to match the file handle metadata stored in Synapse
-		 Currently, we cannot override content-type in Google Cloud... In short:
-		  - Google provides this parameter to override the content type, which will only work if the content type is null on Google Cloud
-		  - Google does not allow a null content type (defaults to application/octet-stream)
-		  We still attempt to override content type because it does not seem to interfere with the call, and
-		  perhaps one day Google may decide to allow us to override content type with this parameter.
-		 */
-		Map<String, String> urlQueryParameters = getQueryParameters(handle);
-		StringBuilder builder = new StringBuilder(signedUrl.toString()).append(getQueryParameterString(urlQueryParameters));
+		String signedUrlWithQueryParameters;
+		try {
+			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(signedUrl.toURI());
 
-		return builder.toString();
+			/* We have to override content type and content disposition to match the file handle metadata stored in Synapse
+			 Currently, we cannot override content-type in Google Cloud... In short:
+			  - Google provides this parameter to override the content type, which will only work if the content type is null on Google Cloud
+			  - Google does not allow a null content type (defaults to application/octet-stream)
+			  We still attempt to override content type because it does not seem to interfere with the call, and
+			  perhaps one day Google may decide to allow us to override content type with this parameter.
+			 */
+			addQueryParametersToUrl(uriBuilder, handle);
+			signedUrlWithQueryParameters = uriBuilder.build(true).toString();
+		} catch (URISyntaxException e) {
+			throw new RuntimeException("Failed to build resource URL for file handle: " + handle.getId(), e);
+		}
+
+		return signedUrlWithQueryParameters;
 	}
 
-	private static String getQueryParameterString(Map<String, String> urlQueryParameters) {
-		StringBuilder queryParams = new StringBuilder();
+	private static void addQueryParametersToUrl(UriComponentsBuilder uriBuilder, FileHandle handle) {
+		Map<String, String> urlQueryParameters = getQueryParameters(handle);
 		urlQueryParameters.entrySet().forEach(queryParameter -> {
-			if (queryParams.length() > 0) {
-				queryParams.append("&");
-			} else {
-				queryParams.append("?");
-			}
-
-			queryParams.append(queryParameter.getKey())
-					.append("=")
-					.append(SdkHttpUtils.urlEncode(queryParameter.getValue(), false));
+			uriBuilder.queryParam(queryParameter.getKey(), SdkHttpUtils.urlEncode(queryParameter.getValue(), false));
 		});
-
-		return queryParams.toString();
 	}
 
 	private static Map<String, String> getQueryParameters(FileHandle handle) {
