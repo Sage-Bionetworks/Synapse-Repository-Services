@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.sagebionetworks.controller.model.ControllerModel;
 import org.sagebionetworks.controller.model.MethodModel;
@@ -22,7 +23,10 @@ import org.sagebionetworks.openapi.datamodel.pathinfo.RequestBodyInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.ResponseInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.Schema;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.util.ValidateArgument;
+
+import static org.sagebionetworks.translator.ControllerToControllerModelTranslator.getJsonSchemaBasicTypeForClass;
 
 public class ControllerModelsToOpenAPIModelTranslator {
 	private final Map<String, JsonSchema> classNameToJsonSchema;
@@ -148,7 +152,7 @@ public class ControllerModelsToOpenAPIModelTranslator {
 		ValidateArgument.required(displayName, "displayName");
 		ValidateArgument.required(fullPath, "fullPath");
 		List<String> tags = new ArrayList<>(Arrays.asList(displayName));
-		String operationId = fullPath;
+		String operationId = String.format("%s-%s", method.getOperation().toString(), fullPath);
 		EndpointInfo endpointInfo = new EndpointInfo().withTags(tags).withOperationId(operationId)
 				.withParameters(getParameters(method.getParameters()))
 				.withRequestBody(method.getRequestBody() == null ? null : getRequestBodyInfo(method.getRequestBody()))
@@ -157,7 +161,7 @@ public class ControllerModelsToOpenAPIModelTranslator {
 	}
 	
 	/**
-	 * Generates a JsonSchema that is a reference to a class defined in 
+	 * Generates a JsonSchema that is a basic type or a reference to a class defined in
 	 * the "components" section of the specification with class name of "id"
 	 * 
 	 * @param id the id of the class
@@ -166,7 +170,13 @@ public class ControllerModelsToOpenAPIModelTranslator {
 	JsonSchema getReferenceSchema(String id) {
 		ValidateArgument.required(id, "id");
 		JsonSchema schema = new JsonSchema();
-		schema.set$ref("#/components/schemas/" + id);
+
+		Optional<Type> schemaType = getJsonSchemaBasicTypeForClass(id);
+		if (schemaType.isPresent()) {
+			schema.setType(schemaType.get());
+		} else {
+			schema.set$ref("#/components/schemas/" + id);
+		}
 		return schema;
 	}
 

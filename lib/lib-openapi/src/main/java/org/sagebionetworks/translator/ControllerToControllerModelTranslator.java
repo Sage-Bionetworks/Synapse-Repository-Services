@@ -32,11 +32,9 @@ import org.sagebionetworks.controller.model.ParameterModel;
 import org.sagebionetworks.controller.model.RequestBodyModel;
 import org.sagebionetworks.controller.model.ResponseModel;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
+import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.schema.ObjectSchema;
-import org.sagebionetworks.schema.ObjectSchemaImpl;
-import org.sagebionetworks.schema.TYPE;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,6 +54,8 @@ import com.sun.source.util.DocTrees;
 import jdk.javadoc.doclet.DocletEnvironment;
 import jdk.javadoc.doclet.Reporter;
 
+import static org.sagebionetworks.repo.web.PathConstants.PATH_REGEX;
+
 /**
  * This translator pulls information from a generic doclet model into our
  * representation of a controller model. This is a layer of abstraction that is
@@ -67,6 +67,19 @@ import jdk.javadoc.doclet.Reporter;
 public class ControllerToControllerModelTranslator {
 	static final Set<String> PARAMETERS_NOT_REQUIRED_TO_BE_ANNOTATED = Set.of("javax.servlet.http.HttpServletResponse",
 			"org.springframework.web.util.UriComponentsBuilder", "javax.servlet.http.HttpServletRequest");
+
+	static final Map<String, Type> CLASS_TO_TYPE = Map.ofEntries(
+			Map.entry("java.lang.String", Type.string),
+			Map.entry("java.lang.Integer", Type.integer),
+			Map.entry("java.lang.Boolean", Type._boolean),
+			Map.entry("java.lang.Long", Type.number),
+			Map.entry("java.lang.Object", Type.object),
+			Map.entry("boolean", Type._boolean),
+			Map.entry("int", Type.integer),
+			Map.entry("long", Type.number),
+			Map.entry("org.sagebionetworks.repo.model.BooleanResult", Type._boolean),
+			Map.entry("org.json.JSONObject", Type.object),
+			Map.entry("org.sagebionetworks.schema.ObjectSchema", Type.object));
 
 	/**
 	 * Converts all controllers found in the doclet environment to controller
@@ -350,19 +363,14 @@ public class ControllerToControllerModelTranslator {
 		ValidateArgument.required(className, "className");
 		ValidateArgument.required(type, "type");
 		ValidateArgument.required(schemaMap, "schemaMap");
-		// TODO: will need to detection for other wrapper classes, ex: Double...
-		boolean isPrimitive = type.isPrimitive() || className.equals(String.class.getName()) || className.equals(Boolean.class.getName());
-		if (!isPrimitive) {
+
+		if (!TypeKind.VOID.equals(type) && getJsonSchemaBasicTypeForClass(className).isEmpty()) {
 			SchemaUtils.recursiveAddTypes(schemaMap, className, null);
-		} else {
-			ObjectSchema schema;
-			if (className.equals(Boolean.class.getName())) {
-				schema = generateObjectSchemaForPrimitiveType(TypeKind.BOOLEAN);
-			} else {
-				schema = generateObjectSchemaForPrimitiveType(type);
-			}
-			schemaMap.put(className, schema);
 		}
+	}
+
+	static Optional<Type> getJsonSchemaBasicTypeForClass(String id){
+		return Optional.ofNullable(CLASS_TO_TYPE.get(id));
 	}
 
 	/**
@@ -374,7 +382,7 @@ public class ControllerToControllerModelTranslator {
 	String getMethodPath(RequestMappingModel requestMapping) {
 		ValidateArgument.required(requestMapping, "RequestMapping");
 		ValidateArgument.required(requestMapping.getPath(), "RequestMapping.path");
-		return requestMapping.getPath().replaceAll("\\:[^\\}]+", "").replace("*", "");
+		return requestMapping.getPath().replaceAll(PATH_REGEX, "").replace("*", "");
 	}
 
 	/**
@@ -536,47 +544,6 @@ public class ControllerToControllerModelTranslator {
 					.withName(paramName).withRequired(true).withId(paramTypeClassName));
 		}
 		return parameters;
-	}
-
-	/**
-	 * Generates a ObjectSchema for a primitive type. Since "STRING" does not exist
-	 * in TypeKind, we will pass it in as "DECLARED" type.
-	 * 
-	 * @param type - the primitive type we are translating
-	 * @return an ObjectSchema that represents the given type
-	 */
-	ObjectSchema generateObjectSchemaForPrimitiveType(TypeKind type) {
-		ValidateArgument.required(type, "type");
-		ObjectSchema schema;
-		try {
-			// We can use empty json object because we only need the type to translate to
-			// JsonSchema later.
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			schema = new ObjectSchemaImpl(adpater);
-		} catch (Exception e) {
-			throw new RuntimeException("Error generating ObjectSchema for type " + type);
-		}
-
-		switch (type) {
-		case INT:
-			schema.setType(TYPE.INTEGER);
-			break;
-		case BOOLEAN:
-			schema.setType(TYPE.BOOLEAN);
-			break;
-		case DOUBLE:
-		case LONG:
-		case FLOAT:
-			schema.setType(TYPE.NUMBER);
-			break;
-		case DECLARED:
-			// if the type is declared, we know that it is a string.
-			schema.setType(TYPE.STRING);
-			break;
-		default:
-			throw new IllegalArgumentException("Unrecognized primitive type " + type);
-		}
-		return schema;
 	}
 
 	/**
