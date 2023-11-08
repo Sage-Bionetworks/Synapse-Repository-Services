@@ -13,12 +13,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URL;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -58,6 +60,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.util.SerializationUtils;
+import org.sagebionetworks.warehouse.WarehouseTestHelper;
 
 import com.google.common.collect.Sets;
 
@@ -110,10 +113,12 @@ public class IT500SynapseJavaClientTeamTest {
 	
 	private SynapseAdminClient adminSynapse;
 	private SynapseClient synapse;
+	private WarehouseTestHelper warehouseHelper;
 	
-	public IT500SynapseJavaClientTeamTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+	public IT500SynapseJavaClientTeamTest(SynapseAdminClient adminSynapse, SynapseClient synapse, WarehouseTestHelper warehouseHelper) {
 		this.adminSynapse = adminSynapse;
 		this.synapse = synapse;
+		this.warehouseHelper = warehouseHelper;
 	}
 	
 	@BeforeAll
@@ -355,6 +360,59 @@ public class IT500SynapseJavaClientTeamTest {
 		assertFalse(tms.getHasOpenRequest());
 		assertTrue(tms.getCanJoin());
 	}
+	
+	@Test
+	public void testAddNonAdminMember() throws Exception {
+		Team team = new Team();
+		team.setName("Do not delete me");
+		team.setDescription("desc");
+		team = synapse.createTeam(team);
+		UserProfile myProfile = synapse.getMyProfile();
+		String myPrincipalId = myProfile.getOwnerId();
+
+		// add a member to the team
+		UserProfile otherUp = synapseTwo.getMyProfile();
+		String otherPrincipalId = otherUp.getOwnerId();
+		// the other has to ask to be added
+		MembershipRequest mrs = new MembershipRequest();
+		mrs.setTeamId(team.getId());
+		synapseTwo.createMembershipRequest(mrs, MOCK_ACCEPT_MEMB_RQST_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		// check membership status
+		TeamMembershipStatus tms = synapse.getTeamMembershipStatus(team.getId(), otherPrincipalId);
+
+
+		// Add the other user to the team
+		synapse.addTeamMember(team.getId(), otherPrincipalId, MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+
+		// query for team members.  should get creator as well as new member back
+		PaginatedResults<TeamMember> members = waitForTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.ALL, 2, 0);
+		assertEquals(2L, members.getResults().size());
+		
+		TeamMember admin = members.getResults().stream().filter(TeamMember::getIsAdmin).findFirst().get();
+		assertEquals(myPrincipalId, admin.getMember().getOwnerId());
+		TeamMember nonAdmin = members.getResults().stream().filter(Predicate.not(TeamMember::getIsAdmin)).findFirst().get();
+		assertEquals(otherPrincipalId, nonAdmin.getMember().getOwnerId());
+		assertEquals(2L, synapse.countTeamMembers(team.getId(), null));
+		
+		Instant now = Instant.now();
+		String query = String.format(
+				"select count(*) from teammembersnapshots where snapshot_date %s"
+						+ " and is_admin = true and team_id = %s and member_id = %s",
+				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
+				team.getId(),
+				myPrincipalId);
+		warehouseHelper.assertWarehouseQuery(query);
+		
+		query = String.format(
+				"select count(*) from teammembersnapshots where snapshot_date %s"
+						+ " and is_admin = false and team_id = %s and member_id = %s",
+				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
+				team.getId(),
+				otherPrincipalId);
+		warehouseHelper.assertWarehouseQuery(query);
+		// Sleeping gives the snapshot worker a chance to take the snapshots before the test suite deletes the team.
+		Thread.sleep(10_000);
+	}
 
 	@Test
 	public void testAddRemoveMember() throws SynapseException, InterruptedException {
@@ -364,7 +422,6 @@ public class IT500SynapseJavaClientTeamTest {
 
 		// add a member to the team
 		UserProfile otherUp = synapseTwo.getMyProfile();
-		String otherDName = otherUp.getUserName();
 		String otherPrincipalId = otherUp.getOwnerId();
 		// the other has to ask to be added
 		MembershipRequest mrs = new MembershipRequest();

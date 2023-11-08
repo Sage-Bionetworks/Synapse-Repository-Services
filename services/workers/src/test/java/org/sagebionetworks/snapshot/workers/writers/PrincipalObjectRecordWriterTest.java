@@ -21,21 +21,27 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -66,6 +72,8 @@ public class PrincipalObjectRecordWriterTest {
 
 	@Captor
 	private ArgumentCaptor<List<KinesisJsonEntityRecord<?>>> recordCaptor;
+	@Captor
+	private ArgumentCaptor<List<KinesisObjectSnapshotRecord<TeamMember>>> memberCaptor;
 	@Captor
 	private ArgumentCaptor<String> streamNameCaptor;
 	private Long principalID = 123L;
@@ -218,11 +226,24 @@ public class PrincipalObjectRecordWriterTest {
 	@Test
 	public void logGroupMembersTest() throws IOException {
 		List<UserGroup> list = createListOfMembers(2);
-		Mockito.when(mockGroupMembersDao.getMembers(principalID.toString())).thenReturn(list);
-		writer.captureAllMembers(new ChangeMessage().setObjectId(principalID.toString()).setTimestamp(new Date(timestamp)));
-		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.anyList(), Mockito.anyString());
-		verify(firehoseLogger).logBatch(streamNameCaptor.capture(), anyList());
+		when(mockGroupMembersDao.getMembers(principalID.toString())).thenReturn(list);
+		when(mockTeamDAO.getAdminTeamMemberIds(any())).thenReturn(List.of("1"));
+		
+		// call under test
+		writer.captureAllMembers(
+				new ChangeMessage().setObjectId(principalID.toString()).setTimestamp(new Date(timestamp)));
+
+		verify(mockTeamDAO).getAdminTeamMemberIds(principalID.toString());
+		verify(mockObjectRecordDao).saveBatch(Mockito.anyList(), Mockito.anyString());
+		verify(firehoseLogger).logBatch(streamNameCaptor.capture(), memberCaptor.capture());
 		assertTrue(streamNameCaptor.getValue().equals("teamMemberSnapshots"));
+
+		List<TeamMember> members = memberCaptor.getValue().stream().map(r -> r.getSnapshot())
+				.collect(Collectors.toList());
+		List<TeamMember> expected = List.of(
+				new TeamMember().setIsAdmin(false).setTeamId("123").setMember(new UserGroupHeader().setOwnerId("0")),
+				new TeamMember().setIsAdmin(true).setTeamId("123").setMember(new UserGroupHeader().setOwnerId("1")));
+		assertEquals(expected, members);
 	}
 
 	/**
