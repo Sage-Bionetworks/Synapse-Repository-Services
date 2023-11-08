@@ -421,7 +421,7 @@ public class IT054FileEntityTest {
 	 */
 	@Test
 	public void testSpecialCharactersInName() throws FileNotFoundException, SynapseException, IOException {
-		String name = "test file12345_-.+()";
+		String name = "test file12345,_-.+()";
 		String fileContents = "some data";
 		File source = File.createTempFile(name, ".txt");
 		File downloaded = File.createTempFile(name, ".txt");

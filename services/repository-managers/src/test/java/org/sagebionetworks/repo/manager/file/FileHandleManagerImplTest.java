@@ -746,7 +746,7 @@ public class FileHandleManagerImplTest {
 		S3FileHandle s3FileHandle = new S3FileHandle();
 		s3FileHandle.setId("123");
 		s3FileHandle.setBucketName("devdata.sagebase.org");
-		s3FileHandle.setKey("_ -.+()");
+		s3FileHandle.setKey(",_. -+()");
 		s3FileHandle.setFileName("testName");
 		s3FileHandle.setContentType("text/plain");
 		s3FileHandle.setCreatedBy(mockUser.getId().toString());
@@ -769,7 +769,7 @@ public class FileHandleManagerImplTest {
 		assertEquals(7, queryStrings.size());
 		assertEquals("https", redirectUrl.getProtocol());
 		assertEquals("data.dev.sagebase.org", redirectUrl.getHost());
-		assertEquals("/_%20-.%2B%28%29", redirectUrl.getPath());
+		assertEquals("/%2C_.%20-%2B%28%29", redirectUrl.getPath());
 		assertEquals("attachment%3B%20filename%3D%22testName%22%3B%20filename%2A%3Dutf-8%27%27testName", queryStrings.get("response-content-disposition").get(0));
 		assertEquals("text%2Fplain", queryStrings.get("response-content-type").get(0));
 		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
