@@ -130,6 +130,13 @@ public class ITTestExtension implements BeforeAllCallback, AfterAllCallback, Par
 		adminSynapse.setBasicAuthorizationCredentials(adminServiceKey, adminServiceSecret);
 		adminSynapse.clearAllLocks();
 
+		// Now obtains the admin user access token through the admin service
+		LoginResponse response = adminSynapse.getUserAccessToken(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+
+		// Clear the auth header to use the bearer token instead with the access token
+		adminSynapse.removeAuthorizationHeader();
+		adminSynapse.setBearerAuthorizationToken(response.getAccessToken());
+		
 		AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_1)
 				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance()).build();
 		AmazonAthena athenaClient = AmazonAthenaClientBuilder.standard().withRegion(Regions.US_EAST_1)

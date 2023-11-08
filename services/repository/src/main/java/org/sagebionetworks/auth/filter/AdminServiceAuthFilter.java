@@ -1,8 +1,12 @@
 package org.sagebionetworks.auth.filter;
 
+import java.io.IOException;
 import java.util.Optional;
 
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.HttpAuthUtil;
@@ -27,12 +31,32 @@ public class AdminServiceAuthFilter extends BasicAuthServiceFilter {
 			return Optional.empty();
 		}
 	}
+
+	// while in practice the admin client uses basic auth, the integration tests use a combintation
+	// of basic auth for admin requests and bearer token auth for non-admin requests
+	@Override
+	protected boolean credentialsRequired() {
+		return false;
+	}
 	
 	// Set as administrative service so that the admin user can be injected down the filter chain (e.g. for throttling, terms of use etc filters)
 	@Override
 	protected boolean isAdminService() {
 		return true;
 	}
-
+	
+	// while in practice the admin client uses basic auth, the integration tests use a combintation
+	// of basic auth for admin requests and bearer token auth for non-admin requests
+	@Override
+	protected void validateCredentialsAndDoFilterInternal(HttpServletRequest httpRequest,
+			HttpServletResponse httpResponse, FilterChain filterChain, Optional<UserNameAndPassword> credentials)
+			throws IOException, ServletException {
+		if (credentials.isPresent()) {
+			super.validateCredentialsAndDoFilterInternal(httpRequest, httpResponse, filterChain, credentials);
+			return;
+		}
+		// Pass through to allow the previous auth mechanism to work
+		filterChain.doFilter(httpRequest, httpResponse);
+	}
 
 }
