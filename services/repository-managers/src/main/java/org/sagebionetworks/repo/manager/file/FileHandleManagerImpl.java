@@ -17,6 +17,7 @@ import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.services.s3.transfer.model.UploadResult;
 import com.amazonaws.services.cloudfront.CloudFrontUrlSigner;
 import com.amazonaws.util.BinaryUtils;
+import com.amazonaws.util.SdkHttpUtils;
 import com.google.cloud.storage.Blob;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FilenameUtils;
@@ -24,7 +25,6 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
+import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -56,6 +57,7 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.file.BaseKeyUploadDestination;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
@@ -111,6 +113,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -219,6 +222,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	private TransactionalMessenger messenger;
+
+	@Autowired
+	private FeatureManager featureManager;
 
 	/**
 	 * Used by spring
@@ -406,8 +412,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 
 	private String getUrlForS3FileHandle(S3FileHandle handle) {
-		if (config.getS3Bucket().equals(handle.getBucketName())) {
-			return getS3SignedUrlForS3FileHandle(handle);
+		if (config.getS3Bucket().equals(handle.getBucketName()) && featureManager.isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT)) {
+			return getCloudFrontSignedUrlForS3FileHandle(handle);
 		} else {
 			return getS3SignedUrlForS3FileHandle(handle);
 		}
@@ -445,12 +451,25 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String creationDate = AWS4SignerUtils.formatTimestamp(creationTimeMS);
 		Date expirationDate = new Date(creationTimeMS + PRESIGNED_URL_EXPIRE_TIME_MS);
 
-		String resourceUrl;
-		try {
-		URIBuilder uriBuilder = new URIBuilder()
-				.setScheme("https")
-				.setHost(distributionDomainName)
-				.setPath(handle.getKey());
+		/*
+		S3 interprets "+" in the path part of an object URL as a space. In order to differentiate
+		between a space and a "+" in the object URL path when a file handle key contains a "+", the "+" must be
+		encoded as %2B. Apache URIBuilder and Java.Net URLEncoder do not encode "+" as %2B, so the AWS
+		SdkHttpUtils.urlEncode method is used here to ensure the signed URL created is appropriately encoded for use
+		with CloudFront. For strings used as the path of the URL, Boolean true must be passed to SdkHttpUtils.urlEncode
+		to prevent "/" characters from being encoded. Spring UriComponentBuilder allows boolean true to be passed when the build
+		method is invoked to declare that the components of the URI have already been encoded.
+		See: https://sagebionetworks.jira.com/browse/PLFM-8126
+		 */
+		Boolean uriComponentsEncoded = true;
+		Boolean representsPath = true;
+		String encodedPath = SdkHttpUtils.urlEncode(handle.getKey(), representsPath);
+		String uriScheme = "https";
+
+		UriComponentsBuilder uriBuilder = UriComponentsBuilder.newInstance()
+				.scheme(uriScheme)
+				.host(distributionDomainName)
+				.path(encodedPath);
 
 		addQueryParametersToUrl(uriBuilder, handle);
 
@@ -460,13 +479,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		CloudFront does not use these parameters. However, we must add them to CloudFront signed URLs to maintain
 		backwards compatibility with the python client. See: https://sagebionetworks.jira.com/browse/PLFM-8085
 		 */
-		uriBuilder.addParameter(X_AMZ_DATE, creationDate);
-		uriBuilder.addParameter(X_AMZ_EXPIRES, String.valueOf(PRESIGNED_URL_EXPIRE_TIME_S));
+		uriBuilder.queryParam(X_AMZ_DATE, creationDate);
+		uriBuilder.queryParam(X_AMZ_EXPIRES, String.valueOf(PRESIGNED_URL_EXPIRE_TIME_S));
 
-		resourceUrl = uriBuilder.build().toString();
-		} catch (URISyntaxException e) {
-			throw new RuntimeException("Failed to build resource URL for file handle: " + handle.getId(), e);
-		}
+		String resourceUrl = uriBuilder.build(uriComponentsEncoded).toString();
 
 		String signedUrl = CloudFrontUrlSigner.getSignedURLWithCannedPolicy(
 				resourceUrl,
@@ -483,17 +499,18 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 		String signedUrlWithQueryParameters;
 		try {
-			URIBuilder uriBuilder = new URIBuilder(signedUrl.toURI());
+			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(signedUrl.toURI());
 
 			/* We have to override content type and content disposition to match the file handle metadata stored in Synapse
-		 Currently, we cannot override content-type in Google Cloud... In short:
-		  - Google provides this parameter to override the content type, which will only work if the content type is null on Google Cloud
-		  - Google does not allow a null content type (defaults to application/octet-stream)
-		  We still attempt to override content type because it does not seem to interfere with the call, and
-		  perhaps one day Google may decide to allow us to override content type with this parameter.
-		 */
+			 Currently, we cannot override content-type in Google Cloud... In short:
+			  - Google provides this parameter to override the content type, which will only work if the content type is null on Google Cloud
+			  - Google does not allow a null content type (defaults to application/octet-stream)
+			  We still attempt to override content type because it does not seem to interfere with the call, and
+			  perhaps one day Google may decide to allow us to override content type with this parameter.
+			 */
 			addQueryParametersToUrl(uriBuilder, handle);
-			signedUrlWithQueryParameters = uriBuilder.build().toString();
+			Boolean uriComponentsEncoded = true;
+			signedUrlWithQueryParameters = uriBuilder.build(uriComponentsEncoded).toString();
 		} catch (URISyntaxException e) {
 			throw new RuntimeException("Failed to build resource URL for file handle: " + handle.getId(), e);
 		}
@@ -501,11 +518,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return signedUrlWithQueryParameters;
 	}
 
-	private static void addQueryParametersToUrl(URIBuilder uriBuilder, FileHandle handle) {
+	private static void addQueryParametersToUrl(UriComponentsBuilder uriBuilder, FileHandle handle) {
 		Map<String, String> urlQueryParameters = getQueryParameters(handle);
-
+		Boolean representsPath = false;
 		urlQueryParameters.entrySet().forEach(queryParameter -> {
-			uriBuilder.addParameter(queryParameter.getKey(), queryParameter.getValue());
+			uriBuilder.queryParam(queryParameter.getKey(), SdkHttpUtils.urlEncode(queryParameter.getValue(), representsPath));
 		});
 	}
 
