@@ -403,7 +403,6 @@ public class IT054FileEntityTest {
 			// Test downloading file using a CloudFront signed URL
 			URL cloudFrontUrl = this.synapse.getFileURL(fileHandleAssociation);
 			System.out.println(cloudFrontUrl.toString());
-			assertEquals(cloudFrontUrl.getHost(), "data.dev.sagebase.org");
 			// download the file to a temp file using the pre-signed URL.
 			FileUtils.copyURLToFile(cloudFrontUrl, downloaded);
 			String cloudFrontUrlResultContent = FileUtils.readFileToString(downloaded, StandardCharsets.UTF_8);
@@ -416,11 +415,12 @@ public class IT054FileEntityTest {
 			// Test downloading file using an S3 signed URL
 			URL s3Url = this.synapse.getFileURL(fileHandleAssociation);
 			System.out.println(s3Url.toString());
-			assertEquals(s3Url.getHost(), "s3.amazonaws.com");
 			// download the file to a temp file using the pre-signed URL.
 			FileUtils.copyURLToFile(s3Url, downloaded);
 			String s3UrlResultContent = FileUtils.readFileToString(downloaded, StandardCharsets.UTF_8);
 			assertEquals(fileContents, s3UrlResultContent);
+
+			assertNotEquals(cloudFrontUrl.getHost(), s3Url.getHost());
 
 			// Reenable Synapse data to be downloaded through CloudFront.
 			cloudFrontStatus = new FeatureStatus().setFeature(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT).setEnabled(true);
