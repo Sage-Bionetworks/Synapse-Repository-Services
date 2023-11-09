@@ -451,10 +451,25 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String creationDate = AWS4SignerUtils.formatTimestamp(creationTimeMS);
 		Date expirationDate = new Date(creationTimeMS + PRESIGNED_URL_EXPIRE_TIME_MS);
 
+		/*
+		S3 interprets "+" in the path part of an object URL as a space. In order to differentiate
+		between a space and a "+" in the object URL path when a file handle key contains a "+", the "+" must be
+		encoded as %2B. Apache URIBuilder and Java.Net URLEncoder do not encode "+" as %2B, so the AWS
+		SdkHttpUtils.urlEncode method is used here to ensure the signed URL created is appropriately encoded for use
+		with CloudFront. For strings used as the path of the URL, Boolean true must be passed to SdkHttpUtils.urlEncode
+		to prevent "/" characters from being encoded. Spring UriComponentBuilder allows boolean true to be passed when the build
+		method is invoked to declare that the components of the URI have already been encoded.
+		See: https://sagebionetworks.jira.com/browse/PLFM-8126
+		 */
+		Boolean uriComponentsEncoded = true;
+		Boolean representsPath = true;
+		String encodedPath = SdkHttpUtils.urlEncode(handle.getKey(), representsPath);
+		String uriScheme = "https";
+
 		UriComponentsBuilder uriBuilder = UriComponentsBuilder.newInstance()
-				.scheme("https")
+				.scheme(uriScheme)
 				.host(distributionDomainName)
-				.path(SdkHttpUtils.urlEncode(handle.getKey(), true));
+				.path(encodedPath);
 
 		addQueryParametersToUrl(uriBuilder, handle);
 
@@ -467,7 +482,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		uriBuilder.queryParam(X_AMZ_DATE, creationDate);
 		uriBuilder.queryParam(X_AMZ_EXPIRES, String.valueOf(PRESIGNED_URL_EXPIRE_TIME_S));
 
-		String resourceUrl = uriBuilder.build(true).toString();
+		String resourceUrl = uriBuilder.build(uriComponentsEncoded).toString();
 
 		String signedUrl = CloudFrontUrlSigner.getSignedURLWithCannedPolicy(
 				resourceUrl,
@@ -494,7 +509,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			  perhaps one day Google may decide to allow us to override content type with this parameter.
 			 */
 			addQueryParametersToUrl(uriBuilder, handle);
-			signedUrlWithQueryParameters = uriBuilder.build(true).toString();
+			Boolean uriComponentsEncoded = true;
+			signedUrlWithQueryParameters = uriBuilder.build(uriComponentsEncoded).toString();
 		} catch (URISyntaxException e) {
 			throw new RuntimeException("Failed to build resource URL for file handle: " + handle.getId(), e);
 		}
@@ -504,8 +520,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	private static void addQueryParametersToUrl(UriComponentsBuilder uriBuilder, FileHandle handle) {
 		Map<String, String> urlQueryParameters = getQueryParameters(handle);
+		Boolean representsPath = false;
 		urlQueryParameters.entrySet().forEach(queryParameter -> {
-			uriBuilder.queryParam(queryParameter.getKey(), SdkHttpUtils.urlEncode(queryParameter.getValue(), false));
+			uriBuilder.queryParam(queryParameter.getKey(), SdkHttpUtils.urlEncode(queryParameter.getValue(), representsPath));
 		});
 	}
 

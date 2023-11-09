@@ -697,6 +697,35 @@ public class FileHandleManagerImplTest {
 	}
 
 	@Test
+	public void testGetRedirectURLCloudFrontFeatureDisabled() throws MalformedURLException{
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setBucketName("devdata.sagebase.org");
+		s3FileHandle.setKey("key");
+		s3FileHandle.setCreatedBy(mockUser.getId().toString());
+		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
+		s3FileHandle.setContentType("text/plain");
+		s3FileHandle.setFileName("testName");
+
+		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(false);
+
+		String expectedURL = "https://amamzon.com";
+		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
+				thenReturn(new URL(expectedURL));
+		// fire!
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+		assertNotNull(redirect);
+		assertEquals(expectedURL, redirect.toString());
+
+		verify(mockFileHandleDao).get("123");
+		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
+		verify(mockStackConfig).getS3Bucket();
+		verify(mockS3Client).generatePresignedUrl(any(GeneratePresignedUrlRequest.class));
+	}
+
+	@Test
 	public void testGetRedirectURLForFileHandleCloudFront() throws DatastoreException, NotFoundException, IOException {
 		S3FileHandle s3FileHandle = new S3FileHandle();
 		s3FileHandle.setId("123");
@@ -747,7 +776,7 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setId("123");
 		s3FileHandle.setBucketName("devdata.sagebase.org");
 		s3FileHandle.setKey(",_. -+()");
-		s3FileHandle.setFileName("testName");
+		s3FileHandle.setFileName("testName,_. -+()");
 		s3FileHandle.setContentType("text/plain");
 		s3FileHandle.setCreatedBy(mockUser.getId().toString());
 		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
@@ -770,7 +799,7 @@ public class FileHandleManagerImplTest {
 		assertEquals("https", redirectUrl.getProtocol());
 		assertEquals("data.dev.sagebase.org", redirectUrl.getHost());
 		assertEquals("/%2C_.%20-%2B%28%29", redirectUrl.getPath());
-		assertEquals("attachment%3B%20filename%3D%22testName%22%3B%20filename%2A%3Dutf-8%27%27testName", queryStrings.get("response-content-disposition").get(0));
+		assertEquals("attachment%3B%20filename%3D%22testName%2C_.%20-%2B%28%29%22%3B%20filename%2A%3Dutf-8%27%27testName%252C%255F.%2520%252D%252B%2528%2529", queryStrings.get("response-content-disposition").get(0));
 		assertEquals("text%2Fplain", queryStrings.get("response-content-type").get(0));
 		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
 		assertEquals("30", queryStrings.get("X-Amz-Expires").get(0));
