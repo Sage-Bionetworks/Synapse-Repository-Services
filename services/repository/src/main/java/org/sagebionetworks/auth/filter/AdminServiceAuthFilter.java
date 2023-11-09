@@ -12,7 +12,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.cloudwatch.Consumer;
-import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -33,7 +32,8 @@ public class AdminServiceAuthFilter extends BasicAuthServiceFilter {
 		}
 	}
 
-	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "This allows backward compatibility, can be removed once all the admin clients are updated.")
+	// while in practice the admin client uses basic auth, the integration tests use a combintation
+	// of basic auth for admin requests and bearer token auth for non-admin requests
 	@Override
 	protected boolean credentialsRequired() {
 		return false;
@@ -45,11 +45,8 @@ public class AdminServiceAuthFilter extends BasicAuthServiceFilter {
 		return true;
 	}
 	
-	/**
-	 * Note: We attempted to remove this temporary code but it failed since all of the IT integration tests depend on the calling the 
-	 * administration services with an API key. See: PLFM-6973.
-	 */
-	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "This allows backward compatibility, can be removed once all the admin clients are updated.")
+	// while in practice the admin client uses basic auth, the integration tests use a combintation
+	// of basic auth for admin requests and bearer token auth for non-admin requests
 	@Override
 	protected void validateCredentialsAndDoFilterInternal(HttpServletRequest httpRequest,
 			HttpServletResponse httpResponse, FilterChain filterChain, Optional<UserNameAndPassword> credentials)
