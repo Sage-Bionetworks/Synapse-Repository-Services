@@ -18,7 +18,6 @@ import javax.tools.ToolProvider;
 
 import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -154,7 +153,7 @@ public class ControllerModelDocletTest {
 		JSONObject operationObj = pathObj.getJSONObject("get");
 		
 		// test operationId is correct
-		assertEquals(fullPath, operationObj.getString("operationId"));
+		assertEquals("get-/repo/v1/complex-pet/{petName}", operationObj.getString("operationId"));
 	}
 	
 	@Test
@@ -172,7 +171,7 @@ public class ControllerModelDocletTest {
 				assertEquals("path", param.getString("in"));
 				assertEquals(true, param.getBoolean("required"));
 				JSONObject schema = param.getJSONObject("schema");
-				assertEquals("#/components/schemas/java.lang.String", schema.getString("$ref"));
+				assertEquals("string", schema.getString("type"));
 				foundPetNameParam = true;
 			}
 		}
@@ -291,8 +290,7 @@ public class ControllerModelDocletTest {
 		for (int i = 0; i < parametersObj.length(); i++) {
 			JSONObject parameterObj = parametersObj.getJSONObject(i);
 			JSONObject schemaObj = parameterObj.getJSONObject("schema");
-			String schema = schemaObj.getString("$ref");
-			assertFalse(schema.toLowerCase().contains("httpservletresponse"));
+			assertTrue(schemaObj.isNull("$ref"));
 		}
 	}
 
@@ -306,8 +304,7 @@ public class ControllerModelDocletTest {
 		for (int i = 0; i < parametersObj.length(); i++) {
 			JSONObject parameterObj = parametersObj.getJSONObject(i);
 			JSONObject schemaObj = parameterObj.getJSONObject("schema");
-			String schema = schemaObj.getString("$ref");
-			assertFalse(schema.toLowerCase().contains("httpservletrequest"));
+			assertTrue(schemaObj.isNull("$ref"));
 		}
 	}
 
@@ -321,8 +318,7 @@ public class ControllerModelDocletTest {
 		for (int i = 0; i < parametersObj.length(); i++) {
 			JSONObject parameterObj = parametersObj.getJSONObject(i);
 			JSONObject schemaObj = parameterObj.getJSONObject("schema");
-			String schema = schemaObj.getString("$ref");
-			assertFalse(schema.toLowerCase().contains("uricomponentsbuilder"));
+			assertTrue(schemaObj.isNull("$ref"));
 		}
 	}
 
@@ -416,6 +412,205 @@ public class ControllerModelDocletTest {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
 		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/regularexpression/{id}/test");
 		JSONObject getObj = pathObj.getJSONObject("get");
-		assertEquals("/repo/v1/complex-pet/regularexpression/{id}/test", getObj.getString("operationId"));
+		assertEquals("get-/repo/v1/complex-pet/regularexpression/{id}/test", getObj.getString("operationId"));
+	}
+
+	@Test
+	public void testStringPrimitive() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/string/{testString}");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+		JSONObject paramObj = paramsObj.getJSONObject(0);
+		JSONObject paramSchemaObj = paramObj.getJSONObject("schema");
+
+		JSONObject responsesObj = getObj.getJSONObject("responses");
+		JSONObject okObj = responsesObj.getJSONObject("200");
+		JSONObject contentObj = okObj.getJSONObject("content");
+		JSONObject mediaObj = contentObj.getJSONObject("application/json");
+		JSONObject responseSchemaObj = mediaObj.getJSONObject("schema");
+
+		assertEquals("string", paramSchemaObj.getString("type"));
+		assertEquals("string", responseSchemaObj.getString("type"));
+	}
+
+	@Test
+	public void testIntegerClass() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/integerclass/{testIntegerClass}");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+		JSONObject paramObj = paramsObj.getJSONObject(0);
+		JSONObject paramSchemaObj = paramObj.getJSONObject("schema");
+
+		JSONObject responsesObj = getObj.getJSONObject("responses");
+		JSONObject okObj = responsesObj.getJSONObject("200");
+		JSONObject contentObj = okObj.getJSONObject("content");
+		JSONObject mediaObj = contentObj.getJSONObject("application/json");
+		JSONObject responseSchemaObj = mediaObj.getJSONObject("schema");
+
+		assertEquals("integer", paramSchemaObj.getString("type"));
+		assertEquals("integer", responseSchemaObj.getString("type"));
+	}
+
+	@Test
+	public void testBooleanClass() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/booleanclass/{testBooleanClass}");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+		JSONObject paramObj = paramsObj.getJSONObject(0);
+		JSONObject paramSchemaObj = paramObj.getJSONObject("schema");
+
+		JSONObject responsesObj = getObj.getJSONObject("responses");
+		JSONObject okObj = responsesObj.getJSONObject("200");
+		JSONObject contentObj = okObj.getJSONObject("content");
+		JSONObject mediaObj = contentObj.getJSONObject("application/json");
+		JSONObject responseSchemaObj = mediaObj.getJSONObject("schema");
+
+		assertEquals("boolean", paramSchemaObj.getString("type"));
+		assertEquals("boolean", responseSchemaObj.getString("type"));
+	}
+
+	@Test
+	public void testLongClass() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/longclass/{testLongClass}");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+		JSONObject paramObj = paramsObj.getJSONObject(0);
+		JSONObject paramSchemaObj = paramObj.getJSONObject("schema");
+
+		JSONObject responsesObj = getObj.getJSONObject("responses");
+		JSONObject okObj = responsesObj.getJSONObject("200");
+		JSONObject contentObj = okObj.getJSONObject("content");
+		JSONObject mediaObj = contentObj.getJSONObject("application/json");
+		JSONObject responseSchemaObj = mediaObj.getJSONObject("schema");
+
+		assertEquals("number", paramSchemaObj.getString("type"));
+		assertEquals("number", responseSchemaObj.getString("type"));
+	}
+
+	@Test
+	public void testObjectClass() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/objectclass/{testObject}");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+		JSONObject paramObj = paramsObj.getJSONObject(0);
+		JSONObject paramSchemaObj = paramObj.getJSONObject("schema");
+
+		JSONObject responsesObj = getObj.getJSONObject("responses");
+		JSONObject okObj = responsesObj.getJSONObject("200");
+		JSONObject contentObj = okObj.getJSONObject("content");
+		JSONObject mediaObj = contentObj.getJSONObject("application/json");
+		JSONObject responseSchemaObj = mediaObj.getJSONObject("schema");
+
+		assertEquals("object", paramSchemaObj.getString("type"));
+		assertEquals("object", responseSchemaObj.getString("type"));
+	}
+
+	@Test
+	public void testBooleanPrimitive() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/booleanprimitive/{testBooleanPrimitive}");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+		JSONObject paramObj = paramsObj.getJSONObject(0);
+		JSONObject paramSchemaObj = paramObj.getJSONObject("schema");
+
+		JSONObject responsesObj = getObj.getJSONObject("responses");
+		JSONObject okObj = responsesObj.getJSONObject("200");
+		JSONObject contentObj = okObj.getJSONObject("content");
+		JSONObject mediaObj = contentObj.getJSONObject("application/json");
+		JSONObject responseSchemaObj = mediaObj.getJSONObject("schema");
+
+		assertEquals("boolean", paramSchemaObj.getString("type"));
+		assertEquals("boolean", responseSchemaObj.getString("type"));
+	}
+
+	@Test
+	public void testIntPrimitive() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/intprimitive/{testIntPrimitive}");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+		JSONObject paramObj = paramsObj.getJSONObject(0);
+		JSONObject paramSchemaObj = paramObj.getJSONObject("schema");
+
+		JSONObject responsesObj = getObj.getJSONObject("responses");
+		JSONObject okObj = responsesObj.getJSONObject("200");
+		JSONObject contentObj = okObj.getJSONObject("content");
+		JSONObject mediaObj = contentObj.getJSONObject("application/json");
+		JSONObject responseSchemaObj = mediaObj.getJSONObject("schema");
+
+		assertEquals("integer", paramSchemaObj.getString("type"));
+		assertEquals("integer", responseSchemaObj.getString("type"));
+	}
+
+	@Test
+	public void testLongPrimitive() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/longprimitive/{testLongPrimitive}");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+		JSONObject paramObj = paramsObj.getJSONObject(0);
+		JSONObject paramSchemaObj = paramObj.getJSONObject("schema");
+
+		JSONObject responsesObj = getObj.getJSONObject("responses");
+		JSONObject okObj = responsesObj.getJSONObject("200");
+		JSONObject contentObj = okObj.getJSONObject("content");
+		JSONObject mediaObj = contentObj.getJSONObject("application/json");
+		JSONObject responseSchemaObj = mediaObj.getJSONObject("schema");
+
+		assertEquals("number", paramSchemaObj.getString("type"));
+		assertEquals("number", responseSchemaObj.getString("type"));
+	}
+
+	@Test
+	public void testBooleanResult() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/booleanresult");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONObject responsesObj = getObj.getJSONObject("responses");
+		JSONObject okObj = responsesObj.getJSONObject("200");
+		JSONObject contentObj = okObj.getJSONObject("content");
+		JSONObject mediaObj = contentObj.getJSONObject("application/json");
+		JSONObject responseSchemaObj = mediaObj.getJSONObject("schema");
+
+		assertEquals("boolean", responseSchemaObj.getString("type"));
+	}
+
+	@Test
+	public void testJsonObject() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/jsonobject/{testJsonObject}");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+		JSONObject paramObj = paramsObj.getJSONObject(0);
+		JSONObject paramSchemaObj = paramObj.getJSONObject("schema");
+
+		JSONObject responsesObj = getObj.getJSONObject("responses");
+		JSONObject okObj = responsesObj.getJSONObject("200");
+		JSONObject contentObj = okObj.getJSONObject("content");
+		JSONObject mediaObj = contentObj.getJSONObject("application/json");
+		JSONObject responseSchemaObj = mediaObj.getJSONObject("schema");
+
+		assertEquals("object", paramSchemaObj.getString("type"));
+		assertEquals("object", responseSchemaObj.getString("type"));
+	}
+
+	@Test
+	public void testObjectSchema() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/objectschema");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONObject responsesObj = getObj.getJSONObject("responses");
+		JSONObject okObj = responsesObj.getJSONObject("200");
+		JSONObject contentObj = okObj.getJSONObject("content");
+		JSONObject mediaObj = contentObj.getJSONObject("application/json");
+		JSONObject responseSchemaObj = mediaObj.getJSONObject("schema");
+
+		assertEquals("object", responseSchemaObj.getString("type"));
 	}
 }
