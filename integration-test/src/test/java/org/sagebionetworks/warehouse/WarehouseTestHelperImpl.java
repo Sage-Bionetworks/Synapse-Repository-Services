@@ -33,7 +33,7 @@ public class WarehouseTestHelperImpl implements WarehouseTestHelper {
 	public static final int MAX_WAIT_MS = 60_000;
 	public static final int WAIT_INTERAVAL_MS = 1000;
 	public static final String BUCKET_NAME = "dev.testdata.sagebase.org";
-	public static final int WAREHOUSE_QUERY_EXPIRATION_HOURS = 2;
+	public static final int WAREHOUSE_QUERY_EXPIRATION_HOURS = 7;
 
 	private final AmazonS3 s3Client;
 	private final AmazonAthena athenaClient;
