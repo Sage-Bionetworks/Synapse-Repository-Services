@@ -3,7 +3,6 @@ package org.sagebionetworks;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -14,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -63,6 +63,7 @@ import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
@@ -77,6 +78,7 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.ContentDispositionUtils;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
+import org.sagebionetworks.warehouse.WarehouseTestHelper;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.google.cloud.storage.StorageException;
@@ -103,10 +105,12 @@ public class IT049FileHandleTest {
 	
 	private StackConfiguration config;
 	private SynapseClient synapse;
+	private WarehouseTestHelper warehouseHelper;
 	
-	public IT049FileHandleTest(StackConfiguration config, SynapseClient synapse) throws SynapseException {
+	public IT049FileHandleTest(StackConfiguration config, SynapseClient synapse, WarehouseTestHelper warehouseHelper) throws SynapseException {
 		this.config = config;
 		this.synapse = synapse;
+		this.warehouseHelper = warehouseHelper;
 	}
 
 	@BeforeAll
@@ -240,7 +244,7 @@ public class IT049FileHandleTest {
 	}
 	
 	@Test
-	public void testProjectSettingsCrud() throws SynapseException, IOException, InterruptedException {
+	public void testProjectSettingsCrud() throws Exception {
 		// create an project setting
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setProjectId(project.getId());
@@ -276,10 +280,14 @@ public class IT049FileHandleTest {
 		assertEquals(externalDestination.getUploadType(), uploadDestination.getUploadType());
 		assertEquals(externalDestination.getBanner(), uploadDestination.getBanner());
 		assertEquals(externalDestination.getStorageLocationId(), uploadDestination.getStorageLocationId());
-
-		synapse.deleteProjectSetting(created.getId());
-
-		assertNull(synapse.getProjectSetting(project.getId(), ProjectSettingsType.upload));
+		
+		Instant now = Instant.now();
+		String query = String.format(
+				"select count(*) from projectsettingsnapshots where snapshot_date %s"
+						+ " and id = %s and project_id = %s and etag = '%s'",
+				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
+				clone.getId(), KeyFactory.stringToKey(clone.getProjectId()), clone.getEtag());
+		warehouseHelper.assertWarehouseQuery(query);
 	}
 
 	@Test

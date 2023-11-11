@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProjectSettingObjectRecordWriter implements ObjectRecordWriter {
 	private static Logger log = LogManager.getLogger(ProjectSettingObjectRecordWriter.class);
-	
+
 	public static final String STREAM_NAME = "projectSettingSnapshots";
 
 	private final ProjectSettingsDAO projectSettingsDao;
@@ -33,15 +33,17 @@ public class ProjectSettingObjectRecordWriter implements ObjectRecordWriter {
 	private final AwsKinesisFirehoseLogger kinesisLogger;
 
 	@Autowired
-	public ProjectSettingObjectRecordWriter(ProjectSettingsDAO projectSettingsDao, ObjectRecordDAO objectRecordDAO, AwsKinesisFirehoseLogger kinesisLogger) {
+	public ProjectSettingObjectRecordWriter(ProjectSettingsDAO projectSettingsDao, ObjectRecordDAO objectRecordDAO,
+			AwsKinesisFirehoseLogger kinesisLogger) {
 		this.projectSettingsDao = projectSettingsDao;
 		this.objectRecordDAO = objectRecordDAO;
 		this.kinesisLogger = kinesisLogger;
 	}
 
 	@Override
-	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException {
-		
+	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages)
+			throws IOException {
+
 		List<KinesisObjectSnapshotRecord<ProjectSetting>> records = new ArrayList<>(messages.size());
 		List<ObjectRecord> toWrite = new LinkedList<ObjectRecord>();
 		for (ChangeMessage message : messages) {
@@ -54,26 +56,27 @@ public class ProjectSettingObjectRecordWriter implements ObjectRecordWriter {
 			}
 			try {
 				ProjectSetting projectSetting = projectSettingsDao.get(message.getObjectId());
-				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(projectSetting, message.getTimestamp().getTime());
+				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(projectSetting,
+						message.getTimestamp().getTime());
 				toWrite.add(objectRecord);
-				
+
 				records.add(KinesisObjectSnapshotRecord.map(message, projectSetting));
 			} catch (NotFoundException e) {
-				log.error("Cannot find ProjectSetting for a " + message.getChangeType() + " message: " + message.toString()) ;
+				log.error("Cannot find ProjectSetting for a " + message.getChangeType() + " message: "
+						+ message.toString());
 			}
 		}
 		if (!toWrite.isEmpty()) {
 			objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
 		}
-		
+
 		if (!records.isEmpty()) {
 			kinesisLogger.logBatch(STREAM_NAME, records);
 		}
 	}
-	
+
 	@Override
 	public ObjectType getObjectType() {
 		return ObjectType.PROJECT_SETTING;
 	}
-
 }
