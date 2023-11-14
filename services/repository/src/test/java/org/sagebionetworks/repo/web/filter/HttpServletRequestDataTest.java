@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.GlobalConstants;
 import org.sagebionetworks.repo.web.AccessInterceptor;
 
 /**
@@ -76,7 +77,7 @@ public class HttpServletRequestDataTest {
 	@Test
 	public void testSessionId(){
 		String sessionId = "someSessionId";
-		ThreadContext.put(AccessInterceptor.SESSION_ID, sessionId);
+		ThreadContext.put(GlobalConstants.SESSION_ID, sessionId);
 		HttpServletRequestData data = new HttpServletRequestData(mockRequest);
 		assertTrue(data.toString().contains(sessionId));
 		assertEquals(sessionId, data.getSessionId());

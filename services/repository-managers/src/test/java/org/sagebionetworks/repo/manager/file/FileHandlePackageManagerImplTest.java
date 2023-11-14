@@ -257,7 +257,7 @@ public class FileHandlePackageManagerImplTest {
 		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest()
 				.withFileName(request.getZipFileName()).withUserId(userInfo.getId().toString())
 				.withFileToUpload(mockTempFile).withContentType(FileHandlePackageManagerImpl.APPLICATION_ZIP));
-		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo.getId(), expected.getResultZipFileHandleId(), summaryResults);
+		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo, expected.getResultZipFileHandleId(), summaryResults);
 		verify(mockTempFile).delete();
 	}
 
@@ -282,7 +282,7 @@ public class FileHandlePackageManagerImplTest {
 		verify(fileHandleSupportSpy).addFilesToZip(userInfo, request, mockTempFile, fileSizesChecked);
 		// the zip is empty so it should not get uploaded
 		verify(mockFileHandleManager, never()).uploadLocalFile(any());
-		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo.getId(), expected.getResultZipFileHandleId(), summaryResults);
+		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo, expected.getResultZipFileHandleId(), summaryResults);
 		verify(mockTempFile).delete();
 	}
 
@@ -320,7 +320,7 @@ public class FileHandlePackageManagerImplTest {
 		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest()
 				.withFileName(request.getZipFileName()).withUserId(userInfo.getId().toString())
 				.withFileToUpload(mockTempFile).withContentType(FileHandlePackageManagerImpl.APPLICATION_ZIP));
-		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo.getId(),expected.getResultZipFileHandleId(), summaryResults);
+		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo,expected.getResultZipFileHandleId(), summaryResults);
 		verify(mockTempFile).delete();
 	}
 
@@ -672,7 +672,7 @@ public class FileHandlePackageManagerImplTest {
 				"11", "345","syn123", FileEntity,STACK ,INSTANCE);
 		
 		// call under test
-		fileHandleSupportSpy.collectDownloadStatistics(userInfo.getId(),"345", summaryResults);
+		fileHandleSupportSpy.collectDownloadStatistics(userInfo,"345", summaryResults);
 
 		verify(messenger).publishMessageAfterCommit(fileRecordEventCaptor.capture());
 		FileEvent actualFileEvent = fileRecordEventCaptor.getValue();
@@ -689,7 +689,7 @@ public class FileHandlePackageManagerImplTest {
 		summaryResults = Arrays.asList(summary);
 		
 		// call under test
-		fileHandleSupportSpy.collectDownloadStatistics(userInfo.getId(), null, summaryResults);
+		fileHandleSupportSpy.collectDownloadStatistics(userInfo, null, summaryResults);
 
 		verifyNoMoreInteractions(messenger);
 	}
