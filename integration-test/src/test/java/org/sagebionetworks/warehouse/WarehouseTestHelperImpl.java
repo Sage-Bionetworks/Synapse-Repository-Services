@@ -158,17 +158,17 @@ public class WarehouseTestHelperImpl implements WarehouseTestHelper {
 	}
 
 	@Override
-	public String toDateStringBetweenPlusAndMinusFiveSeconds(Instant instant) {
+	public String toDateStringBetweenPlusAndMinusThirtySeconds(Instant instant) {
 		return String.format("between date('%s') and date('%s')",
-				instant.minusSeconds(5).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE),
-				instant.plusSeconds(5).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE));
+				instant.minusSeconds(30).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE),
+				instant.plusSeconds(30).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE));
 	}
 
 	@Override
-	public String toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(Instant instant) {
+	public String toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(Instant instant) {
 		return String.format("between from_iso8601_timestamp('%s') and from_iso8601_timestamp('%s')",
-				instant.minusSeconds(5).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME),
-				instant.plusSeconds(5).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME));
+				instant.minusSeconds(30).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME),
+				instant.plusSeconds(30).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME));
 	}
 
 }
