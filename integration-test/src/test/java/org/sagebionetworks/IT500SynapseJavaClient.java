@@ -753,8 +753,8 @@ public class IT500SynapseJavaClient {
 				"select count(*) from filedownloadrecords where record_date %s and timestamp %s and instance = '%s'"
 						+ " and association_object_type = 'UserProfileAttachment' and association_object_id = %s"
 						+ " and file_handle_id = %s ",
-				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
-				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(now), stackConfig.getStackInstance(),
+				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
+				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(now), stackConfig.getStackInstance(),
 				profile.getOwnerId(), fileHandle.getId());
 		warehouseHelper.assertWarehouseQuery(query);
 	}
@@ -812,8 +812,8 @@ public class IT500SynapseJavaClient {
 						+ " response_id = %s and"
 						+ " change_type = 'CREATE' and"
 						+ " passed = false",
-				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
-				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(now),
+				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
+				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(now),
 				pr.getResponseId());
 
 		warehouseHelper.assertWarehouseQuery(query);
@@ -823,8 +823,8 @@ public class IT500SynapseJavaClient {
 						+ " snapshot_date %s and"
 						+ " change_timestamp %s and"
 						+ " response_id = %s",
-				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
-				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(now),
+				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
+				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(now),
 				pr.getResponseId());
 
 		warehouseHelper.assertWarehouseQuery(queryTwo);

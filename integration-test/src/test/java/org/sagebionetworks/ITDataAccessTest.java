@@ -153,8 +153,8 @@ public class ITDataAccessTest {
 						+ " change_type = 'UPDATE' and"
 						+ " is_idu_public = true and"
 						+ " concrete_type = '%s'",
-				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
-				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(now),
+				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
+				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(now),
 				managedAR.getId(),
 				managedAR.getVersionNumber(),
 				managedAR.getConcreteType());

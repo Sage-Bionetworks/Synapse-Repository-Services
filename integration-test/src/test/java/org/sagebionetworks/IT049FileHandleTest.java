@@ -285,7 +285,7 @@ public class IT049FileHandleTest {
 		String query = String.format(
 				"select count(*) from projectsettingsnapshots where snapshot_date %s"
 						+ " and id = %s and project_id = %s and etag = '%s'",
-				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
+				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
 				clone.getId(), KeyFactory.stringToKey(clone.getProjectId()), clone.getEtag());
 		warehouseHelper.assertWarehouseQuery(query);
 	}

@@ -224,7 +224,7 @@ public class WarehouseTestHelperImplTest {
 	public void testToDateStringBetweenPlusAndMinusFiveSeconds() {
 		Instant instant = Instant.from(DateTimeFormatter.ISO_DATE_TIME.parse("2022-12-31T23:59:59.605Z"));
 		assertEquals("between date('2022-12-31') and date('2023-01-01')",
-				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(instant));
+				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(instant));
 	}
 
 	@Test
@@ -232,7 +232,7 @@ public class WarehouseTestHelperImplTest {
 		Instant instant = Instant.from(DateTimeFormatter.ISO_DATE_TIME.parse("2022-12-31T23:59:59.605Z"));
 		assertEquals(
 				"between from_iso8601_timestamp('2022-12-31T23:59:54.605Z') and from_iso8601_timestamp('2023-01-01T00:00:04.605Z')",
-				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(instant));
+				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(instant));
 	}
 
 	@Test

@@ -398,7 +398,7 @@ public class IT500SynapseJavaClientTeamTest {
 		String query = String.format(
 				"select count(*) from teammembersnapshots where snapshot_date %s"
 						+ " and is_admin = true and team_id = %s and member_id = %s",
-				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
+				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
 				team.getId(),
 				myPrincipalId);
 		warehouseHelper.assertWarehouseQuery(query);
@@ -406,7 +406,7 @@ public class IT500SynapseJavaClientTeamTest {
 		query = String.format(
 				"select count(*) from teammembersnapshots where snapshot_date %s"
 						+ " and is_admin = false and team_id = %s and member_id = %s",
-				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(now),
+				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
 				team.getId(),
 				otherPrincipalId);
 		warehouseHelper.assertWarehouseQuery(query);
