@@ -293,7 +293,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		ResponseModel responses = new ResponseModel();
 		List<String> tags = new ArrayList<>(Arrays.asList(displayName));
 		MethodModel method = new MethodModel().withName(methodName).withRequestBody(requestBodyModel)
-				.withParameters(parameters).withResponse(responses);
+				.withParameters(parameters).withResponse(responses).withOperation(Operation.get);
 
 		List<ParameterInfo> expectedParameters = new ArrayList<>();
 		RequestBodyInfo requestBodyInfo = new RequestBodyInfo();
@@ -302,7 +302,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		doReturn(requestBodyInfo).when(translator).getRequestBodyInfo(any(RequestBodyModel.class));
 		doReturn(respones).when(translator).getResponses(any(ResponseModel.class));
 
-		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags).withOperationId(fullPath)
+		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags).withOperationId(String.format("%s-%s", Operation.get.name(), fullPath))
 				.withParameters(expectedParameters).withRequestBody(requestBodyInfo).withResponses(respones);
 
 		// call under test.
@@ -322,14 +322,14 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		ResponseModel responses = new ResponseModel();
 		List<String> tags = new ArrayList<>(Arrays.asList(displayName));
 		MethodModel method = new MethodModel().withName(methodName).withRequestBody(requestBodyModel)
-				.withParameters(parameters).withResponse(responses);
+				.withParameters(parameters).withResponse(responses).withOperation(Operation.get);
 
 		List<ParameterInfo> expectedParameters = new ArrayList<>();
 		Map<String, ResponseInfo> respones = new LinkedHashMap<>();
 		doReturn(expectedParameters).when(translator).getParameters(any(List.class));
 		doReturn(respones).when(translator).getResponses(any(ResponseModel.class));
 
-		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags).withOperationId(fullPath)
+		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags).withOperationId(String.format("%s-%s", Operation.get.name(), fullPath))
 				.withParameters(expectedParameters).withRequestBody(null).withResponses(respones);
 
 		// call under test.
@@ -499,5 +499,26 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 			translator.getParameterInfo(null);
 		});
 		assertEquals("parameter is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetReferenceSchemaWithNonPrimitive() {
+		JsonSchema expectedSchema = new JsonSchema().set$ref("#/components/schemas/test");
+		assertEquals(expectedSchema, translator.getReferenceSchema("test"));
+	}
+
+	@Test
+	public void testGetReferenceSchemaWithString() {
+		JsonSchema expectedSchema = new JsonSchema().setType(Type.string);
+		assertEquals(expectedSchema, translator.getReferenceSchema("java.lang.String"));
+	}
+
+	@Test
+	public void testGetReferenceSchemaWithNullId() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test.
+			translator.getReferenceSchema(null);
+		});
+		assertEquals("id is required.", exception.getMessage());
 	}
 }

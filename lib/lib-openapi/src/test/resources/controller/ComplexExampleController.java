@@ -6,6 +6,9 @@ import java.util.concurrent.ConcurrentMap;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.json.JSONObject;
+import org.sagebionetworks.repo.model.BooleanResult;
+import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
@@ -227,4 +230,81 @@ public class ComplexExampleController {
 	 */
 	@RequestMapping(value = "/complex-pet/regularexpression/{id:.+}/test", method = RequestMethod.GET)
 	public @ResponseBody String getRegularExpression(@PathVariable String id) {}
+
+	/**
+	 * Example of an endpoint that takes a string as a parameter and returns a string
+	 * @return a string
+	 */
+	@RequestMapping(value = "/complex-pet/string/{testString}", method = RequestMethod.GET)
+	public @ResponseBody String getString(@PathVariable String testString) {}
+
+	/**
+	 * Example of an endpoint that takes an integer object as a parameter and returns an integer object
+	 * @return an integer object
+	 */
+	@RequestMapping(value = "/complex-pet/integerclass/{testIntegerClass}", method = RequestMethod.GET)
+	public @ResponseBody Integer getIntegerClass(@PathVariable Integer testIntegerClass) {}
+
+	/**
+	 * Example of an endpoint that takes a boolean object as a parameter and returns a boolean object
+	 * @return a boolean object
+	 */
+	@RequestMapping(value = "/complex-pet/booleanclass/{testBooleanClass}", method = RequestMethod.GET)
+	public @ResponseBody Boolean getBooleanClass(@PathVariable Boolean testBooleanClass) {}
+
+	/**
+	 * Example of an endpoint that takes a long object as a parameter and returns a long object
+	 * @return a long object
+	 */
+	@RequestMapping(value = "/complex-pet/longclass/{testLongClass}", method = RequestMethod.GET)
+	public @ResponseBody Long getLongClass(@PathVariable Long testLongClass) {}
+
+	/**
+	 * Example of an endpoint that takes an integer primitive as a parameter and returns an integer primitive
+	 * @return an integer
+	 */
+	@RequestMapping(value = "/complex-pet/intprimitive/{testIntPrimitive}", method = RequestMethod.GET)
+	public @ResponseBody int getBooleanClass(@PathVariable int testIntPrimitive) {}
+
+	/**
+	 * Example of an endpoint that takes a boolean primitive as a parameter and returns a boolean primitive
+	 * @return a boolean
+	 */
+	@RequestMapping(value = "/complex-pet/booleanprimitive/{testBooleanPrimitive}", method = RequestMethod.GET)
+	public @ResponseBody boolean getBooleanClass(@PathVariable boolean testBooleanPrimitive) {}
+
+	/**
+	 * Example of an endpoint that takes a long primitive as a parameter and returns a long primitive
+	 * @return a boolean
+	 */
+	@RequestMapping(value = "/complex-pet/longprimitive/{testLongPrimitive}", method = RequestMethod.GET)
+	public @ResponseBody long getLongClass(@PathVariable long testLongPrimitive) {}
+
+	/**
+	 * Example of an endpoint that takes an object as a parameter and returns an object
+	 * @return an object
+	 */
+	@RequestMapping(value = "/complex-pet/objectclass/{testObject}", method = RequestMethod.GET)
+	public @ResponseBody Object getObjectClass(@PathVariable Object testObject) {}
+
+	/**
+	 * Example of an endpoint that returns a BooleanResult
+	 * @return a BooleanResult
+	 */
+	@RequestMapping(value = "/complex-pet/booleanresult", method = RequestMethod.GET)
+	public @ResponseBody BooleanResult getBooleanResult() {}
+
+	/**
+	 * Example of an endpoint that takes a JSONObject as a parameter and returns a JSONObject
+	 * @return a JSONObject
+	 */
+	@RequestMapping(value = "/complex-pet/jsonobject/{testJsonObject}", method = RequestMethod.GET)
+	public @ResponseBody JSONObject getJsonObject(@PathVariable JSONObject testJsonObject) {}
+
+	/**
+	 * Example of an endpoint that returns an ObjectSchema
+	 * @return an ObjectSchema
+	 */
+	@RequestMapping(value = "/complex-pet/objectschema", method = RequestMethod.GET)
+	public @ResponseBody ObjectSchema getObjectSchema() {}
 }

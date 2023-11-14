@@ -958,73 +958,6 @@ public class ControllerToControllerModelTranslatorTest {
 		Mockito.doReturn("WRONG_NAME").when(paramName).toString();
 		assertFalse(translator.containsRedirectParam(params));
 	}
-	
-	@Test
-	public void testPopulateSchemaMapWithBooleanWrapperClass() {
-		ObjectSchema schema = null;
-		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			schema = new ObjectSchemaImpl(adpater);
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
-		Mockito.doReturn(schema).when(translator).generateObjectSchemaForPrimitiveType(any(TypeKind.class));
-		Map<String, ObjectSchema> schemaMap = new HashMap<>();
-		// call under test
-		translator.populateSchemaMap(Boolean.class.getName(), TypeKind.DECLARED, schemaMap);
-
-		Map<String, ObjectSchema> expectedSchemaMap = new HashMap<>();
-		expectedSchemaMap.put(Boolean.class.getName(), schema);
-		assertEquals(expectedSchemaMap, schemaMap);
-
-		verify(translator).generateObjectSchemaForPrimitiveType(TypeKind.BOOLEAN);
-	}
-
-	@Test
-	public void testPopulateSchemaMapWithString() {
-		ObjectSchema schema = null;
-		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			schema = new ObjectSchemaImpl(adpater);
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
-		Mockito.doReturn(schema).when(translator).generateObjectSchemaForPrimitiveType(any(TypeKind.class));
-		Map<String, ObjectSchema> schemaMap = new HashMap<>();
-		// call under test
-		translator.populateSchemaMap(String.class.getName(), TypeKind.DECLARED, schemaMap);
-
-		Map<String, ObjectSchema> expectedSchemaMap = new HashMap<>();
-		expectedSchemaMap.put(String.class.getName(), schema);
-		assertEquals(expectedSchemaMap, schemaMap);
-
-		verify(translator).generateObjectSchemaForPrimitiveType(TypeKind.DECLARED);
-	}
-
-	@Test
-	public void testPopulateSchemaMapWithPrimitiveType() {
-
-		ObjectSchema schema = null;
-		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			schema = new ObjectSchemaImpl(adpater);
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
-		Mockito.doReturn(schema).when(translator).generateObjectSchemaForPrimitiveType(any(TypeKind.class));
-		Map<String, ObjectSchema> schemaMap = new HashMap<>();
-		// call under test
-		translator.populateSchemaMap(int.class.getName(), TypeKind.INT, schemaMap);
-
-		Map<String, ObjectSchema> expectedSchemaMap = new HashMap<>();
-		expectedSchemaMap.put(int.class.getName(), schema);
-		assertEquals(expectedSchemaMap, schemaMap);
-
-		verify(translator).generateObjectSchemaForPrimitiveType(TypeKind.INT);
-	}
 
 	@Test
 	public void testPopulateSchemaMapWithNonPrimitiveType() {
@@ -1575,84 +1508,6 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 
 	@Test
-	public void testGenerateObjectSchemaForPrimitiveTypeWithUnhandledType() {
-		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-			translator.generateObjectSchemaForPrimitiveType(TypeKind.MODULE);
-		});
-		assertEquals("Unrecognized primitive type MODULE", exception.getMessage());
-	}
-
-	@Test
-	public void testGenerateObjectSchemaForPrimitiveTypeWithStringType() {
-		ObjectSchema schema = null;
-		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			schema = new ObjectSchemaImpl(adpater);
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
-
-		schema.setType(TYPE.STRING);
-		assertEquals(schema, translator.generateObjectSchemaForPrimitiveType(TypeKind.DECLARED));
-	}
-
-	@Test
-	public void testGenerateObjectSchemaForPrimitiveTypeWithNumberType() {
-		ObjectSchema schema = null;
-		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			schema = new ObjectSchemaImpl(adpater);
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
-
-		schema.setType(TYPE.NUMBER);
-		assertEquals(schema, translator.generateObjectSchemaForPrimitiveType(TypeKind.DOUBLE));
-		assertEquals(schema, translator.generateObjectSchemaForPrimitiveType(TypeKind.LONG));
-		assertEquals(schema, translator.generateObjectSchemaForPrimitiveType(TypeKind.FLOAT));
-	}
-
-	@Test
-	public void testGenerateObjectSchemaForPrimitiveTypeWithBooleanType() {
-		ObjectSchema schema = null;
-		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			schema = new ObjectSchemaImpl(adpater);
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
-
-		schema.setType(TYPE.BOOLEAN);
-		assertEquals(schema, translator.generateObjectSchemaForPrimitiveType(TypeKind.BOOLEAN));
-	}
-
-	@Test
-	public void testGenerateObjectSchemaForPrimitiveTypeWithIntType() {
-		ObjectSchema schema = null;
-		try {
-			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
-			schema = new ObjectSchemaImpl(adpater);
-		} catch (Exception e) {
-			// this should never happen
-			throw new RuntimeException("Error creating adapter for schema");
-		}
-
-		schema.setType(TYPE.INTEGER);
-		assertEquals(schema, translator.generateObjectSchemaForPrimitiveType(TypeKind.INT));
-	}
-
-	@Test
-	public void testGenerateObjectSchemaForPrimitiveTypeWithNull() {
-		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-			translator.generateObjectSchemaForPrimitiveType(null);
-		});
-		assertEquals("type is required.", exception.getMessage());
-	}
-
-	@Test
 	public void testGetParameterLocationWithUnknownAnnotation() {
 		AnnotationMirror mockAnnoMirror = Mockito.mock(AnnotationMirror.class);
 		Mockito.doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
@@ -1919,4 +1774,65 @@ public class ControllerToControllerModelTranslatorTest {
 
 		verify(fullBody).isEmpty();
 	}
+
+	@Test
+	public void testGetJsonSchemaTypeForClassWithString() {
+		assertEquals(Type.string, translator.getJsonSchemaBasicTypeForClass("java.lang.String").get());
+	}
+
+	@Test
+	public void testGetJsonSchemaTypeForClassWithIntegerClass() {
+		assertEquals(Type.integer, translator.getJsonSchemaBasicTypeForClass("java.lang.Integer").get());
+	}
+
+	@Test
+	public void testGetJsonSchemaTypeForClassWithBooleanClass() {
+		assertEquals(Optional.of(Type._boolean), translator.getJsonSchemaBasicTypeForClass("java.lang.Boolean"));
+	}
+
+	@Test
+	public void testGetJsonSchemaTypeForClassWithLongClass() {
+		assertEquals(Optional.of(Type.number), translator.getJsonSchemaBasicTypeForClass("java.lang.Long"));
+	}
+
+	@Test
+	public void testGetJsonSchemaTypeForClassWithObjectClass() {
+		assertEquals(Optional.of(Type.object), translator.getJsonSchemaBasicTypeForClass("java.lang.Object"));
+	}
+
+	@Test
+	public void testGetJsonSchemaTypeForClassWithBooleanPrimitive() {
+		assertEquals(Optional.of(Type._boolean), translator.getJsonSchemaBasicTypeForClass("boolean"));
+	}
+
+	@Test
+	public void testGetJsonSchemaTypeForClassWithIntPrimitive() {
+		assertEquals(Optional.of(Type.integer), translator.getJsonSchemaBasicTypeForClass("int"));
+	}
+
+	@Test
+	public void testGetJsonSchemaTypeForClassWithLongPrimitive() {
+		assertEquals(Optional.of(Type.number), translator.getJsonSchemaBasicTypeForClass("long"));
+	}
+
+	@Test
+	public void testGetJsonSchemaTypeForClassWithBooleanResult() {
+		assertEquals(Optional.of(Type._boolean), translator.getJsonSchemaBasicTypeForClass("org.sagebionetworks.repo.model.BooleanResult"));
+	}
+
+	@Test
+	public void testGetJsonSchemaTypeForClassWithJsonObject() {
+		assertEquals(Optional.of(Type.object), translator.getJsonSchemaBasicTypeForClass("org.json.JSONObject"));
+	}
+
+	@Test
+	public void testGetJsonSchemaTypeForClassWithObjectSchema() {
+		assertEquals(Optional.of(Type.object), translator.getJsonSchemaBasicTypeForClass("org.sagebionetworks.schema.ObjectSchema"));
+	}
+
+	@Test
+	public void testGetJsonSchemaTypeForClassNotBasicType() {
+		assertEquals(Optional.empty(), translator.getJsonSchemaBasicTypeForClass("org.sagebionetworks.model.dog"));
+	}
+
 }

@@ -32,6 +32,8 @@ import com.sun.javadoc.ParamTag;
 import com.sun.javadoc.Parameter;
 import com.sun.javadoc.Type;
 
+import static org.sagebionetworks.repo.web.PathConstants.PATH_REGEX;
+
 public class ControllerUtils {
 	
 	public static String REQUEST_MAPPING_VALUE = RequestMapping.class.getName()+".value";
@@ -84,7 +86,7 @@ public class ControllerUtils {
 		String truncated = createTruncatedText(MAX_SHORT_DESCRIPTION_LENGTH, methodModel.getDescription());
 		methodModel.setShortDescription(truncated);
 		// remove regular expressions
-		String urlDisplay = methodModel.getUrl().replaceAll("\\:[^\\}]+", "").replace("*", "");
+		String urlDisplay = methodModel.getUrl().replaceAll(PATH_REGEX, "").replace("*", "");
 		methodModel.setUrl(urlDisplay);
 		String fullNameSuffix = urlDisplay.replaceAll("[\\{\\}]", "").replaceAll("/", ".");
 		String fullName = methodModel.getHttpType() + fullNameSuffix;
