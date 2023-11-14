@@ -228,10 +228,10 @@ public class WarehouseTestHelperImplTest {
 	}
 
 	@Test
-	public void testToIsoTimestampStringBetweenPlusAndMinusFiveSeconds() {
+	public void testToIsoTimestampStringBetweenPlusAndMinusThirtySeconds() {
 		Instant instant = Instant.from(DateTimeFormatter.ISO_DATE_TIME.parse("2022-12-31T23:59:59.605Z"));
 		assertEquals(
-				"between from_iso8601_timestamp('2022-12-31T23:59:54.605Z') and from_iso8601_timestamp('2023-01-01T00:00:04.605Z')",
+				"between from_iso8601_timestamp('2022-12-31T23:59:29.605Z') and from_iso8601_timestamp('2023-01-01T00:00:29.605Z')",
 				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(instant));
 	}
 
