@@ -90,7 +90,7 @@ public class WarehouseTestHelperImpl implements WarehouseTestHelper {
 		String queryExecutionId = athenaClient
 				.startQueryExecution(new StartQueryExecutionRequest()
 						.withQueryExecutionContext(new QueryExecutionContext()
-								.withCatalog("AwsDataCatalog").withDatabase("datawarehouse"))
+								.withCatalog("AwsDataCatalog").withDatabase("warehouse"))
 						.withQueryString(previousQueryString))
 				.getQueryExecutionId();
 
