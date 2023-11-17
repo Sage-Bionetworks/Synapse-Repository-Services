@@ -2,12 +2,19 @@ package controller;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.json.JSONObject;
+import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
+import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
+import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
@@ -307,4 +314,77 @@ public class ComplexExampleController {
 	 */
 	@RequestMapping(value = "/complex-pet/objectschema", method = RequestMethod.GET)
 	public @ResponseBody ObjectSchema getObjectSchema() {}
+
+	/**
+	 * Example of an endpoint that returns a PaginatedResult generic object type with a custom class argument
+	 *
+	 * @return a paginated result for a pug
+	 */
+	@RequestMapping(value = "/complex-pet/paginatedresultsofclass", method = RequestMethod.GET)
+	public @ResponseBody PaginatedResults<Pug> getPaginatedResultsOfPug() {
+		return new PaginatedResults<>();
+	}
+
+	/**
+	 * Example of an endpoint that takes in a ListWrapper generic type with a custom class argument as a request body and
+	 * returns a ListWrapper generic object type with a custom class argument
+	 *
+	 * @param petListWrapper a list of pets
+	 * @return a ListWrapper result for a cat
+	 */
+	@RequestMapping(value = "/complex-pet/listwrapperofclass", method = RequestMethod.GET)
+	public @ResponseBody ListWrapper<Cat> getListWrapperOfCat(
+			@RequestBody ListWrapper<Pet> petListWrapper
+	) {
+		return new ListWrapper<>();
+	}
+
+	/**
+	 * Example of an endpoint that returns a PaginatedResult generic object type with a string class argument
+	 *
+	 * @return a paginated result for a string
+	 */
+	@RequestMapping(value = "/complex-pet/paginatedresultsofstring", method = RequestMethod.GET)
+	public @ResponseBody PaginatedResults<String> getPaginatedResultsOfString() {
+		return new PaginatedResults<>();
+	}
+
+	/**
+	 * Example of an endpoint that takes in a ListWrapper generic object type with a string class argument
+	 * as a request body and returns a ListWrapper generic object type with a string class argument
+	 *
+	 * @param stringListWrapper a list of strings
+	 * @return a ListWrapper result for a string
+	 */
+	@RequestMapping(value = "/complex-pet/listwrapperofstring", method = RequestMethod.GET)
+	public @ResponseBody ListWrapper<String> getListWrapperOfString(
+			@RequestBody ListWrapper<String> stringListWrapper
+	) {
+		return new ListWrapper<>();
+	}
+
+	/**
+	 * Example of an endpoint that takes in a List generic type query parameter
+	 * and returns a List generic type with a custom class argument
+	 *
+	 * @param a list of terriers
+	 */
+	@RequestMapping(value = "/complex-pet/listofclass", method = RequestMethod.GET)
+	public @ResponseBody List<Husky> getListOfHusky(
+			@RequestParam List<Terrier> terriers
+	) {
+
+	}
+
+	/**
+	 * Example of an endpoint that takes in a List generic type query parameter and
+	 * returns a List generic type with a String argument
+	 *
+	 * @param a list of strings
+	 */
+	@RequestMapping(value = "/complex-pet/listofstring", method = RequestMethod.GET)
+	public @ResponseBody void getListOfString(
+			@RequestParam List<String> strings
+	) {
+			}
 }
