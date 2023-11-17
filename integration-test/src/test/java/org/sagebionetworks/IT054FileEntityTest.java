@@ -30,6 +30,8 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
+import org.sagebionetworks.repo.model.feature.Feature;
+import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
@@ -371,14 +373,14 @@ public class IT054FileEntityTest {
 	}
 	
 	/**
-	 * Test for PLFM-6439, which is a request to allow apostrophe in file names.
+	 * Test for PLFM-6439 and PLFM-8126 to verify that special characters in a file name are valid
 	 * @throws FileNotFoundException
 	 * @throws SynapseException
 	 * @throws IOException
 	 */
 	@Test
-	public void testApostropheInName() throws FileNotFoundException, SynapseException, IOException {
-		String name = "HasApostrophe'";
+	public void testSpecialCharactersInName() throws FileNotFoundException, SynapseException, IOException {
+		String name = "test file12345,_-.+()'";
 		String fileContents = "some data";
 		File source = File.createTempFile(name, ".txt");
 		File downloaded = File.createTempFile(name, ".txt");
@@ -397,12 +399,32 @@ public class IT054FileEntityTest {
 			fileHandleAssociation.setAssociateObjectId(file.getId());
 			fileHandleAssociation.setAssociateObjectType(FileHandleAssociateType.FileEntity);
 			fileHandleAssociation.setFileHandleId(fileHandle.getId());
-			URL url = this.synapse.getFileURL(fileHandleAssociation);
-			System.out.println(url.toString());
+
+			// Test downloading file using a CloudFront signed URL
+			URL cloudFrontUrl = this.synapse.getFileURL(fileHandleAssociation);
+			System.out.println(cloudFrontUrl.toString());
 			// download the file to a temp file using the pre-signed URL.
-			FileUtils.copyURLToFile(url, downloaded);
-			String resultContent = FileUtils.readFileToString(downloaded, StandardCharsets.UTF_8);
-			assertEquals(fileContents, resultContent);
+			FileUtils.copyURLToFile(cloudFrontUrl, downloaded);
+			String cloudFrontUrlResultContent = FileUtils.readFileToString(downloaded, StandardCharsets.UTF_8);
+			assertEquals(fileContents, cloudFrontUrlResultContent);
+
+			// Temporarily disable Synapse data from being downloaded through CloudFront. Data will instead be downloaded directly from S3.
+			FeatureStatus cloudFrontStatus = new FeatureStatus().setFeature(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT).setEnabled(false);
+			adminSynapse.setFeatureStatus(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT, cloudFrontStatus);
+
+			// Test downloading file using an S3 signed URL
+			URL s3Url = this.synapse.getFileURL(fileHandleAssociation);
+			System.out.println(s3Url.toString());
+			// download the file to a temp file using the pre-signed URL.
+			FileUtils.copyURLToFile(s3Url, downloaded);
+			String s3UrlResultContent = FileUtils.readFileToString(downloaded, StandardCharsets.UTF_8);
+			assertEquals(fileContents, s3UrlResultContent);
+
+			assertNotEquals(cloudFrontUrl.getHost(), s3Url.getHost());
+
+			// Reenable Synapse data to be downloaded through CloudFront.
+			cloudFrontStatus = new FeatureStatus().setFeature(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT).setEnabled(true);
+			adminSynapse.setFeatureStatus(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT, cloudFrontStatus);
 		}finally {
 			if(source != null) {
 				source.delete();
@@ -412,7 +434,7 @@ public class IT054FileEntityTest {
 			}
 		}
 	}
-	
+
 	/**
 	 * Test to try reproducing https://sagebionetworks.jira.com/browse/PLFM-7746:
 	 * When updating the file handle of a file entity and the MD5 didn't change, then a new version should not

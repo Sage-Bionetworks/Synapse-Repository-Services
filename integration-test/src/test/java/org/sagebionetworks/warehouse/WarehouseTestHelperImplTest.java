@@ -209,7 +209,7 @@ public class WarehouseTestHelperImplTest {
 				WarehouseTestHelperImpl.WAIT_INTERAVAL_MS);
 		verify(mockAthenaClient)
 				.startQueryExecution(new StartQueryExecutionRequest().withQueryString(query).withQueryExecutionContext(
-						new QueryExecutionContext().withCatalog("AwsDataCatalog").withDatabase("datawarehouse")));
+						new QueryExecutionContext().withCatalog("AwsDataCatalog").withDatabase("warehouse")));
 		verify(mockAthenaClient).getQueryResults(new GetQueryResultsRequest().withQueryExecutionId(executionId));
 	}
 
@@ -224,15 +224,15 @@ public class WarehouseTestHelperImplTest {
 	public void testToDateStringBetweenPlusAndMinusFiveSeconds() {
 		Instant instant = Instant.from(DateTimeFormatter.ISO_DATE_TIME.parse("2022-12-31T23:59:59.605Z"));
 		assertEquals("between date('2022-12-31') and date('2023-01-01')",
-				warehouseHelper.toDateStringBetweenPlusAndMinusFiveSeconds(instant));
+				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(instant));
 	}
 
 	@Test
-	public void testToIsoTimestampStringBetweenPlusAndMinusFiveSeconds() {
+	public void testToIsoTimestampStringBetweenPlusAndMinusThirtySeconds() {
 		Instant instant = Instant.from(DateTimeFormatter.ISO_DATE_TIME.parse("2022-12-31T23:59:59.605Z"));
 		assertEquals(
-				"between from_iso8601_timestamp('2022-12-31T23:59:54.605Z') and from_iso8601_timestamp('2023-01-01T00:00:04.605Z')",
-				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(instant));
+				"between from_iso8601_timestamp('2022-12-31T23:59:29.605Z') and from_iso8601_timestamp('2023-01-01T00:00:29.605Z')",
+				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(instant));
 	}
 
 	@Test

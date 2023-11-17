@@ -26,7 +26,7 @@ public interface WarehouseTestHelper {
 	 * @param instant
 	 * @return
 	 */
-	String toDateStringBetweenPlusAndMinusFiveSeconds(Instant instant);
+	String toDateStringBetweenPlusAndMinusThirtySeconds(Instant instant);
 
 	/**
 	 * Generate a between predicate for the given Instant. For example, given an
@@ -37,5 +37,5 @@ public interface WarehouseTestHelper {
 	 * @param instant
 	 * @return
 	 */
-	String toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(Instant instant);
+	String toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(Instant instant);
 }

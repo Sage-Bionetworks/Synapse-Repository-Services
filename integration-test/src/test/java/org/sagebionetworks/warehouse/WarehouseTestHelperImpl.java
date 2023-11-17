@@ -33,7 +33,7 @@ public class WarehouseTestHelperImpl implements WarehouseTestHelper {
 	public static final int MAX_WAIT_MS = 60_000;
 	public static final int WAIT_INTERAVAL_MS = 1000;
 	public static final String BUCKET_NAME = "dev.testdata.sagebase.org";
-	public static final int WAREHOUSE_QUERY_EXPIRATION_HOURS = 2;
+	public static final int WAREHOUSE_QUERY_EXPIRATION_HOURS = 7;
 
 	private final AmazonS3 s3Client;
 	private final AmazonAthena athenaClient;
@@ -90,7 +90,7 @@ public class WarehouseTestHelperImpl implements WarehouseTestHelper {
 		String queryExecutionId = athenaClient
 				.startQueryExecution(new StartQueryExecutionRequest()
 						.withQueryExecutionContext(new QueryExecutionContext()
-								.withCatalog("AwsDataCatalog").withDatabase("datawarehouse"))
+								.withCatalog("AwsDataCatalog").withDatabase("warehouse"))
 						.withQueryString(previousQueryString))
 				.getQueryExecutionId();
 
@@ -158,17 +158,17 @@ public class WarehouseTestHelperImpl implements WarehouseTestHelper {
 	}
 
 	@Override
-	public String toDateStringBetweenPlusAndMinusFiveSeconds(Instant instant) {
+	public String toDateStringBetweenPlusAndMinusThirtySeconds(Instant instant) {
 		return String.format("between date('%s') and date('%s')",
-				instant.minusSeconds(5).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE),
-				instant.plusSeconds(5).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE));
+				instant.minusSeconds(30).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE),
+				instant.plusSeconds(30).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE));
 	}
 
 	@Override
-	public String toIsoTimestampStringBetweenPlusAndMinusFiveSeconds(Instant instant) {
+	public String toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(Instant instant) {
 		return String.format("between from_iso8601_timestamp('%s') and from_iso8601_timestamp('%s')",
-				instant.minusSeconds(5).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME),
-				instant.plusSeconds(5).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME));
+				instant.minusSeconds(30).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME),
+				instant.plusSeconds(30).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME));
 	}
 
 }
