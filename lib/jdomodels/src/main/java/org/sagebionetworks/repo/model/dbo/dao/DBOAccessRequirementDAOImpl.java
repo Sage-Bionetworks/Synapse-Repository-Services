@@ -552,7 +552,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 	@Override
 	public List<AccessRequirement> searchAccessRequirements(List<AccessRequirementSearchSort> sort, String nameContains, List<Long> arIds, String reviewerId,
-			Long projectId, ACCESS_TYPE accessType, long limit, long offset) {
+			Long projectId, ACCESS_TYPE accessType, String concreteType, long limit, long offset) {
 		ValidateArgument.requiredNotEmpty(sort, "sort");
 		
 		String sqlQuery = "SELECT AR.*, R.*" + " FROM " + TABLE_ACCESS_REQUIREMENT
@@ -584,6 +584,11 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		if (accessType != null) {
 			filters.add("AR." + COL_ACCESS_REQUIREMENT_ACCESS_TYPE + " = ?");
 			queryParams.add(accessType.name());
+		}
+		
+		if (concreteType != null) {
+			filters.add("AR." + COL_ACCESS_REQUIREMENT_CONCRETE_TYPE + " = ?");
+			queryParams.add(concreteType);
 		}
 		
 		if (arIds != null && !arIds.isEmpty()) {

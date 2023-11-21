@@ -6,6 +6,10 @@
         	"description":"The id of the AR",
             "type": "string"
         },
+        "type": {
+        	"description": "The concrete type of the AR",
+        	"type": "string"
+        },
         "createdOn": {
         	"description":"The creation date of the AR",
 			"type": "string",
