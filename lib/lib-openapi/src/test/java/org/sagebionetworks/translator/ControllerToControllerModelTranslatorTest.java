@@ -1810,7 +1810,7 @@ public class ControllerToControllerModelTranslatorTest {
 		verify(param, times(1)).asType();
 		verify(paramType).getKind();
 		verify(translator).getParameterAnnotation(param);
-		verify(mockAnnotationMirror).getElementValues();
+		verify(mockAnnotationMirror, times(2)).getElementValues();
 	}
 
 	@Test
@@ -1892,7 +1892,7 @@ public class ControllerToControllerModelTranslatorTest {
 		verify(mockParameterType).getKind();
 		verify(translator).getParameterLocation(mockParameter);
 		verify(translator).getParameterAnnotation(mockParameter);
-		verify(mockAnnotationMirror).getElementValues();
+		verify(mockAnnotationMirror, times(2)).getElementValues();
 	}
 
 	@Test
@@ -1936,6 +1936,39 @@ public class ControllerToControllerModelTranslatorTest {
 		verify(translator).getSimpleAnnotationName(mockAnnoMirror);
 		verify(translator).getParameterAnnotation(mockVarElement);
 	}
+
+	@Test
+	public void testIsParameterRequiredTrue() {
+		Map<ExecutableElement, AnnotationValue> elementValues = new HashMap<>();
+		addAnnotationElementValues(elementValues, "required", true);
+		doReturn(elementValues).when(mockAnnotationMirror).getElementValues();
+
+		// call under test
+		assertTrue(translator.isParameterRequired(mockAnnotationMirror));
+
+		verify(mockAnnotationMirror).getElementValues();
+	}
+
+	@Test
+	public void testIsParameterRequiredFalse() {
+		Map<ExecutableElement, AnnotationValue> elementValues = new HashMap<>();
+		addAnnotationElementValues(elementValues, "required", false);
+		doReturn(elementValues).when(mockAnnotationMirror).getElementValues();
+
+		// call under test
+		assertFalse(translator.isParameterRequired(mockAnnotationMirror));
+
+		verify(mockAnnotationMirror).getElementValues();
+	}
+
+	@Test
+	public void testIsParemeterRequiredWithNullParamAnnotation() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			translator.isParameterRequired(null);
+		});
+		assertEquals("paramAnnotation is required.", exception.getMessage());
+	}
+
 
 	@Test
 	public void testGetParameterLocationWithPathVariableAnnotation() {

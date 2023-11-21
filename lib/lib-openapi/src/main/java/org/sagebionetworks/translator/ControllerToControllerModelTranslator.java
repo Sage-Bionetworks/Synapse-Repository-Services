@@ -71,8 +71,8 @@ import static org.sagebionetworks.repo.web.PathConstants.PATH_REGEX;
  *
  */
 public class ControllerToControllerModelTranslator {
-	static final Set<String> PARAMETERS_NOT_REQUIRED_TO_BE_ANNOTATED = Set.of("javax.servlet.http.HttpServletResponse",
-			"org.springframework.web.util.UriComponentsBuilder", "javax.servlet.http.HttpServletRequest");
+	static final Set<String> PARAMETERS_NOT_REQUIRED_TO_BE_TRANSLATED = Set.of("javax.servlet.http.HttpServletResponse",
+			"org.springframework.web.util.UriComponentsBuilder", "javax.servlet.http.HttpServletRequest", "org.springframework.http.HttpHeaders");
 
 	static final Map<String, Type> CLASS_TO_TYPE = Map.ofEntries(
 			Map.entry("java.lang.String", Type.string),
@@ -705,16 +705,19 @@ public class ControllerToControllerModelTranslator {
 			Map<String, String> paramToDescription, Map<String, ObjectSchema> schemaMap) {
 		for (VariableElement param : parameters) {
 			TypeMirror parameterType = param.asType();
-			if (PARAMETERS_NOT_REQUIRED_TO_BE_ANNOTATED.contains(parameterType.toString())) {
+			if (PARAMETERS_NOT_REQUIRED_TO_BE_TRANSLATED.contains(parameterType.toString())) {
 				continue;
 			}
-			String simpleAnnotationName = getSimpleAnnotationName(getParameterAnnotation(param));
+			AnnotationMirror paramAnnotation = getParameterAnnotation(param);
+			String simpleAnnotationName = getSimpleAnnotationName(paramAnnotation);
 			if (RequestBody.class.getSimpleName().equals(simpleAnnotationName)) {
 				String paramName = param.getSimpleName().toString();
 				String paramDescription = paramToDescription.get(paramName);
 				String paramTypeSchemaId = getSchemaIdForType(parameterType);
 				populateSchemaMap(paramTypeSchemaId, parameterType, schemaMap);
-				return Optional.of(new RequestBodyModel().withDescription(paramDescription).withRequired(true)
+				boolean paramIsRequired = isParameterRequired(paramAnnotation);
+
+				return Optional.of(new RequestBodyModel().withDescription(paramDescription).withRequired(paramIsRequired)
 						.withId(paramTypeSchemaId));
 			}
 		}
@@ -735,7 +738,7 @@ public class ControllerToControllerModelTranslator {
 		List<ParameterModel> parameters = new ArrayList<>();
 		for (VariableElement param : params) {
 			TypeMirror parameterType = param.asType();
-			if (PARAMETERS_NOT_REQUIRED_TO_BE_ANNOTATED.contains(parameterType.toString())) {
+			if (PARAMETERS_NOT_REQUIRED_TO_BE_TRANSLATED.contains(parameterType.toString())) {
 				continue;
 			}
 			ParameterLocation paramLocation = getParameterLocation(param);
@@ -753,14 +756,34 @@ public class ControllerToControllerModelTranslator {
 				}
 			}
 
+			boolean paramIsRequired = isParameterRequired(paramAnnotation);
 			String paramTypeSchemaId = getSchemaIdForType(parameterType);
 			populateSchemaMap(paramTypeSchemaId, parameterType, schemaMap);
 
 			String paramDescription = parameterToDescription.get(paramName);
 			parameters.add(new ParameterModel().withDescription(paramDescription).withIn(paramLocation)
-					.withName(paramName).withRequired(true).withId(paramTypeSchemaId));
+					.withName(paramName).withRequired(paramIsRequired).withId(paramTypeSchemaId));
 		}
 		return parameters;
+	}
+
+	/**
+	 * Get if a parameter is required
+	 *
+	 * @param paramAnnotation - the parameter being looked at
+	 * @return if the parameter is required
+	 */
+	boolean isParameterRequired(AnnotationMirror paramAnnotation) {
+		ValidateArgument.required(paramAnnotation, "paramAnnotation");
+
+		boolean paramIsRequired = true;
+		for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> elements: paramAnnotation.getElementValues().entrySet()) {
+			if ("required".equals(elements.getKey().getSimpleName().toString())) {
+				paramIsRequired = (Boolean) elements.getValue().getValue();
+			}
+		}
+
+		return paramIsRequired;
 	}
 
 	/**

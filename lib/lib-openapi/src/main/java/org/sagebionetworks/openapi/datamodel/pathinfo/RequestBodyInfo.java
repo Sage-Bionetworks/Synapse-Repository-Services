@@ -77,10 +77,8 @@ public class RequestBodyInfo implements JSONEntity {
 			content.put(contentType, schema.writeToJSONObject(writeTo.createNew()));
 		}
 		writeTo.put("content", content);
-		
-		if (required) {
-			writeTo.put("required", required);
-		}
+		writeTo.put("required", required);
+
 		return writeTo;
 	}
 }

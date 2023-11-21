@@ -775,4 +775,44 @@ public class ControllerModelDocletTest {
 		assertEquals("array", schemaObj.getString("type"));
 		assertEquals("string", itemsObj.getString("type"));
 	}
+
+	@Test
+	public void testHttpHeadersClassNotTranslated() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/httpheaders");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+
+		assertEquals(0, paramsObj.length());
+	}
+
+	@Test
+	public void testRequiredFalse() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/requiredfalse");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+		JSONObject paramObj = (JSONObject) paramsObj.get(0);
+
+		assertEquals("false", paramObj.getString("required"));
+
+		JSONObject requestBodyObj = getObj.getJSONObject("requestBody");
+
+		assertEquals("false", requestBodyObj.getString("required"));
+	}
+
+	@Test
+	public void testRequiredTrue() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/requiredtrue");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+		JSONObject paramObj = (JSONObject) paramsObj.get(0);
+
+		assertEquals("true", paramObj.getString("required"));
+
+		JSONObject requestBodyObj = getObj.getJSONObject("requestBody");
+
+		assertEquals("true", requestBodyObj.getString("required"));
+	}
 }

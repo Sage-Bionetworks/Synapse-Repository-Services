@@ -12,6 +12,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -387,4 +389,40 @@ public class ComplexExampleController {
 			@RequestParam List<String> strings
 	) {
 			}
+
+	/**
+	 * Example of an endpoint that takes in an HttpHeaders object
+	 *
+	 * @param headers http headers
+	 */
+	@RequestMapping(value = "/complex-pet/httpheaders", method = RequestMethod.GET)
+	public void getHttpHeaders(
+			@RequestHeader HttpHeaders headers
+	) { }
+
+	/**
+	 * Example of an endpoint that has a request body and request parameter that are both not required
+	 *
+	 * @param a Dog
+	 * @param a Cat
+	 */
+	@RequestMapping(value = "/complex-pet/requiredfalse", method = RequestMethod.GET)
+	public @ResponseBody void getNotRequired(
+			@RequestBody(required = false) Dog testRequestBodyFalse,
+			@RequestParam(required = false) Cat testRequestParamFalse
+	) {
+	}
+
+	/**
+	 * Example of an endpoint that has a request body and request parameter that are both required
+	 *
+	 * @param a Pet
+	 * @param a Owner
+	 */
+	@RequestMapping(value = "/complex-pet/requiredtrue", method = RequestMethod.GET)
+	public @ResponseBody void getRequired(
+			@RequestBody(required = true) Pet testRequestBodyTrue,
+			@RequestParam(required = true) Owner testRequestParamTrue
+	) {
+	}
 }
