@@ -590,6 +590,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		NextPageToken pageToken = new NextPageToken(request.getNextPageToken());
 		
 		String nameContains = request.getNameContains();
+		List<Long> arIdsFilter = request.getAccessRequirementIds();
 		String reviewerId = request.getReviewerId();
 		Long projectId = request.getRelatedProjectId() == null ? null : KeyFactory.stringToKey(request.getRelatedProjectId());
 		ACCESS_TYPE accessType = request.getAccessType();
@@ -597,7 +598,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		long limit = pageToken.getLimitForQuery();
 		long offset = pageToken.getOffset();
 		
-		List<AccessRequirement> results = accessRequirementDAO.searchAccessRequirements(sort, nameContains, reviewerId, projectId, accessType, limit, offset);
+		List<AccessRequirement> results = accessRequirementDAO.searchAccessRequirements(sort, nameContains, arIdsFilter, reviewerId, projectId, accessType, limit, offset);
 		
 		String nextPageToken = pageToken.getNextPageTokenForCurrentResults(results);
 				

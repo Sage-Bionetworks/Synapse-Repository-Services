@@ -12,7 +12,7 @@
                 },
                 {
                     "name": "NAME",
-                    "description": "Expiration date field"
+                    "description": "Access requirement name field"
                 }
             ]
 		},

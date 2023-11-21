@@ -25,7 +25,7 @@
         	"type": "string"
         },
         "relatedProjectIds":{
-            "description": "List of project ids which the AR is direclty or inderectly applied to",
+            "description": "List of project ids which the AR is direclty or indirectly applied to",
             "type": "array",
             "items": {
               "type": "string"

@@ -799,6 +799,7 @@ public class DBOAccessRequirementDAOImplTest {
 		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
 		
 		String nameSubs = null;
+		List<Long> arIds = null;
 		String reviewerId = null;
 		Long projectId = null;
 		ACCESS_TYPE accessType = null;
@@ -808,7 +809,7 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		List<AccessRequirement> expected = List.of(arOne, arTwo);
 		
-		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, arIds, reviewerId, projectId, accessType, limit, offset);
 		result = result.stream().filter(a -> !AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.equals(a.getId()))
 				.collect(Collectors.toList());
 		assertEquals(expected, result);
@@ -825,6 +826,7 @@ public class DBOAccessRequirementDAOImplTest {
 		);
 		
 		String nameSubs = null;
+		List<Long> arIds = null;
 		String reviewerId = null;
 		Long projectId = null;
 		ACCESS_TYPE accessType = null;
@@ -834,7 +836,7 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		List<AccessRequirement> expected = List.of(arTwo, arOne);
 		
-		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, arIds, reviewerId, projectId, accessType, limit, offset);
 		result = result.stream().filter(a -> !AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.equals(a.getId()))
 				.collect(Collectors.toList());
 		assertEquals(expected, result);
@@ -848,6 +850,7 @@ public class DBOAccessRequirementDAOImplTest {
 		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
 		
 		String nameSubs = null;
+		List<Long> arIds = null;
 		String reviewerId = null;
 		Long projectId = null;
 		ACCESS_TYPE accessType = null;
@@ -857,7 +860,7 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		List<AccessRequirement> expected = List.of(arOne);
 		
-		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, arIds, reviewerId, projectId, accessType, limit, offset);
 		
 		assertEquals(expected, result);
 		
@@ -866,7 +869,7 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		expected = List.of(arTwo);
 		
-		result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, arIds, reviewerId, projectId, accessType, limit, offset);
 		result = result.stream().filter(a -> !AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.equals(a.getId()))
 				.collect(Collectors.toList());
 		assertEquals(expected, result);
@@ -880,6 +883,7 @@ public class DBOAccessRequirementDAOImplTest {
 		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
 		
 		String nameSubs = "one";
+		List<Long> arIds = null;
 		String reviewerId = null;
 		Long projectId = null;
 		ACCESS_TYPE accessType = null;
@@ -889,7 +893,7 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		List<AccessRequirement> expected = List.of(arOne);
 		
-		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, arIds, reviewerId, projectId, accessType, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -902,6 +906,7 @@ public class DBOAccessRequirementDAOImplTest {
 		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
 		
 		String nameSubs = null;
+		List<Long> arIds = null;
 		String reviewerId = null;
 		Long projectId = null;
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
@@ -911,7 +916,7 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		List<AccessRequirement> expected = List.of(arTwo);
 		
-		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, arIds, reviewerId, projectId, accessType, limit, offset);
 		result = result.stream().filter(a -> !AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.equals(a.getId()))
 				.collect(Collectors.toList());
 		assertEquals(expected, result);
@@ -927,6 +932,7 @@ public class DBOAccessRequirementDAOImplTest {
 		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
 		
 		String nameSubs = null;
+		List<Long> arIds = null;
 		String reviewerId = individualGroup.getId();
 		Long projectId = null;
 		ACCESS_TYPE accessType = null;
@@ -936,7 +942,7 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		List<AccessRequirement> expected = List.of(arTwo);
 		
-		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, arIds, reviewerId, projectId, accessType, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -964,6 +970,7 @@ public class DBOAccessRequirementDAOImplTest {
 		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
 		
 		String nameSubs = null;
+		List<Long> arIds = null;
 		String reviewerId = null;
 		Long projectId = projectOneId;
 		ACCESS_TYPE accessType = null;
@@ -973,7 +980,7 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		List<AccessRequirement> expected = List.of(arOne, arTwo);
 		
-		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, arIds, reviewerId, projectId, accessType, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -1003,6 +1010,7 @@ public class DBOAccessRequirementDAOImplTest {
 		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
 		
 		String nameSubs = null;
+		List<Long> arIds = null;
 		String reviewerId = individualGroup.getId();
 		Long projectId = projectTwoId;
 		ACCESS_TYPE accessType = null;
@@ -1012,7 +1020,31 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		List<AccessRequirement> expected = List.of(arTwo);
 		
-		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, arIds, reviewerId, projectId, accessType, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAccessRequirementsWithIds() {
+		TermsOfUseAccessRequirement arOne = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo1"));
+		TermsOfUseAccessRequirement arTwo = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo2"));
+		TermsOfUseAccessRequirement arThree = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo3"));
+		
+		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
+		
+		String nameSubs = null;
+		List<Long> arIds = List.of(arTwo.getId(), arThree.getId());
+		String reviewerId = null;
+		Long projectId = null;
+		ACCESS_TYPE accessType = null;
+		
+		long limit = 10;
+		long offset = 0;
+		
+		List<AccessRequirement> expected = List.of(arTwo, arThree);
+		
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, arIds, reviewerId, projectId, accessType, limit, offset);
 		
 		assertEquals(expected, result);
 	}
