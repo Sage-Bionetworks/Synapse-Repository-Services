@@ -57,7 +57,7 @@ public class RequestBodyInfoTest {
 
 		// call under test
 		info.writeToJSONObject(adapter);
-		Mockito.verify(adapter, Mockito.times(0)).put(eq("required"), anyBoolean());
+		Mockito.verify(adapter).put(eq("required"), eq(false));
 	}
 	
 	@Test
