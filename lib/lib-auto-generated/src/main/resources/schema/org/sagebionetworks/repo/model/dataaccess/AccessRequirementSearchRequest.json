@@ -6,6 +6,13 @@
             "description":"Optional substring used to filter Access Requirements by name",
             "type":"string"
         },
+        "ids": {
+        	"description":"Optional list of ids used to filter access requirements with specific ids.",
+        	"type": "array",
+        	"items": {
+        		"type": "integer"
+        	}
+        },
         "relatedProjectId": {
             "description":"Optional id used to filter Access Requirements to retrieve only those that have been applied within a particular project.",
             "type":"string"
@@ -17,6 +24,10 @@
         "accessType": {
         	"description":"Optional filter by type of access",
         	"$ref": "org.sagebionetworks.repo.model.ACCESS_TYPE"
+        },
+        "type": {
+        	"description": "Optional filter by the access requirement fully qualified concrete type (e.g. org.sagebionetworks.repo.model.ManagedACTAccessRequirement)",
+        	"type":"string"
         },
         "sort": {
         	"type": "array",

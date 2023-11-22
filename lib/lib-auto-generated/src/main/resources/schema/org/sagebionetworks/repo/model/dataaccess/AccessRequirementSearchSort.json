@@ -12,7 +12,11 @@
                 },
                 {
                     "name": "NAME",
-                    "description": "Expiration date field"
+                    "description": "Access requirement name field"
+                },
+                {
+                	"name": "CONCRETE_TYPE",
+                	"description": "Access requirement concrete type field"
                 }
             ]
 		},
