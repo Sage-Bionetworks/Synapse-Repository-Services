@@ -1860,7 +1860,7 @@ public class AccessRequirementManagerImplUnitTest {
 			new ManagedACTAccessRequirement().setId(2L).setName("two")
 		);
 		
-		when(accessRequirementDAO.searchAccessRequirements(any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(arList);
+		when(accessRequirementDAO.searchAccessRequirements(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(arList);
 		when(accessRequirementDAO.getAccessRequirementProjectsMap(any())).thenReturn(Map.of(
 			1L, List.of(1L, 2L),
 			2L, List.of(1L)
@@ -1871,6 +1871,7 @@ public class AccessRequirementManagerImplUnitTest {
 		));
 		
 		String nameSubs = null;
+		List<Long> arIds = null;
 		String reviewerId = null;
 		String projectId = null;
 		ACCESS_TYPE accessType = null;
@@ -1878,6 +1879,7 @@ public class AccessRequirementManagerImplUnitTest {
 				
 		AccessRequirementSearchRequest request = new AccessRequirementSearchRequest()
 			.setNameContains(nameSubs)
+			.setAccessRequirementIds(arIds)
 			.setReviewerId(reviewerId)
 			.setRelatedProjectId(projectId)
 			.setAccessType(accessType)
@@ -1893,7 +1895,7 @@ public class AccessRequirementManagerImplUnitTest {
 		
 		assertEquals(expected, result);
 		
-		verify(accessRequirementDAO).searchAccessRequirements(List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.CREATED_ON)), projectId, reviewerId, null, accessType, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
+		verify(accessRequirementDAO).searchAccessRequirements(List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.CREATED_ON)), nameSubs, arIds, reviewerId, null, accessType, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
 		verify(accessRequirementDAO).getAccessRequirementProjectsMap(Set.of(1L, 2L));
 		verify(mockDaAuthManager).getAccessRequirementReviewers(Set.of(1L, 2L));
 		
@@ -1907,7 +1909,7 @@ public class AccessRequirementManagerImplUnitTest {
 			new ManagedACTAccessRequirement().setId(2L).setName("two")
 		);
 		
-		when(accessRequirementDAO.searchAccessRequirements(any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(arList);
+		when(accessRequirementDAO.searchAccessRequirements(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(arList);
 		when(accessRequirementDAO.getAccessRequirementProjectsMap(any())).thenReturn(Map.of(
 			1L, List.of(1L, 2L),
 			2L, List.of(1L)
@@ -1918,6 +1920,7 @@ public class AccessRequirementManagerImplUnitTest {
 		));
 		
 		String nameSubs = "name";
+		List<Long> arIds = List.of(1L, 2L);
 		String reviewerId = "2";
 		String projectId = "syn3";
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
@@ -1925,6 +1928,7 @@ public class AccessRequirementManagerImplUnitTest {
 				
 		AccessRequirementSearchRequest request = new AccessRequirementSearchRequest()
 			.setNameContains(nameSubs)
+			.setAccessRequirementIds(arIds)
 			.setReviewerId(reviewerId)
 			.setRelatedProjectId(projectId)
 			.setAccessType(accessType)
@@ -1940,7 +1944,7 @@ public class AccessRequirementManagerImplUnitTest {
 		
 		assertEquals(expected, result);
 		
-		verify(accessRequirementDAO).searchAccessRequirements(sort, nameSubs, reviewerId, 3L, accessType, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
+		verify(accessRequirementDAO).searchAccessRequirements(sort, nameSubs, arIds, reviewerId, 3L, accessType, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
 		verify(accessRequirementDAO).getAccessRequirementProjectsMap(Set.of(1L, 2L));
 		verify(mockDaAuthManager).getAccessRequirementReviewers(Set.of(1L, 2L));
 		
@@ -1955,7 +1959,7 @@ public class AccessRequirementManagerImplUnitTest {
 				new ManagedACTAccessRequirement().setId(3L).setName("three")
 		));
 		
-		when(accessRequirementDAO.searchAccessRequirements(any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(arList);
+		when(accessRequirementDAO.searchAccessRequirements(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(arList);
 		when(accessRequirementDAO.getAccessRequirementProjectsMap(any())).thenReturn(Map.of(
 			1L, List.of(1L, 2L),
 			2L, List.of(1L)
@@ -1966,6 +1970,7 @@ public class AccessRequirementManagerImplUnitTest {
 		));
 		
 		String nameSubs = null;
+		List<Long> arIds = null;
 		String reviewerId = null;
 		String projectId = null;
 		ACCESS_TYPE accessType = null;
@@ -1973,6 +1978,7 @@ public class AccessRequirementManagerImplUnitTest {
 				
 		AccessRequirementSearchRequest request = new AccessRequirementSearchRequest()
 			.setNameContains(nameSubs)
+			.setAccessRequirementIds(arIds)
 			.setReviewerId(reviewerId)
 			.setRelatedProjectId(projectId)
 			.setAccessType(accessType)
@@ -1989,14 +1995,14 @@ public class AccessRequirementManagerImplUnitTest {
 		
 		assertEquals(expected, result);
 		
-		verify(accessRequirementDAO).searchAccessRequirements(List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.CREATED_ON)), projectId, reviewerId, null, accessType, 3, 0);
+		verify(accessRequirementDAO).searchAccessRequirements(List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.CREATED_ON)), nameSubs, arIds, reviewerId, null, accessType, 3, 0);
 		verify(accessRequirementDAO).getAccessRequirementProjectsMap(Set.of(1L, 2L));
 		verify(mockDaAuthManager).getAccessRequirementReviewers(Set.of(1L, 2L));
 		
 	}
 	
 	@Test
-	public void testSearchAccessRequirementsWithnoRequest() {
+	public void testSearchAccessRequirementsWithNoRequest() {
 		
 		String result = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
