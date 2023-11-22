@@ -1880,7 +1880,7 @@ public class AccessRequirementManagerImplUnitTest {
 				
 		AccessRequirementSearchRequest request = new AccessRequirementSearchRequest()
 			.setNameContains(nameSubs)
-			.setAccessRequirementIds(arIds)
+			.setIds(arIds)
 			.setReviewerId(reviewerId)
 			.setRelatedProjectId(projectId)
 			.setAccessType(accessType)
@@ -1931,7 +1931,7 @@ public class AccessRequirementManagerImplUnitTest {
 				
 		AccessRequirementSearchRequest request = new AccessRequirementSearchRequest()
 			.setNameContains(nameSubs)
-			.setAccessRequirementIds(arIds)
+			.setIds(arIds)
 			.setReviewerId(reviewerId)
 			.setRelatedProjectId(projectId)
 			.setAccessType(accessType)
@@ -1983,7 +1983,7 @@ public class AccessRequirementManagerImplUnitTest {
 				
 		AccessRequirementSearchRequest request = new AccessRequirementSearchRequest()
 			.setNameContains(nameSubs)
-			.setAccessRequirementIds(arIds)
+			.setIds(arIds)
 			.setReviewerId(reviewerId)
 			.setRelatedProjectId(projectId)
 			.setAccessType(accessType)

@@ -590,7 +590,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		NextPageToken pageToken = new NextPageToken(request.getNextPageToken());
 		
 		String nameContains = request.getNameContains();
-		List<Long> arIdsFilter = request.getAccessRequirementIds();
+		List<Long> arIdsFilter = request.getIds();
 		String reviewerId = request.getReviewerId();
 		Long projectId = request.getRelatedProjectId() == null ? null : KeyFactory.stringToKey(request.getRelatedProjectId());
 		ACCESS_TYPE accessType = request.getAccessType();
