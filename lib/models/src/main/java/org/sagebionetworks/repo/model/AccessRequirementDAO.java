@@ -170,7 +170,7 @@ public interface AccessRequirementDAO {
 	 * @return
 	 */
 	List<AccessRequirement> searchAccessRequirements(List<AccessRequirementSearchSort> sort, String nameContains, List<Long> arIds, String reviewerId,
-			Long projectId, ACCESS_TYPE accessType, long limit, long offset);
+			Long projectId, ACCESS_TYPE accessType, String concreteType, long limit, long offset);
 	
 	
 	/**

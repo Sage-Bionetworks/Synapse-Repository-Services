@@ -25,6 +25,10 @@
         	"description":"Optional filter by type of access",
         	"$ref": "org.sagebionetworks.repo.model.ACCESS_TYPE"
         },
+        "type": {
+        	"description": "Optional filter by the access requirement fully qualified concrete type (e.g. org.sagebionetworks.repo.model.ManagedACTAccessRequirement)",
+        	"type":"string"
+        },
         "sort": {
         	"type": "array",
         	"items": {

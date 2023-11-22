@@ -594,11 +594,14 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		String reviewerId = request.getReviewerId();
 		Long projectId = request.getRelatedProjectId() == null ? null : KeyFactory.stringToKey(request.getRelatedProjectId());
 		ACCESS_TYPE accessType = request.getAccessType();
+		String concreteType = request.getType();
+		
 		List<AccessRequirementSearchSort> sort = request.getSort() == null ? List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.CREATED_ON)) : request.getSort();
+		
 		long limit = pageToken.getLimitForQuery();
 		long offset = pageToken.getOffset();
 		
-		List<AccessRequirement> results = accessRequirementDAO.searchAccessRequirements(sort, nameContains, arIdsFilter, reviewerId, projectId, accessType, limit, offset);
+		List<AccessRequirement> results = accessRequirementDAO.searchAccessRequirements(sort, nameContains, arIdsFilter, reviewerId, projectId, accessType, concreteType, limit, offset);
 		
 		String nextPageToken = pageToken.getNextPageTokenForCurrentResults(results);
 				
@@ -610,6 +613,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		List<AccessRequirementSearchResult> mappedResults = results.stream().map( ar -> 
 			new AccessRequirementSearchResult()
 				.setId(ar.getId().toString())
+				.setType(ar.getConcreteType())
 				.setCreatedOn(ar.getCreatedOn())
 				.setModifiedOn(ar.getModifiedOn())
 				.setName(ar.getName())
