@@ -6,7 +6,7 @@
             "description":"Optional substring used to filter Access Requirements by name",
             "type":"string"
         },
-        "accessRequirementIds": {
+        "ids": {
         	"description":"Optional list of ids used to filter access requirements with specific ids.",
         	"type": "array",
         	"items": {
