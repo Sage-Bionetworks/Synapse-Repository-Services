@@ -9,6 +9,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.inOrder;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
@@ -60,6 +64,7 @@ import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -91,6 +96,12 @@ public class ControllerToControllerModelTranslatorTest {
 	@Mock
 	TypeMirror mockParameterType;
 	@Mock
+	TypeMirror mockGenericType;
+	@Mock
+	DeclaredType mockGenericDeclaredType;
+	@Mock
+	TypeElement mockTypeElement;
+	@Mock
 	AnnotationMirror mockAnnotationMirror;
 
 	private ControllerToControllerModelTranslator translator;
@@ -111,7 +122,7 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@BeforeEach
 	private void setUp() {
-		this.translator = Mockito.spy(new ControllerToControllerModelTranslator());
+		this.translator = spy(new ControllerToControllerModelTranslator());
 	}
 
 	private List<ParameterModel> getExpectedParameters() {
@@ -152,53 +163,53 @@ public class ControllerToControllerModelTranslatorTest {
 
 	private void addAnnotationElementValues(Map<ExecutableElement, AnnotationValue> elementValues, String keyName,
 			Object value) {
-		ExecutableElement key = Mockito.mock(ExecutableElement.class);
-		Name simpleName = Mockito.mock(Name.class);
+		ExecutableElement key = mock(ExecutableElement.class);
+		Name simpleName = mock(Name.class);
 		when(key.getSimpleName()).thenReturn(simpleName);
 		when(simpleName.toString()).thenReturn(keyName);
 
-		AnnotationValue annotationValue = Mockito.mock(AnnotationValue.class);
+		AnnotationValue annotationValue = mock(AnnotationValue.class);
 		when(annotationValue.getValue()).thenReturn(value);
 
 		elementValues.put(key, annotationValue);
 	}
 
 	private ParamTree getParamTree(String parameterName, String paramDescription) {
-		ParamTree param = Mockito.mock(ParamTree.class);
+		ParamTree param = mock(ParamTree.class);
 		when(param.getKind()).thenReturn(DocTree.Kind.PARAM);
 
-		IdentifierTree paramName = Mockito.mock(IdentifierTree.class);
+		IdentifierTree paramName = mock(IdentifierTree.class);
 		when(paramName.toString()).thenReturn(parameterName);
 		when(param.getName()).thenReturn(paramName);
-		List<? extends DocTree> description = Mockito.mock(List.class);
+		List<? extends DocTree> description = mock(List.class);
 		when(description.isEmpty()).thenReturn(false);
 		when(description.toString()).thenReturn(paramDescription);
-		Mockito.doReturn(description).when(param).getDescription();
+		doReturn(description).when(param).getDescription();
 
 		return param;
 	}
 
 	@Test
 	public void testExtractControllerModels() {
-		DocletEnvironment env = Mockito.mock(DocletEnvironment.class);
-		TypeElement element1 = Mockito.mock(TypeElement.class);
-		Mockito.doReturn(ElementKind.CLASS).when(element1).getKind();
-		TypeElement element2 = Mockito.mock(TypeElement.class);
-		Mockito.doReturn(ElementKind.CLASS).when(element2).getKind();
+		DocletEnvironment env = mock(DocletEnvironment.class);
+		TypeElement element1 = mock(TypeElement.class);
+		doReturn(ElementKind.CLASS).when(element1).getKind();
+		TypeElement element2 = mock(TypeElement.class);
+		doReturn(ElementKind.CLASS).when(element2).getKind();
 		Set<? extends Element> includedElements = new LinkedHashSet<>(Arrays.asList(element1, element2));
-		Mockito.doReturn(includedElements).when(env).getIncludedElements();
-		Mockito.doReturn(new ArrayList<>(includedElements)).when(translator).getControllers(any());
+		doReturn(includedElements).when(env).getIncludedElements();
+		doReturn(new ArrayList<>(includedElements)).when(translator).getControllers(any());
 
-		DocTrees docTrees = Mockito.mock(DocTrees.class);
-		Mockito.doReturn(docTrees).when(env).getDocTrees();
+		DocTrees docTrees = mock(DocTrees.class);
+		doReturn(docTrees).when(env).getDocTrees();
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
 
 		ControllerModel controller1 = new ControllerModel().withDescription("CONTROLLER_1");
 		ControllerModel controller2 = new ControllerModel().withDescription("CONTROLLER_2");
-		Mockito.doReturn(controller1, controller2).when(translator).translate(any(TypeElement.class),
+		doReturn(controller1, controller2).when(translator).translate(any(TypeElement.class),
 				any(DocTrees.class), any(Map.class), any());
 
-		Reporter reporter = Mockito.mock(Reporter.class);
+		Reporter reporter = mock(Reporter.class);
 		assertEquals(new ArrayList<>(Arrays.asList(controller1, controller2)),
 				translator.extractControllerModels(env, schemaMap, reporter));
 
@@ -210,33 +221,33 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testExtractControllerModelsWithNoClassElements() {
-		DocletEnvironment env = Mockito.mock(DocletEnvironment.class);
-		TypeElement element1 = Mockito.mock(TypeElement.class);
-		Mockito.doReturn(ElementKind.INTERFACE).when(element1).getKind();
-		TypeElement element2 = Mockito.mock(TypeElement.class);
-		Mockito.doReturn(ElementKind.INTERFACE).when(element2).getKind();
-		Mockito.doReturn(new HashSet<>(Arrays.asList(element1, element2))).when(env).getIncludedElements();
+		DocletEnvironment env = mock(DocletEnvironment.class);
+		TypeElement element1 = mock(TypeElement.class);
+		doReturn(ElementKind.INTERFACE).when(element1).getKind();
+		TypeElement element2 = mock(TypeElement.class);
+		doReturn(ElementKind.INTERFACE).when(element2).getKind();
+		doReturn(new HashSet<>(Arrays.asList(element1, element2))).when(env).getIncludedElements();
 
-		Reporter reporter = Mockito.mock(Reporter.class);
+		Reporter reporter = mock(Reporter.class);
 		assertEquals(new ArrayList<>(), translator.extractControllerModels(env, new HashMap<>(), reporter));
 	}
 
 	@Test
 	public void testExtractControllersModelsWithEmptyIncludedElements() {
-		DocletEnvironment env = Mockito.mock(DocletEnvironment.class);
-		Mockito.doReturn(new HashSet<>()).when(env).getIncludedElements();
+		DocletEnvironment env = mock(DocletEnvironment.class);
+		doReturn(new HashSet<>()).when(env).getIncludedElements();
 
-		Reporter reporter = Mockito.mock(Reporter.class);
+		Reporter reporter = mock(Reporter.class);
 		assertEquals(new ArrayList<>(), translator.extractControllerModels(env, new HashMap<>(), reporter));
 	}
 
 	@Test
 	public void testGetControllers() {
-		TypeElement element1 = Mockito.mock(TypeElement.class);
-		TypeElement element2 = Mockito.mock(TypeElement.class);
+		TypeElement element1 = mock(TypeElement.class);
+		TypeElement element2 = mock(TypeElement.class);
 		Set<TypeElement> files = new LinkedHashSet<>(Arrays.asList(element1, element2));
 
-		Mockito.doReturn(true, false).when(translator).isController(any());
+		doReturn(true, false).when(translator).isController(any());
 
 		// call under test
 		assertEquals(new ArrayList<>(Arrays.asList(element1)), translator.getControllers(files));
@@ -248,14 +259,14 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testIsControllerWithControllerElement() {
-		TypeElement file = Mockito.mock(TypeElement.class);
-		Mockito.doReturn(ElementKind.CLASS).when(file).getKind();
+		TypeElement file = mock(TypeElement.class);
+		doReturn(ElementKind.CLASS).when(file).getKind();
 
-		AnnotationMirror annotation1 = Mockito.mock(AnnotationMirror.class);
-		AnnotationMirror annotation2 = Mockito.mock(AnnotationMirror.class);
-		Mockito.doReturn(new ArrayList<>(Arrays.asList(annotation1, annotation2))).when(file).getAnnotationMirrors();
+		AnnotationMirror annotation1 = mock(AnnotationMirror.class);
+		AnnotationMirror annotation2 = mock(AnnotationMirror.class);
+		doReturn(new ArrayList<>(Arrays.asList(annotation1, annotation2))).when(file).getAnnotationMirrors();
 
-		Mockito.doReturn("ANNOTATION_NAME", ControllerInfo.class.getSimpleName()).when(translator)
+		doReturn("ANNOTATION_NAME", ControllerInfo.class.getSimpleName()).when(translator)
 				.getSimpleAnnotationName(any());
 
 		// call under test
@@ -268,14 +279,14 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testIsControllerWithNonControllerElement() {
-		TypeElement file = Mockito.mock(TypeElement.class);
-		Mockito.doReturn(ElementKind.CLASS).when(file).getKind();
+		TypeElement file = mock(TypeElement.class);
+		doReturn(ElementKind.CLASS).when(file).getKind();
 
-		AnnotationMirror annotation1 = Mockito.mock(AnnotationMirror.class);
-		AnnotationMirror annotation2 = Mockito.mock(AnnotationMirror.class);
-		Mockito.doReturn(new ArrayList<>(Arrays.asList(annotation1, annotation2))).when(file).getAnnotationMirrors();
+		AnnotationMirror annotation1 = mock(AnnotationMirror.class);
+		AnnotationMirror annotation2 = mock(AnnotationMirror.class);
+		doReturn(new ArrayList<>(Arrays.asList(annotation1, annotation2))).when(file).getAnnotationMirrors();
 
-		Mockito.doReturn("ANNOTATION_NAME_1", "ANNOTATION_NAME_2").when(translator).getSimpleAnnotationName(any());
+		doReturn("ANNOTATION_NAME_1", "ANNOTATION_NAME_2").when(translator).getSimpleAnnotationName(any());
 
 		// call under test
 		assertFalse(translator.isController(file));
@@ -298,25 +309,25 @@ public class ControllerToControllerModelTranslatorTest {
 		ControllerModel expectedControllerModel = new ControllerModel().withDisplayName(CONTROLLER_NAME)
 				.withMethods(getExpectedMethods()).withPath(CONTROLLER_PATH).withDescription(CONTROLLER_DESCRIPTION);
 
-		TypeElement controller = Mockito.mock(TypeElement.class);
+		TypeElement controller = mock(TypeElement.class);
 		List<Element> elements = new ArrayList<>();
-		Mockito.doReturn(elements).when(controller).getEnclosedElements();
+		doReturn(elements).when(controller).getEnclosedElements();
 		List<AnnotationMirror> annoMirrors = new ArrayList<>();
-		Mockito.doReturn(annoMirrors).when(controller).getAnnotationMirrors();
-		Mockito.doReturn(getExpectedMethods()).when(translator).getMethods(any(List.class), any(DocTrees.class),
+		doReturn(annoMirrors).when(controller).getAnnotationMirrors();
+		doReturn(getExpectedMethods()).when(translator).getMethods(any(List.class), any(DocTrees.class),
 				any(Map.class), any());
-		Mockito.doReturn(new ControllerInfoModel().withDisplayName(CONTROLLER_NAME).withPath(CONTROLLER_PATH))
+		doReturn(new ControllerInfoModel().withDisplayName(CONTROLLER_NAME).withPath(CONTROLLER_PATH))
 				.when(translator).getControllerInfoModel(any(List.class));
-		Mockito.doReturn(CONTROLLER_DESCRIPTION).when(translator).getControllerDescription(any(DocCommentTree.class));
+		doReturn(CONTROLLER_DESCRIPTION).when(translator).getControllerDescription(any(DocCommentTree.class));
 
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
 
-		DocTrees mockDocTree = Mockito.mock(DocTrees.class);
-		DocCommentTree mockDocCommentTree = Mockito.mock(DocCommentTree.class);
-		Mockito.doReturn(mockDocCommentTree).when(mockDocTree).getDocCommentTree(any(TypeElement.class));
+		DocTrees mockDocTree = mock(DocTrees.class);
+		DocCommentTree mockDocCommentTree = mock(DocCommentTree.class);
+		doReturn(mockDocCommentTree).when(mockDocTree).getDocCommentTree(any(TypeElement.class));
 
-		Reporter reporter = Mockito.mock(Reporter.class);
-		Mockito.doNothing().when(reporter).print(any(), any());
+		Reporter reporter = mock(Reporter.class);
+		doNothing().when(reporter).print(any(), any());
 		// call under test
 		assertEquals(expectedControllerModel, translator.translate(controller, mockDocTree, schemaMap, reporter));
 
@@ -329,11 +340,11 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetControllerDescription() {
-		DocCommentTree mockDocCommentTree = Mockito.mock(DocCommentTree.class);
+		DocCommentTree mockDocCommentTree = mock(DocCommentTree.class);
 		List<DocTree> fullBody = new ArrayList<>();
-		Mockito.doReturn(fullBody).when(mockDocCommentTree).getFullBody();
+		doReturn(fullBody).when(mockDocCommentTree).getFullBody();
 		Optional<String> result = Optional.of(CONTROLLER_DESCRIPTION);
-		Mockito.doReturn(result).when(translator).getBehaviorComment(any(List.class));
+		doReturn(result).when(translator).getBehaviorComment(any(List.class));
 
 		assertEquals(CONTROLLER_DESCRIPTION, translator.getControllerDescription(mockDocCommentTree));
 		verify(translator).getBehaviorComment(fullBody);
@@ -342,11 +353,11 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetControllerDescriptionWithMissingComment() {
-		DocCommentTree mockDocCommentTree = Mockito.mock(DocCommentTree.class);
+		DocCommentTree mockDocCommentTree = mock(DocCommentTree.class);
 		List<DocTree> fullBody = new ArrayList<>();
-		Mockito.doReturn(fullBody).when(mockDocCommentTree).getFullBody();
+		doReturn(fullBody).when(mockDocCommentTree).getFullBody();
 		Optional<String> result = Optional.empty();
-		Mockito.doReturn(result).when(translator).getBehaviorComment(any(List.class));
+		doReturn(result).when(translator).getBehaviorComment(any(List.class));
 
 		assertEquals(null, translator.getControllerDescription(mockDocCommentTree));
 		verify(translator).getBehaviorComment(fullBody);
@@ -364,13 +375,13 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testGetControllerInfoModel() {
 		List<AnnotationMirror> annotations = new ArrayList<>();
-		AnnotationMirror anno = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror anno = mock(AnnotationMirror.class);
 		Map<ExecutableElement, AnnotationValue> annoElementValues = new HashMap<>();
-		Mockito.doReturn(annoElementValues).when(anno).getElementValues();
+		doReturn(annoElementValues).when(anno).getElementValues();
 		addAnnotationElementValues(annoElementValues, "path", CONTROLLER_PATH);
 		addAnnotationElementValues(annoElementValues, "displayName", CONTROLLER_NAME);
 		annotations.add(anno);
-		Mockito.doReturn("ControllerInfo").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
+		doReturn("ControllerInfo").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
 
 		ControllerInfoModel controllerInfo = new ControllerInfoModel().withDisplayName(CONTROLLER_NAME)
 				.withPath(CONTROLLER_PATH);
@@ -383,12 +394,12 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testGetControllerInfoModelWithUnknownAnnotation() {
 		List<AnnotationMirror> annotations = new ArrayList<>();
-		AnnotationMirror anno = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror anno = mock(AnnotationMirror.class);
 		Map<ExecutableElement, AnnotationValue> annoElementValues = new HashMap<>();
-		Mockito.doReturn(annoElementValues).when(anno).getElementValues();
+		doReturn(annoElementValues).when(anno).getElementValues();
 		addAnnotationElementValues(annoElementValues, "UNKNOWN", "UNKNOWN");
 		annotations.add(anno);
-		Mockito.doReturn("ControllerInfo").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
+		doReturn("ControllerInfo").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
 
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			translator.getControllerInfoModel(annotations);
@@ -403,10 +414,10 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testGetControllerInfoModelMissingPathAndDisplayName() {
 		List<AnnotationMirror> annotations = new ArrayList<>();
-		AnnotationMirror anno = Mockito.mock(AnnotationMirror.class);
-		Mockito.doReturn(new HashMap<>()).when(anno).getElementValues();
+		AnnotationMirror anno = mock(AnnotationMirror.class);
+		doReturn(new HashMap<>()).when(anno).getElementValues();
 		annotations.add(anno);
-		Mockito.doReturn("ControllerInfo").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
+		doReturn("ControllerInfo").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
 
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			translator.getControllerInfoModel(annotations);
@@ -420,12 +431,12 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testGetControllerInfoModelMissingPath() {
 		List<AnnotationMirror> annotations = new ArrayList<>();
-		AnnotationMirror anno = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror anno = mock(AnnotationMirror.class);
 		Map<ExecutableElement, AnnotationValue> annoElementValues = new HashMap<>();
-		Mockito.doReturn(annoElementValues).when(anno).getElementValues();
+		doReturn(annoElementValues).when(anno).getElementValues();
 		addAnnotationElementValues(annoElementValues, "displayName", CONTROLLER_NAME);
 		annotations.add(anno);
-		Mockito.doReturn("ControllerInfo").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
+		doReturn("ControllerInfo").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
 
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			translator.getControllerInfoModel(annotations);
@@ -440,12 +451,12 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testGetControllerInfoModelMissingDisplayName() {
 		List<AnnotationMirror> annotations = new ArrayList<>();
-		AnnotationMirror anno = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror anno = mock(AnnotationMirror.class);
 		Map<ExecutableElement, AnnotationValue> annoElementValues = new HashMap<>();
-		Mockito.doReturn(annoElementValues).when(anno).getElementValues();
+		doReturn(annoElementValues).when(anno).getElementValues();
 		addAnnotationElementValues(annoElementValues, "path", CONTROLLER_PATH);
 		annotations.add(anno);
-		Mockito.doReturn("ControllerInfo").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
+		doReturn("ControllerInfo").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
 
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			translator.getControllerInfoModel(annotations);
@@ -460,10 +471,10 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testGetControllerInfoModelWithoutControllerInfoAnnotation() {
 		List<AnnotationMirror> annotations = new ArrayList<>();
-		AnnotationMirror anno = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror anno = mock(AnnotationMirror.class);
 		annotations.add(anno);
 
-		Mockito.doReturn("WRONG_ANNOTATION").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
+		doReturn("WRONG_ANNOTATION").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			translator.getControllerInfoModel(annotations);
 		});
@@ -490,22 +501,22 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetMethods() {
-		DocTrees docTrees = Mockito.mock(DocTrees.class);
-		DocCommentTree mockDocCommentTree = Mockito.mock(DocCommentTree.class);
+		DocTrees docTrees = mock(DocTrees.class);
+		DocCommentTree mockDocCommentTree = mock(DocCommentTree.class);
 		when(docTrees.getDocCommentTree(any(Element.class))).thenReturn(mockDocCommentTree);
 		List<DocTree> blockTags = new ArrayList<>();
 		List<DocTree> fullBody = new ArrayList<>();
-		Mockito.doReturn(blockTags).when(mockDocCommentTree).getBlockTags();
-		Mockito.doReturn(fullBody).when(mockDocCommentTree).getFullBody();
+		doReturn(blockTags).when(mockDocCommentTree).getBlockTags();
+		doReturn(fullBody).when(mockDocCommentTree).getFullBody();
 
 		List<Element> enclosedElements = new ArrayList<>();
-		ExecutableElement method = Mockito.mock(ExecutableElement.class);
+		ExecutableElement method = mock(ExecutableElement.class);
 		List<AnnotationMirror> annoMirrors = new ArrayList<>();
-		Mockito.doReturn(annoMirrors).when(method).getAnnotationMirrors();
+		doReturn(annoMirrors).when(method).getAnnotationMirrors();
 		List<VariableElement> parameters = new ArrayList<>();
-		Mockito.doReturn(parameters).when(method).getParameters();
-		TypeMirror returnType = Mockito.mock(TypeMirror.class);
-		Name methodName = Mockito.mock(Name.class);
+		doReturn(parameters).when(method).getParameters();
+		TypeMirror returnType = mock(TypeMirror.class);
+		Name methodName = mock(Name.class);
 		when(method.getSimpleName()).thenReturn(methodName);
 		when(methodName.toString()).thenReturn(METHOD_NAME);
 		when(method.getKind()).thenReturn(ElementKind.METHOD);
@@ -514,7 +525,7 @@ public class ControllerToControllerModelTranslatorTest {
 		// Mock translator method calls
 		Map<String, String> parameterToDescription = new HashMap<>();
 		parameterToDescription.put(PARAM_1_NAME, PARAM_1_DESCRIPTION);
-		Mockito.doReturn(parameterToDescription).when(translator).getParameterToDescription(any(List.class));
+		doReturn(parameterToDescription).when(translator).getParameterToDescription(any(List.class));
 
 		Map<Class, Object> annotationToModel = new HashMap<>();
 		RequestMappingModel requestMapping = new RequestMappingModel().withOperation(Operation.get)
@@ -522,7 +533,7 @@ public class ControllerToControllerModelTranslatorTest {
 		annotationToModel.put(RequestMapping.class, requestMapping);
 		ResponseStatusModel responseStatus = new ResponseStatusModel().withStatusCode(HttpStatus.OK.value());
 		annotationToModel.put(ResponseStatus.class, responseStatus);
-		Mockito.doReturn(annotationToModel).when(translator).getAnnotationToModel(any(List.class));
+		doReturn(annotationToModel).when(translator).getAnnotationToModel(any(List.class));
 
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
 
@@ -531,18 +542,18 @@ public class ControllerToControllerModelTranslatorTest {
 		expectedRequestBodySchema.setFormat("int32");
 		RequestBodyModel requestBody = new RequestBodyModel().withDescription(PARAM_1_DESCRIPTION).withRequired(true)
 				.withId(MOCK_CLASS_NAME);
-		Mockito.doReturn(Optional.of(requestBody)).when(translator).getRequestBody(any(List.class), any(Map.class),
+		doReturn(Optional.of(requestBody)).when(translator).getRequestBody(any(List.class), any(Map.class),
 				any(Map.class));
 
-		Mockito.doReturn(Optional.of(METHOD_BEHAVIOR_COMMENT)).when(translator).getBehaviorComment(any(List.class));
-		Mockito.doReturn(METHOD_PATH).when(translator).getMethodPath(any(RequestMappingModel.class));
-		Mockito.doReturn(getExpectedParameters()).when(translator).getParameters(any(List.class), any(Map.class),
+		doReturn(Optional.of(METHOD_BEHAVIOR_COMMENT)).when(translator).getBehaviorComment(any(List.class));
+		doReturn(METHOD_PATH).when(translator).getMethodPath(any(RequestMappingModel.class));
+		doReturn(getExpectedParameters()).when(translator).getParameters(any(List.class), any(Map.class),
 				any(Map.class));
-		Mockito.doReturn(getExpectedResponseModel()).when(translator).getResponseModel(any(ExecutableElement.class),
+		doReturn(getExpectedResponseModel()).when(translator).getResponseModel(any(ExecutableElement.class),
 				any(List.class), any(Map.class), any(Map.class));
 
-		Reporter reporter = Mockito.mock(Reporter.class);
-		Mockito.doNothing().when(reporter).print(any(), any());
+		Reporter reporter = mock(Reporter.class);
+		doNothing().when(reporter).print(any(), any());
 		// call under test
 		assertEquals(getExpectedMethods(), translator.getMethods(enclosedElements, docTrees, schemaMap, reporter));
 
@@ -559,21 +570,21 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetMethodsWithEmptyDescriptionAndRequestBody() {
-		DocTrees docTrees = Mockito.mock(DocTrees.class);
-		DocCommentTree mockDocCommentTree = Mockito.mock(DocCommentTree.class);
+		DocTrees docTrees = mock(DocTrees.class);
+		DocCommentTree mockDocCommentTree = mock(DocCommentTree.class);
 		when(docTrees.getDocCommentTree(any(Element.class))).thenReturn(mockDocCommentTree);
 		List<DocTree> blockTags = new ArrayList<>();
 		List<DocTree> fullBody = new ArrayList<>();
-		Mockito.doReturn(blockTags).when(mockDocCommentTree).getBlockTags();
-		Mockito.doReturn(fullBody).when(mockDocCommentTree).getFullBody();
+		doReturn(blockTags).when(mockDocCommentTree).getBlockTags();
+		doReturn(fullBody).when(mockDocCommentTree).getFullBody();
 
 		List<Element> enclosedElements = new ArrayList<>();
-		ExecutableElement method = Mockito.mock(ExecutableElement.class);
+		ExecutableElement method = mock(ExecutableElement.class);
 		List<AnnotationMirror> annoMirrors = new ArrayList<>();
-		Mockito.doReturn(annoMirrors).when(method).getAnnotationMirrors();
+		doReturn(annoMirrors).when(method).getAnnotationMirrors();
 		List<VariableElement> parameters = new ArrayList<>();
-		Mockito.doReturn(parameters).when(method).getParameters();
-		Name methodName = Mockito.mock(Name.class);
+		doReturn(parameters).when(method).getParameters();
+		Name methodName = mock(Name.class);
 		when(method.getSimpleName()).thenReturn(methodName);
 		when(methodName.toString()).thenReturn(METHOD_NAME);
 		when(method.getKind()).thenReturn(ElementKind.METHOD);
@@ -582,7 +593,7 @@ public class ControllerToControllerModelTranslatorTest {
 		// Mock translator method calls
 		Map<String, String> parameterToDescription = new HashMap<>();
 		parameterToDescription.put(PARAM_1_NAME, PARAM_1_DESCRIPTION);
-		Mockito.doReturn(parameterToDescription).when(translator).getParameterToDescription(any(List.class));
+		doReturn(parameterToDescription).when(translator).getParameterToDescription(any(List.class));
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
 		Map<Class, Object> annotationToModel = new HashMap<>();
 		RequestMappingModel requestMapping = new RequestMappingModel().withOperation(Operation.get)
@@ -590,14 +601,14 @@ public class ControllerToControllerModelTranslatorTest {
 		annotationToModel.put(RequestMapping.class, requestMapping);
 		ResponseStatusModel responseStatus = new ResponseStatusModel().withStatusCode(HttpStatus.OK.value());
 		annotationToModel.put(ResponseStatus.class, responseStatus);
-		Mockito.doReturn(annotationToModel).when(translator).getAnnotationToModel(any(List.class));
-		Mockito.doReturn(Optional.empty()).when(translator).getRequestBody(any(List.class), any(Map.class),
+		doReturn(annotationToModel).when(translator).getAnnotationToModel(any(List.class));
+		doReturn(Optional.empty()).when(translator).getRequestBody(any(List.class), any(Map.class),
 				any(Map.class));
-		Mockito.doReturn(Optional.empty()).when(translator).getBehaviorComment(any(List.class));
-		Mockito.doReturn(METHOD_PATH).when(translator).getMethodPath(any(RequestMappingModel.class));
-		Mockito.doReturn(getExpectedParameters()).when(translator).getParameters(any(List.class), any(Map.class),
+		doReturn(Optional.empty()).when(translator).getBehaviorComment(any(List.class));
+		doReturn(METHOD_PATH).when(translator).getMethodPath(any(RequestMappingModel.class));
+		doReturn(getExpectedParameters()).when(translator).getParameters(any(List.class), any(Map.class),
 				any(Map.class));
-		Mockito.doReturn(getExpectedResponseModel()).when(translator).getResponseModel(any(ExecutableElement.class),
+		doReturn(getExpectedResponseModel()).when(translator).getResponseModel(any(ExecutableElement.class),
 				any(List.class), any(Map.class), any(Map.class));
 
 		List<MethodModel> expectedMethods = new ArrayList<>();
@@ -606,13 +617,13 @@ public class ControllerToControllerModelTranslatorTest {
 				.withResponse(getExpectedResponseModel());
 		expectedMethods.add(expectedMethod);
 
-		Reporter reporter = Mockito.mock(Reporter.class);
-		Mockito.doNothing().when(reporter).print(any(), any());
+		Reporter reporter = mock(Reporter.class);
+		doNothing().when(reporter).print(any(), any());
 		// call under test
 		assertEquals(expectedMethods, translator.getMethods(enclosedElements, docTrees, schemaMap, reporter));
 
 		verify(docTrees).getDocCommentTree(method);
-		verify(mockDocCommentTree, Mockito.times(2)).getBlockTags();
+		verify(mockDocCommentTree, times(2)).getBlockTags();
 		verify(mockDocCommentTree).getFullBody();
 		verify(translator).getParameterToDescription(blockTags);
 		verify(translator).getAnnotationToModel(annoMirrors);
@@ -625,30 +636,30 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetMethodsWhenMissingRequestMappingAnnotation() {
-		DocTrees docTrees = Mockito.mock(DocTrees.class);
-		DocCommentTree mockDocCommentTree = Mockito.mock(DocCommentTree.class);
+		DocTrees docTrees = mock(DocTrees.class);
+		DocCommentTree mockDocCommentTree = mock(DocCommentTree.class);
 		when(docTrees.getDocCommentTree(any(Element.class))).thenReturn(mockDocCommentTree);
 
 		List<Element> enclosedElements = new ArrayList<>();
-		ExecutableElement method = Mockito.mock(ExecutableElement.class);
+		ExecutableElement method = mock(ExecutableElement.class);
 		when(method.getKind()).thenReturn(ElementKind.METHOD);
 		when(method.getAnnotationMirrors()).thenReturn(new ArrayList<>());
-		Name name = Mockito.mock(Name.class);
+		Name name = mock(Name.class);
 		when(method.getSimpleName()).thenReturn(name);
 		when(name.toString()).thenReturn(METHOD_NAME);
 		enclosedElements.add(method);
 
 		// Mock translator method calls
 		Map<String, String> parameterToDescription = new HashMap<>();
-		Mockito.doReturn(parameterToDescription).when(translator).getParameterToDescription(any(List.class));
+		doReturn(parameterToDescription).when(translator).getParameterToDescription(any(List.class));
 
 		Map<Class, Object> annotationToModel = new HashMap<>();
-		Mockito.doReturn(annotationToModel).when(translator).getAnnotationToModel(any(List.class));
+		doReturn(annotationToModel).when(translator).getAnnotationToModel(any(List.class));
 
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
 
-		Reporter reporter = Mockito.mock(Reporter.class);
-		Mockito.doNothing().when(reporter).print(any(), any());
+		Reporter reporter = mock(Reporter.class);
+		doNothing().when(reporter).print(any(), any());
 		// Missing RequestMapping annotations
 		IllegalStateException exception1 = assertThrows(IllegalStateException.class, () -> {
 			translator.getMethods(enclosedElements, docTrees, schemaMap, reporter);
@@ -671,7 +682,7 @@ public class ControllerToControllerModelTranslatorTest {
 		enclosedElements.add(mockMethod);
 		when(mockMethod.getAnnotation(any())).thenReturn((Annotation) () -> Deprecated.class);
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
-		Mockito.doNothing().when(mockReporter).print(any(), any());
+		doNothing().when(mockReporter).print(any(), any());
 
 		List<MethodModel> expectedMethods = new ArrayList<>();
 
@@ -715,21 +726,21 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetMethodsWithEmptyEnclosedElements() {
-		Reporter reporter = Mockito.mock(Reporter.class);
+		Reporter reporter = mock(Reporter.class);
 		// call under test
 		assertEquals(new ArrayList<>(),
-				translator.getMethods(new ArrayList<>(), Mockito.mock(DocTrees.class), new HashMap<>(), reporter));
+				translator.getMethods(new ArrayList<>(), mock(DocTrees.class), new HashMap<>(), reporter));
 	}
 
 	@Test
 	public void testGetResponseModelWithRedirectedEndpoint() {
-		Mockito.doReturn(true).when(translator).isRedirect(any());
-		Mockito.doReturn("DESCRIPTION").when(translator).getResponseDescription(any(), any());
+		doReturn(true).when(translator).isRedirect(any());
+		doReturn("DESCRIPTION").when(translator).getResponseDescription(any(), any());
 
 		ResponseModel response = new ResponseModel();
-		Mockito.doReturn(response).when(translator).generateRedirectedResponseModel(any());
+		doReturn(response).when(translator).generateRedirectedResponseModel(any());
 
-		ExecutableElement method = Mockito.mock(ExecutableElement.class);
+		ExecutableElement method = mock(ExecutableElement.class);
 		List<? extends DocTree> blockTags = new ArrayList<>();
 		Map<Class, Object> annotationToModel = new HashMap<>();
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
@@ -743,15 +754,15 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetResponseModelWithNonRedirectedEndpoint() {
-		Mockito.doReturn(false).when(translator).isRedirect(any());
-		Mockito.doReturn("DESCRIPTION").when(translator).getResponseDescription(any(), any());
+		doReturn(false).when(translator).isRedirect(any());
+		doReturn("DESCRIPTION").when(translator).getResponseDescription(any(), any());
 
 		ResponseModel response = new ResponseModel();
-		Mockito.doReturn(response).when(translator).generateResponseModel(any(), any(), any(), any());
+		doReturn(response).when(translator).generateResponseModel(any(), any(), any(), any());
 
-		ExecutableElement method = Mockito.mock(ExecutableElement.class);
-		TypeMirror returnType = Mockito.mock(TypeMirror.class);
-		Mockito.doReturn(returnType).when(method).getReturnType();
+		ExecutableElement method = mock(ExecutableElement.class);
+		TypeMirror returnType = mock(TypeMirror.class);
+		doReturn(returnType).when(method).getReturnType();
 		List<? extends DocTree> blockTags = new ArrayList<>();
 		Map<Class, Object> annotationToModel = new HashMap<>();
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
@@ -767,7 +778,7 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetResponseModelWithNullSchemaMap() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			translator.getResponseModel(Mockito.mock(ExecutableElement.class), new ArrayList<>(), new HashMap<>(),
+			translator.getResponseModel(mock(ExecutableElement.class), new ArrayList<>(), new HashMap<>(),
 					null);
 		});
 		assertEquals("schemaMap is required.", exception.getMessage());
@@ -777,7 +788,7 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetResponseModelWithNullAnnotationToModel() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			translator.getResponseModel(Mockito.mock(ExecutableElement.class), new ArrayList<>(), null,
+			translator.getResponseModel(mock(ExecutableElement.class), new ArrayList<>(), null,
 					new HashMap<>());
 		});
 		assertEquals("annotationToModel is required.", exception.getMessage());
@@ -787,7 +798,7 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetResponseModelWithNullBlockTags() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			translator.getResponseModel(Mockito.mock(ExecutableElement.class), null, new HashMap<>(), new HashMap<>());
+			translator.getResponseModel(mock(ExecutableElement.class), null, new HashMap<>(), new HashMap<>());
 		});
 		assertEquals("blockTags is required.", exception.getMessage());
 	}
@@ -803,12 +814,12 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetResponseDescriptionVoidReturnTypeWithEmptyReturnComment() {
-		Mockito.doReturn(Optional.empty()).when(translator).getReturnComment(any());
+		doReturn(Optional.empty()).when(translator).getReturnComment(any());
 		List<? extends DocTree> blockTags = new ArrayList<>();
-		ExecutableElement method = Mockito.mock(ExecutableElement.class);
-		TypeMirror returnType = Mockito.mock(TypeMirror.class);
-		Mockito.doReturn(returnType).when(method).getReturnType();
-		Mockito.doReturn(TypeKind.VOID).when(returnType).getKind();
+		ExecutableElement method = mock(ExecutableElement.class);
+		TypeMirror returnType = mock(TypeMirror.class);
+		doReturn(returnType).when(method).getReturnType();
+		doReturn(TypeKind.VOID).when(returnType).getKind();
 
 		// call under test
 		assertEquals("Void", translator.getResponseDescription(blockTags, method));
@@ -817,12 +828,12 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetResponseDescriptionWithEmptyReturnComment() {
-		Mockito.doReturn(Optional.empty()).when(translator).getReturnComment(any());
+		doReturn(Optional.empty()).when(translator).getReturnComment(any());
 		List<? extends DocTree> blockTags = new ArrayList<>();
-		ExecutableElement method = Mockito.mock(ExecutableElement.class);
-		TypeMirror returnType = Mockito.mock(TypeMirror.class);
-		Mockito.doReturn(returnType).when(method).getReturnType();
-		Mockito.doReturn(TypeKind.INT).when(returnType).getKind();
+		ExecutableElement method = mock(ExecutableElement.class);
+		TypeMirror returnType = mock(TypeMirror.class);
+		doReturn(returnType).when(method).getReturnType();
+		doReturn(TypeKind.INT).when(returnType).getKind();
 
 		// call under test
 		assertEquals("Auto-generated description", translator.getResponseDescription(blockTags, method));
@@ -831,11 +842,11 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetResponseDescription() {
-		Mockito.doReturn(Optional.of("DESCRIPTION")).when(translator).getReturnComment(any());
+		doReturn(Optional.of("DESCRIPTION")).when(translator).getReturnComment(any());
 		List<? extends DocTree> blockTags = new ArrayList<>();
 
 		// call under test
-		assertEquals("DESCRIPTION", translator.getResponseDescription(blockTags, Mockito.mock(ExecutableElement.class)));
+		assertEquals("DESCRIPTION", translator.getResponseDescription(blockTags, mock(ExecutableElement.class)));
 		verify(translator).getReturnComment(blockTags);
 	}
 
@@ -850,15 +861,15 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGenerateResponseModel() {
-		TypeMirror returnType = Mockito.mock(TypeMirror.class);
+		TypeMirror returnType = mock(TypeMirror.class);
 		Map<Class, Object> annotationToModel = new HashMap<>();
 		String description = "DESCRIPTION";
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
 
-		Mockito.doNothing().when(translator).populateSchemaMap(any(), any(), any());
+		doNothing().when(translator).populateSchemaMapForConcreteType(any(), any(), any());
 		String returnClassName = "RETURN_CLASS_NAME";
-		Mockito.doReturn(returnClassName).when(returnType).toString();
-		Mockito.doReturn(TypeKind.BOOLEAN).when(returnType).getKind();
+		doReturn(returnClassName).when(returnType).toString();
+		doReturn(TypeKind.BOOLEAN).when(returnType).getKind();
 
 		ResponseStatusModel responseStatus = new ResponseStatusModel().withStatusCode(200);
 		annotationToModel.put(ResponseStatus.class, responseStatus);
@@ -867,14 +878,14 @@ public class ControllerToControllerModelTranslatorTest {
 				.withStatusCode(responseStatus.getStatusCode()).withId(returnClassName);
 		// call under test
 		assertEquals(expected, translator.generateResponseModel(returnType, annotationToModel, description, schemaMap));
-		verify(translator).populateSchemaMap(returnClassName, TypeKind.BOOLEAN, schemaMap);
+		verify(translator).populateSchemaMapForConcreteType(returnClassName, TypeKind.BOOLEAN, schemaMap);
 	}
 
 	@Test
 	public void testGenerateResponseModelWithMissingResponseStatusAnnotation() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			translator.generateResponseModel(Mockito.mock(TypeMirror.class), new HashMap<>(), "DESCRIPTION",
+			translator.generateResponseModel(mock(TypeMirror.class), new HashMap<>(), "DESCRIPTION",
 					new HashMap<>());
 		});
 		assertEquals("Missing response status in annotationToModel.", exception.getMessage());
@@ -882,33 +893,33 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testIsRedirectWithVoidReturnAndNoRedirectParam() {
-		ExecutableElement method = Mockito.mock(ExecutableElement.class);
-		Mockito.doReturn(new ArrayList<>()).when(method).getParameters();
-		TypeMirror returnType = Mockito.mock(TypeMirror.class);
-		Mockito.doReturn(returnType).when(method).getReturnType();
-		Mockito.doReturn(TypeKind.VOID).when(returnType).getKind();
-		Mockito.doReturn(false).when(translator).containsRedirectParam(any());
+		ExecutableElement method = mock(ExecutableElement.class);
+		doReturn(new ArrayList<>()).when(method).getParameters();
+		TypeMirror returnType = mock(TypeMirror.class);
+		doReturn(returnType).when(method).getReturnType();
+		doReturn(TypeKind.VOID).when(returnType).getKind();
+		doReturn(false).when(translator).containsRedirectParam(any());
 
 		assertFalse(translator.isRedirect(method));
 	}
 
 	@Test
 	public void testIsRedirect() {
-		ExecutableElement method = Mockito.mock(ExecutableElement.class);
-		Mockito.doReturn(new ArrayList<>()).when(method).getParameters();
-		TypeMirror returnType = Mockito.mock(TypeMirror.class);
-		Mockito.doReturn(returnType).when(method).getReturnType();
-		Mockito.doReturn(TypeKind.VOID).when(returnType).getKind();
-		Mockito.doReturn(true).when(translator).containsRedirectParam(any());
+		ExecutableElement method = mock(ExecutableElement.class);
+		doReturn(new ArrayList<>()).when(method).getParameters();
+		TypeMirror returnType = mock(TypeMirror.class);
+		doReturn(returnType).when(method).getReturnType();
+		doReturn(TypeKind.VOID).when(returnType).getKind();
+		doReturn(true).when(translator).containsRedirectParam(any());
 		
 		// call under test
 		assertTrue(translator.isRedirect(method));
 		
-		Mockito.doReturn(TypeKind.INT).when(returnType).getKind();
+		doReturn(TypeKind.INT).when(returnType).getKind();
 		// call under test
 		assertFalse(translator.isRedirect(method));
 		
-		Mockito.doReturn(false).when(translator).containsRedirectParam(any());
+		doReturn(false).when(translator).containsRedirectParam(any());
 		// call under test
 		assertFalse(translator.isRedirect(method));
 	}
@@ -916,14 +927,14 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testContainsRedirectParamWithRedirect() {
 		List<VariableElement> params = new ArrayList<>();
-		VariableElement param = Mockito.mock(VariableElement.class);
-		Name paramName = Mockito.mock(Name.class);
-		Mockito.doReturn("redirect").when(paramName).toString();
-		Mockito.doReturn(paramName).when(param).getSimpleName();
+		VariableElement param = mock(VariableElement.class);
+		Name paramName = mock(Name.class);
+		doReturn("redirect").when(paramName).toString();
+		doReturn(paramName).when(param).getSimpleName();
 		
-		TypeMirror paramType = Mockito.mock(TypeMirror.class);
-		Mockito.doReturn(TypeKind.BOOLEAN).when(paramType).getKind();
-		Mockito.doReturn(paramType).when(param).asType();
+		TypeMirror paramType = mock(TypeMirror.class);
+		doReturn(TypeKind.BOOLEAN).when(paramType).getKind();
+		doReturn(paramType).when(param).asType();
 		
 		params.add(param);
 		assertTrue(translator.containsRedirectParam(params));
@@ -932,51 +943,80 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testContainsRedirectParamWithoutRedirect() {
 		List<VariableElement> params = new ArrayList<>();
-		VariableElement param = Mockito.mock(VariableElement.class);
-		Name paramName = Mockito.mock(Name.class);
-		Mockito.doReturn("WRONG_NAME").when(paramName).toString();
-		Mockito.doReturn(paramName).when(param).getSimpleName();
+		VariableElement param = mock(VariableElement.class);
+		Name paramName = mock(Name.class);
+		doReturn("WRONG_NAME").when(paramName).toString();
+		doReturn(paramName).when(param).getSimpleName();
 		
-		TypeMirror paramType = Mockito.mock(TypeMirror.class);
-		Mockito.doReturn(TypeKind.BOOLEAN).when(paramType).getKind();
-		Mockito.doReturn(paramType).when(param).asType();
+		TypeMirror paramType = mock(TypeMirror.class);
+		doReturn(TypeKind.BOOLEAN).when(paramType).getKind();
+		doReturn(paramType).when(param).asType();
 		
 		params.add(param);
 		// call under test
 		assertFalse(translator.containsRedirectParam(params));
 		
 		// call under test
-		Mockito.doReturn(TypeKind.DECLARED).when(paramType).getKind();
-		Mockito.doReturn(Boolean.class.getName()).when(paramName).toString();
+		doReturn(TypeKind.DECLARED).when(paramType).getKind();
+		doReturn(Boolean.class.getName()).when(paramName).toString();
 		assertFalse(translator.containsRedirectParam(params));
 		
-		Mockito.doReturn("redirect").when(paramName).toString();
-		Mockito.doReturn(TypeKind.INT).when(paramType).getKind();
+		doReturn("redirect").when(paramName).toString();
+		doReturn(TypeKind.INT).when(paramType).getKind();
 		// call under test
 		assertFalse(translator.containsRedirectParam(params));
 		
-		Mockito.doReturn("WRONG_NAME").when(paramName).toString();
+		doReturn("WRONG_NAME").when(paramName).toString();
 		assertFalse(translator.containsRedirectParam(params));
 	}
 
 	@Test
-	public void testPopulateSchemaMapWithNonPrimitiveType() {
+	public void testPopulateSchemaMapWithConcreteType() {
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
-		// call under test
-		translator.populateSchemaMap(Husky.class.getName(), TypeKind.DECLARED, schemaMap);
+		String schemaId = "org.sagebionetworks.schemaId";
 
-		Map<String, ObjectSchema> expectedSchemaMap = new HashMap<>();
-		SchemaUtils.recursiveAddTypes(expectedSchemaMap, Husky.class.getName(), null);
-		assertEquals(expectedSchemaMap, schemaMap);
+		doReturn(new ArrayList<TypeMirror>()).when(translator).getTypeArguments(any(TypeMirror.class));
+		doReturn(TypeKind.DECLARED).when(mockParameterType).getKind();
+		doNothing().when(translator).populateSchemaMapForConcreteType(any(String.class), any(TypeKind.class), any());
+
+		// call under test
+		translator.populateSchemaMap(schemaId, mockParameterType, schemaMap);
+
+		verify(translator).getTypeArguments(mockParameterType);
+		verify(mockParameterType).getKind();
+		verify(translator).populateSchemaMapForConcreteType(schemaId, TypeKind.DECLARED, schemaMap);
 	}
 
 	@Test
-	public void testPopulateSchemaMapWithNullSchemaMap() {
+	public void testPopulateSchemaMapWithGenericType() {
+		Map<String, ObjectSchema> schemaMap = new HashMap<>();
+		String schemaId = "ListOfString";
+		String argumentSchemaId = "org.sagebionetworks.schemaId";
+
+		List<TypeMirror> argumentTypes = List.of(mockParameterType);
+
+		doReturn(TypeKind.DECLARED).when(mockParameterType).getKind();
+		doReturn(argumentTypes).when(translator).getTypeArguments(any(TypeMirror.class));
+		doReturn(argumentSchemaId).when(translator).getSchemaIdForType(any(TypeMirror.class));
+		doNothing().when(translator).populateSchemaMapForConcreteType(any(String.class), any(TypeKind.class), any());
+		doNothing().when(translator).populateSchemaMapForGenericType(any(String.class), any(TypeMirror.class), any(), any());
+
+		// call under test
+		translator.populateSchemaMap(schemaId, mockGenericType, schemaMap);
+
+		verify(translator).getTypeArguments(mockGenericType);
+		verify(translator).getSchemaIdForType(mockParameterType);
+		verify(translator).populateSchemaMapForConcreteType(argumentSchemaId, TypeKind.DECLARED, schemaMap);
+		verify(translator).populateSchemaMapForGenericType(schemaId, mockGenericType, mockParameterType, schemaMap);
+	}
+
+	@Test
+	public void testPopulateSchemaMapWithNullSchemaId() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			translator.populateSchemaMap("", TypeKind.ARRAY, null);
+			translator.populateSchemaMap(null, mockParameterType, new HashMap<>());
 		});
-		assertEquals("schemaMap is required.", exception.getMessage());
+		assertEquals("schemaId is required.", exception.getMessage());
 	}
 
 	@Test
@@ -989,12 +1029,360 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 
 	@Test
-	public void testPopulateSchemaMapWithNullClassName() {
+	public void testPopulateSchemaMapWithNullSchemaMap() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			translator.populateSchemaMap(null, TypeKind.ARRAY, new HashMap<>());
+			translator.populateSchemaMap("", mockParameterType, null);
+		});
+		assertEquals("schemaMap is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testPopulateSchemaMapForConcreteTypeWithNonPrimitiveType() {
+		Map<String, ObjectSchema> schemaMap = new HashMap<>();
+		// call under test
+		translator.populateSchemaMapForConcreteType(Husky.class.getName(), TypeKind.DECLARED, schemaMap);
+
+		Map<String, ObjectSchema> expectedSchemaMap = new HashMap<>();
+		SchemaUtils.recursiveAddTypes(expectedSchemaMap, Husky.class.getName(), null);
+		assertEquals(expectedSchemaMap, schemaMap);
+	}
+
+	@Test
+	public void testPopulateSchemaMapForConcreteTypeWithNullSchemaMap() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.populateSchemaMapForConcreteType("", TypeKind.ARRAY, null);
+		});
+		assertEquals("schemaMap is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testPopulateSchemaMapForConcreteTypeWithNullType() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.populateSchemaMapForConcreteType("", null, new HashMap<>());
+		});
+		assertEquals("type is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testPopulateSchemaMapForConcreteTypeWithNullClassName() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.populateSchemaMapForConcreteType(null, TypeKind.ARRAY, new HashMap<>());
 		});
 		assertEquals("className is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testPopulateSchemaMapForGenericTypeWithListType() {
+		String schemaId = "ListOfString";
+		Map<String, ObjectSchema> schemaMap = new HashMap<>();
+		ObjectSchema objectSchema = new ObjectSchemaImpl();
+		List<TypeMirror> typeArguments = List.of(mockParameterType);
+
+		doReturn("java.util.List").when(translator).getGenericClassName(any(TypeMirror.class));
+		doReturn("java.lang.String").when(mockParameterType).toString();
+		doReturn(objectSchema).when(translator).generateArrayObjectSchema(any(String.class));
+
+		// call under test
+		translator.populateSchemaMapForGenericType(schemaId, mockGenericType, mockParameterType, schemaMap);
+
+		Map<String, ObjectSchema> expectedSchemaMap = new HashMap<>();
+		expectedSchemaMap.put(schemaId, objectSchema);
+
+		assertEquals(expectedSchemaMap, schemaMap);
+
+		verify(translator).getGenericClassName(mockGenericType);
+		verify(translator).generateArrayObjectSchema("java.lang.String");
+	}
+
+	@Test
+	public void testPopulateSchemaMapForGenericTypeWithCustomType() {
+		String schemaId = "PaginatedResultsOfString";
+		String genericClassName = "org.sagebionetworks.reflection.model.PaginatedResults";
+		Map<String, ObjectSchema> schemaMap = new HashMap<>();
+		ObjectSchema objectSchema = new ObjectSchemaImpl();
+
+		doReturn(genericClassName).when(translator).getGenericClassName(any(TypeMirror.class));
+		doReturn(objectSchema).when(translator).generateObjectSchemaForGenericType(any(String.class), any(String.class), any());
+
+		// call under test
+		translator.populateSchemaMapForGenericType(schemaId, mockGenericType, mockParameterType, schemaMap);
+
+		Map<String, ObjectSchema> expectedSchemaMap = new HashMap<>();
+		expectedSchemaMap.put(schemaId, objectSchema);
+
+		verify(translator).getGenericClassName(mockGenericType);
+		verify(translator).generateObjectSchemaForGenericType(schemaId, genericClassName, mockParameterType);
+		assertEquals(expectedSchemaMap, schemaMap);
+	}
+
+	@Test
+	public void testPopulateSchemaMapForGenericTypeWithUnsupportedType() {
+		doReturn("java.util.HashMap").when(translator).getGenericClassName(any(TypeMirror.class));
+
+		UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> {
+			// call under test
+			translator.populateSchemaMapForGenericType("", mockGenericType, mockParameterType, new HashMap<>());
+		});
+		assertEquals("Generic class java.util.HashMap is not supported by the OpenAPI translator", exception.getMessage());
+	}
+
+	@Test
+	public void testPopulateSchemaMapForGenericTypeWithNullSchemaId() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.populateSchemaMapForGenericType(null, mockGenericType, mockParameterType, new HashMap<>());
+		});
+		assertEquals("schemaId is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testPopulateSchemaMapForGenericTypeWithNullType() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.populateSchemaMapForGenericType("", null, mockParameterType, new HashMap<>());
+		});
+		assertEquals("genericType is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testPopulateSchemaMapForGenericTypeWithNullArgumentType() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.populateSchemaMapForGenericType("", mockGenericType, null, new HashMap<>());
+		});
+		assertEquals("argumentType is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testPopulateSchemaMapForGenericTypeWithNullSchemaMap() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.populateSchemaMapForGenericType("", mockGenericType, mockParameterType, null);
+		});
+		assertEquals("schemaMap is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetSchemaIdForTypeWithGenericType() {
+		List<TypeMirror> argumentList = List.of(mockParameterType);
+
+		doReturn(argumentList).when(translator).getTypeArguments(any(TypeMirror.class));
+		doReturn("ListOfString").when(translator).getSchemaIdForGenericType(any((TypeMirror.class)));
+
+		// call under test
+		String resultId = translator.getSchemaIdForType(mockGenericType);
+
+		assertEquals("ListOfString", resultId);
+
+		verify(translator).getTypeArguments(mockGenericType);
+		verify(translator).getSchemaIdForGenericType(mockGenericType);
+	}
+
+	@Test
+	public void testGetSchemaIdForTypeWithConcreteType() {
+		List<TypeMirror> argumentList = new ArrayList<>();
+
+		doReturn(argumentList).when(translator).getTypeArguments(any(TypeMirror.class));
+		doReturn("org.sagebionetworks.test").when(mockParameterType).toString();
+
+		// call under test
+		String resultId = translator.getSchemaIdForType(mockParameterType);
+
+		assertEquals("org.sagebionetworks.test", resultId);
+	}
+
+	@Test
+	public void testGetSchemaIdForTypeWithNullTypeMirror() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.getSchemaIdForType(null);
+		});
+		assertEquals("typeMirror is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetSchemaIdForGenericType() {
+		String genericClassName = "java.util.List";
+		String concreteClassName = "java.lang.String";
+
+		doReturn(genericClassName).when(translator).getGenericClassName(any(TypeMirror.class));
+		doReturn(List.of(mockParameterType)).when(translator).getTypeArguments(any(TypeMirror.class));
+		doReturn(concreteClassName).when(mockParameterType).toString();
+
+		// call under test
+		String resultId = translator.getSchemaIdForGenericType(mockGenericType);
+
+		assertEquals("ListOfString", resultId);
+
+		verify(translator).getGenericClassName(mockGenericType);
+		verify(translator).getTypeArguments(mockGenericType);
+	}
+
+	@Test
+	public void testGetSchemaIdForGenericTypeUnknownClass() {
+		String genericClassName = "java.util.List";
+		String concreteClassName = "java.lang.DoesNotExist";
+
+		doReturn(genericClassName).when(translator).getGenericClassName(any(TypeMirror.class));
+		doReturn(List.of(mockParameterType)).when(translator).getTypeArguments(any(TypeMirror.class));
+		doReturn(concreteClassName).when(mockParameterType).toString();
+
+		// call under test
+		RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+			// call under test
+			translator.getSchemaIdForGenericType(mockGenericType);
+		});
+		assertEquals("java.lang.ClassNotFoundException: java.lang.DoesNotExist", exception.getMessage());
+	}
+
+	@Test
+	public void testGetSchemaIdForGenericTypeWithNullTypeMirror() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.getSchemaIdForGenericType(null);
+		});
+		assertEquals("genericType is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetTypeArguments() {
+		List<TypeMirror> argumentTypes = List.of(mockParameterType);
+
+		doReturn(argumentTypes).when(mockGenericDeclaredType).getTypeArguments();
+
+		// call under test
+		List<? extends TypeMirror> resultList = translator.getTypeArguments(mockGenericDeclaredType);
+
+		assertEquals(argumentTypes, resultList);
+
+		verify(mockGenericDeclaredType).getTypeArguments();
+	}
+
+	@Test
+	public void testGetTypeArgumentsWithNullTypeMirror() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.getTypeArguments(null);
+		});
+		assertEquals("typeMirror is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGenerateObjectSchemaForGenericType() throws JSONObjectAdapterException {
+		doReturn("java.lang.String").when(mockParameterType).toString();
+
+		// call under test
+		ObjectSchema resultSchema= translator.generateObjectSchemaForGenericType("PaginatedResultsOfString", "org.sagebionetworks.reflection.model.PaginatedResults", mockParameterType);
+
+		ObjectSchema expectedSchema = new ObjectSchemaImpl();
+		expectedSchema.setType(TYPE.OBJECT);
+		expectedSchema.setId("PaginatedResultsOfString");
+		String effectiveSchemaString = "{\"id\":\"org.sagebionetworks.repo.model.PaginatedResults\",\"description\":\"JSON schema for Row POJO\",\"name\":\"PaginatedResults\",\"properties\":{\"totalNumberOfResults\":{\"description\":\"Calculating the actual totalNumberOfResults is not longer supported. Therefore, for each page, the totalNumberOfResults is estimated using the current page, limit, and offset. When the page size equals the limit, the totalNumberOfResults will be offset+pageSize+ 1. Otherwise, the totalNumberOfResults will be offset+pageSize.\",\"type\":\"integer\"},\"results\":{\"items\":{\"id\":\"org.sagebionetworks.repo.model.Entity\",\"description\":\"This is the base interface that all Entities should implement\",\"name\":\"Entity\",\"properties\":{\"id\":{\"description\":\"The unique immutable ID for this entity.  A new ID will be generated for new Entities.  Once issued, this ID is guaranteed to never change or be re-issued\",\"type\":\"string\"},\"createdOn\":{\"description\":\"The date this entity was created.\",\"format\":\"date-time\",\"type\":\"string\"},\"modifiedOn\":{\"description\":\"The date this entity was last modified.\",\"format\":\"date-time\",\"type\":\"string\"},\"parentId\":{\"description\":\"The ID of the parent of this entity\",\"type\":\"string\"},\"etag\":{\"description\":\"Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an entity is out-of-date.\",\"type\":\"string\"},\"createdBy\":{\"description\":\"The user that created this entity.\",\"type\":\"string\"},\"accessControlList\":{\"description\":\"The URI to get to this entity's access control list\",\"transient\":true,\"type\":\"string\"},\"description\":{\"description\":\"The description of this entity.\",\"type\":\"string\"},\"modifiedBy\":{\"description\":\"The user that last modified this entity.\",\"type\":\"string\"},\"name\":{\"description\":\"The name of this entity\",\"type\":\"string\"},\"annotations\":{\"description\":\"The URI to get to this entity's annotations\",\"transient\":true,\"type\":\"string\"},\"uri\":{\"description\":\"The Uniform Resource Identifier (URI) for this entity.\",\"transient\":true,\"type\":\"string\"}},\"type\":\"interface\"},\"description\":\"The the id of the entity to which this reference refers\",\"type\":\"array\"}},\"type\":\"object\"}";
+		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(effectiveSchemaString);
+		ObjectSchema effectiveSchema = new ObjectSchemaImpl(adapter);
+		expectedSchema.setProperties((LinkedHashMap<String, ObjectSchema>) effectiveSchema.getProperties());
+		String itemsSchemaString = "{\"type\":\"array\",\"items\":{\"type\": \"string\"}}";
+		ObjectSchema itemSchema = new ObjectSchemaImpl(new JSONObjectAdapterImpl(itemsSchemaString));
+		expectedSchema.putProperty("results", itemSchema);
+
+		System.out.println(expectedSchema);
+
+		assertEquals(expectedSchema, resultSchema);
+	}
+
+	@Test
+	public void testGenerateObjectSchemaForGenericTypeWithNullSchemaId() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.generateObjectSchemaForGenericType(null, "", mockParameterType);
+		});
+		assertEquals("schemaId is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGenerateObjectSchemaForGenericTypeWithNullGenericClassName() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.generateObjectSchemaForGenericType("", null, mockParameterType);
+		});
+		assertEquals("genericClassName is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGenerateObjectSchemaForGenericTypeWithNullArgumentType() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.generateObjectSchemaForGenericType("", "", null);
+		});
+		assertEquals("argumentType is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGenerateArrayObjectSchemaWithString() {
+		String typeName = "java.lang.String";
+		ObjectSchema itemSchema = new ObjectSchemaImpl();
+		itemSchema.setType(TYPE.STRING);
+		ObjectSchema expectedSchema = new ObjectSchemaImpl();
+		expectedSchema.setType(TYPE.ARRAY);
+		expectedSchema.setItems(itemSchema);
+
+		// call under test
+		ObjectSchema resultSchema= translator.generateArrayObjectSchema(typeName);
+
+		assertEquals(expectedSchema, resultSchema);
+	}
+
+	@Test
+	public void testGenerateArrayObjectSchemaWithConcreteClass() {
+		String typeName = "org.sagebionetworks.concreteclass";
+		ObjectSchema itemSchema = new ObjectSchemaImpl();
+		itemSchema.setId(typeName);
+		itemSchema.setType(TYPE.OBJECT);
+		ObjectSchema expectedSchema = new ObjectSchemaImpl();
+		expectedSchema.setType(TYPE.ARRAY);
+		expectedSchema.setItems(itemSchema);
+
+		// call under test
+		ObjectSchema resultSchema= translator.generateArrayObjectSchema(typeName);
+
+		assertEquals(expectedSchema, resultSchema);
+	}
+
+	@Test
+	public void testGenerateArrayObjectSchemaWithStringNullTypeName() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.generateArrayObjectSchema(null);
+		});
+		assertEquals("typeName is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetGenericClassName() {
+		doReturn(mockTypeElement).when(mockGenericDeclaredType).asElement();
+		doReturn(mockName).when(mockTypeElement).getQualifiedName();
+		doReturn("java.util.List").when(mockName).toString();
+
+		// call under test
+		String resultName = translator.getGenericClassName(mockGenericDeclaredType);
+
+		assertEquals("java.util.List", resultName);
+
+		verify(mockGenericDeclaredType).asElement();
+		verify(mockTypeElement).getQualifiedName();
+	}
+
+	@Test
+	public void testGetGenericClassNameWithNullGenericType() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.getGenericClassName(null);
+		});
+		assertEquals("genericType is required.", exception.getMessage());
 	}
 
 	@Test
@@ -1031,21 +1419,21 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testAnnotationToModelWithPathAndCodeAnnotations() {
 		List<AnnotationMirror> methodAnnotations = new ArrayList<>();
 
-		AnnotationMirror anno1 = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror anno1 = mock(AnnotationMirror.class);
 		Map<ExecutableElement, AnnotationValue> anno1ElementValues = new HashMap<>();
-		Mockito.doReturn(anno1ElementValues).when(anno1).getElementValues();
+		doReturn(anno1ElementValues).when(anno1).getElementValues();
 		addAnnotationElementValues(anno1ElementValues, "path", METHOD_PATH);
 		addAnnotationElementValues(anno1ElementValues, "method", RequestMethod.GET);
 
-		AnnotationMirror anno2 = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror anno2 = mock(AnnotationMirror.class);
 		Map<ExecutableElement, AnnotationValue> anno2ElementValues = new HashMap<>();
-		Mockito.doReturn(anno2ElementValues).when(anno2).getElementValues();
+		doReturn(anno2ElementValues).when(anno2).getElementValues();
 		addAnnotationElementValues(anno2ElementValues, "code", "OK");
 
 		methodAnnotations.add(anno1);
 		methodAnnotations.add(anno2);
 
-		Mockito.doReturn("RequestMapping", "ResponseStatus").when(translator)
+		doReturn("RequestMapping", "ResponseStatus").when(translator)
 				.getSimpleAnnotationName(any(AnnotationMirror.class));
 
 		Map<Class, Object> expectedAnnotationToModel = new LinkedHashMap<>();
@@ -1056,10 +1444,10 @@ public class ControllerToControllerModelTranslatorTest {
 
 		assertEquals(expectedAnnotationToModel, translator.getAnnotationToModel(methodAnnotations));
 
-		verify(anno1, Mockito.times(3)).getElementValues();
-		verify(anno2, Mockito.times(2)).getElementValues();
-		verify(translator, Mockito.times(2)).getSimpleAnnotationName(any(AnnotationMirror.class));
-		InOrder inOrder = Mockito.inOrder(translator);
+		verify(anno1, times(3)).getElementValues();
+		verify(anno2, times(2)).getElementValues();
+		verify(translator, times(2)).getSimpleAnnotationName(any(AnnotationMirror.class));
+		InOrder inOrder = inOrder(translator);
 		inOrder.verify(translator).getSimpleAnnotationName(anno1);
 		inOrder.verify(translator).getSimpleAnnotationName(anno2);
 	}
@@ -1067,7 +1455,7 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testGetAnnotationToModel() {
 		List<AnnotationMirror> methodAnnotations = new ArrayList<>();
-		AnnotationMirror mockAnnoMirror = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror mockAnnoMirror = mock(AnnotationMirror.class);
 		methodAnnotations.add(mockAnnoMirror);
 		methodAnnotations.add(mockAnnoMirror);
 
@@ -1079,24 +1467,24 @@ public class ControllerToControllerModelTranslatorTest {
 		expectedAnnotationToModel.put(RequestMapping.class, requestMapping);
 		expectedAnnotationToModel.put(ResponseStatus.class, responseStatus);
 
-		Mockito.doReturn(requestMapping).when(translator).getRequestMappingModel(any(AnnotationMirror.class));
-		Mockito.doReturn(responseStatus).when(translator).getResponseStatusModel(any(AnnotationMirror.class));
-		Mockito.doReturn("RequestMapping", "ResponseStatus").when(translator)
+		doReturn(requestMapping).when(translator).getRequestMappingModel(any(AnnotationMirror.class));
+		doReturn(responseStatus).when(translator).getResponseStatusModel(any(AnnotationMirror.class));
+		doReturn("RequestMapping", "ResponseStatus").when(translator)
 				.getSimpleAnnotationName(any(AnnotationMirror.class));
 
 		assertEquals(expectedAnnotationToModel, translator.getAnnotationToModel(methodAnnotations));
 
 		verify(translator).getResponseStatusModel(mockAnnoMirror);
 		verify(translator).getResponseStatusModel(mockAnnoMirror);
-		verify(translator, Mockito.times(2)).getSimpleAnnotationName(mockAnnoMirror);
+		verify(translator, times(2)).getSimpleAnnotationName(mockAnnoMirror);
 	}
 
 	@Test
 	public void testGetAnnotationToModelWithUnhandledAnnotation() {
 		List<AnnotationMirror> methodAnnotations = new ArrayList<>();
-		AnnotationMirror mock = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror mock = mock(AnnotationMirror.class);
 		methodAnnotations.add(mock);
-		Mockito.doReturn("UNKNOWN").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
+		doReturn("UNKNOWN").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
 
 		Map<Class, Object> expectedResult = new LinkedHashMap<>();
 		expectedResult.put(ResponseStatus.class, new ResponseStatusModel().withStatusCode(200));
@@ -1116,38 +1504,38 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetResponseStatusModelWithCodeKeyName() {
-		AnnotationMirror anno = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror anno = mock(AnnotationMirror.class);
 		Map<ExecutableElement, AnnotationValue> annoToElementValues = new HashMap<>();
-		Mockito.doReturn(annoToElementValues).when(anno).getElementValues();
+		doReturn(annoToElementValues).when(anno).getElementValues();
 		addAnnotationElementValues(annoToElementValues, "code", "OK");
 
 		ResponseStatusModel expected = new ResponseStatusModel().withStatusCode(HttpStatus.OK.value());
 		assertEquals(expected, translator.getResponseStatusModel(anno));
 
-		verify(anno, Mockito.times(2)).getElementValues();
+		verify(anno, times(2)).getElementValues();
 	}
 
 	@Test
 	public void testGetResponseStatusModelWithValueKeyName() {
-		AnnotationMirror anno = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror anno = mock(AnnotationMirror.class);
 		Map<ExecutableElement, AnnotationValue> annoToElementValues = new HashMap<>();
-		Mockito.doReturn(annoToElementValues).when(anno).getElementValues();
+		doReturn(annoToElementValues).when(anno).getElementValues();
 		addAnnotationElementValues(annoToElementValues, "value", "OK");
 
 		ResponseStatusModel expected = new ResponseStatusModel().withStatusCode(HttpStatus.OK.value());
 		assertEquals(expected, translator.getResponseStatusModel(anno));
 
-		verify(anno, Mockito.times(2)).getElementValues();
+		verify(anno, times(2)).getElementValues();
 	}
 
 	@Test
 	public void testGetResponseStatusModelWithUnknownAnnotation() {
-		AnnotationMirror anno = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror anno = mock(AnnotationMirror.class);
 		Map<ExecutableElement, AnnotationValue> annoToElementValues = new HashMap<>();
-		Mockito.doReturn(annoToElementValues).when(anno).getElementValues();
+		doReturn(annoToElementValues).when(anno).getElementValues();
 
-		ExecutableElement key = Mockito.mock(ExecutableElement.class);
-		Name simpleName = Mockito.mock(Name.class);
+		ExecutableElement key = mock(ExecutableElement.class);
+		Name simpleName = mock(Name.class);
 		when(key.getSimpleName()).thenReturn(simpleName);
 		when(simpleName.toString()).thenReturn("UNKNOWN");
 		annoToElementValues.put(key, null);
@@ -1168,12 +1556,12 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetRequestMappingModelWithUnknownAnnotation() {
-		AnnotationMirror anno = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror anno = mock(AnnotationMirror.class);
 		Map<ExecutableElement, AnnotationValue> annoToElementValues = new HashMap<>();
-		Mockito.doReturn(annoToElementValues).when(anno).getElementValues();
+		doReturn(annoToElementValues).when(anno).getElementValues();
 
-		ExecutableElement key = Mockito.mock(ExecutableElement.class);
-		Name simpleName = Mockito.mock(Name.class);
+		ExecutableElement key = mock(ExecutableElement.class);
+		Name simpleName = mock(Name.class);
 		when(key.getSimpleName()).thenReturn(simpleName);
 		when(simpleName.toString()).thenReturn("UNKNOWN");
 		annoToElementValues.put(key, null);
@@ -1185,22 +1573,22 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetRequestMappingModelWithPathKeyName() {
-		AnnotationMirror anno = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror anno = mock(AnnotationMirror.class);
 		Map<ExecutableElement, AnnotationValue> anno1ElementValues = new HashMap<>();
-		Mockito.doReturn(anno1ElementValues).when(anno).getElementValues();
+		doReturn(anno1ElementValues).when(anno).getElementValues();
 		addAnnotationElementValues(anno1ElementValues, "path", METHOD_PATH);
 		addAnnotationElementValues(anno1ElementValues, "method", RequestMethod.GET);
 
 		RequestMappingModel expected = new RequestMappingModel().withOperation(Operation.get).withPath(METHOD_PATH);
 		assertEquals(expected, translator.getRequestMappingModel(anno));
-		verify(anno, Mockito.times(3)).getElementValues();
+		verify(anno, times(3)).getElementValues();
 	}
 
 	@Test
 	public void testGetRequestMappingModelWithValueKeyName() {
-		AnnotationMirror anno = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror anno = mock(AnnotationMirror.class);
 		Map<ExecutableElement, AnnotationValue> anno1ElementValues = new HashMap<>();
-		Mockito.doReturn(anno1ElementValues).when(anno).getElementValues();
+		doReturn(anno1ElementValues).when(anno).getElementValues();
 		addAnnotationElementValues(anno1ElementValues, "value", METHOD_PATH);
 		addAnnotationElementValues(anno1ElementValues, "method", RequestMethod.GET);
 
@@ -1208,14 +1596,14 @@ public class ControllerToControllerModelTranslatorTest {
 
 		// call under test
 		assertEquals(expected, translator.getRequestMappingModel(anno));
-		verify(anno, Mockito.times(3)).getElementValues();
+		verify(anno, times(3)).getElementValues();
 	}
 
 	@Test
 	public void testGetRequestMappingModelWithIncorrectMethodValue() {
-		AnnotationMirror anno = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror anno = mock(AnnotationMirror.class);
 		Map<ExecutableElement, AnnotationValue> annoElementValues = new HashMap<>();
-		Mockito.doReturn(annoElementValues).when(anno).getElementValues();
+		doReturn(annoElementValues).when(anno).getElementValues();
 		addAnnotationElementValues(annoElementValues, "method", RequestMethod.PATCH);
 
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
@@ -1223,7 +1611,7 @@ public class ControllerToControllerModelTranslatorTest {
 		});
 
 		assertEquals("No operation found for RequestMethod PATCH", exception.getMessage());
-		verify(anno, Mockito.times(2)).getElementValues();
+		verify(anno, times(2)).getElementValues();
 	}
 
 	@Test
@@ -1281,26 +1669,26 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetRequestBody() {
 		List<VariableElement> parameters = new ArrayList<>();
 
-		VariableElement param1 = Mockito.mock(VariableElement.class);
-		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		VariableElement param1 = mock(VariableElement.class);
+		TypeMirror paramType = mock(TypeMirror.class);
 		when(param1.asType()).thenReturn(paramType);
 		when(paramType.toString()).thenReturn(MOCK_CLASS_NAME);
 		parameters.add(param1);
 
-		VariableElement param2 = Mockito.mock(VariableElement.class);
-		Name paramName = Mockito.mock(Name.class);
+		VariableElement param2 = mock(VariableElement.class);
+		Name paramName = mock(Name.class);
 		when(param2.getSimpleName()).thenReturn(paramName);
 		when(paramName.toString()).thenReturn(PARAM_1_NAME);
-		TypeMirror type = Mockito.mock(TypeMirror.class);
+		TypeMirror type = mock(TypeMirror.class);
 		when(param2.asType()).thenReturn(type);
 		when(type.getKind()).thenReturn(TypeKind.INT);
 		when(type.toString()).thenReturn(MOCK_CLASS_NAME);
 		parameters.add(param2);
 
-		AnnotationMirror mockAnnoMirror = Mockito.mock(AnnotationMirror.class);
-		Mockito.doReturn(mockAnnoMirror, mockAnnoMirror).when(translator)
+		AnnotationMirror mockAnnoMirror = mock(AnnotationMirror.class);
+		doReturn(mockAnnoMirror, mockAnnoMirror).when(translator)
 				.getParameterAnnotation(any(VariableElement.class));
-		Mockito.doReturn("RequestParam", "RequestBody").when(translator)
+		doReturn("RequestParam", "RequestBody").when(translator)
 				.getSimpleAnnotationName(any(AnnotationMirror.class));
 
 		Map<String, String> mockParamToDescription = new HashMap<>();
@@ -1312,11 +1700,11 @@ public class ControllerToControllerModelTranslatorTest {
 				translator.getRequestBody(parameters, mockParamToDescription, schemaMap));
 
 		verify(param2).getSimpleName();
-		verify(param2, Mockito.times(3)).asType();
+		verify(param2, times(1)).asType();
 		verify(type).getKind();
-		verify(translator).populateSchemaMap(MOCK_CLASS_NAME, TypeKind.INT, schemaMap);
+		verify(translator).populateSchemaMapForConcreteType(MOCK_CLASS_NAME, TypeKind.INT, schemaMap);
 		;
-		verify(translator, Mockito.times(2)).getSimpleAnnotationName(mockAnnoMirror);
+		verify(translator, times(2)).getSimpleAnnotationName(mockAnnoMirror);
 	}
 
 	@Test
@@ -1329,8 +1717,8 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetRequestBodyWithHttpServletResponseParameter() {
 		List<VariableElement> parameters = new ArrayList<>();
 
-		VariableElement param = Mockito.mock(VariableElement.class);
-		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		VariableElement param = mock(VariableElement.class);
+		TypeMirror paramType = mock(TypeMirror.class);
 		when(param.asType()).thenReturn(paramType);
 		when(paramType.toString()).thenReturn("javax.servlet.http.HttpServletResponse");
 		parameters.add(param);
@@ -1343,8 +1731,8 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetRequestBodyWithHttpServletRequestParameter() {
 		List<VariableElement> parameters = new ArrayList<>();
 
-		VariableElement param = Mockito.mock(VariableElement.class);
-		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		VariableElement param = mock(VariableElement.class);
+		TypeMirror paramType = mock(TypeMirror.class);
 		when(param.asType()).thenReturn(paramType);
 		when(paramType.toString()).thenReturn("javax.servlet.http.HttpServletRequest");
 		parameters.add(param);
@@ -1357,8 +1745,8 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetRequestBodyWithUriComponentsBuilderParameter() {
 		List<VariableElement> parameters = new ArrayList<>();
 
-		VariableElement param = Mockito.mock(VariableElement.class);
-		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		VariableElement param = mock(VariableElement.class);
+		TypeMirror paramType = mock(TypeMirror.class);
 		when(param.asType()).thenReturn(paramType);
 		when(paramType.toString()).thenReturn("org.springframework.web.util.UriComponentsBuilder");
 		parameters.add(param);
@@ -1370,14 +1758,14 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testGetParametersWithRequestBodyAnnotation() {
 		List<VariableElement> params = new ArrayList<>();
-		VariableElement param = Mockito.mock(VariableElement.class);
-		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		VariableElement param = mock(VariableElement.class);
+		TypeMirror paramType = mock(TypeMirror.class);
 		when(param.asType()).thenReturn(paramType);
 		when(paramType.toString()).thenReturn(MOCK_CLASS_NAME);
 		params.add(param);
-		AnnotationMirror mockAnnoMirror = Mockito.mock(AnnotationMirror.class);
-		Mockito.doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
-		Mockito.doReturn("RequestBody").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
+		AnnotationMirror mockAnnoMirror = mock(AnnotationMirror.class);
+		doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
+		doReturn("RequestBody").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
 
 		// call under test
 		assertEquals(new ArrayList<>(), translator.getParameters(params, new HashMap<>(), new HashMap<>()));
@@ -1388,17 +1776,17 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetParameters() {
-		Mockito.doReturn(ParameterLocation.path).when(translator).getParameterLocation(any(VariableElement.class));
+		doReturn(ParameterLocation.path).when(translator).getParameterLocation(any(VariableElement.class));
 		JsonSchema expectedSchema = new JsonSchema();
 		expectedSchema.setType(Type.integer);
 		expectedSchema.setFormat("int32");
 
 		List<VariableElement> parameters = new ArrayList<>();
-		VariableElement param = Mockito.mock(VariableElement.class);
-		Name paramName = Mockito.mock(Name.class);
+		VariableElement param = mock(VariableElement.class);
+		Name paramName = mock(Name.class);
 		when(param.getSimpleName()).thenReturn(paramName);
 		when(paramName.toString()).thenReturn(PARAM_1_NAME);
-		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		TypeMirror paramType = mock(TypeMirror.class);
 		when(param.asType()).thenReturn(paramType);
 		when(paramType.getKind()).thenReturn(TypeKind.INT);
 		when(paramType.toString()).thenReturn(MOCK_CLASS_NAME);
@@ -1417,12 +1805,12 @@ public class ControllerToControllerModelTranslatorTest {
 		assertEquals(getExpectedParameters(), translator.getParameters(parameters, mockParamToDescription, schemaMap));
 
 		verify(translator).getParameterLocation(param);
-		verify(translator).populateSchemaMap(MOCK_CLASS_NAME, TypeKind.INT, schemaMap);
+		verify(translator).populateSchemaMapForConcreteType(MOCK_CLASS_NAME, TypeKind.INT, schemaMap);
 		verify(param).getSimpleName();
-		verify(param, Mockito.times(3)).asType();
+		verify(param, times(1)).asType();
 		verify(paramType).getKind();
 		verify(translator).getParameterAnnotation(param);
-		verify(mockAnnotationMirror).getElementValues();
+		verify(mockAnnotationMirror, times(2)).getElementValues();
 	}
 
 	@Test
@@ -1435,8 +1823,8 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetParametersWithHttpServletRequestParameter() {
 		List<VariableElement> parameters = new ArrayList<>();
 
-		VariableElement param = Mockito.mock(VariableElement.class);
-		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		VariableElement param = mock(VariableElement.class);
+		TypeMirror paramType = mock(TypeMirror.class);
 		when(param.asType()).thenReturn(paramType);
 		when(paramType.toString()).thenReturn("javax.servlet.http.HttpServletRequest");
 		parameters.add(param);
@@ -1449,8 +1837,8 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetParametersWithHttpServletResponseParameter() {
 		List<VariableElement> parameters = new ArrayList<>();
 
-		VariableElement param = Mockito.mock(VariableElement.class);
-		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		VariableElement param = mock(VariableElement.class);
+		TypeMirror paramType = mock(TypeMirror.class);
 		when(param.asType()).thenReturn(paramType);
 		when(paramType.toString()).thenReturn("javax.servlet.http.HttpServletResponse");
 		parameters.add(param);
@@ -1463,8 +1851,8 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetParametersWithUriComponentsBuilderParameter() {
 		List<VariableElement> parameters = new ArrayList<>();
 
-		VariableElement param = Mockito.mock(VariableElement.class);
-		TypeMirror paramType = Mockito.mock(TypeMirror.class);
+		VariableElement param = mock(VariableElement.class);
+		TypeMirror paramType = mock(TypeMirror.class);
 		when(param.asType()).thenReturn(paramType);
 		when(paramType.toString()).thenReturn("org.springframework.web.util.UriComponentsBuilder");
 		parameters.add(param);
@@ -1499,20 +1887,20 @@ public class ControllerToControllerModelTranslatorTest {
 		// call under test
 		assertEquals(expectedParameters, translator.getParameters(parameters, paramToDescription, new HashMap<>()));
 
-		verify(mockParameter, times(3)).asType();
+		verify(mockParameter, times(1)).asType();
 		verify(mockParameter).getSimpleName();
 		verify(mockParameterType).getKind();
 		verify(translator).getParameterLocation(mockParameter);
 		verify(translator).getParameterAnnotation(mockParameter);
-		verify(mockAnnotationMirror).getElementValues();
+		verify(mockAnnotationMirror, times(2)).getElementValues();
 	}
 
 	@Test
 	public void testGetParameterLocationWithUnknownAnnotation() {
-		AnnotationMirror mockAnnoMirror = Mockito.mock(AnnotationMirror.class);
-		Mockito.doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
-		Mockito.doReturn("UNKNOWN").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
-		VariableElement mockVarElement = Mockito.mock(VariableElement.class);
+		AnnotationMirror mockAnnoMirror = mock(AnnotationMirror.class);
+		doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
+		doReturn("UNKNOWN").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
+		VariableElement mockVarElement = mock(VariableElement.class);
 		// call under test
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			translator.getParameterLocation(mockVarElement);
@@ -1524,10 +1912,10 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetParameterLocationWithRequestBodyAnnotation() {
-		Mockito.doReturn("RequestBody").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
-		AnnotationMirror mockAnnoMirror = Mockito.mock(AnnotationMirror.class);
-		Mockito.doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
-		VariableElement mockVarElement = Mockito.mock(VariableElement.class);
+		doReturn("RequestBody").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
+		AnnotationMirror mockAnnoMirror = mock(AnnotationMirror.class);
+		doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
+		VariableElement mockVarElement = mock(VariableElement.class);
 		// call under test
 		assertEquals(null, translator.getParameterLocation(mockVarElement));
 
@@ -1537,10 +1925,10 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetParameterLocationWithRequestParamAnnotation() {
-		Mockito.doReturn("RequestParam").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
-		AnnotationMirror mockAnnoMirror = Mockito.mock(AnnotationMirror.class);
-		Mockito.doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
-		VariableElement mockVarElement = Mockito.mock(VariableElement.class);
+		doReturn("RequestParam").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
+		AnnotationMirror mockAnnoMirror = mock(AnnotationMirror.class);
+		doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
+		VariableElement mockVarElement = mock(VariableElement.class);
 
 		// call under test
 		assertEquals(ParameterLocation.query, translator.getParameterLocation(mockVarElement));
@@ -1550,19 +1938,52 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 
 	@Test
+	public void testIsParameterRequiredTrue() {
+		Map<ExecutableElement, AnnotationValue> elementValues = new HashMap<>();
+		addAnnotationElementValues(elementValues, "required", true);
+		doReturn(elementValues).when(mockAnnotationMirror).getElementValues();
+
+		// call under test
+		assertTrue(translator.isParameterRequired(mockAnnotationMirror));
+
+		verify(mockAnnotationMirror).getElementValues();
+	}
+
+	@Test
+	public void testIsParameterRequiredFalse() {
+		Map<ExecutableElement, AnnotationValue> elementValues = new HashMap<>();
+		addAnnotationElementValues(elementValues, "required", false);
+		doReturn(elementValues).when(mockAnnotationMirror).getElementValues();
+
+		// call under test
+		assertFalse(translator.isParameterRequired(mockAnnotationMirror));
+
+		verify(mockAnnotationMirror).getElementValues();
+	}
+
+	@Test
+	public void testIsParemeterRequiredWithNullParamAnnotation() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			translator.isParameterRequired(null);
+		});
+		assertEquals("paramAnnotation is required.", exception.getMessage());
+	}
+
+
+	@Test
 	public void testGetParameterLocationWithPathVariableAnnotation() {
-		Mockito.doReturn("PathVariable").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
-		Mockito.doReturn(Mockito.mock(AnnotationMirror.class)).when(translator).getParameterAnnotation(any());
+		doReturn("PathVariable").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
+		doReturn(mock(AnnotationMirror.class)).when(translator).getParameterAnnotation(any());
 		// call under test
 		assertEquals(ParameterLocation.path, translator.getParameterLocation(null));
 	}
 
 	@Test
 	public void testGetParameterLocationWithRequestHeaderAnnotation() {
-		Mockito.doReturn("RequestHeader").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
-		AnnotationMirror mockAnnoMirror = Mockito.mock(AnnotationMirror.class);
-		Mockito.doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
-		VariableElement mockVarElement = Mockito.mock(VariableElement.class);
+		doReturn("RequestHeader").when(translator).getSimpleAnnotationName(any(AnnotationMirror.class));
+		AnnotationMirror mockAnnoMirror = mock(AnnotationMirror.class);
+		doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
+		VariableElement mockVarElement = mock(VariableElement.class);
 
 		// call under test
 		assertEquals(ParameterLocation.header, translator.getParameterLocation(mockVarElement));
@@ -1573,12 +1994,12 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetParameterAnnotation() throws Exception {
-		VariableElement mockParameter = Mockito.mock(VariableElement.class);
-		List<? extends AnnotationMirror> annotationMirrors = Mockito.mock(List.class);
-		Mockito.doReturn(annotationMirrors).when(mockParameter).getAnnotationMirrors();
+		VariableElement mockParameter = mock(VariableElement.class);
+		List<? extends AnnotationMirror> annotationMirrors = mock(List.class);
+		doReturn(annotationMirrors).when(mockParameter).getAnnotationMirrors();
 		when(annotationMirrors.size()).thenReturn(1);
-		AnnotationMirror annotation = Mockito.mock(AnnotationMirror.class);
-		Mockito.doReturn(annotation).when(annotationMirrors).get(0);
+		AnnotationMirror annotation = mock(AnnotationMirror.class);
+		doReturn(annotation).when(annotationMirrors).get(0);
 		// call under test
 		assertEquals(annotation, translator.getParameterAnnotation(mockParameter));
 
@@ -1589,10 +2010,10 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetParameterAnnotationWithAnnotationMirrorsSize2() {
-		VariableElement mockParameter = Mockito.mock(VariableElement.class);
-		List<? extends AnnotationMirror> annotationMirrors = Mockito.mock(List.class);
-		Mockito.doReturn(annotationMirrors).when(mockParameter).getAnnotationMirrors();
-		Name mockParamName = Mockito.mock(Name.class);
+		VariableElement mockParameter = mock(VariableElement.class);
+		List<? extends AnnotationMirror> annotationMirrors = mock(List.class);
+		doReturn(annotationMirrors).when(mockParameter).getAnnotationMirrors();
+		Name mockParamName = mock(Name.class);
 		when(mockParameter.getSimpleName()).thenReturn(mockParamName);
 		when(mockParamName.toString()).thenReturn("testMethod");
 		when(annotationMirrors.size()).thenReturn(2);
@@ -1601,14 +2022,14 @@ public class ControllerToControllerModelTranslatorTest {
 		});
 		assertEquals("Each method parameter should have one annotation, testMethod has 2", exception.getMessage());
 		verify(mockParameter).getAnnotationMirrors();
-		verify(annotationMirrors, Mockito.times(2)).size();
+		verify(annotationMirrors, times(2)).size();
 	}
 
 	@Test
 	public void testGetParameterAnnotationWithEmptyAnnotationMirrors() throws Exception {
-		VariableElement mockParameter = Mockito.mock(VariableElement.class);
+		VariableElement mockParameter = mock(VariableElement.class);
 		when(mockParameter.getAnnotationMirrors()).thenReturn(new ArrayList<>());
-		Name mockParamName = Mockito.mock(Name.class);
+		Name mockParamName = mock(Name.class);
 		when(mockParameter.getSimpleName()).thenReturn(mockParamName);
 		when(mockParamName.toString()).thenReturn("testMethod");
 		// call under test
@@ -1629,12 +2050,12 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetSimpleAnnotationName() {
-		AnnotationMirror annotation = Mockito.mock(AnnotationMirror.class);
+		AnnotationMirror annotation = mock(AnnotationMirror.class);
 
-		DeclaredType mockDeclaredType = Mockito.mock(DeclaredType.class);
-		Element element = Mockito.mock(Element.class);
+		DeclaredType mockDeclaredType = mock(DeclaredType.class);
+		Element element = mock(Element.class);
 		when(mockDeclaredType.asElement()).thenReturn(element);
-		Name simpleName = Mockito.mock(Name.class);
+		Name simpleName = mock(Name.class);
 		when(element.getSimpleName()).thenReturn(simpleName);
 		when(simpleName.toString()).thenReturn(ANNOTATION_NAME);
 
@@ -1662,10 +2083,10 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testGetParameterToDescriptionWithEmptyDescription() {
 		List<DocTree> blockTags = new ArrayList<>();
-		ParamTree param = Mockito.mock(ParamTree.class);
+		ParamTree param = mock(ParamTree.class);
 		when(param.getKind()).thenReturn(DocTree.Kind.PARAM);
-		List<? extends DocTree> description = Mockito.mock(List.class);
-		Mockito.doReturn(description).when(param).getDescription();
+		List<? extends DocTree> description = mock(List.class);
+		doReturn(description).when(param).getDescription();
 		when(description.isEmpty()).thenReturn(true);
 		blockTags.add(param);
 
@@ -1678,7 +2099,7 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetParameterToDescriptionWithoutParamTreeInBlockTags() {
-		ReturnTree mockReturnComment = Mockito.mock(ReturnTree.class);
+		ReturnTree mockReturnComment = mock(ReturnTree.class);
 		when(mockReturnComment.getKind()).thenReturn(DocTree.Kind.RETURN);
 		// call under test
 		assertEquals(new LinkedHashMap<>(),
@@ -1713,7 +2134,7 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetReturnCommentWithoutReturnTreeInArray() {
-		ParamTree mockParamComment = Mockito.mock(ParamTree.class);
+		ParamTree mockParamComment = mock(ParamTree.class);
 		when(mockParamComment.getKind()).thenReturn(DocTree.Kind.PARAM);
 		// call under test
 		assertEquals(Optional.empty(), translator.getReturnComment(new ArrayList<>(Arrays.asList(mockParamComment))));
@@ -1724,7 +2145,7 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testGetReturnCommentWithEmptyDescription() {
 		List<DocTree> blockTags = new ArrayList<>();
-		ReturnTree mockReturnComment = Mockito.mock(ReturnTree.class);
+		ReturnTree mockReturnComment = mock(ReturnTree.class);
 		when(mockReturnComment.getKind()).thenReturn(DocTree.Kind.RETURN);
 		when(mockReturnComment.getDescription()).thenReturn(new ArrayList<>());
 		blockTags.add(mockReturnComment);
@@ -1738,18 +2159,18 @@ public class ControllerToControllerModelTranslatorTest {
 	@Test
 	public void testGetReturnComment() {
 		List<DocTree> blockTags = new ArrayList<>();
-		ReturnTree mockReturnComment = Mockito.mock(ReturnTree.class);
+		ReturnTree mockReturnComment = mock(ReturnTree.class);
 		when(mockReturnComment.getKind()).thenReturn(DocTree.Kind.RETURN);
-		List<? extends DocTree> descriptions = Mockito.mock(List.class);
+		List<? extends DocTree> descriptions = mock(List.class);
 		when(descriptions.toString()).thenReturn(METHOD_RETURN_COMMENT);
-		Mockito.doReturn(descriptions).when(mockReturnComment).getDescription();
+		doReturn(descriptions).when(mockReturnComment).getDescription();
 		blockTags.add(mockReturnComment);
 
 		// call under test
 		assertEquals(Optional.of(METHOD_RETURN_COMMENT), translator.getReturnComment(blockTags));
 
 		verify(mockReturnComment).getKind();
-		verify(mockReturnComment, Mockito.times(2)).getDescription();
+		verify(mockReturnComment, times(2)).getDescription();
 	}
 
 	@Test
@@ -1766,7 +2187,7 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetBehaviorComment() {
-		List<? extends DocTree> fullBody = Mockito.mock(List.class);
+		List<? extends DocTree> fullBody = mock(List.class);
 		when(fullBody.isEmpty()).thenReturn(false);
 		when(fullBody.toString()).thenReturn(METHOD_BEHAVIOR_COMMENT);
 		// call under test

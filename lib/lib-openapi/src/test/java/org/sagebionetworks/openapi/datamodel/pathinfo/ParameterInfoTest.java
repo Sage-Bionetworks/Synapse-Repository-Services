@@ -52,8 +52,8 @@ public class ParameterInfoTest {
 		info.writeToJSONObject(adapter);
 		Mockito.verify(adapter).put("name", "NAME");
 		Mockito.verify(adapter).put("in", "IN");
+		Mockito.verify(adapter).put(eq("required"), eq(false));
 		Mockito.verify(adapter, Mockito.times(0)).put(eq("description"), anyString());
-		Mockito.verify(adapter, Mockito.times(0)).put(eq("required"), anyBoolean());
 		Mockito.verify(adapter, Mockito.times(0)).put(eq("schema"), any(JSONObjectAdapter.class));
 	}
 

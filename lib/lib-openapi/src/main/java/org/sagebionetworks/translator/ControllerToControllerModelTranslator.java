@@ -1,5 +1,6 @@
 package org.sagebionetworks.translator;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -16,6 +17,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
@@ -35,6 +37,10 @@ import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.ObjectSchemaImpl;
+import org.sagebionetworks.schema.TYPE;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -65,8 +71,8 @@ import static org.sagebionetworks.repo.web.PathConstants.PATH_REGEX;
  *
  */
 public class ControllerToControllerModelTranslator {
-	static final Set<String> PARAMETERS_NOT_REQUIRED_TO_BE_ANNOTATED = Set.of("javax.servlet.http.HttpServletResponse",
-			"org.springframework.web.util.UriComponentsBuilder", "javax.servlet.http.HttpServletRequest");
+	static final Set<String> PARAMETERS_NOT_REQUIRED_TO_BE_TRANSLATED = Set.of("javax.servlet.http.HttpServletResponse",
+			"org.springframework.web.util.UriComponentsBuilder", "javax.servlet.http.HttpServletRequest", "org.springframework.http.HttpHeaders");
 
 	static final Map<String, Type> CLASS_TO_TYPE = Map.ofEntries(
 			Map.entry("java.lang.String", Type.string),
@@ -80,6 +86,11 @@ public class ControllerToControllerModelTranslator {
 			Map.entry("org.sagebionetworks.repo.model.BooleanResult", Type._boolean),
 			Map.entry("org.json.JSONObject", Type.object),
 			Map.entry("org.sagebionetworks.schema.ObjectSchema", Type.object));
+
+	static final Map<String, String> CUSTOM_GENERIC_CLASS_TO_GENERIC_PROPERTY = Map.of(
+			"org.sagebionetworks.reflection.model.PaginatedResults", "results",
+			"org.sagebionetworks.repo.model.ListWrapper", "list"
+	);
 
 	/**
 	 * Converts all controllers found in the doclet environment to controller
@@ -312,11 +323,11 @@ public class ControllerToControllerModelTranslator {
 			throw new IllegalArgumentException("Missing response status in annotationToModel.");
 		}
 		ResponseStatusModel responseStatus = (ResponseStatusModel) annotationToModel.get(ResponseStatus.class);
-		String returnClassName = returnType.toString();
 
-		populateSchemaMap(returnClassName, returnType.getKind(), schemaMap);
+		String returnTypeSchemaId = getSchemaIdForType(returnType);
+		populateSchemaMap(returnTypeSchemaId, returnType, schemaMap);
 		return new ResponseModel().withDescription(description).withStatusCode(responseStatus.getStatusCode())
-				.withId(returnClassName);
+				.withId(returnTypeSchemaId);
 	}
 
 	/**
@@ -351,6 +362,33 @@ public class ControllerToControllerModelTranslator {
 	}
 
 	/**
+	 * Populates the schemaMap by adding an ObjectSchema that is associated with the
+	 * schemaId and type.
+	 *
+	 * @param schemaId - the ID/Key for the type schema in the schema map
+	 * @param type      - the type of the class
+	 * @param schemaMap - a mapping between class names and schemas that represent
+	 *                  those classes
+	 */
+	void populateSchemaMap(String schemaId, TypeMirror type, Map<String, ObjectSchema> schemaMap) {
+		ValidateArgument.required(schemaId, "schemaId");
+		ValidateArgument.required(type, "type");
+		ValidateArgument.required(schemaMap, "schemaMap");
+
+		List< ? extends TypeMirror> genericTypeArguments = getTypeArguments(type);
+		if (!genericTypeArguments.isEmpty()) {
+			TypeMirror argumentType = genericTypeArguments.get(0);
+			TypeKind argumentKind = argumentType.getKind();
+			String argumentSchemaId = getSchemaIdForType(argumentType);
+			populateSchemaMapForConcreteType(argumentSchemaId, argumentKind, schemaMap);
+			populateSchemaMapForGenericType(schemaId, type, argumentType, schemaMap);
+		} else {
+			TypeKind typeKind = type.getKind();
+			populateSchemaMapForConcreteType(schemaId, typeKind, schemaMap);
+		}
+	}
+
+	/**
 	 * Populates the schemaMap by adding ObjectSchema that are associated with the
 	 * className and type.
 	 * 
@@ -359,7 +397,7 @@ public class ControllerToControllerModelTranslator {
 	 * @param schemaMap - a mapping between class names and schemas that represent
 	 *                  those classes
 	 */
-	void populateSchemaMap(String className, TypeKind type, Map<String, ObjectSchema> schemaMap) {
+	void populateSchemaMapForConcreteType(String className, TypeKind type, Map<String, ObjectSchema> schemaMap) {
 		ValidateArgument.required(className, "className");
 		ValidateArgument.required(type, "type");
 		ValidateArgument.required(schemaMap, "schemaMap");
@@ -367,6 +405,184 @@ public class ControllerToControllerModelTranslator {
 		if (!TypeKind.VOID.equals(type) && getJsonSchemaBasicTypeForClass(className).isEmpty()) {
 			SchemaUtils.recursiveAddTypes(schemaMap, className, null);
 		}
+	}
+
+	/**
+	 * Populates a schema map with an ObjectSchema for a generic type with parameterTypes. The ObjectSchema is identified
+	 * in the schema map by the schemaId for the generic type.
+	 *
+	 * @param schemaId - the ID/key of the schema in the schema map
+	 * @param genericType - the generic type being added to the schema map
+	 * @param argumentType - the argument type from the generic type being translated
+	 * @param schemaMap - the map being populated with the generic type ObjectSchema
+	 */
+	void populateSchemaMapForGenericType(String schemaId, TypeMirror genericType, TypeMirror argumentType, Map<String, ObjectSchema> schemaMap) {
+		ValidateArgument.required(schemaId, "schemaId");
+		ValidateArgument.required(genericType, "genericType");
+		ValidateArgument.required(argumentType, "argumentType");
+		ValidateArgument.required(schemaMap, "schemaMap");
+
+		ObjectSchema newGenericTypeSchema;
+		String genericClassName = getGenericClassName(genericType);
+
+		if ("java.util.List".equals(genericClassName)) {
+			String typeParameterClass = argumentType.toString();
+			newGenericTypeSchema = generateArrayObjectSchema(typeParameterClass);
+			newGenericTypeSchema.setId(schemaId);
+		} else if (CUSTOM_GENERIC_CLASS_TO_GENERIC_PROPERTY.containsKey(genericClassName)) {
+			newGenericTypeSchema = generateObjectSchemaForGenericType(schemaId, genericClassName, argumentType);
+		} else {
+			throw new UnsupportedOperationException(String.format("Generic class %s is not supported by the OpenAPI translator", genericClassName));
+		}
+
+		schemaMap.put(schemaId, newGenericTypeSchema);
+	}
+
+	/**
+	 * Determines the schema ID for a type
+	 *
+	 * @param typeMirror - the type
+	 * @return the schema ID
+	 */
+	String getSchemaIdForType(TypeMirror typeMirror) {
+		ValidateArgument.required(typeMirror, "typeMirror");
+
+		String schemaId;
+		List< ? extends TypeMirror> genericTypeArguments = getTypeArguments(typeMirror);
+		if (!genericTypeArguments.isEmpty()) {
+			schemaId = getSchemaIdForGenericType(typeMirror);
+		} else {
+			schemaId = typeMirror.toString();
+		}
+		return schemaId;
+	}
+
+	/**
+	 * Determines the schema ID for a generic type
+	 *
+	 * @param genericType - the generic type
+	 * @return the schema ID
+	 */
+	String getSchemaIdForGenericType(TypeMirror genericType) {
+		ValidateArgument.required(genericType, "genericType");
+
+		String genericClassSimpleName;
+		String parameterClassSimpleName;
+
+		String genericClassName = getGenericClassName(genericType);
+		String parameterClassName = getTypeArguments(genericType).get(0).toString();
+
+		try {
+			Class genericClazz = Class.forName(genericClassName);
+			Class parameterClazz = Class.forName(parameterClassName);
+			genericClassSimpleName = genericClazz.getSimpleName();
+			parameterClassSimpleName = parameterClazz.getSimpleName();
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+
+		return String.format("%sOf%s", genericClassSimpleName, parameterClassSimpleName);
+	}
+
+	/**
+	 * Extracts the type arguments from a type. Returns an empty list if the type is not a parameterized type.
+	 *
+	 * @param typeMirror - the type
+	 * @return  a list of type arguments
+	 */
+	List< ? extends TypeMirror> getTypeArguments(TypeMirror typeMirror) {
+		ValidateArgument.required(typeMirror, "typeMirror");
+
+		List< ? extends TypeMirror> resultList = new ArrayList<>();
+		if (typeMirror instanceof DeclaredType) {
+			DeclaredType declaredType = (DeclaredType) typeMirror;
+			resultList = declaredType.getTypeArguments();
+		}
+
+		return resultList;
+	}
+
+	/**
+	 * Generates an object schema for a generic type with a type argument
+	 *
+	 * @param schemaId - the schema ID for the generic type
+	 * @param genericClassName - the name of the generic type's class
+	 * @param argumentType - the type argument associated with the generic type
+	 * @return a schema map for the generic type
+	 */
+	ObjectSchema generateObjectSchemaForGenericType(String schemaId, String genericClassName, TypeMirror argumentType) {
+		ValidateArgument.required(schemaId, "schemaId");
+		ValidateArgument.required(genericClassName, "genericClassName");
+		ValidateArgument.required(argumentType, "argumentType");
+
+		ObjectSchema genericAndArgumentSchema = new ObjectSchemaImpl();
+
+		String typeParameterName = argumentType.toString();
+
+		ObjectSchema genericTypeSchema;
+		try {
+			Class genericClazz = Class.forName(genericClassName);
+			Field objectSchemaField = genericClazz.getField("EFFECTIVE_SCHEMA");
+			String schemaString = (String) objectSchemaField.get(null);
+			JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(schemaString);
+			genericTypeSchema = new ObjectSchemaImpl(adapter);
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		} catch (NoSuchFieldException e) {
+			throw new RuntimeException(e);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+
+		String genericProperty = CUSTOM_GENERIC_CLASS_TO_GENERIC_PROPERTY.get(genericClassName);
+
+		genericAndArgumentSchema.setType(TYPE.OBJECT);
+		genericAndArgumentSchema.setId(schemaId);
+		genericAndArgumentSchema.setProperties((LinkedHashMap<String, ObjectSchema>) genericTypeSchema.getProperties());
+		ObjectSchema genericPropertySchema = generateArrayObjectSchema(typeParameterName);
+		genericAndArgumentSchema.putProperty(genericProperty, genericPropertySchema);
+
+		return genericAndArgumentSchema;
+	}
+
+	/**
+	 * Generates an object schema for an array
+	 *
+	 * @param typeName - the name of the type in the array
+	 * @return an ObjectSchema for an array
+	 */
+	ObjectSchema generateArrayObjectSchema(String typeName) {
+		ValidateArgument.required(typeName, "typeName");
+
+		ObjectSchema arraySchema = new ObjectSchemaImpl();
+		ObjectSchema itemsSchema = new ObjectSchemaImpl();
+		arraySchema.setType(TYPE.ARRAY);
+		Optional<Type> basicType = getJsonSchemaBasicTypeForClass(typeName);
+		if (!basicType.isEmpty()) {
+			itemsSchema.setType(TYPE.getTypeFromJSONValue(basicType.get().toString()));
+		} else {
+			itemsSchema.setId(typeName);
+			itemsSchema.setType(TYPE.OBJECT);
+		}
+		arraySchema.setItems(itemsSchema);
+
+		return  arraySchema;
+	}
+
+	/**
+	 * Determines the class name for a parameterized generic type
+	 *
+	 * @param genericType - the generic type
+	 * @return the class name
+	 */
+	String getGenericClassName(TypeMirror genericType) {
+		ValidateArgument.required(genericType, "genericType");
+
+		DeclaredType declaredType = (DeclaredType) genericType;
+		TypeElement typeElement = (TypeElement) declaredType.asElement();
+		return typeElement.getQualifiedName().toString();
 	}
 
 	static Optional<Type> getJsonSchemaBasicTypeForClass(String id){
@@ -488,18 +704,21 @@ public class ControllerToControllerModelTranslator {
 	Optional<RequestBodyModel> getRequestBody(List<? extends VariableElement> parameters,
 			Map<String, String> paramToDescription, Map<String, ObjectSchema> schemaMap) {
 		for (VariableElement param : parameters) {
-			if (PARAMETERS_NOT_REQUIRED_TO_BE_ANNOTATED.contains(param.asType().toString())) {
+			TypeMirror parameterType = param.asType();
+			if (PARAMETERS_NOT_REQUIRED_TO_BE_TRANSLATED.contains(parameterType.toString())) {
 				continue;
 			}
-			String simpleAnnotationName = getSimpleAnnotationName(getParameterAnnotation(param));
+			AnnotationMirror paramAnnotation = getParameterAnnotation(param);
+			String simpleAnnotationName = getSimpleAnnotationName(paramAnnotation);
 			if (RequestBody.class.getSimpleName().equals(simpleAnnotationName)) {
 				String paramName = param.getSimpleName().toString();
 				String paramDescription = paramToDescription.get(paramName);
-				TypeKind parameterType = param.asType().getKind();
-				String paramTypeClassName = param.asType().toString();
-				populateSchemaMap(paramTypeClassName, parameterType, schemaMap);
-				return Optional.of(new RequestBodyModel().withDescription(paramDescription).withRequired(true)
-						.withId(paramTypeClassName));
+				String paramTypeSchemaId = getSchemaIdForType(parameterType);
+				populateSchemaMap(paramTypeSchemaId, parameterType, schemaMap);
+				boolean paramIsRequired = isParameterRequired(paramAnnotation);
+
+				return Optional.of(new RequestBodyModel().withDescription(paramDescription).withRequired(paramIsRequired)
+						.withId(paramTypeSchemaId));
 			}
 		}
 		return Optional.empty();
@@ -518,7 +737,8 @@ public class ControllerToControllerModelTranslator {
 			Map<String, String> parameterToDescription, Map<String, ObjectSchema> schemaMap) {
 		List<ParameterModel> parameters = new ArrayList<>();
 		for (VariableElement param : params) {
-			if (PARAMETERS_NOT_REQUIRED_TO_BE_ANNOTATED.contains(param.asType().toString())) {
+			TypeMirror parameterType = param.asType();
+			if (PARAMETERS_NOT_REQUIRED_TO_BE_TRANSLATED.contains(parameterType.toString())) {
 				continue;
 			}
 			ParameterLocation paramLocation = getParameterLocation(param);
@@ -536,14 +756,34 @@ public class ControllerToControllerModelTranslator {
 				}
 			}
 
+			boolean paramIsRequired = isParameterRequired(paramAnnotation);
+			String paramTypeSchemaId = getSchemaIdForType(parameterType);
+			populateSchemaMap(paramTypeSchemaId, parameterType, schemaMap);
+
 			String paramDescription = parameterToDescription.get(paramName);
-			TypeKind parameterType = param.asType().getKind();
-			String paramTypeClassName = param.asType().toString();
-			populateSchemaMap(paramTypeClassName, parameterType, schemaMap);
 			parameters.add(new ParameterModel().withDescription(paramDescription).withIn(paramLocation)
-					.withName(paramName).withRequired(true).withId(paramTypeClassName));
+					.withName(paramName).withRequired(paramIsRequired).withId(paramTypeSchemaId));
 		}
 		return parameters;
+	}
+
+	/**
+	 * Get if a parameter is required
+	 *
+	 * @param paramAnnotation - the parameter being looked at
+	 * @return if the parameter is required
+	 */
+	boolean isParameterRequired(AnnotationMirror paramAnnotation) {
+		ValidateArgument.required(paramAnnotation, "paramAnnotation");
+
+		boolean paramIsRequired = true;
+		for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> elements: paramAnnotation.getElementValues().entrySet()) {
+			if ("required".equals(elements.getKey().getSimpleName().toString())) {
+				paramIsRequired = (Boolean) elements.getValue().getValue();
+			}
+		}
+
+		return paramIsRequired;
 	}
 
 	/**

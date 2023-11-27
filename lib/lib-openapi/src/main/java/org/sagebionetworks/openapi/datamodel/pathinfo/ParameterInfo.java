@@ -104,9 +104,8 @@ public class ParameterInfo implements JSONEntity {
 		}
 		writeTo.put("name", name);
 		writeTo.put("in", in);
-		if (required) {
-			writeTo.put("required", required);
-		}
+		writeTo.put("required", required);
+
 		if (description != null) {
 			writeTo.put("description", description);
 		}
