@@ -169,8 +169,8 @@ public interface AccessRequirementDAO {
 	 * @param offset
 	 * @return
 	 */
-	List<AccessRequirement> searchAccessRequirements(List<AccessRequirementSearchSort> sort, String nameContains, String reviewerId,
-			Long projectId, ACCESS_TYPE accessType, long limit, long offset);
+	List<AccessRequirement> searchAccessRequirements(List<AccessRequirementSearchSort> sort, String nameContains, List<Long> arIds, String reviewerId,
+			Long projectId, ACCESS_TYPE accessType, String concreteType, long limit, long offset);
 	
 	
 	/**
