@@ -91,6 +91,7 @@ public class ControllerToControllerModelTranslator {
 			"org.sagebionetworks.reflection.model.PaginatedResults", "results",
 			"org.sagebionetworks.repo.model.ListWrapper", "list"
 	);
+	private AnnotationMirror paramAnnotation;
 
 	/**
 	 * Converts all controllers found in the doclet environment to controller
@@ -748,11 +749,10 @@ public class ControllerToControllerModelTranslator {
 
 			AnnotationMirror paramAnnotation = getParameterAnnotation(param);
 			String paramName = param.getSimpleName().toString();
-			if (ParameterLocation.path.equals(paramLocation)) {
-				for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> elements: paramAnnotation.getElementValues().entrySet()) {
-					if ("value".equals(elements.getKey().getSimpleName().toString())) {
-						paramName = elements.getValue().getValue().toString();
-					}
+
+			for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> elements: paramAnnotation.getElementValues().entrySet()) {
+				if ("value".equals(elements.getKey().getSimpleName().toString())) {
+					paramName = elements.getValue().getValue().toString();
 				}
 			}
 

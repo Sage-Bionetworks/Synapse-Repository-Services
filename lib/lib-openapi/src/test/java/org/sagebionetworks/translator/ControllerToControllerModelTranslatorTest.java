@@ -1890,6 +1890,74 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 
 	@Test
+	public void testGetParametersWithHeaderValueDifferentFromMethodVariableName() {
+		List<VariableElement> parameters = new ArrayList<>();
+		parameters.add(mockParameter);
+		when(mockParameter.asType()).thenReturn(mockParameterType);
+		when(mockParameterType.toString()).thenReturn(MOCK_CLASS_NAME);
+		when(mockParameter.getSimpleName()).thenReturn(mockName);
+		when(mockName.toString()).thenReturn(PARAM_1_NAME);
+		when(mockParameterType.getKind()).thenReturn(TypeKind.INT);
+
+		doReturn(ParameterLocation.header).when(translator).getParameterLocation(any());
+		doReturn(mockAnnotationMirror).when(translator).getParameterAnnotation(any());
+		Map<ExecutableElement, AnnotationValue> elementValues = new HashMap<>();
+		addAnnotationElementValues(elementValues, "value", PARAM_2_NAME);
+		doReturn(elementValues).when(mockAnnotationMirror).getElementValues();
+
+		Map<String, String> paramToDescription = new HashMap<>();
+		paramToDescription.put(PARAM_2_NAME, PARAM_2_DESCRIPTION);
+
+		ParameterModel expectedParam = new ParameterModel().withDescription(PARAM_2_DESCRIPTION).withIn(ParameterLocation.header)
+				.withName(PARAM_2_NAME).withRequired(true).withId(MOCK_CLASS_NAME);
+		List<ParameterModel> expectedParameters = Arrays.asList(expectedParam);
+
+		// call under test
+		assertEquals(expectedParameters, translator.getParameters(parameters, paramToDescription, new HashMap<>()));
+
+		verify(mockParameter, times(1)).asType();
+		verify(mockParameter).getSimpleName();
+		verify(mockParameterType).getKind();
+		verify(translator).getParameterLocation(mockParameter);
+		verify(translator).getParameterAnnotation(mockParameter);
+		verify(mockAnnotationMirror, times(2)).getElementValues();
+	}
+
+	@Test
+	public void testGetParametersWithRequestParameterValueDifferentFromMethodVariableName() {
+		List<VariableElement> parameters = new ArrayList<>();
+		parameters.add(mockParameter);
+		when(mockParameter.asType()).thenReturn(mockParameterType);
+		when(mockParameterType.toString()).thenReturn(MOCK_CLASS_NAME);
+		when(mockParameter.getSimpleName()).thenReturn(mockName);
+		when(mockName.toString()).thenReturn(PARAM_1_NAME);
+		when(mockParameterType.getKind()).thenReturn(TypeKind.INT);
+
+		doReturn(ParameterLocation.query).when(translator).getParameterLocation(any());
+		doReturn(mockAnnotationMirror).when(translator).getParameterAnnotation(any());
+		Map<ExecutableElement, AnnotationValue> elementValues = new HashMap<>();
+		addAnnotationElementValues(elementValues, "value", PARAM_2_NAME);
+		doReturn(elementValues).when(mockAnnotationMirror).getElementValues();
+
+		Map<String, String> paramToDescription = new HashMap<>();
+		paramToDescription.put(PARAM_2_NAME, PARAM_2_DESCRIPTION);
+
+		ParameterModel expectedParam = new ParameterModel().withDescription(PARAM_2_DESCRIPTION).withIn(ParameterLocation.query)
+				.withName(PARAM_2_NAME).withRequired(true).withId(MOCK_CLASS_NAME);
+		List<ParameterModel> expectedParameters = Arrays.asList(expectedParam);
+
+		// call under test
+		assertEquals(expectedParameters, translator.getParameters(parameters, paramToDescription, new HashMap<>()));
+
+		verify(mockParameter, times(1)).asType();
+		verify(mockParameter).getSimpleName();
+		verify(mockParameterType).getKind();
+		verify(translator).getParameterLocation(mockParameter);
+		verify(translator).getParameterAnnotation(mockParameter);
+		verify(mockAnnotationMirror, times(2)).getElementValues();
+	}
+
+	@Test
 	public void testGetParameterLocationWithUnknownAnnotation() {
 		AnnotationMirror mockAnnoMirror = mock(AnnotationMirror.class);
 		doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));

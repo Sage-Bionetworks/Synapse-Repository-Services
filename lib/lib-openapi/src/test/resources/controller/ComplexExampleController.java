@@ -232,6 +232,26 @@ public class ComplexExampleController {
 	}
 
 	/**
+	 * Example of an endpoint with a header parameter with a value different from the method argument name
+	 *
+	 * @param methodArgumentName
+	 */
+	@RequestMapping(value = "/complex-pet/differentheaderandmethodparameternames", method = RequestMethod.GET)
+	public void getHeaderName(
+			@RequestHeader(value = "annotationValue") String methodArgumentName
+	) { }
+
+	/**
+	 * Example of an endpoint with a request parameter with a value different from the method argument name
+	 *
+	 * @param methodArgumentName
+	 */
+	@RequestMapping(value = "/complex-pet/differentrequestparameterandmethodparameternames", method = RequestMethod.GET)
+	public void getRequestParam(
+			@RequestParam(value = "annotationValue") String methodArgumentName
+	) { }
+
+	/**
 	 * Example of an endpoint with a regular expression in a path parameter
 	 *
 	 * @param id an id
