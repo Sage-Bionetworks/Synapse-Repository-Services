@@ -375,17 +375,17 @@ public class ControllerToControllerModelTranslator {
 		ValidateArgument.required(type, "type");
 		ValidateArgument.required(schemaMap, "schemaMap");
 
-		List< ? extends TypeMirror> genericTypeArguments = getTypeArguments(type);
-		if (!genericTypeArguments.isEmpty()) {
-			TypeMirror argumentType = genericTypeArguments.get(0);
+		Optional<List< ? extends TypeMirror>> genericTypeArguments = getTypeArguments(type);
+		genericTypeArguments.ifPresentOrElse(arguments -> {
+			TypeMirror argumentType = arguments.get(0);
 			TypeKind argumentKind = argumentType.getKind();
 			String argumentSchemaId = getSchemaIdForType(argumentType);
 			populateSchemaMapForConcreteType(argumentSchemaId, argumentKind, schemaMap);
 			populateSchemaMapForGenericType(schemaId, type, argumentType, schemaMap);
-		} else {
+		}, () -> {
 			TypeKind typeKind = type.getKind();
 			populateSchemaMapForConcreteType(schemaId, typeKind, schemaMap);
-		}
+		});
 	}
 
 	/**
@@ -448,11 +448,11 @@ public class ControllerToControllerModelTranslator {
 		ValidateArgument.required(typeMirror, "typeMirror");
 
 		String schemaId;
-		List< ? extends TypeMirror> genericTypeArguments = getTypeArguments(typeMirror);
-		if (!genericTypeArguments.isEmpty()) {
-			schemaId = getSchemaIdForGenericType(typeMirror);
-		} else {
+		Optional<List< ? extends TypeMirror>> genericTypeArguments = getTypeArguments(typeMirror);
+		if (genericTypeArguments.isEmpty()) {
 			schemaId = typeMirror.toString();
+		} else {
+			schemaId = getSchemaIdForGenericType(typeMirror);
 		}
 		return schemaId;
 	}
@@ -470,7 +470,7 @@ public class ControllerToControllerModelTranslator {
 		String parameterClassSimpleName;
 
 		String genericClassName = getGenericClassName(genericType);
-		String parameterClassName = getTypeArguments(genericType).get(0).toString();
+		String parameterClassName = getTypeArguments(genericType).get().get(0).toString();
 
 		try {
 			Class genericClazz = Class.forName(genericClassName);
@@ -488,9 +488,9 @@ public class ControllerToControllerModelTranslator {
 	 * Extracts the type arguments from a type. Returns an empty list if the type is not a parameterized type.
 	 *
 	 * @param typeMirror - the type
-	 * @return  a list of type arguments
+	 * @return  an optional of a list of type arguments
 	 */
-	List< ? extends TypeMirror> getTypeArguments(TypeMirror typeMirror) {
+	Optional<List< ? extends TypeMirror>> getTypeArguments(TypeMirror typeMirror) {
 		ValidateArgument.required(typeMirror, "typeMirror");
 
 		List< ? extends TypeMirror> resultList = new ArrayList<>();
@@ -499,7 +499,7 @@ public class ControllerToControllerModelTranslator {
 			resultList = declaredType.getTypeArguments();
 		}
 
-		return resultList;
+		return resultList.isEmpty() ? Optional.empty() : Optional.of(resultList);
 	}
 
 	/**
@@ -560,12 +560,12 @@ public class ControllerToControllerModelTranslator {
 		ObjectSchema itemsSchema = new ObjectSchemaImpl();
 		arraySchema.setType(TYPE.ARRAY);
 		Optional<Type> basicType = getJsonSchemaBasicTypeForClass(typeName);
-		if (!basicType.isEmpty()) {
+		basicType.ifPresentOrElse(type -> {
 			itemsSchema.setType(TYPE.getTypeFromJSONValue(basicType.get().toString()));
-		} else {
+		}, () -> {
 			itemsSchema.setId(typeName);
 			itemsSchema.setType(TYPE.OBJECT);
-		}
+		});
 		arraySchema.setItems(itemsSchema);
 
 		return  arraySchema;
@@ -776,14 +776,13 @@ public class ControllerToControllerModelTranslator {
 	boolean isParameterRequired(AnnotationMirror paramAnnotation) {
 		ValidateArgument.required(paramAnnotation, "paramAnnotation");
 
-		boolean paramIsRequired = true;
 		for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> elements: paramAnnotation.getElementValues().entrySet()) {
 			if ("required".equals(elements.getKey().getSimpleName().toString())) {
-				paramIsRequired = (Boolean) elements.getValue().getValue();
+				return (Boolean) elements.getValue().getValue();
 			}
 		}
 
-		return paramIsRequired;
+		return true;
 	}
 
 	/**
