@@ -91,7 +91,6 @@ public class ControllerToControllerModelTranslator {
 			"org.sagebionetworks.reflection.model.PaginatedResults", "results",
 			"org.sagebionetworks.repo.model.ListWrapper", "list"
 	);
-	private AnnotationMirror paramAnnotation;
 
 	/**
 	 * Converts all controllers found in the doclet environment to controller
