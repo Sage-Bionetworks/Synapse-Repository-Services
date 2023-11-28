@@ -24,6 +24,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.logging.log4j.ThreadContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +34,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.GlobalConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.TeamConstants;
@@ -42,6 +45,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -87,6 +91,7 @@ public class UserManagerImplUnitTest {
 	private UserGroup mockUserGroup;
 	private String alias;
 	private PrincipalAlias principalAlias;
+	private String sessionId;
 	
 	@BeforeEach
 	public void setUp() throws Exception {
@@ -98,6 +103,13 @@ public class UserManagerImplUnitTest {
 		principalAlias.setAlias(alias);
 		principalAlias.setAliasId(3333L);
 		principalAlias.setType(AliasType.USER_NAME);
+		sessionId = UUID.randomUUID().toString();
+		ThreadContext.put(GlobalConstants.SESSION_ID,  sessionId);
+	}
+	
+	@AfterEach
+	public void after() {
+		ThreadContext.remove(GlobalConstants.SESSION_ID);
 	}
 	
 	@Test
@@ -117,6 +129,8 @@ public class UserManagerImplUnitTest {
 		
 		// method under test
 		UserInfo userInfo = userManager.getUserInfo(principalId);
+		
+		assertEquals(new CallersContext().setSessionId(sessionId), userInfo.getContext());
 		
 		verify(mockAuthDAO).isTwoFactorAuthEnabled(principalId);
 		

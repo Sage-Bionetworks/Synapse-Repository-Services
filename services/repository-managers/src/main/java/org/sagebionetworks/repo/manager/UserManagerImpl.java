@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -229,7 +230,7 @@ public class UserManagerImpl implements UserManager {
 		ui.setGroups(groups);
 		ui.setAcceptsTermsOfUse(authDAO.hasUserAcceptedToU(principalId));
 		ui.setTwoFactorAuthEnabled(authDAO.isTwoFactorAuthEnabled(principalId));
-		ui.setSessionId(ThreadContext.get(GlobalConstants.SESSION_ID));
+		ui.setContext(new CallersContext().setSessionId(ThreadContext.get(GlobalConstants.SESSION_ID)));
 		return ui;
 	}
 

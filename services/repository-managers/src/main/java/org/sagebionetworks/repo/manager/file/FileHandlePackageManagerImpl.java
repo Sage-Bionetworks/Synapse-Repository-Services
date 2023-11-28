@@ -146,8 +146,6 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 
 	@Override
 	public BulkFileDownloadResponse buildZip(UserInfo user, BulkFileDownloadRequest request, boolean skipFileSizeCheck) throws IOException {
-		ValidateArgument.required(user, "UserInfo");
-		ValidateArgument.required(user.getSessionId(), "UserInfo.sessionId");
 		// fix for PLFM-6626
 		if (request.getZipFileName() != null) {
 			NameValidation.validateName(request.getZipFileName());
@@ -283,6 +281,10 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 	}
 
 	void collectDownloadStatistics(UserInfo userInfo, String resultFileHandleId, List<FileDownloadSummary> results) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(userInfo.getContext(), "userInfo.context");
+		ValidateArgument.required(userInfo.getContext().getSessionId(), "userInfo.context.sessionId");
+		
 		List<FileEvent> downloadFileEvents = results.stream()
 				// Only collects stats for successful summaries
 				.filter(summary -> FileDownloadStatus.SUCCESS.equals(summary.getStatus()))
@@ -290,7 +292,7 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 						.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(), summary.getFileHandleId(),
 								resultFileHandleId, summary.getAssociateObjectId(), summary.getAssociateObjectType(),
 								configuration.getStack(), configuration.getStackInstance())
-						.setSessionId(userInfo.getSessionId()))
+						.setSessionId(userInfo.getContext().getSessionId()))
 				.collect(Collectors.toList());
 
 		downloadFileEvents.forEach(messenger::publishMessageAfterCommit);

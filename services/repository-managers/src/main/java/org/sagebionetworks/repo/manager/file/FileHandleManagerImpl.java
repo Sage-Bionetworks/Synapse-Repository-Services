@@ -343,6 +343,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	String getRedirectURLForFileHandle(UserInfo userInfo,
 			String fileHandleId, FileHandleAssociateType fileAssociateType,
 			String fileAssociateId) {
+		
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(userInfo.getContext(), "userInfo.context");
+		ValidateArgument.required(userInfo.getContext().getSessionId(), "userInfo.context.sessionId");
+		
 		FileHandleAssociation fileHandleAssociation = new FileHandleAssociation();
 		fileHandleAssociation.setFileHandleId(fileHandleId);
 		fileHandleAssociation.setAssociateObjectType(fileAssociateType);
@@ -357,7 +362,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String url = getURLForFileHandle(userInfo, fileHandle);
 
 		FileEvent fileEvent = FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(), fileHandleAssociation,
-				config.getStack(), config.getStackInstance());
+				config.getStack(), config.getStackInstance()).setSessionId(userInfo.getContext().getSessionId());
 		messenger.publishMessageAfterCommit(fileEvent);
 		return url;
 	}
@@ -1300,7 +1305,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo, BatchFileRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(userInfo.getSessionId(), "userInfo.sessionId");
+		ValidateArgument.required(userInfo.getContext(), "userInfo.context");
+		ValidateArgument.required(userInfo.getContext().getSessionId(), "userInfo.context.sessionId");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getRequestedFiles(), "requestedFiles");
 		String userId = userInfo.getId().toString();
@@ -1378,7 +1384,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
 
 							fileEvents.add(FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(),
-									association, config.getStack(), config.getStackInstance()).setSessionId(userInfo.getSessionId()));
+									association, config.getStack(), config.getStackInstance()).setSessionId(userInfo.getContext().getSessionId()));
 							
 							ObjectRecord record = createObjectRecord(userId, association, now);
 							downloadRecords.add(record);
