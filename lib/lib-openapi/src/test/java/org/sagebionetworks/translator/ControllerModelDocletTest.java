@@ -408,6 +408,30 @@ public class ControllerModelDocletTest {
 	}
 
 	@Test
+	public void testDifferentHeaderAndMethodParameterNames() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/differentheaderandmethodparameternames");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+		JSONObject paramObj = (JSONObject) paramsObj.get(0);
+
+
+		assertEquals("annotationValue", paramObj.getString("name"));
+	}
+
+	@Test
+	public void testDifferentRequestParameterAndMethodParameterNames() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/differentrequestparameterandmethodparameternames");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+		JSONObject paramObj = (JSONObject) paramsObj.get(0);
+
+
+		assertEquals("annotationValue", paramObj.getString("name"));
+	}
+
+	@Test
 	public void testRegularExpressionInPathParameter() {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
 		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/regularexpression/{id}/test");

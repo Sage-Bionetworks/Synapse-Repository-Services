@@ -13,6 +13,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
@@ -975,7 +976,7 @@ public class ControllerToControllerModelTranslatorTest {
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
 		String schemaId = "org.sagebionetworks.schemaId";
 
-		doReturn(new ArrayList<TypeMirror>()).when(translator).getTypeArguments(any(TypeMirror.class));
+		doReturn(Optional.empty()).when(translator).getTypeArguments(any(TypeMirror.class));
 		doReturn(TypeKind.DECLARED).when(mockParameterType).getKind();
 		doNothing().when(translator).populateSchemaMapForConcreteType(any(String.class), any(TypeKind.class), any());
 
@@ -985,6 +986,7 @@ public class ControllerToControllerModelTranslatorTest {
 		verify(translator).getTypeArguments(mockParameterType);
 		verify(mockParameterType).getKind();
 		verify(translator).populateSchemaMapForConcreteType(schemaId, TypeKind.DECLARED, schemaMap);
+		verify(translator, never()).populateSchemaMapForGenericType(any(), any(), any(), any());
 	}
 
 	@Test
@@ -996,7 +998,7 @@ public class ControllerToControllerModelTranslatorTest {
 		List<TypeMirror> argumentTypes = List.of(mockParameterType);
 
 		doReturn(TypeKind.DECLARED).when(mockParameterType).getKind();
-		doReturn(argumentTypes).when(translator).getTypeArguments(any(TypeMirror.class));
+		doReturn(Optional.of(argumentTypes)).when(translator).getTypeArguments(any(TypeMirror.class));
 		doReturn(argumentSchemaId).when(translator).getSchemaIdForType(any(TypeMirror.class));
 		doNothing().when(translator).populateSchemaMapForConcreteType(any(String.class), any(TypeKind.class), any());
 		doNothing().when(translator).populateSchemaMapForGenericType(any(String.class), any(TypeMirror.class), any(), any());
@@ -1008,6 +1010,7 @@ public class ControllerToControllerModelTranslatorTest {
 		verify(translator).getSchemaIdForType(mockParameterType);
 		verify(translator).populateSchemaMapForConcreteType(argumentSchemaId, TypeKind.DECLARED, schemaMap);
 		verify(translator).populateSchemaMapForGenericType(schemaId, mockGenericType, mockParameterType, schemaMap);
+		verify(mockGenericType, never()).getKind();
 	}
 
 	@Test
@@ -1096,6 +1099,7 @@ public class ControllerToControllerModelTranslatorTest {
 
 		verify(translator).getGenericClassName(mockGenericType);
 		verify(translator).generateArrayObjectSchema("java.lang.String");
+		verify(translator, never()).generateObjectSchemaForGenericType(	any(), any(), any());
 	}
 
 	@Test
@@ -1117,6 +1121,7 @@ public class ControllerToControllerModelTranslatorTest {
 		verify(translator).getGenericClassName(mockGenericType);
 		verify(translator).generateObjectSchemaForGenericType(schemaId, genericClassName, mockParameterType);
 		assertEquals(expectedSchemaMap, schemaMap);
+		verify(translator, never()).generateArrayObjectSchema(any());
 	}
 
 	@Test
@@ -1170,7 +1175,7 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetSchemaIdForTypeWithGenericType() {
 		List<TypeMirror> argumentList = List.of(mockParameterType);
 
-		doReturn(argumentList).when(translator).getTypeArguments(any(TypeMirror.class));
+		doReturn(Optional.of(argumentList)).when(translator).getTypeArguments(any(TypeMirror.class));
 		doReturn("ListOfString").when(translator).getSchemaIdForGenericType(any((TypeMirror.class)));
 
 		// call under test
@@ -1184,15 +1189,14 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetSchemaIdForTypeWithConcreteType() {
-		List<TypeMirror> argumentList = new ArrayList<>();
-
-		doReturn(argumentList).when(translator).getTypeArguments(any(TypeMirror.class));
+		doReturn(Optional.empty()).when(translator).getTypeArguments(any(TypeMirror.class));
 		doReturn("org.sagebionetworks.test").when(mockParameterType).toString();
 
 		// call under test
 		String resultId = translator.getSchemaIdForType(mockParameterType);
 
 		assertEquals("org.sagebionetworks.test", resultId);
+		verify(translator, never()).getSchemaIdForGenericType(any());
 	}
 
 	@Test
@@ -1210,7 +1214,7 @@ public class ControllerToControllerModelTranslatorTest {
 		String concreteClassName = "java.lang.String";
 
 		doReturn(genericClassName).when(translator).getGenericClassName(any(TypeMirror.class));
-		doReturn(List.of(mockParameterType)).when(translator).getTypeArguments(any(TypeMirror.class));
+		doReturn(Optional.of(List.of(mockParameterType))).when(translator).getTypeArguments(any(TypeMirror.class));
 		doReturn(concreteClassName).when(mockParameterType).toString();
 
 		// call under test
@@ -1228,7 +1232,7 @@ public class ControllerToControllerModelTranslatorTest {
 		String concreteClassName = "java.lang.DoesNotExist";
 
 		doReturn(genericClassName).when(translator).getGenericClassName(any(TypeMirror.class));
-		doReturn(List.of(mockParameterType)).when(translator).getTypeArguments(any(TypeMirror.class));
+		doReturn(Optional.of(List.of(mockParameterType))).when(translator).getTypeArguments(any(TypeMirror.class));
 		doReturn(concreteClassName).when(mockParameterType).toString();
 
 		// call under test
@@ -1255,9 +1259,9 @@ public class ControllerToControllerModelTranslatorTest {
 		doReturn(argumentTypes).when(mockGenericDeclaredType).getTypeArguments();
 
 		// call under test
-		List<? extends TypeMirror> resultList = translator.getTypeArguments(mockGenericDeclaredType);
+		Optional<List<? extends TypeMirror>> resultList = translator.getTypeArguments(mockGenericDeclaredType);
 
-		assertEquals(argumentTypes, resultList);
+		assertEquals(argumentTypes, resultList.get());
 
 		verify(mockGenericDeclaredType).getTypeArguments();
 	}
@@ -1278,20 +1282,10 @@ public class ControllerToControllerModelTranslatorTest {
 		// call under test
 		ObjectSchema resultSchema= translator.generateObjectSchemaForGenericType("PaginatedResultsOfString", "org.sagebionetworks.reflection.model.PaginatedResults", mockParameterType);
 
-		ObjectSchema expectedSchema = new ObjectSchemaImpl();
-		expectedSchema.setType(TYPE.OBJECT);
-		expectedSchema.setId("PaginatedResultsOfString");
-		String effectiveSchemaString = "{\"id\":\"org.sagebionetworks.repo.model.PaginatedResults\",\"description\":\"JSON schema for Row POJO\",\"name\":\"PaginatedResults\",\"properties\":{\"totalNumberOfResults\":{\"description\":\"Calculating the actual totalNumberOfResults is not longer supported. Therefore, for each page, the totalNumberOfResults is estimated using the current page, limit, and offset. When the page size equals the limit, the totalNumberOfResults will be offset+pageSize+ 1. Otherwise, the totalNumberOfResults will be offset+pageSize.\",\"type\":\"integer\"},\"results\":{\"items\":{\"id\":\"org.sagebionetworks.repo.model.Entity\",\"description\":\"This is the base interface that all Entities should implement\",\"name\":\"Entity\",\"properties\":{\"id\":{\"description\":\"The unique immutable ID for this entity.  A new ID will be generated for new Entities.  Once issued, this ID is guaranteed to never change or be re-issued\",\"type\":\"string\"},\"createdOn\":{\"description\":\"The date this entity was created.\",\"format\":\"date-time\",\"type\":\"string\"},\"modifiedOn\":{\"description\":\"The date this entity was last modified.\",\"format\":\"date-time\",\"type\":\"string\"},\"parentId\":{\"description\":\"The ID of the parent of this entity\",\"type\":\"string\"},\"etag\":{\"description\":\"Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an entity is out-of-date.\",\"type\":\"string\"},\"createdBy\":{\"description\":\"The user that created this entity.\",\"type\":\"string\"},\"accessControlList\":{\"description\":\"The URI to get to this entity's access control list\",\"transient\":true,\"type\":\"string\"},\"description\":{\"description\":\"The description of this entity.\",\"type\":\"string\"},\"modifiedBy\":{\"description\":\"The user that last modified this entity.\",\"type\":\"string\"},\"name\":{\"description\":\"The name of this entity\",\"type\":\"string\"},\"annotations\":{\"description\":\"The URI to get to this entity's annotations\",\"transient\":true,\"type\":\"string\"},\"uri\":{\"description\":\"The Uniform Resource Identifier (URI) for this entity.\",\"transient\":true,\"type\":\"string\"}},\"type\":\"interface\"},\"description\":\"The the id of the entity to which this reference refers\",\"type\":\"array\"}},\"type\":\"object\"}";
-		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(effectiveSchemaString);
-		ObjectSchema effectiveSchema = new ObjectSchemaImpl(adapter);
-		expectedSchema.setProperties((LinkedHashMap<String, ObjectSchema>) effectiveSchema.getProperties());
-		String itemsSchemaString = "{\"type\":\"array\",\"items\":{\"type\": \"string\"}}";
-		ObjectSchema itemSchema = new ObjectSchemaImpl(new JSONObjectAdapterImpl(itemsSchemaString));
-		expectedSchema.putProperty("results", itemSchema);
+		String expectedItemsSchemaString = "{\"type\":\"array\",\"items\":{\"type\": \"string\"}}";
+		ObjectSchema expectedItemSchema = new ObjectSchemaImpl(new JSONObjectAdapterImpl(expectedItemsSchemaString));
 
-		System.out.println(expectedSchema);
-
-		assertEquals(expectedSchema, resultSchema);
+		assertEquals(expectedItemSchema, resultSchema.getProperties().get("results"));
 	}
 
 	@Test
@@ -1881,6 +1875,74 @@ public class ControllerToControllerModelTranslatorTest {
 		paramToDescription.put(PARAM_2_NAME, PARAM_2_DESCRIPTION);
 
 		ParameterModel expectedParam = new ParameterModel().withDescription(PARAM_2_DESCRIPTION).withIn(ParameterLocation.path)
+				.withName(PARAM_2_NAME).withRequired(true).withId(MOCK_CLASS_NAME);
+		List<ParameterModel> expectedParameters = Arrays.asList(expectedParam);
+
+		// call under test
+		assertEquals(expectedParameters, translator.getParameters(parameters, paramToDescription, new HashMap<>()));
+
+		verify(mockParameter, times(1)).asType();
+		verify(mockParameter).getSimpleName();
+		verify(mockParameterType).getKind();
+		verify(translator).getParameterLocation(mockParameter);
+		verify(translator).getParameterAnnotation(mockParameter);
+		verify(mockAnnotationMirror, times(2)).getElementValues();
+	}
+
+	@Test
+	public void testGetParametersWithHeaderValueDifferentFromMethodVariableName() {
+		List<VariableElement> parameters = new ArrayList<>();
+		parameters.add(mockParameter);
+		when(mockParameter.asType()).thenReturn(mockParameterType);
+		when(mockParameterType.toString()).thenReturn(MOCK_CLASS_NAME);
+		when(mockParameter.getSimpleName()).thenReturn(mockName);
+		when(mockName.toString()).thenReturn(PARAM_1_NAME);
+		when(mockParameterType.getKind()).thenReturn(TypeKind.INT);
+
+		doReturn(ParameterLocation.header).when(translator).getParameterLocation(any());
+		doReturn(mockAnnotationMirror).when(translator).getParameterAnnotation(any());
+		Map<ExecutableElement, AnnotationValue> elementValues = new HashMap<>();
+		addAnnotationElementValues(elementValues, "value", PARAM_2_NAME);
+		doReturn(elementValues).when(mockAnnotationMirror).getElementValues();
+
+		Map<String, String> paramToDescription = new HashMap<>();
+		paramToDescription.put(PARAM_2_NAME, PARAM_2_DESCRIPTION);
+
+		ParameterModel expectedParam = new ParameterModel().withDescription(PARAM_2_DESCRIPTION).withIn(ParameterLocation.header)
+				.withName(PARAM_2_NAME).withRequired(true).withId(MOCK_CLASS_NAME);
+		List<ParameterModel> expectedParameters = Arrays.asList(expectedParam);
+
+		// call under test
+		assertEquals(expectedParameters, translator.getParameters(parameters, paramToDescription, new HashMap<>()));
+
+		verify(mockParameter, times(1)).asType();
+		verify(mockParameter).getSimpleName();
+		verify(mockParameterType).getKind();
+		verify(translator).getParameterLocation(mockParameter);
+		verify(translator).getParameterAnnotation(mockParameter);
+		verify(mockAnnotationMirror, times(2)).getElementValues();
+	}
+
+	@Test
+	public void testGetParametersWithRequestParameterValueDifferentFromMethodVariableName() {
+		List<VariableElement> parameters = new ArrayList<>();
+		parameters.add(mockParameter);
+		when(mockParameter.asType()).thenReturn(mockParameterType);
+		when(mockParameterType.toString()).thenReturn(MOCK_CLASS_NAME);
+		when(mockParameter.getSimpleName()).thenReturn(mockName);
+		when(mockName.toString()).thenReturn(PARAM_1_NAME);
+		when(mockParameterType.getKind()).thenReturn(TypeKind.INT);
+
+		doReturn(ParameterLocation.query).when(translator).getParameterLocation(any());
+		doReturn(mockAnnotationMirror).when(translator).getParameterAnnotation(any());
+		Map<ExecutableElement, AnnotationValue> elementValues = new HashMap<>();
+		addAnnotationElementValues(elementValues, "value", PARAM_2_NAME);
+		doReturn(elementValues).when(mockAnnotationMirror).getElementValues();
+
+		Map<String, String> paramToDescription = new HashMap<>();
+		paramToDescription.put(PARAM_2_NAME, PARAM_2_DESCRIPTION);
+
+		ParameterModel expectedParam = new ParameterModel().withDescription(PARAM_2_DESCRIPTION).withIn(ParameterLocation.query)
 				.withName(PARAM_2_NAME).withRequired(true).withId(MOCK_CLASS_NAME);
 		List<ParameterModel> expectedParameters = Arrays.asList(expectedParam);
 
