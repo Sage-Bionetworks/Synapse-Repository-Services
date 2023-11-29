@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,15 +66,15 @@ public class ObjectSchemaUtilsTest {
 		objectSchema.setType(TYPE.INTEGER);
 		String className = "className";
 		classNameToObjectSchema.put(className, objectSchema);
-		Mockito.doReturn(new JsonSchema()).when(util).translateObjectSchemaToJsonSchema(any(ObjectSchema.class));
+		doReturn(new JsonSchema()).when(util).translateObjectSchemaToJsonSchema(any(ObjectSchema.class));
 		
 		Map<String, JsonSchema> expected = new HashMap<>();
 		expected.put(className, new JsonSchema());
 		// call under test
 		assertEquals(expected, util.getClassNameToJsonSchema(classNameToObjectSchema));
 		
-		Mockito.verify(util).translateObjectSchemaToJsonSchema(objectSchema);
-		Mockito.verify(util).insertOneOfPropertyForInterfaces(expected, new HashMap<>());
+		verify(util).translateObjectSchemaToJsonSchema(objectSchema);
+		verify(util).insertOneOfPropertyForInterfaces(expected, new HashMap<>());
 	}
 	
 	@Test
@@ -86,8 +88,8 @@ public class ObjectSchemaUtilsTest {
 		objectSchema.setDescription("TESTING");
 		objectSchema.setId("MOCK_ID");
 		
-		Mockito.doReturn(Type.object).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
-		Mockito.doReturn(new LinkedHashMap<>()).when(util).translatePropertiesFromObjectSchema(any(Map.class), any(String.class));
+		doReturn(Type.object).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
+		doReturn(new LinkedHashMap<>()).when(util).translatePropertiesFromObjectSchema(any(Map.class), any(String.class));
 		
 		JsonSchema expected = new JsonSchema();
 		expected.setType(Type.object);
@@ -96,8 +98,8 @@ public class ObjectSchemaUtilsTest {
 
 		// call under test
 		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
-		Mockito.verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.OBJECT);
-		Mockito.verify(util).translatePropertiesFromObjectSchema(new LinkedHashMap<>(), "MOCK_ID");
+		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.OBJECT);
+		verify(util).translatePropertiesFromObjectSchema(new LinkedHashMap<>(), "MOCK_ID");
 	}
 	
 	@Test
@@ -110,8 +112,8 @@ public class ObjectSchemaUtilsTest {
 		objectSchema.setProperties(new LinkedHashMap<>());
 		objectSchema.setId("MOCK_ID");
 		
-		Mockito.doReturn(Type.object).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
-		Mockito.doReturn(new LinkedHashMap<>()).when(util).translatePropertiesFromObjectSchema(any(Map.class), any(String.class));
+		doReturn(Type.object).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
+		doReturn(new LinkedHashMap<>()).when(util).translatePropertiesFromObjectSchema(any(Map.class), any(String.class));
 		
 		JsonSchema expected = new JsonSchema();
 		expected.setType(Type.object);
@@ -119,8 +121,8 @@ public class ObjectSchemaUtilsTest {
 
 		// call under test
 		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
-		Mockito.verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.OBJECT);
-		Mockito.verify(util).translatePropertiesFromObjectSchema(new LinkedHashMap<>(), "MOCK_ID");
+		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.OBJECT);
+		verify(util).translatePropertiesFromObjectSchema(new LinkedHashMap<>(), "MOCK_ID");
 	}
 	
 	@Test
@@ -130,12 +132,59 @@ public class ObjectSchemaUtilsTest {
 		objectSchema = new ObjectSchemaImpl(adpater);
 		objectSchema.setType(TYPE.INTEGER);
 		
-		Mockito.doReturn(new JsonSchema()).when(util).getSchemaForPrimitiveType(any(TYPE.class));
-		Mockito.doReturn(true).when(util).isPrimitive(any(TYPE.class));
+		doReturn(new JsonSchema()).when(util).getSchemaForPrimitiveType(any(TYPE.class));
+		doReturn(true).when(util).isPrimitive(any(TYPE.class));
 		
 		assertEquals(new JsonSchema(), util.translateObjectSchemaToJsonSchema(objectSchema));
-		Mockito.verify(util).isPrimitive(TYPE.INTEGER);
-		Mockito.verify(util).getSchemaForPrimitiveType(TYPE.INTEGER);
+		verify(util).isPrimitive(TYPE.INTEGER);
+		verify(util).getSchemaForPrimitiveType(TYPE.INTEGER);
+	}
+
+	@Test
+	public void testTranslateObjectSchemaToJsonSchemaWithArrayWithObjectItems() {
+		ObjectSchema objectSchema = new ObjectSchemaImpl();
+		ObjectSchema items = new ObjectSchemaImpl();
+
+		objectSchema.setType(TYPE.ARRAY);
+		objectSchema.setItems(items);
+		objectSchema.setId("MOCK_ID");
+
+		items.setType(TYPE.OBJECT);
+		items.setId("org.sagebionetworks.testclass");
+
+		doReturn(Type.array).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
+		doReturn(false).when(util).isSelfReferencing(any(ObjectSchema.class));
+
+		JsonSchema expected = new JsonSchema();
+		expected.setType(Type.array);
+		expected.setItems(new JsonSchema().set$ref("#/components/schemas/org.sagebionetworks.testclass"));
+
+		// call under test
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.ARRAY);
+	}
+
+	@Test
+	public void testTranslateObjectSchemaToJsonSchemaWithArrayWithPrimitiveItems() {
+		ObjectSchema objectSchema = new ObjectSchemaImpl();
+		ObjectSchema items = new ObjectSchemaImpl();
+
+		objectSchema.setType(TYPE.ARRAY);
+		objectSchema.setItems(items);
+		objectSchema.setId("MOCK_ID");
+
+		items.setType(TYPE.STRING);
+
+		doReturn(Type.array).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
+		doReturn(false).when(util).isSelfReferencing(any(ObjectSchema.class));
+
+		JsonSchema expected = new JsonSchema();
+		expected.setType(Type.array);
+		expected.setItems(new JsonSchema().setType(Type.string));
+
+		// call under test
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.ARRAY);
 	}
 	
 	@Test
@@ -168,14 +217,14 @@ public class ObjectSchemaUtilsTest {
 		schema1.setType(Type.string);
 		JsonSchema schema2 = new JsonSchema();
 		schema2.setType(Type.integer);
-		Mockito.doReturn(schema1, schema2).when(util).getPropertyAsJsonSchema(any(), any());
+		doReturn(schema1, schema2).when(util).getPropertyAsJsonSchema(any(), any());
 		Map<String, JsonSchema> expected = new LinkedHashMap<>();
 		expected.put(className1, schema1);
 		expected.put(className2, schema2);
 		
 		// call under test
 		assertEquals(expected, util.translatePropertiesFromObjectSchema(properties, "MOCK_ID"));
-		Mockito.verify(util, Mockito.times(2)).getPropertyAsJsonSchema(any(), any());
+		verify(util, Mockito.times(2)).getPropertyAsJsonSchema(any(), any());
 		InOrder inOrder = Mockito.inOrder(util);
 		inOrder.verify(util).getPropertyAsJsonSchema(objectSchema1, "MOCK_ID");
 		inOrder.verify(util).getPropertyAsJsonSchema(objectSchema2, "MOCK_ID");
@@ -229,12 +278,12 @@ public class ObjectSchemaUtilsTest {
 		objectSchema = new ObjectSchemaImpl(adpater);
 		objectSchema.setType(TYPE.TUPLE_ARRAY_MAP);
 		
-		Mockito.doReturn(false).when(util).isPrimitive(any());
+		doReturn(false).when(util).isPrimitive(any());
 		Mockito.doNothing().when(util).populateSchemaForMapType(any(), any(), any());	
 		// call under test
 		assertEquals(new JsonSchema(), util.translateObjectSchemaPropertyToJsonSchema(objectSchema, "MOCK_ID"));
-		Mockito.verify(util).isPrimitive(TYPE.TUPLE_ARRAY_MAP);
-		Mockito.verify(util).populateSchemaForMapType(any(JsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
+		verify(util).isPrimitive(TYPE.TUPLE_ARRAY_MAP);
+		verify(util).populateSchemaForMapType(any(JsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
 	}
 	
 	@Test
@@ -244,12 +293,12 @@ public class ObjectSchemaUtilsTest {
 		objectSchema = new ObjectSchemaImpl(adpater);
 		objectSchema.setType(TYPE.MAP);
 		
-		Mockito.doReturn(false).when(util).isPrimitive(any());
+		doReturn(false).when(util).isPrimitive(any());
 		Mockito.doNothing().when(util).populateSchemaForMapType(any(), any(), any());	
 		// call under test
 		assertEquals(new JsonSchema(), util.translateObjectSchemaPropertyToJsonSchema(objectSchema, "MOCK_ID"));
-		Mockito.verify(util).isPrimitive(TYPE.MAP);
-		Mockito.verify(util).populateSchemaForMapType(any(JsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
+		verify(util).isPrimitive(TYPE.MAP);
+		verify(util).populateSchemaForMapType(any(JsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
 	}
 	
 	@Test
@@ -260,16 +309,15 @@ public class ObjectSchemaUtilsTest {
 		objectSchema.setId("MOCK_ID");
 		objectSchema.setType(TYPE.INTERFACE);
 		
-		Mockito.doReturn(false).when(util).isPrimitive(any());
-		Mockito.doReturn("MOCK_PATH").when(util).getPathInComponents(any());
+		doReturn(false).when(util).isPrimitive(any());
+		doReturn("MOCK_PATH").when(util).getPathInComponents(any());
 		JsonSchema result = new JsonSchema();
 		result.set$ref("MOCK_PATH");
-		result.setType(Type.object);
 		
 		// call under test
 		assertEquals(result, util.translateObjectSchemaPropertyToJsonSchema(objectSchema, "MOCK_ID"));
-		Mockito.verify(util).isPrimitive(TYPE.INTERFACE);
-		Mockito.verify(util).populateSchemaForObjectType(any(JsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
+		verify(util).isPrimitive(TYPE.INTERFACE);
+		verify(util).populateSchemaForObjectType(any(JsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
 	}
 	
 	@Test
@@ -280,16 +328,14 @@ public class ObjectSchemaUtilsTest {
 		objectSchema.setId("MOCK_ID");
 		objectSchema.setType(TYPE.OBJECT);
 		
-		Mockito.doReturn(false).when(util).isPrimitive(any());
-		Mockito.doReturn("MOCK_PATH").when(util).getPathInComponents(any());
+		doReturn(false).when(util).isPrimitive(any());
+		doReturn("MOCK_PATH").when(util).getPathInComponents(any());
 		JsonSchema result = new JsonSchema();
 		result.set$ref("MOCK_PATH");
-		result.setType(Type.object);
 		
 		// call under test
 		assertEquals(result, util.translateObjectSchemaPropertyToJsonSchema(objectSchema, "MOCK_ID"));
-		Mockito.verify(util).isPrimitive(TYPE.OBJECT);
-		Mockito.verify(util).populateSchemaForObjectType(any(JsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
+		verify(util).populateSchemaForObjectType(any(JsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
 	}
 	
 	@Test
@@ -314,28 +360,28 @@ public class ObjectSchemaUtilsTest {
 		result.setItems(resultItems);
 		
 		String schemaId = "SCHEMA_ID"; 
-		Mockito.doReturn(false).when(util).isSelfReferencing(any());
+		doReturn(false).when(util).isSelfReferencing(any());
 		// call under test
 		assertEquals(result, util.translateObjectSchemaPropertyToJsonSchema(schema, schemaId));
-		Mockito.verify(util).populateSchemaForArrayType(any(JsonSchema.class), eq(items), eq(schemaId));
+		verify(util).populateSchemaForArrayType(any(JsonSchema.class), eq(items), eq(schemaId));
 	}
 	
 	@Test
 	public void testTranslateObjectSchemaPropertyToJsonSchemaWithPrimitiveType() throws JSONObjectAdapterException {
 		JsonSchema result = new JsonSchema();
 		result.setType(Type.string);
-		Mockito.doReturn(result).when(util).getSchemaForPrimitiveType(any());
+		doReturn(result).when(util).getSchemaForPrimitiveType(any());
 		
 		ObjectSchema property;
 		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 		property = new ObjectSchemaImpl(adpater);
 		property.setType(TYPE.STRING);
 		
-		Mockito.doReturn(true).when(util).isPrimitive(any());
+		doReturn(true).when(util).isPrimitive(any());
 		// call under test
 		assertEquals(result, util.translateObjectSchemaPropertyToJsonSchema(property, "MOCK_ID"));
-		Mockito.verify(util).isPrimitive(TYPE.STRING);
-		Mockito.verify(util).getSchemaForPrimitiveType(TYPE.STRING);
+		verify(util).isPrimitive(TYPE.STRING);
+		verify(util).getSchemaForPrimitiveType(TYPE.STRING);
 	}
 	
 	@Test
@@ -380,13 +426,13 @@ public class ObjectSchemaUtilsTest {
 		
 		JsonSchema items = new JsonSchema();
 		items.setType(Type.array);
-		Mockito.doReturn(items).when(util).getPropertyAsJsonSchema(any(), any());
+		doReturn(items).when(util).getPropertyAsJsonSchema(any(), any());
 		
 		// call under test
 		util.populateSchemaForArrayType(schema, property, "PROPERTY_SCHEMA_ID");
 		assertTrue(schema.getType().equals(Type.array));
 		assertTrue(schema.getItems().equals(items));
-		Mockito.verify(util).getPropertyAsJsonSchema(property, "PROPERTY_SCHEMA_ID");
+		verify(util).getPropertyAsJsonSchema(property, "PROPERTY_SCHEMA_ID");
 	}
 	
 	@Test
@@ -430,13 +476,13 @@ public class ObjectSchemaUtilsTest {
 		
 		JsonSchema additionalProperties = new JsonSchema();
 		additionalProperties.setType(Type.object);
-		Mockito.doReturn(additionalProperties).when(util).getPropertyAsJsonSchema(any(), any());
+		doReturn(additionalProperties).when(util).getPropertyAsJsonSchema(any(), any());
 		
 		// call under test
 		util.populateSchemaForMapType(schema, property, "PROPERTY_SCHEMA_ID");
 		assertEquals(Type.object, schema.getType());
 		assertEquals(additionalProperties, schema.getAdditionalProperties());
-		Mockito.verify(util).getPropertyAsJsonSchema(value, "PROPERTY_SCHEMA_ID");
+		verify(util).getPropertyAsJsonSchema(value, "PROPERTY_SCHEMA_ID");
 	}
 	
 	@Test
@@ -473,13 +519,13 @@ public class ObjectSchemaUtilsTest {
 		
 		JsonSchema propertyTranslated = new JsonSchema();
 		propertyTranslated.setType(Type.array);
-		Mockito.doReturn(propertyTranslated).when(util).translateObjectSchemaPropertyToJsonSchema(any(), any());
-		Mockito.doReturn(false).when(util).isSelfReferencing(any());
+		doReturn(propertyTranslated).when(util).translateObjectSchemaPropertyToJsonSchema(any(), any());
+		doReturn(false).when(util).isSelfReferencing(any());
 		
 		// call under test
 		assertEquals(propertyTranslated, util.getPropertyAsJsonSchema(property, schemaId));
-		Mockito.verify(util).isSelfReferencing(property);
-		Mockito.verify(util).translateObjectSchemaPropertyToJsonSchema(property, schemaId);
+		verify(util).isSelfReferencing(property);
+		verify(util).translateObjectSchemaPropertyToJsonSchema(property, schemaId);
 	}
 	
 	@Test
@@ -489,13 +535,13 @@ public class ObjectSchemaUtilsTest {
 		
 		JsonSchema propertyTranslated = new JsonSchema();
 		propertyTranslated.setType(Type.array);
-		Mockito.doReturn(propertyTranslated).when(util).generateReferenceSchema(any());
-		Mockito.doReturn(true).when(util).isSelfReferencing(any());
+		doReturn(propertyTranslated).when(util).generateReferenceSchema(any());
+		doReturn(true).when(util).isSelfReferencing(any());
 		
 		// call under test
 		assertEquals(propertyTranslated, util.getPropertyAsJsonSchema(property, schemaId));
-		Mockito.verify(util).isSelfReferencing(property);
-		Mockito.verify(util).generateReferenceSchema(schemaId);
+		verify(util).isSelfReferencing(property);
+		verify(util).generateReferenceSchema(schemaId);
 	}
 	
 	@Test
@@ -524,15 +570,14 @@ public class ObjectSchemaUtilsTest {
 		property = new ObjectSchemaImpl(adpater);
 		property.setId("PROPERTY_SCHEMA_ID");
 		
-		Mockito.doReturn(false).when(util).isSelfReferencing(any());
-		Mockito.doReturn("MOCK_PATH").when(util).getPathInComponents(any());
+		doReturn(false).when(util).isSelfReferencing(any());
+		doReturn("MOCK_PATH").when(util).getPathInComponents(any());
 		
 		// call under test
 		util.populateSchemaForObjectType(schema, property, "PROPERTY_SCHEMA_ID");
-		assertTrue(schema.getType().equals(Type.object));
 		assertTrue(schema.get$ref().equals("MOCK_PATH"));
-		Mockito.verify(util).isSelfReferencing(property);
-		Mockito.verify(util).getPathInComponents("PROPERTY_SCHEMA_ID");
+		verify(util).isSelfReferencing(property);
+		verify(util).getPathInComponents("PROPERTY_SCHEMA_ID");
 	}
 	
 	@Test
@@ -543,14 +588,13 @@ public class ObjectSchemaUtilsTest {
 		property = new ObjectSchemaImpl(adpater);
 		property.setId(null);
 		
-		Mockito.doReturn(false).when(util).isSelfReferencing(any());
+		doReturn(false).when(util).isSelfReferencing(any());
 		
 		// call under test
 		util.populateSchemaForObjectType(schema, property, "PROPERTY_SCHEMA_ID");
-		assertTrue(schema.getType().equals(Type.object));
 		assertTrue(schema.get$ref() == null);
-		Mockito.verify(util).isSelfReferencing(property);
-		Mockito.verify(util, Mockito.times(0)).getPathInComponents(any());
+		verify(util).isSelfReferencing(property);
+		verify(util, Mockito.times(0)).getPathInComponents(any());
 	}
 	
 	@Test
@@ -560,15 +604,14 @@ public class ObjectSchemaUtilsTest {
 		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 		property = new ObjectSchemaImpl(adpater);
 		
-		Mockito.doReturn(true).when(util).isSelfReferencing(any());
-		Mockito.doReturn("MOCK_PATH").when(util).getPathInComponents(any());
+		doReturn(true).when(util).isSelfReferencing(any());
+		doReturn("MOCK_PATH").when(util).getPathInComponents(any());
 		
 		// call under test
 		util.populateSchemaForObjectType(schema, property, "MOCK_SCHEMA_ID");
-		assertTrue(schema.getType().equals(Type.object));
 		assertTrue(schema.get$ref().equals("MOCK_PATH"));
-		Mockito.verify(util).isSelfReferencing(property);
-		Mockito.verify(util).getPathInComponents("MOCK_SCHEMA_ID");
+		verify(util).isSelfReferencing(property);
+		verify(util).getPathInComponents("MOCK_SCHEMA_ID");
 	}
 	
 	@Test
@@ -601,15 +644,14 @@ public class ObjectSchemaUtilsTest {
 	@Test
 	public void testGenerateReferenceSchema() {
 		String schemaId = "SCHEMA_ID";
-		Mockito.doReturn("MOCK_PATH").when(util).getPathInComponents(any());
+		doReturn("MOCK_PATH").when(util).getPathInComponents(any());
 		
 		JsonSchema expected = new JsonSchema();
-		expected.setType(Type.object);
 		expected.set$ref("MOCK_PATH");
 		
 		// call under test
 		assertEquals(expected, util.generateReferenceSchema(schemaId));
-		Mockito.verify(util).getPathInComponents("SCHEMA_ID");
+		verify(util).getPathInComponents("SCHEMA_ID");
 	}
 	
 	@Test
@@ -665,9 +707,9 @@ public class ObjectSchemaUtilsTest {
 
 		Set<TypeReference> implementers = new HashSet<>();
 		TypeReference reference = Mockito.mock(TypeReference.class);
-		Mockito.doReturn("mock.implementer.class.name").when(reference).getId();
+		doReturn("mock.implementer.class.name").when(reference).getId();
 		implementers.add(reference);
-		Mockito.doReturn(implementers).when(util).getImplementers(any(String.class), any(Map.class));
+		doReturn(implementers).when(util).getImplementers(any(String.class), any(Map.class));
 		
 		// call under test
 		util.insertOneOfPropertyForInterfaces(classNameToJsonSchema, interfaces);
@@ -683,7 +725,7 @@ public class ObjectSchemaUtilsTest {
 		expectedClassNameToJsonSchema.put("mock.implementer.class.name", new JsonSchema());
 		
 		assertEquals(classNameToJsonSchema, classNameToJsonSchema);
-		Mockito.verify(util).getImplementers(className, interfaces);
+		verify(util).getImplementers(className, interfaces);
 	}
 	
 	@Test
@@ -710,9 +752,9 @@ public class ObjectSchemaUtilsTest {
 		
 		Set<TypeReference> implementers = new HashSet<>();
 		TypeReference reference = Mockito.mock(TypeReference.class);
-		Mockito.doReturn("MOCK_ID").when(reference).getId();
+		doReturn("MOCK_ID").when(reference).getId();
 		implementers.add(reference);
-		Mockito.doReturn(implementers).when(util).getImplementers(any(String.class), any(Map.class));
+		doReturn(implementers).when(util).getImplementers(any(String.class), any(Map.class));
 		
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test.
@@ -720,7 +762,7 @@ public class ObjectSchemaUtilsTest {
 		});
 		
 		assertEquals("Implementation of ClassName interface with name MOCK_ID was not found.", exception.getMessage());
-		Mockito.verify(util).getImplementers(className, interfaces);
+		verify(util).getImplementers(className, interfaces);
 	}
 	
 	@Test

@@ -209,7 +209,7 @@ public class WarehouseTestHelperImplTest {
 				WarehouseTestHelperImpl.WAIT_INTERAVAL_MS);
 		verify(mockAthenaClient)
 				.startQueryExecution(new StartQueryExecutionRequest().withQueryString(query).withQueryExecutionContext(
-						new QueryExecutionContext().withCatalog("AwsDataCatalog").withDatabase("datawarehouse")));
+						new QueryExecutionContext().withCatalog("AwsDataCatalog").withDatabase("warehouse")));
 		verify(mockAthenaClient).getQueryResults(new GetQueryResultsRequest().withQueryExecutionId(executionId));
 	}
 

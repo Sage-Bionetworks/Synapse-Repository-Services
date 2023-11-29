@@ -69,7 +69,17 @@ public class ObjectSchemaUtils {
 		}
 		JsonSchema jsonSchema = new JsonSchema();
 		jsonSchema.setType(translateObjectSchemaTypeToJsonSchemaType(objectSchema.getType()));
-		jsonSchema.setProperties(translatePropertiesFromObjectSchema(objectSchema.getProperties(), objectSchema.getId()));
+
+		Map<String, ObjectSchema> properties = objectSchema.getProperties();
+		if (properties != null) {
+			jsonSchema.setProperties(translatePropertiesFromObjectSchema(properties, objectSchema.getId()));
+		}
+
+		ObjectSchema items = objectSchema.getItems();
+		if (items != null) {
+			populateSchemaForArrayType(jsonSchema, items, objectSchema.getId());
+		}
+
 		if (objectSchema.getDescription() != null) {
 			jsonSchema.setDescription(objectSchema.getDescription());
 		}
@@ -193,7 +203,6 @@ public class ObjectSchemaUtils {
 		ValidateArgument.required(schema, "schema");
 		ValidateArgument.required(property, "property");
 		ValidateArgument.required(schemaId, "schemaId");
-		schema.setType(Type.object);
 		String referenceId = isSelfReferencing(property) ? schemaId : property.getId();
 		if (referenceId != null) {
 			schema.set$ref(getPathInComponents(referenceId));
@@ -209,7 +218,6 @@ public class ObjectSchemaUtils {
 	JsonSchema generateReferenceSchema(String schemaId) {
 		ValidateArgument.required(schemaId, "schemaId");
 		JsonSchema schema = new JsonSchema();
-		schema.setType(Type.object);
 		schema.set$ref(getPathInComponents(schemaId));
 		return schema;
 	}

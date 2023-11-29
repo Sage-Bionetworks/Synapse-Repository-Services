@@ -243,7 +243,6 @@ public class UserProfileController {
 	@RequestMapping(value = UrlHelpers.USER_GROUP_HEADERS_BATCH, method = RequestMethod.GET)
 	public @ResponseBody
 	UserGroupHeaderResponsePage getUserGroupHeadersByIds(
-			@RequestHeader HttpHeaders header,
 			@RequestParam(value = UrlHelpers.IDS_PATH_VARIABLE, required = true) String ids,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws DatastoreException, NotFoundException {
