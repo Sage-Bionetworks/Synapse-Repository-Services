@@ -1348,6 +1348,36 @@ public class FileHandleManagerImplTest {
 					 associateObjectId)
 		);
 	}
+	
+	@Test
+	public void testGetRedirectURLForFileHandleWithUserNull() {
+		mockUser = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			manager.getRedirectURLForFileHandle(mockUser,
+					"123", FileHandleAssociateType.VerificationSubmission, "syn456");
+		}).getMessage();
+		assertEquals("userInfo is required.", message);
+	}
+	
+	@Test
+	public void testGetRedirectURLForFileHandleWithContextNull() {
+		mockUser.setContext(null);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			manager.getRedirectURLForFileHandle(mockUser,
+					"123", FileHandleAssociateType.VerificationSubmission, "syn456");
+		}).getMessage();
+		assertEquals("userInfo.context is required.", message);
+	}
+	
+	@Test
+	public void testGetRedirectURLForFileHandleWithSessionIdNull() {
+		mockUser.getContext().setSessionId(null);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			manager.getRedirectURLForFileHandle(mockUser,
+					"123", FileHandleAssociateType.VerificationSubmission, "syn456");
+		}).getMessage();
+		assertEquals("userInfo.context.sessionId is required.", message);
+	}
 
 	///////////////////////////////////////////////////
 	// createExternalS3FileHandle tests

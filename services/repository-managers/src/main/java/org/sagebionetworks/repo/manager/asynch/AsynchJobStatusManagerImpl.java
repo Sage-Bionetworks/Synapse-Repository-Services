@@ -139,7 +139,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		}
 		
 		// Start the job.
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user.getId(), body);
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user, body);
 		// publish a message to get the work started
 		asynchJobQueuePublisher.publishMessage(status);
 		return status;

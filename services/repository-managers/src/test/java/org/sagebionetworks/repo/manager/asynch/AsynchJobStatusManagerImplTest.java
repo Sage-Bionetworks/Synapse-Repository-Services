@@ -11,7 +11,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -107,7 +106,7 @@ public class AsynchJobStatusManagerImplTest {
 	}
 
 	void setupStartJob() {
-		when(mockAsynchJobStatusDao.startJob(anyLong(), any(AsynchronousRequestBody.class))).thenAnswer(new Answer<AsynchronousJobStatus>() {
+		when(mockAsynchJobStatusDao.startJob(any(), any(AsynchronousRequestBody.class))).thenAnswer(new Answer<AsynchronousJobStatus>() {
 			@Override
 			public AsynchronousJobStatus answer(InvocationOnMock invocation)
 					throws Throwable {
@@ -477,7 +476,7 @@ public class AsynchJobStatusManagerImplTest {
 		// The status should match the exiting job
 		assertEquals(existingJob, status);
 		// The job should not be started.
-		verify(mockAsynchJobStatusDao, never()).startJob(anyLong(), any(AsynchronousRequestBody.class));
+		verify(mockAsynchJobStatusDao, never()).startJob(any(), any(AsynchronousRequestBody.class));
 	}
 	
 	@Test
@@ -517,7 +516,7 @@ public class AsynchJobStatusManagerImplTest {
 		// The status should match the exiting job
 		assertEquals(hitTwo, status);
 		// The job should not be started.
-		verify(mockAsynchJobStatusDao, never()).startJob(anyLong(), any(AsynchronousRequestBody.class));
+		verify(mockAsynchJobStatusDao, never()).startJob(any(), any(AsynchronousRequestBody.class));
 	}
 	
 	@Test
@@ -538,7 +537,7 @@ public class AsynchJobStatusManagerImplTest {
 		assertNotNull(status);
 		assertEquals(startedJobId, status.getJobId());
 		// The job should be started and published.
-		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class));
+		verify(mockAsynchJobStatusDao, times(1)).startJob(any(), any(AsynchronousRequestBody.class));
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
 	
@@ -570,7 +569,7 @@ public class AsynchJobStatusManagerImplTest {
 		assertNotNull(status);
 		assertEquals(startedJobId, status.getJobId());
 		// The job should be started and published.
-		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class));
+		verify(mockAsynchJobStatusDao, times(1)).startJob(any(), any(AsynchronousRequestBody.class));
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
 	
@@ -593,7 +592,7 @@ public class AsynchJobStatusManagerImplTest {
 		assertNotNull(status);
 		assertEquals(startedJobId, status.getJobId());
 		// The job should be started and published.
-		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class));
+		verify(mockAsynchJobStatusDao, times(1)).startJob(any(), any(AsynchronousRequestBody.class));
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 		verify(mockAsynchJobStatusDao, never()).findCompletedJobStatus(anyString(), anyLong());
 	}

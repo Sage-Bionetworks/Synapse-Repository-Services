@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.dbo.asynch.DBOAsynchJobStatus.JobState;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -59,6 +60,11 @@ public class AsynchJobStatusUtils {
 		dto.setStartedByUserId(dbo.getStartedByUserId());
 		dto.setStartedOn(new Date(dbo.getStartedOn().getTime()));
 		dto.setRuntimeMS(dbo.getRuntimeMS());
+		try {
+			dto.setCallersContext(EntityFactory.createEntityFromJSONString(dbo.getContext(), CallersContext.class));
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 		return dto;
 	}
 	
@@ -88,6 +94,11 @@ public class AsynchJobStatusUtils {
 		dbo.setStartedByUserId(dto.getStartedByUserId());
 		dbo.setStartedOn(new Timestamp(dto.getStartedOn().getTime()));
 		dbo.setRuntimeMS(dto.getRuntimeMS());
+		try {
+			dbo.setContext(EntityFactory.createJSONStringForEntity(dto.getCallersContext()));
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 		// set the request body
 		try {
 			if (requestBody.getConcreteType() == null) {
