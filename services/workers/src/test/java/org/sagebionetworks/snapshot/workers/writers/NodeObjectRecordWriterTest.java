@@ -155,7 +155,7 @@ public class NodeObjectRecordWriterTest {
 		node.setIsPublic(canPublicRead);
 		node.setIsControlled(stats.getHasACT());
 		node.setIsRestricted(stats.getHasToU());
-		node.setEffectiveArs(List.of("1", "2", "3"));
+		node.setEffectiveArs(List.of(1L, 2L, 3L));
 		
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 

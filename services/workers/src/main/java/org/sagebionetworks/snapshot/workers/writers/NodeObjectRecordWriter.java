@@ -1,5 +1,11 @@
 package org.sagebionetworks.snapshot.workers.writers;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
@@ -27,12 +33,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 
 @Service
 public class NodeObjectRecordWriter implements ObjectRecordWriter {
@@ -88,9 +88,11 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 		record.setIsRestricted(stats.getHasToU());
 		record.setIsControlled(stats.getHasACT());
 		
-		List<String> effectiveArs = new ArrayList<>(stats.getRequirementIdSet());
-		
-		Collections.sort(effectiveArs);
+		List<Long> effectiveArs = stats.getRequirementIdSet()
+			.stream()
+			.map(Long::valueOf)
+			.sorted()
+			.collect(Collectors.toList());
 		
 		record.setEffectiveArs(effectiveArs);
 		

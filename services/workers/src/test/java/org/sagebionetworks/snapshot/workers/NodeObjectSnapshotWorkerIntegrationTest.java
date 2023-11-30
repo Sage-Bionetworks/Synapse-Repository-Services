@@ -167,7 +167,7 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 		record.setIsPublic(false);
 		record.setIsRestricted(true);
 		record.setIsControlled(false);
-		record.setEffectiveArs(List.of(ar.getId().toString()));
+		record.setEffectiveArs(List.of(ar.getId()));
 		
 		ObjectRecord expectedRecord = new ObjectRecord();
 		expectedRecord.setJsonClassName(record.getClass().getSimpleName().toLowerCase());
