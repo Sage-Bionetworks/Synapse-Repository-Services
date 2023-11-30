@@ -30,6 +30,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -81,9 +82,18 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 		record.setIsPublic(permissions.getCanPublicRead());
 
 		List<Long> subjectIds = nodeDao.getEntityPathIds(record.getId());
+		
 		AccessRequirementStats stats = accessRequirementDao.getAccessRequirementStats(subjectIds, RestrictableObjectType.ENTITY);
+
 		record.setIsRestricted(stats.getHasToU());
 		record.setIsControlled(stats.getHasACT());
+		
+		List<String> effectiveArs = new ArrayList<>(stats.getRequirementIdSet());
+		
+		Collections.sort(effectiveArs);
+		
+		record.setEffectiveArs(effectiveArs);
+		
 		return record;
 	}
 

@@ -163,9 +163,12 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 		String benefactorId = nodeDao.getBenefactor(toCreate.getId());
 		String projectId = nodeDao.getProjectId(toCreate.getId()).orElseThrow();
 		NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node, benefactorId, projectId);
+		
 		record.setIsPublic(false);
 		record.setIsRestricted(true);
 		record.setIsControlled(false);
+		record.setEffectiveArs(List.of(ar.getId().toString()));
+		
 		ObjectRecord expectedRecord = new ObjectRecord();
 		expectedRecord.setJsonClassName(record.getClass().getSimpleName().toLowerCase());
 		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(record));

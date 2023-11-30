@@ -18,6 +18,12 @@
         },
         "projectId":{
             "type":"string"
+        },
+        "effectiveArs": {
+        	"type": "array",
+        	"items": {
+        		"type": "string"
+        	}
         }
 	}
 }
