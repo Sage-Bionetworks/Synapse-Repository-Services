@@ -194,7 +194,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 		}
 	}
 
-	private S3FileHandle generatePreviewForS3(PreviewGenerator generator, S3FileHandle metadata) {
+	private CloudProviderFileHandleInterface generatePreviewForS3(PreviewGenerator generator, S3FileHandle metadata) {
 		File tempUpload = null;
 		S3ObjectInputStream in = null;
 		OutputStream out = null;
@@ -208,23 +208,19 @@ public class PreviewManagerImpl implements  PreviewManager {
 			PreviewOutputMetadata previewMetadata = generator.generatePreview(in, out);
 			// Close the file
 			out.close();
-			S3FileHandle pfm = new S3FileHandle();
-			pfm.setBucketName(metadata.getBucketName());
-			pfm.setContentType(previewMetadata.getContentType());
-			pfm.setCreatedBy(metadata.getCreatedBy());
-			pfm.setFileName("preview" + previewMetadata.getExtension());
-			pfm.setKey(metadata.getCreatedBy() + "/" + UUID.randomUUID().toString());
-			pfm.setContentSize(tempUpload.length());
-			pfm.setStorageLocationId(metadata.getStorageLocationId());
+
+			S3FileHandle previewFileHandle = new S3FileHandle();
 			
 			StorageLocationSetting storageLocation = storageLocationDao.get(metadata.getStorageLocationId());
-
-			ObjectMetadata previewS3Meta = TransferUtils.prepareObjectMetadata(pfm);
+			
+			preparePreviewFileHandle(previewFileHandle, storageLocation, metadata, previewMetadata, tempUpload.length());
+			
+			ObjectMetadata previewS3Meta = TransferUtils.prepareObjectMetadata(previewFileHandle);
 
 			StorageClass storageClass = MultipartUtils.getS3StorageClass(storageLocation);
 						
-			String bucket = pfm.getBucketName();
-			String key = pfm.getKey();
+			String bucket = previewFileHandle.getBucketName();
+			String key = previewFileHandle.getKey();
 			
 			// Upload the preview to S3as a multipart upload (This is necessary so that a notification is
 			// sent out for the virus scanner, see https://sagebionetworks.jira.com/browse/PLFM-7065 for details)			
@@ -236,7 +232,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 			}
 			
 			String uploadId = s3Client.initiateMultipartUpload(multipartRequest).getUploadId();			
-			long contentLength = pfm.getContentSize();
+			long contentLength = previewFileHandle.getContentSize();
 			long currentPartSize = MULTIPART_MAX_PART_SIZE;
 			long filePosition = 0;
 			List<PartETag> partETags = new ArrayList<PartETag>();
@@ -263,14 +259,8 @@ public class PreviewManagerImpl implements  PreviewManager {
             
             s3Client.completeMultipartUpload(multipartCompleteRequest);
             
-			pfm.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-			pfm.setEtag(UUID.randomUUID().toString());
-			// Save the metadata
-			pfm = (S3FileHandle) fileMetadataDao.createFile(pfm);
-			// Assign the preview id to the original file.
-			fileMetadataDao.setPreviewId(metadata.getId(), pfm.getId());
-			// done
-			return (S3FileHandle) fileMetadataDao.get(pfm.getId());
+			return storePreviewFileHandle(previewFileHandle, metadata);
+			
 		} catch (IOException e) {
 			throw new RuntimeException("Error generating preview for file handle " + metadata.toString(), e);
 		}finally{
@@ -288,7 +278,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 		}
 	}
 
-	private GoogleCloudFileHandle generatePreviewForGoogleCloud(PreviewGenerator generator, GoogleCloudFileHandle metadata) {
+	private CloudProviderFileHandleInterface generatePreviewForGoogleCloud(PreviewGenerator generator, GoogleCloudFileHandle metadata) {
 		File tempUpload = null;
 		InputStream in = null;
 		OutputStream out = null;
@@ -303,26 +293,17 @@ public class PreviewManagerImpl implements  PreviewManager {
 			PreviewOutputMetadata previewMetadata = generator.generatePreview(in, out);
 			// Close the file
 			out.close();
-			CloudProviderFileHandleInterface pfm = new GoogleCloudFileHandle();
-			pfm.setBucketName(metadata.getBucketName());
-			pfm.setContentType(previewMetadata.getContentType());
-			pfm.setCreatedBy(metadata.getCreatedBy());
-			pfm.setFileName("preview" + previewMetadata.getExtension());
-			pfm.setKey(metadata.getCreatedBy() + "/" + UUID.randomUUID().toString());
-			pfm.setContentSize(tempUpload.length());
-			pfm.setStorageLocationId(metadata.getStorageLocationId());
+			
+			CloudProviderFileHandleInterface previewFileHandle = new GoogleCloudFileHandle();
+			
+			StorageLocationSetting storageLocation = storageLocationDao.get(metadata.getStorageLocationId());
+			
+			preparePreviewFileHandle(previewFileHandle, storageLocation, metadata, previewMetadata, tempUpload.length());
+			
+			// Upload this to GC
+			googleCloudStorageClient.putObject(previewFileHandle.getBucketName(), previewFileHandle.getKey(), tempUpload);
 
-			// Upload this to S3
-			googleCloudStorageClient.putObject(pfm.getBucketName(), pfm.getKey(), tempUpload);
-
-			pfm.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-			pfm.setEtag(UUID.randomUUID().toString());
-			// Save the metadata
-			pfm = (CloudProviderFileHandleInterface) fileMetadataDao.createFile(pfm);
-			// Assign the preview id to the original file.
-			fileMetadataDao.setPreviewId(metadata.getId(), pfm.getId());
-			// done
-			return (GoogleCloudFileHandle) fileMetadataDao.get(pfm.getId());
+			return storePreviewFileHandle(previewFileHandle, metadata);
 		} catch (IOException e) {
 			throw new RuntimeException("Error generating preview for file handle " + metadata.toString(), e);
 		}finally{
@@ -334,6 +315,31 @@ public class PreviewManagerImpl implements  PreviewManager {
 			}
 		}
 	}
+	
+	private void preparePreviewFileHandle(CloudProviderFileHandleInterface previewFileHandle, StorageLocationSetting storageLocation, CloudProviderFileHandleInterface originalFileHandle, PreviewOutputMetadata metadata, Long contentSize) {
+		
+		String fileName = "preview" + metadata.getExtension();
+		String key = MultipartUtils.createNewKey(originalFileHandle.getCreatedBy(), UUID.randomUUID().toString(), storageLocation);
+		
+		previewFileHandle.setBucketName(originalFileHandle.getBucketName());
+		previewFileHandle.setContentType(metadata.getContentType());
+		previewFileHandle.setCreatedBy(originalFileHandle.getCreatedBy());
+		previewFileHandle.setFileName(fileName);
+		previewFileHandle.setKey(key);
+		previewFileHandle.setContentSize(contentSize);
+		previewFileHandle.setStorageLocationId(originalFileHandle.getStorageLocationId());
+	}
+	
+	private CloudProviderFileHandleInterface storePreviewFileHandle(CloudProviderFileHandleInterface previewFileHandle, CloudProviderFileHandleInterface originalFileHandle) {
+		previewFileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		previewFileHandle.setEtag(UUID.randomUUID().toString());
+		// Save the metadata
+		previewFileHandle = (CloudProviderFileHandleInterface) fileMetadataDao.createFile(previewFileHandle);
+		// Assign the preview id to the original file.
+		fileMetadataDao.setPreviewId(originalFileHandle.getId(), previewFileHandle.getId());
+		// done
+		return (CloudProviderFileHandleInterface) fileMetadataDao.get(previewFileHandle.getId());
+	}
 
 	private PreviewGenerator findPreviewGenerator(String contentType, String extension) {
 		contentType = contentType.toLowerCase();
@@ -343,8 +349,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 			}
 		}
 		return null;
-	}
-	
+	}	
 	
 	/**
 	 * Called after all dependencies are allocated.
