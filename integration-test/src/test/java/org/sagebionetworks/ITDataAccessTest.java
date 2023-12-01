@@ -289,6 +289,8 @@ public class ITDataAccessTest {
 		
 		warehouseHelper.assertWarehouseQuery(query);
 		
+		// Sleeping gives the snapshot worker a chance to take the snapshots before the test suite deletes the project.
+		Thread.sleep(10_000);
 	}
 	
 	// This test is used solely to verify the controller integration
