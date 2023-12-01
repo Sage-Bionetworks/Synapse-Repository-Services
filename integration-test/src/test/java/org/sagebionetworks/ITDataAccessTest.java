@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -262,7 +263,30 @@ public class ITDataAccessTest {
 		approvalInfoRequest.setAccessRequirementIds(Arrays.asList(managedAR.getId().toString()));
 		assertNotNull(synapse.getBatchAccessApprovalInfo(approvalInfoRequest ));
 
-		adminSynapse.revokeGroup(managedAR.getId().toString(), userId);		
+		adminSynapse.revokeGroup(managedAR.getId().toString(), userId);
+		
+		// Now create a folder in the project, the entity should inherit the AR from the project and the data should appear in the DW
+		
+		Folder folder = new Folder()
+			.setParentId(project.getId())
+			.setName(UUID.randomUUID().toString());
+		
+		folder = synapse.createEntity(folder);
+		
+		now = Instant.now();
+		
+		query = String.format(
+				"select count(*) from nodesnapshots where"
+						+ " snapshot_date %s and"
+						+ " change_timestamp %s and"
+						+ " id = %s and"
+						+ " contains(effective_ars, %s)",
+				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
+				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(now),
+				folder.getId(),
+				managedAR.getId());
+		
+		warehouseHelper.assertWarehouseQuery(query);
 		
 	}
 	
