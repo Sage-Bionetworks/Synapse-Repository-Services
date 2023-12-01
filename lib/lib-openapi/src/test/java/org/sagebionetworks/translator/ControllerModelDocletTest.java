@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.tools.DocumentationTool;
@@ -838,5 +839,23 @@ public class ControllerModelDocletTest {
 		JSONObject requestBodyObj = getObj.getJSONObject("requestBody");
 
 		assertEquals("true", requestBodyObj.getString("required"));
+	}
+
+	@Test
+	public void testEnum() {
+		JSONObject componentsObj = generatedOpenAPISpec.getJSONObject("components");
+		JSONObject schemasObj = componentsObj.getJSONObject("schemas");
+
+		JSONObject statusEnumSchemaObj = schemasObj.getJSONObject("org.sagebionetworks.repo.model.status.StatusEnum");
+		JSONArray statusEnumExpected = new JSONArray(List.of("READ_WRITE", "READ_ONLY", "DOWN"));
+		assertEquals(statusEnumExpected.toString(), statusEnumSchemaObj.getJSONArray("enum").toString());
+
+		JSONObject aliasEnumSchemaObj = schemasObj.getJSONObject("org.sagebionetworks.repo.model.principal.AliasEnum");
+		JSONArray aliasEnumExpected = new JSONArray(List.of("USER_NAME", "TEAM_NAME", "USER_EMAIL", "USER_OPEN_ID", "USER_ORCID"));
+		assertEquals(aliasEnumExpected.toString(), aliasEnumSchemaObj.getJSONArray("enum").toString());
+
+		JSONObject stateEnumSchemaObj = schemasObj.getJSONObject("org.sagebionetworks.repo.model.form.StateEnum");
+		JSONArray stateEnumExpected = new JSONArray(List.of("WAITING_FOR_SUBMISSION", "SUBMITTED_WAITING_FOR_REVIEW", "ACCEPTED", "REJECTED"));
+		assertEquals(stateEnumExpected.toString(), stateEnumSchemaObj.getJSONArray("enum").toString());
 	}
 }

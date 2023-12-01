@@ -18,6 +18,7 @@ import static org.mockito.Mockito.never;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -62,6 +63,7 @@ import org.sagebionetworks.openapi.pet.Husky;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
@@ -99,7 +101,7 @@ public class ControllerToControllerModelTranslatorTest {
 	@Mock
 	TypeMirror mockGenericType;
 	@Mock
-	DeclaredType mockGenericDeclaredType;
+	DeclaredType mockDeclaredType;
 	@Mock
 	TypeElement mockTypeElement;
 	@Mock
@@ -867,10 +869,9 @@ public class ControllerToControllerModelTranslatorTest {
 		String description = "DESCRIPTION";
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
 
-		doNothing().when(translator).populateSchemaMapForConcreteType(any(), any(), any());
+		doNothing().when(translator).populateSchemaMap(any(), any(), any());
 		String returnClassName = "RETURN_CLASS_NAME";
 		doReturn(returnClassName).when(returnType).toString();
-		doReturn(TypeKind.BOOLEAN).when(returnType).getKind();
 
 		ResponseStatusModel responseStatus = new ResponseStatusModel().withStatusCode(200);
 		annotationToModel.put(ResponseStatus.class, responseStatus);
@@ -879,7 +880,7 @@ public class ControllerToControllerModelTranslatorTest {
 				.withStatusCode(responseStatus.getStatusCode()).withId(returnClassName);
 		// call under test
 		assertEquals(expected, translator.generateResponseModel(returnType, annotationToModel, description, schemaMap));
-		verify(translator).populateSchemaMapForConcreteType(returnClassName, TypeKind.BOOLEAN, schemaMap);
+		verify(translator).populateSchemaMap(returnClassName, returnType, schemaMap);
 	}
 
 	@Test
@@ -977,16 +978,19 @@ public class ControllerToControllerModelTranslatorTest {
 		String schemaId = "org.sagebionetworks.schemaId";
 
 		doReturn(Optional.empty()).when(translator).getTypeArguments(any(TypeMirror.class));
-		doReturn(TypeKind.DECLARED).when(mockParameterType).getKind();
+		doReturn(TypeKind.DECLARED).when(mockDeclaredType).getKind();
+		doReturn(mockTypeElement).when(mockDeclaredType).asElement();
+		doReturn(ElementKind.CLASS).when(mockTypeElement).getKind();
 		doNothing().when(translator).populateSchemaMapForConcreteType(any(String.class), any(TypeKind.class), any());
 
 		// call under test
-		translator.populateSchemaMap(schemaId, mockParameterType, schemaMap);
+		translator.populateSchemaMap(schemaId, mockDeclaredType, schemaMap);
 
-		verify(translator).getTypeArguments(mockParameterType);
-		verify(mockParameterType).getKind();
+		verify(translator).getTypeArguments(mockDeclaredType);
+		verify(mockDeclaredType).getKind();
 		verify(translator).populateSchemaMapForConcreteType(schemaId, TypeKind.DECLARED, schemaMap);
 		verify(translator, never()).populateSchemaMapForGenericType(any(), any(), any(), any());
+		verify(translator, never()).populateSchemaMapForEnumType(any(), any());
 	}
 
 	@Test
@@ -1011,6 +1015,29 @@ public class ControllerToControllerModelTranslatorTest {
 		verify(translator).populateSchemaMapForConcreteType(argumentSchemaId, TypeKind.DECLARED, schemaMap);
 		verify(translator).populateSchemaMapForGenericType(schemaId, mockGenericType, mockParameterType, schemaMap);
 		verify(mockGenericType, never()).getKind();
+		verify(translator, never()).populateSchemaMapForEnumType(any(), any());
+	}
+
+	@Test
+	public void testPopulateSchemaMapWithEnumType() {
+		Map<String, ObjectSchema> schemaMap = new HashMap<>();
+		String schemaId = "org.sagebionetworks.schemaId";
+
+		doReturn(Optional.empty()).when(translator).getTypeArguments(any(TypeMirror.class));
+		doReturn(TypeKind.DECLARED).when(mockDeclaredType).getKind();
+		doReturn(mockTypeElement).when(mockDeclaredType).asElement();
+		doReturn(ElementKind.ENUM).when(mockTypeElement).getKind();
+		doNothing().when(translator).populateSchemaMapForEnumType(any(String.class), any(Map.class));
+
+		// call under test
+		translator.populateSchemaMap(schemaId, mockDeclaredType, schemaMap);
+
+		verify(translator).getTypeArguments(mockDeclaredType);
+		verify(mockDeclaredType).getKind();
+		verify(mockDeclaredType).asElement();
+		verify(translator).populateSchemaMapForEnumType(schemaId, schemaMap);
+		verify(translator, never()).populateSchemaMapForGenericType(any(), any(), any(), any());
+		verify(translator, never()).populateSchemaMapForConcreteType(any(), any(), any());
 	}
 
 	@Test
@@ -1077,6 +1104,43 @@ public class ControllerToControllerModelTranslatorTest {
 		});
 		assertEquals("className is required.", exception.getMessage());
 	}
+
+	@Test
+	public void testPopulateSchemaMapForEnumType() {
+		Map<String, ObjectSchema> schemaMap = new HashMap<>();
+		String schemaId = "org.sagebionetworks.schemaId";
+		ObjectSchema expectedSchema = new ObjectSchemaImpl();
+		Map<String, ObjectSchema> expectedSchemaMap = Collections.singletonMap(schemaId, expectedSchema);
+
+		doReturn(expectedSchema).when(translator).generateEnumObjectSchema(any(String.class));
+
+		// call under test
+		translator.populateSchemaMapForEnumType(schemaId, schemaMap);
+
+		assertEquals(expectedSchemaMap, schemaMap);
+
+		verify(translator).generateEnumObjectSchema(schemaId);
+	}
+
+	@Test
+	public void testPopulateSchemaMapForEnumTypeWithNullSchemaId() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.populateSchemaMapForEnumType(null, new HashMap<>());
+		});
+		assertEquals("schemaId is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testPopulateSchemaMapForEnumTypeWithNullSchemaMap() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.populateSchemaMapForEnumType("", null);
+		});
+		assertEquals("schemaMap is required.", exception.getMessage());
+	}
+
+
 
 	@Test
 	public void testPopulateSchemaMapForGenericTypeWithListType() {
@@ -1256,14 +1320,14 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetTypeArguments() {
 		List<TypeMirror> argumentTypes = List.of(mockParameterType);
 
-		doReturn(argumentTypes).when(mockGenericDeclaredType).getTypeArguments();
+		doReturn(argumentTypes).when(mockDeclaredType).getTypeArguments();
 
 		// call under test
-		Optional<List<? extends TypeMirror>> resultList = translator.getTypeArguments(mockGenericDeclaredType);
+		Optional<List<? extends TypeMirror>> resultList = translator.getTypeArguments(mockDeclaredType);
 
 		assertEquals(argumentTypes, resultList.get());
 
-		verify(mockGenericDeclaredType).getTypeArguments();
+		verify(mockDeclaredType).getTypeArguments();
 	}
 
 	@Test
@@ -1356,17 +1420,41 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 
 	@Test
+	public void testGenerateEnumObjectSchema() {
+		String enumName = "org.sagebionetworks.repo.model.status.StatusEnum";
+		ObjectSchema expectedEnumSchema = new ObjectSchemaImpl();
+		expectedEnumSchema.setName(enumName);
+		expectedEnumSchema.setType(TYPE.STRING);
+		EnumValue[] enumValues = new EnumValue[]{new EnumValue("READ_WRITE"), new EnumValue("READ_ONLY"), new EnumValue("DOWN")};
+		expectedEnumSchema.setEnum(enumValues);
+
+		// call under test
+		ObjectSchema resultSchema= translator.generateEnumObjectSchema(enumName);
+
+		assertEquals(expectedEnumSchema, resultSchema);
+	}
+
+	@Test
+	public void testGenerateEnumObjectSchemaWithNullEnumClassName() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.generateEnumObjectSchema(null);
+		});
+		assertEquals("enumClassName is required.", exception.getMessage());
+	}
+
+	@Test
 	public void testGetGenericClassName() {
-		doReturn(mockTypeElement).when(mockGenericDeclaredType).asElement();
+		doReturn(mockTypeElement).when(mockDeclaredType).asElement();
 		doReturn(mockName).when(mockTypeElement).getQualifiedName();
 		doReturn("java.util.List").when(mockName).toString();
 
 		// call under test
-		String resultName = translator.getGenericClassName(mockGenericDeclaredType);
+		String resultName = translator.getGenericClassName(mockDeclaredType);
 
 		assertEquals("java.util.List", resultName);
 
-		verify(mockGenericDeclaredType).asElement();
+		verify(mockDeclaredType).asElement();
 		verify(mockTypeElement).getQualifiedName();
 	}
 
@@ -1696,8 +1784,7 @@ public class ControllerToControllerModelTranslatorTest {
 		verify(param2).getSimpleName();
 		verify(param2, times(1)).asType();
 		verify(type).getKind();
-		verify(translator).populateSchemaMapForConcreteType(MOCK_CLASS_NAME, TypeKind.INT, schemaMap);
-		;
+		verify(translator).populateSchemaMap(MOCK_CLASS_NAME, type, schemaMap);
 		verify(translator, times(2)).getSimpleAnnotationName(mockAnnoMirror);
 	}
 
@@ -1799,7 +1886,7 @@ public class ControllerToControllerModelTranslatorTest {
 		assertEquals(getExpectedParameters(), translator.getParameters(parameters, mockParamToDescription, schemaMap));
 
 		verify(translator).getParameterLocation(param);
-		verify(translator).populateSchemaMapForConcreteType(MOCK_CLASS_NAME, TypeKind.INT, schemaMap);
+		verify(translator).populateSchemaMap(MOCK_CLASS_NAME, paramType, schemaMap);
 		verify(param).getSimpleName();
 		verify(param, times(1)).asType();
 		verify(paramType).getKind();

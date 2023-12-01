@@ -13,6 +13,7 @@ import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.velocity.schema.TypeReference;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
+import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.util.ValidateArgument;
@@ -64,11 +65,29 @@ public class ObjectSchemaUtils {
 	 */
 	JsonSchema translateObjectSchemaToJsonSchema(ObjectSchema objectSchema) {
 		ValidateArgument.required(objectSchema, "objectSchema");
-		if (isPrimitive(objectSchema.getType())) {
-			return getSchemaForPrimitiveType(objectSchema.getType());
+
+		TYPE schemaType = objectSchema.getType();
+
+		EnumValue[] enumValues = objectSchema.getEnum();
+		if (enumValues != null) {
+			JsonSchema jsonSchema = new JsonSchema();
+			jsonSchema.setType(translateObjectSchemaTypeToJsonSchemaType(schemaType));
+
+			List<Object> values = new ArrayList<>();
+			for (EnumValue enumValue: enumValues) {
+				values.add(enumValue.getName());
+			}
+
+			jsonSchema.set_enum(values);
+
+			return jsonSchema;
+		}
+
+		if (isPrimitive(schemaType)) {
+			return getSchemaForPrimitiveType(schemaType);
 		}
 		JsonSchema jsonSchema = new JsonSchema();
-		jsonSchema.setType(translateObjectSchemaTypeToJsonSchemaType(objectSchema.getType()));
+		jsonSchema.setType(translateObjectSchemaTypeToJsonSchemaType(schemaType));
 
 		Map<String, ObjectSchema> properties = objectSchema.getProperties();
 		if (properties != null) {
@@ -330,6 +349,8 @@ public class ObjectSchemaUtils {
 		case OBJECT:
 		case INTERFACE:
 			return Type.object;
+		case STRING:
+			return Type.string;
 		default:
 			throw new IllegalArgumentException("Unable to convert non-primitive type " + type);
 		}
