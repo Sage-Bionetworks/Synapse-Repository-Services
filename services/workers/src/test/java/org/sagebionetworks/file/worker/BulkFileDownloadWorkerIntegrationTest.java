@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.manager.file.CommandLineCacheZipEntryNameProvide
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandlePackageManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -80,6 +81,7 @@ public class BulkFileDownloadWorkerIntegrationTest {
 		adminUserInfo = userManager
 				.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER
 						.getPrincipalId());
+		adminUserInfo.setContext(new CallersContext().setSessionId(UUID.randomUUID().toString()));
 		fileHandlesToDelete = Lists.newLinkedList();
 		entitiesToDelete = Lists.newLinkedList();
 		
