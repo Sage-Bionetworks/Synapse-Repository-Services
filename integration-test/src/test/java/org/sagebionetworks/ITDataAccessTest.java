@@ -72,6 +72,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.warehouse.WarehouseTestHelper;
 
@@ -283,7 +284,7 @@ public class ITDataAccessTest {
 						+ " contains(effective_ars, %s)",
 				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
 				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(now),
-				folder.getId(),
+				KeyFactory.stringToKey(folder.getId()),
 				managedAR.getId());
 		
 		warehouseHelper.assertWarehouseQuery(query);
