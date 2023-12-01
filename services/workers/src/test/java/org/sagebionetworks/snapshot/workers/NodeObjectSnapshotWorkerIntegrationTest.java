@@ -36,6 +36,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -119,9 +120,12 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 			String benefactorId = nodeDao.getBenefactor(toCreate.getId());
 			String projectId = nodeDao.getProjectId(toCreate.getId()).orElseThrow();
 			NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node, benefactorId, projectId);
+			
 			record.setIsPublic(false);
 			record.setIsRestricted(false);
 			record.setIsControlled(false);
+			record.setEffectiveArs(Collections.emptyList());
+			
 			ObjectRecord expectedRecord = new ObjectRecord();
 			expectedRecord.setJsonClassName(record.getClass().getSimpleName().toLowerCase());
 			expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(record));
@@ -163,9 +167,12 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 		String benefactorId = nodeDao.getBenefactor(toCreate.getId());
 		String projectId = nodeDao.getProjectId(toCreate.getId()).orElseThrow();
 		NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node, benefactorId, projectId);
+		
 		record.setIsPublic(false);
 		record.setIsRestricted(true);
 		record.setIsControlled(false);
+		record.setEffectiveArs(List.of(ar.getId()));
+		
 		ObjectRecord expectedRecord = new ObjectRecord();
 		expectedRecord.setJsonClassName(record.getClass().getSimpleName().toLowerCase());
 		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(record));

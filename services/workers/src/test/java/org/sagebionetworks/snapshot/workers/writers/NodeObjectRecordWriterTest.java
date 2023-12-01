@@ -41,6 +41,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -91,6 +92,7 @@ public class NodeObjectRecordWriterTest {
 		stats = new AccessRequirementStats();
 		stats.setHasACT(true);
 		stats.setHasToU(false);
+		stats.setRequirementIdSet(Set.of("2", "1", "3"));
 		canPublicRead = true;
 
 	}
@@ -153,6 +155,8 @@ public class NodeObjectRecordWriterTest {
 		node.setIsPublic(canPublicRead);
 		node.setIsControlled(stats.getHasACT());
 		node.setIsRestricted(stats.getHasToU());
+		node.setEffectiveArs(List.of(1L, 2L, 3L));
+		
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
