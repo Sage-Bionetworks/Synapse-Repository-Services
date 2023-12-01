@@ -110,14 +110,15 @@ public class AsynchJobStatusManagerImplTest {
 			@Override
 			public AsynchronousJobStatus answer(InvocationOnMock invocation)
 					throws Throwable {
-				Long userId = (Long) invocation.getArguments()[0];
+				UserInfo user = (UserInfo) invocation.getArguments()[0];
 				AsynchronousRequestBody body = (AsynchronousRequestBody) invocation.getArguments()[1];
 				AsynchronousJobStatus results = null;
-				if(userId != null && body != null){
+				if(user != null && body != null){
 					results = new AsynchronousJobStatus();
-					results.setStartedByUserId(userId);
+					results.setStartedByUserId(user.getId());
 					results.setRequestBody(body);
 					results.setJobId(startedJobId);
+					results.setCallersContext(user.getContext());
 				}
 				return results;
 			}

@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
@@ -143,6 +144,7 @@ public class FileHandleManagerImplAutowireTest {
 		userInfo2.setAcceptsTermsOfUse(true);
 		
 		anonymousUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUserInfo.setContext(new CallersContext().setSessionId(UUID.randomUUID().toString()));
 		
 		Project project = new Project();
 		projectName = "project" + new Random().nextInt();

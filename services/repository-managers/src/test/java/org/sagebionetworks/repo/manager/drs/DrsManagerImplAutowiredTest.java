@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.drs;
 
 import com.google.common.collect.Lists;
+
+import org.apache.logging.log4j.ThreadContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,10 +14,12 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.GlobalConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.drs.AccessUrl;
@@ -64,15 +68,20 @@ public class DrsManagerImplAutowiredTest {
     private List<S3FileHandle> fileHandlesToDelete = Lists.newArrayList();
     private UserInfo adminUserInfo;
     private UserInfo userInfo;
+    private String sesionId;
 
 
     @BeforeEach
     public void before() {
+    	sesionId = UUID.randomUUID().toString();
         adminUserInfo = userManager.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+        adminUserInfo.setContext(new CallersContext().setSessionId(sesionId));
         final boolean acceptsTermsOfUse = true;
         final String userName = UUID.randomUUID().toString();
         userInfo = userManager.createOrGetTestUser(adminUserInfo,
                 new NewUser().setUserName(userName).setEmail(userName + "@foo.org"), acceptsTermsOfUse);
+        userInfo.setContext(new CallersContext().setSessionId(sesionId));
+        ThreadContext.put(GlobalConstants.SESSION_ID, sesionId);
     }
 
     @AfterEach
@@ -93,6 +102,7 @@ public class DrsManagerImplAutowiredTest {
                 }
             }
         }
+		ThreadContext.clearAll();
     }
 
     @Test
