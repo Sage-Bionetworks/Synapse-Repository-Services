@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.manager.asynch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -15,6 +16,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.ReadOnlyRequestBody;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -98,6 +101,7 @@ public class AsynchJobStatusManagerImplTest {
 		status.setStartedByUserId(user.getId());
 		status.setJobId("8888");
 		status.setRequestBody(new BulkFileDownloadRequest());
+		status.setCallersContext(new CallersContext().setSessionId(UUID.randomUUID().toString()));
 		
 		instance = "test1";
 
@@ -174,6 +178,7 @@ public class AsynchJobStatusManagerImplTest {
 		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
 		AsynchronousJobStatus status = manager.getJobStatus(user,"999");
 		assertNotNull(status);
+		assertNull(status.getCallersContext());
 	}
 	
 	@Test
@@ -181,6 +186,8 @@ public class AsynchJobStatusManagerImplTest {
 		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
 		AsynchronousJobStatus status = manager.lookupJobStatus("999");
 		assertNotNull(status);
+		assertNotNull(status.getCallersContext());
+		assertNotNull(status.getCallersContext().getSessionId());
 	}
 	
 	@Test
