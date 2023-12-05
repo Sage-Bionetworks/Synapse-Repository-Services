@@ -119,11 +119,15 @@ public class ITDownloadListControllerTest {
 		Instant now = Instant.now();
 
 		String query = String.format(
-				"select count(*) from processedaccessrecord p join filedownloadrecords f on p.session_id = f.session_id where"
-						+ " f.record_date %s"
-						+ " and f.association_object_id = %s"
+				"select count(*) from processedaccessrecord p join filedownloadrecords f on ("
+							+ " p.session_id = f.session_id"
+							+ " and p.record_date %s"
+							+ " and f.record_date %s"
+						+ ")"
+						+ " where f.association_object_id = %s"
 						+ " and f.association_object_type = 'FileEntity'"
 						+ " and f.downloaded_file_handle_id = %s",
+				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
 				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
 				KeyFactory.stringToKey(file.getId()),
 				response.getResultFileHandleId());
