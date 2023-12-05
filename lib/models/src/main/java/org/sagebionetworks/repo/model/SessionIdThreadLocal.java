@@ -6,7 +6,9 @@ import java.util.UUID;
 /**
  * Provides both binding and retrieval of the current thread's sessionId.
  * 
- * A new UUID is bound to the
+ * A new session ID is created at the start of a web service request and then
+ * bound to the thread local. The session ID can then be fetched from anywhere
+ * in the current thread's stack.
  *
  */
 public class SessionIdThreadLocal {
