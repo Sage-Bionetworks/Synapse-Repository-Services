@@ -95,7 +95,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		if(!AuthorizationUtils.isUserCreatorOrAdmin(userInfo, status.getStartedByUserId().toString())){
 			throw new UnauthorizedException("Only the user that created a job can access the job's status.");
 		}
-		// The context can contain passport information that we do not want to return to the caller.
+		// The context can contain information that we do not want to return to the caller.
 		status.setCallersContext(null);
 		return status;
 	}
@@ -144,6 +144,8 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user, body);
 		// publish a message to get the work started
 		asynchJobQueuePublisher.publishMessage(status);
+		// The context can contain information that we do not want to return to the caller.
+		status.setCallersContext(null);
 		return status;
 	}
 	

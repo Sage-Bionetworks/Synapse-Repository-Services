@@ -152,6 +152,7 @@ public class AsynchJobStatusManagerImplTest {
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		assertNotNull(status);
 		assertEquals(body, status.getRequestBody());
+		assertNull(status.getCallersContext());
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
 	

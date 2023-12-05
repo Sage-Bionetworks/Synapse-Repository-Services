@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.manager.file.CommandLineCacheZipEntryNameProvide
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandlePackageManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
