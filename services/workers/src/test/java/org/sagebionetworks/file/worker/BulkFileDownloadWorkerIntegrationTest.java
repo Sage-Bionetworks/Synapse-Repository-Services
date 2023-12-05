@@ -81,7 +81,6 @@ public class BulkFileDownloadWorkerIntegrationTest {
 		adminUserInfo = userManager
 				.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER
 						.getPrincipalId());
-		adminUserInfo.setContext(new CallersContext().setSessionId(UUID.randomUUID().toString()));
 		fileHandlesToDelete = Lists.newLinkedList();
 		entitiesToDelete = Lists.newLinkedList();
 		

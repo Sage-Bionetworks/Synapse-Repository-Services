@@ -7,14 +7,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.logging.log4j.ThreadContext;
 import org.sagebionetworks.repo.manager.principal.NewUserUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.GlobalConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -230,7 +229,7 @@ public class UserManagerImpl implements UserManager {
 		ui.setGroups(groups);
 		ui.setAcceptsTermsOfUse(authDAO.hasUserAcceptedToU(principalId));
 		ui.setTwoFactorAuthEnabled(authDAO.isTwoFactorAuthEnabled(principalId));
-		ui.setContext(new CallersContext().setSessionId(ThreadContext.get(GlobalConstants.SESSION_ID)));
+		ui.setContext(new CallersContext().setSessionId(SessionIdThreadLocal.getThreadsSessionId().orElse("missing")));
 		return ui;
 	}
 

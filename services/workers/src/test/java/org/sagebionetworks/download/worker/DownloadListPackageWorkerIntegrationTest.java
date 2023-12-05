@@ -33,7 +33,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
@@ -53,7 +52,7 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DownloadListPackageWorkerIntegrationTest {
 
-	public static final long MAX_WAIT_MS = 1000 * 30 * 100;
+	public static final long MAX_WAIT_MS = 1000 * 30;
 
 	public static final int MAX_RETRIES = 25;
 
@@ -93,7 +92,6 @@ public class DownloadListPackageWorkerIntegrationTest {
 		String userName = UUID.randomUUID().toString();
 		user = userManager.createOrGetTestUser(adminUser,
 				new NewUser().setUserName(userName).setEmail(userName + "@foo.org"), acceptsTermsOfUse);
-		user.setContext(new CallersContext().setSessionId(UUID.randomUUID().toString()));
 		fileHandleIdsToDelete = new ArrayList<>();
 	}
 

@@ -8,13 +8,11 @@ import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.logging.log4j.ThreadContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.GlobalConstants;
-import org.sagebionetworks.repo.web.AccessInterceptor;
+import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 
 /**
  * Test that we capture what is expected from the header.
@@ -76,8 +74,7 @@ public class HttpServletRequestDataTest {
 	
 	@Test
 	public void testSessionId(){
-		String sessionId = "someSessionId";
-		ThreadContext.put(GlobalConstants.SESSION_ID, sessionId);
+		String sessionId = SessionIdThreadLocal.createNewSessionIdForThread();
 		HttpServletRequestData data = new HttpServletRequestData(mockRequest);
 		assertTrue(data.toString().contains(sessionId));
 		assertEquals(sessionId, data.getSessionId());

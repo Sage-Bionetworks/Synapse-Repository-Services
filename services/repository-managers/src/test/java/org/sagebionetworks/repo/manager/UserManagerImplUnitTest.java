@@ -24,7 +24,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.logging.log4j.ThreadContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,9 +33,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.GlobalConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -103,13 +102,12 @@ public class UserManagerImplUnitTest {
 		principalAlias.setAlias(alias);
 		principalAlias.setAliasId(3333L);
 		principalAlias.setType(AliasType.USER_NAME);
-		sessionId = UUID.randomUUID().toString();
-		ThreadContext.put(GlobalConstants.SESSION_ID,  sessionId);
+		sessionId = SessionIdThreadLocal.createNewSessionIdForThread();
 	}
 	
 	@AfterEach
 	public void after() {
-		ThreadContext.remove(GlobalConstants.SESSION_ID);
+		SessionIdThreadLocal.clearThreadsSessionId();
 	}
 	
 	@Test
@@ -144,6 +142,28 @@ public class UserManagerImplUnitTest {
 		assertEquals(expectedUserGroupIds, userInfo.getGroups());
 		assertEquals(principalId, userInfo.getId());
 		assertTrue(userInfo.hasTwoFactorAuthEnabled());
+	}
+	
+	@Test
+	public void testGetUserInfoWithNoSessionId() {
+		Long principalId = 111L;
+		UserGroup principal = new UserGroup();
+		principal.setId(principalId.toString());
+		principal.setIsIndividual(true);
+		when(mockUserGroupDAO.get(principalId)).thenReturn(principal);
+		
+		UserGroup someGroup = new UserGroup();
+		someGroup.setIsIndividual(false);
+		someGroup.setId("222");
+		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.singletonList(someGroup));
+		when(mockAuthDAO.isTwoFactorAuthEnabled(anyLong())).thenReturn(true);
+		
+		SessionIdThreadLocal.clearThreadsSessionId();
+		
+		// method under test
+		UserInfo userInfo = userManager.getUserInfo(principalId);
+		
+		assertEquals(new CallersContext().setSessionId("missing"), userInfo.getContext());
 	}
 	
 	@Test

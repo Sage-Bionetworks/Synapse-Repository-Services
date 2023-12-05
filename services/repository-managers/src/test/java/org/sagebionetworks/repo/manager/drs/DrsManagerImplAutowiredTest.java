@@ -1,6 +1,15 @@
 package org.sagebionetworks.repo.manager.drs;
 
-import com.google.common.collect.Lists;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
 
 import org.apache.logging.log4j.ThreadContext;
 import org.junit.jupiter.api.AfterEach;
@@ -14,12 +23,10 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.GlobalConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.drs.AccessUrl;
@@ -32,16 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
+import com.google.common.collect.Lists;
 
 
 @ExtendWith(SpringExtension.class)
@@ -68,20 +66,14 @@ public class DrsManagerImplAutowiredTest {
     private List<S3FileHandle> fileHandlesToDelete = Lists.newArrayList();
     private UserInfo adminUserInfo;
     private UserInfo userInfo;
-    private String sesionId;
-
 
     @BeforeEach
     public void before() {
-    	sesionId = UUID.randomUUID().toString();
         adminUserInfo = userManager.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-        adminUserInfo.setContext(new CallersContext().setSessionId(sesionId));
         final boolean acceptsTermsOfUse = true;
         final String userName = UUID.randomUUID().toString();
         userInfo = userManager.createOrGetTestUser(adminUserInfo,
                 new NewUser().setUserName(userName).setEmail(userName + "@foo.org"), acceptsTermsOfUse);
-        userInfo.setContext(new CallersContext().setSessionId(sesionId));
-        ThreadContext.put(GlobalConstants.SESSION_ID, sesionId);
     }
 
     @AfterEach
