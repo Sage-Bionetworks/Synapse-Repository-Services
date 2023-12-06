@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dao.asynch;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -23,7 +24,7 @@ public interface AsynchronousJobStatusDAO {
 	 * This hash can then be used to find existing jobs with the same hash.
 	 * @return
 	 */
-	public AsynchronousJobStatus startJob(Long startedByUserId, AsynchronousRequestBody body);
+	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body);
 	
 	/**
 	 * Get the status of a job from its jobId.

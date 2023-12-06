@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -71,6 +72,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.warehouse.WarehouseTestHelper;
 
@@ -262,8 +264,33 @@ public class ITDataAccessTest {
 		approvalInfoRequest.setAccessRequirementIds(Arrays.asList(managedAR.getId().toString()));
 		assertNotNull(synapse.getBatchAccessApprovalInfo(approvalInfoRequest ));
 
-		adminSynapse.revokeGroup(managedAR.getId().toString(), userId);		
+		adminSynapse.revokeGroup(managedAR.getId().toString(), userId);
 		
+		// Now create a folder in the project, the entity should inherit the AR from the project and the data should appear in the DW
+		
+		Folder folder = new Folder()
+			.setParentId(project.getId())
+			.setName(UUID.randomUUID().toString());
+		
+		folder = synapse.createEntity(folder);
+		
+		now = Instant.now();
+		
+		query = String.format(
+				"select count(*) from nodesnapshots where"
+						+ " snapshot_date %s and"
+						+ " change_timestamp %s and"
+						+ " id = %s and"
+						+ " contains(effective_ars, %s)",
+				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
+				warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(now),
+				KeyFactory.stringToKey(folder.getId()),
+				managedAR.getId());
+		
+		warehouseHelper.assertWarehouseQuery(query);
+		
+		// Sleeping gives the snapshot worker a chance to take the snapshots before the test suite deletes the project.
+		Thread.sleep(10_000);
 	}
 	
 	// This test is used solely to verify the controller integration

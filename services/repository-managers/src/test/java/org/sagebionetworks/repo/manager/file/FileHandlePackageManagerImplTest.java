@@ -17,6 +17,7 @@ import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
@@ -43,6 +44,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -109,12 +111,15 @@ public class FileHandlePackageManagerImplTest {
 	private List<FileDownloadSummary> summaryResults;
 	private S3FileHandle resultFileHandle;
 	private boolean fileSizesChecked;
+	private String sessionId;
 
 	@BeforeEach
 	public void before() {
+		this.sessionId = UUID.randomUUID().toString();
 		boolean isAdmin = false;
 		long userId = 123L;
 		userInfo = new UserInfo(isAdmin, userId);
+		userInfo.setContext(new CallersContext().setSessionId(sessionId));
 		// @formatter:off
 		associations = Arrays.asList(
 				new FileHandleAssociation().setAssociateObjectId("syn456").setAssociateObjectType(FileEntity).setFileHandleId("11"),
@@ -257,7 +262,7 @@ public class FileHandlePackageManagerImplTest {
 		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest()
 				.withFileName(request.getZipFileName()).withUserId(userInfo.getId().toString())
 				.withFileToUpload(mockTempFile).withContentType(FileHandlePackageManagerImpl.APPLICATION_ZIP));
-		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo.getId(), expected.getResultZipFileHandleId(), summaryResults);
+		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo, expected.getResultZipFileHandleId(), summaryResults);
 		verify(mockTempFile).delete();
 	}
 
@@ -282,7 +287,7 @@ public class FileHandlePackageManagerImplTest {
 		verify(fileHandleSupportSpy).addFilesToZip(userInfo, request, mockTempFile, fileSizesChecked);
 		// the zip is empty so it should not get uploaded
 		verify(mockFileHandleManager, never()).uploadLocalFile(any());
-		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo.getId(), expected.getResultZipFileHandleId(), summaryResults);
+		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo, expected.getResultZipFileHandleId(), summaryResults);
 		verify(mockTempFile).delete();
 	}
 
@@ -320,7 +325,7 @@ public class FileHandlePackageManagerImplTest {
 		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest()
 				.withFileName(request.getZipFileName()).withUserId(userInfo.getId().toString())
 				.withFileToUpload(mockTempFile).withContentType(FileHandlePackageManagerImpl.APPLICATION_ZIP));
-		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo.getId(),expected.getResultZipFileHandleId(), summaryResults);
+		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo,expected.getResultZipFileHandleId(), summaryResults);
 		verify(mockTempFile).delete();
 	}
 
@@ -669,10 +674,10 @@ public class FileHandlePackageManagerImplTest {
 		when(mockStackConfig.getStack()).thenReturn(STACK);
 
 		FileEvent expectedFileEvent = FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(),
-				"11", "345","syn123", FileEntity,STACK ,INSTANCE);
+				"11", "345","syn123", FileEntity,STACK ,INSTANCE).setSessionId(sessionId);
 		
 		// call under test
-		fileHandleSupportSpy.collectDownloadStatistics(userInfo.getId(),"345", summaryResults);
+		fileHandleSupportSpy.collectDownloadStatistics(userInfo,"345", summaryResults);
 
 		verify(messenger).publishMessageAfterCommit(fileRecordEventCaptor.capture());
 		FileEvent actualFileEvent = fileRecordEventCaptor.getValue();
@@ -689,9 +694,54 @@ public class FileHandlePackageManagerImplTest {
 		summaryResults = Arrays.asList(summary);
 		
 		// call under test
-		fileHandleSupportSpy.collectDownloadStatistics(userInfo.getId(), null, summaryResults);
+		fileHandleSupportSpy.collectDownloadStatistics(userInfo, null, summaryResults);
 
 		verifyNoMoreInteractions(messenger);
+	}
+	
+	@Test
+	public void testCollectDownloadStatisticsWithNullUserInfo() {
+		FileDownloadSummary summary = new FileDownloadSummary().setFileHandleId("11").setAssociateObjectId("syn123")
+				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setStatus(FileDownloadStatus.SUCCESS);
+		summaryResults = Arrays.asList(summary);
+		
+		userInfo = null;
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			fileHandleSupportSpy.collectDownloadStatistics(userInfo,"345", summaryResults);
+		}).getMessage();
+		assertEquals("userInfo is required.", message);
+	}
+	
+	@Test
+	public void testCollectDownloadStatisticsWithNullUserInfoContextNull() {
+		FileDownloadSummary summary = new FileDownloadSummary().setFileHandleId("11").setAssociateObjectId("syn123")
+				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setStatus(FileDownloadStatus.SUCCESS);
+		summaryResults = Arrays.asList(summary);
+		
+		userInfo.setContext(null);
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			fileHandleSupportSpy.collectDownloadStatistics(userInfo,"345", summaryResults);
+		}).getMessage();
+		assertEquals("userInfo.context is required.", message);
+	}
+	
+	@Test
+	public void testCollectDownloadStatisticsWithNullUserInfoSessionIdNull() {
+		FileDownloadSummary summary = new FileDownloadSummary().setFileHandleId("11").setAssociateObjectId("syn123")
+				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setStatus(FileDownloadStatus.SUCCESS);
+		summaryResults = Arrays.asList(summary);
+		
+		userInfo.getContext().setSessionId(null);
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			fileHandleSupportSpy.collectDownloadStatistics(userInfo,"345", summaryResults);
+		}).getMessage();
+		assertEquals("userInfo.context.sessionId is required.", message);
 	}
 	
 	@Test

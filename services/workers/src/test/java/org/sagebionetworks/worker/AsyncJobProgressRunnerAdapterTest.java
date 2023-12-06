@@ -8,6 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +25,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
@@ -66,17 +69,20 @@ public class AsyncJobProgressRunnerAdapterTest {
 	
 	private String jobId;
 	private Long userId;
+	private String sessionId;
 	
 	@BeforeEach
 	public void before() throws Exception {
 		
 		jobId = "123";
 		userId = 456L;
+		sessionId = UUID.randomUUID().toString();
 		
 		when(mockMessage.getBody()).thenReturn(jobId);
 		when(mockJobManager.lookupJobStatus(any())).thenReturn(mockStatus);
 		when(mockStatus.getRequestBody()).thenReturn(mockRequest);
 		when(mockStatus.getStartedByUserId()).thenReturn(userId);
+		when(mockStatus.getCallersContext()).thenReturn(new CallersContext().setSessionId(sessionId));
 		when(mockUserManager.getUserInfo(any())).thenReturn(mockUser);
 		when(mockRunner.run(any(), any(), any(), any())).thenReturn(mockResponse);
 		when(mockRunner.getRequestType()).thenReturn(AsynchronousRequestBody.class);
@@ -88,6 +94,7 @@ public class AsyncJobProgressRunnerAdapterTest {
 		// Call under test
 		adapter.run(mockCallback, mockMessage);
 		
+		verify(mockUser).setContext(new CallersContext().setSessionId(sessionId));
 		verify(mockJobManager).lookupJobStatus(jobId);
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockRunner).run(eq(jobId), eq(mockUser), eq(mockRequest), captorJobProgressCallback.capture());

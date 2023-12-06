@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -36,6 +37,7 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
@@ -419,7 +421,7 @@ public class PreviewManagerImplTest {
 		when(mockPreviewGenerator.generatePreview(mockS3ObjectInputStream, mockOutputStream)).thenReturn(previewContentType);
 		when(mockUploadFile.length()).thenReturn(resultPreviewSize);
 		when(mockIdGenerator.generateNewId(IdType.FILE_IDS)).thenReturn(789L);
-		when(mockStorageLocationDao.get(any())).thenReturn(new S3StorageLocationSetting());
+		when(mockStorageLocationDao.get(any())).thenReturn(new S3StorageLocationSetting().setBaseKey("testBaseKey"));
 		when(mockS3Client.initiateMultipartUpload(any())).thenReturn(mockMultipartResult);
 		when(mockS3Client.uploadPart(any())).thenReturn(mockUploadPartResult);
 		
@@ -434,6 +436,32 @@ public class PreviewManagerImplTest {
 		verify(mockS3Client).initiateMultipartUpload(requestCaptor.capture());
 		
 		assertEquals(StorageClass.IntelligentTiering, requestCaptor.getValue().getStorageClass());
+	}
+	
+	@Test
+	public void testExpectedS3PreviewWithBasePath() throws Exception {
+		
+		testMetadata.setStorageLocationId(123L);
+		
+		when(mockFileProvider.createTempFile(any(String.class), any(String.class))).thenReturn(mockUploadFile);
+		when(mockFileProvider.createFileOutputStream(mockUploadFile)).thenReturn(mockOutputStream);
+		when(mockS3Client.getObject(any(GetObjectRequest.class))).thenReturn(mockS3Object);
+		when(mockS3Object.getObjectContent()).thenReturn(mockS3ObjectInputStream);
+		when(mockPreviewGenerator.supportsContentType(testContentType, "txt")).thenReturn(true);
+		when(mockPreviewGenerator.calculateNeededMemoryBytesForPreview(any(), anyLong())).thenReturn(maxPreviewSize);
+		when(mockPreviewGenerator.generatePreview(mockS3ObjectInputStream, mockOutputStream)).thenReturn(previewContentType);
+		when(mockUploadFile.length()).thenReturn(resultPreviewSize);
+		when(mockIdGenerator.generateNewId(IdType.FILE_IDS)).thenReturn(789L);
+		when(mockStorageLocationDao.get(any())).thenReturn(new S3StorageLocationSetting().setBaseKey("testBaseKey"));
+		when(mockS3Client.initiateMultipartUpload(any())).thenReturn(mockMultipartResult);
+		when(mockS3Client.uploadPart(any())).thenReturn(mockUploadPartResult);
+		
+		// Call under test
+		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(testMetadata);
+		
+		assertNotNull(pfm);
+		assertEquals(123L, pfm.getStorageLocationId());
+		assertTrue(pfm.getKey().startsWith("testBaseKey/"));
 	}
 
 	@Test
@@ -460,6 +488,28 @@ public class PreviewManagerImplTest {
 		// Make sure the preview is in the dao
 		CloudProviderFileHandleInterface fromDao = (CloudProviderFileHandleInterface) stubFileMetadataDao.get(pfm.getId());
 		assertEquals(pfm, fromDao);
+	}
+	
+	@Test
+	public void testExpectedGoogleCloudPreviewWithBaseKey() throws Exception {
+		
+		testGoogleCloudMetadata.setStorageLocationId(123L);
+		
+		when(mockFileProvider.createTempFile(any(String.class), any(String.class))).thenReturn(mockUploadFile);
+		when(mockFileProvider.createFileOutputStream(mockUploadFile)).thenReturn(mockOutputStream);
+		when(mockGoogleCloudClient.getObject(any(String.class), any(String.class))).thenReturn(mockBlob);
+		when(mockBlob.reader()).thenReturn(mockGoogleCloudReadChannel);
+		when(mockPreviewGenerator.supportsContentType(testContentType, "txt")).thenReturn(true);
+		when(mockPreviewGenerator.calculateNeededMemoryBytesForPreview(any(), anyLong())).thenReturn(maxPreviewSize);
+		when(mockPreviewGenerator.generatePreview(any(InputStream.class), eq(mockOutputStream))).thenReturn(previewContentType);		
+		when(mockUploadFile.length()).thenReturn(resultPreviewSize);
+		when(mockStorageLocationDao.get(any())).thenReturn(new ExternalGoogleCloudStorageLocationSetting().setBaseKey("testBaseKey"));
+		when(mockIdGenerator.generateNewId(IdType.FILE_IDS)).thenReturn(789L);		
+
+		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(testGoogleCloudMetadata);
+		
+		assertEquals(123L, pfm.getStorageLocationId());
+		assertTrue(pfm.getKey().startsWith("testBaseKey/"));
 	}
 
 }

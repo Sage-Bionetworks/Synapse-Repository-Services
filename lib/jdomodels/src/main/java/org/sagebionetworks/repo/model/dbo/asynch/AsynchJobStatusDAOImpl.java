@@ -26,6 +26,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -113,12 +115,15 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	 */
 	@NewWriteTransaction
 	@Override
-	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) {
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(user.getId(), "user.id");
+		ValidateArgument.required(user.getContext(), "user.context");
+		ValidateArgument.required(body, "body");
 		if(body == null) throw new IllegalArgumentException("body cannot be null");
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		long now = System.currentTimeMillis();
-		status.setStartedByUserId(userId);
+		status.setStartedByUserId(user.getId());
 		status.setJobId(idGenerator.generateNewId(IdType.ASYNCH_JOB_STATUS_ID).toString());
 		status.setEtag(UUID.randomUUID().toString());
 		status.setChangedOn(new Date(now));
@@ -127,6 +132,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		status.setJobCanceling(false);
 		status.setRuntimeMS(0L);
 		status.setRequestBody(body);
+		status.setCallersContext(user.getContext());
 		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
 		dbo = basicDao.createNew(dbo);
 		return AsynchJobStatusUtils.createDTOFromDBO(dbo);

@@ -1,0 +1,9 @@
+{
+	"description": "Contextual information about a web service call.",
+	"properties": {
+		"sessionId": {
+			"type": "string",
+			"description": "Each web service request is issue a unique session ID (UUID) that is included in the call's access recored.  Events that are triggered by a web service request should include the session ID so that they can be linked to each other and the call's access record."
+		}
+	}
+}

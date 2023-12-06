@@ -28,6 +28,10 @@
             "type": "string",
             "description": "The association Id of filehandle.",
             "required": true
-        }
+        },
+		"sessionId": {
+			"type": "string",
+			"description": "The session ID from the access record associated with this event.  When present, can be used to join access records with download records."
+		}
     }
 }
