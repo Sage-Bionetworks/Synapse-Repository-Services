@@ -2045,6 +2045,32 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 
 	@Test
+	public void testGetParametersWithUserIdParameter() {
+		List<VariableElement> parameters = new ArrayList<>();
+		parameters.add(mockParameter);
+		when(mockParameter.asType()).thenReturn(mockParameterType);
+		when(mockParameterType.toString()).thenReturn(MOCK_CLASS_NAME);
+
+		when(mockParameter.getSimpleName()).thenReturn(mockName);
+		when(mockName.toString()).thenReturn("userId");
+
+		doReturn(ParameterLocation.query).when(translator).getParameterLocation(any());
+		doReturn(mockAnnotationMirror).when(translator).getParameterAnnotation(any());
+
+		List<ParameterModel> expectedParameters = new ArrayList<>();
+
+		// call under test
+		assertEquals(expectedParameters, translator.getParameters(parameters, null, new HashMap<>()));
+
+		verify(mockParameter, times(1)).asType();
+		verify(mockParameter).getSimpleName();
+		verify(translator).getParameterLocation(mockParameter);
+		verify(translator).getParameterAnnotation(mockParameter);
+		verify(mockAnnotationMirror, times(1)).getElementValues();
+		verify(translator, never()).populateSchemaMap(any(), any(), any());
+	}
+
+	@Test
 	public void testGetParameterLocationWithUnknownAnnotation() {
 		AnnotationMirror mockAnnoMirror = mock(AnnotationMirror.class);
 		doReturn(mockAnnoMirror).when(translator).getParameterAnnotation(any(VariableElement.class));

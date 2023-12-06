@@ -462,4 +462,15 @@ public class ComplexExampleController {
 			@RequestParam AliasEnum aliasEnum
 			) {
 	}
+
+	/**
+	 * Example of an endpoint with a userId parameter
+	 *
+	 * @param userId
+	 */
+	@RequestMapping(value = "/complex-pet/userid", method = RequestMethod.GET)
+	public void getUserId(
+			@RequestParam(value = "userId") Long userId
+	) {
+	}
 }

@@ -858,4 +858,14 @@ public class ControllerModelDocletTest {
 		JSONArray stateEnumExpected = new JSONArray(List.of("WAITING_FOR_SUBMISSION", "SUBMITTED_WAITING_FOR_REVIEW", "ACCEPTED", "REJECTED"));
 		assertEquals(stateEnumExpected.toString(), stateEnumSchemaObj.getJSONArray("enum").toString());
 	}
+
+	@Test
+	public void testUserId() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/userid");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray paramsObj = getObj.getJSONArray("parameters");
+
+		assertEquals(0, paramsObj.length());
+	}
 }

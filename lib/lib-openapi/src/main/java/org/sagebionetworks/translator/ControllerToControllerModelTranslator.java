@@ -809,6 +809,10 @@ public class ControllerToControllerModelTranslator {
 				}
 			}
 
+			if (ParameterLocation.query.equals(paramLocation) && "userId".equals(paramName)) {
+				continue;
+			}
+
 			boolean paramIsRequired = isParameterRequired(paramAnnotation);
 			String paramTypeSchemaId = getSchemaIdForType(parameterType);
 			populateSchemaMap(paramTypeSchemaId, parameterType, schemaMap);

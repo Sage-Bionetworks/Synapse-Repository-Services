@@ -131,7 +131,8 @@ public class DataAccessController {
 	 * Submit a Submission using information from a Request.
 	 * 
 	 * @param userId - The ID of the user who is making the request.
-	 * @param requestId - The object that contains information to create a submission.
+	 * @param request - The object that contains information to create a submission.
+	 * @param requestId - The ID of the request object.
 	 * @return
 	 * @throws NotFoundException
 	 */
@@ -140,7 +141,8 @@ public class DataAccessController {
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody SubmissionStatus submit(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody CreateSubmissionRequest request)
+			@RequestBody CreateSubmissionRequest request,
+			@PathVariable String requestId)
 					throws NotFoundException {
 		return serviceProvider.getDataAccessService().submit(userId, request);
 	}
@@ -169,6 +171,7 @@ public class DataAccessController {
 	 * 
 	 * @param userId
 	 * @param request
+	 * @param submissionId
 	 * @return
 	 * @throws NotFoundException
 	 */
@@ -177,7 +180,8 @@ public class DataAccessController {
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID, method = RequestMethod.PUT)
 	public @ResponseBody Submission updateState(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody SubmissionStateChangeRequest request) throws NotFoundException {
+			@RequestBody SubmissionStateChangeRequest request,
+			@PathVariable String submissionId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().updateState(userId, request);
 	}
 
@@ -189,7 +193,8 @@ public class DataAccessController {
 	 * Only an ACT member can perform this action.
 	 * 
 	 * @param userId
-	 * @param SubmissionPageRequest
+	 * @param submissionPageRequest
+	 * @param requirementId
 	 * @return
 	 * @throws NotFoundException
 	 */
@@ -198,7 +203,8 @@ public class DataAccessController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody SubmissionPage listSubmissions(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody SubmissionPageRequest submissionPageRequest) throws NotFoundException {
+			@RequestBody SubmissionPageRequest submissionPageRequest,
+			@PathVariable String requirementId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().listSubmissions(userId, submissionPageRequest);
 	}
 	
@@ -225,7 +231,8 @@ public class DataAccessController {
 	 * changes are only visible to members of the ACT.
 	 * 
 	 * @param userId
-	 * @param researchProjectPageRequest
+	 * @param submissionInfoPageRequest
+	 * @param requirementId
 	 * @return in order of modifiedOn, ascending
 	 * @throws NotFoundException
 	 */
@@ -234,7 +241,8 @@ public class DataAccessController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_APPROVED_SUBMISISON_INFO, method = RequestMethod.POST)
 	public @ResponseBody SubmissionInfoPage listInfoForApprovedSubmissions(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody SubmissionInfoPageRequest submissionInfoPageRequest) throws NotFoundException {
+			@RequestBody SubmissionInfoPageRequest submissionInfoPageRequest,
+			@PathVariable String requirementId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().listInfoForApprovedSubmissions(userId, submissionInfoPageRequest);
 	}
 
