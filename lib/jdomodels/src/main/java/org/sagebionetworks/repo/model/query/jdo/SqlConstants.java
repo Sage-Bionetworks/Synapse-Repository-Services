@@ -642,6 +642,7 @@ public class SqlConstants {
 	public static final String COL_ASYNCH_JOB_RESPONSE_BODY			= "RESPONSE_BODY";
 	public static final String COL_ASYNCH_JOB_REQUEST_HASH			= "REQUEST_HASH";
 	public static final String COL_ASYNCH_JOB_RUNTIME_MS			= "RUNTIME_MS";
+	public static final String COL_ASYNCH_JOB_CONTEXT				= "CONTEXT";
 	public static final String DDL_ASYNCH_JOB_STATUS 				= "schema/AsynchJobStatus-ddl.sql";
 
 	// The wiki attachment table

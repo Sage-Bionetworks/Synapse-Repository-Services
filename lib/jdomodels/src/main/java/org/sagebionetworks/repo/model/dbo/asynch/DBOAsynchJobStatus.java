@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ASYNCH_JOB_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_CANCELING;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_CHANGED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_CONTEXT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ETAG;
@@ -24,6 +25,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_ASYNCH_J
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -70,7 +72,8 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 			new FieldColumn("requestBody", COL_ASYNCH_JOB_REQUEST_BODY),
 			new FieldColumn("responseBody", COL_ASYNCH_JOB_RESPONSE_BODY),
 			new FieldColumn("runtimeMS", COL_ASYNCH_JOB_RUNTIME_MS),
-			new FieldColumn("requestHash", COL_ASYNCH_JOB_REQUEST_HASH) };
+			new FieldColumn("requestHash", COL_ASYNCH_JOB_REQUEST_HASH),
+			new FieldColumn("context", COL_ASYNCH_JOB_CONTEXT)};
 
 	private Long jobId;
 	private String etag;
@@ -90,6 +93,7 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	private String responseBody;
 	private Long runtimeMS;
 	private String requestHash;
+	private String context;
 
 	public Long getJobId() {
 		return jobId;
@@ -235,6 +239,14 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 		this.requestHash = requestHash;
 	}
 
+	public String getContext() {
+		return context;
+	}
+
+	public void setContext(String context) {
+		this.context = context;
+	}
+
 	public static void setTableMapping(TableMapping<DBOAsynchJobStatus> tableMapping) {
 		DBOAsynchJobStatus.TABLE_MAPPING = tableMapping;
 	}
@@ -273,6 +285,7 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 			dbo.setResponseBody(rs.getString(COL_ASYNCH_JOB_RESPONSE_BODY));
 			dbo.setRuntimeMS(rs.getLong(COL_ASYNCH_JOB_RUNTIME_MS));
 			dbo.setRequestHash(rs.getString(COL_ASYNCH_JOB_REQUEST_HASH));
+			dbo.setContext(rs.getString(COL_ASYNCH_JOB_CONTEXT));
 			return dbo;
 		}
 
@@ -299,27 +312,9 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((canceling == null) ? 0 : canceling.hashCode());
-		result = prime * result + ((changedOn == null) ? 0 : changedOn.hashCode());
-		result = prime * result + ((errorDetails == null) ? 0 : errorDetails.hashCode());
-		result = prime * result + ((errorMessage == null) ? 0 : errorMessage.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((exception == null) ? 0 : exception.hashCode());
-		result = prime * result + ((jobId == null) ? 0 : jobId.hashCode());
-		result = prime * result + ((jobState == null) ? 0 : jobState.hashCode());
-		result = prime * result + ((jobType == null) ? 0 : jobType.hashCode());
-		result = prime * result + ((progressCurrent == null) ? 0 : progressCurrent.hashCode());
-		result = prime * result + ((progressMessage == null) ? 0 : progressMessage.hashCode());
-		result = prime * result + ((progressTotal == null) ? 0 : progressTotal.hashCode());
-		result = prime * result + ((requestBody == null) ? 0 : requestBody.hashCode());
-		result = prime * result + ((requestHash == null) ? 0 : requestHash.hashCode());
-		result = prime * result + ((responseBody == null) ? 0 : responseBody.hashCode());
-		result = prime * result + ((runtimeMS == null) ? 0 : runtimeMS.hashCode());
-		result = prime * result + ((startedByUserId == null) ? 0 : startedByUserId.hashCode());
-		result = prime * result + ((startedOn == null) ? 0 : startedOn.hashCode());
-		return result;
+		return Objects.hash(canceling, changedOn, context, errorDetails, errorMessage, etag, exception, jobId, jobState,
+				jobType, progressCurrent, progressMessage, progressTotal, requestBody, requestHash, responseBody,
+				runtimeMS, startedByUserId, startedOn);
 	}
 
 	@Override
@@ -331,91 +326,17 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 		if (getClass() != obj.getClass())
 			return false;
 		DBOAsynchJobStatus other = (DBOAsynchJobStatus) obj;
-		if (canceling == null) {
-			if (other.canceling != null)
-				return false;
-		} else if (!canceling.equals(other.canceling))
-			return false;
-		if (changedOn == null) {
-			if (other.changedOn != null)
-				return false;
-		} else if (!changedOn.equals(other.changedOn))
-			return false;
-		if (errorDetails == null) {
-			if (other.errorDetails != null)
-				return false;
-		} else if (!errorDetails.equals(other.errorDetails))
-			return false;
-		if (errorMessage == null) {
-			if (other.errorMessage != null)
-				return false;
-		} else if (!errorMessage.equals(other.errorMessage))
-			return false;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (exception == null) {
-			if (other.exception != null)
-				return false;
-		} else if (!exception.equals(other.exception))
-			return false;
-		if (jobId == null) {
-			if (other.jobId != null)
-				return false;
-		} else if (!jobId.equals(other.jobId))
-			return false;
-		if (jobState != other.jobState)
-			return false;
-		if (jobType != other.jobType)
-			return false;
-		if (progressCurrent == null) {
-			if (other.progressCurrent != null)
-				return false;
-		} else if (!progressCurrent.equals(other.progressCurrent))
-			return false;
-		if (progressMessage == null) {
-			if (other.progressMessage != null)
-				return false;
-		} else if (!progressMessage.equals(other.progressMessage))
-			return false;
-		if (progressTotal == null) {
-			if (other.progressTotal != null)
-				return false;
-		} else if (!progressTotal.equals(other.progressTotal))
-			return false;
-		if (requestBody == null) {
-			if (other.requestBody != null)
-				return false;
-		} else if (!requestBody.equals(other.requestBody))
-			return false;
-		if (requestHash == null) {
-			if (other.requestHash != null)
-				return false;
-		} else if (!requestHash.equals(other.requestHash))
-			return false;
-		if (responseBody == null) {
-			if (other.responseBody != null)
-				return false;
-		} else if (!responseBody.equals(other.responseBody))
-			return false;
-		if (runtimeMS == null) {
-			if (other.runtimeMS != null)
-				return false;
-		} else if (!runtimeMS.equals(other.runtimeMS))
-			return false;
-		if (startedByUserId == null) {
-			if (other.startedByUserId != null)
-				return false;
-		} else if (!startedByUserId.equals(other.startedByUserId))
-			return false;
-		if (startedOn == null) {
-			if (other.startedOn != null)
-				return false;
-		} else if (!startedOn.equals(other.startedOn))
-			return false;
-		return true;
+		return Objects.equals(canceling, other.canceling) && Objects.equals(changedOn, other.changedOn)
+				&& Objects.equals(context, other.context) && Objects.equals(errorDetails, other.errorDetails)
+				&& Objects.equals(errorMessage, other.errorMessage) && Objects.equals(etag, other.etag)
+				&& Objects.equals(exception, other.exception) && Objects.equals(jobId, other.jobId)
+				&& jobState == other.jobState && jobType == other.jobType
+				&& Objects.equals(progressCurrent, other.progressCurrent)
+				&& Objects.equals(progressMessage, other.progressMessage)
+				&& Objects.equals(progressTotal, other.progressTotal) && Objects.equals(requestBody, other.requestBody)
+				&& Objects.equals(requestHash, other.requestHash) && Objects.equals(responseBody, other.responseBody)
+				&& Objects.equals(runtimeMS, other.runtimeMS) && Objects.equals(startedByUserId, other.startedByUserId)
+				&& Objects.equals(startedOn, other.startedOn);
 	}
 
 }

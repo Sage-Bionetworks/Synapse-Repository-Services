@@ -2,9 +2,8 @@ package org.sagebionetworks.repo.web.filter;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.logging.log4j.ThreadContext;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.web.AccessInterceptor;
+import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 /**
  * Gathers basic data from an http request.
  * 
@@ -30,7 +29,7 @@ public class HttpServletRequestData {
 		method = request.getMethod();
 		threadId = Thread.currentThread().getId();
 		sessionToken = request.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
-		sessionId = ThreadContext.get(AccessInterceptor.SESSION_ID);
+		sessionId = SessionIdThreadLocal.getThreadsSessionId().orElse(null);
 	}
 	
 	

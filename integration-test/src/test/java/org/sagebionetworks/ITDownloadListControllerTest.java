@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,6 +44,7 @@ import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.Query;
@@ -50,6 +52,7 @@ import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.warehouse.WarehouseTestHelper;
 
 @ExtendWith(ITTestExtension.class)
 public class ITDownloadListControllerTest {
@@ -61,10 +64,12 @@ public class ITDownloadListControllerTest {
 	
 	private SynapseAdminClient adminSynapse;
 	private SynapseClient synapse;
+	private WarehouseTestHelper warehouseHelper;
 	
-	public ITDownloadListControllerTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+	public ITDownloadListControllerTest(SynapseAdminClient adminSynapse, SynapseClient synapse, WarehouseTestHelper warehouseHelper) {
 		this.adminSynapse = adminSynapse;
 		this.synapse = synapse;
+		this.warehouseHelper = warehouseHelper;
 	}
 
 	@BeforeEach
@@ -89,6 +94,46 @@ public class ITDownloadListControllerTest {
 		AddBatchOfFilesToDownloadListResponse expected = new AddBatchOfFilesToDownloadListResponse()
 				.setNumberOfFilesAdded(1L);
 		assertEquals(expected, response);
+	}
+	
+	@Test
+	public void testDownloadFilesFromDownloadListWithWarehouseQuery() throws Exception {
+		FileEntity file = setupFileEntity();
+		assertEquals(
+				synapse.addFilesToDownloadList(new AddBatchOfFilesToDownloadListRequest()
+						.setBatchToAdd(Arrays.asList(new DownloadListItem().setFileEntityId(file.getId())))),
+				new AddBatchOfFilesToDownloadListResponse().setNumberOfFilesAdded(1L));
+
+		// call under test
+		DownloadListPackageResponse response = (DownloadListPackageResponse) AsyncJobHelper
+				.assertAysncJobResult(synapse, AsynchJobType.DownloadPackageList,
+						new DownloadListPackageRequest().setZipFileName("test.zip"), body -> {
+							assertTrue(body instanceof DownloadListPackageResponse);
+							DownloadListPackageResponse r = (DownloadListPackageResponse) body;
+							assertNotNull(r.getResultFileHandleId());
+						}, MAX_WAIT_MS, MAX_RETIES)
+				.getResponse();
+
+		Thread.sleep(10_000);
+		
+		Instant now = Instant.now();
+
+		String query = String.format(
+				"select count(*) from processedaccessrecord p join filedownloadrecords f on ("
+							+ " p.session_id = f.session_id"
+							+ " and p.record_date %s"
+							+ " and f.record_date %s"
+						+ ")"
+						+ " where f.association_object_id = %s"
+						+ " and f.association_object_type = 'FileEntity'"
+						+ " and f.downloaded_file_handle_id = %s",
+				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
+				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
+				KeyFactory.stringToKey(file.getId()),
+				response.getResultFileHandleId());
+		
+		System.out.println(query);
+		warehouseHelper.assertWarehouseQuery(query);
 	}
 
 	@Test

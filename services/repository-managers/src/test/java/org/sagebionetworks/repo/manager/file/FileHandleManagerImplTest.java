@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.feature.Feature;
@@ -265,6 +266,7 @@ public class FileHandleManagerImplTest {
 	BatchFileRequest batchRequest;
 	ObjectRecord successRecord;
 	
+	private String sessionId;
 
 	@BeforeEach
 	public void before() throws IOException, NoSuchAlgorithmException{
@@ -273,6 +275,8 @@ public class FileHandleManagerImplTest {
 
 		// The user is not really a mock
 		mockUser = new UserInfo(false,"987");
+		sessionId = UUID.randomUUID().toString();
+		mockUser.setContext(new CallersContext().setSessionId(sessionId));
 		
 		anonymousUser = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
@@ -1194,6 +1198,32 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
+	public void testGetRedirectURLForFileHandleWithUserContextNull() throws Exception {		
+		mockUser.setContext(null);
+		FileHandleUrlRequest request = new FileHandleUrlRequest(mockUser, "123")
+				.withAssociation(FileHandleAssociateType.FileEntity, "syn456");
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getRedirectURLForFileHandle(request);
+		}).getMessage();
+		assertEquals("userInfo.context is required.", message);
+	}
+	
+	@Test
+	public void testGetRedirectURLForFileHandleWithUserSessionIdNull() throws Exception {		
+		mockUser.getContext().setSessionId(null);
+		FileHandleUrlRequest request = new FileHandleUrlRequest(mockUser, "123")
+				.withAssociation(FileHandleAssociateType.FileEntity, "syn456");
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getRedirectURLForFileHandle(request);
+		}).getMessage();
+		assertEquals("userInfo.context.sessionId is required.", message);
+	}
+	
+	@Test
 	public void testGetURLRequestWithAssociateAuthCheck() throws Exception {
 		S3FileHandle s3FileHandle = new S3FileHandle();
 		s3FileHandle.setId("123");
@@ -1229,13 +1259,15 @@ public class FileHandleManagerImplTest {
 		FileHandleUrlRequest request = new FileHandleUrlRequest(mockUser, s3FileHandle.getId())
 				.withAssociation(association.getAssociateObjectType(), association.getAssociateObjectId());
 		
+		// call under test
 		String redirectURL = manager.getRedirectURLForFileHandle(request);
+		
 		verify(mockAuthorizationManager, times(1)).canDownLoadFile(mockUser, associations);
 		// Verifies that download stats are sent
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualFileEvent = fileEventCaptor.getValue();
 		assertNotNull(actualFileEvent.getTimestamp());
-		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, association);
+		FileEvent expectedFileEvent = getFileEvent(mockUser, actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, association);
 		assertEquals(expectedFileEvent, actualFileEvent);
 		assertEquals(expectedURL, redirectURL);
 	}
@@ -1315,6 +1347,36 @@ public class FileHandleManagerImplTest {
 					 FileHandleAssociateType.VerificationSubmission,
 					 associateObjectId)
 		);
+	}
+	
+	@Test
+	public void testGetRedirectURLForFileHandleWithUserNull() {
+		mockUser = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			manager.getRedirectURLForFileHandle(mockUser,
+					"123", FileHandleAssociateType.VerificationSubmission, "syn456");
+		}).getMessage();
+		assertEquals("userInfo is required.", message);
+	}
+	
+	@Test
+	public void testGetRedirectURLForFileHandleWithContextNull() {
+		mockUser.setContext(null);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			manager.getRedirectURLForFileHandle(mockUser,
+					"123", FileHandleAssociateType.VerificationSubmission, "syn456");
+		}).getMessage();
+		assertEquals("userInfo.context is required.", message);
+	}
+	
+	@Test
+	public void testGetRedirectURLForFileHandleWithSessionIdNull() {
+		mockUser.getContext().setSessionId(null);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			manager.getRedirectURLForFileHandle(mockUser,
+					"123", FileHandleAssociateType.VerificationSubmission, "syn456");
+		}).getMessage();
+		assertEquals("userInfo.context.sessionId is required.", message);
 	}
 
 	///////////////////////////////////////////////////
@@ -2065,6 +2127,36 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
+	public void testgetFileHandleAndUrlBatchWithUserNull() {
+		mockUser = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+		}).getMessage();
+		assertEquals("userInfo is required.", message);
+	}
+	
+	@Test
+	public void testgetFileHandleAndUrlBatchWithUserContextNull() {
+		mockUser.setContext(null);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+		}).getMessage();
+		assertEquals("userInfo.context is required.", message);
+	}
+	
+	@Test
+	public void testgetFileHandleAndUrlBatchWithUserSessionIdNull() {
+		mockUser.getContext().setSessionId(null);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+		}).getMessage();
+		assertEquals("userInfo.context.sessionId is required.", message);
+	}
+	
+	@Test
 	public void testGetFileHandleAndUrlBatch() throws Exception {
 		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.accessDenied(""));
 		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
@@ -2123,7 +2215,7 @@ public class FileHandleManagerImplTest {
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualFileEvent = fileEventCaptor.getValue();
 		assertNotNull(actualFileEvent.getTimestamp());
-		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		FileEvent expectedFileEvent = getFileEvent(mockUser, actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
 		assertEquals(expectedFileEvent, actualFileEvent);
 		// Verify a download record is created for the success case.
 		ArgumentCaptor<ObjectRecordBatch> batchCapture = ArgumentCaptor.forClass(ObjectRecordBatch.class);
@@ -2179,7 +2271,7 @@ public class FileHandleManagerImplTest {
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualFileEvent = fileEventCaptor.getValue();
 		assertNotNull(actualFileEvent.getTimestamp());
-		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		FileEvent expectedFileEvent = getFileEvent(mockUser, actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
 		assertEquals(expectedFileEvent, actualFileEvent);
 	}
 
@@ -2226,7 +2318,7 @@ public class FileHandleManagerImplTest {
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualFileEvent = fileEventCaptor.getValue();
 		assertNotNull(actualFileEvent.getTimestamp());
-		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		FileEvent expectedFileEvent = getFileEvent(mockUser, actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
 		assertEquals(expectedFileEvent, actualFileEvent);
 	}
 
@@ -2507,7 +2599,7 @@ public class FileHandleManagerImplTest {
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualFileEvent = fileEventCaptor.getValue();
 		assertNotNull(actualFileEvent.getTimestamp());
-		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		FileEvent expectedFileEvent = getFileEvent(mockUser, actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
 		assertEquals(expectedFileEvent, actualFileEvent);
 	}
 
@@ -2555,11 +2647,11 @@ public class FileHandleManagerImplTest {
 		List<FileEvent> fileEvents = fileEventCaptor.getAllValues();
 		FileEvent actualFileEventOne = fileEvents.get(0);
 		assertNotNull(actualFileEventOne.getTimestamp());
-		FileEvent expectedFileEvent = getFileEvent(mockUser.getId(), actualFileEventOne.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha1);
+		FileEvent expectedFileEvent = getFileEvent(mockUser, actualFileEventOne.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha1);
 		assertEquals(expectedFileEvent, actualFileEventOne);
 		FileEvent actualFileEventTwo = fileEvents.get(1);
 		assertNotNull(actualFileEventTwo.getTimestamp());
-		FileEvent expectedFileEventTwo = getFileEvent(mockUser.getId(), actualFileEventTwo.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
+		FileEvent expectedFileEventTwo = getFileEvent(mockUser, actualFileEventTwo.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
 		assertEquals(expectedFileEventTwo, actualFileEventTwo);
 
 
@@ -3127,9 +3219,10 @@ public class FileHandleManagerImplTest {
 		
 	}
 
-	private FileEvent getFileEvent(long userId, Date timestamp, FileEventType fileHandleType, FileHandleAssociation fileHandleAssociation) {
-		FileEvent expectedFileEvent = FileEventUtils.buildFileEvent(fileHandleType, userId, fileHandleAssociation, STACK, INSTANCE);
+	private FileEvent getFileEvent(UserInfo user, Date timestamp, FileEventType fileHandleType, FileHandleAssociation fileHandleAssociation) {
+		FileEvent expectedFileEvent = FileEventUtils.buildFileEvent(fileHandleType, user.getId(), fileHandleAssociation, STACK, INSTANCE);
 		expectedFileEvent.setTimestamp(timestamp);
+		expectedFileEvent.setSessionId(user.getContext().getSessionId());
 		return expectedFileEvent;
 	}
 }

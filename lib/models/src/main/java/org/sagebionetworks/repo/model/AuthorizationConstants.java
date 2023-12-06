@@ -256,6 +256,5 @@ public class AuthorizationConstants {
 	public static final String ERR_MSG_ACCESS_DENIED = "Access denied.";
 	public static final String ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT = "Cannot remove the ACL of a project";
 	public static final String ERR_MSG_YOU_NEED_TWO_FA = "You need to enable two factor authentication to access the requested entity.";
-
 	
 }

@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.manager.asynch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -11,11 +12,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.ReadOnlyRequestBody;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -99,6 +101,7 @@ public class AsynchJobStatusManagerImplTest {
 		status.setStartedByUserId(user.getId());
 		status.setJobId("8888");
 		status.setRequestBody(new BulkFileDownloadRequest());
+		status.setCallersContext(new CallersContext().setSessionId(UUID.randomUUID().toString()));
 		
 		instance = "test1";
 
@@ -107,18 +110,19 @@ public class AsynchJobStatusManagerImplTest {
 	}
 
 	void setupStartJob() {
-		when(mockAsynchJobStatusDao.startJob(anyLong(), any(AsynchronousRequestBody.class))).thenAnswer(new Answer<AsynchronousJobStatus>() {
+		when(mockAsynchJobStatusDao.startJob(any(), any(AsynchronousRequestBody.class))).thenAnswer(new Answer<AsynchronousJobStatus>() {
 			@Override
 			public AsynchronousJobStatus answer(InvocationOnMock invocation)
 					throws Throwable {
-				Long userId = (Long) invocation.getArguments()[0];
+				UserInfo user = (UserInfo) invocation.getArguments()[0];
 				AsynchronousRequestBody body = (AsynchronousRequestBody) invocation.getArguments()[1];
 				AsynchronousJobStatus results = null;
-				if(userId != null && body != null){
+				if(user != null && body != null){
 					results = new AsynchronousJobStatus();
-					results.setStartedByUserId(userId);
+					results.setStartedByUserId(user.getId());
 					results.setRequestBody(body);
 					results.setJobId(startedJobId);
+					results.setCallersContext(user.getContext());
 				}
 				return results;
 			}
@@ -148,6 +152,7 @@ public class AsynchJobStatusManagerImplTest {
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		assertNotNull(status);
 		assertEquals(body, status.getRequestBody());
+		assertNull(status.getCallersContext());
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
 	
@@ -174,6 +179,7 @@ public class AsynchJobStatusManagerImplTest {
 		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
 		AsynchronousJobStatus status = manager.getJobStatus(user,"999");
 		assertNotNull(status);
+		assertNull(status.getCallersContext());
 	}
 	
 	@Test
@@ -181,6 +187,8 @@ public class AsynchJobStatusManagerImplTest {
 		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
 		AsynchronousJobStatus status = manager.lookupJobStatus("999");
 		assertNotNull(status);
+		assertNotNull(status.getCallersContext());
+		assertNotNull(status.getCallersContext().getSessionId());
 	}
 	
 	@Test
@@ -477,7 +485,7 @@ public class AsynchJobStatusManagerImplTest {
 		// The status should match the exiting job
 		assertEquals(existingJob, status);
 		// The job should not be started.
-		verify(mockAsynchJobStatusDao, never()).startJob(anyLong(), any(AsynchronousRequestBody.class));
+		verify(mockAsynchJobStatusDao, never()).startJob(any(), any(AsynchronousRequestBody.class));
 	}
 	
 	@Test
@@ -517,7 +525,7 @@ public class AsynchJobStatusManagerImplTest {
 		// The status should match the exiting job
 		assertEquals(hitTwo, status);
 		// The job should not be started.
-		verify(mockAsynchJobStatusDao, never()).startJob(anyLong(), any(AsynchronousRequestBody.class));
+		verify(mockAsynchJobStatusDao, never()).startJob(any(), any(AsynchronousRequestBody.class));
 	}
 	
 	@Test
@@ -538,7 +546,7 @@ public class AsynchJobStatusManagerImplTest {
 		assertNotNull(status);
 		assertEquals(startedJobId, status.getJobId());
 		// The job should be started and published.
-		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class));
+		verify(mockAsynchJobStatusDao, times(1)).startJob(any(), any(AsynchronousRequestBody.class));
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
 	
@@ -570,7 +578,7 @@ public class AsynchJobStatusManagerImplTest {
 		assertNotNull(status);
 		assertEquals(startedJobId, status.getJobId());
 		// The job should be started and published.
-		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class));
+		verify(mockAsynchJobStatusDao, times(1)).startJob(any(), any(AsynchronousRequestBody.class));
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
 	
@@ -593,7 +601,7 @@ public class AsynchJobStatusManagerImplTest {
 		assertNotNull(status);
 		assertEquals(startedJobId, status.getJobId());
 		// The job should be started and published.
-		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class));
+		verify(mockAsynchJobStatusDao, times(1)).startJob(any(), any(AsynchronousRequestBody.class));
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 		verify(mockAsynchJobStatusDao, never()).findCompletedJobStatus(anyString(), anyLong());
 	}

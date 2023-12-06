@@ -7,11 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
@@ -22,11 +24,10 @@ public class AsynchJobStatusUtilsTest {
 	TableUpdateTransactionResponse responseBody;
 	AsynchronousJobStatus status;
 
-
 	@BeforeEach
-	public void setUp(){
+	public void setUp() {
 		// request
-		requestBody= new TableUpdateTransactionRequest();
+		requestBody = new TableUpdateTransactionRequest();
 		UploadToTableRequest uploadToTableRequest = new UploadToTableRequest();
 		uploadToTableRequest.setTableId("syn123");
 		uploadToTableRequest.setUploadFileHandleId("55555");
@@ -46,11 +47,12 @@ public class AsynchJobStatusUtilsTest {
 		status.setStartedByUserId(999L);
 		status.setStartedOn(new Date(900000));
 		status.setRequestBody(requestBody);
+		status.setCallersContext(new CallersContext().setSessionId(UUID.randomUUID().toString()));
 
 	}
 
 	@Test
-	public void testUploadRoundTrip(){
+	public void testUploadRoundTrip() {
 		status.setJobState(AsynchJobState.PROCESSING);
 		status.setResponseBody(responseBody);
 
@@ -59,37 +61,37 @@ public class AsynchJobStatusUtilsTest {
 		AsynchronousJobStatus clone = AsynchJobStatusUtils.createDTOFromDBO(dbo);
 		assertEquals(status, clone);
 	}
-	
+
 	@Test
-	public void testUploadRoundTripNullReponse(){
+	public void testUploadRoundTripNullReponse() {
 		status.setJobState(AsynchJobState.PROCESSING);
 		status.setResponseBody(null);
-	               
+
 		// to DBO
 		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
 		AsynchronousJobStatus clone = AsynchJobStatusUtils.createDTOFromDBO(dbo);
 		assertEquals(status, clone);
 	}
-	
+
 	@Test
-	public void testTruncateMessageStringIfNeededNull(){
+	public void testTruncateMessageStringIfNeededNull() {
 		assertNull(AsynchJobStatusUtils.truncateMessageStringIfNeeded(null));
 	}
-	
+
 	@Test
-	public void testTruncateMessageStringIfNeededUnder(){
+	public void testTruncateMessageStringIfNeededUnder() {
 		assertEquals("under", AsynchJobStatusUtils.truncateMessageStringIfNeeded("under"));
 	}
-	
+
 	@Test
-	public void testTruncateMessageStringIfNeededOver(){
-		char[] chars = new char[DBOAsynchJobStatus.MAX_MESSAGE_CHARS+1];
+	public void testTruncateMessageStringIfNeededOver() {
+		char[] chars = new char[DBOAsynchJobStatus.MAX_MESSAGE_CHARS + 1];
 		Arrays.fill(chars, '1');
 		String tooBig = new String(chars);
 		String truncate = AsynchJobStatusUtils.truncateMessageStringIfNeeded(tooBig);
-		assertEquals(DBOAsynchJobStatus.MAX_MESSAGE_CHARS-1, truncate.length());
+		assertEquals(DBOAsynchJobStatus.MAX_MESSAGE_CHARS - 1, truncate.length());
 	}
-	
+
 	@Test
 	public void testUploadRoundTripWithNullRequestBodyConcreteType() {
 		status.setJobState(AsynchJobState.PROCESSING);
@@ -101,7 +103,7 @@ public class AsynchJobStatusUtilsTest {
 		AsynchronousJobStatus clone = AsynchJobStatusUtils.createDTOFromDBO(dbo);
 		assertEquals(status, clone);
 	}
-	
+
 	@Test
 	public void testUploadRoundTripWithNullResponseBodyConcreteType() {
 		status.setJobState(AsynchJobState.PROCESSING);
@@ -113,7 +115,7 @@ public class AsynchJobStatusUtilsTest {
 		AsynchronousJobStatus clone = AsynchJobStatusUtils.createDTOFromDBO(dbo);
 		assertEquals(status, clone);
 	}
-	
+
 	@Test
 	public void testRoundTripTruncate(){
 		char[] chars = new char[DBOAsynchJobStatus.MAX_MESSAGE_CHARS+1];
@@ -133,19 +135,18 @@ public class AsynchJobStatusUtilsTest {
 		assertEquals(DBOAsynchJobStatus.MAX_MESSAGE_CHARS-1, clone.getProgressMessage().length());
 		assertEquals(DBOAsynchJobStatus.MAX_MESSAGE_CHARS-1, clone.getErrorMessage().length());
 	}
-	
-	
+
 	/**
 	 * Test for PLFM-6906
 	 */
 	@Test
 	public void testCreateDTOFromDBOWithUnknownType() {
-		
+
 		status.setJobState(AsynchJobState.PROCESSING);
 		status.setResponseBody(responseBody);
-		
+
 		requestBody.setConcreteType("not.a.real.class");
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
 			// call under test
 			AsynchJobStatusUtils.createDTOFromDBO(dbo);

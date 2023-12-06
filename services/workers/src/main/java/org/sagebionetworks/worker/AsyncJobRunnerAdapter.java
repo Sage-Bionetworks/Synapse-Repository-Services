@@ -36,6 +36,7 @@ public class AsyncJobRunnerAdapter<RequestType extends AsynchronousRequestBody, 
 		
 		try {
 			UserInfo user = userManager.getUserInfo(status.getStartedByUserId());
+			user.setContext(status.getCallersContext());
 			
 			AsyncJobProgressCallback callbackWrapper = new AsyncJobProgressCallbackAdapter(jobManager, progressCallback, jobId);
 			

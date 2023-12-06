@@ -1,6 +1,17 @@
 package org.sagebionetworks.repo.manager.drs;
 
-import com.google.common.collect.Lists;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
+import org.apache.logging.log4j.ThreadContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,16 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
+import com.google.common.collect.Lists;
 
 
 @ExtendWith(SpringExtension.class)
@@ -64,7 +66,6 @@ public class DrsManagerImplAutowiredTest {
     private List<S3FileHandle> fileHandlesToDelete = Lists.newArrayList();
     private UserInfo adminUserInfo;
     private UserInfo userInfo;
-
 
     @BeforeEach
     public void before() {
@@ -93,6 +94,7 @@ public class DrsManagerImplAutowiredTest {
                 }
             }
         }
+		ThreadContext.clearAll();
     }
 
     @Test

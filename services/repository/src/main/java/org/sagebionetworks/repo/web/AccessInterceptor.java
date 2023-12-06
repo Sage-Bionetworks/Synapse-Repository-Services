@@ -3,18 +3,17 @@ package org.sagebionetworks.repo.web;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.logging.log4j.ThreadContext;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AccessRecorder;
 import org.sagebionetworks.util.Clock;
@@ -30,7 +29,7 @@ import org.springframework.web.servlet.ModelAndView;
  */
 public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 
-	public static final String SESSION_ID = "sessionId";
+
 
 	/**
 	 * This map keeps track of the current record for each thread.
@@ -82,7 +81,7 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		data.setRequestURL(request.getRequestURI());
 		data.setMethod(request.getMethod());
 		data.setThreadId(Thread.currentThread().getId());
-		String sessionId = UUID.randomUUID().toString();
+		String sessionId = SessionIdThreadLocal.createNewSessionIdForThread();
 		data.setSessionId(sessionId);
 		// capture common headers that tell us more about the user.
 		data.setHost(request.getHeader("Host"));
@@ -100,8 +99,6 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 			data.setBasicAuthUsername(HttpAuthUtil.getBasicAuthenticationCredentials(request).get().getUserName());
 		}
 		data.setAuthenticationMethod(request.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
-		// push the session id to the logging thread context
-		ThreadContext.put(SESSION_ID, data.getSessionId());
 		// Bind this record to this thread.
 		threadToRecordMap.put(Thread.currentThread().getId(), data);
 		return true;
@@ -137,7 +134,7 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		// Save this record
 		accessRecorder.save(data);
 		// Clear the logging thread context
-		ThreadContext.clearAll();
+		SessionIdThreadLocal.clearThreadsSessionId();
 	}
 
 	@Override

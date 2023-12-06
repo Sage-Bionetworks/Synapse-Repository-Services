@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -23,8 +24,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -52,7 +55,7 @@ public class AsynchJobStatusDaoImplTest {
 	@Resource(name = "txManager")
 	private PlatformTransactionManager transactionManager;
 
-	private Long creatorUserGroupId;
+	private UserInfo userInfo;
 
 	TableUpdateTransactionRequest body;
 
@@ -72,8 +75,9 @@ public class AsynchJobStatusDaoImplTest {
 		uploadToTableResult.setRowsProcessed(7L);
 		response.setResults(Collections.singletonList(uploadToTableResult));
 
-		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		assertNotNull(creatorUserGroupId);
+		userInfo = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		userInfo.setContext(new CallersContext().setSessionId(UUID.randomUUID().toString()));
+		assertNotNull(userInfo);
 	}
 	
 	@AfterEach
@@ -83,7 +87,7 @@ public class AsynchJobStatusDaoImplTest {
 
 	@Test
 	public void testUploadCreateGet() throws DatastoreException, NotFoundException{
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(userInfo, body);
 		assertNotNull(status.getJobId());
 		assertNotNull(status.getEtag());
 		assertNotNull(status.getChangedOn());
@@ -92,8 +96,10 @@ public class AsynchJobStatusDaoImplTest {
 		assertNull(status.getErrorMessage());
 		assertNotNull(status.getRuntimeMS());
 		assertEquals(AsynchJobState.PROCESSING, status.getJobState());
-		assertEquals(creatorUserGroupId, status.getStartedByUserId());
+		assertEquals(userInfo.getId(), status.getStartedByUserId());
 		assertEquals(body, status.getRequestBody());
+		assertNotNull(status.getCallersContext());
+		assertNotNull(status.getCallersContext().getSessionId());
 		
 		AsynchronousJobStatus clone = asynchJobStatusDao.getJobStatus(status.getJobId());
 		assertEquals(status, clone);
@@ -109,7 +115,7 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testUpdateProgress() throws DatastoreException, NotFoundException, InterruptedException{
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(userInfo, body);
 		// sleep to increase elapse time
 		Thread.sleep(1);
 		assertNotNull(status);
@@ -128,7 +134,7 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testUpdateProgressNotProcessing() throws DatastoreException, NotFoundException {
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(userInfo, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		// update the progress
@@ -166,7 +172,7 @@ public class AsynchJobStatusDaoImplTest {
 				transactionTemplate.execute(new TransactionCallback<String>() {
 					@Override
 					public String doInTransaction(TransactionStatus tStatus) {
-						AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+						AsynchronousJobStatus status = asynchJobStatusDao.startJob(userInfo, body);
 						assertNotNull(status);
 						assertNotNull(status.getEtag());
 						jobId.set(status.getJobId());
@@ -244,7 +250,7 @@ public class AsynchJobStatusDaoImplTest {
 
 	@Test
 	public void testUpdateProgressTooBig() throws DatastoreException, NotFoundException{
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(userInfo, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		// update the progress
@@ -261,7 +267,7 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testSetFailed() throws DatastoreException, NotFoundException{
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(userInfo, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		String startEtag = status.getEtag();
@@ -285,7 +291,7 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testSetFailedNonStringConstructor() throws DatastoreException, NotFoundException {
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(userInfo, body);
 		// update the progress
 		Throwable error = new TermsOfUseException();
 		asynchJobStatusDao.setJobFailed(status.getJobId(), error);
@@ -295,7 +301,7 @@ public class AsynchJobStatusDaoImplTest {
 
 	@Test
 	public void testSetCanceling() throws DatastoreException, NotFoundException {
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(userInfo, body);
 		assertFalse(status.getJobCanceling());
 		// update the progress
 		asynchJobStatusDao.setJobCanceling(status.getJobId());
@@ -307,7 +313,7 @@ public class AsynchJobStatusDaoImplTest {
 
 	@Test
 	public void testSetComplete() throws DatastoreException, NotFoundException, InterruptedException{
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(userInfo, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		String previousEtag = status.getEtag();
@@ -339,13 +345,13 @@ public class AsynchJobStatusDaoImplTest {
 	@Test
 	public void testFindCompletedJobStatusCompleted() throws DatastoreException, NotFoundException{
 		String requestHash = "sd1zQvpC67saUigIElscOgHash";
-		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(userInfo, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		asynchJobStatusDao.setComplete(status.getJobId(), response, requestHash);
 		status = asynchJobStatusDao.getJobStatus(status.getJobId());
 		// Find the job with the hash, etag, and user id.
-		List<AsynchronousJobStatus> foundStatus = asynchJobStatusDao.findCompletedJobStatus(requestHash, creatorUserGroupId);
+		List<AsynchronousJobStatus> foundStatus = asynchJobStatusDao.findCompletedJobStatus(requestHash, userInfo.getId());
 		assertNotNull(foundStatus);
 		assertEquals(1, foundStatus.size());
 		assertEquals(status, foundStatus.get(0));
@@ -354,21 +360,21 @@ public class AsynchJobStatusDaoImplTest {
 	@Test
 	public void testFindCompletedJobStatusMultiple() throws DatastoreException, NotFoundException{
 		String requestHash = "sd1zQvpC67saUigIElscOgHash";
-		AsynchronousJobStatus one = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		AsynchronousJobStatus one = asynchJobStatusDao.startJob(userInfo, body);
 		assertNotNull(one);
 		assertNotNull(one.getEtag());
 		asynchJobStatusDao.setComplete(one.getJobId(), response, requestHash);
 		one = asynchJobStatusDao.getJobStatus(one.getJobId());
 		
 		// create another with the same data
-		AsynchronousJobStatus two = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+		AsynchronousJobStatus two = asynchJobStatusDao.startJob(userInfo, body);
 		assertNotNull(two);
 		assertNotNull(two.getEtag());
 		asynchJobStatusDao.setComplete(two.getJobId(), response, requestHash);
 		two = asynchJobStatusDao.getJobStatus(two.getJobId());
 		
 		// Find the job with the hash, etag, and user id.
-		List<AsynchronousJobStatus> foundStatus = asynchJobStatusDao.findCompletedJobStatus(requestHash, creatorUserGroupId);
+		List<AsynchronousJobStatus> foundStatus = asynchJobStatusDao.findCompletedJobStatus(requestHash, userInfo.getId());
 		assertNotNull(foundStatus);
 		assertEquals(2, foundStatus.size());
 		assertEquals(one, foundStatus.get(0));
@@ -388,5 +394,32 @@ public class AsynchJobStatusDaoImplTest {
 		assertThrows(IllegalArgumentException.class, ()->{
 			asynchJobStatusDao.getJobStatus("not a number");
 		});
+	}
+	
+	@Test
+	public void testStartJobWithNullUser() {
+		userInfo = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			asynchJobStatusDao.startJob(userInfo, body);
+		}).getMessage();
+		assertEquals("UserInfo is required.", message);
+	}
+	
+	@Test
+	public void testStartJobWithNullContext() {
+		userInfo.setContext(null);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			asynchJobStatusDao.startJob(userInfo, body);
+		}).getMessage();
+		assertEquals("user.context is required.", message);
+	}
+	
+	@Test
+	public void testStartJobWithNullUserId() {
+		userInfo.setId(null);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			asynchJobStatusDao.startJob(userInfo, body);
+		}).getMessage();
+		assertEquals("user.id is required.", message);
 	}
 }

@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -42,6 +44,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -87,6 +90,7 @@ public class UserManagerImplUnitTest {
 	private UserGroup mockUserGroup;
 	private String alias;
 	private PrincipalAlias principalAlias;
+	private String sessionId;
 	
 	@BeforeEach
 	public void setUp() throws Exception {
@@ -98,6 +102,12 @@ public class UserManagerImplUnitTest {
 		principalAlias.setAlias(alias);
 		principalAlias.setAliasId(3333L);
 		principalAlias.setType(AliasType.USER_NAME);
+		sessionId = SessionIdThreadLocal.createNewSessionIdForThread();
+	}
+	
+	@AfterEach
+	public void after() {
+		SessionIdThreadLocal.clearThreadsSessionId();
 	}
 	
 	@Test
@@ -118,6 +128,8 @@ public class UserManagerImplUnitTest {
 		// method under test
 		UserInfo userInfo = userManager.getUserInfo(principalId);
 		
+		assertEquals(new CallersContext().setSessionId(sessionId), userInfo.getContext());
+		
 		verify(mockAuthDAO).isTwoFactorAuthEnabled(principalId);
 		
 		assertFalse(userInfo.isAdmin());
@@ -130,6 +142,28 @@ public class UserManagerImplUnitTest {
 		assertEquals(expectedUserGroupIds, userInfo.getGroups());
 		assertEquals(principalId, userInfo.getId());
 		assertTrue(userInfo.hasTwoFactorAuthEnabled());
+	}
+	
+	@Test
+	public void testGetUserInfoWithNoSessionId() {
+		Long principalId = 111L;
+		UserGroup principal = new UserGroup();
+		principal.setId(principalId.toString());
+		principal.setIsIndividual(true);
+		when(mockUserGroupDAO.get(principalId)).thenReturn(principal);
+		
+		UserGroup someGroup = new UserGroup();
+		someGroup.setIsIndividual(false);
+		someGroup.setId("222");
+		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.singletonList(someGroup));
+		when(mockAuthDAO.isTwoFactorAuthEnabled(anyLong())).thenReturn(true);
+		
+		SessionIdThreadLocal.clearThreadsSessionId();
+		
+		// method under test
+		UserInfo userInfo = userManager.getUserInfo(principalId);
+		
+		assertEquals(new CallersContext().setSessionId("missing"), userInfo.getContext());
 	}
 	
 	@Test

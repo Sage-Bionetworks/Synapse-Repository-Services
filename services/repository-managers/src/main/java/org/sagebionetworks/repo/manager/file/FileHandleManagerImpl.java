@@ -1,25 +1,31 @@
 package org.sagebionetworks.repo.manager.file;
 
-import com.amazonaws.HttpMethod;
-import com.amazonaws.auth.internal.AWS4SignerUtils;
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
-import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
-import com.amazonaws.services.s3.model.CORSRule;
-import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.StorageClass;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.Upload;
-import com.amazonaws.services.s3.transfer.model.UploadResult;
-import com.amazonaws.services.cloudfront.CloudFrontUrlSigner;
-import com.amazonaws.util.BinaryUtils;
-import com.amazonaws.util.SdkHttpUtils;
-import com.google.cloud.storage.Blob;
-import com.google.common.collect.Lists;
+import static com.amazonaws.auth.internal.SignerConstants.X_AMZ_DATE;
+import static com.amazonaws.auth.internal.SignerConstants.X_AMZ_EXPIRES;
+import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.security.PrivateKey;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -115,31 +121,26 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
-import java.security.PrivateKey;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-import static com.amazonaws.auth.internal.SignerConstants.X_AMZ_DATE;
-import static com.amazonaws.auth.internal.SignerConstants.X_AMZ_EXPIRES;
-import static org.sagebionetworks.downloadtools.FileUtils.DEFAULT_FILE_CHARSET;
+import com.amazonaws.HttpMethod;
+import com.amazonaws.auth.internal.AWS4SignerUtils;
+import com.amazonaws.services.cloudfront.CloudFrontUrlSigner;
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
+import com.amazonaws.services.s3.model.CORSRule;
+import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.StorageClass;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.Upload;
+import com.amazonaws.services.s3.transfer.model.UploadResult;
+import com.amazonaws.util.BinaryUtils;
+import com.amazonaws.util.SdkHttpUtils;
+import com.google.cloud.storage.Blob;
+import com.google.common.collect.Lists;
 
 /**
  * Basic implementation of the file upload manager.
@@ -341,6 +342,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	String getRedirectURLForFileHandle(UserInfo userInfo,
 			String fileHandleId, FileHandleAssociateType fileAssociateType,
 			String fileAssociateId) {
+		
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(userInfo.getContext(), "userInfo.context");
+		ValidateArgument.required(userInfo.getContext().getSessionId(), "userInfo.context.sessionId");
+		
 		FileHandleAssociation fileHandleAssociation = new FileHandleAssociation();
 		fileHandleAssociation.setFileHandleId(fileHandleId);
 		fileHandleAssociation.setAssociateObjectType(fileAssociateType);
@@ -355,7 +361,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String url = getURLForFileHandle(userInfo, fileHandle);
 
 		FileEvent fileEvent = FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(), fileHandleAssociation,
-				config.getStack(), config.getStackInstance());
+				config.getStack(), config.getStackInstance()).setSessionId(userInfo.getContext().getSessionId());
 		messenger.publishMessageAfterCommit(fileEvent);
 		return url;
 	}
@@ -1298,6 +1304,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo, BatchFileRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(userInfo.getContext(), "userInfo.context");
+		ValidateArgument.required(userInfo.getContext().getSessionId(), "userInfo.context.sessionId");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getRequestedFiles(), "requestedFiles");
 		String userId = userInfo.getId().toString();
@@ -1375,7 +1383,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
 
 							fileEvents.add(FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(),
-									association, config.getStack(), config.getStackInstance()));
+									association, config.getStack(), config.getStackInstance()).setSessionId(userInfo.getContext().getSessionId()));
 							
 							ObjectRecord record = createObjectRecord(userId, association, now);
 							downloadRecords.add(record);
