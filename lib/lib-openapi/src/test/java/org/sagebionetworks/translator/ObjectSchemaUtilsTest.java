@@ -28,6 +28,7 @@ import org.sagebionetworks.javadoc.velocity.schema.TypeReference;
 import org.sagebionetworks.openapi.server.ServerSideOnlyFactory;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
+import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
@@ -185,6 +186,24 @@ public class ObjectSchemaUtilsTest {
 		// call under test
 		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
 		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.ARRAY);
+	}
+
+	@Test
+	public void testTranslateObjectSchemaToJsonSchemaWithEnumType() {
+		ObjectSchema objectSchema = new ObjectSchemaImpl();
+		EnumValue[] enumValues = new EnumValue[0];
+
+		objectSchema.setType(TYPE.STRING);
+		objectSchema.setEnum(enumValues);
+		objectSchema.setId("MOCK_ID");
+
+		JsonSchema expected = new JsonSchema();
+		expected.setType(Type.string);
+		expected.set_enum(new ArrayList<>());
+
+		// call under test
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.STRING);
 	}
 	
 	@Test
@@ -845,6 +864,11 @@ public class ObjectSchemaUtilsTest {
 	@Test
 	public void testTranslateObjectSchemaTypeToJsonSchemaTypeWithNullType() {
 		assertEquals(Type._null, util.translateObjectSchemaTypeToJsonSchemaType(TYPE.NULL));
+	}
+
+	@Test
+	public void testTranslateObjectSchemaTypeToJsonSchemaTypeWithStringType() {
+		assertEquals(Type.string, util.translateObjectSchemaTypeToJsonSchemaType(TYPE.STRING));
 	}
 	
 	@Test

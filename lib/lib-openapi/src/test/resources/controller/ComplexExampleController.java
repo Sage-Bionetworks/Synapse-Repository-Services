@@ -14,7 +14,10 @@ import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.form.StateEnum;
+import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -443,6 +446,31 @@ public class ComplexExampleController {
 	public @ResponseBody void getRequired(
 			@RequestBody(required = true) Pet testRequestBodyTrue,
 			@RequestParam(required = true) Owner testRequestParamTrue
+	) {
+	}
+
+	/**
+	 * Example of an endpoint that accepts and returns enums
+	 *
+	 * @param stateEnum
+	 * @param aliasEnum
+	 * @return a StatusEnum value
+	 */
+	@RequestMapping(value = "/complex-pet/enum", method = RequestMethod.GET)
+	public @ResponseBody StatusEnum getEnum(
+			@RequestBody StateEnum stateEnum,
+			@RequestParam AliasEnum aliasEnum
+			) {
+	}
+
+	/**
+	 * Example of an endpoint with a userId parameter
+	 *
+	 * @param userId
+	 */
+	@RequestMapping(value = "/complex-pet/userid", method = RequestMethod.GET)
+	public void getUserId(
+			@RequestParam(value = "userId") Long userId
 	) {
 	}
 }

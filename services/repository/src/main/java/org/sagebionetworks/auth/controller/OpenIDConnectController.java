@@ -181,6 +181,7 @@ public class OpenIDConnectController {
 	 * and will return a 400 Bad Request status for invalid information.
 	 * 
 	 * @param oauthClient the proposed changes to the client metadata
+	 * @param clientId the ID for the OAuth client
 	 * @return
 	 * @throws NotFoundException
 	 * @throws ServiceUnavailableException 
@@ -191,7 +192,8 @@ public class OpenIDConnectController {
 	public @ResponseBody
 	OAuthClientVerificationPrecheckResult updateOAuthClientVerificationPrecheck(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody OAuthClient oauthClient
+			@RequestBody OAuthClient oauthClient,
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String clientId
 			) throws NotFoundException, ServiceUnavailableException {
 		return serviceProvider.getOpenIDConnectService().
 				reverificationRequiredForUpdatedOpenIDConnectClient(userId, oauthClient);
@@ -210,6 +212,7 @@ public class OpenIDConnectController {
 	 * to determine whether re-verification will be required.
 	 * 
 	 * @param oauthClient the client metadata to update
+	 * @param clientId the ID for the OAuth client
 	 * @return
 	 * @throws NotFoundException
 	 * @throws ServiceUnavailableException 
@@ -220,7 +223,8 @@ public class OpenIDConnectController {
 	public @ResponseBody
 	OAuthClient updateOAuthClient(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody OAuthClient oauthClient
+			@RequestBody OAuthClient oauthClient,
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String clientId
 			) throws NotFoundException, ServiceUnavailableException {
 		return serviceProvider.getOpenIDConnectService().
 				updateOpenIDConnectClient(userId, oauthClient);

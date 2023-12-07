@@ -36,6 +36,7 @@ import org.sagebionetworks.controller.model.ResponseModel;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
@@ -384,7 +385,14 @@ public class ControllerToControllerModelTranslator {
 			populateSchemaMapForGenericType(schemaId, type, argumentType, schemaMap);
 		}, () -> {
 			TypeKind typeKind = type.getKind();
-			populateSchemaMapForConcreteType(schemaId, typeKind, schemaMap);
+			if (TypeKind.DECLARED.equals(typeKind)) {
+				TypeElement typeElement = (TypeElement) ((DeclaredType) type).asElement();
+				if (typeElement.getKind() == ElementKind.ENUM) {
+					populateSchemaMapForEnumType(schemaId, schemaMap);
+				} else {
+					populateSchemaMapForConcreteType(schemaId, typeKind, schemaMap);
+				}
+			}
 		});
 	}
 
@@ -405,6 +413,22 @@ public class ControllerToControllerModelTranslator {
 		if (!TypeKind.VOID.equals(type) && getJsonSchemaBasicTypeForClass(className).isEmpty()) {
 			SchemaUtils.recursiveAddTypes(schemaMap, className, null);
 		}
+	}
+
+	/**
+	 * Populates the schemaMap by adding ObjectSchema that are associated with the
+	 * className and type for an enum type.
+	 *
+	 * @param schemaId - the name of the enum
+	 * @param schemaMap - a mapping between class names and schemas that represent
+	 *                  those classes
+	 */
+	void populateSchemaMapForEnumType(String schemaId, Map<String, ObjectSchema> schemaMap) {
+		ValidateArgument.required(schemaId, "schemaId");
+		ValidateArgument.required(schemaMap, "schemaMap");
+
+		ObjectSchema enumSchema = generateEnumObjectSchema(schemaId);
+		schemaMap.put(schemaId, enumSchema);
 	}
 
 	/**
@@ -569,6 +593,36 @@ public class ControllerToControllerModelTranslator {
 		arraySchema.setItems(itemsSchema);
 
 		return  arraySchema;
+	}
+
+	/**
+	 * Generates an object schema for an enum
+	 *
+	 * @param enumClassName - the type
+	 * @return an ObjectSchema for an enum
+	 */
+	ObjectSchema generateEnumObjectSchema(String enumClassName) {
+		ValidateArgument.required(enumClassName, "enumClassName");
+
+		ObjectSchema enumSchema = new ObjectSchemaImpl();
+		enumSchema.setType(TYPE.STRING);
+		enumSchema.setName(enumClassName);
+
+		Class enumClazz;
+		try {
+			enumClazz = Class.forName(enumClassName);
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+
+		Object[] enumConstants = enumClazz.getEnumConstants();
+		EnumValue[] enumValues = new EnumValue[enumConstants.length];
+		for (int i = 0; i < enumConstants.length; i++) {
+			enumValues[i] = new EnumValue(enumConstants[i].toString());
+		}
+		enumSchema.setEnum(enumValues);
+
+		return  enumSchema;
 	}
 
 	/**
@@ -753,6 +807,10 @@ public class ControllerToControllerModelTranslator {
 				if ("value".equals(elements.getKey().getSimpleName().toString())) {
 					paramName = elements.getValue().getValue().toString();
 				}
+			}
+
+			if (ParameterLocation.query.equals(paramLocation) && "userId".equals(paramName)) {
+				continue;
 			}
 
 			boolean paramIsRequired = isParameterRequired(paramAnnotation);
