@@ -191,7 +191,10 @@ public class ObjectSchemaUtilsTest {
 	@Test
 	public void testTranslateObjectSchemaToJsonSchemaWithEnumType() {
 		ObjectSchema objectSchema = new ObjectSchemaImpl();
-		EnumValue[] enumValues = new EnumValue[0];
+		EnumValue[] enumValues = {
+				new EnumValue("value1"),
+				new EnumValue("value2")
+		};
 
 		objectSchema.setType(TYPE.STRING);
 		objectSchema.setEnum(enumValues);
@@ -199,7 +202,7 @@ public class ObjectSchemaUtilsTest {
 
 		JsonSchema expected = new JsonSchema();
 		expected.setType(Type.string);
-		expected.set_enum(new ArrayList<>());
+		expected.set_enum(List.of("value1", "value2"));
 
 		// call under test
 		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
