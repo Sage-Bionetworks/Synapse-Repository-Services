@@ -61,7 +61,7 @@ public class BaseControllerExceptionHandlerAdviceTest {
 		final String errorMessage = "some message";
 		mockHttpServletRequest.setPathInfo(UrlHelpers.DRS_PATH);
 		final DrsErrorResponse response = (DrsErrorResponse) controller.handleException(
-				new NotFoundException(errorMessage), mockHttpServletRequest, false);
+				new NotFoundException(errorMessage), mockHttpServletRequest);
 		assertEquals(errorMessage, response.getMsg());
 		assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus_code().intValue());
 	}
@@ -71,7 +71,7 @@ public class BaseControllerExceptionHandlerAdviceTest {
 		final String errorMessage = "some message";
 		mockHttpServletRequest.setPathInfo(UrlHelpers.DRS_PATH);
 		final DrsErrorResponse response = (DrsErrorResponse) controller.handleException(
-				new IllegalArgumentException(errorMessage), mockHttpServletRequest, false);
+				new IllegalArgumentException(errorMessage), mockHttpServletRequest);
 		assertEquals(errorMessage, response.getMsg());
 		assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus_code().intValue());
 	}
@@ -81,7 +81,7 @@ public class BaseControllerExceptionHandlerAdviceTest {
 		final String errorMessage = "some message.";
 		mockHttpServletRequest.setPathInfo(UrlHelpers.DRS_PATH);
 		final DrsErrorResponse response = (DrsErrorResponse) controller.handleException(
-				new UnauthorizedException(errorMessage), mockHttpServletRequest, false);
+				new UnauthorizedException(errorMessage), mockHttpServletRequest);
 		assertEquals(errorMessage, response.getMsg());
 		assertEquals(HttpStatus.UNAUTHORIZED.value(), response.getStatus_code().intValue());
 	}
@@ -92,7 +92,7 @@ public class BaseControllerExceptionHandlerAdviceTest {
 		final String errorMessage = "some message.";
 		mockHttpServletRequest.setPathInfo(UrlHelpers.DRS_PATH);
 		final DrsErrorResponse response = (DrsErrorResponse) controller.handleException(
-				new UnauthenticatedException(errorMessage), mockHttpServletRequest, false);
+				new UnauthenticatedException(errorMessage), mockHttpServletRequest);
 		assertEquals(errorMessage, response.getMsg());
 		assertEquals(HttpStatus.FORBIDDEN.value(), response.getStatus_code().intValue());
 	}
@@ -103,7 +103,7 @@ public class BaseControllerExceptionHandlerAdviceTest {
 		final String errorMessage = "some message.";
 		mockHttpServletRequest.setPathInfo(UrlHelpers.DRS_PATH);
 		final DrsErrorResponse response = (DrsErrorResponse) controller.handleException(
-				new UnsupportedOperationException(errorMessage), mockHttpServletRequest, false);
+				new UnsupportedOperationException(errorMessage), mockHttpServletRequest);
 		assertEquals(errorMessage, response.getMsg());
 		assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), response.getStatus_code().intValue());
 	}

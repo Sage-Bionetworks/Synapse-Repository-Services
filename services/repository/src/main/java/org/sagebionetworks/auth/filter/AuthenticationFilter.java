@@ -66,7 +66,7 @@ public class AuthenticationFilter implements Filter {
 
 	@Override
 	public void destroy() { }
-
+	
 	@Override
 	public void doFilter(ServletRequest servletRqst, ServletResponse servletResponse,
 			FilterChain filterChain) throws IOException, ServletException {
@@ -83,17 +83,17 @@ public class AuthenticationFilter implements Filter {
 		} else {
 			authenticationMethod = AuthenticationMethod.SESSIONTOKEN;
 		}
-
+		
 		Long userId = null;
 
 		if (isSigned(req)) {
-			String failureReason = "Invalid HMAC signature";
 			String username = req.getHeader(AuthorizationConstants.USER_ID_HEADER);
 			try {
 				userId = userManager.lookupUserByUsernameOrEmail(username).getPrincipalId();
 				String secretKey = authenticationService.getSecretKey(userId);
 				matchHMACSHA1Signature(req, secretKey);
 			} catch (UnauthenticatedException | NotFoundException e) {
+				String failureReason = "Invalid HMAC signature";
 				HttpAuthUtil.reject((HttpServletResponse) servletResponse, e.getMessage());
 				log.warn(failureReason, e);
 				return;
@@ -111,11 +111,11 @@ public class AuthenticationFilter implements Filter {
 				} catch (IllegalArgumentException | ForbiddenException | OAuthClientNotVerifiedException e) {
 					String failureReason = "Invalid access token";
 					HttpAuthUtil.reject((HttpServletResponse)servletResponse, failureReason);
-					log.warn(failureReason, e);
+					log.warn(failureReason + ": " + e.getMessage());
 					return;
 				} catch (OAuthException e) {
 					HttpAuthUtil.rejectWithOAuthError((HttpServletResponse)servletResponse, e.getError(), e.getErrorDescription(), HttpStatus.UNAUTHORIZED);
-					log.warn(e.getMessage(), e);
+					log.warn(e.getMessage());
 					return;
 				}
 			} else { // anonymous
