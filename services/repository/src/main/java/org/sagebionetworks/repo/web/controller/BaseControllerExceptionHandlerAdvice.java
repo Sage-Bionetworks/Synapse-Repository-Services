@@ -1,10 +1,17 @@
 package org.sagebionetworks.repo.web.controller;
 
-import com.amazonaws.AmazonServiceException;
+import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.PrintStream;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
 import org.sagebionetworks.repo.manager.authentication.PasswordResetViaEmailRequiredException;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
@@ -65,13 +72,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.util.NestedServletException;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayOutputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.PrintStream;
+import com.amazonaws.AmazonServiceException;
 
 /**
  * This abstract class attempts to encapsulate exception handling for exceptions
@@ -203,12 +204,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	/**
 	 * This is an application exception thrown when the request references an
 	 * entity that does not exist
-	 * <p>
-	 * 
-	 * TODO this exception is getting generic treatment right now but we may
-	 * want log this less verbosely if it becomes a normal and expected
-	 * exception
-	 * 
+	 *  
 	 * @param ex
 	 *            the exception to be handled
 	 * @param request
@@ -641,8 +637,7 @@ public class BaseControllerExceptionHandlerAdvice {
 			ACLInheritanceException ex, HttpServletRequest request,
 			HttpServletResponse response) throws IOException {
 		// Build and set the redirect URL
-		String message = ACLInheritanceException.DEFAULT_MSG_PREFIX
-				+ UrlHelpers.createACLRedirectURL(request, ex.getBenefactorId());
+		String message = ACLInheritanceException.DEFAULT_MSG_PREFIX + UrlHelpers.createACLRedirectURL(request, ex.getBenefactorId());
 		return handleException(ex, request, message, false, null);
 	}
 
@@ -659,18 +654,16 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(NullPointerException.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public @ResponseBody
-	BaseError handleNullPointerException(NullPointerException ex,
-			HttpServletRequest request, HttpServletResponse response) {
-		log.error("Handling " + request.toString(), ex);
+	BaseError handleNullPointerException(NullPointerException ex, HttpServletRequest request, HttpServletResponse response) {
 		final int MAX_STACK_TRACE_LENGTH = 256;
+		
 		String trace = stackTraceToString(ex);
-		int endIndex = (MAX_STACK_TRACE_LENGTH < trace.length()) ? MAX_STACK_TRACE_LENGTH
-				: trace.length();
-		String message = "Send a Jira bug report to the platform team with this message: "
-				+ trace.substring(0, endIndex);
-		ErrorResponse er = new ErrorResponse();
-		er.setReason(message);
-		return er;
+		
+		int endIndex = (MAX_STACK_TRACE_LENGTH < trace.length()) ? MAX_STACK_TRACE_LENGTH : trace.length();
+		
+		String message = "Send a Jira bug report to the platform team with this message: " + trace.substring(0, endIndex);
+		
+		return handleException(ex, request, message, true, null);
 	}
 
 	/**
@@ -690,8 +683,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	public @ResponseBody
 	BaseError handleAllOtherExceptions(Exception ex,
 			HttpServletRequest request) {
-		log.error("Consider specifically handling exceptions of type "
-						+ ex.getClass().getName());
+		log.error("Consider specifically handling exceptions of type " + ex.getClass().getName());
 		return handleException(ex, request, true);
 	}
 	
@@ -707,10 +699,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	public @ResponseBody
 	BaseError handleTransientDataAccessExceptions(TransientDataAccessException ex,
 			HttpServletRequest request) {
-		log.error("Handling " + request.toString(), ex);
-		ErrorResponse er = new ErrorResponse();
-		er.setReason(SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER);
-		return er;
+		return handleException(ex, request, SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, true, null);
 	}
 
 	/**
@@ -790,14 +779,12 @@ public class BaseControllerExceptionHandlerAdvice {
 	 * @return BaseError object containing the exception reason or some other human-readable response
 	 */
 	private BaseError handleException(Throwable ex, HttpServletRequest request, String message, boolean fullTrace, ErrorResponseCode associatedErrorCode) {
-		// TODO: why do we need this logging behavior difference?
-		// Always log the stack trace on develop stacks
-		if (fullTrace || StackConfigurationSingleton.singleton().isDevelopStack()) {
+		if (fullTrace) {
 			// Print the full stack trace
-			log.error("Handling " + request.toString(), ex);
+			log.error("Handling " + ex.getClass().getSimpleName(), ex);
 		} else {
 			// Only print one line
-			log.error("Handling " + request.toString());
+			log.error("Handling {}: {}", ex.getClass().getSimpleName(), ex.getMessage());
 		}
 
 		if (!StringUtils.isEmpty(request.getPathInfo()) && request.getPathInfo().startsWith(UrlHelpers.DRS_PATH)) {
