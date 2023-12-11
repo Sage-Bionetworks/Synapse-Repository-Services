@@ -28,7 +28,7 @@ public class ModelConfig {
 		dataSource.setPassword(stackConfiguration.getRepositoryDatabasePassword());
 		dataSource.setUrl(stackConfiguration.getRepositoryDatabaseConnectionUrl());
 		dataSource.setMinIdle(Integer.parseInt(stackConfiguration.getDatabaseConnectionPoolMinNumberConnections()));
-		dataSource.setMaxIdle(Integer.parseInt(stackConfiguration.getDatabaseConnectionPoolMaxNumberConnections()));
+		dataSource.setMaxTotal(Integer.parseInt(stackConfiguration.getDatabaseConnectionPoolMaxNumberConnections()));
 		dataSource.setTestOnBorrow(Boolean.valueOf(stackConfiguration.getDatabaseConnectionPoolShouldValidate()));
 		dataSource.setValidationQuery(stackConfiguration.getDatabaseConnectionPoolValidateSql());
 		dataSource.setDefaultTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
