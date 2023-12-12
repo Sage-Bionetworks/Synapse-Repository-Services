@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -40,17 +41,20 @@ public class EndpointInfoTest {
 		JSONObjectAdapterImpl requestBodyObjectAdapter = new JSONObjectAdapterImpl();
 		Mockito.doReturn(requestBodyObjectAdapter).when(requestBody).writeToJSONObject(any());
 
+		Map<String, String[]> securityRequirements = new HashMap<>();
+		securityRequirements.put("bearerAuth", new String[]{});
+
 		EndpointInfo info = Mockito.spy(new EndpointInfo().withTags(new ArrayList<>()).withOperationId(operationId)
-				.withParameters(new ArrayList<>()).withRequestBody(requestBody).withResponses(responses));
+				.withParameters(new ArrayList<>()).withRequestBody(requestBody).withResponses(responses).withSecurityRequirements(securityRequirements));
 		Mockito.doReturn(responses).when(info).getResponses();
 		Mockito.doNothing().when(info).populateResponses(any());
 		Mockito.doNothing().when(info).populateTags(any());
 		Mockito.doNothing().when(info).populateParameters(any());
 
 		JSONObjectAdapter writeTo = Mockito.mock(JSONObjectAdapter.class);
-		JSONObjectAdapterImpl writeToObjectAdapter = new JSONObjectAdapterImpl();
+		JSONObjectAdapter writeToObjectAdapter = Mockito.mock(JSONObjectAdapter.class);
 		Mockito.doReturn(writeToObjectAdapter).when(writeTo).createNew();
-		JSONArrayAdapterImpl writeToArrayAdapter = new JSONArrayAdapterImpl();
+		JSONArrayAdapter writeToArrayAdapter = Mockito.mock(JSONArrayAdapter.class);
 		Mockito.doReturn(writeToArrayAdapter).when(writeTo).createNewArray();
 		
 		// call under test
@@ -64,6 +68,9 @@ public class EndpointInfoTest {
 		Mockito.verify(requestBody).writeToJSONObject(writeToObjectAdapter);
 		Mockito.verify(info).populateResponses(writeToObjectAdapter);
 		Mockito.verify(writeTo).put("responses", writeToObjectAdapter);
+		Mockito.verify(writeToObjectAdapter).put("bearerAuth", writeToArrayAdapter);
+		Mockito.verify(writeToArrayAdapter).put(0, writeToObjectAdapter);
+		Mockito.verify(writeTo).put("security", writeToArrayAdapter);
 	}
 
 	@Test

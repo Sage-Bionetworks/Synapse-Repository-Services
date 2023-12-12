@@ -8,13 +8,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.sagebionetworks.controller.annotations.model.RequiredScopeModel;
 import org.sagebionetworks.controller.model.ControllerModel;
 import org.sagebionetworks.controller.model.MethodModel;
 import org.sagebionetworks.controller.model.ParameterModel;
 import org.sagebionetworks.controller.model.RequestBodyModel;
 import org.sagebionetworks.controller.model.ResponseModel;
 import org.sagebionetworks.openapi.datamodel.ApiInfo;
+import org.sagebionetworks.openapi.datamodel.Components;
 import org.sagebionetworks.openapi.datamodel.OpenAPISpecModel;
+import org.sagebionetworks.openapi.datamodel.SecurityScheme;
 import org.sagebionetworks.openapi.datamodel.ServerInfo;
 import org.sagebionetworks.openapi.datamodel.TagInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.EndpointInfo;
@@ -60,12 +63,27 @@ public class ControllerModelsToOpenAPIModelTranslator {
 	/**
 	 * Generates and returns the components section of the OpenAPI specification.
 	 * 
-	 * @return a nested map, from component_type (schemas, parameters) -> { class_name -> JsonSchema}.
+	 * @return a nested map, from component_type (schemas, parameters) -> { class_name -> JsonSchema} and from security scheme name -> security scheme.
 	 */
-	Map<String, Map<String, JsonSchema>> getComponents() {
-		Map<String, Map<String, JsonSchema>> components = new LinkedHashMap<>();
-		components.put("schemas", classNameToJsonSchema);
-		return components;
+	Components getComponents() {
+		return new Components()
+				.withSchemas(this.classNameToJsonSchema)
+				.withSecuritySchemes(getSecuritySchemes());
+	}
+
+	/**
+	 * Get the security schemes
+	 *
+	 * @return a map from security scheme name -> security scheme
+	 */
+	Map<String, SecurityScheme> getSecuritySchemes() {
+		Map<String, SecurityScheme> securitySchemes = new HashMap<>();
+		SecurityScheme bearerAuth = new SecurityScheme()
+				.withType("http")
+				.withScheme("bearer");
+		securitySchemes.put("bearerAuth", bearerAuth);
+
+		return securitySchemes;
 	}
 
 	/**
@@ -153,12 +171,26 @@ public class ControllerModelsToOpenAPIModelTranslator {
 		ValidateArgument.required(fullPath, "fullPath");
 		List<String> tags = new ArrayList<>(Arrays.asList(displayName));
 		String operationId = String.format("%s-%s", method.getOperation().toString(), fullPath);
+		RequiredScopeModel requiredScopeModel = method.getRequiredScope();
 		EndpointInfo endpointInfo = new EndpointInfo().withTags(tags).withOperationId(operationId)
 				.withParameters(getParameters(method.getParameters()))
 				.withRequestBody(method.getRequestBody() == null ? null : getRequestBodyInfo(method.getRequestBody()))
-				.withResponses(getResponses(method.getResponse()));
+				.withResponses(getResponses(method.getResponse()))
+				.withSecurityRequirements(requiredScopeModel == null ? null : getSecurityRequirements());
 		return endpointInfo;
 	}
+
+	/**
+	 * Generates the security requirements for an endpoint
+	 *
+	 * @return Map of requirement name to scopes
+	 */
+	Map<String, String[]> getSecurityRequirements() {
+		Map<String, String[]> requirements = new HashMap<>();
+		requirements.put("bearerAuth", new String[]{});
+		return requirements;
+	}
+
 	
 	/**
 	 * Generates a JsonSchema that is a basic type or a reference to a class defined in

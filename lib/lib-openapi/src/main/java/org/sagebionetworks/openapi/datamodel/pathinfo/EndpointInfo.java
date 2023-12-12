@@ -20,6 +20,7 @@ public class EndpointInfo implements JSONEntity {
 	private List<ParameterInfo> parameters;
 	private RequestBodyInfo requestBody;
 	private Map<String, ResponseInfo> responses;
+	private Map<String, String[]> securityRequirements;
 	
 	public List<String> getTags() {
 		return tags;
@@ -64,6 +65,15 @@ public class EndpointInfo implements JSONEntity {
 		this.responses = responses;
 		return this;
 	}
+
+	public Map<String, String[]> getSecurityRequirements() {
+		return securityRequirements;
+	}
+
+	public EndpointInfo withSecurityRequirements(Map<String, String[]> securityRequirements) {
+		this.securityRequirements = securityRequirements;
+		return this;
+	}
 	
 	@Override
 	public int hashCode() {
@@ -81,13 +91,13 @@ public class EndpointInfo implements JSONEntity {
 		EndpointInfo other = (EndpointInfo) obj;
 		return Objects.equals(operationId, other.operationId) && Objects.equals(parameters, other.parameters)
 				&& Objects.equals(requestBody, other.requestBody) && Objects.equals(responses, other.responses)
-				&& Objects.equals(tags, other.tags);
+				&& Objects.equals(tags, other.tags) && Objects.equals(securityRequirements, other.securityRequirements);
 	}
 	
 	@Override
 	public String toString() {
 		return "EndpointInfo [tags=" + tags + ", operationId=" + operationId + ", parameters=" + parameters
-				+ ", requestBody=" + requestBody + ", responses=" + responses + "]";
+				+ ", requestBody=" + requestBody + ", responses=" + responses + ", securityRequirements=" + securityRequirements + "]";
 	}
 	
 	@Override
@@ -122,6 +132,27 @@ public class EndpointInfo implements JSONEntity {
 		
 		if (this.requestBody != null) {
 			writeTo.put("requestBody", requestBody.writeToJSONObject(writeTo.createNew()));
+		}
+
+		if (this.securityRequirements != null && !this.securityRequirements.isEmpty()) {
+			JSONArrayAdapter securityArrayAdapter = writeTo.createNewArray();
+
+			int i = 0;
+			for (Map.Entry<String, String[]> requirement: this.securityRequirements.entrySet()) {
+				JSONArrayAdapter requirementArrayAdapter = writeTo.createNewArray();
+				JSONObjectAdapter adapter = writeTo.createNew();
+
+				String[] scopes = requirement.getValue();
+				for (int j = 0; j < requirement.getValue().length; j++) {
+					requirementArrayAdapter.put(j, scopes[j]);
+				}
+
+				adapter.put(requirement.getKey(), requirementArrayAdapter);
+				securityArrayAdapter.put(i, adapter);
+				i++;
+			}
+
+			writeTo.put("security",securityArrayAdapter);
 		}
 		
 		JSONObjectAdapter responses = writeTo.createNew();

@@ -50,6 +50,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.controller.annotations.model.ControllerInfoModel;
 import org.sagebionetworks.controller.annotations.model.RequestMappingModel;
+import org.sagebionetworks.controller.annotations.model.RequiredScopeModel;
 import org.sagebionetworks.controller.annotations.model.ResponseStatusModel;
 import org.sagebionetworks.controller.model.ControllerModel;
 import org.sagebionetworks.controller.model.MethodModel;
@@ -60,8 +61,10 @@ import org.sagebionetworks.controller.model.RequestBodyModel;
 import org.sagebionetworks.controller.model.ResponseModel;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.openapi.pet.Husky;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -157,9 +160,13 @@ public class ControllerToControllerModelTranslatorTest {
 
 	private List<MethodModel> getExpectedMethods() {
 		List<MethodModel> expectedMethods = new ArrayList<>();
+		List<OAuthScope> requiredScope = new ArrayList<>();
+		requiredScope.add(OAuthScope.view);
+		requiredScope.add(OAuthScope.modify);
 		MethodModel expectedMethod = new MethodModel().withPath(METHOD_PATH).withDescription(METHOD_BEHAVIOR_COMMENT)
 				.withName(METHOD_NAME).withOperation(Operation.get).withParameters(getExpectedParameters())
-				.withRequestBody(getExpectedRequestBody()).withResponse(getExpectedResponseModel());
+				.withRequestBody(getExpectedRequestBody()).withResponse(getExpectedResponseModel())
+				.withRequiredScope(new RequiredScopeModel().withOAuthScopes(requiredScope));
 		expectedMethods.add(expectedMethod);
 		return expectedMethods;
 	}
@@ -536,6 +543,10 @@ public class ControllerToControllerModelTranslatorTest {
 		annotationToModel.put(RequestMapping.class, requestMapping);
 		ResponseStatusModel responseStatus = new ResponseStatusModel().withStatusCode(HttpStatus.OK.value());
 		annotationToModel.put(ResponseStatus.class, responseStatus);
+		List<OAuthScope> requiredScope = new ArrayList<>();
+		requiredScope.add(OAuthScope.view);
+		requiredScope.add(OAuthScope.modify);
+		annotationToModel.put(RequiredScope.class, new RequiredScopeModel().withOAuthScopes(requiredScope));
 		doReturn(annotationToModel).when(translator).getAnnotationToModel(any(List.class));
 
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
@@ -1540,25 +1551,33 @@ public class ControllerToControllerModelTranslatorTest {
 		AnnotationMirror mockAnnoMirror = mock(AnnotationMirror.class);
 		methodAnnotations.add(mockAnnoMirror);
 		methodAnnotations.add(mockAnnoMirror);
+		methodAnnotations.add(mockAnnoMirror);
 
 		RequestMappingModel requestMapping = new RequestMappingModel().withOperation(Operation.get)
 				.withPath(METHOD_PATH);
 		ResponseStatusModel responseStatus = new ResponseStatusModel().withStatusCode(HttpStatus.OK.value());
+		List<OAuthScope> requiredScope = new ArrayList<>();
+		requiredScope.add(OAuthScope.view);
+		requiredScope.add(OAuthScope.modify);
+		RequiredScopeModel requiredScopeModel = new RequiredScopeModel().withOAuthScopes(requiredScope);
 
 		Map<Class, Object> expectedAnnotationToModel = new LinkedHashMap<>();
 		expectedAnnotationToModel.put(RequestMapping.class, requestMapping);
 		expectedAnnotationToModel.put(ResponseStatus.class, responseStatus);
+		expectedAnnotationToModel.put(RequiredScope.class, requiredScopeModel);
 
 		doReturn(requestMapping).when(translator).getRequestMappingModel(any(AnnotationMirror.class));
 		doReturn(responseStatus).when(translator).getResponseStatusModel(any(AnnotationMirror.class));
-		doReturn("RequestMapping", "ResponseStatus").when(translator)
+		doReturn(requiredScopeModel).when(translator).getRequiredScopeModel(any(AnnotationMirror.class));
+		doReturn("RequestMapping", "ResponseStatus", "RequiredScope").when(translator)
 				.getSimpleAnnotationName(any(AnnotationMirror.class));
 
 		assertEquals(expectedAnnotationToModel, translator.getAnnotationToModel(methodAnnotations));
 
+		verify(translator).getRequestMappingModel (mockAnnoMirror);
 		verify(translator).getResponseStatusModel(mockAnnoMirror);
-		verify(translator).getResponseStatusModel(mockAnnoMirror);
-		verify(translator, times(2)).getSimpleAnnotationName(mockAnnoMirror);
+		verify(translator).getRequiredScopeModel(mockAnnoMirror);
+		verify(translator, times(3)).getSimpleAnnotationName(mockAnnoMirror);
 	}
 
 	@Test
@@ -1632,6 +1651,31 @@ public class ControllerToControllerModelTranslatorTest {
 	public void testGetResponseStatusModelWithNull() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			translator.getResponseStatusModel(null);
+		});
+		assertEquals("Annotation is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetRequiredScopeModel() {
+		List<OAuthScope> requiredScope = new ArrayList<>();
+		requiredScope.add(OAuthScope.view);
+		requiredScope.add(OAuthScope.modify);
+		RequiredScopeModel expectedRequiredScopeModel = new RequiredScopeModel().withOAuthScopes(requiredScope);
+
+		Map<ExecutableElement, AnnotationValue> annoToElementValues = new HashMap<>();
+		doReturn(annoToElementValues).when(mockAnnotationMirror).getElementValues();
+		addAnnotationElementValues(annoToElementValues, "value", requiredScope);
+
+		// call under test
+		assertEquals(expectedRequiredScopeModel, translator.getRequiredScopeModel(mockAnnotationMirror));
+
+		verify(mockAnnotationMirror, times(2)).getElementValues();
+	}
+
+	@Test
+	public void testGetRequiredScopeModelWithNullAnnotation() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			translator.getRequiredScopeModel(null);
 		});
 		assertEquals("Annotation is required.", exception.getMessage());
 	}

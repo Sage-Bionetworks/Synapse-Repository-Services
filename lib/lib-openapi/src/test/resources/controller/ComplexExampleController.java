@@ -15,10 +15,12 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.form.StateEnum;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
@@ -470,6 +472,18 @@ public class ComplexExampleController {
 	 */
 	@RequestMapping(value = "/complex-pet/userid", method = RequestMethod.GET)
 	public void getUserId(
+			@RequestParam(value = "userId") Long userId
+	) {
+	}
+
+	/**
+	 * Example of an endpoint that requires authorization
+	 *
+	 * @param userId
+	 */
+	@RequiredScope({OAuthScope.view, OAuthScope.modify})
+	@RequestMapping(value = "/complex-pet/authorization", method = RequestMethod.GET)
+	public void getAuthorization(
 			@RequestParam(value = "userId") Long userId
 	) {
 	}

@@ -3,6 +3,7 @@ package org.sagebionetworks.translator;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -27,7 +28,9 @@ import org.sagebionetworks.controller.model.ParameterModel;
 import org.sagebionetworks.controller.model.RequestBodyModel;
 import org.sagebionetworks.controller.model.ResponseModel;
 import org.sagebionetworks.openapi.datamodel.ApiInfo;
+import org.sagebionetworks.openapi.datamodel.Components;
 import org.sagebionetworks.openapi.datamodel.OpenAPISpecModel;
+import org.sagebionetworks.openapi.datamodel.SecurityScheme;
 import org.sagebionetworks.openapi.datamodel.ServerInfo;
 import org.sagebionetworks.openapi.datamodel.TagInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.EndpointInfo;
@@ -65,7 +68,11 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 				.withMethods(methods).withDescription(DESCRIPTION);
 		ApiInfo apiInfo = new ApiInfo();
 		List<ServerInfo> servers = new ArrayList<>();
-		Map<String, Map<String, JsonSchema>> components = new LinkedHashMap<>();
+		Map<String, SecurityScheme> securitySchemes = new HashMap<>();
+		securitySchemes.put("bearerAuth", new SecurityScheme().withType("http").withScheme("bearer"));
+		Components components = new Components()
+				.withSchemas(schemaMap)
+				.withSecuritySchemes(securitySchemes);
 
 		doNothing().when(translator).insertPaths(any(List.class), any(String.class), any(String.class),
 				any(Map.class));
@@ -97,8 +104,10 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 	
 	@Test
 	public void testGetComponents() {
-		Map<String, Map<String, JsonSchema>> expectedComponents = new LinkedHashMap<>();
-		expectedComponents.put("schemas", schemaMap);
+		Map<String, SecurityScheme> securitySchemes = new HashMap<>();
+		securitySchemes.put("bearerAuth", new SecurityScheme().withType("http").withScheme("bearer"));
+
+		Components expectedComponents = new Components().withSchemas(schemaMap).withSecuritySchemes(securitySchemes);
 		
 		// call under test
 		assertEquals(expectedComponents, translator.getComponents());
@@ -520,5 +529,25 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 			translator.getReferenceSchema(null);
 		});
 		assertEquals("id is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetSecuritySchemes() {
+		Map<String, SecurityScheme> expectedSecuritySchemes = new HashMap<>();
+		SecurityScheme bearerAuth = new SecurityScheme()
+				.withType("http")
+				.withScheme("bearer");
+		expectedSecuritySchemes.put("bearerAuth", bearerAuth);
+
+		assertEquals(expectedSecuritySchemes, translator.getSecuritySchemes());
+	}
+
+	@Test
+	public void testGetSecurityRequirements() {
+		Map<String, String[]> expectedRequirements = new HashMap<>();
+		expectedRequirements.put("bearerAuth", new String[]{});
+
+		assertEquals(1, translator.getSecurityRequirements().size());
+		assertArrayEquals(expectedRequirements.get("bearerAuth"), translator.getSecurityRequirements().get("bearerAuth"));
 	}
 }

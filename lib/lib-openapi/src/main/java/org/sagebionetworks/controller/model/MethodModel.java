@@ -1,5 +1,6 @@
 package org.sagebionetworks.controller.model;
 
+import org.sagebionetworks.controller.annotations.model.RequiredScopeModel;
 import java.util.List;
 import java.util.Objects;
 
@@ -16,6 +17,7 @@ public class MethodModel {
 	private List<ParameterModel> parameters; // List of the parameters accepted by the method.
 	private RequestBodyModel requestBody;
 	private ResponseModel response;
+	private RequiredScopeModel requiredScope;
 	
 	public String getPath() {
 		return path;
@@ -77,6 +79,15 @@ public class MethodModel {
 
 	public MethodModel withDescription(String description) {
 		this.description = description;
+		return this;
+	}
+
+	public RequiredScopeModel getRequiredScope() {
+		return requiredScope;
+	}
+
+	public MethodModel withRequiredScope(RequiredScopeModel requiredScope) {
+		this.requiredScope = requiredScope;
 		return this;
 	}
 

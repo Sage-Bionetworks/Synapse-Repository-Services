@@ -868,4 +868,22 @@ public class ControllerModelDocletTest {
 
 		assertEquals(0, paramsObj.length());
 	}
+
+	@Test
+	public void testAuthorization() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/authorization");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		JSONArray securityObj = getObj.getJSONArray("security");
+		JSONObject bearerObj = securityObj.getJSONObject(0);
+
+		assertEquals(new JSONArray().toString(), bearerObj.getJSONArray("bearerAuth").toString());
+
+		JSONObject componentsObj = generatedOpenAPISpec.getJSONObject("components");
+		JSONObject securitySchemesObj = componentsObj.getJSONObject("securitySchemes");
+		JSONObject bearerAuthObj = securitySchemesObj.getJSONObject("bearerAuth");
+
+		assertEquals("http", bearerAuthObj.getString("type"));
+		assertEquals("bearer", bearerAuthObj.getString("scheme"));
+	}
 }

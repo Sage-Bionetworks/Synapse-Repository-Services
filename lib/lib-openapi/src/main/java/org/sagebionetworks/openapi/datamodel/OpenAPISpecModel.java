@@ -25,8 +25,7 @@ public class OpenAPISpecModel implements JSONEntity {
 	private List<TagInfo> tags;
 	// This maps path -> { operation -> endpointInfo}
 	private Map<String, Map<String, EndpointInfo>> paths;
-	// this maps componentType (schemas, parameters) -> { id -> schema }
-	private Map<String, Map<String, JsonSchema>> components;
+	private Components components;
 	
 	public String getOpenapi() {
 		return openapi;
@@ -64,11 +63,11 @@ public class OpenAPISpecModel implements JSONEntity {
 		return this;
 	}
 	
-	public Map<String, Map<String, JsonSchema>> getComponents() {
+	public Components getComponents() {
 		return components;
 	}
 	
-	public OpenAPISpecModel withComponents(Map<String, Map<String, JsonSchema>> components) {
+	public OpenAPISpecModel withComponents(Components components) {
 		this.components = components;
 		return this;
 	}
@@ -159,28 +158,12 @@ public class OpenAPISpecModel implements JSONEntity {
 		writeTo.put("paths", paths);
 		
 		if (this.components != null) {
-			JSONObjectAdapter components = writeTo.createNew();
-			populateComponents(components);
-			writeTo.put("components", components);
+			writeTo.put("components", components.writeToJSONObject(writeTo.createNew()));
 		}
 		
 		return writeTo;
 	}
-	
-	void populateComponents(JSONObjectAdapter components) throws JSONObjectAdapterException {
-		for (String componentType : this.components.keySet()) {
-			JSONObjectAdapter currentComponent = components.createNew();
-			populateCurrentComponent(currentComponent, componentType);
-			components.put(componentType, currentComponent);
-		}
-	}
-	
-	void populateCurrentComponent(JSONObjectAdapter currentComponent, String componentType) throws JSONObjectAdapterException {
-		for (String id : this.components.get(componentType).keySet()) {
-			currentComponent.put(id, this.components.get(componentType).get(id).writeToJSONObject(currentComponent.createNew()));
-		}
-	}
-	
+
 	void populatePaths(JSONObjectAdapter paths) throws JSONObjectAdapterException {
 		for (String path : this.paths.keySet()) {
 			JSONObjectAdapter currentPathAdapter = paths.createNew();
