@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.sql.Connection;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -34,9 +35,14 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -52,6 +58,8 @@ public class MultipartUploadDAOImplTest {
 	private IdGenerator idGenerator;
 	@Autowired
 	private MultipartUploadDBOHelper helper;
+	@Autowired
+	private PlatformTransactionManager txManager;
 
 	Long userId;
 	String hash;
@@ -282,6 +290,42 @@ public class MultipartUploadDAOImplTest {
 		CompositeMultipartUploadStatus fetched = multipartUplaodDAO.getUploadStatus(userId, hash);
 		assertEquals(null, fetched);
 	}
+	
+	@Test
+	public void testGetUploadStatusByIdWithLockNoWait() {
+		
+		DefaultTransactionDefinition newTxDefinition = new DefaultTransactionDefinition();
+
+		newTxDefinition.setIsolationLevel(Connection.TRANSACTION_READ_COMMITTED);
+		newTxDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+		newTxDefinition.setName("newTxTemplate");
+		
+		TransactionTemplate txTemplate = new TransactionTemplate(txManager, newTxDefinition);
+		
+		assertThrows(NotFoundException.class, () -> {
+			// call under test
+			multipartUplaodDAO.getUploadStatusWithLockNoWait("123");
+		});
+		
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		
+		
+		txTemplate.executeWithoutResult( txStatus -> {			
+			// call under test
+			CompositeMultipartUploadStatus fetched = multipartUplaodDAO.getUploadStatusWithLockNoWait(status.getMultipartUploadStatus().getUploadId());
+			
+			assertEquals(status, fetched);
+			
+			// Start a new transaction and try to get another lock
+			txTemplate.executeWithoutResult( txStatus2 -> {
+				assertThrows(CannotAcquireLockException.class, () -> {					
+					// call under test
+					multipartUplaodDAO.getUploadStatusWithLockNoWait(status.getMultipartUploadStatus().getUploadId());
+				});
+			});
+		});
+	}
+
 
 	@Test
 	public void testAddPartToAndErrorToUpload() {

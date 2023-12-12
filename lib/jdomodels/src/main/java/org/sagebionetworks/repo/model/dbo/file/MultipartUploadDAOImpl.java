@@ -194,23 +194,18 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO#getUploadStatus (java.lang.String)
-	 */
 	@Override
 	public CompositeMultipartUploadStatus getUploadStatus(String idString) {
-		ValidateArgument.required(idString, "UploadId");
-		try {
-			long id = Long.parseLong(idString);
-			return getUploadStatus(id);
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("Invalid UploadId.");
-		}
-
+		boolean withLock = false;
+		return getUploadStatus(idString, withLock);
 	}
-
+	
+	@Override
+	public CompositeMultipartUploadStatus getUploadStatusWithLockNoWait(String idString) {
+		boolean withLock = true;
+		return getUploadStatus(idString, withLock);
+	}
+	
 	@Override
 	@WriteTransaction
 	public void deleteUploadStatus(String uploadId) {
@@ -277,7 +272,9 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 
 		basicDao.createNew(dbo);
 
-		return getUploadStatus(dbo.getId());
+		boolean withLock = false;
+		
+		return getUploadStatus(dbo.getId(), withLock);
 	}
 
 	private byte[] extractBytes(String requestBody) {
@@ -288,6 +285,16 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	private CompositeMultipartUploadStatus getUploadStatus(String idString, boolean withLockNoWait) {
+		ValidateArgument.required(idString, "UploadId");
+		try {
+			long id = Long.parseLong(idString);
+			return getUploadStatus(id, withLockNoWait);
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Invalid UploadId.");
+		}
+	}
 
 	/**
 	 * Get the upload status given an upload id.
@@ -295,9 +302,13 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	 * @param id
 	 * @return
 	 */
-	private CompositeMultipartUploadStatus getUploadStatus(long id) {
+	private CompositeMultipartUploadStatus getUploadStatus(long id, boolean lockNoWait) {
 		try {
-			return this.jdbcTemplate.queryForObject(SELECT_BY_ID, STATUS_MAPPER, id);
+			StringBuilder sql = new StringBuilder(SELECT_BY_ID);
+			if (lockNoWait) {
+				sql.append(" FOR UPDATE NOWAIT");
+			}
+			return this.jdbcTemplate.queryForObject(sql.toString(), STATUS_MAPPER, id);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("MultipartUploadStatus cannot be found for id: " + id);
 		}

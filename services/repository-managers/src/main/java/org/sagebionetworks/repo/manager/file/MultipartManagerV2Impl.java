@@ -314,7 +314,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		ValidateArgument.required(partNumber, "partNumber");
 		ValidateArgument.required(partMD5Hex, "partMD5Hex");
 		// lookup this upload.
-		CompositeMultipartUploadStatus composite = multipartUploadDAO.getUploadStatus(uploadId);
+		CompositeMultipartUploadStatus composite = multipartUploadDAO.getUploadStatusWithLockNoWait(uploadId);
 		// block add if the upload is complete
 		if (MultipartUploadState.COMPLETED.equals(composite.getMultipartUploadStatus().getState())){
 			throw new IllegalArgumentException("Cannot add parts to completed file upload.");
@@ -326,7 +326,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		
 		AddPartResponse response = new AddPartResponse();
 		
-		response.setPartNumber(new Long(partNumber));
+		response.setPartNumber(Long.valueOf(partNumber));
 		response.setUploadId(uploadId);
 		
 		final MultipartRequestHandler<? extends MultipartRequest> handler = handlerProvider.getHandlerForType(composite.getRequestType());
@@ -351,7 +351,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(uploadId, "uploadId");
 		
-		CompositeMultipartUploadStatus composite = multipartUploadDAO.getUploadStatus(uploadId);
+		CompositeMultipartUploadStatus composite = multipartUploadDAO.getUploadStatusWithLockNoWait(uploadId);
 		
 		// validate the user started this upload.
 		validateStartedBy(user, composite);

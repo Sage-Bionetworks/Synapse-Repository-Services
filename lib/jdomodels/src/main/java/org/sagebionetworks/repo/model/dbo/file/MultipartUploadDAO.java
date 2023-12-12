@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.file.PartMD5;
  *
  */
 public interface MultipartUploadDAO {
-	
+		
 	/**
 	 * Get the upload status for a file given a userId and upload hash.
 	 * @param userId
@@ -26,6 +26,13 @@ public interface MultipartUploadDAO {
 	 * @return
 	 */
 	CompositeMultipartUploadStatus getUploadStatus(String id);
+	
+	/**
+	 * Get the upload status for a file given an upload id, locking the upload row without waiting for grab the lock.
+	 * @param id
+	 * @return
+	 */
+	CompositeMultipartUploadStatus getUploadStatusWithLockNoWait(String id);
 	
 	/**
 	 * Get the JSON string for the original request of a multi-part upload.

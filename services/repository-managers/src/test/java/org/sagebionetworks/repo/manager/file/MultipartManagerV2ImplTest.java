@@ -703,7 +703,7 @@ public class MultipartManagerV2ImplTest {
 		when(mockStatus.getState()).thenReturn(MultipartUploadState.UPLOADING);
 		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
-		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
+		when(mockMultipartUploadDAO.getUploadStatusWithLockNoWait(any())).thenReturn(mockCompositeStatus);
 
 		doReturn(mockHandler).when(mockHandlerProvider).getHandlerForType(any());
 
@@ -718,7 +718,7 @@ public class MultipartManagerV2ImplTest {
 
 		assertEquals(expected, result);
 
-		verify(mockMultipartUploadDAO).getUploadStatus(uploadId);
+		verify(mockMultipartUploadDAO).getUploadStatusWithLockNoWait(uploadId);
 		verify(mockHandler).validateAddedPart(mockCompositeStatus, partNumber, partMD5Hex);
 		verify(mockMultipartUploadDAO).addPartToUpload(uploadId, partNumber, partMD5Hex);
 
@@ -730,7 +730,7 @@ public class MultipartManagerV2ImplTest {
 		Integer partNumber = 2;
 		String partMD5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
 
-		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
+		when(mockMultipartUploadDAO.getUploadStatusWithLockNoWait(any())).thenReturn(mockCompositeStatus);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
 		when(mockStatus.getState()).thenReturn(MultipartUploadState.COMPLETED);
 
@@ -757,7 +757,7 @@ public class MultipartManagerV2ImplTest {
 		when(mockStatus.getState()).thenReturn(MultipartUploadState.UPLOADING);
 		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
-		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
+		when(mockMultipartUploadDAO.getUploadStatusWithLockNoWait(any())).thenReturn(mockCompositeStatus);
 
 		doReturn(mockHandler).when(mockHandlerProvider).getHandlerForType(any());
 
@@ -777,7 +777,7 @@ public class MultipartManagerV2ImplTest {
 
 		assertEquals(expected, result);
 
-		verify(mockMultipartUploadDAO).getUploadStatus(uploadId);
+		verify(mockMultipartUploadDAO).getUploadStatusWithLockNoWait(uploadId);
 		verify(mockHandler).validateAddedPart(mockCompositeStatus, partNumber, partMD5Hex);
 		verify(mockMultipartUploadDAO, never()).addPartToUpload(uploadId, partNumber, partMD5Hex);
 		verify(mockMultipartUploadDAO).setPartToFailed(uploadId, partNumber, ExceptionUtils.getStackTrace(error));
@@ -796,7 +796,7 @@ public class MultipartManagerV2ImplTest {
 		when(mockStatus.getState()).thenReturn(MultipartUploadState.UPLOADING);
 		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
-		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
+		when(mockMultipartUploadDAO.getUploadStatusWithLockNoWait(any())).thenReturn(mockCompositeStatus);
 
 		String errorMessage = assertThrows(UnauthorizedException.class, () -> {
 			// Call under test
@@ -818,7 +818,7 @@ public class MultipartManagerV2ImplTest {
 		when(mockStatus.getState()).thenReturn(MultipartUploadState.UPLOADING);
 		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
-		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
+		when(mockMultipartUploadDAO.getUploadStatusWithLockNoWait(any())).thenReturn(mockCompositeStatus);
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
@@ -839,7 +839,7 @@ public class MultipartManagerV2ImplTest {
 		when(mockStatus.getState()).thenReturn(MultipartUploadState.UPLOADING);
 		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
-		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
+		when(mockMultipartUploadDAO.getUploadStatusWithLockNoWait(any())).thenReturn(mockCompositeStatus);
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
@@ -874,7 +874,7 @@ public class MultipartManagerV2ImplTest {
 		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
 		when(mockCompositeStatus.getUploadType()).thenReturn(UploadType.S3);
-		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
+		when(mockMultipartUploadDAO.getUploadStatusWithLockNoWait(any())).thenReturn(mockCompositeStatus);
 		when(mockMultipartUploadDAO.getAddedPartMD5s(any())).thenReturn(addedParts);
 		when(mockMultipartUploadDAO.getUploadRequest(any())).thenReturn(originalRequest);
 		when(mockCloudDaoProvider.getCloudServiceMultipartUploadDao(any())).thenReturn(mockCloudDao);
@@ -923,7 +923,7 @@ public class MultipartManagerV2ImplTest {
 
 		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
-		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
+		when(mockMultipartUploadDAO.getUploadStatusWithLockNoWait(any())).thenReturn(mockCompositeStatus);
 		when(mockMultipartUploadDAO.getAddedPartMD5s(any())).thenReturn(addedParts);
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
@@ -952,7 +952,7 @@ public class MultipartManagerV2ImplTest {
 
 		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
-		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
+		when(mockMultipartUploadDAO.getUploadStatusWithLockNoWait(any())).thenReturn(mockCompositeStatus);
 
 		// Call under test
 		MultipartUploadStatus result = manager.completeMultipartUpload(user, uploadId);
@@ -975,7 +975,7 @@ public class MultipartManagerV2ImplTest {
 		when(mockStatus.getStartedBy()).thenReturn("456788");
 
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
-		when(mockMultipartUploadDAO.getUploadStatus(any())).thenReturn(mockCompositeStatus);
+		when(mockMultipartUploadDAO.getUploadStatusWithLockNoWait(any())).thenReturn(mockCompositeStatus);
 
 		String errorMessage = assertThrows(UnauthorizedException.class, () -> {
 			// Call under test
