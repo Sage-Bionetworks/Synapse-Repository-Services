@@ -23,6 +23,7 @@
 		<property name="minIdle" ref="stackConfiguration.databaseConnectionPoolMinNumberConnections" />
 		<!-- The maximum number of connections in the pool -->
 		<property name="maxTotal" ref="stackConfiguration.databaseConnectionPoolMaxNumberConnections"/>
+		<property name="maxIdle" ref="stackConfiguration.databaseConnectionPoolMaxNumberConnections"/>
 		<!-- This will test a connection to see if it is alive when a connection 
 			is fetched from the pool -->
 		<property name="testOnBorrow" ref="stackConfiguration.databaseConnectionPoolShouldValidate"/>

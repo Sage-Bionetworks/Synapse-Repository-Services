@@ -22,6 +22,7 @@ public class InstanceUtils {
 		connectionPool.setPassword(config.getRepositoryDatabasePassword());
 		connectionPool.setMinIdle(Integer.parseInt(config.getDatabaseConnectionPoolMinNumberConnections()));
 		connectionPool.setMaxTotal(Integer.parseInt(config.getDatabaseConnectionPoolMaxNumberConnections()));
+		connectionPool.setMaxIdle(Integer.parseInt(config.getDatabaseConnectionPoolMaxNumberConnections()));
 		connectionPool.setTestOnBorrow(Boolean.parseBoolean(config.getDatabaseConnectionPoolShouldValidate()));
 		connectionPool.setValidationQuery(config.getDatabaseConnectionPoolValidateSql());
 		return connectionPool;
