@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.model.feature.FeatureStatus;
 public interface FeatureManager {
 
 	/**
-	 * Fetches the status of the given feature
+	 * Fetches the status of the given feature, by default a feature is enabled
 	 * 
 	 * @param feature The name of the feature
 	 * @return The status of the given feature
@@ -29,11 +29,11 @@ public interface FeatureManager {
 	FeatureStatus setFeatureStatus(UserInfo user, Feature feature, FeatureStatus status);
 	
 	/**
-	 * Global check to test if a feature is enabled in this stack
+	 * Global check to test if a feature is enabled in this stack, by default a feature is enabled
 	 * 
 	 * @param feature The type of feature
-	 * @return True if a record is found for this feature and the enabled flag is
-	 *         true, false otherwise
+	 * @return False if a record is found for this feature and the enabled flag is
+	 *         false, true otherwise
 	 */
 	boolean isFeatureEnabled(Feature feature);
 	

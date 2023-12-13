@@ -146,12 +146,14 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 		if (!parts.get(0).getPartRangeLowerBound().equals(1L) || !parts.get(0).getPartRangeUpperBound().equals(request.getNumberOfParts())) {
 			throw new IllegalArgumentException("Not every part has been uploaded and merged.");
 		}
-		multipartUploadComposerDAO.deletePartsInRange(request.getUploadId().toString(), -1, Long.MAX_VALUE);
+		
 		googleCloudStorageClient.rename(request.getBucket(), MultipartUploadUtils.createPartKeyFromRange(request.getKey(), 1, request.getNumberOfParts().intValue()), request.getKey());
 
 		// Delete all of the temporary part files.
 		
 		deleteTemporaryParts(request.getBucket(), request.getKey());
+		
+		multipartUploadComposerDAO.deletePartsInRange(request.getUploadId().toString(), -1, Long.MAX_VALUE);
 		
 		return googleCloudStorageClient.getObject(request.getBucket(), request.getKey()).getSize();
 	}

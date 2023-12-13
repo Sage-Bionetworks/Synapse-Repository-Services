@@ -1415,7 +1415,7 @@ public class DBOAccessRequirementDAOImplTest {
 				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
 				.setObjectId(AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.toString())
 				.setObjectVersion(1L)
-				.setTimestamp(accessRequirementDAO.get(AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.toString()).getCreatedOn())
+				.setTimestamp(accessRequirementDAO.get(AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.toString()).getModifiedOn())
 				.setUserId(1L)
 		);
 		
@@ -1440,7 +1440,7 @@ public class DBOAccessRequirementDAOImplTest {
 				.setObjectId(accessRequirementOne.getId().toString())
 				.setObjectVersion(0L)
 				.setUserId(Long.valueOf(individualGroup.getId()))
-				.setTimestamp(accessRequirementOne.getCreatedOn()),
+				.setTimestamp(accessRequirementOne.getModifiedOn()),
 			new ChangeMessage()
 				.setChangeType(ChangeType.UPDATE)
 				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
@@ -1473,7 +1473,7 @@ public class DBOAccessRequirementDAOImplTest {
 				.setObjectId(accessRequirementTwo.getId().toString())
 				.setObjectVersion(0L)
 				.setUserId(Long.valueOf(individualGroup.getId()))
-				.setTimestamp(accessRequirementTwo.getCreatedOn()),
+				.setTimestamp(accessRequirementTwo.getModifiedOn()),
 			new ChangeMessage()
 				.setChangeType(ChangeType.UPDATE)
 				.setObjectType(ObjectType.ACCESS_REQUIREMENT)

@@ -27,8 +27,6 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationDao;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
-import org.sagebionetworks.repo.model.dbo.feature.FeatureStatusDao;
-import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,9 +41,6 @@ public class AccessApprovalReminderNotificationWorkerIntegrationTest {
 	
 	@Autowired
 	private UserManager userManager;
-	
-	@Autowired
-	private FeatureStatusDao featureStatusDao;
 	
 	@Autowired
 	private DataAccessNotificationDao notificationDao;
@@ -67,7 +62,6 @@ public class AccessApprovalReminderNotificationWorkerIntegrationTest {
 		
 		notificationDao.truncateAll();
 		testHelper.cleanUp();
-		featureStatusDao.clear();
 		
 		admin = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
@@ -75,9 +69,6 @@ public class AccessApprovalReminderNotificationWorkerIntegrationTest {
 		newUser.setEmail(UUID.randomUUID().toString() + "@test.com");
 		newUser.setUserName(UUID.randomUUID().toString());
 		user = userManager.getUserInfo(userManager.createUser(newUser));
-		
-		// Enabled the feature for testing
-		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS, true);
 	}
 	
 	@AfterEach
@@ -85,7 +76,6 @@ public class AccessApprovalReminderNotificationWorkerIntegrationTest {
 
 		notificationDao.truncateAll();
 		testHelper.cleanUp();
-		featureStatusDao.clear();
 		messages.forEach(messageDao::deleteMessage);
 		userManager.deletePrincipal(admin, user.getId());
 	}

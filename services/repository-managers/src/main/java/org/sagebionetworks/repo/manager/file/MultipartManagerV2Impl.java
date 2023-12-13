@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.file.multipart.FileHandleCreateRequest;
 import org.sagebionetworks.repo.manager.file.multipart.MultipartRequestHandler;
 import org.sagebionetworks.repo.manager.file.multipart.MultipartRequestHandlerProvider;
@@ -22,6 +23,7 @@ import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
+import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
@@ -71,6 +73,9 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	
 	@Autowired
 	private MultipartRequestHandlerProvider handlerProvider;
+	
+	@Autowired
+	private FeatureManager featureManager;
 	
 	@Override
 	@WriteTransaction
@@ -217,8 +222,10 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			throw new IllegalArgumentException("BatchPresignedUploadUrlRequest.partNumbers must contain at least one value");
 		}
 		
+		boolean withLock = false;
+		
 		// lookup this upload.
-		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(request.getUploadId());
+		CompositeMultipartUploadStatus status = multipartUploadDAO.getUploadStatus(request.getUploadId(), withLock);
 
 		// validate the caller is the user that started this upload.
 		validateStartedBy(user, status);
@@ -313,8 +320,12 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		ValidateArgument.required(uploadId, "uploadId");
 		ValidateArgument.required(partNumber, "partNumber");
 		ValidateArgument.required(partMD5Hex, "partMD5Hex");
+		
+		boolean withLock = featureManager.isFeatureEnabled(Feature.UPLOAD_LOCK_NOWAIT);
+				
 		// lookup this upload.
-		CompositeMultipartUploadStatus composite = multipartUploadDAO.getUploadStatus(uploadId);
+		CompositeMultipartUploadStatus composite = multipartUploadDAO.getUploadStatus(uploadId, withLock);
+		
 		// block add if the upload is complete
 		if (MultipartUploadState.COMPLETED.equals(composite.getMultipartUploadStatus().getState())){
 			throw new IllegalArgumentException("Cannot add parts to completed file upload.");
@@ -326,7 +337,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		
 		AddPartResponse response = new AddPartResponse();
 		
-		response.setPartNumber(new Long(partNumber));
+		response.setPartNumber(Long.valueOf(partNumber));
 		response.setUploadId(uploadId);
 		
 		final MultipartRequestHandler<? extends MultipartRequest> handler = handlerProvider.getHandlerForType(composite.getRequestType());
@@ -351,7 +362,10 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(uploadId, "uploadId");
 		
-		CompositeMultipartUploadStatus composite = multipartUploadDAO.getUploadStatus(uploadId);
+		boolean withLock = featureManager.isFeatureEnabled(Feature.UPLOAD_LOCK_NOWAIT);
+		
+		// lookup this upload.
+		CompositeMultipartUploadStatus composite = multipartUploadDAO.getUploadStatus(uploadId, withLock);
 		
 		// validate the user started this upload.
 		validateStartedBy(user, composite);
@@ -412,7 +426,8 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		final CompositeMultipartUploadStatus status;
 		
 		try {
-			status = multipartUploadDAO.getUploadStatus(uploadId);
+			boolean withLock = false;
+			status = multipartUploadDAO.getUploadStatus(uploadId, withLock);
 		} catch (NotFoundException e) {
 			// Nothing to do
 			return;

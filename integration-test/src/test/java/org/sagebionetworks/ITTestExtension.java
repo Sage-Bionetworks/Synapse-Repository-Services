@@ -1,8 +1,6 @@
 package org.sagebionetworks;
 
 import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.AfterEachCallback;
-import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
@@ -17,8 +15,6 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.common.util.ClockImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
-import org.sagebionetworks.repo.model.feature.Feature;
-import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.warehouse.WarehouseTestHelper;
 import org.sagebionetworks.warehouse.WarehouseTestHelperImpl;
 
@@ -138,10 +134,6 @@ public class ITTestExtension implements BeforeAllCallback, AfterAllCallback, Par
 		// Clear the auth header to use the bearer token instead with the access token
 		adminSynapse.removeAuthorizationHeader();
 		adminSynapse.setBearerAuthorizationToken(response.getAccessToken());
-
-		// Enable Synapse data to be downloaded through CloudFront
-		FeatureStatus cloudFrontStatus = new FeatureStatus().setFeature(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT).setEnabled(true);
-		adminSynapse.setFeatureStatus(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT, cloudFrontStatus);
 		
 		AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_1)
 				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance()).build();

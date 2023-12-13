@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.sql.Connection;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -31,12 +32,17 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.helper.MultipartUploadDBOHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -52,6 +58,8 @@ public class MultipartUploadDAOImplTest {
 	private IdGenerator idGenerator;
 	@Autowired
 	private MultipartUploadDBOHelper helper;
+	@Autowired
+	private PlatformTransactionManager txManager;
 
 	Long userId;
 	String hash;
@@ -229,7 +237,7 @@ public class MultipartUploadDAOImplTest {
 		assertNotNull(status);
 		// call under tests
 		CompositeMultipartUploadStatus fetched = multipartUplaodDAO
-				.getUploadStatus(status.getMultipartUploadStatus().getUploadId());
+				.getUploadStatus(status.getMultipartUploadStatus().getUploadId(), false);
 		assertEquals(status, fetched);
 	}
 
@@ -237,7 +245,7 @@ public class MultipartUploadDAOImplTest {
 	public void testGetUploadStatusByNull() {
 
 		assertThrows(IllegalArgumentException.class, () -> {
-			multipartUplaodDAO.getUploadStatus(null);
+			multipartUplaodDAO.getUploadStatus(null, false);
 		});
 	}
 
@@ -245,7 +253,7 @@ public class MultipartUploadDAOImplTest {
 	public void testGetUploadStatusByIdNotFound() {
 		assertThrows(NotFoundException.class, () -> {
 			// call under tests
-			multipartUplaodDAO.getUploadStatus("-1");
+			multipartUplaodDAO.getUploadStatus("-1", false);
 		});
 	}
 
@@ -282,6 +290,44 @@ public class MultipartUploadDAOImplTest {
 		CompositeMultipartUploadStatus fetched = multipartUplaodDAO.getUploadStatus(userId, hash);
 		assertEquals(null, fetched);
 	}
+	
+	@Test
+	public void testGetUploadStatusByIdWithLockNoWait() {
+		
+		DefaultTransactionDefinition newTxDefinition = new DefaultTransactionDefinition();
+
+		newTxDefinition.setIsolationLevel(Connection.TRANSACTION_READ_COMMITTED);
+		newTxDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+		newTxDefinition.setName("newTxTemplate");
+		
+		TransactionTemplate txTemplate = new TransactionTemplate(txManager, newTxDefinition);
+		
+		boolean withLock = true;
+		
+		assertThrows(NotFoundException.class, () -> {
+			// call under test
+			multipartUplaodDAO.getUploadStatus("123", withLock);
+		});
+		
+		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
+		
+		
+		txTemplate.executeWithoutResult( txStatus -> {			
+			// call under test
+			CompositeMultipartUploadStatus fetched = multipartUplaodDAO.getUploadStatus(status.getMultipartUploadStatus().getUploadId(), withLock);
+			
+			assertEquals(status, fetched);
+			
+			// Start a new transaction and try to get another lock
+			txTemplate.executeWithoutResult( txStatus2 -> {
+				assertThrows(TemporarilyUnavailableException.class, () -> {					
+					// call under test
+					multipartUplaodDAO.getUploadStatus(status.getMultipartUploadStatus().getUploadId(), withLock);
+				});
+			});
+		});
+	}
+
 
 	@Test
 	public void testAddPartToAndErrorToUpload() {
@@ -355,7 +401,7 @@ public class MultipartUploadDAOImplTest {
 		// Call under test
 		multipartUplaodDAO.addPartToUpload(uploadId, 1, "partOneMD5Hex");
 
-		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId);
+		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId, false);
 		
 		assertNotEquals(status.getEtag(), updated.getEtag(), "Adding a part must update the etag of the master row.");
 		assertTrue(updated.getMultipartUploadStatus().getUpdatedOn().after(status.getMultipartUploadStatus().getUpdatedOn()));
@@ -374,7 +420,7 @@ public class MultipartUploadDAOImplTest {
 		// Call under test
 		multipartUplaodDAO.setPartToFailed(uploadId, 10, "some kind of error");
 
-		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId);
+		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId, false);
 
 		assertNotEquals(status.getEtag(), updated.getEtag(), "Adding a part must update the etag of the master row.");
 		assertTrue(updated.getMultipartUploadStatus().getUpdatedOn().after(status.getMultipartUploadStatus().getUpdatedOn()));
@@ -557,7 +603,7 @@ public class MultipartUploadDAOImplTest {
 		multipartUplaodDAO.deleteUploadStatus(uploadId);
 		
 		assertThrows(NotFoundException.class, () -> {
-			multipartUplaodDAO.getUploadStatus(uploadId);
+			multipartUplaodDAO.getUploadStatus(uploadId, false);
 		});
 	}
 

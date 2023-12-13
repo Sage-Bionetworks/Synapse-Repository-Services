@@ -39,8 +39,6 @@ import org.sagebionetworks.repo.model.dataaccess.NotificationType;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationDao;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
-import org.sagebionetworks.repo.model.dbo.feature.FeatureStatusDao;
-import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -55,10 +53,7 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 	
 	@Autowired
 	private UserManager userManager;
-	
-	@Autowired
-	private FeatureStatusDao featureStatusDao;
-	
+		
 	@Autowired
 	private AccessApprovalDAO accessApprovalDao;
 	
@@ -83,8 +78,6 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 		notificationDao.truncateAll();
 		accessApprovalDao.clear();
 		accessRequirementDao.truncateAll();
-		featureStatusDao.clear();
-		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS, true);
 		
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
@@ -99,7 +92,6 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 		notificationDao.truncateAll();
 		accessApprovalDao.clear();
 		accessRequirementDao.truncateAll();
-		featureStatusDao.clear();
 		
 		users.forEach( id -> {
 			userManager.deletePrincipal(adminUser, id);
