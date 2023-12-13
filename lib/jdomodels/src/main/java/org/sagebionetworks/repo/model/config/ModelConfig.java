@@ -8,6 +8,10 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.database.semaphore.CountingSemaphoreImpl;
+import org.sagebionetworks.db.pool.Dbcp2DatabaseConnectionPoolStats;
+import org.sagebionetworks.repo.model.DatabaseConnectionPoolStats;
+import org.sagebionetworks.repo.model.DatabaseConnectionPoolStats.DatabaseType;
+import org.sagebionetworks.repo.model.DatabaseConnectionPoolStats.PoolType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -43,8 +47,14 @@ public class ModelConfig {
 	 * @return
 	 */
 	@Bean(destroyMethod = "close")
-	public DataSource dataSourcePool(StackConfiguration stackConfiguration) {
+	public BasicDataSource dataSourcePool(StackConfiguration stackConfiguration) {
 		return configureRepoDataSource(new BasicDataSource(), stackConfiguration);
+	}
+
+	@Bean
+	public DatabaseConnectionPoolStats mainDatabaseConnectionPoolStats(BasicDataSource dataSourcePool) {
+		return new Dbcp2DatabaseConnectionPoolStats().setPool(dataSourcePool).setDatabaseType(DatabaseType.main)
+				.setPoolType(PoolType.standard);
 	}
 
 	/**
@@ -55,21 +65,27 @@ public class ModelConfig {
 	 * @return
 	 */
 	@Bean(destroyMethod = "close")
-	public DataSource migrationDataSourcePool(StackConfiguration stackConfiguration) {
+	public BasicDataSource migrationDataSourcePool(StackConfiguration stackConfiguration) {
 		BasicDataSource dataSource = configureRepoDataSource(new BasicDataSource(), stackConfiguration);
 		dataSource.addConnectionProperty("rewriteBatchedStatements", String.valueOf(true));
 		return dataSource;
+	}
+	
+	@Bean
+	public DatabaseConnectionPoolStats migrationDatabaseConnectionPoolStats(BasicDataSource migrationDataSourcePool) {
+		return new Dbcp2DatabaseConnectionPoolStats().setPool(migrationDataSourcePool)
+				.setDatabaseType(DatabaseType.main).setPoolType(PoolType.migration);
 	}
 
 	@Bean
 	// Primary transaction manager used by the database semaphore
 	@Primary
-	public PlatformTransactionManager txManager(DataSource dataSourcePool) {
+	public PlatformTransactionManager txManager(BasicDataSource dataSourcePool) {
 		return new DataSourceTransactionManager(dataSourcePool);
 	}
 
 	@Bean
-	public PlatformTransactionManager migrationTxManager(DataSource migrationDataSourcePool) {
+	public PlatformTransactionManager migrationTxManager(BasicDataSource migrationDataSourcePool) {
 		return new DataSourceTransactionManager(migrationDataSourcePool);
 	}
 

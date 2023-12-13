@@ -37,6 +37,12 @@
 			<ref bean="idGeneratorDataSourcePool" />
 		</property>
 	</bean>
+	
+	<bean id="idGeneratorConnectionPoolStats" class="org.sagebionetworks.db.pool.Dbcp2DatabaseConnectionPoolStats">
+		<property name="pool" ref="idGeneratorDataSourcePool" />
+		<property name="databaseType"  value="idgen" />
+		<property name="poolType"  value="standard" />
+	</bean>
 
 	<bean id="idGenerator" class="org.sagebionetworks.ids.IdGeneratorImpl"></bean>
 
