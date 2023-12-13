@@ -6,13 +6,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,6 +39,12 @@ public class FeatureManagerImplTest {
 	
 	@Mock
 	private UserInfo mockUser;
+	
+	@BeforeEach
+	public void beforeEach() {
+		// This is invoked by spring after bean construction
+		manager.configure();
+	}
 	
 	@Test
 	public void testIsFeatureEnabledWithNoFeature() {
@@ -64,6 +73,26 @@ public class FeatureManagerImplTest {
 		
 		assertEquals(enabled, result);
 		verify(mockFeatureStatusDao).isFeatureEnabled(feature);
+	}
+	
+	@Test
+	public void testIsFeatureEnabledCached() {
+		
+		boolean enabled = true;
+		
+		when(mockFeatureStatusDao.isFeatureEnabled(any())).thenReturn(Optional.of(enabled));
+		
+		Feature feature = Feature.DATA_ACCESS_NOTIFICATIONS;
+		
+		// Call under test
+		manager.isFeatureEnabled(feature);
+		
+		verify(mockFeatureStatusDao).isFeatureEnabled(feature);
+		
+		// Calling again should not change the amou tof times the dao is invoked
+		manager.isFeatureEnabled(feature);
+		
+		verifyNoMoreInteractions(mockFeatureStatusDao);
 	}
 	
 	@Test
@@ -243,7 +272,7 @@ public class FeatureManagerImplTest {
 		
 		status.setFeature(feature);
 		status.setEnabled(isFeatureEnabled);
-		
+				
 		// Call under test
 		FeatureStatus result = manager.setFeatureStatus(user, feature, status);
 		
@@ -251,6 +280,33 @@ public class FeatureManagerImplTest {
 		
 		verify(mockFeatureStatusDao).setFeatureEnabled(feature, isFeatureEnabled);
 		verify(mockFeatureStatusDao).isFeatureEnabled(feature);
+	}
+	
+	@Test
+	public void testSetFeatureStatusWithCached() {
+		UserInfo user = mockUser;
+		Feature feature = Feature.DATA_ACCESS_AUTO_REVOCATION;
+		boolean isFeatureEnabled = true;
+		
+		when(user.isAdmin()).thenReturn(true);
+		doNothing().when(mockFeatureStatusDao).setFeatureEnabled(any(), anyBoolean());
+		when(mockFeatureStatusDao.isFeatureEnabled(any())).thenReturn(Optional.of(isFeatureEnabled));
+		
+		FeatureStatus status = new FeatureStatus();
+		
+		status.setFeature(feature);
+		status.setEnabled(isFeatureEnabled);
+		
+		// Populates the cache
+		manager.isFeatureEnabled(feature);
+				
+		// Call under test, this also invalidates the cache
+		FeatureStatus result = manager.setFeatureStatus(user, feature, status);
+		
+		assertEquals(status, result);
+		
+		verify(mockFeatureStatusDao).setFeatureEnabled(feature, isFeatureEnabled);
+		verify(mockFeatureStatusDao, times(2)).isFeatureEnabled(feature);
 	}
 	
 	@Test

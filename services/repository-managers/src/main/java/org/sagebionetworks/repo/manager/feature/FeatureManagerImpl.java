@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.manager.feature;
 
+import java.time.Duration;
 import java.util.Set;
+
+import javax.annotation.PostConstruct;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -13,23 +16,39 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
 @Service
 public class FeatureManagerImpl implements FeatureManager {
 	
+	private static final Duration CACHE_EXPIRATION = Duration.ofMinutes(1);
 	private static final String UNAUTHORIZED_MESSAGE = "You must be an administrator to perform this operation.";
 	
 	private FeatureStatusDao featureStatusDao;
-
+	
+	private LoadingCache<Feature, Boolean> featureCache;
+	
 	@Autowired
-	public FeatureManagerImpl(FeatureStatusDao featureTestingDao) {
-		this.featureStatusDao = featureTestingDao;
+	public FeatureManagerImpl(FeatureStatusDao featureStatusDao) {
+		this.featureStatusDao = featureStatusDao;
+	}
+	
+	@PostConstruct
+	public void configure() {
+		this.featureCache = CacheBuilder.newBuilder()
+			.expireAfterWrite(CACHE_EXPIRATION)
+			// If there is no record in the DB we assume the feature is disabled
+			.build(CacheLoader.from(feature -> 
+				featureStatusDao.isFeatureEnabled(feature).orElse(false)
+			));
 	}
 	
 	@Override
 	public boolean isFeatureEnabled(Feature feature) {
 		ValidateArgument.required(feature, "The feature");
-		// If there is no record in the DB we assume the feature is disabled
-		return featureStatusDao.isFeatureEnabled(feature).orElse(false);
+		return featureCache.getUnchecked(feature);
 	}
 	
 	@Override
@@ -53,6 +72,7 @@ public class FeatureManagerImpl implements FeatureManager {
 		verifyAdmin(user);
 		
 		featureStatusDao.setFeatureEnabled(feature, status.getEnabled());
+		featureCache.invalidate(feature);
 		
 		return getFeatureStatus(feature);
 	}
