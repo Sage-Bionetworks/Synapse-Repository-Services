@@ -92,7 +92,7 @@ public class ControllerModelsToOpenAPIModelTranslator {
 	 * @return an object that represents the API information
 	 */
 	ApiInfo getApiInfo() {
-		return new ApiInfo().withTitle("Sample OpenAPI definition").withVersion("v1");
+		return new ApiInfo().withTitle("Synapse REST API").withVersion("v1");
 	}
 
 	/**
@@ -101,8 +101,7 @@ public class ControllerModelsToOpenAPIModelTranslator {
 	 * @return a list of objects that represents information on the servers.
 	 */
 	List<ServerInfo> getServers() {
-		ServerInfo server = new ServerInfo().withUrl("https://repo-prod.prod.sagebase.org")
-				.withDescription("This is the generated server URL");
+		ServerInfo server = new ServerInfo().withUrl("https://repo-prod.prod.sagebase.org");
 		return new ArrayList<>(Arrays.asList(server));
 	}
 

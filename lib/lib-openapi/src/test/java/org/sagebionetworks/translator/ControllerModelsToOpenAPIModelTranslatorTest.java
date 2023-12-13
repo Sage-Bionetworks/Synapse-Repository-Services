@@ -114,14 +114,13 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 	}
 	@Test
 	public void testGetApiInfo() {
-		ApiInfo expectedApiInfo = new ApiInfo().withTitle("Sample OpenAPI definition").withVersion("v1");
+		ApiInfo expectedApiInfo = new ApiInfo().withTitle("Synapse REST API").withVersion("v1");
 		assertEquals(expectedApiInfo, translator.getApiInfo());
 	}
 
 	@Test
 	public void testGetServers() {
-		ServerInfo server = new ServerInfo().withUrl("https://repo-prod.prod.sagebase.org")
-				.withDescription("This is the generated server URL");
+		ServerInfo server = new ServerInfo().withUrl("https://repo-prod.prod.sagebase.org");
 		assertEquals(new ArrayList<>(Arrays.asList(server)), translator.getServers());
 	}
 
