@@ -13,8 +13,6 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.feature.FeatureStatusDao;
-import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,10 +27,7 @@ public class AccessApprovalExpirationWorkerIntegrationTest {
 	
 	@Autowired
 	private UserManager userManager;
-	
-	@Autowired
-	private FeatureStatusDao featureStatusDao;
-	
+		
 	@Autowired
 	private DataAccessTestHelper testHelper;
 	
@@ -41,15 +36,11 @@ public class AccessApprovalExpirationWorkerIntegrationTest {
 	@BeforeEach
 	public void before() {
 		testHelper.cleanUp();
-		featureStatusDao.clear();
 		user = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		// Enabled the feature for testing
-		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION, true);
 	}
 	
 	@AfterEach
 	public void after() {
-		featureStatusDao.clear();
 		testHelper.cleanUp();
 	}
 	

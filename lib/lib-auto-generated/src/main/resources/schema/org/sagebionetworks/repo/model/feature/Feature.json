@@ -14,9 +14,13 @@
         	"name": "MULTIPART_AUTO_CLEANUP",
         	"description": "Automatic cleanup of old multipart uploads"
         },
-      {
-        "name": "DATA_DOWNLOAD_THROUGH_CLOUDFRONT",
-        "description": "Route downloads of Synapse Data through AWS CloudFront"
-      }
+	    {
+	     	"name": "DATA_DOWNLOAD_THROUGH_CLOUDFRONT",
+	        "description": "Route downloads of Synapse Data through AWS CloudFront"
+	    },
+	    {
+	     	"name": "UPLOAD_LOCK_NOWAIT",
+	        "description": "Enable row lock with nowait when adding a part or completing a multipart upload"
+	    }
     ]
 }
