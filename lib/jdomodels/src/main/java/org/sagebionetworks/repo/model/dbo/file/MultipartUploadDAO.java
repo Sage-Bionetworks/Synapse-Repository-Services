@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.file.PartErrors;
 import org.sagebionetworks.repo.model.file.PartMD5;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
 
 /**
@@ -23,16 +24,10 @@ public interface MultipartUploadDAO {
 	/**
 	 * Get the upload status for a file given an upload id.
 	 * @param id
+	 * @param withLockNoWait True if the call should lock for update with a nowait. If true and a lock cannot be acquire will throw a {@link TemporarilyUnavailableException}
 	 * @return
 	 */
-	CompositeMultipartUploadStatus getUploadStatus(String id);
-	
-	/**
-	 * Get the upload status for a file given an upload id, locking the upload row without waiting for grab the lock.
-	 * @param id
-	 * @return
-	 */
-	CompositeMultipartUploadStatus getUploadStatusWithLockNoWait(String id);
+	CompositeMultipartUploadStatus getUploadStatus(String id, boolean withLockNoWait);
 	
 	/**
 	 * Get the JSON string for the original request of a multi-part upload.

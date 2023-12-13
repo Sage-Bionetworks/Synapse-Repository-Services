@@ -48,8 +48,10 @@ import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -195,15 +197,14 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 	}
 
 	@Override
-	public CompositeMultipartUploadStatus getUploadStatus(String idString) {
-		boolean withLock = false;
-		return getUploadStatus(idString, withLock);
-	}
-	
-	@Override
-	public CompositeMultipartUploadStatus getUploadStatusWithLockNoWait(String idString) {
-		boolean withLock = true;
-		return getUploadStatus(idString, withLock);
+	public CompositeMultipartUploadStatus getUploadStatus(String idString, boolean withLockNoWait) {
+		ValidateArgument.required(idString, "UploadId");
+		try {
+			long id = Long.parseLong(idString);
+			return getUploadStatus(id, withLockNoWait);
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Invalid UploadId.");
+		}
 	}
 	
 	@Override
@@ -286,16 +287,6 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		}
 	}
 	
-	private CompositeMultipartUploadStatus getUploadStatus(String idString, boolean withLockNoWait) {
-		ValidateArgument.required(idString, "UploadId");
-		try {
-			long id = Long.parseLong(idString);
-			return getUploadStatus(id, withLockNoWait);
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("Invalid UploadId.");
-		}
-	}
-
 	/**
 	 * Get the upload status given an upload id.
 	 * 
@@ -311,6 +302,8 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 			return this.jdbcTemplate.queryForObject(sql.toString(), STATUS_MAPPER, id);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("MultipartUploadStatus cannot be found for id: " + id);
+		} catch (CannotAcquireLockException e) {
+			throw new TemporarilyUnavailableException("Upload status temporarily unavailable, please try again later.", e);
 		}
 	}
 
@@ -459,7 +452,8 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		jdbcTemplate.update(SQL_SET_COMPLETE, fileHandleId, newEtag, state.name(), new Date(), uploadId);
 		// delete all of the parts for this file
 		jdbcTemplate.update(SQL_DELETE_ALL_PARTS, uploadId);
-		return getUploadStatus(uploadId);
+		boolean withLock = false;
+		return getUploadStatus(uploadId, withLock);
 	}
 
 	@Override

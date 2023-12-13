@@ -32,10 +32,10 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.helper.MultipartUploadDBOHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -237,7 +237,7 @@ public class MultipartUploadDAOImplTest {
 		assertNotNull(status);
 		// call under tests
 		CompositeMultipartUploadStatus fetched = multipartUplaodDAO
-				.getUploadStatus(status.getMultipartUploadStatus().getUploadId());
+				.getUploadStatus(status.getMultipartUploadStatus().getUploadId(), false);
 		assertEquals(status, fetched);
 	}
 
@@ -245,7 +245,7 @@ public class MultipartUploadDAOImplTest {
 	public void testGetUploadStatusByNull() {
 
 		assertThrows(IllegalArgumentException.class, () -> {
-			multipartUplaodDAO.getUploadStatus(null);
+			multipartUplaodDAO.getUploadStatus(null, false);
 		});
 	}
 
@@ -253,7 +253,7 @@ public class MultipartUploadDAOImplTest {
 	public void testGetUploadStatusByIdNotFound() {
 		assertThrows(NotFoundException.class, () -> {
 			// call under tests
-			multipartUplaodDAO.getUploadStatus("-1");
+			multipartUplaodDAO.getUploadStatus("-1", false);
 		});
 	}
 
@@ -302,9 +302,11 @@ public class MultipartUploadDAOImplTest {
 		
 		TransactionTemplate txTemplate = new TransactionTemplate(txManager, newTxDefinition);
 		
+		boolean withLock = true;
+		
 		assertThrows(NotFoundException.class, () -> {
 			// call under test
-			multipartUplaodDAO.getUploadStatusWithLockNoWait("123");
+			multipartUplaodDAO.getUploadStatus("123", withLock);
 		});
 		
 		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);
@@ -312,15 +314,15 @@ public class MultipartUploadDAOImplTest {
 		
 		txTemplate.executeWithoutResult( txStatus -> {			
 			// call under test
-			CompositeMultipartUploadStatus fetched = multipartUplaodDAO.getUploadStatusWithLockNoWait(status.getMultipartUploadStatus().getUploadId());
+			CompositeMultipartUploadStatus fetched = multipartUplaodDAO.getUploadStatus(status.getMultipartUploadStatus().getUploadId(), withLock);
 			
 			assertEquals(status, fetched);
 			
 			// Start a new transaction and try to get another lock
 			txTemplate.executeWithoutResult( txStatus2 -> {
-				assertThrows(CannotAcquireLockException.class, () -> {					
+				assertThrows(TemporarilyUnavailableException.class, () -> {					
 					// call under test
-					multipartUplaodDAO.getUploadStatusWithLockNoWait(status.getMultipartUploadStatus().getUploadId());
+					multipartUplaodDAO.getUploadStatus(status.getMultipartUploadStatus().getUploadId(), withLock);
 				});
 			});
 		});
@@ -399,7 +401,7 @@ public class MultipartUploadDAOImplTest {
 		// Call under test
 		multipartUplaodDAO.addPartToUpload(uploadId, 1, "partOneMD5Hex");
 
-		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId);
+		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId, false);
 		
 		assertNotEquals(status.getEtag(), updated.getEtag(), "Adding a part must update the etag of the master row.");
 		assertTrue(updated.getMultipartUploadStatus().getUpdatedOn().after(status.getMultipartUploadStatus().getUpdatedOn()));
@@ -418,7 +420,7 @@ public class MultipartUploadDAOImplTest {
 		// Call under test
 		multipartUplaodDAO.setPartToFailed(uploadId, 10, "some kind of error");
 
-		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId);
+		CompositeMultipartUploadStatus updated = multipartUplaodDAO.getUploadStatus(uploadId, false);
 
 		assertNotEquals(status.getEtag(), updated.getEtag(), "Adding a part must update the etag of the master row.");
 		assertTrue(updated.getMultipartUploadStatus().getUpdatedOn().after(status.getMultipartUploadStatus().getUpdatedOn()));
@@ -601,7 +603,7 @@ public class MultipartUploadDAOImplTest {
 		multipartUplaodDAO.deleteUploadStatus(uploadId);
 		
 		assertThrows(NotFoundException.class, () -> {
-			multipartUplaodDAO.getUploadStatus(uploadId);
+			multipartUplaodDAO.getUploadStatus(uploadId, false);
 		});
 	}
 

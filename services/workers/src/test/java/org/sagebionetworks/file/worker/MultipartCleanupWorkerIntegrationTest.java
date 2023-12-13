@@ -76,14 +76,14 @@ public class MultipartCleanupWorkerIntegrationTest {
 		}).getId();
 				
 		// this should work
-		assertNotNull(multipartUploadDao.getUploadStatus(String.valueOf(uploadId)));
+		assertNotNull(multipartUploadDao.getUploadStatus(String.valueOf(uploadId), false));
 		
 		TimeUtils.waitFor(WORKER_TIMEOUT, 1000L, () -> {
 			
 			boolean deleted = false;
 			
 			try {
-				multipartUploadDao.getUploadStatus(String.valueOf(uploadId));
+				multipartUploadDao.getUploadStatus(String.valueOf(uploadId), false);
 			} catch (NotFoundException e) {
 				deleted = true;
 			}
