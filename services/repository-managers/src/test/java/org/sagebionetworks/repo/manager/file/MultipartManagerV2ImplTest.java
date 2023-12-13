@@ -710,7 +710,7 @@ public class MultipartManagerV2ImplTest {
 		when(mockStatus.getState()).thenReturn(MultipartUploadState.UPLOADING);
 		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
-		when(mockFeatureManager.isFeatureEnabled(Feature.DISABLE_UPLOAD_LOCK_NOWAIT)).thenReturn(!lockNoWaitEnabled);
+		when(mockFeatureManager.isFeatureEnabled(Feature.UPLOAD_LOCK_NOWAIT)).thenReturn(lockNoWaitEnabled);
 		when(mockMultipartUploadDAO.getUploadStatus(any(), anyBoolean())).thenReturn(mockCompositeStatus);
 
 		doReturn(mockHandler).when(mockHandlerProvider).getHandlerForType(any());
@@ -785,7 +785,7 @@ public class MultipartManagerV2ImplTest {
 
 		assertEquals(expected, result);
 
-		verify(mockMultipartUploadDAO).getUploadStatus(uploadId, true);
+		verify(mockMultipartUploadDAO).getUploadStatus(uploadId, false);
 		verify(mockHandler).validateAddedPart(mockCompositeStatus, partNumber, partMD5Hex);
 		verify(mockMultipartUploadDAO, never()).addPartToUpload(uploadId, partNumber, partMD5Hex);
 		verify(mockMultipartUploadDAO).setPartToFailed(uploadId, partNumber, ExceptionUtils.getStackTrace(error));
@@ -883,7 +883,7 @@ public class MultipartManagerV2ImplTest {
 		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
 		when(mockCompositeStatus.getUploadType()).thenReturn(UploadType.S3);
-		when(mockFeatureManager.isFeatureEnabled(Feature.DISABLE_UPLOAD_LOCK_NOWAIT)).thenReturn(!lockNoWaitEnabled);
+		when(mockFeatureManager.isFeatureEnabled(Feature.UPLOAD_LOCK_NOWAIT)).thenReturn(lockNoWaitEnabled);
 		when(mockMultipartUploadDAO.getUploadStatus(any(), anyBoolean())).thenReturn(mockCompositeStatus);
 		when(mockMultipartUploadDAO.getAddedPartMD5s(any())).thenReturn(addedParts);
 		when(mockMultipartUploadDAO.getUploadRequest(any())).thenReturn(originalRequest);

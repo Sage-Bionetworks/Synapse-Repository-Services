@@ -19,8 +19,8 @@
 	        "description": "Route downloads of Synapse Data through AWS CloudFront"
 	    },
 	    {
-	     	"name": "DISABLE_UPLOAD_LOCK_NOWAIT",
-	        "description": "Disable lock when adding a part of completing a multipart upload"
+	     	"name": "UPLOAD_LOCK_NOWAIT",
+	        "description": "Enable row lock with nowait when adding a part or completing a multipart upload"
 	    }
     ]
 }

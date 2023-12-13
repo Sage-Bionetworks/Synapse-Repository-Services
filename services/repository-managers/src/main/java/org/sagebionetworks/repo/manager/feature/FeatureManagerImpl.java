@@ -39,9 +39,9 @@ public class FeatureManagerImpl implements FeatureManager {
 	public void configure() {
 		this.featureCache = CacheBuilder.newBuilder()
 			.expireAfterWrite(CACHE_EXPIRATION)
-			// If there is no record in the DB we assume the feature is disabled
+			// If there is no record in the DB we assume the feature is enabled
 			.build(CacheLoader.from(feature -> 
-				featureStatusDao.isFeatureEnabled(feature).orElse(false)
+				featureStatusDao.isFeatureEnabled(feature).orElse(true)
 			));
 	}
 	
@@ -106,5 +106,4 @@ public class FeatureManagerImpl implements FeatureManager {
 		
 		return userGroup.contains(BOOTSTRAP_PRINCIPAL.SYNAPSE_TESTING_GROUP.getPrincipalId());
 	}
-
 }

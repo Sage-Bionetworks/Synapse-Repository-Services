@@ -118,7 +118,7 @@ public class FeatureManagerImplTest {
 		
 		Feature feature = Feature.DATA_ACCESS_NOTIFICATIONS;
 		
-		boolean expected = false;
+		boolean expected = true;
 		
 		// Call under test
 		boolean result =  manager.isFeatureEnabled(feature);

@@ -22,8 +22,6 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationDao;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
-import org.sagebionetworks.repo.model.dbo.feature.FeatureStatusDao;
-import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,10 +37,7 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 	
 	@Autowired
 	private UserManager userManager;
-	
-	@Autowired
-	private FeatureStatusDao featureStatusDao;
-	
+		
 	@Autowired
 	private DataAccessNotificationDao notificationDao;
 	
@@ -55,7 +50,6 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 	@BeforeEach
 	public void before() {
 		notificationDao.truncateAll();
-		featureStatusDao.clear();
 		testHelper.cleanUp();
 		
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -64,16 +58,11 @@ public class AccessApprovalRevokedNotificationWorkerIntegrationTest {
 		newUser.setEmail(UUID.randomUUID().toString() + "@test.com");
 		newUser.setUserName(UUID.randomUUID().toString());
 		user = userManager.getUserInfo(userManager.createUser(newUser));
-		
-		// Enabled the features for testing, we need both the auto revocation and the notification workers running
-		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION, true);
-		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS, true);
 	}
 	
 	@AfterEach
 	public void after() {
 		notificationDao.truncateAll();
-		featureStatusDao.clear();
 		testHelper.cleanUp();
 		userManager.deletePrincipal(adminUser, user.getId());
 	}

@@ -12,10 +12,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.file.MultipartManagerV2;
-import org.sagebionetworks.repo.model.dbo.feature.FeatureStatusDao;
 import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
-import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.helper.MultipartUploadDBOHelper;
@@ -35,24 +33,19 @@ public class MultipartCleanupWorkerIntegrationTest {
 
 	@Autowired
 	private MultipartUploadDAO multipartUploadDao;
-	
-	@Autowired
-	private FeatureStatusDao featureStatusDao;
-	
+		
 	@Autowired
 	private MultipartUploadDBOHelper helper;
 	
 	@BeforeEach
 	public void before() {
 		multipartUploadDao.truncateAll();
-		featureStatusDao.setFeatureEnabled(Feature.MULTIPART_AUTO_CLEANUP, true);
 	}
 	
 	
 	@AfterEach
 	public void after() {
 		multipartUploadDao.truncateAll();
-		featureStatusDao.clear();
 	}
 	
 	@Test
