@@ -255,7 +255,8 @@ public class ControllerToControllerModelTranslator {
 					.withOperation(((RequestMappingModel) annotationToModel.get(RequestMapping.class)).getOperation())
 					.withParameters(getParameters(method.getParameters(), parameterToDescription, schemaMap))
 					.withRequestBody(requestBody.isEmpty() ? null : requestBody.get())
-					.withResponse(getResponseModel(method, docCommentTree.getBlockTags(), annotationToModel, schemaMap));
+					.withResponse(getResponseModel(method, docCommentTree.getBlockTags(), annotationToModel, schemaMap))
+					.withAuthenticationRequired(methodHasUserIdParameter(method));
 			methods.add(methodModel);
 		}
 		return methods;
@@ -952,5 +953,37 @@ public class ControllerToControllerModelTranslator {
 			return Optional.empty();
 		}
 		return Optional.of(fullBody.toString());
+	}
+
+
+	/**
+	 * Determines if a method takes in parameter userId
+	 *
+	 * @param method the method
+	 *
+	 * @return whether the method contains parameter userId
+	 */
+	Boolean methodHasUserIdParameter(ExecutableElement method) {
+		ValidateArgument.required(method, "method");
+		for (VariableElement param : method.getParameters()) {
+			TypeMirror parameterType = param.asType();
+			if (PARAMETERS_NOT_REQUIRED_TO_BE_TRANSLATED.contains(parameterType.toString())) {
+				continue;
+			}
+
+			ParameterLocation paramLocation = getParameterLocation(param);
+			AnnotationMirror paramAnnotation = getParameterAnnotation(param);
+			String paramName = param.getSimpleName().toString();
+			for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> elements: paramAnnotation.getElementValues().entrySet()) {
+				if ("value".equals(elements.getKey().getSimpleName().toString())) {
+					paramName = elements.getValue().getValue().toString();
+				}
+			}
+
+			if (ParameterLocation.query.equals(paramLocation) && "userId".equals(paramName)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

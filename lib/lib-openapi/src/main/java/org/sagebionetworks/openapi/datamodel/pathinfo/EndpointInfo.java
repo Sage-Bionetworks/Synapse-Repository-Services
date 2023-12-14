@@ -1,5 +1,6 @@
 package org.sagebionetworks.openapi.datamodel.pathinfo;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -20,6 +21,7 @@ public class EndpointInfo implements JSONEntity {
 	private List<ParameterInfo> parameters;
 	private RequestBodyInfo requestBody;
 	private Map<String, ResponseInfo> responses;
+	private Map<String, String[]> securityRequirements;
 	
 	public List<String> getTags() {
 		return tags;
@@ -64,6 +66,15 @@ public class EndpointInfo implements JSONEntity {
 		this.responses = responses;
 		return this;
 	}
+
+	public Map<String, String[]> getSecurityRequirements() {
+		return securityRequirements;
+	}
+
+	public EndpointInfo withSecurityRequirements(Map<String, String[]> securityRequirements) {
+		this.securityRequirements = securityRequirements;
+		return this;
+	}
 	
 	@Override
 	public int hashCode() {
@@ -81,13 +92,13 @@ public class EndpointInfo implements JSONEntity {
 		EndpointInfo other = (EndpointInfo) obj;
 		return Objects.equals(operationId, other.operationId) && Objects.equals(parameters, other.parameters)
 				&& Objects.equals(requestBody, other.requestBody) && Objects.equals(responses, other.responses)
-				&& Objects.equals(tags, other.tags);
+				&& Objects.equals(tags, other.tags) && securityRequirementsAreEqual(securityRequirements, other.securityRequirements);
 	}
 	
 	@Override
 	public String toString() {
 		return "EndpointInfo [tags=" + tags + ", operationId=" + operationId + ", parameters=" + parameters
-				+ ", requestBody=" + requestBody + ", responses=" + responses + "]";
+				+ ", requestBody=" + requestBody + ", responses=" + responses + ", securityRequirements=" + securityRequirements + "]";
 	}
 	
 	@Override
@@ -123,6 +134,27 @@ public class EndpointInfo implements JSONEntity {
 		if (this.requestBody != null) {
 			writeTo.put("requestBody", requestBody.writeToJSONObject(writeTo.createNew()));
 		}
+
+		if (this.securityRequirements != null && !this.securityRequirements.isEmpty()) {
+			JSONArrayAdapter securityArrayAdapter = writeTo.createNewArray();
+
+			int i = 0;
+			for (Map.Entry<String, String[]> requirement: this.securityRequirements.entrySet()) {
+				JSONArrayAdapter requirementArrayAdapter = writeTo.createNewArray();
+				JSONObjectAdapter adapter = writeTo.createNew();
+
+				String[] scopes = requirement.getValue();
+				for (int j = 0; j < requirement.getValue().length; j++) {
+					requirementArrayAdapter.put(j, scopes[j]);
+				}
+
+				adapter.put(requirement.getKey(), requirementArrayAdapter);
+				securityArrayAdapter.put(i, adapter);
+				i++;
+			}
+
+			writeTo.put("security",securityArrayAdapter);
+		}
 		
 		JSONObjectAdapter responses = writeTo.createNew();
 		populateResponses(responses);
@@ -148,5 +180,29 @@ public class EndpointInfo implements JSONEntity {
 		for (int i = 0; i < this.tags.size(); i++) {
 			tags.put(i, this.tags.get(i));
 		}
+	}
+
+	boolean securityRequirementsAreEqual(Map<String, String[]> map1, Map<String, String[]> map2) {
+		// Check if both maps are null or have different sizes
+		if (map1 == null && map2 == null) {
+			return true;
+		} else if (map1 == null || map2 == null || map1.size() != map2.size()) {
+			return false;
+		}
+
+		// Iterate through the entries of the first map
+		for (Map.Entry<String, String[]> entry : map1.entrySet()) {
+			String key = entry.getKey();
+			String[] value1 = entry.getValue();
+			String[] value2 = map2.get(key);
+
+			// Check if the key is present in the second map and the values are equal
+			if (value2 == null || !Arrays.equals(value1, value2)) {
+				return false;
+			}
+		}
+
+		// Maps are equal
+		return true;
 	}
 }

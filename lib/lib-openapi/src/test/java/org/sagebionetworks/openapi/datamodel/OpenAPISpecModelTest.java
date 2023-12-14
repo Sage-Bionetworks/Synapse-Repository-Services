@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.openapi.datamodel.pathinfo.EndpointInfo;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -56,17 +58,22 @@ public class OpenAPISpecModelTest {
 		ApiInfo apiInfo = Mockito.mock(ApiInfo.class);
 		JSONObjectAdapterImpl apiInfoResult = new JSONObjectAdapterImpl();
 		Mockito.doReturn(apiInfoResult).when(apiInfo).writeToJSONObject(any());
-		
-		Map<String, Map<String, JsonSchema>> components = new LinkedHashMap<>();
-		components.put("COMPONENT_TYPE_1", new LinkedHashMap<>());
+
+		JsonSchema jsonSchema = new JsonSchema();
+		jsonSchema.setType(Type.integer);
+		Map<String, JsonSchema> schemas = new LinkedHashMap<>();
+		schemas.put("COMPONENT_TYPE_1", jsonSchema);
+		Map<String, SecurityScheme> securitySchemes = new HashMap<>();
+		securitySchemes.put("bearerAuth", new SecurityScheme().withType("http").withScheme("bearer"));
+		Components components = new Components().withSchemas(schemas).withSecuritySchemes(securitySchemes);
+
 
 		OpenAPISpecModel model = Mockito.spy(new OpenAPISpecModel().withOpenapi("V3").withInfo(apiInfo).withPaths(paths)
 				.withServers(new ArrayList<>()).withTags(new ArrayList<>()).withComponents(components));
 		Mockito.doNothing().when(model).populateServers(any());
 		Mockito.doNothing().when(model).populateTags(any());
 		Mockito.doNothing().when(model).populatePaths(any());
-		Mockito.doNothing().when(model).populateComponents(any());
-		
+
 		// call under test
 		model.writeToJSONObject(writeTo);
 		Mockito.verify(writeTo).put("openapi", "V3");
@@ -78,54 +85,7 @@ public class OpenAPISpecModelTest {
 		Mockito.verify(writeTo).put("tags", tagsImpl);
 		Mockito.verify(model).populatePaths(pathsImpl);
 		Mockito.verify(writeTo).put("paths", pathsImpl);
-		Mockito.verify(model).populateComponents(componentsImpl);
 		Mockito.verify(writeTo).put("components", componentsImpl);
-	}
-
-	@Test
-	public void testPopulateComponents() throws JSONObjectAdapterException {
-		JSONObjectAdapter componentsAdapter = Mockito.mock(JSONObjectAdapter.class);
-		JSONObjectAdapterImpl componentsImpl1 = new JSONObjectAdapterImpl();
-		JSONObjectAdapterImpl componentsImpl2 = new JSONObjectAdapterImpl();
-		Mockito.doReturn(componentsImpl1, componentsImpl2).when(componentsAdapter).createNew();
-		Map<String, Map<String, JsonSchema>> components = new LinkedHashMap<>();
-		Map<String, JsonSchema> component1 = new LinkedHashMap<>();
-		Map<String, JsonSchema> component2 = new LinkedHashMap<>();
-		components.put("COMPONENT_TYPE_1", component1);
-		components.put("COMPONENT_TYPE_2", component2);
-
-		OpenAPISpecModel model = Mockito.spy(new OpenAPISpecModel().withComponents(components));
-		// call under test
-		model.populateComponents(componentsAdapter);
-		Mockito.verify(componentsAdapter).put("COMPONENT_TYPE_1", componentsImpl1);
-		Mockito.verify(componentsAdapter).put("COMPONENT_TYPE_2", componentsImpl2);
-		Mockito.verify(model).populateCurrentComponent(componentsImpl1, "COMPONENT_TYPE_1");
-		Mockito.verify(model).populateCurrentComponent(componentsImpl2, "COMPONENT_TYPE_2");
-	}
-
-	@Test
-	public void testPopulateCurrentComponent() throws JSONObjectAdapterException {
-		JSONObjectAdapter currentComponentAdapter = Mockito.mock(JSONObjectAdapter.class);
-		JSONObjectAdapterImpl currentComponentAdapterImpl = new JSONObjectAdapterImpl();
-		Mockito.doReturn(currentComponentAdapterImpl).when(currentComponentAdapter).createNew();
-
-		Map<String, Map<String, JsonSchema>> components = new LinkedHashMap<>();
-		components.put("SCHEMA", new LinkedHashMap<>());
-		JsonSchema schema1 = Mockito.mock(JsonSchema.class);
-		JsonSchema schema2 = Mockito.mock(JsonSchema.class);
-		JSONObjectAdapterImpl schema1Impl = new JSONObjectAdapterImpl();
-		JSONObjectAdapterImpl schema2Impl = new JSONObjectAdapterImpl();
-		Mockito.doReturn(schema1Impl).when(schema1).writeToJSONObject(any());
-		Mockito.doReturn(schema2Impl).when(schema2).writeToJSONObject(any());
-		components.get("SCHEMA").put("COMPONENT_1", schema1);
-		components.get("SCHEMA").put("COMPONENT_2", schema2);
-
-		// call under test
-		new OpenAPISpecModel().withComponents(components).populateCurrentComponent(currentComponentAdapter, "SCHEMA");
-		Mockito.verify(currentComponentAdapter).put("COMPONENT_1", schema1Impl);
-		Mockito.verify(currentComponentAdapter).put("COMPONENT_2", schema2Impl);
-		Mockito.verify(schema1).writeToJSONObject(currentComponentAdapterImpl);
-		Mockito.verify(schema2).writeToJSONObject(currentComponentAdapterImpl);
 	}
 
 	@Test
@@ -233,7 +193,6 @@ public class OpenAPISpecModelTest {
 		Mockito.verify(adapter, Mockito.times(0)).put(eq("servers"), any(JSONArrayAdapter.class));
 		Mockito.verify(model, Mockito.times(0)).populateTags(any());
 		Mockito.verify(adapter, Mockito.times(0)).put(eq("tags"), any(JSONArrayAdapter.class));
-		Mockito.verify(model, Mockito.times(0)).populateComponents(any());
 		Mockito.verify(adapter, Mockito.times(0)).put(eq("components"), any(JSONObjectAdapter.class));
 	}
 

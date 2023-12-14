@@ -3,6 +3,7 @@ package org.sagebionetworks.translator;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -27,7 +28,9 @@ import org.sagebionetworks.controller.model.ParameterModel;
 import org.sagebionetworks.controller.model.RequestBodyModel;
 import org.sagebionetworks.controller.model.ResponseModel;
 import org.sagebionetworks.openapi.datamodel.ApiInfo;
+import org.sagebionetworks.openapi.datamodel.Components;
 import org.sagebionetworks.openapi.datamodel.OpenAPISpecModel;
+import org.sagebionetworks.openapi.datamodel.SecurityScheme;
 import org.sagebionetworks.openapi.datamodel.ServerInfo;
 import org.sagebionetworks.openapi.datamodel.TagInfo;
 import org.sagebionetworks.openapi.datamodel.pathinfo.EndpointInfo;
@@ -65,7 +68,11 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 				.withMethods(methods).withDescription(DESCRIPTION);
 		ApiInfo apiInfo = new ApiInfo();
 		List<ServerInfo> servers = new ArrayList<>();
-		Map<String, Map<String, JsonSchema>> components = new LinkedHashMap<>();
+		Map<String, SecurityScheme> securitySchemes = new HashMap<>();
+		securitySchemes.put("bearerAuth", new SecurityScheme().withType("http").withScheme("bearer"));
+		Components components = new Components()
+				.withSchemas(schemaMap)
+				.withSecuritySchemes(securitySchemes);
 
 		doNothing().when(translator).insertPaths(any(List.class), any(String.class), any(String.class),
 				any(Map.class));
@@ -97,22 +104,23 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 	
 	@Test
 	public void testGetComponents() {
-		Map<String, Map<String, JsonSchema>> expectedComponents = new LinkedHashMap<>();
-		expectedComponents.put("schemas", schemaMap);
+		Map<String, SecurityScheme> securitySchemes = new HashMap<>();
+		securitySchemes.put("bearerAuth", new SecurityScheme().withType("http").withScheme("bearer"));
+
+		Components expectedComponents = new Components().withSchemas(schemaMap).withSecuritySchemes(securitySchemes);
 		
 		// call under test
 		assertEquals(expectedComponents, translator.getComponents());
 	}
 	@Test
 	public void testGetApiInfo() {
-		ApiInfo expectedApiInfo = new ApiInfo().withTitle("Sample OpenAPI definition").withVersion("v1");
+		ApiInfo expectedApiInfo = new ApiInfo().withTitle("Synapse REST API").withVersion("v1");
 		assertEquals(expectedApiInfo, translator.getApiInfo());
 	}
 
 	@Test
 	public void testGetServers() {
-		ServerInfo server = new ServerInfo().withUrl("https://repo-prod.prod.sagebase.org")
-				.withDescription("This is the generated server URL");
+		ServerInfo server = new ServerInfo().withUrl("https://repo-prod.prod.sagebase.org");
 		assertEquals(new ArrayList<>(Arrays.asList(server)), translator.getServers());
 	}
 
@@ -293,7 +301,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		ResponseModel responses = new ResponseModel();
 		List<String> tags = new ArrayList<>(Arrays.asList(displayName));
 		MethodModel method = new MethodModel().withName(methodName).withRequestBody(requestBodyModel)
-				.withParameters(parameters).withResponse(responses).withOperation(Operation.get);
+				.withParameters(parameters).withResponse(responses).withOperation(Operation.get).withAuthenticationRequired(true);
 
 		List<ParameterInfo> expectedParameters = new ArrayList<>();
 		RequestBodyInfo requestBodyInfo = new RequestBodyInfo();
@@ -302,8 +310,11 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		doReturn(requestBodyInfo).when(translator).getRequestBodyInfo(any(RequestBodyModel.class));
 		doReturn(respones).when(translator).getResponses(any(ResponseModel.class));
 
+		Map<String, String[]> securityRequirements = new HashMap<>();
+		securityRequirements.put("bearerAuth", new String[]{});
+
 		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags).withOperationId(String.format("%s-%s", Operation.get.name(), fullPath))
-				.withParameters(expectedParameters).withRequestBody(requestBodyInfo).withResponses(respones);
+				.withParameters(expectedParameters).withRequestBody(requestBodyInfo).withResponses(respones).withSecurityRequirements(securityRequirements);
 
 		// call under test.
 		assertEquals(expectedEndpointInfo, translator.getEndpointInfo(method, displayName, fullPath));
@@ -322,7 +333,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		ResponseModel responses = new ResponseModel();
 		List<String> tags = new ArrayList<>(Arrays.asList(displayName));
 		MethodModel method = new MethodModel().withName(methodName).withRequestBody(requestBodyModel)
-				.withParameters(parameters).withResponse(responses).withOperation(Operation.get);
+				.withParameters(parameters).withResponse(responses).withOperation(Operation.get).withAuthenticationRequired(false);
 
 		List<ParameterInfo> expectedParameters = new ArrayList<>();
 		Map<String, ResponseInfo> respones = new LinkedHashMap<>();
@@ -330,7 +341,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		doReturn(respones).when(translator).getResponses(any(ResponseModel.class));
 
 		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags).withOperationId(String.format("%s-%s", Operation.get.name(), fullPath))
-				.withParameters(expectedParameters).withRequestBody(null).withResponses(respones);
+				.withParameters(expectedParameters).withRequestBody(null).withResponses(respones).withSecurityRequirements(null);
 
 		// call under test.
 		assertEquals(expectedEndpointInfo, translator.getEndpointInfo(method, displayName, fullPath));
@@ -520,5 +531,25 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 			translator.getReferenceSchema(null);
 		});
 		assertEquals("id is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetSecuritySchemes() {
+		Map<String, SecurityScheme> expectedSecuritySchemes = new HashMap<>();
+		SecurityScheme bearerAuth = new SecurityScheme()
+				.withType("http")
+				.withScheme("bearer");
+		expectedSecuritySchemes.put("bearerAuth", bearerAuth);
+
+		assertEquals(expectedSecuritySchemes, translator.getSecuritySchemes());
+	}
+
+	@Test
+	public void testGetSecurityRequirements() {
+		Map<String, String[]> expectedRequirements = new HashMap<>();
+		expectedRequirements.put("bearerAuth", new String[]{});
+
+		assertEquals(1, translator.getSecurityRequirements().size());
+		assertArrayEquals(expectedRequirements.get("bearerAuth"), translator.getSecurityRequirements().get("bearerAuth"));
 	}
 }
