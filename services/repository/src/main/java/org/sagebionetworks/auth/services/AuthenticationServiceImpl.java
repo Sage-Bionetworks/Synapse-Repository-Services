@@ -181,11 +181,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest) {
-		if (AuthorizationUtils.isUserAnonymous(userId)) throw new UnauthorizedException("User ID is required.");
+		
+		if (AuthorizationUtils.isUserAnonymous(userId)) {
+			throw new UnauthorizedException("User ID is required.");
+		}
+		
 		AliasAndType providersUserId = oauthManager.retrieveProvidersId(
 				validationRequest.getProvider(), 
 				validationRequest.getAuthenticationCode(),
 				validationRequest.getRedirectUrl());
+		
 		// now bind the ID to the user account
 		return userManager.bindAlias(providersUserId.getAlias(), providersUserId.getType(), userId);
 	}

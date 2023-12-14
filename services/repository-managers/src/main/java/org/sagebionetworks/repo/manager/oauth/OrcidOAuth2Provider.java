@@ -9,18 +9,13 @@ import org.scribe.exceptions.OAuthException;
 import org.scribe.model.OAuthConfig;
 import org.scribe.model.Token;
 import org.scribe.model.Verifier;
-import org.scribe.oauth.OAuthService;
 
 public class OrcidOAuth2Provider implements OAuthProviderBinding {
 
 	private static final String AUTH_URL_DEFAULT_PARAMS = "?response_type=code&client_id=%s&redirect_uri=%s";
-	
-    /*
-	 * "/authenticate scope indicates to ORCID that we just want to request the user's ORCID ID
-	 * after authentication.
-	 */
-	// reference http://members.orcid.org./api/orcid-scopes
-	private static final String SCOPE_AUTHENTICATE = "/authenticate"; 
+
+	// See https://info.orcid.org/ufaqs/what-is-an-oauth-scope-and-which-scopes-does-orcid-support/
+	private static final String SCOPE_AUTHENTICATE = "openid"; 
 	
 	public static final String ORCID = "orcid";
 
@@ -28,18 +23,20 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 	private String apiSecret;
 	private String authUrl;
 	private String tokenUrl;
+	private String userInfoUrl;
 	
 	public OrcidOAuth2Provider(String apiKey, String apiSecret, OIDCConfig oidcConfig) {
 		this.apiKey = apiKey;
 		this.apiSecret = apiSecret;
 		this.authUrl = oidcConfig.getAuthorizationEndpoint() + AUTH_URL_DEFAULT_PARAMS;
 		this.tokenUrl = oidcConfig.getTokenEndpoint();
+		this.userInfoUrl = oidcConfig.getUserInfoEndpoint();
 	}
 
 
 	@Override
 	public String getAuthorizationUrl(String redirectUrl) {
-		return  new OAuth2Api(authUrl, tokenUrl).
+		return  new OpenIdApi(authUrl, tokenUrl, userInfoUrl).
 				getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, SCOPE_AUTHENTICATE, null));
 	}
 	
@@ -53,9 +50,8 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 	public AliasAndType retrieveProvidersId(String authorizationCode, String redirectUrl) {
 		try{
 			// Note:  We don't need to use the redirectUrl.
-			OAuthService service = (new OAuth2Api(authUrl, tokenUrl)).
+			OpenIdService service = (new OpenIdApi(authUrl, tokenUrl, userInfoUrl)).
 					createService(new OAuthConfig(apiKey, apiSecret, null, null, null, null));
-
 			/*
 			 * Get an access token from ORCID using the provided authorization code.
 			 * This token is used to sign request for user's information.
@@ -87,12 +83,22 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 		}
 	}
 
-
 	@Override
 	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl) {
-		throw new IllegalArgumentException("This is not supported for ORCID.");
-	}
+		if (redirectUrl == null) {
+			throw new IllegalArgumentException("RedirectUrl cannot be null");
+		}
+		try {
+			OpenIdService service = (new OpenIdApi(authUrl, tokenUrl, userInfoUrl)).
+					createService(new OAuthConfig(apiKey, apiSecret, null, null, null, null));
 
+			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
+
+			return service.getUserInfo(accessToken);
+		} catch(OAuthException e) {
+			throw new UnauthorizedException(e);
+		}
+	}
 
 	@Override
 	public AliasType getAliasType() {

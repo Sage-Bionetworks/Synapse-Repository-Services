@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.scribe.builder.api.DefaultApi20;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.extractors.AccessTokenExtractor;
@@ -13,7 +15,6 @@ import org.scribe.model.Token;
 import org.scribe.model.Verb;
 import org.scribe.model.Verifier;
 import org.scribe.oauth.OAuth20ServiceImpl;
-import org.scribe.oauth.OAuthService;
 import org.scribe.utils.OAuthEncoder;
 import org.scribe.utils.Preconditions;
 
@@ -26,16 +27,24 @@ import org.scribe.utils.Preconditions;
  * 
  * 
  */
-public class OAuth2Api extends DefaultApi20 {
+public class OpenIdApi extends DefaultApi20 {
 	private static String ACCESS_TOKEN_TAG = "access_token";
 	private static String ERROR_TAG = "error";
 	
+	public static final String EMAIL = "email";
+	public static final String EMAIL_VERIFIED = "email_verified";
+	public static final String GIVEN_NAME = "given_name";
+	public static final String FAMILY_NAME = "family_name";	
+	public static final String SUB = "sub";
+	
 	private String authorizationEndpoint;
 	private String accessTokenEndpoint;
+	private String userInfoEndpoint;
 	
-	public OAuth2Api(String authorizationEndpoint, String accessTokenEndpoint) {
-		this.authorizationEndpoint=authorizationEndpoint;
-		this.accessTokenEndpoint=accessTokenEndpoint;		
+	public OpenIdApi(String authorizationEndpoint, String accessTokenEndpoint, String userInfoEndpoint) {
+		this.authorizationEndpoint = authorizationEndpoint;
+		this.accessTokenEndpoint = accessTokenEndpoint;
+		this.userInfoEndpoint = userInfoEndpoint;
 	}
 	
     @Override
@@ -87,18 +96,42 @@ public class OAuth2Api extends DefaultApi20 {
     }
     
     @Override
-    public OAuthService createService(OAuthConfig config) {
-        return new BasicOAuth2Service(this, config);
+    public OpenIdService createService(OAuthConfig config) {
+        return new BasicOpenIdService(this, config);
     }
     
-    private class BasicOAuth2Service extends OAuth20ServiceImpl {
+    static ProvidedUserInfo parseUserInfo(String body) {
+    	try {
+			JSONObject json = new JSONObject(body);
+
+			ProvidedUserInfo info = new ProvidedUserInfo();
+			if (json.has(FAMILY_NAME)) {
+				info.setLastName(json.getString(FAMILY_NAME));
+			}
+			if (json.has(GIVEN_NAME)) {
+				info.setFirstName(json.getString(GIVEN_NAME));
+			}
+			if (json.has(SUB)) {
+				info.setSubject(json.getString(SUB));
+			}
+			if (json.has(EMAIL_VERIFIED) && json.getBoolean(EMAIL_VERIFIED) && json.has(EMAIL)) {
+				info.setUsersVerifiedEmail(json.getString(EMAIL));
+			}
+			return info;
+		} catch (JSONException e) {
+			throw new UnauthorizedException(e);
+		}
+    }
+    
+    private class BasicOpenIdService extends OAuth20ServiceImpl implements OpenIdService {
 
         private static final String GRANT_TYPE_AUTHORIZATION_CODE = "authorization_code";
         private static final String GRANT_TYPE = "grant_type";
+
         private DefaultApi20 api;
         private OAuthConfig config;
 
-        public BasicOAuth2Service(DefaultApi20 api, OAuthConfig config) {
+        public BasicOpenIdService(DefaultApi20 api, OAuthConfig config) {
             super(api, config);
             this.api = api;
             this.config = config;
@@ -126,6 +159,17 @@ public class OAuth2Api extends DefaultApi20 {
             Response response = request.send();
             return api.getAccessTokenExtractor().extract(response.getBody());
         }
+
+		@Override
+		public ProvidedUserInfo getUserInfo(Token accessToken) {
+			OAuthRequest request = new OAuthRequest(Verb.GET, userInfoEndpoint);
+			signRequest(accessToken, request);
+			Response response = request.send();
+			if (!response.isSuccessful()) {
+				throw new UnauthorizedException("Failed to get user's information from provider (Code: " + response.getCode() + ", Message: " + response.getMessage() + ")");
+			}
+			return parseUserInfo(response.getBody());
+		}
     }
 
 }
