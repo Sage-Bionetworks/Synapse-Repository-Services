@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.sagebionetworks.controller.annotations.model.RequiredScopeModel;
 import org.sagebionetworks.controller.model.ControllerModel;
 import org.sagebionetworks.controller.model.MethodModel;
 import org.sagebionetworks.controller.model.ParameterModel;
@@ -170,12 +169,11 @@ public class ControllerModelsToOpenAPIModelTranslator {
 		ValidateArgument.required(fullPath, "fullPath");
 		List<String> tags = new ArrayList<>(Arrays.asList(displayName));
 		String operationId = String.format("%s-%s", method.getOperation().toString(), fullPath);
-		RequiredScopeModel requiredScopeModel = method.getRequiredScope();
 		EndpointInfo endpointInfo = new EndpointInfo().withTags(tags).withOperationId(operationId)
 				.withParameters(getParameters(method.getParameters()))
 				.withRequestBody(method.getRequestBody() == null ? null : getRequestBodyInfo(method.getRequestBody()))
 				.withResponses(getResponses(method.getResponse()))
-				.withSecurityRequirements(requiredScopeModel == null ? null : getSecurityRequirements());
+				.withSecurityRequirements(method.getAuthenticationRequired() ? getSecurityRequirements() : null);
 		return endpointInfo;
 	}
 

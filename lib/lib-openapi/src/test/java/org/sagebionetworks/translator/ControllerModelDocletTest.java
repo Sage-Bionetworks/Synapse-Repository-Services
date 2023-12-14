@@ -668,34 +668,6 @@ public class ControllerModelDocletTest {
 	}
 
 	@Test
-	public void testGenericPaginatedResultsClassWithStringArgument() {
-		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
-		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/paginatedresultsofstring");
-		JSONObject getObj = pathObj.getJSONObject("get");
-
-		JSONObject responsesObj = getObj.getJSONObject("responses");
-		JSONObject okObj = responsesObj.getJSONObject("200");
-		JSONObject contentObj = okObj.getJSONObject("content");
-		JSONObject mediaObj = contentObj.getJSONObject("application/json");
-		JSONObject responseSchemaObj = mediaObj.getJSONObject("schema");
-
-		assertEquals("#/components/schemas/PaginatedResultsOfString", responseSchemaObj.getString("$ref"));
-
-		JSONObject componentsObj = generatedOpenAPISpec.getJSONObject("components");
-		JSONObject schemasObj = componentsObj.getJSONObject("schemas");
-		JSONObject schemaObj = schemasObj.getJSONObject("PaginatedResultsOfString");
-		JSONObject propertiesObj = schemaObj.getJSONObject("properties");
-		JSONObject resultsObj = propertiesObj.getJSONObject("results");
-		JSONObject itemsObj = resultsObj.getJSONObject("items");
-		JSONObject numberOfResultsObj = propertiesObj.getJSONObject("totalNumberOfResults");
-
-		assertEquals("object", schemaObj.getString("type"));
-		assertEquals("array", resultsObj.getString("type"));
-		assertEquals("string", itemsObj.getString("type"));
-		assertEquals("integer", numberOfResultsObj.getString("type"));
-	}
-
-	@Test
 	public void testGenericListWrapperClassWithCustomClassArgument() {
 		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
 		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/listwrapperofclass");
@@ -726,39 +698,6 @@ public class ControllerModelDocletTest {
 		assertEquals("object", schemaObj.getString("type"));
 		assertEquals("array", listObj.getString("type"));
 		assertEquals("#/components/schemas/org.sagebionetworks.openapi.pet.Cat", itemsObj.getString("$ref"));
-	}
-
-	@Test
-	public void testGenericListWrapperClassWithStringArgument() {
-		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
-		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/listwrapperofstring");
-		JSONObject getObj = pathObj.getJSONObject("get");
-
-		JSONObject responsesObj = getObj.getJSONObject("responses");
-		JSONObject okObj = responsesObj.getJSONObject("200");
-		JSONObject contentObj = okObj.getJSONObject("content");
-		JSONObject mediaObj = contentObj.getJSONObject("application/json");
-		JSONObject responseSchemaObj = mediaObj.getJSONObject("schema");
-
-		assertEquals("#/components/schemas/ListWrapperOfString", responseSchemaObj.getString("$ref"));
-
-		JSONObject requestBodyObj = getObj.getJSONObject("requestBody");
-		JSONObject requestBodyContentObj = requestBodyObj.getJSONObject("content");
-		JSONObject requestBodyMediaObj = requestBodyContentObj.getJSONObject("application/json");
-		JSONObject responseBodySchemaObj = requestBodyMediaObj.getJSONObject("schema");
-
-		assertEquals("#/components/schemas/ListWrapperOfString", responseBodySchemaObj.getString("$ref"));
-
-		JSONObject componentsObj = generatedOpenAPISpec.getJSONObject("components");
-		JSONObject schemasObj = componentsObj.getJSONObject("schemas");
-		JSONObject schemaObj = schemasObj.getJSONObject("ListWrapperOfString");
-		JSONObject propertiesObj = schemaObj.getJSONObject("properties");
-		JSONObject listObj = propertiesObj.getJSONObject("list");
-		JSONObject itemsObj = listObj.getJSONObject("items");
-
-		assertEquals("object", schemaObj.getString("type"));
-		assertEquals("array", listObj.getString("type"));
-		assertEquals("string", itemsObj.getString("type"));
 	}
 
 	@Test
@@ -885,5 +824,13 @@ public class ControllerModelDocletTest {
 
 		assertEquals("http", bearerAuthObj.getString("type"));
 		assertEquals("bearer", bearerAuthObj.getString("scheme"));
+	}
+
+	@Test
+	public void testNoAuthorization() {
+		JSONObject pathsObj = generatedOpenAPISpec.getJSONObject("paths");
+		JSONObject pathObj = pathsObj.getJSONObject("/repo/v1/complex-pet/noauthorization");
+		JSONObject getObj = pathObj.getJSONObject("get");
+		assertTrue(pathObj.isNull("security"));
 	}
 }

@@ -1,6 +1,5 @@
 package org.sagebionetworks.controller.model;
 
-import org.sagebionetworks.controller.annotations.model.RequiredScopeModel;
 import java.util.List;
 import java.util.Objects;
 
@@ -17,7 +16,7 @@ public class MethodModel {
 	private List<ParameterModel> parameters; // List of the parameters accepted by the method.
 	private RequestBodyModel requestBody;
 	private ResponseModel response;
-	private RequiredScopeModel requiredScope;
+	private Boolean authenticationRequired;
 	
 	public String getPath() {
 		return path;
@@ -82,18 +81,18 @@ public class MethodModel {
 		return this;
 	}
 
-	public RequiredScopeModel getRequiredScope() {
-		return requiredScope;
+	public Boolean getAuthenticationRequired() {
+		return authenticationRequired;
 	}
 
-	public MethodModel withRequiredScope(RequiredScopeModel requiredScope) {
-		this.requiredScope = requiredScope;
+	public MethodModel withAuthenticationRequired(Boolean authenticationRequired) {
+		this.authenticationRequired = authenticationRequired;
 		return this;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(name, operation, parameters, path, requestBody, response);
+		return Objects.hash(name, operation, parameters, path, requestBody, response, authenticationRequired);
 	}
 	
 	@Override
@@ -107,12 +106,13 @@ public class MethodModel {
 		MethodModel other = (MethodModel) obj;
 		return Objects.equals(name, other.name) && operation == other.operation
 				&& Objects.equals(parameters, other.parameters) && Objects.equals(path, other.path)
-				&& Objects.equals(requestBody, other.requestBody) && Objects.equals(response, other.response);
+				&& Objects.equals(requestBody, other.requestBody) && Objects.equals(response, other.response)
+				&& Objects.equals(authenticationRequired, other.authenticationRequired);
 	}
 
 	@Override
 	public String toString() {
 		return "MethodModel [path=" + path + ", name=" + name + ", operation=" + operation + ", parameters="
-				+ parameters + ", requestBody=" + requestBody + ", response=" + response + "]";
+				+ parameters + ", requestBody=" + requestBody + ", response=" + response + ", authenticationRequired=" + authenticationRequired + "]";
 	}
 }

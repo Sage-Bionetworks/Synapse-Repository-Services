@@ -50,7 +50,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.controller.annotations.model.ControllerInfoModel;
 import org.sagebionetworks.controller.annotations.model.RequestMappingModel;
-import org.sagebionetworks.controller.annotations.model.RequiredScopeModel;
 import org.sagebionetworks.controller.annotations.model.ResponseStatusModel;
 import org.sagebionetworks.controller.model.ControllerModel;
 import org.sagebionetworks.controller.model.MethodModel;
@@ -109,6 +108,8 @@ public class ControllerToControllerModelTranslatorTest {
 	TypeElement mockTypeElement;
 	@Mock
 	AnnotationMirror mockAnnotationMirror;
+	@Mock
+	ExecutableElement mockExecutableElement;
 
 	private ControllerToControllerModelTranslator translator;
 
@@ -160,13 +161,10 @@ public class ControllerToControllerModelTranslatorTest {
 
 	private List<MethodModel> getExpectedMethods() {
 		List<MethodModel> expectedMethods = new ArrayList<>();
-		List<OAuthScope> requiredScope = new ArrayList<>();
-		requiredScope.add(OAuthScope.view);
-		requiredScope.add(OAuthScope.modify);
 		MethodModel expectedMethod = new MethodModel().withPath(METHOD_PATH).withDescription(METHOD_BEHAVIOR_COMMENT)
 				.withName(METHOD_NAME).withOperation(Operation.get).withParameters(getExpectedParameters())
 				.withRequestBody(getExpectedRequestBody()).withResponse(getExpectedResponseModel())
-				.withRequiredScope(new RequiredScopeModel().withOAuthScopes(requiredScope));
+				.withAuthenticationRequired(false);
 		expectedMethods.add(expectedMethod);
 		return expectedMethods;
 	}
@@ -546,7 +544,6 @@ public class ControllerToControllerModelTranslatorTest {
 		List<OAuthScope> requiredScope = new ArrayList<>();
 		requiredScope.add(OAuthScope.view);
 		requiredScope.add(OAuthScope.modify);
-		annotationToModel.put(RequiredScope.class, new RequiredScopeModel().withOAuthScopes(requiredScope));
 		doReturn(annotationToModel).when(translator).getAnnotationToModel(any(List.class));
 
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
@@ -628,7 +625,7 @@ public class ControllerToControllerModelTranslatorTest {
 		List<MethodModel> expectedMethods = new ArrayList<>();
 		MethodModel expectedMethod = new MethodModel().withPath(METHOD_PATH).withName(METHOD_NAME)
 				.withOperation(Operation.get).withParameters(getExpectedParameters())
-				.withResponse(getExpectedResponseModel());
+				.withResponse(getExpectedResponseModel()).withAuthenticationRequired(false);
 		expectedMethods.add(expectedMethod);
 
 		Reporter reporter = mock(Reporter.class);
@@ -1551,7 +1548,6 @@ public class ControllerToControllerModelTranslatorTest {
 		AnnotationMirror mockAnnoMirror = mock(AnnotationMirror.class);
 		methodAnnotations.add(mockAnnoMirror);
 		methodAnnotations.add(mockAnnoMirror);
-		methodAnnotations.add(mockAnnoMirror);
 
 		RequestMappingModel requestMapping = new RequestMappingModel().withOperation(Operation.get)
 				.withPath(METHOD_PATH);
@@ -1559,25 +1555,21 @@ public class ControllerToControllerModelTranslatorTest {
 		List<OAuthScope> requiredScope = new ArrayList<>();
 		requiredScope.add(OAuthScope.view);
 		requiredScope.add(OAuthScope.modify);
-		RequiredScopeModel requiredScopeModel = new RequiredScopeModel().withOAuthScopes(requiredScope);
 
 		Map<Class, Object> expectedAnnotationToModel = new LinkedHashMap<>();
 		expectedAnnotationToModel.put(RequestMapping.class, requestMapping);
 		expectedAnnotationToModel.put(ResponseStatus.class, responseStatus);
-		expectedAnnotationToModel.put(RequiredScope.class, requiredScopeModel);
 
 		doReturn(requestMapping).when(translator).getRequestMappingModel(any(AnnotationMirror.class));
 		doReturn(responseStatus).when(translator).getResponseStatusModel(any(AnnotationMirror.class));
-		doReturn(requiredScopeModel).when(translator).getRequiredScopeModel(any(AnnotationMirror.class));
-		doReturn("RequestMapping", "ResponseStatus", "RequiredScope").when(translator)
+		doReturn("RequestMapping", "ResponseStatus").when(translator)
 				.getSimpleAnnotationName(any(AnnotationMirror.class));
 
 		assertEquals(expectedAnnotationToModel, translator.getAnnotationToModel(methodAnnotations));
 
 		verify(translator).getRequestMappingModel (mockAnnoMirror);
 		verify(translator).getResponseStatusModel(mockAnnoMirror);
-		verify(translator).getRequiredScopeModel(mockAnnoMirror);
-		verify(translator, times(3)).getSimpleAnnotationName(mockAnnoMirror);
+		verify(translator, times(2)).getSimpleAnnotationName(mockAnnoMirror);
 	}
 
 	@Test
@@ -1656,28 +1648,59 @@ public class ControllerToControllerModelTranslatorTest {
 	}
 
 	@Test
-	public void testGetRequiredScopeModel() {
-		List<OAuthScope> requiredScope = new ArrayList<>();
-		requiredScope.add(OAuthScope.view);
-		requiredScope.add(OAuthScope.modify);
-		RequiredScopeModel expectedRequiredScopeModel = new RequiredScopeModel().withOAuthScopes(requiredScope);
-
-		Map<ExecutableElement, AnnotationValue> annoToElementValues = new HashMap<>();
-		doReturn(annoToElementValues).when(mockAnnotationMirror).getElementValues();
-		addAnnotationElementValues(annoToElementValues, "value", requiredScope);
+	public void testMethodContainsUserIdParameterWithUserIdAsParameter() {
+		doReturn(List.of(mockParameter)).when(mockExecutableElement).getParameters();
+		doReturn(mockParameterType).when(mockParameter).asType();
+		doReturn("long").when(mockParameterType).toString();
+		doReturn(ParameterLocation.query).when(translator).getParameterLocation(any(VariableElement.class));
+		doReturn(mockAnnotationMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
+		doReturn(mockName).when(mockParameter).getSimpleName();
+		doReturn("userId").when(mockName).toString();
+		Map<ExecutableElement, AnnotationValue> elementValues = new HashMap<>();
+		addAnnotationElementValues(elementValues, "value", "userId");
+		doReturn(elementValues).when(mockAnnotationMirror).getElementValues();
 
 		// call under test
-		assertEquals(expectedRequiredScopeModel, translator.getRequiredScopeModel(mockAnnotationMirror));
+		assertEquals(true, translator.methodHasUserIdParameter(mockExecutableElement));
 
-		verify(mockAnnotationMirror, times(2)).getElementValues();
+		verify(mockExecutableElement).getParameters();
+		verify(mockParameter).asType();
+		verify(translator).getParameterLocation(mockParameter);
+		verify(translator).getParameterAnnotation(mockParameter);
+		verify(mockParameter).getSimpleName();
+		verify(mockAnnotationMirror).getElementValues();
 	}
 
 	@Test
-	public void testGetRequiredScopeModelWithNullAnnotation() {
+	public void testMethodContainsUserIdParameterWithNoUserIdAsParameter() {
+		doReturn(List.of(mockParameter)).when(mockExecutableElement).getParameters();
+		doReturn(mockParameterType).when(mockParameter).asType();
+		doReturn("boolean").when(mockParameterType).toString();
+		doReturn(ParameterLocation.query).when(translator).getParameterLocation(any(VariableElement.class));
+		doReturn(mockAnnotationMirror).when(translator).getParameterAnnotation(any(VariableElement.class));
+		doReturn(mockName).when(mockParameter).getSimpleName();
+		doReturn("testparameter").when(mockName).toString();
+		Map<ExecutableElement, AnnotationValue> elementValues = new HashMap<>();
+		addAnnotationElementValues(elementValues, "value", "testparameter");
+		doReturn(elementValues).when(mockAnnotationMirror).getElementValues();
+
+		// call under test
+		assertEquals(false, translator.methodHasUserIdParameter(mockExecutableElement));
+
+		verify(mockExecutableElement).getParameters();
+		verify(mockParameter).asType();
+		verify(translator).getParameterLocation(mockParameter);
+		verify(translator).getParameterAnnotation(mockParameter);
+		verify(mockParameter).getSimpleName();
+		verify(mockAnnotationMirror).getElementValues();
+	}
+
+	@Test
+	public void testMethodContainsUserIdParameterWithNullMethod() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-			translator.getRequiredScopeModel(null);
+			translator.methodHasUserIdParameter(null);
 		});
-		assertEquals("Annotation is required.", exception.getMessage());
+		assertEquals("method is required.", exception.getMessage());
 	}
 
 	@Test

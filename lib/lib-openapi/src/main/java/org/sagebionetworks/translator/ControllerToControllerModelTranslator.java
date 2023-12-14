@@ -25,7 +25,6 @@ import javax.tools.Diagnostic.Kind;
 
 import org.sagebionetworks.controller.annotations.model.ControllerInfoModel;
 import org.sagebionetworks.controller.annotations.model.RequestMappingModel;
-import org.sagebionetworks.controller.annotations.model.RequiredScopeModel;
 import org.sagebionetworks.controller.annotations.model.ResponseStatusModel;
 import org.sagebionetworks.controller.model.ControllerModel;
 import org.sagebionetworks.controller.model.MethodModel;
@@ -35,9 +34,7 @@ import org.sagebionetworks.controller.model.ParameterModel;
 import org.sagebionetworks.controller.model.RequestBodyModel;
 import org.sagebionetworks.controller.model.ResponseModel;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
-import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.schema.Type;
-import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -249,12 +246,6 @@ public class ControllerToControllerModelTranslator {
 				throw new IllegalStateException("Method " + methodName + " missing RequestMapping annotation.");
 			}
 
-			RequiredScopeModel requiredScope = null;
-			if (annotationToModel.containsKey(RequiredScope.class)) {
-				System.out.println(annotationToModel);
-				 requiredScope = (RequiredScopeModel) annotationToModel.get(RequiredScope.class);
-			}
-
 			Optional<String> behaviorComment = getBehaviorComment(docCommentTree.getFullBody());
 			Optional<RequestBodyModel> requestBody = getRequestBody(method.getParameters(), parameterToDescription,
 					schemaMap);
@@ -265,7 +256,7 @@ public class ControllerToControllerModelTranslator {
 					.withParameters(getParameters(method.getParameters(), parameterToDescription, schemaMap))
 					.withRequestBody(requestBody.isEmpty() ? null : requestBody.get())
 					.withResponse(getResponseModel(method, docCommentTree.getBlockTags(), annotationToModel, schemaMap))
-					.withRequiredScope(requiredScope);
+					.withAuthenticationRequired(methodHasUserIdParameter(method));
 			methods.add(methodModel);
 		}
 		return methods;
@@ -681,8 +672,6 @@ public class ControllerToControllerModelTranslator {
 				annotationToModel.put(RequestMapping.class, getRequestMappingModel(annotation));
 			} else if (annotationName.equals("ResponseStatus")) {
 				annotationToModel.put(ResponseStatus.class, getResponseStatusModel(annotation));
-			} else if (annotationName.equals("RequiredScope")) {
-				annotationToModel.put(RequiredScope.class, getRequiredScopeModel(annotation));
 			}
 		}
 
@@ -732,28 +721,6 @@ public class ControllerToControllerModelTranslator {
 			}
 		}
 		return requestMapping;
-	}
-
-	/**
-	 * Constructs a model that represents a RequiredScope annotation.
-	 *
-	 * @param annotation the annotation being looked at
-	 * @return a model that represents a RequiredScope annotation.
-	 */
-	RequiredScopeModel getRequiredScopeModel(AnnotationMirror annotation) {
-		ValidateArgument.required(annotation, "Annotation");
-		RequiredScopeModel requiredScope = new RequiredScopeModel();
-		List<OAuthScope> oAuthScopes = new ArrayList<>();
-
-		for (ExecutableElement key : annotation.getElementValues().keySet()) {
-			String keyName = key.getSimpleName().toString();
-
-			if (keyName.equals("value")) {
-				List values = (List) annotation.getElementValues().get(key).getValue();
-				oAuthScopes.addAll(values);
-			}
-		}
-		return requiredScope.withOAuthScopes(oAuthScopes);
 	}
 
 	/**
@@ -986,5 +953,37 @@ public class ControllerToControllerModelTranslator {
 			return Optional.empty();
 		}
 		return Optional.of(fullBody.toString());
+	}
+
+
+	/**
+	 * Determines if a method takes in parameter userId
+	 *
+	 * @param method the method
+	 *
+	 * @return whether the method contains parameter userId
+	 */
+	Boolean methodHasUserIdParameter(ExecutableElement method) {
+		ValidateArgument.required(method, "method");
+		for (VariableElement param : method.getParameters()) {
+			TypeMirror parameterType = param.asType();
+			if (PARAMETERS_NOT_REQUIRED_TO_BE_TRANSLATED.contains(parameterType.toString())) {
+				continue;
+			}
+
+			ParameterLocation paramLocation = getParameterLocation(param);
+			AnnotationMirror paramAnnotation = getParameterAnnotation(param);
+			String paramName = param.getSimpleName().toString();
+			for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> elements: paramAnnotation.getElementValues().entrySet()) {
+				if ("value".equals(elements.getKey().getSimpleName().toString())) {
+					paramName = elements.getValue().getValue().toString();
+				}
+			}
+
+			if (ParameterLocation.query.equals(paramLocation) && "userId".equals(paramName)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

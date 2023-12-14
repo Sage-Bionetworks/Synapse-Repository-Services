@@ -2,6 +2,8 @@ package org.sagebionetworks.openapi.datamodel.pathinfo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -19,7 +21,6 @@ import org.mockito.Mockito;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONArrayAdapterImpl;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 public class EndpointInfoTest {
@@ -171,4 +172,42 @@ public class EndpointInfoTest {
 		inOrder.verify(tags).put(0, "TAG_1");
 		inOrder.verify(tags).put(1, "TAG_2");
 	}
+
+	@Test
+	public void testSecurityRequirementsAreEqualWithEqualMaps() {
+		EndpointInfo info = new EndpointInfo();
+
+		Map<String, String[]> map1 = new HashMap<>();
+		map1.put("key1", new String[]{"value1", "value2"});
+		map1.put("key2", new String[]{"value3", "value4"});
+
+		Map<String, String[]> map2 = new HashMap<>();
+		map2.put("key1", new String[]{"value1", "value2"});
+		map2.put("key2", new String[]{"value3", "value4"});
+
+		assertTrue(info.securityRequirementsAreEqual(map1, map2));
+	}
+
+	@Test
+	public void testSecurityRequirementsAreEqualWithUnequalMaps() {
+		EndpointInfo info = new EndpointInfo();
+
+		Map<String, String[]> map1 = new HashMap<>();
+		map1.put("key1", new String[]{"value1", "value2"});
+		map1.put("key2", new String[]{"value3", "value4"});
+
+		Map<String, String[]> map2 = new HashMap<>();
+		map2.put("key1", new String[]{"value1", "value2"});
+		map2.put("key2", new String[]{"value3", "value5"});
+
+		assertFalse(info.securityRequirementsAreEqual(map1, map2));
+	}
+
+	@Test
+	public void testSecurityRequirementsAreEqualBothNull() {
+		EndpointInfo info = new EndpointInfo();
+		assertTrue(info.securityRequirementsAreEqual(null, null));
+	}
+
+
 }

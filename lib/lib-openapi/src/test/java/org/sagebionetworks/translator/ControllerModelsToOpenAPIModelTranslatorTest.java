@@ -301,7 +301,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		ResponseModel responses = new ResponseModel();
 		List<String> tags = new ArrayList<>(Arrays.asList(displayName));
 		MethodModel method = new MethodModel().withName(methodName).withRequestBody(requestBodyModel)
-				.withParameters(parameters).withResponse(responses).withOperation(Operation.get);
+				.withParameters(parameters).withResponse(responses).withOperation(Operation.get).withAuthenticationRequired(true);
 
 		List<ParameterInfo> expectedParameters = new ArrayList<>();
 		RequestBodyInfo requestBodyInfo = new RequestBodyInfo();
@@ -310,8 +310,11 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		doReturn(requestBodyInfo).when(translator).getRequestBodyInfo(any(RequestBodyModel.class));
 		doReturn(respones).when(translator).getResponses(any(ResponseModel.class));
 
+		Map<String, String[]> securityRequirements = new HashMap<>();
+		securityRequirements.put("bearerAuth", new String[]{});
+
 		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags).withOperationId(String.format("%s-%s", Operation.get.name(), fullPath))
-				.withParameters(expectedParameters).withRequestBody(requestBodyInfo).withResponses(respones);
+				.withParameters(expectedParameters).withRequestBody(requestBodyInfo).withResponses(respones).withSecurityRequirements(securityRequirements);
 
 		// call under test.
 		assertEquals(expectedEndpointInfo, translator.getEndpointInfo(method, displayName, fullPath));
@@ -330,7 +333,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		ResponseModel responses = new ResponseModel();
 		List<String> tags = new ArrayList<>(Arrays.asList(displayName));
 		MethodModel method = new MethodModel().withName(methodName).withRequestBody(requestBodyModel)
-				.withParameters(parameters).withResponse(responses).withOperation(Operation.get);
+				.withParameters(parameters).withResponse(responses).withOperation(Operation.get).withAuthenticationRequired(false);
 
 		List<ParameterInfo> expectedParameters = new ArrayList<>();
 		Map<String, ResponseInfo> respones = new LinkedHashMap<>();
@@ -338,7 +341,7 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		doReturn(respones).when(translator).getResponses(any(ResponseModel.class));
 
 		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags).withOperationId(String.format("%s-%s", Operation.get.name(), fullPath))
-				.withParameters(expectedParameters).withRequestBody(null).withResponses(respones);
+				.withParameters(expectedParameters).withRequestBody(null).withResponses(respones).withSecurityRequirements(null);
 
 		// call under test.
 		assertEquals(expectedEndpointInfo, translator.getEndpointInfo(method, displayName, fullPath));

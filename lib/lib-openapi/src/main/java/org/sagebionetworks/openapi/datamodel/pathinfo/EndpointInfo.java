@@ -1,5 +1,6 @@
 package org.sagebionetworks.openapi.datamodel.pathinfo;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -91,7 +92,7 @@ public class EndpointInfo implements JSONEntity {
 		EndpointInfo other = (EndpointInfo) obj;
 		return Objects.equals(operationId, other.operationId) && Objects.equals(parameters, other.parameters)
 				&& Objects.equals(requestBody, other.requestBody) && Objects.equals(responses, other.responses)
-				&& Objects.equals(tags, other.tags) && Objects.equals(securityRequirements, other.securityRequirements);
+				&& Objects.equals(tags, other.tags) && securityRequirementsAreEqual(securityRequirements, other.securityRequirements);
 	}
 	
 	@Override
@@ -179,5 +180,29 @@ public class EndpointInfo implements JSONEntity {
 		for (int i = 0; i < this.tags.size(); i++) {
 			tags.put(i, this.tags.get(i));
 		}
+	}
+
+	boolean securityRequirementsAreEqual(Map<String, String[]> map1, Map<String, String[]> map2) {
+		// Check if both maps are null or have different sizes
+		if (map1 == null && map2 == null) {
+			return true;
+		} else if (map1 == null || map2 == null || map1.size() != map2.size()) {
+			return false;
+		}
+
+		// Iterate through the entries of the first map
+		for (Map.Entry<String, String[]> entry : map1.entrySet()) {
+			String key = entry.getKey();
+			String[] value1 = entry.getValue();
+			String[] value2 = map2.get(key);
+
+			// Check if the key is present in the second map and the values are equal
+			if (value2 == null || !Arrays.equals(value1, value2)) {
+				return false;
+			}
+		}
+
+		// Maps are equal
+		return true;
 	}
 }
