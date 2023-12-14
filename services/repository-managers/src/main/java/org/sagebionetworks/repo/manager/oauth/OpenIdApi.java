@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.oauth;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.scribe.builder.api.DefaultApi20;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.extractors.AccessTokenExtractor;

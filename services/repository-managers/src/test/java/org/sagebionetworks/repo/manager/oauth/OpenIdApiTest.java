@@ -11,7 +11,6 @@ import static org.sagebionetworks.repo.manager.oauth.OpenIdApi.SUB;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 
 public class OpenIdApiTest {
 

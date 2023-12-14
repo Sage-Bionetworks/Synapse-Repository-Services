@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
-import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 
 /**

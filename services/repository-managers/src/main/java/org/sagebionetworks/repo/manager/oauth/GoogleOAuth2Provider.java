@@ -1,18 +1,11 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.model.OAuthConfig;
-import org.scribe.model.OAuthRequest;
-import org.scribe.model.Response;
 import org.scribe.model.Token;
-import org.scribe.model.Verb;
 import org.scribe.model.Verifier;
-import org.scribe.oauth.OAuthService;
 
 /**
  * Google OAuth 2.0 implementation of OAuthProvider.

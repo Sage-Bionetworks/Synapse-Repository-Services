@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -41,7 +42,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
-import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -204,6 +204,114 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail());
 		verify(mockUserManager).bindUserToOIDCSubject(alias.getPrincipalId(), request.getProvider(), info.getSubject());
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+	}
+	
+	@Test
+	public void testValidateOAuthAuthenticationCodeWithAliasFallback() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.ORCID);
+		request.setRedirectUrl("https://domain.com");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		info.setSubject("abcd");
+		info.setAliasAndType(new AliasAndType("alias", AliasType.USER_ORCID));
+		
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+		PrincipalAlias alias = new PrincipalAlias();
+		long userId = 3456L;
+		alias.setPrincipalId(userId);
+		when(mockUserManager.lookupUserIdByOIDCSubject(any(), any())).thenReturn(Optional.empty());
+		when(mockUserManager.lookupUserByAliasType(any(), any())).thenReturn(alias);
+		LoginResponse authMgrLoginResponse = new LoginResponse();
+		authMgrLoginResponse.setAcceptsTermsOfUse(true);
+		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
+		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
+
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		
+		//call under test
+		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
+		
+		assertEquals(authMgrLoginResponse, result);
+		
+		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		verify(mockUserManager).lookupUserIdByOIDCSubject(request.getProvider(), info.getSubject());
+		verify(mockUserManager).lookupUserByAliasType(AliasType.USER_ORCID, "alias");
+		verify(mockUserManager).bindUserToOIDCSubject(alias.getPrincipalId(), request.getProvider(), info.getSubject());
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+	}
+	
+	@Test
+	public void testValidateOAuthAuthenticationCodeWithEmailNotFoundAndAliasFallback() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.ORCID);
+		request.setRedirectUrl("https://domain.com");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		info.setUsersVerifiedEmail("first.last@domain.com");
+		info.setSubject("abcd");
+		info.setAliasAndType(new AliasAndType("alias", AliasType.USER_ORCID));
+		
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+		PrincipalAlias alias = new PrincipalAlias();
+		long userId = 3456L;
+		alias.setPrincipalId(userId);
+		when(mockUserManager.lookupUserIdByOIDCSubject(any(), any())).thenReturn(Optional.empty());
+		when(mockUserManager.lookupUserByUsernameOrEmail(any())).thenThrow(NotFoundException.class);
+		when(mockUserManager.lookupUserByAliasType(any(), any())).thenReturn(alias);
+		LoginResponse authMgrLoginResponse = new LoginResponse();
+		authMgrLoginResponse.setAcceptsTermsOfUse(true);
+		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
+		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
+
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		
+		//call under test
+		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
+		
+		assertEquals(authMgrLoginResponse, result);
+		
+		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		verify(mockUserManager).lookupUserIdByOIDCSubject(request.getProvider(), info.getSubject());
+		verify(mockUserManager).lookupUserByUsernameOrEmail("first.last@domain.com");
+		verify(mockUserManager).lookupUserByAliasType(AliasType.USER_ORCID, "alias");
+		verify(mockUserManager).bindUserToOIDCSubject(alias.getPrincipalId(), request.getProvider(), info.getSubject());
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+	}
+	
+	@Test
+	public void testValidateOAuthAuthenticationCodeWithNoMatch() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.ORCID);
+		request.setRedirectUrl("https://domain.com");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		info.setUsersVerifiedEmail("first.last@domain.com");
+		info.setSubject("abcd");
+		info.setAliasAndType(new AliasAndType("alias", AliasType.USER_ORCID));
+		
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+		PrincipalAlias alias = new PrincipalAlias();
+		long userId = 3456L;
+		alias.setPrincipalId(userId);
+		when(mockUserManager.lookupUserIdByOIDCSubject(any(), any())).thenReturn(Optional.empty());
+		when(mockUserManager.lookupUserByUsernameOrEmail(any())).thenThrow(NotFoundException.class);
+		when(mockUserManager.lookupUserByAliasType(any(), any())).thenThrow(NotFoundException.class);
+		LoginResponse authMgrLoginResponse = new LoginResponse();
+		authMgrLoginResponse.setAcceptsTermsOfUse(true);
+		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
+		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
+
+		String result = assertThrows(NotFoundException.class, () -> {			
+			service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
+		}).getMessage();
+		
+		assertEquals("Could not find a user matching the ORCID provider information.", result);
+				
+		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		verify(mockUserManager).lookupUserIdByOIDCSubject(request.getProvider(), info.getSubject());
+		verify(mockUserManager).lookupUserByUsernameOrEmail("first.last@domain.com");
+		verify(mockUserManager).lookupUserByAliasType(AliasType.USER_ORCID, "alias");
 	}
 	
 	@Test

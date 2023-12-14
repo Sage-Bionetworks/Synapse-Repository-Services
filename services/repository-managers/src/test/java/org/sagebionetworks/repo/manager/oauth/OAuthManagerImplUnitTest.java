@@ -14,7 +14,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
-import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 
 @ExtendWith(MockitoExtension.class)

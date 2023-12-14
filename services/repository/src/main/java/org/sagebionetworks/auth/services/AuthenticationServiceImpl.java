@@ -1,5 +1,7 @@
 package org.sagebionetworks.auth.services;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -8,6 +10,7 @@ import org.sagebionetworks.repo.manager.authentication.TwoFactorAuthManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -32,7 +35,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
-import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -44,8 +46,9 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AuthenticationServiceImpl implements AuthenticationService {
-
-
+	
+	private static final Logger LOGGER = LogManager.getLogger(AuthenticationServiceImpl.class);
+	
 	@Autowired
 	private UserManager userManager;
 	
@@ -125,12 +128,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	public LoginResponse validateOAuthAuthenticationCodeAndLogin(
 			OAuthValidationRequest request, String tokenIssuer) throws NotFoundException {
 		// Use the authentication code to lookup the user's information.
-		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
-				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
-		
-		if (providedInfo.getUsersVerifiedEmail() == null){
-			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
-		}
+		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
 		
 		if (providedInfo.getSubject() == null) {
 			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide the user subject");
@@ -138,11 +136,34 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		// We first lookup for a potential subject already bound for the given provider
 		Long principalId = userManager.lookupUserIdByOIDCSubject(request.getProvider(), providedInfo.getSubject()).orElseGet(() -> {
-			// If not found, for backward compatibility we also lookup the user by the provider verified email
-			PrincipalAlias alias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
-			// Finally, we also migrate the user to the oauth provider subject (See https://sagebionetworks.jira.com/browse/PLFM-7302)
-			userManager.bindUserToOIDCSubject(alias.getPrincipalId(), request.getProvider(), providedInfo.getSubject());
-			return alias.getPrincipalId();
+			PrincipalAlias alias = null;
+			
+			// For backward compatibility we also lookup the user by the provider verified email
+			if (providedInfo.getUsersVerifiedEmail() != null) {
+				try {
+					alias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
+				} catch (NotFoundException e) {
+					LOGGER.warn("Could not match user (Provider: {}, Sub: {}, Verified email: {}): {}", request.getProvider(), providedInfo.getSubject(), providedInfo.getUsersVerifiedEmail(), e.getMessage());
+				}
+			}
+			
+			// If the provider does not give a verified email or there is no match we try using the alias if present
+			if (alias == null && providedInfo.getAliasAndType() != null) {
+				AliasAndType aliasType = providedInfo.getAliasAndType();
+				try {
+					alias = userManager.lookupUserByAliasType(aliasType.getType(), aliasType.getAlias());
+				} catch (NotFoundException e) {
+					LOGGER.warn("Could not match user (Provider: {}, Sub: {}, Alias: {}): {}", request.getProvider(), providedInfo.getSubject(), aliasType.getAlias(), e.getMessage());
+				}
+			}
+			
+			if (alias != null) {
+				// Finally, we also migrate the user to the oauth provider subject (See https://sagebionetworks.jira.com/browse/PLFM-7302)
+				userManager.bindUserToOIDCSubject(alias.getPrincipalId(), request.getProvider(), providedInfo.getSubject());
+				return alias.getPrincipalId();
+			}
+			
+			throw new NotFoundException("Could not find a user matching the " + request.getProvider().name() + " provider information.");
 		});
 		
 		// Return the user's access token

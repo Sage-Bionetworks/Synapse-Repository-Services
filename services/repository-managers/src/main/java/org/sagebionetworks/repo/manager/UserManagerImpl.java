@@ -265,6 +265,15 @@ public class UserManagerImpl implements UserManager {
 	}
 	
 	@Override
+	public PrincipalAlias lookupUserByAliasType(AliasType type, String alias) {
+		PrincipalAlias pa = this.principalAliasDAO.findPrincipalWithAlias(alias, type);
+		if(pa == null) {
+			throw new NotFoundException("Did not find a user with alias: "+alias);
+		}
+		return pa;
+	}
+	
+	@Override
 	public void unbindAlias(String aliasName, AliasType type, Long principalId) {
 		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, type, aliasName);
 		if (aliases.isEmpty()) throw new NotFoundException(

@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.scribe.model.Token;
 import org.scribe.oauth.OAuthService;
 

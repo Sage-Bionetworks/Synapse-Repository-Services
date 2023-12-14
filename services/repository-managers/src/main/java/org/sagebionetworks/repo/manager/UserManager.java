@@ -63,6 +63,8 @@ public interface UserManager {
 	 * @return
 	 */
 	PrincipalAlias lookupUserByUsernameOrEmail(String alias);
+	
+	PrincipalAlias lookupUserByAliasType(AliasType type, String alias);
 
 	PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId);
 	

@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.oauth;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.model.OAuthConfig;
@@ -48,20 +47,7 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 
 	@Override
 	public AliasAndType retrieveProvidersId(String authorizationCode, String redirectUrl) {
-		try{
-			// Note:  We don't need to use the redirectUrl.
-			OpenIdService service = (new OpenIdApi(authUrl, tokenUrl, userInfoUrl)).
-					createService(new OAuthConfig(apiKey, apiSecret, null, null, null, null));
-			/*
-			 * Get an access token from ORCID using the provided authorization code.
-			 * This token is used to sign request for user's information.
-			 */
-			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
-			String orcid = parseOrcidId(accessToken.getRawResponse());
-			return new AliasAndType(convertOrcIdToURI(orcid), AliasType.USER_ORCID);
-		}catch(OAuthException e){
-			throw new UnauthorizedException(e);
-		}
+		return validateUserWithProvider(authorizationCode, redirectUrl).getAliasAndType();
 	}
 	
 	/**
@@ -83,6 +69,11 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 		}
 	}
 
+	public static AliasAndType parseAliasAndType(Token accessToken) {
+		String orcid = parseOrcidId(accessToken.getRawResponse());
+		return new AliasAndType(convertOrcIdToURI(orcid), AliasType.USER_ORCID);
+	}
+	
 	@Override
 	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl) {
 		if (redirectUrl == null) {
@@ -94,7 +85,10 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 
 			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
 
-			return service.getUserInfo(accessToken);
+			AliasAndType aliasAndType = parseAliasAndType(accessToken);
+			ProvidedUserInfo userInfo = service.getUserInfo(accessToken);
+			userInfo.setAliasAndType(aliasAndType);
+			return userInfo;
 		} catch(OAuthException e) {
 			throw new UnauthorizedException(e);
 		}
