@@ -9,13 +9,13 @@ import java.util.Objects;
  * @author ntiedema
  */
 public class ProfileData {
-	String namespace;
-	String name;
-	Double value;
-	String unit;	
-	Date timestamp;
-	Map<String, String> dimension;
-	MetricStats metricStats;
+	private String namespace;
+	private String name;
+	private Double value;
+	private String unit;	
+	private Date timestamp;
+	private Map<String, String> dimension;
+	private MetricStats metricStats;
 	
 	/**
 	 * Default ProfileData constructor.  Want class to be able to expand, so default
@@ -29,11 +29,12 @@ public class ProfileData {
 	 * @param namespace
 	 * @throws IllegalArgument Exception
 	 */
-	public void setNamespace(String namespace){
+	public ProfileData setNamespace(String namespace){
 		if (namespace == null){
 			throw (new IllegalArgumentException());
 		}
 		this.namespace = namespace;
+		return this;
 	}
 	
 	/**
@@ -41,17 +42,19 @@ public class ProfileData {
 	 * @param name
 	 * @throws IllegalArgumentException
 	 */
-	public void setName(String name){
+	public ProfileData setName(String name){
 		if (name == null){
 			throw (new IllegalArgumentException());
 		}
 		this.name = name;
+		return this;
 	}
 	
 	/**
 	 */
-	public void setValue(Double value){
+	public ProfileData setValue(Double value){
 		this.value = value;
+		return this;
 	}
 
 	/**
@@ -59,11 +62,12 @@ public class ProfileData {
 	 * @param unit
 	 * @throws IllegalArgumentException
 	 */
-	public void setUnit(String unit){
+	public ProfileData setUnit(String unit){
 		if (unit == null){
 			throw (new IllegalArgumentException());
 		}
 		this.unit = unit;
+		return this;
 	}
 	
 	/**
@@ -71,11 +75,12 @@ public class ProfileData {
 	 * @param timestamp
 	 * @throws IllegalArgumentException
 	 */
-	public void setTimestamp(Date timestamp){
+	public ProfileData setTimestamp(Date timestamp){
 		if (timestamp == null){
 			throw (new IllegalArgumentException());
 		}
 		this.timestamp = timestamp;
+		return this;
 	}
 	
 	/**
@@ -121,16 +126,18 @@ public class ProfileData {
 		return dimension;
 	}
 
-	public void setDimension(Map<String, String> dimension) {
+	public ProfileData setDimension(Map<String, String> dimension) {
 		this.dimension = dimension;
+		return this;
 	}
 
 	public MetricStats getMetricStats() {
 		return metricStats;
 	}
 
-	public void setMetricStats(MetricStats metricStats) {
+	public ProfileData setMetricStats(MetricStats metricStats) {
 		this.metricStats = metricStats;
+		return this;
 	}
 
 	@Override
