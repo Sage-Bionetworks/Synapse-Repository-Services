@@ -2,9 +2,9 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.util.ValidateArgument;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.model.OAuthConfig;
-import org.scribe.model.Token;
 import org.scribe.model.Verifier;
 
 /**
@@ -30,7 +30,6 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	private String apiSecret;
 	private String authUrl;
 	private String tokenUrl;
-	private String userInfoUrl;
 	
 	/**
 	 * Thread safe Google provider.
@@ -43,31 +42,27 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 		this.apiSecret = apiSecret;
 		this.authUrl = oidcConfig.getAuthorizationEndpoint() + AUTH_URL_DEFAULT_PARAMS;
 		this.tokenUrl = oidcConfig.getTokenEndpoint();
-		this.userInfoUrl = oidcConfig.getUserInfoEndpoint();
 	}
 	
 	@Override
 	public String getAuthorizationUrl(String redirectUrl) {
-		return new OpenIdApi(authUrl, tokenUrl, userInfoUrl).
+		return new OAuth2Api(authUrl, tokenUrl).
 				getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, OIDC_SCOPES, null));
 	}
 
 	@Override
 	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl) {
-		if (redirectUrl == null) {
-			throw new IllegalArgumentException("RedirectUrl cannot be null");
-		}
+		ValidateArgument.required(authorizationCode, "The authorizationCode");
+		ValidateArgument.required(redirectUrl, "The redirectUrl");
+		
 		try {
-			OpenIdService service = (new OpenIdApi(authUrl, tokenUrl, userInfoUrl)).
+			OAuth2Service service = (new OAuth2Api(authUrl, tokenUrl)).
 					createService(new OAuthConfig(apiKey, apiSecret, redirectUrl, null, null, null));
-			/*
-			 * Get an access token from Google using the provided authorization code.
-			 * This token is used to sign request for user's information.
-			 */
-			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
-			// Use the access token to get the UserInfo from Google.
-			return service.getUserInfo(accessToken);
-		} catch(OAuthException e) {
+			
+			AccessTokenResponse accessTokenResponse = service.getAccessToken(null, new Verifier(authorizationCode));
+						
+			return accessTokenResponse.parseIdToken();
+		} catch (OAuthException e) {
 			throw new UnauthorizedException(e);
 		}
 	}

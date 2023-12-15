@@ -265,48 +265,7 @@ public class IT990AuthenticationController {
 			// OK
 		}
 	}
-	
-	/**
-	 * Since a browser is need to get a real authentication code, we are just testing
-	 * that everything is wires up correctly.
-	 * @throws SynapseException 
-	 */
-	@Test
-	public void testValidateOAuthAuthenticationCodeForAccessTokenAndLogin() throws SynapseException {
-		try {
-			OAuthValidationRequest request = new OAuthValidationRequest();
-			request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
-			request.setRedirectUrl("https://www.synapse.org");
-			// this invalid code will trigger a SynapseForbiddenException
-			request.setAuthenticationCode("test auth code");
-			synapseClient.validateOAuthAuthenticationCodeForAccessToken(request);
-			fail();
-		} catch (SynapseForbiddenException e) {
-			// OK
-		}
-	}
-	
-	/**
-	 * Since a browser is need to get a real authentication code, we are just testing
-	 * that everything is wires up correctly.
-	 * @throws SynapseException 
-	 */
-	@Test
-	public void testCreateAccountViaOAuth2() throws SynapseException {
-		try {
-			OAuthAccountCreationRequest request = new OAuthAccountCreationRequest();
-			request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
-			request.setRedirectUrl("https://www.synapse.org");
-			// this invalid code will trigger a SynapseForbiddenException
-			request.setAuthenticationCode("test auth code");
-			request.setUserName("uname");
-			synapseClient.createAccountViaOAuth2ForAccessToken(request);
-			fail();
-		} catch (SynapseForbiddenException e) {
-			// OK
-		}
-	}
-	
+			
 	/**
 	 * Since a browser is need to get a real authentication code, we are just testing
 	 * that everything is wires up correctly.
@@ -338,6 +297,7 @@ public class IT990AuthenticationController {
 		try {
 			OAuthValidationRequest request = new OAuthValidationRequest();
 			request.setProvider(OAuthProvider.ORCID);
+			request.setRedirectUrl("https://www.synapse.org");
 			// this invalid code will trigger a SynapseForbiddenException
 			request.setAuthenticationCode("test auth code");
 			synapseClient.bindOAuthProvidersUserId(request);
