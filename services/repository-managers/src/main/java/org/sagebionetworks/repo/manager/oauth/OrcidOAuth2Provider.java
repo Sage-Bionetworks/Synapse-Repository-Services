@@ -14,7 +14,7 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 	private static final String AUTH_URL_DEFAULT_PARAMS = "?response_type=code&client_id=%s&redirect_uri=%s";
 
 	// See https://info.orcid.org/ufaqs/what-is-an-oauth-scope-and-which-scopes-does-orcid-support/
-	private static final String SCOPE_AUTHENTICATE = "openid"; 
+	private static final String SCOPE_OPENID = "openid"; 
 	
 	public static final String ORCID = "orcid";
 
@@ -36,7 +36,7 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 	@Override
 	public String getAuthorizationUrl(String redirectUrl) {
 		return  new OpenIdApi(authUrl, tokenUrl, userInfoUrl).
-				getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, SCOPE_AUTHENTICATE, null));
+				getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, SCOPE_OPENID, null));
 	}
 	
 	private static final String ORCID_URI_PREFIX = "https://orcid.org/";
@@ -69,25 +69,23 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 		}
 	}
 
-	public static AliasAndType parseAliasAndType(Token accessToken) {
-		String orcid = parseOrcidId(accessToken.getRawResponse());
-		return new AliasAndType(convertOrcIdToURI(orcid), AliasType.USER_ORCID);
-	}
-	
 	@Override
 	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl) {
-		if (redirectUrl == null) {
-			throw new IllegalArgumentException("RedirectUrl cannot be null");
-		}
 		try {
+			// Note that we do not use the redirect Url
 			OpenIdService service = (new OpenIdApi(authUrl, tokenUrl, userInfoUrl)).
 					createService(new OAuthConfig(apiKey, apiSecret, null, null, null, null));
 
-			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
+			Token token = service.getAccessToken(null, new Verifier(authorizationCode));
 
-			AliasAndType aliasAndType = parseAliasAndType(accessToken);
-			ProvidedUserInfo userInfo = service.getUserInfo(accessToken);
-			userInfo.setAliasAndType(aliasAndType);
+			ProvidedUserInfo userInfo = service.getUserInfo(token);
+
+			// We also get the orcid from the token response body to construct the alias
+			// (The orcid is part of the body, see https://github.com/ORCID/ORCID-Source/blob/main/orcid-web/ORCID_AUTH_WITH_OPENID_CONNECT.md)
+			String orcid = parseOrcidId(token.getRawResponse());
+			
+			userInfo.setAliasAndType(new AliasAndType(convertOrcIdToURI(orcid), AliasType.USER_ORCID));
+			
 			return userInfo;
 		} catch(OAuthException e) {
 			throw new UnauthorizedException(e);

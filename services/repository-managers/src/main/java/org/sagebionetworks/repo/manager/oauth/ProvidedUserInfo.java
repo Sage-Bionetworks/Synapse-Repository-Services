@@ -3,53 +3,53 @@ package org.sagebionetworks.repo.manager.oauth;
 import java.util.Objects;
 
 public class ProvidedUserInfo {
-	
+
 	private String subject;
-    private String usersVerifiedEmail;
-    private String firstName;
-    private String lastName;
-    private AliasAndType aliasAndType;
-    
-    public ProvidedUserInfo() {
-    	
-    }
-    
+	private String usersVerifiedEmail;
+	private String firstName;
+	private String lastName;
+	private AliasAndType aliasAndType;
+
+	public ProvidedUserInfo() {
+
+	}
+
 	public String getSubject() {
 		return subject;
 	}
-	
+
 	public void setSubject(String subject) {
 		this.subject = subject;
 	}
-	
+
 	public String getUsersVerifiedEmail() {
 		return usersVerifiedEmail;
 	}
-	
+
 	public void setUsersVerifiedEmail(String usersVerifiedEmail) {
 		this.usersVerifiedEmail = usersVerifiedEmail;
 	}
-	
+
 	public String getFirstName() {
 		return firstName;
 	}
-	
+
 	public void setFirstName(String firstName) {
 		this.firstName = firstName;
 	}
-	
+
 	public String getLastName() {
 		return lastName;
 	}
-	
+
 	public void setLastName(String lastName) {
 		this.lastName = lastName;
 	}
-	
+
 	public AliasAndType getAliasAndType() {
 		return aliasAndType;
 	}
-	
+
 	public void setAliasAndType(AliasAndType aliasAndType) {
 		this.aliasAndType = aliasAndType;
 	}
