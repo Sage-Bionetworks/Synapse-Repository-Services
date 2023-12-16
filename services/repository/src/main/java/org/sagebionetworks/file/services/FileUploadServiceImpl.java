@@ -33,12 +33,14 @@ import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * Basic implementation of the file upload service.
  * @author John
  *
  */
+@Service
 public class FileUploadServiceImpl implements FileUploadService {
 	
 	

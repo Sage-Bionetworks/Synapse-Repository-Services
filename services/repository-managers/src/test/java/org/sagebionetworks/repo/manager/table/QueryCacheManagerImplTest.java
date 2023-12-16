@@ -22,7 +22,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.common.util.Clock;
-import org.sagebionetworks.repo.manager.config.RepositoryConfiguration;
+import org.sagebionetworks.repo.manager.config.ManagerConfiguration;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.table.QueryCacheHitEvent;
@@ -42,7 +42,7 @@ public class QueryCacheManagerImplTest {
 
 	@Mock
 	private ObjectMapper mockObjectMapper;
-	private ObjectMapper objectMapper = new RepositoryConfiguration().jsonObjectMapper();
+	private ObjectMapper objectMapper = new ManagerConfiguration().jsonObjectMapper();
 	@Mock
 	private Clock mockClock;
 	@Mock

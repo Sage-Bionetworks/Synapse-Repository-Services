@@ -146,6 +146,9 @@
 		<ref bean="fileEventRecordWorkerTrigger"/>
 		<ref bean="updateQueryCacheTrigger"/>
 		
+		<!-- Data source pool monitor trigger -->
+		<ref bean="dataSourceMonitorTrigger"/>
+		
 	</util:list>
 
 	<bean id="mainScheduler"
