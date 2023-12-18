@@ -322,6 +322,28 @@ public class UserManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testLookupUserByAliasType() {
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(any(), any())).thenReturn(principalAlias);
+		// call under test
+		PrincipalAlias pa = userManager.lookupUserByAliasType(AliasType.USER_ORCID, alias);
+		assertEquals(principalAlias, pa);
+		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(alias, AliasType.USER_ORCID);
+	}
+	
+	@Test
+	public void testLookupUserByAliasTypeNotFound() {
+		// unknown alias
+		alias = "unknown";
+		
+		String message = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			userManager.lookupUserByAliasType(AliasType.USER_ORCID, alias);
+		}).getMessage();
+		
+		assertEquals("Did not find a user with alias: unknown", message);
+	}
+	
+	@Test
 	public void testLookupUserIdByOIDCSubject() {
 		
 		Optional<Long> expected = Optional.of(123L);

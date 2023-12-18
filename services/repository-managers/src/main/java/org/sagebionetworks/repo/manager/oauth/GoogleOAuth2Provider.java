@@ -1,18 +1,11 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.util.ValidateArgument;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.model.OAuthConfig;
-import org.scribe.model.OAuthRequest;
-import org.scribe.model.Response;
-import org.scribe.model.Token;
-import org.scribe.model.Verb;
 import org.scribe.model.Verifier;
-import org.scribe.oauth.OAuthService;
 
 /**
  * Google OAuth 2.0 implementation of OAuthProvider.
@@ -26,18 +19,8 @@ import org.scribe.oauth.OAuthService;
  */
 public class GoogleOAuth2Provider implements OAuthProviderBinding {
 
-    private static final String MESSAGE = " Message: ";
-	private static final String FAILED_PREFIX = "Failed to get User's information from Google. Code: ";
 	private static final String AUTH_URL_DEFAULT_PARAMS = "?response_type=code&client_id=%s&redirect_uri=%s&prompt=select_account";
-	/*
-	 * Json keys for object returned by https://openidconnect.googleapis.com/v1/userinfo
-	 */
-	public static final String EMAIL = "email";
-	public static final String EMAIL_VERIFIED = "email_verified";
-	public static final String GIVEN_NAME = "given_name";
-	public static final String FAMILY_NAME = "family_name";	
-	public static final String SUB = "sub";
-
+	
 	/*
 	 * To be OIDC compliant we need the openid scope (See https://developers.google.com/identity/protocols/oauth2/openid-connect#sendauthrequest)
 	 */
@@ -47,7 +30,6 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	private String apiSecret;
 	private String authUrl;
 	private String tokenUrl;
-	private String userInfoUrl;
 	
 	/**
 	 * Thread safe Google provider.
@@ -60,7 +42,6 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 		this.apiSecret = apiSecret;
 		this.authUrl = oidcConfig.getAuthorizationEndpoint() + AUTH_URL_DEFAULT_PARAMS;
 		this.tokenUrl = oidcConfig.getTokenEndpoint();
-		this.userInfoUrl = oidcConfig.getUserInfoEndpoint();
 	}
 	
 	@Override
@@ -71,54 +52,17 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 
 	@Override
 	public ProvidedUserInfo validateUserWithProvider(String authorizationCode, String redirectUrl) {
-		if (redirectUrl == null) {
-			throw new IllegalArgumentException("RedirectUrl cannot be null");
-		}
+		ValidateArgument.required(authorizationCode, "The authorizationCode");
+		ValidateArgument.required(redirectUrl, "The redirectUrl");
+		
 		try {
-			OAuthService service = (new OAuth2Api(authUrl, tokenUrl)).
+			OAuth2Service service = (new OAuth2Api(authUrl, tokenUrl)).
 					createService(new OAuthConfig(apiKey, apiSecret, redirectUrl, null, null, null));
-			/*
-			 * Get an access token from Google using the provided authorization code.
-			 * This token is used to sign request for user's information.
-			 */
-			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
-			// Use the access token to get the UserInfo from Google.
-			OAuthRequest request = new OAuthRequest(Verb.GET, userInfoUrl);
-			service.signRequest(accessToken, request);
-			Response reponse = request.send();
-			if(!reponse.isSuccessful()){
-				throw new UnauthorizedException(FAILED_PREFIX+reponse.getCode()+MESSAGE+reponse.getMessage());
-			}
-			return parseUserInfo(reponse.getBody());
-		} catch(OAuthException e) {
-			throw new UnauthorizedException(e);
-		}
-	}
-	
-	/**
-	 * Parse the Response from https://www.googleapis.com/oauth2/v2/userinfo.
-	 * @param body
-	 * @return
-	 */
-	public static ProvidedUserInfo parseUserInfo(String body) {
-		try {
-			JSONObject json = new JSONObject(body);
-
-			ProvidedUserInfo info = new ProvidedUserInfo();
-			if (json.has(FAMILY_NAME)) {
-				info.setLastName(json.getString(FAMILY_NAME));
-			}
-			if (json.has(GIVEN_NAME)) {
-				info.setFirstName(json.getString(GIVEN_NAME));
-			}
-			if (json.has(SUB)) {
-				info.setSubject(json.getString(SUB));
-			}
-			if (json.has(EMAIL_VERIFIED) && json.getBoolean(EMAIL_VERIFIED) && json.has(EMAIL)) {
-				info.setUsersVerifiedEmail(json.getString(EMAIL));
-			}
-			return info;
-		} catch (JSONException e) {
+			
+			AccessTokenResponse accessTokenResponse = service.getAccessToken(null, new Verifier(authorizationCode));
+						
+			return accessTokenResponse.parseIdToken();
+		} catch (OAuthException e) {
 			throw new UnauthorizedException(e);
 		}
 	}

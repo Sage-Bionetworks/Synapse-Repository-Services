@@ -6,7 +6,6 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
-import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.springframework.stereotype.Service;
 

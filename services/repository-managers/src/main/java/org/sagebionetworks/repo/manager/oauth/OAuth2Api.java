@@ -13,7 +13,6 @@ import org.scribe.model.Token;
 import org.scribe.model.Verb;
 import org.scribe.model.Verifier;
 import org.scribe.oauth.OAuth20ServiceImpl;
-import org.scribe.oauth.OAuthService;
 import org.scribe.utils.OAuthEncoder;
 import org.scribe.utils.Preconditions;
 
@@ -27,44 +26,42 @@ import org.scribe.utils.Preconditions;
  * 
  */
 public class OAuth2Api extends DefaultApi20 {
-	private static String ACCESS_TOKEN_TAG = "access_token";
-	private static String ERROR_TAG = "error";
-	
+	private static final String ACCESS_TOKEN_TAG = "access_token";
+	private static final String ID_TOKEN_TAG = "id_token";
+	private static final String ERROR_TAG = "error";
+		
 	private String authorizationEndpoint;
 	private String accessTokenEndpoint;
 	
 	public OAuth2Api(String authorizationEndpoint, String accessTokenEndpoint) {
-		this.authorizationEndpoint=authorizationEndpoint;
-		this.accessTokenEndpoint=accessTokenEndpoint;		
+		this.authorizationEndpoint = authorizationEndpoint;
+		this.accessTokenEndpoint = accessTokenEndpoint;
 	}
 	
     @Override
     public String getAccessTokenEndpoint() {
     	return accessTokenEndpoint;
     }
-    
+        
     @Override
     public AccessTokenExtractor getAccessTokenExtractor() {
-        return new AccessTokenExtractor() {
-            
-            @Override
-            public Token extract(String response) {
-            	Preconditions.checkEmptyString(response, "Response body is incorrect. Can't extract a token from an empty string");
-            	try {
-            		JSONObject json = new JSONObject(response);
-            		if (json.has(ACCESS_TOKEN_TAG)) {
-            			String token = OAuthEncoder.decode(json.getString(ACCESS_TOKEN_TAG));
-            			return new Token(token, "", response);
-            		} else if (json.has(ERROR_TAG)) {
-            			throw new OAuthException(json.getString(ERROR_TAG));
-            		} else {
-            			throw new OAuthException("Response body is incorrect. Can't parse: '" + response + "'", null);
-            		}
-            	} catch (JSONException e) {
-            		throw new RuntimeException(e);
-            	}
-            }
-        };
+        return (String response) -> {
+			Preconditions.checkEmptyString(response, "Response body is incorrect. Can't extract a token from an empty string");
+			try {
+				JSONObject json = new JSONObject(response);
+				if (json.has(ACCESS_TOKEN_TAG)) {
+					String accessToken = OAuthEncoder.decode(json.getString(ACCESS_TOKEN_TAG));
+					String idToken = json.has(ID_TOKEN_TAG) ? json.getString(ID_TOKEN_TAG) : null;
+					return new AccessTokenResponse(accessToken, idToken, response);
+				} else if (json.has(ERROR_TAG)) {
+					throw new OAuthException(json.getString(ERROR_TAG));
+				} else {
+					throw new OAuthException("Response body is incorrect. Can't parse: '" + response + "'", null);
+				}
+			} catch (JSONException e) {
+				throw new RuntimeException(e);
+			}
+		};
     }
 
     @Override
@@ -87,25 +84,26 @@ public class OAuth2Api extends DefaultApi20 {
     }
     
     @Override
-    public OAuthService createService(OAuthConfig config) {
+    public OAuth2Service createService(OAuthConfig config) {
         return new BasicOAuth2Service(this, config);
     }
-    
-    private class BasicOAuth2Service extends OAuth20ServiceImpl {
+        
+    private class BasicOAuth2Service extends OAuth20ServiceImpl implements OAuth2Service {
 
         private static final String GRANT_TYPE_AUTHORIZATION_CODE = "authorization_code";
         private static final String GRANT_TYPE = "grant_type";
-        private DefaultApi20 api;
+
+        private OAuth2Api api;
         private OAuthConfig config;
 
-        public BasicOAuth2Service(DefaultApi20 api, OAuthConfig config) {
+        public BasicOAuth2Service(OAuth2Api api, OAuthConfig config) {
             super(api, config);
             this.api = api;
             this.config = config;
         }
-        
+                
         @Override
-        public Token getAccessToken(Token requestToken, Verifier verifier) {
+        public AccessTokenResponse getAccessToken(Token requestToken, Verifier verifier) {
             OAuthRequest request = new OAuthRequest(api.getAccessTokenVerb(), api.getAccessTokenEndpoint());
             switch (api.getAccessTokenVerb()) {
             case POST:
@@ -124,8 +122,10 @@ public class OAuth2Api extends DefaultApi20 {
                 if(config.hasScope()) request.addQuerystringParameter(OAuthConstants.SCOPE, config.getScope());
             }
             Response response = request.send();
-            return api.getAccessTokenExtractor().extract(response.getBody());
+            return (AccessTokenResponse) api.getAccessTokenExtractor().extract(response.getBody());
         }
+
+
     }
 
 }

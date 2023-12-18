@@ -36,7 +36,7 @@ public class OrcidOAuth2ProviderTest {
 	public void testGetAuthorizationUrl() {
 		String redirectUrl = "https://domain.com";
 		String authUrl = provider.getAuthorizationUrl(redirectUrl);
-		assertEquals(authEndpoint + "?response_type=code&client_id=fake-key&redirect_uri=https%3A%2F%2Fdomain.com&scope=%2Fauthenticate", authUrl);
+		assertEquals(authEndpoint + "?response_type=code&client_id=fake-key&redirect_uri=https%3A%2F%2Fdomain.com&scope=openid", authUrl);
 	}
 	
 	@Test
