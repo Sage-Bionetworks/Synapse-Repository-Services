@@ -86,7 +86,7 @@ public class DataSourcePoolMonitor {
 		
 	}
 	
-	Map<String, String> createDimensions(String vmId, DataSourceId id) {
+	private static Map<String, String> createDimensions(String vmId, DataSourceId id) {
 		return Map.of(
 			"vmId", vmId,
 			"dataSourceId", id.name()
