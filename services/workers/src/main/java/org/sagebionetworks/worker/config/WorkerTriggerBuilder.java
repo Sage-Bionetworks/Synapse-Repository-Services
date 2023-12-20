@@ -1,68 +1,53 @@
 package org.sagebionetworks.worker.config;
 
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentWorkerStack;
-import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.repo.manager.config.SimpleTriggerBuilder;
+import org.sagebionetworks.repo.manager.monitoring.DataSourcePoolMonitor;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack;
 import org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack;
-import org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean;
 import org.springframework.scheduling.quartz.SimpleTriggerFactoryBean;
 
 class WorkerTriggerBuilder {
-
-	private long startDelay;
-	private long repeatInterval;
-	private Object targetObject;
 	
-	WorkerTriggerBuilder() {}
+	private SimpleTriggerBuilder builder;
+	
+	public WorkerTriggerBuilder() {
+		builder = new SimpleTriggerBuilder();
+	}
 		
 	public WorkerTriggerBuilder withStartDelay(long startDelay) {
-		this.startDelay = startDelay;
+		builder.withStartDelay(startDelay);
 		return this;
 	}
 	
 	public WorkerTriggerBuilder withRepeatInterval(long repeatInterval) {
-		this.repeatInterval = repeatInterval;
+		builder.withRepeatInterval(repeatInterval);
 		return this;
 	}
 	
 	public WorkerTriggerBuilder withStack(ConcurrentWorkerStack concurrentWorkerStack) {
-		this.targetObject = concurrentWorkerStack;
+		builder.withTargetObject(concurrentWorkerStack);
 		return this;
 	}
 	
 	public WorkerTriggerBuilder withStack(SemaphoreGatedWorkerStack semaphoreGatedWorkerStack) {
-		this.targetObject = semaphoreGatedWorkerStack;
+		builder.withTargetObject(semaphoreGatedWorkerStack);
 		return this;
 	}
 	
 	public WorkerTriggerBuilder withStack(MessageDrivenWorkerStack messageDrivenWorkerStack) {
-		this.targetObject = messageDrivenWorkerStack;
+		builder.withTargetObject(messageDrivenWorkerStack);
 		return this;
 	}
-		
+	
+	public WorkerTriggerBuilder withDataSourceMonitor(DataSourcePoolMonitor dataSourceMonitor) {
+		builder.withTargetObject(dataSourceMonitor);
+		builder.withTargetMethod("collectMetrics");
+		return this;
+	}
+	
 	public SimpleTriggerFactoryBean build() {
-		ValidateArgument.required(targetObject, "A stack");
-		ValidateArgument.required(startDelay, "The startDelay");
-		ValidateArgument.required(repeatInterval, "The repeatInterval");
-		
-		MethodInvokingJobDetailFactoryBean jobDetailFactory = new MethodInvokingJobDetailFactoryBean();		
-		jobDetailFactory.setConcurrent(false);
-		jobDetailFactory.setTargetMethod("run");
-		jobDetailFactory.setTargetObject(targetObject);
-		
-		try {
-			// Invoke the afterPropertiesSet here since this is not an exposed bean
-			jobDetailFactory.afterPropertiesSet();
-		} catch (Exception e) {
-			throw new IllegalStateException(e);
-		}
-		
-		SimpleTriggerFactoryBean triggerFactory = new SimpleTriggerFactoryBean();
-		triggerFactory.setRepeatInterval(repeatInterval);
-		triggerFactory.setStartDelay(startDelay);
-		triggerFactory.setJobDetail(jobDetailFactory.getObject());
-		
-		return triggerFactory;
+		return builder.build();
 	}
 
 }
