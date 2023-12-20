@@ -6,8 +6,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.cloudwatch.Consumer;
@@ -16,8 +14,6 @@ import org.sagebionetworks.cloudwatch.ProfileData;
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 
 public class DataSourcePoolMonitor {
-	
-	private static final Logger LOGGER = LogManager.getLogger(DataSourcePoolMonitor.class);
 	
 	public enum ApplicationType {
 		repository, workers
@@ -47,13 +43,11 @@ public class DataSourcePoolMonitor {
 		
 	}
 	
-	private final ApplicationType applicationType;
 	private Map<DataSourceId, BasicDataSource> dataSources;
 	private final Consumer consumer;
 	private final String namespace;
 
 	public DataSourcePoolMonitor(ApplicationType applicationType, Map<String, BasicDataSource> dataSources, Consumer consumer, StackConfiguration config) {
-		this.applicationType = applicationType;
 		this.consumer = consumer;
 		this.namespace = String.format("%s-Database-%s", StringUtils.capitalize(applicationType.name()), config.getStackInstance());
 		this.dataSources = dataSources.entrySet().stream().collect(Collectors.toMap(
@@ -69,8 +63,6 @@ public class DataSourcePoolMonitor {
 		dataSources.forEach((id, dataSource) -> {
 			int idleConnectionsCount = dataSource.getNumIdle();
 			int activeConnectionsCount = dataSource.getNumActive();
-			
-			LOGGER.info("Collecting DB pool metrics for {} -> {} (Active: {}, Idle: {})", applicationType, id, activeConnectionsCount, idleConnectionsCount);
 			
 			consumer.addProfileData(
 				new ProfileData()
