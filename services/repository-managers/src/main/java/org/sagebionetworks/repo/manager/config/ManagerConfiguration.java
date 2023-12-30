@@ -68,7 +68,7 @@ import dev.samstevens.totp.time.SystemTimeProvider;
 import dev.samstevens.totp.time.TimeProvider;
 
 @Configuration
-public class RepositoryConfiguration {
+public class ManagerConfiguration {
 	
 	private static final String VELOCITY_RESOURCE_LOADERS = "classpath,file";
 	private static final String VELOCITY_PARAM_CLASSPATH_LOADER_CLASS = "classpath.resource.loader.class";

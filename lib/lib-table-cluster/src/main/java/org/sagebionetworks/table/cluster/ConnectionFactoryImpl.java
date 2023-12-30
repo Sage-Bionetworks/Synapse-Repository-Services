@@ -11,7 +11,6 @@ import javax.sql.DataSource;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.lib.dbuserhelper.DBUserHelper;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,15 +29,12 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 
 	private static Logger log = LogManager.getLogger(ConnectionFactoryImpl.class);
 
-	private InstanceDiscovery instanceDiscovery;
 	/**
 	 * Note: This field will be remove when we actually have more than one
 	 * connection. It is a simple way to get the functionality up and running
 	 * without adding full support for a load balancing.
 	 */
 	private BasicDataSource singleConnectionPool;
-
-	private StackConfiguration stackConfig;
 
 	private DBUserHelper dbUserHelper;
 
@@ -50,9 +46,8 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	private TableIndexDAO tableIndexDao;
 	
 	@Autowired
-	public ConnectionFactoryImpl(StackConfiguration config, InstanceDiscovery instanceDiscovery, TableIndexDAO tableIndexDao, DBUserHelper dbuh) {
-		this.stackConfig = config;
-		this.instanceDiscovery = instanceDiscovery;
+	public ConnectionFactoryImpl(BasicDataSource tableDatabaseConnectionPool, TableIndexDAO tableIndexDao, DBUserHelper dbuh) {
+		this.singleConnectionPool = tableDatabaseConnectionPool;
 		this.tableIndexDao = tableIndexDao;
 		this.dbUserHelper = dbuh;
 	}
@@ -68,18 +63,6 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	 */
 	@PostConstruct
 	public void initialize() {
-		// There is nothing to do if the table feature is not enabled.
-		// The features is enabled so we must find all database instances that we can
-		// use
-		List<InstanceInfo> instances = instanceDiscovery.discoverAllInstances();
-		if (instances == null || instances.isEmpty())
-			throw new IllegalArgumentException("Did not find at least one database instances.");
-
-		// This will be improved in the future. For now we just use the first database
-		// we find
-		InstanceInfo instance = instances.get(0);
-		// Use the one instance to create a single connection pool
-		singleConnectionPool = InstanceUtils.createNewDatabaseConnectionPool(stackConfig, instance);
 		// ensure the index has the correct tables
 		tableIndexDao.setDataSource(singleConnectionPool);
 		tableIndexDao.createObjectReplicationTablesIfDoesNotExist();
