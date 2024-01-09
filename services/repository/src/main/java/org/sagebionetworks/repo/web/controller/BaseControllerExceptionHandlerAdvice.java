@@ -893,7 +893,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(ByteLimitExceededException.class)
 	@ResponseStatus(HttpStatus.PAYLOAD_TOO_LARGE)
 	public @ResponseBody
-	BaseError handleTooManyRequestsException(ByteLimitExceededException ex,
+	BaseError handleByteLimitExceededException(ByteLimitExceededException ex,
 			HttpServletRequest request, HttpServletResponse response) {
 		boolean fullTrace = false;
 		return handleException(ex, request, fullTrace);
