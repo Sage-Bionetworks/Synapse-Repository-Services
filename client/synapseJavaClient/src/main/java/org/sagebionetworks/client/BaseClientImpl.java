@@ -9,7 +9,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseServiceUnavailable;
+import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
 import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -947,6 +949,10 @@ public class BaseClientImpl implements BaseClient {
 						if (statusCode == HttpStatus.SC_SERVICE_UNAVAILABLE) {
 							throw new RetryException(new SynapseServiceUnavailable(response.getContent()));
 						}
+						// HttpStatus does not include the 429 code
+						if (statusCode == SynapseTooManyRequestsException.TOO_MANY_REQUESTS_STATUS_CODE) {
+							throw new RetryException(new SynapseTooManyRequestsException(response.getContent()));
+						}
 						return response;
 					} catch (SocketTimeoutException ste) {
 						throw new RetryException(new SynapseServiceUnavailable(ste));
@@ -954,7 +960,7 @@ public class BaseClientImpl implements BaseClient {
 				}
 			});
 		} catch (RetryException e) {
-			throw (SynapseServiceUnavailable) e.getCause();
+			throw (SynapseServerException) e.getCause();
 		} catch (Exception e) {
 			throw new SynapseClientException("Failed to perform request.", e);
 		}

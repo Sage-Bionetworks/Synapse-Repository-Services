@@ -1,8 +1,9 @@
 package org.sagebionetworks.client;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -148,18 +149,24 @@ public class AsynchJobTypeTest {
 		assertEquals(actual, expected);
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetStartUrlwNullEntityId() {
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
 		AsynchJobType type = AsynchJobType.TableAppendRowSet;
-		type.getStartUrl(request);
+		
+		assertThrows(IllegalArgumentException.class, () -> {			
+			type.getStartUrl(request);
+		});
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetResultUrlwNullEntityId2() {
 		AppendableRowSetRequest request = new AppendableRowSetRequest();
 		AsynchJobType type = AsynchJobType.TableAppendRowSet;
-		type.getResultUrl(token, request);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			type.getResultUrl(token, request);
+		});
 	}
 	
 	@Test
