@@ -1,10 +1,10 @@
 package org.sagebionetworks.client;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -23,16 +23,20 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
-import org.sagebionetworks.client.exceptions.SynapseServerException;
+import org.sagebionetworks.client.exceptions.SynapseServiceUnavailable;
+import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityId;
@@ -44,40 +48,44 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 
+@ExtendWith(MockitoExtension.class)
 public class BaseClientImplTest {
+
 	private static final String USER_AGENT = "JavaClient";
-	@Mock
-	SimpleHttpClient mockClient;
-	@Mock
-	SimpleHttpResponse mockResponse;
-	@Mock
-	SimpleHttpResponse mockResponse2;
-	@Mock
-	File mockFile;
-	@Mock
-	Header mockHeader;
-
 	private static final String CONTENT_TYPE = "Content-Type";
+	private static final String CONTENT_LENGTH = "Content-Length";
 	private static final String CONTENT_TYPE_APPLICATION_JSON = "application/json; charset=utf-8";
-	
-	BaseClientImpl baseClient;
-	private final String sessionIdVal = "mySessionIdValue";
+	private static final String SESSION_ID_VALUE = "mySessionIdValue";
 
+	@Mock
+	private SimpleHttpClient mockClient;
+	@Mock
+	private SimpleHttpResponse mockResponse;
+	@Mock
+	private SimpleHttpResponse mockResponse2;
+	@Mock
+	private File mockFile;
+	@Mock
+	private Header mockContentTypeHeader;
+	@Mock
+	private Header mockContentLengthHeader;
 
-	@Before
-	public void before(){
+	private BaseClientImpl baseClient;
+
+	@BeforeEach
+	public void before() {
 		MockitoAnnotations.initMocks(this);
+
 		baseClient = new BaseClientImpl(USER_AGENT);
 		baseClient.setSimpleHttpClient(mockClient);
-		
-		when(mockHeader.getValue()).thenReturn(CONTENT_TYPE_APPLICATION_JSON);
-		when(mockResponse.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
 
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testAppendAgentWithNull() {
-		baseClient.appendUserAgent(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.appendUserAgent(null);
+		});
 	}
 
 	@Test
@@ -91,76 +99,72 @@ public class BaseClientImplTest {
 	public void testAppendAgent() {
 		assertEquals(USER_AGENT, baseClient.getUserAgent());
 		baseClient.appendUserAgent("v1");
-		assertEquals(USER_AGENT+" v1", baseClient.getUserAgent());
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testLoginWithNullRequest() throws Exception{
-		baseClient.login(null);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testLoginWithNullUsername() throws Exception{
-		LoginRequest request = new LoginRequest();
-		request.setPassword("password");
-		baseClient.login(request);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testLoginWithNullPassword() throws Exception{
-		LoginRequest request = new LoginRequest();
-		request.setUsername("username");
-		baseClient.login(request);
+		assertEquals(USER_AGENT + " v1", baseClient.getUserAgent());
 	}
 
 	@Test
-	public void testLogin() throws Exception{
+	public void testLoginWithNullRequest() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.login(null);
+		});
+	}
+
+	@Test
+	public void testLoginWithNullUsername() throws Exception {
+		LoginRequest request = new LoginRequest();
+		request.setPassword("password");
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.login(request);
+		});
+	}
+
+	@Test
+	public void testLoginWithNullPassword() throws Exception {
+		LoginRequest request = new LoginRequest();
+		request.setUsername("username");
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.login(request);
+		});
+	}
+
+	@Test
+	public void testLogin() throws Exception {
 		LoginRequest request = new LoginRequest();
 		request.setUsername("username");
 		request.setPassword("password");
-		when(mockClient.post(any(SimpleHttpRequest.class),anyString()))
-				.thenReturn(mockResponse);
+		when(mockClient.post(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
-		when(mockResponse.getContent()).thenReturn("{"
-				+ "\"sessionToken\":\"token\","
-				+ "\"authenticationReceipt\":\"receipt\","
-				+ "\"acceptsTermsOfUse\":\"true\","
-				+ "}");
+		when(mockResponse.getContent()).thenReturn(
+				"{" + "\"sessionToken\":\"token\"," + "\"authenticationReceipt\":\"receipt\"," + "\"acceptsTermsOfUse\":\"true\"," + "}");
 		LoginResponse loginResponse = new LoginResponse();
 		loginResponse.setAcceptsTermsOfUse(true);
 		loginResponse.setAuthenticationReceipt("receipt");
 		loginResponse.setSessionToken("token");
-		assertEquals(loginResponse , baseClient.login(request));
+		assertEquals(loginResponse, baseClient.login(request));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
-		verify(mockClient).post(captor.capture(),
-				eq(EntityFactory.createJSONObjectForEntity(request).toString()));
-		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/login",
-				captor.getValue().getUri());
+		verify(mockClient).post(captor.capture(), eq(EntityFactory.createJSONObjectForEntity(request).toString()));
+		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/login", captor.getValue().getUri());
 	}
 
 	@Test
-	public void testLoginForAccessToken() throws Exception{
+	public void testLoginForAccessToken() throws Exception {
 		LoginRequest request = new LoginRequest();
 		request.setUsername("username");
 		request.setPassword("password");
-		when(mockClient.post(any(SimpleHttpRequest.class),anyString()))
-				.thenReturn(mockResponse);
+		when(mockClient.post(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
-		when(mockResponse.getContent()).thenReturn("{"
-				+ "\"accessToken\":\"token\","
-				+ "\"authenticationReceipt\":\"receipt\","
-				+ "\"acceptsTermsOfUse\":\"true\","
-				+ "}");
+		when(mockResponse.getContent()).thenReturn(
+				"{" + "\"accessToken\":\"token\"," + "\"authenticationReceipt\":\"receipt\"," + "\"acceptsTermsOfUse\":\"true\"," + "}");
 		LoginResponse loginResponse = new LoginResponse();
 		loginResponse.setAcceptsTermsOfUse(true);
 		loginResponse.setAuthenticationReceipt("receipt");
 		loginResponse.setAccessToken("token");
-		assertEquals(loginResponse , baseClient.loginForAccessToken(request));
+		assertEquals(loginResponse, baseClient.loginForAccessToken(request));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
-		verify(mockClient).post(captor.capture(),
-				eq(EntityFactory.createJSONObjectForEntity(request).toString()));
-		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/login2",
-				captor.getValue().getUri());
+		verify(mockClient).post(captor.capture(), eq(EntityFactory.createJSONObjectForEntity(request).toString()));
+		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/login2", captor.getValue().getUri());
 		assertEquals("token", baseClient.getAccessToken());
 	}
 
@@ -169,632 +173,680 @@ public class BaseClientImplTest {
 		baseClient.setSessionToken("some token");
 
 		baseClient.deleteSessionTokenHeader();
-		
+
 		assertNull(baseClient.getCurrentSessionToken());
 	}
-	
+
 	@Test
 	public void testLogoutForAccessToken() throws Exception {
 		baseClient.logoutForAccessToken();
 
 		assertNull(baseClient.getAuthorizationHeader());
 	}
-	
-	@Test(expected=IllegalStateException.class)
+
+	@Test
 	public void testGetAccessTokenAfterLogout() throws Exception {
 		baseClient.logoutForAccessToken();
 
-		assertNull(baseClient.getAccessToken());
+		assertThrows(IllegalStateException.class, () -> {
+			assertNull(baseClient.getAccessToken());
+		});
 	}
-	
+
 	@Test
 	public void testInvalidateAPIKey() throws Exception {
 		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
-		baseClient.invalidateApiKey();;
+		baseClient.invalidateApiKey();
+		;
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).delete(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/secretKey",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/secretKey", captor.getValue().getUri());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testPutFileToURLWithNullURL() throws Exception {
-		baseClient.putFileToURL(null, mockFile, "contentType");
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.putFileToURL(null, mockFile, "contentType");
+		});
+
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testPutFileToURLWithNullFile() throws Exception {
-		baseClient.putFileToURL(new URL("https://repo-prod.prod.sagebase.org"),
-				null, "contentType");
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.putFileToURL(new URL("https://repo-prod.prod.sagebase.org"), null, "contentType");
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testPutFileToURLWithNullContentType() throws Exception {
-		baseClient.putFileToURL(new URL("https://repo-prod.prod.sagebase.org"),
-				mockFile, null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.putFileToURL(new URL("https://repo-prod.prod.sagebase.org"), mockFile, null);
+		});
 	}
 
 	@Test
 	public void testPutFileToURL() throws Exception {
-		when(mockClient.putFile(any(SimpleHttpRequest.class), any(File.class)))
-				.thenReturn(mockResponse);
+		when(mockClient.putFile(any(SimpleHttpRequest.class), any(File.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("content");
-		assertEquals("content",
-				baseClient.putFileToURL(new URL("https://repo-prod.prod.sagebase.org"),
-						mockFile, "contentType"));
+		assertEquals("content", baseClient.putFileToURL(new URL("https://repo-prod.prod.sagebase.org"), mockFile, "contentType"));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).putFile(captor.capture(), eq(mockFile));
-		assertEquals("https://repo-prod.prod.sagebase.org",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org", captor.getValue().getUri());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testDownloadZippedFileToStringWithNullEndpoint() throws Exception {
-		baseClient.downloadFileToString(null, "uri", true);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.downloadFileToString(null, "uri", true);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testDownloadZippedFileToStringWithNullURI() throws Exception {
-		baseClient.downloadFileToString("endpoint", null, true);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.downloadFileToString("endpoint", null, true);
+		});
 	}
 
 	@Test
 	public void testDownloadFileToString() throws Exception {
-		when(mockClient.get(any(SimpleHttpRequest.class)))
-				.thenReturn(mockResponse);
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
-		when(mockHeader.getValue()).thenReturn("text/plain; charset=UTF-8");
-		when(mockResponse.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
-		
+		when(mockContentTypeHeader.getValue()).thenReturn("text/plain; charset=UTF-8");
+
 		ArgumentCaptor<File> fileCaptor = ArgumentCaptor.forClass(File.class);
-		when(mockClient.getFile(any(SimpleHttpRequest.class), fileCaptor.capture()))
-				.thenAnswer(new Answer<SimpleHttpResponse>() {
-					@Override
-					public SimpleHttpResponse answer(InvocationOnMock invocation) throws Throwable {
-						try (FileOutputStream fos = new FileOutputStream(fileCaptor.getValue())) {
-							fos.write("some content".getBytes());
-						}
-						return mockResponse2;
-					}});
-		
+		when(mockClient.getFile(any(SimpleHttpRequest.class), fileCaptor.capture())).thenAnswer(new Answer<SimpleHttpResponse>() {
+			@Override
+			public SimpleHttpResponse answer(InvocationOnMock invocation) throws Throwable {
+				try (FileOutputStream fos = new FileOutputStream(fileCaptor.getValue())) {
+					fos.write("some content".getBytes());
+				}
+				return mockResponse2;
+			}
+		});
+
 		when(mockResponse2.getStatusCode()).thenReturn(200);
-		when(mockResponse2.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
-		
+		when(mockResponse2.getFirstHeader(CONTENT_TYPE)).thenReturn(mockContentTypeHeader);
+
 		baseClient.downloadFileToString("https://repo-prod.prod.sagebase.org", "/fileToDownload?redirect=false", false);
 
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		ArgumentCaptor<SimpleHttpRequest> redirCaptor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(redirCaptor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false",
-				redirCaptor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false", redirCaptor.getValue().getUri());
 		verify(mockClient).getFile(captor.capture(), fileCaptor.capture());
 		File file = fileCaptor.getValue();
 		assertEquals(fileCaptor.getValue().getName(), file.getName());
 		// has been deleted
 		assertFalse(file.exists());
 	}
-	
-	@Test (expected = IllegalArgumentException.class)
+
+	@Test
 	public void testDownloadFromSynapseWithNullURL() throws Exception {
-		baseClient.downloadFromSynapse(null, "md5", mockFile);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.downloadFromSynapse(null, "md5", mockFile);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testDownloadFromSynapseWithNullFile() throws Exception {
-		baseClient.downloadFromSynapse("url", "md5", null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.downloadFromSynapse("url", "md5", null);
+		});
 	}
 
 	@Test
 	public void testDownloadFromSynapseMd5DoesNotMatch() throws Exception {
-		when(mockFile.getAbsolutePath()).thenReturn("fakePath");
-		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
-				.thenReturn(mockResponse);
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
-		try {
+		when(mockFile.getAbsolutePath()).thenReturn("fakePath");
+		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class))).thenReturn(mockResponse);
+		when(mockResponse.getStatusCode()).thenReturn(200);
+
+		assertThrows(SynapseClientException.class, () -> {
 			baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false", "md5", mockFile);
-			// expected FileNotFoundException when checking md5
-		} catch (Exception e) {
-			// the mockFile doesn't exist
-		}
+		}).getMessage();
+
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false", captor.getValue().getUri());
 	}
 
 	@Test
 	public void testDownloadFromSynapseWithNullMd5() throws Exception {
-		when(mockClient.get(any(SimpleHttpRequest.class)))
-				.thenReturn(mockResponse);
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 
-		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
-			.thenReturn(mockResponse2);
+		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class))).thenReturn(mockResponse2);
 		when(mockResponse2.getStatusCode()).thenReturn(200);
-		when(mockResponse2.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
-		
-		assertEquals(Charset.forName("utf-8"), baseClient.downloadFromSynapse(
-				"https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false", null, mockFile));
+		when(mockContentTypeHeader.getValue()).thenReturn(CONTENT_TYPE_APPLICATION_JSON);
+		when(mockResponse2.getFirstHeader(CONTENT_TYPE)).thenReturn(mockContentTypeHeader);
+
+		assertEquals(Charset.forName("utf-8"),
+				baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false", null, mockFile));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false", captor.getValue().getUri());
 	}
 
 	/*
 	 * PLFM-4349
 	 */
-	@Test (expected = SynapseForbiddenException.class)
+	@Test
 	public void testDownloadFromSynapseWithJsonError() throws Exception {
-		when(mockClient.get(any(SimpleHttpRequest.class)))
-				.thenReturn(mockResponse);
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(403);
 		when(mockResponse.getContent()).thenReturn("{\"reason\":\"User lacks READ_PRIVATE_SUBMISSION access to Evaluation 8719759\"}");
-		baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload", null, mockFile);
-	}
 
-	@Test (expected = SynapseForbiddenException.class)
-	public void testDownloadFromSynapseWithNonJsonError() throws Exception {
-		when(mockClient.get(any(SimpleHttpRequest.class)))
-				.thenReturn(mockResponse);
-		when(mockResponse.getStatusCode()).thenReturn(403);
-		when(mockResponse.getContent()).thenReturn("User lacks READ_PRIVATE_SUBMISSION access to Evaluation 8719759");
-		baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload", null, mockFile);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetJsonWithNullEndpoint() throws Exception{
-		baseClient.getJson(null, "/entity");
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetJsonWithNullURL() throws Exception{
-		baseClient.getJson("https://repo-prod.prod.sagebase.org", null);
+		assertThrows(SynapseForbiddenException.class, () -> {
+			baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload", null, mockFile);
+		});
 	}
 
 	@Test
-	public void testGetJson() throws Exception{
+	public void testDownloadFromSynapseWithNonJsonError() throws Exception {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
-		when(mockResponse.getStatusCode()).thenReturn(200);
-		when(mockResponse.getContent()).thenReturn("{}");
+		when(mockResponse.getStatusCode()).thenReturn(403);
+		when(mockResponse.getContent()).thenReturn("User lacks READ_PRIVATE_SUBMISSION access to Evaluation 8719759");
+
+		assertThrows(SynapseForbiddenException.class, () -> {
+			baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload", null, mockFile);
+		});
+	}
+
+	@Test
+	public void testGetJsonWithNullEndpoint() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getJson(null, "/entity");
+		});
+	}
+
+	@Test
+	public void testGetJsonWithNullURL() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getJson("https://repo-prod.prod.sagebase.org", null);
+		});
+	}
+
+	@Test
+	public void testGetJson() throws Exception {
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+
+		mockJsonResponse("{\"id\":\"0\"}");
+
 		assertNotNull(baseClient.getJson("https://repo-prod.prod.sagebase.org", "/entity"));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testPostJsonWithNullEndpoint() throws Exception{
-		baseClient.postJson(null, "/entity", null, null);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testPostJsonWithNullURL() throws Exception{
-		baseClient.postJson("https://repo-prod.prod.sagebase.org", null, null, null);
+	@Test
+	public void testPostJsonWithNullEndpoint() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.postJson(null, "/entity", null, null);
+		});
 	}
 
 	@Test
-	public void testPostJson() throws Exception{
-		when(mockClient.post(any(SimpleHttpRequest.class), isNull()))
-				.thenReturn(mockResponse);
+	public void testPostJsonWithNullURL() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.postJson("https://repo-prod.prod.sagebase.org", null, null, null);
+		});
+	}
+
+	@Test
+	public void testPostJson() throws Exception {
+		when(mockClient.post(any(SimpleHttpRequest.class), isNull())).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("{}");
 		assertNotNull(baseClient.postJson("https://repo-prod.prod.sagebase.org", "/entity", null, null));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testPutJsonWithNullEndpoint() throws Exception{
-		baseClient.putJson(null, "/entity", null);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testPutJsonWithNullURL() throws Exception{
-		baseClient.putJson("https://repo-prod.prod.sagebase.org", null, null);
+	@Test
+	public void testPutJsonWithNullEndpoint() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.putJson(null, "/entity", null);
+		});
 	}
 
 	@Test
-	public void testPutJson() throws Exception{
-		when(mockClient.put(any(SimpleHttpRequest.class), isNull()))
-				.thenReturn(mockResponse);
+	public void testPutJsonWithNullURL() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.putJson("https://repo-prod.prod.sagebase.org", null, null);
+		});
+	}
+
+	@Test
+	public void testPutJson() throws Exception {
+		when(mockClient.put(any(SimpleHttpRequest.class), isNull())).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("{}");
 		assertNotNull(baseClient.putJson("https://repo-prod.prod.sagebase.org", "/entity", null));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetStringDirectWithNullEndpoint() throws Exception{
-		baseClient.getStringDirect(null, "/entity");
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetStringDirectWithNullURL() throws Exception{
-		baseClient.getStringDirect("https://repo-prod.prod.sagebase.org", null);
+	@Test
+	public void testGetStringDirectWithNullEndpoint() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getStringDirect(null, "/entity");
+		});
 	}
 
 	@Test
-	public void testGetStringDirect() throws Exception{
+	public void testGetStringDirectWithNullURL() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getStringDirect("https://repo-prod.prod.sagebase.org", null);
+		});
+	}
+
+	@Test
+	public void testGetStringDirect() throws Exception {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("content");
-		when(mockHeader.getValue()).thenReturn("text/plain");
-		assertEquals("content",
-				baseClient.getStringDirect("https://repo-prod.prod.sagebase.org", "/entity"));
-	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testPostStringDirectWithNullEndpoint() throws Exception{
-		baseClient.postStringDirect(null, "/entity", null);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testPostStringDirectWithNullURL() throws Exception{
-		baseClient.postStringDirect("https://repo-prod.prod.sagebase.org", null, null);
+		assertEquals("content", baseClient.getStringDirect("https://repo-prod.prod.sagebase.org", "/entity"));
 	}
 
 	@Test
-	public void testPostStringDirect() throws Exception{
-		when(mockClient.post(any(SimpleHttpRequest.class), isNull()))
-				.thenReturn(mockResponse);
+	public void testPostStringDirectWithNullEndpoint() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.postStringDirect(null, "/entity", null);
+		});
+	}
+
+	@Test
+	public void testPostStringDirectWithNullURL() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.postStringDirect("https://repo-prod.prod.sagebase.org", null, null);
+		});
+	}
+
+	@Test
+	public void testPostStringDirect() throws Exception {
+		when(mockClient.post(any(SimpleHttpRequest.class), isNull())).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("content");
-		assertEquals("content",
-				baseClient.postStringDirect("https://repo-prod.prod.sagebase.org", "/entity", null));
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testDeleteUriWithNullEndpoint() throws Exception{
-		baseClient.deleteUri(null, "/entity");
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testDeleteUriWithNullURL() throws Exception{
-		baseClient.deleteUri("https://repo-prod.prod.sagebase.org", null);
+		assertEquals("content", baseClient.postStringDirect("https://repo-prod.prod.sagebase.org", "/entity", null));
 	}
 
 	@Test
-	public void testDeleteUri() throws Exception{
+	public void testDeleteUriWithNullEndpoint() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.deleteUri(null, "/entity");
+		});
+	}
+
+	@Test
+	public void testDeleteUriWithNullURL() throws Exception {
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.deleteUri("https://repo-prod.prod.sagebase.org", null);
+		});
+	}
+
+	@Test
+	public void testDeleteUri() throws Exception {
 		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		baseClient.deleteUri("https://repo-prod.prod.sagebase.org", "/entity");
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testPutJSONEntityWithNullEndpoint() throws Exception {
-		baseClient.putJSONEntity(null, "url", null, EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.putJSONEntity(null, "url", null, EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testPutJSONEntityWithNullURL() throws Exception {
-		baseClient.putJSONEntity("endpoint", null, null, EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.putJSONEntity("endpoint", null, null, EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testPutJSONEntityWithNullReturnClass() throws Exception {
-		baseClient.putJSONEntity("endpoint", "url", null, null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.putJSONEntity("endpoint", "url", null, null);
+		});
 	}
 
 	@Test
 	public void testPutJSONEntity() throws Exception {
-		when(mockClient.put(any(SimpleHttpRequest.class), isNull()))
-				.thenReturn(mockResponse);
+		when(mockClient.put(any(SimpleHttpRequest.class), isNull())).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("{\"id\":\"0\"}");
 		EntityId id = new EntityId();
 		id.setId("0");
-		assertEquals(id,
-				baseClient.putJSONEntity("https://repo-prod.prod.sagebase.org",
-						"/entityId", null, EntityId.class));
+		assertEquals(id, baseClient.putJSONEntity("https://repo-prod.prod.sagebase.org", "/entityId", null, EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).put(captor.capture(), isNull());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId", captor.getValue().getUri());
 	}
 
-
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testVoidPutWithNullEndpoint() throws Exception {
-		baseClient.voidPut(null, "url", null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.voidPut(null, "url", null);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testVoidPutWithNullURL() throws Exception {
-		baseClient.voidPut("endpoint", null, null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.voidPut("endpoint", null, null);
+		});
 	}
 
 	@Test
 	public void testVoidPut() throws Exception {
-		when(mockClient.put(any(SimpleHttpRequest.class), isNull()))
-				.thenReturn(mockResponse);
+		when(mockClient.put(any(SimpleHttpRequest.class), isNull())).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
-		when(mockResponse.getContent()).thenReturn("{\"id\":\"0\"}");
 		baseClient.voidPut("https://repo-prod.prod.sagebase.org", "/entityId", null);
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).put(captor.capture(), isNull());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId", captor.getValue().getUri());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testPostJSONEntityWithNullEndpoint() throws Exception {
-		baseClient.postJSONEntity(null, "url", null, EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.postJSONEntity(null, "url", null, EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testPostJSONEntityWithNullURL() throws Exception {
-		baseClient.postJSONEntity("endpoint", null, null, EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.postJSONEntity("endpoint", null, null, EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testPostJSONEntityWithNullReturnClass() throws Exception {
-		baseClient.postJSONEntity("endpoint", "url", null, null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.postJSONEntity("endpoint", "url", null, null);
+		});
 	}
 
 	@Test
 	public void testPostJSONEntity() throws Exception {
-		when(mockClient.post(any(SimpleHttpRequest.class), isNull()))
-				.thenReturn(mockResponse);
+		when(mockClient.post(any(SimpleHttpRequest.class), isNull())).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("{\"id\":\"0\"}");
 		EntityId id = new EntityId();
 		id.setId("0");
-		assertEquals(id,
-				baseClient.postJSONEntity("https://repo-prod.prod.sagebase.org",
-						"/entityId", null, EntityId.class));
+		assertEquals(id, baseClient.postJSONEntity("https://repo-prod.prod.sagebase.org", "/entityId", null, EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).post(captor.capture(), isNull());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId", captor.getValue().getUri());
 	}
 
-
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testVoidPostWithNullEndpoint() throws Exception {
-		baseClient.voidPost(null, "url", null, null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.voidPost(null, "url", null, null);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testVoidPostWithNullURL() throws Exception {
-		baseClient.voidPost("endpoint", null, null, null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.voidPost("endpoint", null, null, null);
+		});
 	}
 
 	@Test
 	public void testVoidPost() throws Exception {
-		when(mockClient.post(any(SimpleHttpRequest.class), isNull()))
-				.thenReturn(mockResponse);
+		when(mockClient.post(any(SimpleHttpRequest.class), isNull())).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
-		when(mockResponse.getContent()).thenReturn("{\"id\":\"0\"}");
 		baseClient.voidPost("https://repo-prod.prod.sagebase.org", "/entityId", null, null);
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).post(captor.capture(), isNull());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId", captor.getValue().getUri());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetJSONEntityWithNullEndpoint() throws Exception {
-		baseClient.getJSONEntity(null, "url", EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getJSONEntity(null, "url", EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetJSONEntityWithNullURL() throws Exception {
-		baseClient.getJSONEntity("endpoint", null, EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getJSONEntity("endpoint", null, EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetJSONEntityWithNullReturnClass() throws Exception {
-		baseClient.getJSONEntity("endpoint", "url", null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getJSONEntity("endpoint", "url", null);
+		});
 	}
 
 	@Test
 	public void testGetJSONEntityWithNullJSONObject() throws Exception {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
-		when(mockResponse.getStatusCode()).thenReturn(200);
-		when(mockResponse.getContent()).thenReturn("");
-		assertNull(baseClient.getJSONEntity("https://repo-prod.prod.sagebase.org",
-						"/entityId", EntityId.class));
+
+		mockJsonResponse("");
+
+		assertNull(baseClient.getJSONEntity("https://repo-prod.prod.sagebase.org", "/entityId", EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId", captor.getValue().getUri());
 	}
 
 	@Test
 	public void testGetJSONEntity() throws Exception {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
-		when(mockResponse.getStatusCode()).thenReturn(200);
-		when(mockResponse.getContent()).thenReturn("{\"id\":\"0\"}");
+
+		mockJsonResponse("{\"id\":\"0\"}");
+
+		// Successful
 		EntityId id = new EntityId();
 		id.setId("0");
-		assertEquals(id,
-				baseClient.getJSONEntity("https://repo-prod.prod.sagebase.org",
-						"/entityId", EntityId.class));
+		assertEquals(id, baseClient.getJSONEntity("https://repo-prod.prod.sagebase.org", "/entityId", EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId", captor.getValue().getUri());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetPaginatedResultsWithNullEndpoint() throws Exception {
-		baseClient.getPaginatedResults(null, "url", EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getPaginatedResults(null, "url", EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetPaginatedResultsWithNullURL() throws Exception {
-		baseClient.getPaginatedResults("endpoint", null, EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getPaginatedResults("endpoint", null, EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetPaginatedResultsWithNullReturnClass() throws Exception {
-		baseClient.getPaginatedResults("endpoint", "url", null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getPaginatedResults("endpoint", "url", null);
+		});
 	}
 
 	@Test
 	public void testGetPaginatedResults() throws Exception {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
-		when(mockResponse.getContent()).thenReturn("{"
-				+ "\"totalNumberOfResults\":\"0\","
-				+ "\"results\":[],"
-				+ "}");
+
+		mockJsonResponse("{" + "\"totalNumberOfResults\":\"0\"," + "\"results\":[]," + "}");
+
 		PaginatedResults<EntityId> results = new PaginatedResults<EntityId>();
 		results.setTotalNumberOfResults(0);
 		results.setResults(new LinkedList<EntityId>());
-		assertEquals(results,
-				baseClient.getPaginatedResults("https://repo-prod.prod.sagebase.org",
-						"/entityId", EntityId.class));
+		assertEquals(results, baseClient.getPaginatedResults("https://repo-prod.prod.sagebase.org", "/entityId", EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId", captor.getValue().getUri());
 	}
 
-
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetPaginatedResultsByPostWithNullEndpoint() throws Exception {
-		baseClient.getPaginatedResults(null, "url", new EntityId(), EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getPaginatedResults(null, "url", new EntityId(), EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetPaginatedResultsByPostWithNullURL() throws Exception {
-		baseClient.getPaginatedResults("endpoint", null, new EntityId(), EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getPaginatedResults("endpoint", null, new EntityId(), EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetPaginatedResultsByPostWithNullRequestBody() throws Exception {
-		baseClient.getPaginatedResults("endpoint", null, null, EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getPaginatedResults("endpoint", null, null, EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetPaginatedResultsByPostWithNullReturnClass() throws Exception {
-		baseClient.getPaginatedResults("endpoint", "url", new EntityId(), null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getPaginatedResults("endpoint", "url", new EntityId(), null);
+		});
 	}
 
 	@Test
 	public void testGetPaginatedResultsByPost() throws Exception {
-		when(mockClient.post(any(SimpleHttpRequest.class), anyString()))
-				.thenReturn(mockResponse);
+		when(mockClient.post(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
-		when(mockResponse.getContent()).thenReturn("{"
-				+ "\"totalNumberOfResults\":\"0\","
-				+ "\"results\":[],"
-				+ "}");
+		when(mockResponse.getContent()).thenReturn("{" + "\"totalNumberOfResults\":\"0\"," + "\"results\":[]," + "}");
 		PaginatedResults<EntityId> results = new PaginatedResults<EntityId>();
 		results.setTotalNumberOfResults(0);
 		results.setResults(new LinkedList<EntityId>());
 		assertEquals(results,
-				baseClient.getPaginatedResults("https://repo-prod.prod.sagebase.org",
-						"/entityId", new EntityId(), EntityId.class));
+				baseClient.getPaginatedResults("https://repo-prod.prod.sagebase.org", "/entityId", new EntityId(), EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).post(captor.capture(), anyString());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId", captor.getValue().getUri());
 	}
 
-
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetListOfJSONEntityWithNullEndpoint() throws Exception {
-		baseClient.getListOfJSONEntity(null, "url", EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getListOfJSONEntity(null, "url", EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetListOfJSONEntityWithNullURL() throws Exception {
-		baseClient.getListOfJSONEntity("endpoint", null, EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getListOfJSONEntity("endpoint", null, EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetListOfJSONEntityWithNullReturnClass() throws Exception {
-		baseClient.getListOfJSONEntity("endpoint", "url", null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getListOfJSONEntity("endpoint", "url", null);
+		});
 	}
 
 	@Test
 	public void testGetListOfJSONEntity() throws Exception {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
-		when(mockResponse.getStatusCode()).thenReturn(200);
-		when(mockResponse.getContent()).thenReturn("{"
-				+ "\"concreteType\":\"org.sagebionetworks.repo.model.EntityId\","
-				+ "\"list\":[],"
-				+ "}");
+		mockJsonResponse("{" + "\"concreteType\":\"org.sagebionetworks.repo.model.EntityId\"," + "\"list\":[]," + "}");
 		List<EntityId> results = new LinkedList<EntityId>();
-		assertEquals(results,
-				baseClient.getListOfJSONEntity("https://repo-prod.prod.sagebase.org",
-						"/entityId", EntityId.class));
+		assertEquals(results, baseClient.getListOfJSONEntity("https://repo-prod.prod.sagebase.org", "/entityId", EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId", captor.getValue().getUri());
 	}
 
-
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetListOfJSONEntityByPostWithNullEndpoint() throws Exception {
-		baseClient.getListOfJSONEntity(null, "url", new EntityId(), EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getListOfJSONEntity(null, "url", new EntityId(), EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetListOfJSONEntityByPostWithNullURL() throws Exception {
-		baseClient.getListOfJSONEntity("endpoint", null, new EntityId(), EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getListOfJSONEntity("endpoint", null, new EntityId(), EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetListOfJSONEntityByPostWithNullRequestBody() throws Exception {
-		baseClient.getListOfJSONEntity("endpoint", null, null, EntityId.class);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getListOfJSONEntity("endpoint", null, null, EntityId.class);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetListOfJSONEntityByPostWithNullReturnClass() throws Exception {
-		baseClient.getListOfJSONEntity("endpoint", "url", new EntityId(), null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getListOfJSONEntity("endpoint", "url", new EntityId(), null);
+		});
 	}
 
 	@Test
 	public void testGetListOfJSONEntityByPost() throws Exception {
-		when(mockClient.post(any(SimpleHttpRequest.class), anyString()))
-				.thenReturn(mockResponse);
+		when(mockClient.post(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
-		when(mockResponse.getContent()).thenReturn("{"
-				+ "\"concreteType\":\"org.sagebionetworks.repo.model.EntityId\","
-				+ "\"list\":[],"
-				+ "}");
+		when(mockResponse.getContent())
+				.thenReturn("{" + "\"concreteType\":\"org.sagebionetworks.repo.model.EntityId\"," + "\"list\":[]," + "}");
 		List<EntityId> results = new LinkedList<EntityId>();
 		assertEquals(results,
-				baseClient.getListOfJSONEntity("https://repo-prod.prod.sagebase.org",
-						"/entityId", new EntityId(), EntityId.class));
+				baseClient.getListOfJSONEntity("https://repo-prod.prod.sagebase.org", "/entityId", new EntityId(), EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).post(captor.capture(), anyString());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId", captor.getValue().getUri());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetBooleanResultWithNullEndpoint() throws Exception {
-		baseClient.getBooleanResult(null, "url");
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getBooleanResult(null, "url");
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetBooleanResultWithNullURL() throws Exception {
-		baseClient.getBooleanResult("endpoint", null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.getBooleanResult("endpoint", null);
+		});
 	}
 
 	@Test
 	public void testGetBooleanResult() throws Exception {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
-		when(mockResponse.getStatusCode()).thenReturn(200);
-		when(mockResponse.getContent()).thenReturn("{\"result\":\"true\"}");
-		assertEquals(true,
-				baseClient.getBooleanResult("https://repo-prod.prod.sagebase.org", "/entityId"));
+
+		mockJsonResponse("{\"result\":\"true\"}");
+
+		assertEquals(true, baseClient.getBooleanResult("https://repo-prod.prod.sagebase.org", "/entityId"));
+
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
-				captor.getValue().getUri());
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId", captor.getValue().getUri());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testAddDigitalSignatureWithNullURL() throws Exception {
-		baseClient.addDigitalSignature(null, new HashMap<String, String>());
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.addDigitalSignature(null, new HashMap<String, String>());
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testAddDigitalSignatureWithNullHeaders() throws Exception {
-		baseClient.addDigitalSignature("https://repo-prod.prod.sagebase.org/entityId", null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			baseClient.addDigitalSignature("https://repo-prod.prod.sagebase.org/entityId", null);
+		});
 	}
 
 	@Test
@@ -802,32 +854,31 @@ public class BaseClientImplTest {
 		baseClient.setUsername("username");
 		baseClient.setApiKey("apiKey");
 		HashMap<String, String> headers = new HashMap<String, String>();
-		baseClient.addDigitalSignature(
-				"https://repo-prod.prod.sagebase.org/entityId", headers);
+		baseClient.addDigitalSignature("https://repo-prod.prod.sagebase.org/entityId", headers);
 		assertEquals("username", headers.get(AuthorizationConstants.USER_ID_HEADER));
 		assertNotNull(headers.get(AuthorizationConstants.SIGNATURE_TIMESTAMP));
 		assertNotNull(headers.get(AuthorizationConstants.SIGNATURE));
 	}
 
-	@Test (expected = SynapseClientException.class)
+	@Test
 	public void testPerformRequestWithRetryWithNullURL() throws Exception {
-		baseClient.performRequestWithRetry(null, GET, null, null);
+		assertThrows(SynapseClientException.class, () -> {
+			baseClient.performRequestWithRetry(null, GET, null, null);
+		});
 	}
 
-	@Test (expected = SynapseClientException.class)
+	@Test
 	public void testPerformRequestWithRetryWithNullMethod() throws Exception {
-		baseClient.performRequestWithRetry(
-				"https://repo-prod.prod.sagebase.org/entityId",
-				null, null, null);
+		assertThrows(SynapseClientException.class, () -> {
+			baseClient.performRequestWithRetry("https://repo-prod.prod.sagebase.org/entityId", null, null, null);
+		});
 	}
 
 	@Test
 	public void testPerformRequestWithRetrySuccess() throws Exception {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
-		assertEquals(mockResponse, baseClient.performRequestWithRetry(
-				"https://repo-prod.prod.sagebase.org/entityId",
-				GET, null, null));
+		assertEquals(mockResponse, baseClient.performRequestWithRetry("https://repo-prod.prod.sagebase.org/entityId", GET, null, null));
 		verify(mockClient).get(any(SimpleHttpRequest.class));
 	}
 
@@ -835,55 +886,63 @@ public class BaseClientImplTest {
 	public void testPerformRequestWithoutRetryFailure() throws Exception {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(500);
-		assertEquals(mockResponse, baseClient.performRequestWithRetry(
-				"https://repo-prod.prod.sagebase.org/entityId",
-				GET, null, null));
+		assertEquals(mockResponse, baseClient.performRequestWithRetry("https://repo-prod.prod.sagebase.org/entityId", GET, null, null));
 		verify(mockClient).get(any(SimpleHttpRequest.class));
 	}
 
 	@Test
-	public void testPerformRequestWithRetryFailure() throws Exception {
+	public void testPerformRequestWithRetryFailureOnServiceUnavailable() throws Exception {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
-		when(mockResponse.getStatusCode()).thenReturn(503);
-		try {
-			baseClient.performRequestWithRetry(
-					"https://repo-prod.prod.sagebase.org/entityId",
-					GET, null, null);
-			fail("expect SynapseServerException");
-		} catch (SynapseServerException e) {
-			// as expected
-		}
-		verify(mockClient, times(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT))
-				.get(any(SimpleHttpRequest.class));
+		when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_SERVICE_UNAVAILABLE);
+
+		assertThrows(SynapseServiceUnavailable.class, () -> {
+			baseClient.performRequestWithRetry("https://repo-prod.prod.sagebase.org/entityId", GET, null, null);
+		});
+
+		verify(mockClient, times(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT)).get(any(SimpleHttpRequest.class));
 	}
 
 	@Test
-	public void testSetSessionId(){
-		//method under test
-		baseClient.setSessionId(sessionIdVal);
+	public void testPerformRequestWithRetryFailureOnTooManyRequests() throws Exception {
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+		when(mockResponse.getStatusCode()).thenReturn(SynapseTooManyRequestsException.TOO_MANY_REQUESTS_STATUS_CODE);
 
-		verify(mockClient).addCookie("repo-prod.prod.sagebase.org", "sessionID", sessionIdVal);
+		assertThrows(SynapseTooManyRequestsException.class, () -> {
+			baseClient.performRequestWithRetry("https://repo-prod.prod.sagebase.org/entityId", GET, null, null);
+		});
+
+		verify(mockClient, times(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT)).get(any(SimpleHttpRequest.class));
 	}
 
 	@Test
-	public void testGetSessionId(){
-		when(mockClient.getFirstCookieValue("repo-prod.prod.sagebase.org", "sessionID")).thenReturn(sessionIdVal);
+	public void testSetSessionId() {
+		// method under test
+		baseClient.setSessionId(SESSION_ID_VALUE);
 
-		//method under test
+		verify(mockClient).addCookie("repo-prod.prod.sagebase.org", "sessionID", SESSION_ID_VALUE);
+	}
+
+	@Test
+	public void testGetSessionId() {
+		when(mockClient.getFirstCookieValue("repo-prod.prod.sagebase.org", "sessionID")).thenReturn(SESSION_ID_VALUE);
+
+		// method under test
 		String result = baseClient.getSessionId();
 
-		assertEquals(sessionIdVal, result);
+		assertEquals(SESSION_ID_VALUE, result);
 		verify(mockClient).getFirstCookieValue("repo-prod.prod.sagebase.org", "sessionID");
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testSetRepositoryEndpoint_malformedRepoEndpoint(){
-		//set a bad endpoint
-		baseClient.setRepositoryEndpoint("asdf.asdf.asdf...");
+	@Test
+	public void testSetRepositoryEndpoint_malformedRepoEndpoint() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// set a bad endpoint
+			baseClient.setRepositoryEndpoint("asdf.asdf.asdf...");
+		});
 	}
 
 	@Test
-	public void testSetRepositoryEndpoint(){
+	public void testSetRepositoryEndpoint() {
 		String repoEndpoint = "https://my.test.endpoint.com/some/path";
 
 		baseClient.setRepositoryEndpoint(repoEndpoint);
@@ -891,4 +950,14 @@ public class BaseClientImplTest {
 		assertEquals(repoEndpoint, baseClient.getRepoEndpoint());
 		assertEquals("my.test.endpoint.com", baseClient.repoEndpointBaseDomain);
 	}
+
+	private void mockJsonResponse(String content) {
+		when(mockResponse.getStatusCode()).thenReturn(200);
+		when(mockResponse.getContent()).thenReturn(content);
+		when(mockContentLengthHeader.getValue()).thenReturn("1024");
+		when(mockResponse.getFirstHeader(CONTENT_LENGTH)).thenReturn(mockContentLengthHeader);
+		when(mockContentTypeHeader.getValue()).thenReturn(CONTENT_TYPE_APPLICATION_JSON);
+		when(mockResponse.getFirstHeader(CONTENT_TYPE)).thenReturn(mockContentTypeHeader);
+	}
+
 }

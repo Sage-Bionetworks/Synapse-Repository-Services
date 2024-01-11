@@ -1,16 +1,20 @@
 package org.sagebionetworks.client;
 
-import static org.junit.Assert.assertEquals;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.ObjectType;
 
 
 public class SynapseAdministrationTest {
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBuildListMessagesURLNullStartNumber(){
-		SynapseAdminClientImpl.buildListMessagesURL(null, ObjectType.EVALUATION, new Long(1));
+		assertThrows(IllegalArgumentException.class, () -> {			
+			SynapseAdminClientImpl.buildListMessagesURL(null, ObjectType.EVALUATION, new Long(1));
+		});
 	}
 	@Test
 	public void testBuildListMessagesURL(){
@@ -40,14 +44,18 @@ public class SynapseAdministrationTest {
 		assertEquals(expected, url);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBuildPublishMessagesURLQueueNameNull(){
-		SynapseAdminClientImpl.buildPublishMessagesURL(null, new Long(345), ObjectType.ACTIVITY, new Long(888));
+		assertThrows(IllegalArgumentException.class, () -> {
+			SynapseAdminClientImpl.buildPublishMessagesURL(null, new Long(345), ObjectType.ACTIVITY, new Long(888));
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBuildPublishMessagesURLStartNumberNull(){
-		SynapseAdminClientImpl.buildPublishMessagesURL("some-queue", null, ObjectType.ACTIVITY, new Long(888));
+		assertThrows(IllegalArgumentException.class, () -> {
+			SynapseAdminClientImpl.buildPublishMessagesURL("some-queue", null, ObjectType.ACTIVITY, new Long(888));
+		});
 	}
 	
 	@Test

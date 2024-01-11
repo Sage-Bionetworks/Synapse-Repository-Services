@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
@@ -320,7 +321,7 @@ public class MultipartUploadDAOImplTest {
 			
 			// Start a new transaction and try to get another lock
 			txTemplate.executeWithoutResult( txStatus2 -> {
-				assertThrows(TemporarilyUnavailableException.class, () -> {					
+				assertThrows(TooManyRequestsException.class, () -> {					
 					// call under test
 					multipartUplaodDAO.getUploadStatus(status.getMultipartUploadStatus().getUploadId(), withLock);
 				});

@@ -40,6 +40,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
@@ -48,7 +49,6 @@ import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.CannotAcquireLockException;
@@ -303,7 +303,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("MultipartUploadStatus cannot be found for id: " + id);
 		} catch (CannotAcquireLockException e) {
-			throw new TemporarilyUnavailableException("Upload status temporarily unavailable, please try again later.", e);
+			throw new TooManyRequestsException("Upload status temporarily unavailable, please try again later.", e);
 		}
 	}
 
