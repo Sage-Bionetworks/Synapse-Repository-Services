@@ -29,7 +29,6 @@
 	<!-- Load the triggers and the scheduler -->
   	<import resource="classpath:cloudwatch-trigger-spb.xml" />
 
-	<import resource="classpath:managers-triggers-import.xml" />
 	<import resource="classpath:managers-topic-publisher-triggers-import.xml" />
 	<import resource="classpath:repository-triggers-import.xml" />
 
