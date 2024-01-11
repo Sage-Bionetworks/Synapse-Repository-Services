@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.asynch;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -9,13 +8,10 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.audit.dao.ObjectRecordDAO;
-import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Snapshotable;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -25,7 +21,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.asynch.ReadOnlyRequestBody;
-import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -59,8 +54,6 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	AsynchJobQueuePublisher asynchJobQueuePublisher;
 	@Autowired
 	JobHashProvider jobHashProvider;
-	@Autowired
-	ObjectRecordDAO objectRecordDAO;
 	@Autowired
 	StackConfiguration stackConfig;
 	@Autowired
@@ -218,11 +211,6 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		if(status.getRequestBody() instanceof CacheableRequestBody){
 			CacheableRequestBody request = (CacheableRequestBody) status.getRequestBody();
 			requestHash = jobHashProvider.getJobHash(request);
-		}
-		// capture the body of the response
-		if (body instanceof Snapshotable) {
-			ObjectRecord record = ObjectRecordBuilderUtils.buildObjectRecord(body, System.currentTimeMillis());
-			objectRecordDAO.saveBatch(Arrays.asList(record), record.getJsonClassName());
 		}
 		long runtimeMS = asynchJobStatusDao.setComplete(jobId, body, requestHash);
 		// Record the runtime for this job.

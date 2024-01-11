@@ -1,25 +1,51 @@
 package org.sagebionetworks.repo.manager.file;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.SdkClientException;
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.StorageClass;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.Upload;
-import com.amazonaws.services.s3.transfer.model.UploadResult;
-import com.amazonaws.util.BinaryUtils;
-import com.google.cloud.storage.Blob;
-import com.google.cloud.storage.HttpMethod;
-import com.google.cloud.storage.StorageException;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.MAX_REQUESTS_PER_CALL;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -29,7 +55,6 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
@@ -37,9 +62,7 @@ import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
-import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -49,7 +72,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
@@ -90,57 +112,27 @@ import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.upload.multipart.MultipartUtils;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.FILE_HANDLE_COPY_RECORD_TYPE;
-import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.MAX_REQUESTS_PER_CALL;
-import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.RESPONSE_CONTENT_DISPOSITION;
-import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.RESPONSE_CONTENT_TYPE;
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.SdkClientException;
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.StorageClass;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.Upload;
+import com.amazonaws.services.s3.transfer.model.UploadResult;
+import com.amazonaws.util.BinaryUtils;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.HttpMethod;
+import com.google.cloud.storage.StorageException;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * A unit test for the FileUploadManagerImpl.
@@ -193,8 +185,6 @@ public class FileHandleManagerImplTest {
 	AuthorizationManager mockAuthorizationManager;
 	@Mock
 	StorageLocationDAO mockStorageLocationDao;
-	@Mock
-	ObjectRecordQueue mockObjectRecordQueue;
 	@Mock
 	IdGenerator mockIdGenerator;
 	@Mock
@@ -264,7 +254,6 @@ public class FileHandleManagerImplTest {
 	FileHandleAssociation fha2;
 	FileHandleAssociation fhaMissing;
 	BatchFileRequest batchRequest;
-	ObjectRecord successRecord;
 	
 	private String sessionId;
 
@@ -401,8 +390,6 @@ public class FileHandleManagerImplTest {
 		fhaMissing.setFileHandleId("555");
 		associations = Lists.newArrayList(fha1, fha2, fhaMissing);
 		
-		successRecord = FileHandleManagerImpl.createObjectRecord(mockUser.getId().toString(), fha2, 123L);
-
 		batchRequest = new BatchFileRequest();
 		batchRequest.setRequestedFiles(associations);
 		batchRequest.setIncludeFileHandles(true);
@@ -2217,16 +2204,6 @@ public class FileHandleManagerImplTest {
 		assertNotNull(actualFileEvent.getTimestamp());
 		FileEvent expectedFileEvent = getFileEvent(mockUser, actualFileEvent.getTimestamp(), FileEventType.FILE_DOWNLOAD, fha2);
 		assertEquals(expectedFileEvent, actualFileEvent);
-		// Verify a download record is created for the success case.
-		ArgumentCaptor<ObjectRecordBatch> batchCapture = ArgumentCaptor.forClass(ObjectRecordBatch.class);
-		verify(mockObjectRecordQueue).pushObjectRecordBatch(batchCapture.capture());
-		ObjectRecordBatch batch = batchCapture.getValue();
-		assertNotNull(batch.getRecords());
-		assertEquals(1, batch.getRecords().size());
-		ObjectRecord record = batch.getRecords().get(0);
-		assertEquals(successRecord.getJsonClassName(), record.getJsonClassName());
-		assertEquals(successRecord.getJsonString(), record.getJsonString());
-		assertNotNull(successRecord.getTimestamp());
 	}
 	
 	@Test
@@ -2265,8 +2242,6 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getFileHandle());
 		assertNotNull(result.getPreSignedURL());
 		assertNull(result.getPreviewPreSignedURL());
-		// a batch of records should be pushed.
-		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are sent
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualFileEvent = fileEventCaptor.getValue();
@@ -2312,8 +2287,6 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getFileHandle());
 		assertNotNull(result.getPreSignedURL());
 		assertNull(result.getPreviewPreSignedURL());
-		// a batch of records should be pushed.
-		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are sent
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualFileEvent = fileEventCaptor.getValue();
@@ -2359,8 +2332,6 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getFileHandle());
 		assertNull(result.getPreSignedURL());
 		assertNotNull(result.getPreviewPreSignedURL());
-		// no downloads should be pushed since no urls were returned.
-		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		verify(mockFileHandleDao, times(2)).getAllFileHandlesBatch(any(Iterable.class));
 		// Verifies that download stats are never sent
 		verifyZeroInteractions(messenger);
@@ -2399,8 +2370,6 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getFileHandle());
 		assertNull(result.getPreSignedURL());
 		assertNull(result.getPreviewPreSignedURL());
-		// no downloads should be pushed since no urls were returned.
-		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		verify(mockFileHandleDao).getAllFileHandlesBatch(any(Iterable.class));
 		// Verifies that download stats are never sent
 		verifyZeroInteractions(messenger);
@@ -2436,8 +2405,6 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getFailureCode());
 		assertNotNull(result.getFileHandle());
 		assertNull(result.getPreSignedURL());
-		// no downloads should be pushed since no urls were returned.
-		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are never sent);
 		verifyZeroInteractions(messenger);
 	}
@@ -2472,8 +2439,6 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getFailureCode());
 		assertNotNull(result.getFileHandle());
 		assertNull(result.getPreSignedURL());
-		// no downloads should be pushed since no urls were returned.
-		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are never sent
 		verifyZeroInteractions(messenger);
 	}
@@ -2547,8 +2512,6 @@ public class FileHandleManagerImplTest {
 		verify(mockFileHandleDao, never()).getAllFileHandlesBatch(anyCollection());
 		// no urls should be generated.
 		verify(mockS3Client, never()).generatePresignedUrl(any(GeneratePresignedUrlRequest.class));
-		// no records pushed
-		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		// Verifies that download stats are never sent
 		verifyZeroInteractions(messenger);
 	}
@@ -2594,7 +2557,6 @@ public class FileHandleManagerImplTest {
 		assertEquals("https://s3.amazonaws.com/some.bucket.name/somepath/file.txt", result.getPreSignedURL());
 		assertNull(result.getPreviewPreSignedURL());
 
-		verify(mockObjectRecordQueue, times(1)).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));
 		verify(messenger, times(1)).publishMessageAfterCommit(fileEventCaptor.capture());
 		FileEvent actualFileEvent = fileEventCaptor.getValue();
@@ -2641,7 +2603,6 @@ public class FileHandleManagerImplTest {
 		assertNotNull(results.getRequestedFiles());
 		assertEquals(2, results.getRequestedFiles().size());
 
-		verify(mockObjectRecordQueue, times(1)).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));
 		verify(messenger, times(2)).publishMessageAfterCommit(fileEventCaptor.capture());
 		List<FileEvent> fileEvents = fileEventCaptor.getAllValues();
@@ -2818,17 +2779,6 @@ public class FileHandleManagerImplTest {
 
 		assertEquals(newFileHandle, second.getNewFileHandle());
 
-		ArgumentCaptor<ObjectRecordBatch> recordCaptor = ArgumentCaptor.forClass(ObjectRecordBatch.class);
-		verify(mockObjectRecordQueue).pushObjectRecordBatch(recordCaptor.capture());
-		ObjectRecordBatch recordBatch = recordCaptor.getValue();
-		assertNotNull(recordBatch);
-		assertEquals(FILE_HANDLE_COPY_RECORD_TYPE, recordBatch.getType());
-		List<ObjectRecord> records = recordBatch.getRecords();
-		assertNotNull(records);
-		assertEquals(1, records.size());
-		ObjectRecord record = records.get(0);
-		assertEquals(EntityFactory.createJSONStringForEntity(FileHandleCopyUtils.createCopyRecord(mockUser.getId().toString(), newId.toString(), fha2)),
-				record.getJsonString());
 	}
 
 	@Test

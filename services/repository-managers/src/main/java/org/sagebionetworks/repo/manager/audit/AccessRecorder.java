@@ -1,6 +1,8 @@
-package org.sagebionetworks.repo.model.audit;
+package org.sagebionetworks.repo.manager.audit;
 
 import java.io.IOException;
+
+import org.sagebionetworks.repo.model.audit.AccessRecord;
 
 /**
  * Abstraction for recording access events.
@@ -20,6 +22,6 @@ public interface AccessRecorder {
 	 * @return
 	 * @throws IOException
 	 */
-	public String timerFired() throws IOException;
+	public void timerFired();
 
 }

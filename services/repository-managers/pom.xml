@@ -26,10 +26,6 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-jdomodels</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-audit</artifactId>
-		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>

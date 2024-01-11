@@ -1,13 +1,8 @@
 package org.sagebionetworks.snapshot.workers.writers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.sagebionetworks.snapshot.workers.writers.CertifiedUserPassingRecordWriter.LIMIT;
 
 import java.io.IOException;
@@ -26,24 +21,20 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.audit.dao.ObjectRecordDAO;
-import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.CertifiedUserManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.audit.KinesisJsonEntityRecord;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 
 import com.amazonaws.services.sqs.model.Message;
-import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -54,8 +45,6 @@ public class CertifiedUserPassingRecordWriterTest {
 	private CertifiedUserManager mockCertifiedUserManager;
 	@Mock
 	private UserManager mockUserManager;
-	@Mock
-	private ObjectRecordDAO mockObjectRecordDAO;
 	@Mock
 	private ProgressCallback mockCallback;
 	@Mock
@@ -81,7 +70,6 @@ public class CertifiedUserPassingRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-		verify(mockObjectRecordDAO, never()).saveBatch(anyList(), anyString());
 	}
 
 	@Test
@@ -105,17 +93,12 @@ public class CertifiedUserPassingRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-
-		verifyZeroInteractions(mockObjectRecordDAO);
 	}
 
 	@Test
 	public void onePageOfRecords() throws IOException {
 		PassingRecord passingRecord = new PassingRecord();
 		long timestamp = System.currentTimeMillis();
-		ObjectRecord record = ObjectRecordBuilderUtils.buildObjectRecord(passingRecord, timestamp);
-		List<ObjectRecord> orList = new ArrayList<ObjectRecord>();
-		orList.add(record);
 		PaginatedResults<PassingRecord> pageOne = new PaginatedResults<PassingRecord>();
 		pageOne.setTotalNumberOfResults(1);
 		pageOne.setResults(Arrays.asList(passingRecord));
@@ -129,7 +112,6 @@ public class CertifiedUserPassingRecordWriterTest {
 		KinesisObjectSnapshotRecord expectedSnapshot = KinesisObjectSnapshotRecord.map(changeMessage, passingRecord);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 
-		verify(mockObjectRecordDAO).saveBatch(orList, record.getJsonClassName());
 		verify(logger).logBatch(eq("certifiedUserPassingSnapshots"), recordCaptor.capture());
 		expectedSnapshot.withSnapshotTimestamp(recordCaptor.getValue().get(0).getSnapshotTimestamp());
 		assertEquals(List.of(expectedSnapshot), recordCaptor.getValue());
@@ -139,7 +121,6 @@ public class CertifiedUserPassingRecordWriterTest {
 	public void twoPagesOfRecords() throws IOException {
 		PassingRecord passingRecord = new PassingRecord();
 		long timestamp = System.currentTimeMillis();
-		ObjectRecord record = ObjectRecordBuilderUtils.buildObjectRecord(passingRecord, timestamp);
 		PaginatedResults<PassingRecord> pageOne = new PaginatedResults<PassingRecord>();
 		pageOne.setTotalNumberOfResults(11);
 		pageOne.setResults(Arrays.asList(passingRecord));
@@ -153,7 +134,6 @@ public class CertifiedUserPassingRecordWriterTest {
 		KinesisObjectSnapshotRecord expectedSnapshotTwo = KinesisObjectSnapshotRecord.map(changeMessage, passingRecord);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 
-		verify(mockObjectRecordDAO).saveBatch(Arrays.asList(record, record), record.getJsonClassName());
 		verify(logger).logBatch(eq("certifiedUserPassingSnapshots"), recordCaptor.capture());
 		expectedSnapshotOne.withSnapshotTimestamp(recordCaptor.getAllValues().get(0).get(0).getSnapshotTimestamp());
 		expectedSnapshotTwo.withSnapshotTimestamp(recordCaptor.getAllValues().get(0).get(1).getSnapshotTimestamp());

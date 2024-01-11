@@ -7,9 +7,9 @@ import java.util.stream.Collectors;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
+import org.sagebionetworks.util.VirtualMachineIdProvider;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 

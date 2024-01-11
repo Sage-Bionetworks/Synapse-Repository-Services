@@ -30,7 +30,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -72,8 +71,6 @@ public class AsynchJobStatusManagerImplTest {
 	AsynchJobQueuePublisher mockAsynchJobQueuePublisher;
 	@Mock
 	JobHashProvider mockJobHashProvider;
-	@Mock
-	ObjectRecordDAO mockObjectRecordDAO;
 	@Mock
 	StackConfiguration mockStackConfig;
 	@Mock

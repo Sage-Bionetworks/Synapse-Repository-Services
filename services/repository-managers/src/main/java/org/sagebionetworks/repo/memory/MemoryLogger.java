@@ -4,11 +4,11 @@ import java.util.Collections;
 import java.util.Date;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.MetricStats;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.VirtualMachineIdProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;

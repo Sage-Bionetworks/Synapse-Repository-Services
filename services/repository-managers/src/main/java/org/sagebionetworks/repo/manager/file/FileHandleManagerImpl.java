@@ -34,8 +34,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.audit.dao.ObjectRecordBatch;
-import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
@@ -47,7 +45,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
-import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -58,7 +55,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
@@ -83,7 +79,6 @@ import org.sagebionetworks.repo.model.file.FileEventType;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.file.FileHandleCopyRecord;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -154,10 +149,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	private static final String CLOUD_WATCH_METRIC_UNAVAILABLE_FILE_ACCESSED = "UnavailableFileHandleAccessed";
 
-	private static final String FILE_DOWNLOAD_RECORD_TYPE = FileDownloadRecord.class.getSimpleName().toLowerCase();
-
-	public static final String FILE_HANDLE_COPY_RECORD_TYPE = FileHandleCopyRecord.class.getSimpleName().toLowerCase();
-
 	public static final String MUST_INCLUDE_EITHER = "Must include either FileHandles or pre-signed URLs or preview pre-signed URLs";
 
 	public static final String UNAUTHORIZED_PROXY_FILE_HANDLE_MSG = "Only the creator of the ProxyStorageLocationSettings or a user with the 'create' permission on ProxyStorageLocationSettings.benefactorId can create a ProxyFileHandle using this storage location ID.";
@@ -205,9 +196,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	private NodeManager nodeManager;
-	
-	@Autowired
-	private ObjectRecordQueue objectRecordQueue;
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -1331,7 +1319,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		List<FileResult> requestedFiles = new LinkedList<FileResult>();
 		Set<String> fileHandleIdsToFetch = new HashSet<String>();
 		Map<String, FileHandleAssociation> idToFileHandleAssociation = new HashMap<String, FileHandleAssociation>(request.getRequestedFiles().size());
-		List<ObjectRecord> downloadRecords = new LinkedList<ObjectRecord>();
 		List<FileEvent> fileEvents = new LinkedList<>();
 		
 		for(FileHandleAssociationAuthorizationStatus fhas: authResults){
@@ -1384,9 +1371,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 							fileEvents.add(FileEventUtils.buildFileEvent(FileEventType.FILE_DOWNLOAD, userInfo.getId(),
 									association, config.getStack(), config.getStackInstance()).setSessionId(userInfo.getContext().getSessionId()));
-							
-							ObjectRecord record = createObjectRecord(userId, association, now);
-							downloadRecords.add(record);
 						}
 						if (request.getIncludePreviewPreSignedURLs()) {
 							if (handle instanceof CloudProviderFileHandleInterface) {
@@ -1402,11 +1386,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				}
 			}
 		}
-		// record the downloads for the audit
-		if(!downloadRecords.isEmpty()){
-			// Push the records to queue
-			objectRecordQueue.pushObjectRecordBatch(new ObjectRecordBatch(downloadRecords, FILE_DOWNLOAD_RECORD_TYPE));
-		}
 
 		fileEvents.forEach(messenger::publishMessageAfterCommit);
 
@@ -1415,21 +1394,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return batch;
 	}
 	
-	/**
-	 * Build an ObjectRecord for a file download.
-	 * 
-	 * @param userId
-	 * @param association
-	 * @param nowMs
-	 * @return
-	 */
-	static ObjectRecord createObjectRecord(String userId, FileHandleAssociation association, long nowMs){
-		FileDownloadRecord record = new FileDownloadRecord();
-		record.setDownloadedFile(association);
-		record.setUserId(userId);
-		return ObjectRecordBuilderUtils.buildObjectRecord(record, nowMs);
-	}
-
 	@WriteTransaction
 	@Override
 	public BatchFileHandleCopyResult copyFileHandles(UserInfo userInfo, BatchFileHandleCopyRequest request) {
@@ -1464,10 +1428,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 
 		String userId = userInfo.getId().toString();
-		long now = System.currentTimeMillis();
 		Map<String, FileHandleCopyRequest> map = FileHandleCopyUtils.getRequestMap(request);
 		List<FileHandle> toCreate = new ArrayList<FileHandle>();
-		List<ObjectRecord> copyRecords = new LinkedList<ObjectRecord>();
 		// lookup the file handles.
 		Map<String, FileHandle> fileHandles = fileHandleDao.getAllFileHandlesBatch(fileHandleIdsToFetch);
 
@@ -1480,20 +1442,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 					FileHandle newFileHandle = FileHandleCopyUtils.createCopy(userId, original, map.get(fhcr.getOriginalFileHandleId()), idGenerator.generateNewId(IdType.FILE_IDS).toString());
 					toCreate.add(newFileHandle);
 					fhcr.setNewFileHandle(newFileHandle);
-					// capture the data for audit
-					FileHandleCopyRecord fileHandleCopyRecord = FileHandleCopyUtils.createCopyRecord(userId, newFileHandle.getId(), map.get(fhcr.getOriginalFileHandleId()).getOriginalFile());
-					ObjectRecord record = ObjectRecordBuilderUtils.buildObjectRecord(fileHandleCopyRecord, now);
-					copyRecords.add(record);
 				}
 			}
 		}
 		if (!toCreate.isEmpty()) {
 			fileHandleDao.createBatch(toCreate);
-		}
-		// for audit
-		if(!copyRecords.isEmpty()){
-			// Push the records to queue
-			objectRecordQueue.pushObjectRecordBatch(new ObjectRecordBatch(copyRecords, FILE_HANDLE_COPY_RECORD_TYPE));
 		}
 
 		return result;

@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.web;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -8,15 +11,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.auth.HttpAuthUtil;
-import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
+import org.sagebionetworks.repo.manager.audit.AccessRecorder;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
-import org.sagebionetworks.repo.model.audit.AccessRecorder;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.VirtualMachineIdProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -29,7 +31,8 @@ import org.springframework.web.servlet.ModelAndView;
  */
 public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 
-
+	private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneOffset.UTC);
+	private static final String INSTANCE_PREFIX_TEMPLATE = "%1$09d";
 
 	/**
 	 * This map keeps track of the current record for each thread.
@@ -89,9 +92,9 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		data.setUserAgent(request.getHeader("User-Agent"));
 		data.setXForwardedFor(IpAddressUtil.getIpAddress(request));
 		data.setVia(request.getHeader("Via"));
-		data.setDate(KeyGeneratorUtil.getDateString(data.getTimestamp()));
+		data.setDate(DATE_FORMATTER.format(Instant.ofEpochMilli(data.getTimestamp())));
 		data.setStack(stackConfiguration.getStack());
-		data.setInstance(KeyGeneratorUtil.getInstancePrefix(stackConfiguration.getStackInstanceNumber()));
+		data.setInstance(String.format(INSTANCE_PREFIX_TEMPLATE, stackConfiguration.getStackInstanceNumber()));
 		data.setVmId(VirtualMachineIdProvider.getVMID());
 		data.setQueryString(request.getQueryString());
 		data.setOauthClientId(getOAuthClientId(request));
@@ -103,7 +106,7 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		threadToRecordMap.put(Thread.currentThread().getId(), data);
 		return true;
 	}
-
+	
 	@Override
 	public void postHandle(HttpServletRequest request,
 			HttpServletResponse response, Object handler, ModelAndView arg3)
@@ -130,7 +133,7 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		// If there is an exception then it failed.
 		int status = response.getStatus();
 		data.setSuccess(exception == null && status >= 200 && status <= 299);
-		data.setResponseStatus(new Long(status));
+		data.setResponseStatus(Long.valueOf(status));
 		// Save this record
 		accessRecorder.save(data);
 		// Clear the logging thread context

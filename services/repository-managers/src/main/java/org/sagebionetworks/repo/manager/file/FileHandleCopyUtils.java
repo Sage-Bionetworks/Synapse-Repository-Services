@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.file.FileHandleCopyRecord;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -104,22 +103,4 @@ public class FileHandleCopyUtils {
 		return false;
 	}
 
-	/**
-	 * Create a record that captures info about FileHandle copy operation.
-	 * 
-	 * @param userId
-	 * @param newFileHandleId
-	 * @param originalFile
-	 * @return
-	 */
-	public static FileHandleCopyRecord createCopyRecord(String userId, String newFileHandleId, FileHandleAssociation originalFile) {
-		ValidateArgument.required(userId, "userId");
-		ValidateArgument.required(newFileHandleId, "newFileHandleId");
-		ValidateArgument.required(originalFile, "originalFile");
-		FileHandleCopyRecord record = new FileHandleCopyRecord();
-		record.setUserId(userId);
-		record.setOriginalFileHandle(originalFile);
-		record.setNewFileHandleId(newFileHandleId);
-		return record;
-	}
 }

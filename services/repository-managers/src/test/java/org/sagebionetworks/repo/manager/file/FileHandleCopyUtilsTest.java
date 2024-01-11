@@ -1,10 +1,11 @@
 package org.sagebionetworks.repo.manager.file;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,26 +16,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.file.FileHandleCopyRecord;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 public class FileHandleCopyUtilsTest {
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetOriginalFilesWithNullBatch() {
-		FileHandleCopyUtils.getOriginalFiles(null);
+		assertThrows(IllegalArgumentException.class, () -> {			
+				FileHandleCopyUtils.getOriginalFiles(null);
+		});
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetOriginalFilesWithNullRequestList() {
-		FileHandleCopyUtils.getOriginalFiles(new BatchFileHandleCopyRequest());
+		assertThrows(IllegalArgumentException.class, () -> {
+			FileHandleCopyUtils.getOriginalFiles(new BatchFileHandleCopyRequest());
+		});
 	}
 
 	@Test
@@ -73,14 +77,18 @@ public class FileHandleCopyUtilsTest {
 		assertEquals(expected, FileHandleCopyUtils.getOriginalFiles(batch));
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetRequestMapWithNullBatch() {
-		FileHandleCopyUtils.getRequestMap(null);
+		assertThrows(IllegalArgumentException.class, () -> {			 
+			FileHandleCopyUtils.getRequestMap(null);
+		});
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetRequestMapWithNullRequestList() {
-		FileHandleCopyUtils.getRequestMap(new BatchFileHandleCopyRequest());
+		assertThrows(IllegalArgumentException.class, () -> {
+			FileHandleCopyUtils.getRequestMap(new BatchFileHandleCopyRequest());
+		});
 	}
 
 	@Test
@@ -124,24 +132,32 @@ public class FileHandleCopyUtilsTest {
 		assertEquals(expected, FileHandleCopyUtils.getRequestMap(batch));
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateCopyWithNullUserId() {
-		FileHandleCopyUtils.createCopy(null, new S3FileHandle(), new FileHandleCopyRequest(), "2");
+		assertThrows(IllegalArgumentException.class, () -> {
+			FileHandleCopyUtils.createCopy(null, new S3FileHandle(), new FileHandleCopyRequest(), "2");
+		});
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateCopyWithNullFileHandle() {
-		FileHandleCopyUtils.createCopy("1", null, new FileHandleCopyRequest(), "2");
+		assertThrows(IllegalArgumentException.class, () -> {
+			FileHandleCopyUtils.createCopy("1", null, new FileHandleCopyRequest(), "2");
+		});
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateCopyWithNullFileHandleOverwriteData() {
-		FileHandleCopyUtils.createCopy("1", new S3FileHandle(), null, "2");
+		assertThrows(IllegalArgumentException.class, () -> {
+			FileHandleCopyUtils.createCopy("1", new S3FileHandle(), null, "2");
+		});
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateCopyWithNullIdGenerator() {
-		FileHandleCopyUtils.createCopy("1", new S3FileHandle(), new FileHandleCopyRequest(), null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			FileHandleCopyUtils.createCopy("1", new S3FileHandle(), new FileHandleCopyRequest(), null);
+		});
 	}
 
 	@Test
@@ -180,9 +196,11 @@ public class FileHandleCopyUtilsTest {
 		assertNull(((CloudProviderFileHandleInterface)newFileHandle).getPreviewId());
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testHasDuplicatesWithNullList() {
-		FileHandleCopyUtils.hasDuplicates(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			FileHandleCopyUtils.hasDuplicates(null);
+		});
 	}
 
 	@Test
@@ -227,33 +245,5 @@ public class FileHandleCopyUtilsTest {
 		fha3.setAssociateObjectType(FileHandleAssociateType.WikiAttachment);
 		fha3.setFileHandleId("2");
 		assertTrue(FileHandleCopyUtils.hasDuplicates(Arrays.asList(fha1, fha2, fha3)));
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateCopyRecordWithNullUserId() {
-		FileHandleCopyUtils.createCopyRecord(null, "2", new FileHandleAssociation());
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateCopyRecordWithNullNewFileHandleId() {
-		FileHandleCopyUtils.createCopyRecord("1", null, new FileHandleAssociation());
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateCopyRecordWithNullOriginalFileHandle() {
-		FileHandleCopyUtils.createCopyRecord("1", "2", null);
-	}
-
-	@Test
-	public void testCreateCopyRecord() {
-		String userId = "1";
-		String newFilehandleId = "2";
-		FileHandleAssociation originalFileHandle = new FileHandleAssociation();
-		originalFileHandle.setFileHandleId("3");
-		FileHandleCopyRecord record = FileHandleCopyUtils.createCopyRecord("1", "2", originalFileHandle);
-		assertNotNull(record);
-		assertEquals(userId, record.getUserId());
-		assertEquals(newFilehandleId, record.getNewFileHandleId());
-		assertEquals(originalFileHandle, record.getOriginalFileHandle());
 	}
 }
