@@ -2,10 +2,7 @@ package org.sagebionetworks.snapshot.workers.writers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -24,13 +21,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.audit.dao.ObjectRecordDAO;
-import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.audit.FileHandleSnapshot;
-import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
@@ -51,8 +45,6 @@ public class FileHandleSnapshotRecordWriterTest {
 	@Mock
 	private FileHandleDao mockFileHandleDao;
 	@Mock
-	private ObjectRecordDAO mockObjectRecordDao;
-	@Mock
 	private ProgressCallback mockCallback;
 	@Mock
 	private AwsKinesisFirehoseLogger mockKinesisLogger;
@@ -70,7 +62,6 @@ public class FileHandleSnapshotRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, id, ObjectType.FILE, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-		verify(mockObjectRecordDao, never()).saveBatch(anyList(), anyString());
 		
 		KinesisObjectSnapshotRecord<?> expectedRecord = KinesisObjectSnapshotRecord.map(changeMessage, new FileHandleSnapshot().setId(id));
 		
@@ -87,7 +78,6 @@ public class FileHandleSnapshotRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, id, ObjectType.PRINCIPAL, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		assertThrows(IllegalArgumentException.class, () -> writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage)));
-		verifyZeroInteractions(mockObjectRecordDao);
 		verifyZeroInteractions(mockKinesisLogger);
 	}
 
@@ -100,10 +90,8 @@ public class FileHandleSnapshotRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, id, ObjectType.FILE, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		FileHandleSnapshot record = FileHandleSnapshotRecordWriter.buildFileHandleSnapshot(fileHandle);
-		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(record, changeMessage.getTimestamp().getTime());
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage, changeMessage));
 		verify(mockFileHandleDao, times(2)).get(id);
-		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected, expected)), eq(expected.getJsonClassName()));
 		
 		List<KinesisObjectSnapshotRecord<?>> expectedRecords = List.of(
 			KinesisObjectSnapshotRecord.map(changeMessage, record),

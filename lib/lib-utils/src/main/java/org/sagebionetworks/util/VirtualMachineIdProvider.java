@@ -1,4 +1,4 @@
-package org.sagebionetworks.audit.utils;
+package org.sagebionetworks.util;
 
 /**
  * A simple class that creates and provides a single VIMD that can be used to

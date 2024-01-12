@@ -1,6 +1,20 @@
 package org.sagebionetworks.snapshot.workers.writers;
 
-import com.amazonaws.services.sqs.model.Message;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,8 +24,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.audit.dao.ObjectRecordDAO;
-import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -28,27 +40,13 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.DeletedNode;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
-import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 
-import java.io.IOException;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import com.amazonaws.services.sqs.model.Message;
 
 @ExtendWith(MockitoExtension.class)
 public class NodeObjectRecordWriterTest {
@@ -65,8 +63,6 @@ public class NodeObjectRecordWriterTest {
 	private UserEntityPermissions mockPermissions;
 	@Mock
 	private UserInfo mockUserInfo;
-	@Mock
-	private ObjectRecordDAO mockObjectRecordDao;
 	@Mock
 	private AwsKinesisFirehoseLogger mockKinesisLogger;
 	@Mock
@@ -109,10 +105,6 @@ public class NodeObjectRecordWriterTest {
 		DeletedNode deletedNode = new DeletedNode();
 		deletedNode.setId(nodeId);
 		
-		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, timestamp);
-		
-		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
-
 		KinesisObjectSnapshotRecord<?> expectedRecord = KinesisObjectSnapshotRecord.map(changeMessage, new NodeRecord().setId(nodeId));
 		
 		verify(mockKinesisLogger).logBatch(eq("nodeSnapshots"), recordCaptor.capture());
@@ -131,7 +123,6 @@ public class NodeObjectRecordWriterTest {
 			writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		});
 		
-		verifyZeroInteractions(mockObjectRecordDao);
 		verifyZeroInteractions(mockKinesisLogger);
 	}
 
@@ -157,12 +148,9 @@ public class NodeObjectRecordWriterTest {
 		node.setIsRestricted(stats.getHasToU());
 		node.setEffectiveArs(List.of(1L, 2L, 3L));
 		
-		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
-
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		
 		verify(mockNodeDAO).getNode(eq("123"));
-		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
 		
 		KinesisObjectSnapshotRecord<NodeRecord> expectedRecord = KinesisObjectSnapshotRecord.map(changeMessage, node);
 		
@@ -221,8 +209,6 @@ public class NodeObjectRecordWriterTest {
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		DeletedNode deletedNode = new DeletedNode();
 		deletedNode.setId(nodeId);
-		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, timestamp);
-		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
 				
 		KinesisObjectSnapshotRecord<?> expectedRecord = KinesisObjectSnapshotRecord.map(changeMessage, new NodeRecord().setId(nodeId));
 		

@@ -2,18 +2,14 @@ package org.sagebionetworks.snapshot.workers.writers;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.audit.dao.ObjectRecordDAO;
-import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.audit.FileHandleSnapshot;
-import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -35,14 +31,11 @@ public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 	static private Logger log = LogManager.getLogger(FileHandleSnapshotRecordWriter.class);
 
 	private FileHandleDao fileHandleDao;
-	private ObjectRecordDAO objectRecordDAO;
 	private AwsKinesisFirehoseLogger kinesisLogger;
 
 	@Autowired
-	public FileHandleSnapshotRecordWriter(FileHandleDao fileHandleDao, ObjectRecordDAO objectRecordDAO,
-			AwsKinesisFirehoseLogger kinesisLogger) {
+	public FileHandleSnapshotRecordWriter(FileHandleDao fileHandleDao, AwsKinesisFirehoseLogger kinesisLogger) {
 		this.fileHandleDao = fileHandleDao;
-		this.objectRecordDAO = objectRecordDAO;
 		this.kinesisLogger = kinesisLogger;
 	}
 
@@ -89,7 +82,6 @@ public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 
 	@Override
 	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException {
-		List<ObjectRecord> toWrite = new LinkedList<ObjectRecord>();
 		List<KinesisObjectSnapshotRecord<FileHandleSnapshot>> kinesisRecords = new ArrayList<>(messages.size());
 		for (ChangeMessage message : messages) {
 			
@@ -103,16 +95,11 @@ public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 				try {
 					FileHandle fileHandle = fileHandleDao.get(message.getObjectId());
 					FileHandleSnapshot snapshot = buildFileHandleSnapshot(fileHandle);
-					ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(snapshot, message.getTimestamp().getTime());
-					toWrite.add(objectRecord);
 					kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, snapshot));
 				} catch (NotFoundException e) {
 					log.error("Cannot find FileHandle for a " + message.getChangeType() + " message: " + message.toString()) ;
 				}
 			}
-		}
-		if (!toWrite.isEmpty()) {
-			objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
 		}
 		if (!kinesisRecords.isEmpty()) {
 			kinesisLogger.logBatch(KINESIS_STREAM, kinesisRecords);

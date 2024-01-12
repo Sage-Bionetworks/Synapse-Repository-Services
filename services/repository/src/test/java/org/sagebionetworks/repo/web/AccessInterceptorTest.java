@@ -24,15 +24,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
-import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
+import org.sagebionetworks.repo.manager.audit.AccessRecorder;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
-import org.sagebionetworks.repo.model.audit.AccessRecorder;
 import org.sagebionetworks.util.TestClock;
+import org.sagebionetworks.util.VirtualMachineIdProvider;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
@@ -108,7 +107,7 @@ public class AccessInterceptorTest {
 		when(mockConfiguration.getStackInstanceNumber()).thenReturn(instanceNumber);
 		stack = "dev";
 		when(mockConfiguration.getStack()).thenReturn(stack);
-		when(mockClock.currentTimeMillis()).thenReturn(100L, 200L);
+		when(mockClock.currentTimeMillis()).thenReturn(1704924598760L, 1704924598860L);
 	}
 	
 	
@@ -137,8 +136,8 @@ public class AccessInterceptorTest {
 		assertEquals("http://www.example-social-network.com", result.getOrigin());
 		assertEquals("1.0 fred, 1.1 example.com", result.getVia());
 		assertEquals(new Long(Thread.currentThread().getId()), result.getThreadId());
-		String stackInstanceNumber = KeyGeneratorUtil.getInstancePrefix(instanceNumber);
-		assertEquals(stackInstanceNumber, result.getInstance());
+		assertEquals("000000101", result.getInstance());
+		assertEquals("2024-01-10", result.getDate());
 		assertEquals(mockConfiguration.getStack(), result.getStack());
 		assertEquals(VirtualMachineIdProvider.getVMID(), result.getVmId());
 		assertEquals("?param1=foo", result.getQueryString());

@@ -1,9 +1,13 @@
 package org.sagebionetworks.snapshot.workers.writers;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.audit.dao.ObjectRecordDAO;
-import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -16,21 +20,12 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
@@ -43,24 +38,19 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	private UserProfileManager userProfileManager;
 	private TeamDAO teamDAO;
 	private GroupMembersDAO groupMembersDAO;
-	private ObjectRecordDAO objectRecordDAO;
     private AwsKinesisFirehoseLogger firehoseLogger;
 	@Autowired
 	public PrincipalObjectRecordWriter(UserGroupDAO userGroupDAO, UserProfileManager userProfileManager, 
-			TeamDAO teamDAO, GroupMembersDAO groupMembersDAO, ObjectRecordDAO objectRecordDAO,
-                                       AwsKinesisFirehoseLogger firehoseLogger) {
+			TeamDAO teamDAO, GroupMembersDAO groupMembersDAO, AwsKinesisFirehoseLogger firehoseLogger) {
 		this.userGroupDAO = userGroupDAO;
 		this.userProfileManager = userProfileManager;
 		this.teamDAO = teamDAO;
-		this.objectRecordDAO = objectRecordDAO;
 		this.groupMembersDAO = groupMembersDAO;
         this.firehoseLogger = firehoseLogger;
 	}
 
 	@Override
 	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException {
-        List<ObjectRecord> groups = new LinkedList<ObjectRecord>();
-        List<ObjectRecord> individuals = new LinkedList<ObjectRecord>();
 		List<KinesisObjectSnapshotRecord<Team>>  kinesisTeamRecords = new ArrayList<>();
 		List<KinesisObjectSnapshotRecord<UserProfile>>  kinesisUserProfileRecords = new ArrayList<>();
 		List<KinesisObjectSnapshotRecord<UserGroup>>  kinesisUserGroups = new ArrayList<>();
@@ -76,17 +66,14 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 			UserGroup userGroup = null;
 			try {
 				userGroup = userGroupDAO.get(principalId);
-				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(userGroup, message.getTimestamp().getTime());
-				objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
+				
 				kinesisUserGroups.add(KinesisObjectSnapshotRecord.map(message, userGroup));
 
 				if(userGroup.getIsIndividual()){
 					// User
 					try {
-						UserProfile profile = userProfileManager.getUserProfile(message.getObjectId());
-						profile.setSummary(null);
-						ObjectRecord upRecord = ObjectRecordBuilderUtils.buildObjectRecord(profile, message.getTimestamp().getTime());
-						individuals.add(upRecord);
+						UserProfile profile = userProfileManager.getUserProfile(message.getObjectId())
+							.setSummary(null);
                         kinesisUserProfileRecords.add(KinesisObjectSnapshotRecord.map(message, profile));
 					} catch (NotFoundException e) {
 						log.warn("UserProfile not found: "+principalId);
@@ -96,8 +83,6 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 					captureAllMembers(message);
 					try {
 						Team team = teamDAO.get(message.getObjectId());
-						ObjectRecord teamRecord = ObjectRecordBuilderUtils.buildObjectRecord(team, message.getTimestamp().getTime());
-						groups.add(teamRecord);
                         kinesisTeamRecords.add(KinesisObjectSnapshotRecord.map(message, team));
 					} catch (NotFoundException e) {
 						log.warn("Team not found: "+principalId);
@@ -107,12 +92,6 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 			} catch (NotFoundException e) {
 				log.warn("Principal not found: "+principalId);
 			}
-		}
-		if (!groups.isEmpty()) {
-			objectRecordDAO.saveBatch(groups, groups.get(0).getJsonClassName());
-		}
-		if (!individuals.isEmpty()) {
-			objectRecordDAO.saveBatch(individuals, individuals.get(0).getJsonClassName());
 		}
         if (!kinesisTeamRecords.isEmpty()) {
             firehoseLogger.logBatch(TEAM_SNAPSHOT_STREAM, kinesisTeamRecords);
@@ -138,10 +117,8 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	 */
 	public void captureAllMembers(ChangeMessage message) throws IOException {
 		String groupId= message.getObjectId();
-		long timestamp= message.getTimestamp().getTime();
 		List<UserGroup> members = groupMembersDAO.getMembers(groupId);
 		Set<String> adminIds = teamDAO.getAdminTeamMemberIds(groupId).stream().collect(Collectors.toSet());
-		List<ObjectRecord> records = new ArrayList<ObjectRecord>();
 		List<KinesisObjectSnapshotRecord<TeamMember>> kinesisTeamMemberRecords = new ArrayList<>();
 		for (UserGroup member : members) {
 			TeamMember teamMember = new TeamMember();
@@ -150,11 +127,7 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 			ugh.setOwnerId(member.getId());
 			teamMember.setMember(ugh);
 			teamMember.setIsAdmin(adminIds.contains(member.getId()));
-			records.add(ObjectRecordBuilderUtils.buildObjectRecord(teamMember, timestamp));
             kinesisTeamMemberRecords.add(KinesisObjectSnapshotRecord.map(message, teamMember));
-		}
-		if (records.size() > 0) {
-			objectRecordDAO.saveBatch(records, records.get(0).getJsonClassName());
 		}
         if (!kinesisTeamMemberRecords.isEmpty()) {
             firehoseLogger.logBatch(TEAM_MEMBER_SNAPSHOT_STREAM, kinesisTeamMemberRecords);

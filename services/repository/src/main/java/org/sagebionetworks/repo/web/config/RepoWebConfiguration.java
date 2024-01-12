@@ -6,6 +6,7 @@ import java.util.Map;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.repo.manager.audit.AccessRecorder;
 import org.sagebionetworks.repo.manager.config.SimpleTriggerBuilder;
 import org.sagebionetworks.repo.manager.monitoring.DataSourcePoolMonitor;
 import org.sagebionetworks.repo.manager.monitoring.DataSourcePoolMonitor.ApplicationType;
@@ -53,6 +54,16 @@ public class RepoWebConfiguration implements WebMvcConfigurer {
 			.withRepeatInterval(DB_MONITOR_INTERVAL)
 			.withStartDelay(DB_MONITOR_INTERVAL)
 			.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean accessRecorderTrigger(AccessRecorder accessRecorder) {
+		return new SimpleTriggerBuilder()
+				.withTargetObject(accessRecorder)
+				.withTargetMethod("timerFired")
+				.withRepeatInterval(957)
+				.withStartDelay(13)
+				.build();
 	}
 	
 	// The following beans are not exposed as they are used in place here

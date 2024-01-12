@@ -15,11 +15,11 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.monitoring.DataSourcePoolMonitor.ApplicationType;
 import org.sagebionetworks.repo.manager.monitoring.DataSourcePoolMonitor.DataSourceId;
+import org.sagebionetworks.util.VirtualMachineIdProvider;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 

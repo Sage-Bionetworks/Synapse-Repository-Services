@@ -2,10 +2,7 @@ package org.sagebionetworks.snapshot.workers.writers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -25,8 +22,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.audit.dao.ObjectRecordDAO;
-import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -34,14 +29,13 @@ import org.sagebionetworks.repo.manager.verification.VerificationManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
+import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 
 import com.amazonaws.services.sqs.model.Message;
-import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 
 @ExtendWith(MockitoExtension.class)
 public class VerificationSubmissionObjectRecordWriterTest {
@@ -50,8 +44,6 @@ public class VerificationSubmissionObjectRecordWriterTest {
 	private VerificationManager mockVerificationManager;
 	@Mock
 	private UserManager mockUserManager;
-	@Mock
-	private ObjectRecordDAO mockObjectRecordDAO;
 	@Mock
 	private ProgressCallback mockCallback;
 	@Mock
@@ -74,7 +66,7 @@ public class VerificationSubmissionObjectRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, "123", ObjectType.VERIFICATION_SUBMISSION, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-		verify(mockObjectRecordDAO, never()).saveBatch(anyList(), anyString());
+		verifyZeroInteractions(logger);
 	}
 
 	@Test
@@ -97,14 +89,14 @@ public class VerificationSubmissionObjectRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.VERIFICATION_SUBMISSION, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-		verifyZeroInteractions(mockObjectRecordDAO);
+		verifyZeroInteractions(logger);
 	}
 
 	@Test
 	public void onePageOfRecords() throws IOException {
 		VerificationSubmission verificationSubmission = new VerificationSubmission();
 		long timestamp = System.currentTimeMillis();
-		ObjectRecord record = ObjectRecordBuilderUtils.buildObjectRecord(verificationSubmission, timestamp);
+		
 		VerificationPagedResults pageOne = new VerificationPagedResults();
 		pageOne.setTotalNumberOfResults(1L);
 		pageOne.setResults(Arrays.asList(verificationSubmission));
@@ -115,7 +107,7 @@ public class VerificationSubmissionObjectRecordWriterTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		KinesisObjectSnapshotRecord<?> expectedRecordOne =KinesisObjectSnapshotRecord.map(changeMessage, verificationSubmission);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-		verify(mockObjectRecordDAO).saveBatch(Arrays.asList(record), record.getJsonClassName());
+		
 		verify(logger).logBatch(eq("verificationSubmissionSnapshots"), recordCaptor.capture());
 		assertNotNull(recordCaptor.getAllValues().get(0).get(0).getSnapshotTimestamp());
 		expectedRecordOne.withSnapshotTimestamp(recordCaptor.getAllValues().get(0).get(0).getSnapshotTimestamp());
@@ -126,7 +118,7 @@ public class VerificationSubmissionObjectRecordWriterTest {
 	public void twoPagesOfRecords() throws IOException {
 		VerificationSubmission verificationSubmission = new VerificationSubmission();
 		long timestamp = System.currentTimeMillis();
-		ObjectRecord record = ObjectRecordBuilderUtils.buildObjectRecord(verificationSubmission, timestamp);
+		
 		VerificationPagedResults pageOne = new VerificationPagedResults();
 		pageOne.setTotalNumberOfResults(11L);
 		pageOne.setResults(Arrays.asList(verificationSubmission));
@@ -137,7 +129,7 @@ public class VerificationSubmissionObjectRecordWriterTest {
 		KinesisObjectSnapshotRecord<?> expectedRecordOne =KinesisObjectSnapshotRecord.map(changeMessage, verificationSubmission);
 		KinesisObjectSnapshotRecord<?> expectedRecordTwo =KinesisObjectSnapshotRecord.map(changeMessage, verificationSubmission);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-		verify(mockObjectRecordDAO).saveBatch(Arrays.asList(record, record), record.getJsonClassName());
+		
 		verify(logger).logBatch(eq("verificationSubmissionSnapshots"), recordCaptor.capture());
 		assertNotNull(recordCaptor.getAllValues().get(0).get(0).getSnapshotTimestamp());
 		expectedRecordOne.withSnapshotTimestamp(recordCaptor.getAllValues().get(0).get(0).getSnapshotTimestamp());
