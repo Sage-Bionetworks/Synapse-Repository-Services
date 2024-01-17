@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
+import org.sagebionetworks.table.query.model.DefiningClause;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.OrderByClause;
@@ -479,6 +480,20 @@ public class SqlElementUtilsTest {
 		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(stringBuilder, searchConditionString, whereClause);
 		assertEquals(" WHERE (" + whereClause.getSearchCondition().toSql() + ") AND (" + searchConditionString + ")",
 				stringBuilder.toString());
+	}
+	
+	@Test
+	public void testAppendDefiningClause() throws ParseException {
+		DefiningClause defining = new TableQueryParser("defining_where foo > bar").definingClause();
+		SqlElementUtils.appendDefiningClause(stringBuilder, defining);
+		assertEquals(" DEFINING_WHERE foo > bar", stringBuilder.toString());
+	}
+	
+	@Test
+	public void testAppendDefiningClauseWithNull() {
+		DefiningClause defining = null;
+		SqlElementUtils.appendDefiningClause(stringBuilder, defining);
+		assertEquals("", stringBuilder.toString());
 	}
 
 	@Test

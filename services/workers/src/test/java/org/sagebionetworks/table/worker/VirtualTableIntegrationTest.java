@@ -324,6 +324,33 @@ public class VirtualTableIntegrationTest {
 			assertEquals(1L, results.getQueryCount());
 		}, MAX_WAIT_MS);
 		
+		// defining_where additional filters with facet statistics. See PLFM-8211
+		query.setAdditionalFilters(List.of(new ColumnSingleValueQueryFilter().setColumnName("bar")
+				.setOperator(ColumnSingleValueFilterOperator.IN).setValues(List.of("1","2"))
+				.setIsDefiningCondition(true)));
+		query.setSelectedFacets(null);
+		options.withReturnFacets(true);
+		asyncHelper.assertQueryResult(adminUserInfo, query, options, (results) -> {
+			assertEquals(List.of(
+					new Row().setValues(List.of("a", "1", "{\"a\": 1}", "[1]", "[1]")), 
+					new Row().setValues(List.of("b", "2", "{\"b\": 2}", "[2]", "[2]"))
+				), results.getQueryResult().getQueryResults().getRows());
+				assertEquals(List.of(foo, barSum, jsonColumn, jsonArrayColumn, listColumn), results.getColumnModels());
+				assertEquals(2L, results.getQueryCount());
+				assertEquals(List.of(
+					new FacetColumnResultRange().setColumnName("barSum").setFacetType(FacetType.range).setColumnMin("1").setColumnMax("2"),
+					new FacetColumnResultValues().setColumnName("jsonColumn").setJsonPath("$.a").setFacetType(FacetType.enumeration).setFacetValues(List.of(
+						new FacetColumnResultValueCount().setValue(TableConstants.NULL_VALUE_KEYWORD).setCount(1L).setIsSelected(false),
+						new FacetColumnResultValueCount().setValue("1").setCount(1L).setIsSelected(false)
+					)),
+					new FacetColumnResultRange().setColumnName("jsonColumn").setJsonPath("$.b").setFacetType(FacetType.range).setColumnMin("2").setColumnMax("2"),
+					new FacetColumnResultValues().setColumnName("listColumn").setFacetType(FacetType.enumeration).setFacetValues(List.of(
+						new FacetColumnResultValueCount().setValue("1").setCount(1L).setIsSelected(false),
+						new FacetColumnResultValueCount().setValue("2").setCount(1L).setIsSelected(false)
+					))
+				), results.getFacets());
+		}, MAX_WAIT_MS);
+		
 		// defining_where direct
 		query.setSql(String.format("select * from %s defining_where bar < 10", virtualTable.getId()));
 		query.setAdditionalFilters(null);

@@ -153,6 +153,28 @@ public class FacetTransformerRangeTest {
 		assertEquals("100", facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
 	}
 	
+	@Test
+	public void testGenerateFacetSqlQueryWihtDefiningWhere() throws ParseException{
+		
+		when(mockLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(IdAndVersion.parse("syn1")));
+		VirtualTableIndexDescription vtid = new VirtualTableIndexDescription(IdAndVersion.parse("syn2"), "select * from syn1", mockLookup);
+		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
+				.setIndexDescription(vtid).setUserId(userId).build();
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(schema.get(0));
+		
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(List.of(schema.get(0), schema.get(2)));
+		originalQuery = new TableQueryParser("with syn2 as (select i0, i2 from syn1) select * from syn2 defining_where i0 > 100 order by i2").queryExpression();
+		
+		// call under test
+		facetTransformer = new FacetTransformerRange(columnName, null, null, facets, originalQuery, dependencies, selectedMin, selectedMax);
+		//check the non-transformed sql
+		String expectedString = "WITH T2 (_C0_, _C2_) AS (SELECT _C0_, _C2_ FROM T1 WHERE _C0_ > :b0)"
+				+ " SELECT MIN(_C2_) AS minimum, MAX(_C2_) AS maximum FROM T2";
+		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
+		assertEquals("100", facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
+	}
+	
 	////////////////////////////
 	// translateToResult() tests
 	////////////////////////////
