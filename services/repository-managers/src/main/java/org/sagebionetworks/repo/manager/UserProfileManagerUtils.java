@@ -30,7 +30,7 @@ public class UserProfileManagerUtils {
 	 */
 	public static void clearPrivateFields(UserInfo userInfo, UserProfile userProfile) {		
 		if (userProfile != null) {
-			boolean canSeePrivate = isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
+			boolean canSeePrivate = isOwnerACTOrAdmin(userInfo, userProfile.getOwnerId());
 			if (!canSeePrivate) {
 				PrivateFieldUtils.clearPrivateFields(userProfile);			
 			}
