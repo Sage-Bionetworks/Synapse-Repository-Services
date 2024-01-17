@@ -13,6 +13,7 @@ import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.DefiningClause;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.NonJoinQueryExpression;
 import org.sagebionetworks.table.query.model.QueryExpression;
@@ -82,7 +83,8 @@ public class FacetTransformerRange implements FacetTransformer {
 		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnNameExpression);
 		
 		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, njqe.getFirstElementOfType(WhereClause.class));
-		
+		SqlElementUtils.appendDefiningClause(builder, njqe.getFirstElementOfType(DefiningClause.class));
+
 		try {
 			NonJoinQueryExpression replacement = new TableQueryParser(builder.toString()).nonJoinQueryExpression();
 			njqe.replaceElement(replacement);

@@ -778,4 +778,11 @@ public class SqlElementUtils {
 			}
 		}
 	}
+
+	public static void appendDefiningClause(StringBuilder builder, DefiningClause defining) {
+		if(defining != null) {
+			builder.append(" ");
+			builder.append(defining.toSql());
+		}
+	}
 }

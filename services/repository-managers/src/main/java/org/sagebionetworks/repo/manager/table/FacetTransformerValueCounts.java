@@ -18,6 +18,7 @@ import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.DefiningClause;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.NonJoinQueryExpression;
 import org.sagebionetworks.table.query.model.Pagination;
@@ -86,6 +87,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		builder.append(" ");
 		builder.append(njqe.getFirstElementOfType(FromClause.class).toSql());
 		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, njqe.getFirstElementOfType(WhereClause.class));
+		SqlElementUtils.appendDefiningClause(builder, njqe.getFirstElementOfType(DefiningClause.class));
 		builder.append(" GROUP BY ");
 		builder.append(columnToUse);
 		builder.append(" ORDER BY ");

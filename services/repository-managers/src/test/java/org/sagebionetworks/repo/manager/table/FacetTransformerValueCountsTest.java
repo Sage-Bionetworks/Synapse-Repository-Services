@@ -180,6 +180,28 @@ public class FacetTransformerValueCountsTest {
 	}
 	
 	@Test
+	public void testGenerateFacetSqlQueryWithDefiningWhere() throws ParseException{
+		
+		when(mockLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(IdAndVersion.parse("syn1")));
+		VirtualTableIndexDescription vtid = new VirtualTableIndexDescription(IdAndVersion.parse("syn2"), "select * from syn1", mockLookup);
+		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
+				.setIndexDescription(vtid).setUserId(userId).build();
+		
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(stringModel);
+		
+		originalQuery = new TableQueryParser("with syn2 as (select * from syn1) select * from syn2 defining_where stringColumn like 'foo%'").queryExpression();
+		// call under test
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
+
+		String expectedString = "WITH T2 (_C1_, _C2_, _C3_) AS (SELECT _C1_, _C2_, _C3_ FROM T1 WHERE _C1_ LIKE :b1)"
+				+ " SELECT _C1_ AS value, COUNT(*) AS frequency FROM T2"
+				+ " GROUP BY _C1_ ORDER BY frequency DESC, value ASC LIMIT :b0";
+		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
+		assertEquals(100L, facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
+		assertEquals("foo%", facetTransformer.getFacetSqlQuery().getParameters().get("b1"));
+	}
+	
+	@Test
 	public void testGenerateFacetSqlQueryWithCTEAndSelectedFacet() throws ParseException{
 		
 		when(mockLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(IdAndVersion.parse("syn1")));
