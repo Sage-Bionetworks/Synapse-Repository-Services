@@ -1,17 +1,18 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -66,12 +67,17 @@ public class UserProfileManagerUtilsTest {
 	@Test
 	public void testClearPrivateFields() {
 		UserInfo userInfo = new UserInfo(false);
+		userInfo.setGroups(Collections.emptySet());
+		
 		UserProfile up = new UserProfile();
 		up.setProfilePicureFileHandleId("456");
 		up.setRStudioUrl("http://rstudio");
+		up.setEmail("useremail@sagebase.org");
+		
 		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
 		assertEquals("456", up.getProfilePicureFileHandleId());
 		assertNull(up.getRStudioUrl());
+		assertNull(up.getEmail());
 	}
 	
 	/**
@@ -80,6 +86,8 @@ public class UserProfileManagerUtilsTest {
 	@Test
 	public void testClearPrivateFieldsCreatedOn() {
 		UserInfo userInfo = new UserInfo(false);
+		userInfo.setGroups(Collections.emptySet());
+		
 		UserProfile up = new UserProfile();
 		Date createdOn = new Date(123L);
 		up.setCreatedOn(createdOn);
@@ -91,7 +99,23 @@ public class UserProfileManagerUtilsTest {
 	public void testClearPrivateFieldsAsAdmin() {
 		UserInfo userInfo = new UserInfo(true);
 		UserProfile up = new UserProfile();
+		up.setEmail("useremail@sagebase.org");
+		
 		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
+		
+		assertEquals("useremail@sagebase.org", up.getEmail());
+	}
+	
+	@Test
+	public void testClearPrivateFieldsAsACT() {
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setGroups(Collections.singleton(TeamConstants.ACT_TEAM_ID));
+		UserProfile up = new UserProfile();
+		up.setEmail("useremail@sagebase.org");
+		
+		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
+		
+		assertEquals("useremail@sagebase.org", up.getEmail());
 	}
 
 	@Test
