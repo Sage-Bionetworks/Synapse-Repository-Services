@@ -115,7 +115,7 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 		PaginatedResults<MessageToUser> messages = 
 				 servletTestHelper.getOutbox(adminUserId, MessageSortBy.SEND_DATE, false, (long)Integer.MAX_VALUE, 0L);
 		 for (MessageToUser mtu : messages.getResults()) {
-			 messageManager.processMessage(mtu.getId(), null);
+			 messageManager.processMessage(mtu.getId());
 		 }
 		
 		assertTrue(S3TestUtils.doesFileExist(StackConfigurationSingleton.singleton().getS3Bucket(), key, s3Client, 60000L));

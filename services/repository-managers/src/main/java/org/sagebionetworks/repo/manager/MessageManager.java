@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.List;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
@@ -23,17 +22,17 @@ public interface MessageManager {
 	 * The user must be either the sender or *intended* recipient of the message.  
 	 * Otherwise, an UnauthorizedException is thrown.  
 	 */
-	public MessageToUser getMessage(UserInfo userInfo, String messageId) throws NotFoundException;
+	MessageToUser getMessage(UserInfo userInfo, String messageId) throws NotFoundException;
 	
 	/**
 	 * Returns the redirect URL used to download the file containing the body of the message
 	 */
-	public String getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException;
+	String getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException;
 	
 	/**
 	 * See {@link #createMessage(UserInfo, MessageToUser, boolean) createMessage(UserInfo, MessageToUser, false)}
 	 */
-	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException;
+	MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException;
 	
 	/**
 	 * Saves the message so that it can be processed by other queries. A worker will asynchronously process the message.
@@ -53,14 +52,14 @@ public interface MessageManager {
 	 * 
 	 * Afterwards, calls {@link #createMessage(UserInfo, MessageToUser)}
 	 */
-	public MessageToUser createMessageToEntityOwner(UserInfo userInfo,
+	MessageToUser createMessageToEntityOwner(UserInfo userInfo,
 			String entityId, MessageToUser toCreate) throws NotFoundException,
 			ACLInheritanceException;
 
 	/**
 	 * Saves an existing message so that it can be delivered to the given set of recipients
 	 */
-	public MessageToUser forwardMessage(UserInfo userInfo, String messageId,
+	MessageToUser forwardMessage(UserInfo userInfo, String messageId,
 			MessageRecipientSet recipients) throws NotFoundException;
 	
 	/**
@@ -70,7 +69,7 @@ public interface MessageManager {
 	 * 
 	 * Note: The behavior of received messages will be eventually consistent
 	 */
-	public List<MessageToUser> getConversation(UserInfo userInfo, String associatedMessageId, 
+	List<MessageToUser> getConversation(UserInfo userInfo, String associatedMessageId, 
 			MessageSortBy sortBy, boolean descending, long limit, long offset) throws NotFoundException;
 	
 	/**
@@ -78,19 +77,19 @@ public interface MessageManager {
 	 * 
 	 * Note: The behavior of received messages will be eventually consistent
 	 */
-	public List<MessageBundle> getInbox(UserInfo userInfo, 
+	List<MessageBundle> getInbox(UserInfo userInfo, 
 			List<MessageStatusType> included, MessageSortBy sortBy, boolean descending, long limit, long offset);
 	
 	/**
 	 * Retrieves all messages sent by the user
 	 */
-	public List<MessageToUser> getOutbox(UserInfo userInfo, 
+	List<MessageToUser> getOutbox(UserInfo userInfo, 
 			MessageSortBy sortBy, boolean descending, long limit, long offset);
 	
 	/**
 	 * Changes the status of the user's message 
 	 */
-	public void markMessageStatus(UserInfo userInfo, MessageStatus status) throws NotFoundException;
+	void markMessageStatus(UserInfo userInfo, MessageStatus status) throws NotFoundException;
 	
 	/**
 	 * Takes an existing message and processes it, 
@@ -101,12 +100,12 @@ public interface MessageManager {
 	 * </br>
 	 * Note: This method is to be used by the MessageToUserWorker and should not be exposed via the REST API.
 	 */
-	public List<String> processMessage(String messageId, ProgressCallback progressCallback) throws NotFoundException;
+	List<String> processMessage(String messageId) throws NotFoundException;
 	
 	/**
 	 * Deletes a message, only accessible to admins
 	 */
-	public void deleteMessage(UserInfo userInfo, String messageId);
+	void deleteMessage(UserInfo userInfo, String messageId);
 	
 	/**
 	 * Sends a password reset email based on a template via Amazon SES, using as potential destination
@@ -120,19 +119,19 @@ public interface MessageManager {
 	 *                            email of the user that owns the given alias. The principal id in the
 	 *                            alias must match the user id of the signed token
 	 */
-	public void sendNewPasswordResetEmail(String passwordResetPrefix, PasswordResetSignedToken passwordResetToken,
+	void sendNewPasswordResetEmail(String passwordResetPrefix, PasswordResetSignedToken passwordResetToken,
 			PrincipalAlias alias) throws NotFoundException;
 
 	/**
 	 * Send an email confirming to user that their password has been changed
 	 * @param userId
 	 */
-	public void sendPasswordChangeConfirmationEmail(long userId);
+	void sendPasswordChangeConfirmationEmail(long userId);
 	
 	/**
 	 * Sends a delivery failure notification based on a template unless the message is a notification message
 	 */
-	public void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException;
+	void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException;
 
 	/**
 	 * Saves the message so that it can be processed by other queries. A worker will asynchronously process the message.
@@ -141,7 +140,7 @@ public interface MessageManager {
 	 * This method also handles throttling of message creation 
 	 * and checks to see if file handles (message body) are accessible.  
 	 */
-	public MessageToUser createMessageWithThrottle(UserInfo userInfo, MessageToUser dto);
+	MessageToUser createMessageWithThrottle(UserInfo userInfo, MessageToUser dto);
 
 
 }

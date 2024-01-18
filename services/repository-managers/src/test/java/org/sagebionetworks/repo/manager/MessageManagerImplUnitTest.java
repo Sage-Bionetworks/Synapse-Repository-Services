@@ -16,9 +16,12 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -153,6 +156,7 @@ public class MessageManagerImplUnitTest {
 		
 		mtu = new MessageToUser();
 		mtu.setId(MESSAGE_ID);
+		mtu.setCreatedOn(new Date());
 		mtu.setCreatedBy(CREATOR_ID.toString());
 		mtu.setRecipients(Collections.singleton(RECIPIENT_ID.toString()));
 		mtu.setSubject("subject");
@@ -282,7 +286,7 @@ public class MessageManagerImplUnitTest {
 		when(fileHandleManager.downloadFileToString(FILE_HANDLE_ID)).thenReturn(messageBody);
 		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
 		
-		messageManager.processMessage(MESSAGE_ID, null);
+		messageManager.processMessage(MESSAGE_ID);
 		
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
@@ -310,7 +314,7 @@ public class MessageManagerImplUnitTest {
 		when(fileHandleManager.downloadFileToString(FILE_HANDLE_ID)).thenReturn(messageBody);
 		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
 		
-		messageManager.processMessage(MESSAGE_ID, null);
+		messageManager.processMessage(MESSAGE_ID);
 		
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
@@ -340,7 +344,7 @@ public class MessageManagerImplUnitTest {
 		thenReturn(EntityFactory.createJSONStringForEntity(messageBody));
 		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
 		
-		messageManager.processMessage(MESSAGE_ID, null);
+		messageManager.processMessage(MESSAGE_ID);
 		
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
@@ -626,7 +630,7 @@ public class MessageManagerImplUnitTest {
 		
 		// This will fail since non-admin users do not have permission to send to the public group
 		mtu.setRecipients(Collections.singleton(authUsersId.toString()));
-		List<String> errors = messageManager.processMessage(MESSAGE_ID, null);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID);
 		String joinedErrors = StringUtils.join(errors, "\n");
 		assertTrue(joinedErrors.contains("may not send"));
 		
@@ -639,7 +643,7 @@ public class MessageManagerImplUnitTest {
 		when(authorizationManager.canAccess(adminUserInfo, authUsersId.toString(),
 				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationStatus.authorized());
 		
-		errors = messageManager.processMessage(MESSAGE_ID, null);
+		errors = messageManager.processMessage(MESSAGE_ID);
 		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
 	}
 	
@@ -654,7 +658,7 @@ public class MessageManagerImplUnitTest {
 		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
 		when(mockEmailQuarantineDao.isQuarantined(RECIPIENT_EMAIL)).thenReturn(true);
 		
-		List<String> errors = messageManager.processMessage(MESSAGE_ID, null);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID);
 		
 		verify(mockEmailQuarantineDao).isQuarantined(RECIPIENT_EMAIL);
 		assertEquals(ImmutableList.of("Cannot deliver message to recipient (" + RECIPIENT_ID + "). The recipient does not have a valid notification email."), errors);
@@ -699,7 +703,7 @@ public class MessageManagerImplUnitTest {
 		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
 		
 		// Call under test
-		messageManager.processMessage(MESSAGE_ID, null);
+		messageManager.processMessage(MESSAGE_ID);
 		
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 
@@ -722,6 +726,37 @@ public class MessageManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testProcessMessageWithOldCreationDate() throws Exception {
+		
+		mtu.setCreatedOn(Date.from(Instant.now().minus(Duration.ofDays(6))));
+		
+		when(messageDAO.getMessage(any())).thenReturn(mtu);
+		
+		// Call under test
+		messageManager.processMessage(MESSAGE_ID);
+
+		verify(messageDAO).getMessage(MESSAGE_ID);
+		verifyNoMoreInteractions(messageDAO);
+		verifyZeroInteractions(sesClient);
+	}
+	
+	@Test
+	public void testProcessMessageWithMessageSent() throws Exception {
+		
+		when(messageDAO.getMessage(any())).thenReturn(mtu);
+		when(messageDAO.getMessageSent(any())).thenReturn(true);
+		
+		// Call under test
+		messageManager.processMessage(MESSAGE_ID);
+
+		verify(messageDAO).getMessage(MESSAGE_ID);
+		verify(messageDAO).getMessageSent(MESSAGE_ID);
+		
+		verifyNoMoreInteractions(messageDAO);
+		verifyZeroInteractions(sesClient);
+	}
+	
+	@Test
 	public void testProcessMessageWithOverrideNotificationSettings() throws Exception {		
 		setupCreatorRecipientMocks(true);
 		
@@ -731,7 +766,7 @@ public class MessageManagerImplUnitTest {
 		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
 		
 		// Call under test
-		messageManager.processMessage(MESSAGE_ID, null);
+		messageManager.processMessage(MESSAGE_ID);
 		
 		// Verify that no call to the recipient user profile is performed
 		verify(userProfileManager, times(0)).getUserProfile(RECIPIENT_ID.toString());

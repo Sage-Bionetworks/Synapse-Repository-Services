@@ -146,6 +146,7 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 	 */
 	private MessageToUser getMessageDTO(Set<String> recipients, String inReplyTo) {
 		MessageToUser message = new MessageToUser();
+		message.setCreatedOn(new Date());
 		message.setFileHandleId(fileHandleId);
 		message.setRecipients(recipients);
 		message.setInReplyTo(inReplyTo);
@@ -181,7 +182,7 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		cleanup.add(messageToBob.getId());
 		
 		// Process the outgoing message (emulates a worker)
-		messageManager.processMessage(messageToBob.getId(), null);
+		messageManager.processMessage(messageToBob.getId());
 		
 		PaginatedResults<MessageToUser> outboxOfAlice = servletTestHelper.getOutbox(alice, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, outboxOfAlice.getTotalNumberOfResults());
@@ -245,7 +246,7 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		cleanup.add(messageToAlice.getId());
 		
 		// Process the outgoing message (emulates a worker)
-		messageManager.processMessage(messageToAlice.getId(), null);
+		messageManager.processMessage(messageToAlice.getId());
 		
 		PaginatedResults<MessageBundle> inboxOfAlice = servletTestHelper.getInbox(alice, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, inboxOfAlice.getTotalNumberOfResults());
@@ -285,7 +286,7 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		cleanup.add(messageToBob.getId());
 		
 		// Process the outgoing message (emulates a worker)
-		messageManager.processMessage(messageToBob.getId(), null);
+		messageManager.processMessage(messageToBob.getId());
 		
 		PaginatedResults<MessageBundle> inboxOfBob = servletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, inboxOfBob.getTotalNumberOfResults());
