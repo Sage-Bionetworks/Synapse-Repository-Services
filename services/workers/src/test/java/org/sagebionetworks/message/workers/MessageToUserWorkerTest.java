@@ -1,15 +1,19 @@
 package org.sagebionetworks.message.workers;
 
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.MessageManager;
@@ -18,25 +22,19 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
 public class MessageToUserWorkerTest {
 	
-	ProgressCallback mockCallback;
-	MessageManager mockMessageManager;
-	WorkerLogger mockWorkerLogger;
-	MessageToUserWorker worker;
+	@Mock
+	private ProgressCallback mockCallback;
+	@Mock
+	private MessageManager mockMessageManager;
+	@Mock
+	private WorkerLogger mockWorkerLogger;
 	
-
-	@Before
-	public void before() {
-		mockCallback = Mockito.mock(ProgressCallback.class);
-		mockMessageManager = Mockito.mock(MessageManager.class);
-		mockWorkerLogger = Mockito.mock(WorkerLogger.class);
-		worker = new MessageToUserWorker();
-		ReflectionTestUtils.setField(worker, "messageManager", mockMessageManager);
-		ReflectionTestUtils.setField(worker, "workerLogger", mockWorkerLogger);
-	}
+	@InjectMocks
+	private MessageToUserWorker worker;
 	
 	@Test
 	public void testSkipNonMessageMsg() throws Exception {
@@ -48,6 +46,8 @@ public class MessageToUserWorkerTest {
 		chgMsg.setTimestamp(new Date());
 		// call under test
 		worker.run(mockCallback, chgMsg);
+		
+		verifyZeroInteractions(mockMessageManager);
 	}
 
 	@Test
@@ -75,13 +75,12 @@ public class MessageToUserWorkerTest {
 		chgMsg.setTimestamp(new Date());
 		RuntimeException e = new RuntimeException();
 		when(mockMessageManager.processMessage(eq(chgMsg.getObjectId()))).thenThrow(e);
-		try {
+		
+		assertThrows(RecoverableMessageException.class, () -> {			
 			// call under test
 			worker.run(mockCallback, chgMsg);
-			fail("Should have thrown an exception");
-		} catch (RecoverableMessageException e1) {
-			//expected
-		}
+		});
+		
 		verify(mockWorkerLogger).logWorkerFailure(MessageToUserWorker.class, chgMsg, e, true);
 	}
 
