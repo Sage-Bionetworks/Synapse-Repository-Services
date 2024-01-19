@@ -280,7 +280,7 @@
 								<version>${project.version}</version>
 							</docletArtifact>
 							<!-- To run the controller, make sure to set the value of the -/-should-run option to true-->
-							<additionalparam>--target-file,${project.build.directory}/openapi/openapispecification.json,--factory-path,org.sagebionetworks.server.ServerSideOnlyFactory,--should-run,true</additionalparam>
+							<additionalparam>--target-file,${project.build.directory}/javadoc/restdocs/openapi/openapispecification.json,--factory-path,org.sagebionetworks.server.ServerSideOnlyFactory,--should-run,true</additionalparam>
 							<useStandardDocletOptions>false</useStandardDocletOptions>
 							<destDir>${project.build.directory}/openapi</destDir>
 						</configuration>
