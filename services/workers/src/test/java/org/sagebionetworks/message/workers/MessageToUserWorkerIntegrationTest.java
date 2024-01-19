@@ -1,17 +1,17 @@
 package org.sagebionetworks.message.workers;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -26,13 +26,13 @@ import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 /**
  * This test validates that messages to users pushed to the topic propagate to the proper queue,
  * and are then processed by the worker and "sent" to users.
  */
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MessageToUserWorkerIntegrationTest {
 	
@@ -58,7 +58,7 @@ public class MessageToUserWorkerIntegrationTest {
 	private MessageToUser message;
 	
 	@SuppressWarnings("serial")
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		NewUser user = new NewUser();
@@ -89,7 +89,7 @@ public class MessageToUserWorkerIntegrationTest {
 		message = messageManager.createMessage(fromUserInfo, message);
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		messageManager.deleteMessage(adminUserInfo, message.getId());
 		
@@ -99,8 +99,6 @@ public class MessageToUserWorkerIntegrationTest {
 		userManager.deletePrincipal(adminUserInfo, toUserInfo.getId());
 	}
 	
-	
-	@SuppressWarnings("serial")
 	@Test
 	public void testRoundTrip() throws Exception {
 		List<MessageBundle> messages = null;
@@ -108,15 +106,11 @@ public class MessageToUserWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while (messages == null || messages.size() < 1) {
 			// Check the inbox of the recipient
-			messages = messageManager.getInbox(toUserInfo, new ArrayList<MessageStatusType>() {
-				{
-					add(MessageStatusType.UNREAD);
-				}
-			}, MessageSortBy.SEND_DATE, true, 100, 0);
+			messages = messageManager.getInbox(toUserInfo, List.of(MessageStatusType.UNREAD), MessageSortBy.SEND_DATE, true, 100, 0);
 			
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;
-			assertTrue("Timed out waiting for message to be sent", elapse < MAX_WAIT);
+			assertTrue(elapse < MAX_WAIT, "Timed out waiting for message to be sent");
 		}
 		assertEquals(message, messages.get(0).getMessage());
 	}

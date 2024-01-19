@@ -38,7 +38,7 @@ public class MessageToUserWorker implements ChangeMessageDrivenRunner {
 				List<String> errors;
 				switch (change.getChangeType()) {
 				case CREATE:
-					errors = messageManager.processMessage(change.getObjectId(), progressCallback);
+					errors = messageManager.processMessage(change.getObjectId());
 					break;
 				default:
 					throw new IllegalArgumentException("Unknown change type: "

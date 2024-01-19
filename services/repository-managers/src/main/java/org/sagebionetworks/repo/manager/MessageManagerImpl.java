@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,7 +15,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
@@ -82,6 +84,11 @@ public class MessageManagerImpl implements MessageManager {
 	 * See {@link #MAX_NUMBER_OF_NEW_MESSAGES}  
 	 */
 	private static final long MESSAGE_CREATION_INTERVAL_MILLISECONDS = 60000L;
+	
+	/**
+	 * Max age of a message that can be processed
+	 */
+	private static final Duration MAX_MESSAGE_AGE = Duration.ofDays(5);
 	
 	// Message templates
 	private static final String MESSAGE_TEMPLATE_PASSWORD_CHANGE_CONFIRMATION = "message/PasswordChangeConfirmationTemplate.txt";
@@ -350,8 +357,14 @@ public class MessageManagerImpl implements MessageManager {
 
 	@Override
 	@WriteTransaction
-	public List<String> processMessage(String messageId, ProgressCallback progressCallback) throws NotFoundException {
+	public List<String> processMessage(String messageId) throws NotFoundException {
 		MessageToUser dto = messageDAO.getMessage(messageId);
+				
+		// Check to see if the message is old or has already been sent. If so, nothing else needs to be done
+		if (dto.getCreatedOn().toInstant().isBefore(Instant.now().minus(MAX_MESSAGE_AGE)) || messageDAO.getMessageSent(dto.getId())) {
+			return Collections.emptyList();
+		}
+		
 		boolean overrideNotificationSettings = messageDAO.overrideNotificationSettings(messageId);
 		FileHandle fileHandle = fileHandleDao.get(dto.getFileHandleId());
 		ContentType contentType = ContentType.parse(fileHandle.getContentType());
@@ -359,26 +372,21 @@ public class MessageManagerImpl implements MessageManager {
 
 		try {
 			String messageBody = fileHandleManager.downloadFileToString(dto.getFileHandleId());
-			return processMessage(dto, messageBody, mimeType, overrideNotificationSettings, progressCallback);
+			return processMessage(dto, messageBody, mimeType, overrideNotificationSettings);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 	
 	/**
-	 * See {@link #processMessage(String, ProgressCallback)}
+	 * See {@link #processMessage(String)}
 	 * 
 	 * @param messageBody The body of any email(s) that get sent as a result of processing this message
 	 *    Note: This parameter is provided so that templated messages do not need to be uploaded then downloaded before sending
 	 */
-	private List<String> processMessage(MessageToUser dto, String messageBody, String mimeType, boolean overrideNotificationSettings, ProgressCallback progressCallback) throws NotFoundException {
+	private List<String> processMessage(MessageToUser dto, String messageBody, String mimeType, boolean overrideNotificationSettings) throws NotFoundException {
 		List<String> errors = new ArrayList<String>();
 		
-		// Check to see if the message has already been sent
-		// If so, nothing else needs to be done
-		if (messageDAO.getMessageSent(dto.getId())) {
-			return errors;
-		}
 		String senderUserName = null;
 
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));

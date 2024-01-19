@@ -2,12 +2,11 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -78,10 +77,8 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 	
 	private List<String> cleanup;
 	
-	@SuppressWarnings("serial")
-	private static List<MessageStatusType> inboxFilter = new ArrayList<MessageStatusType>() {{add(MessageStatusType.UNREAD);}};
+	private static List<MessageStatusType> inboxFilter = List.of(MessageStatusType.UNREAD);
 
-	@SuppressWarnings("serial")
 	@BeforeEach
 	public void before() throws Exception {
 		cleanup = new ArrayList<String>();
@@ -107,15 +104,9 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		eve = userManager.createUser(user);
 		eveId = "" + eve;
 		
-		toAlice = new HashSet<String>() {{
-			add(aliceId);
-		}};
-		toBob = new HashSet<String>() {{
-			add(bobId);
-		}};
-		toEve = new HashSet<String>() {{
-			add(eveId);
-		}};
+		toAlice = Set.of(aliceId);
+		toBob = Set.of(bobId);
+		toEve = Set.of(eveId);
 		
 		// We need a file handle to satisfy a foreign key constraint
 		String fileContents = "This is text and not an image.";
@@ -146,6 +137,7 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 	 */
 	private MessageToUser getMessageDTO(Set<String> recipients, String inReplyTo) {
 		MessageToUser message = new MessageToUser();
+		message.setCreatedOn(new Date());
 		message.setFileHandleId(fileHandleId);
 		message.setRecipients(recipients);
 		message.setInReplyTo(inReplyTo);
@@ -167,11 +159,11 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 	public void testCreateMessage_MissingField() throws Exception {
 		MessageToUser aliceToBob = getMessageDTO(toBob, null);
 		aliceToBob.setFileHandleId(null);
-		try {
-			aliceToBob = servletTestHelper.sendMessage(alice, aliceToBob);
-			cleanup.add(aliceToBob.getId());
-			fail();
-		} catch (IllegalArgumentException e) { }
+		
+		assertThrows(IllegalArgumentException.class, () -> {			
+			servletTestHelper.sendMessage(alice, aliceToBob);
+		});
+		
 	}
 	
 	@Test
@@ -181,7 +173,7 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		cleanup.add(messageToBob.getId());
 		
 		// Process the outgoing message (emulates a worker)
-		messageManager.processMessage(messageToBob.getId(), null);
+		messageManager.processMessage(messageToBob.getId());
 		
 		PaginatedResults<MessageToUser> outboxOfAlice = servletTestHelper.getOutbox(alice, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, outboxOfAlice.getTotalNumberOfResults());
@@ -208,8 +200,7 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 	
 	@Test
 	public void testGetMessage() throws Exception {
-		MessageToUser messageToBob = getMessageDTO(toBob, null);
-		messageToBob = servletTestHelper.sendMessage(alice, messageToBob);
+		MessageToUser messageToBob = servletTestHelper.sendMessage(alice, getMessageDTO(toBob, null));
 		cleanup.add(messageToBob.getId());
 		
 		MessageToUser message = servletTestHelper.getMessage(alice, messageToBob.getId());
@@ -219,17 +210,16 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		assertEquals(messageToBob, message);
 		
 		// No eavesdropping
-		try {
+		assertThrows(UnauthorizedException.class, () -> {	
 			servletTestHelper.getMessage(eve, messageToBob.getId());
-			fail();
-		} catch (UnauthorizedException e) { }
+		});
 		
 		MessageRecipientSet intercept = new MessageRecipientSet();
 		intercept.setRecipients(toEve);
-		try {
+		
+		assertThrows(UnauthorizedException.class, () -> {			
 			servletTestHelper.forwardMessage(eve, messageToBob.getId(), intercept);
-			fail();
-		} catch (UnauthorizedException e) { }
+		});
 	}
 	
 	@Test
@@ -245,7 +235,7 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		cleanup.add(messageToAlice.getId());
 		
 		// Process the outgoing message (emulates a worker)
-		messageManager.processMessage(messageToAlice.getId(), null);
+		messageManager.processMessage(messageToAlice.getId());
 		
 		PaginatedResults<MessageBundle> inboxOfAlice = servletTestHelper.getInbox(alice, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, inboxOfAlice.getTotalNumberOfResults());
@@ -285,7 +275,7 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		cleanup.add(messageToBob.getId());
 		
 		// Process the outgoing message (emulates a worker)
-		messageManager.processMessage(messageToBob.getId(), null);
+		messageManager.processMessage(messageToBob.getId());
 		
 		PaginatedResults<MessageBundle> inboxOfBob = servletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, inboxOfBob.getTotalNumberOfResults());
@@ -304,10 +294,10 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		
 		// Eve can't interfere (does nothing)
 		status.setStatus(MessageStatusType.UNREAD);
-		try {
+		
+		assertThrows(UnauthorizedException.class, () -> {			
 			servletTestHelper.updateMessageStatus(eve, status);
-			fail();
-		} catch (UnauthorizedException e) { }
+		});
 		
 		inboxOfBob = servletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(0L, inboxOfBob.getTotalNumberOfResults());

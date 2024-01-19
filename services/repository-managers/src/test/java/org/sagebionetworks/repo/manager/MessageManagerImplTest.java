@@ -163,7 +163,6 @@ public class MessageManagerImplTest {
 	private String fileHandleId;
 	private String tmsFileHandleId;
 	
-	@SuppressWarnings("serial")
 	private final List<MessageStatusType> unreadMessageFilter = new ArrayList<MessageStatusType>() {{add(MessageStatusType.UNREAD);}};
 	
 	private MessageToUser userToOther;
@@ -307,8 +306,8 @@ public class MessageManagerImplTest {
 		otherReplyToUser = createMessage(otherTestUser, "otherReplyToUser", ImmutableSet.of(testUserId), userToOther.getId());
 		
 		// Process the message right away (emulate the worker processing the messages)
-		messageManager.processMessage(userToOther.getId(), null);
-		messageManager.processMessage(otherReplyToUser.getId(), null);
+		messageManager.processMessage(userToOther.getId());
+		messageManager.processMessage(otherReplyToUser.getId());
 		
 		// This messages are sent later by a worker
 		userReplyToOtherAndSelf = createMessage(testUser, "userReplyToOtherAndSelf", 
@@ -410,11 +409,11 @@ public class MessageManagerImplTest {
 	 * @param send_otherToSelfAndGroup This message may or may not have the proper permissions associated with it
 	 */
 	private List<String> sendUnsentMessages(boolean send_otherToGroup) throws Exception {
-		assertEquals(0, messageManager.processMessage(userReplyToOtherAndSelf.getId(), null).size());
-		assertEquals(0, messageManager.processMessage(otherReplyToUserAndSelf.getId(), null).size());
-		assertEquals(0, messageManager.processMessage(userToSelfAndGroup.getId(), null).size());
+		assertEquals(0, messageManager.processMessage(userReplyToOtherAndSelf.getId()).size());
+		assertEquals(0, messageManager.processMessage(otherReplyToUserAndSelf.getId()).size());
+		assertEquals(0, messageManager.processMessage(userToSelfAndGroup.getId()).size());
 		if (send_otherToGroup) {
-			return messageManager.processMessage(otherToGroup.getId(), null);
+			return messageManager.processMessage(otherToGroup.getId());
 		}
 		return new ArrayList<String>();
 	}
@@ -450,7 +449,7 @@ public class MessageManagerImplTest {
 		assertEquals(initialOtherTestUserInboxSize, inbox.size());
 		
 		// now send the message
-		List<String> errors = messageManager.processMessage(aMessage.getId(), null);
+		List<String> errors = messageManager.processMessage(aMessage.getId());
 		
 		// check that the stubbed client -- 2 failures for the two recipients
 		assertEquals(2, errors.size());
@@ -465,7 +464,7 @@ public class MessageManagerImplTest {
 		assertEquals(initialOtherTestUserInboxSize+1, inbox.size());
 
 		// now send a second time
-		errors = messageManager.processMessage(aMessage.getId(), null);
+		errors = messageManager.processMessage(aMessage.getId());
 		
 		// check that the stubbed client was NOT called
 		assertEquals(0, errors.size());
@@ -506,7 +505,7 @@ public class MessageManagerImplTest {
 		cleanup.add(forwarded.getId());
 		
 		// Process the message (emulates the worker)
-		messageManager.processMessage(forwarded.getId(), null);
+		messageManager.processMessage(forwarded.getId());
 		
 		List<MessageBundle> messages = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
@@ -604,9 +603,9 @@ public class MessageManagerImplTest {
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1, messages.size());
 		
-		messageManager.processMessage(userToOther.getId(), null);
-		messageManager.processMessage(userToOther.getId(), null);
-		messageManager.processMessage(userToOther.getId(), null);
+		messageManager.processMessage(userToOther.getId());
+		messageManager.processMessage(userToOther.getId());
+		messageManager.processMessage(userToOther.getId());
 		
 		// Multiple calls to sendMessage do nothing
 		messages = messageManager.getInbox(otherTestUser, 
@@ -626,12 +625,12 @@ public class MessageManagerImplTest {
 		// Cannot send a message to a team you're not in...
 		MessageToUser messageToTeam = createMessage(otherTestUser, "messageToTeam", ImmutableSet.of(testTeam.getId()), null);
 		cleanup.add(messageToTeam.getId());
-		assertEquals(1, messageManager.processMessage(messageToTeam.getId(), null).size());
+		assertEquals(1, messageManager.processMessage(messageToTeam.getId()).size());
 
 		// ... unless you're a Trusted Message Sender
 		messageToTeam = createMessageWithThrottle(trustedMessageSender, "messageToTeam", tmsFileHandleId,
 				ImmutableSet.of(testTeam.getId()), null);
-		assertEquals(0, messageManager.processMessage(messageToTeam.getId(), null).size());
+		assertEquals(0, messageManager.processMessage(messageToTeam.getId()).size());
 	}
 	
 	/**
@@ -729,7 +728,7 @@ public class MessageManagerImplTest {
 		int expectedMessageCount = 1;
 		
 		// Process the message (emulates the worker)
-		messageManager.processMessage(message.getId(), null);
+		messageManager.processMessage(message.getId());
 		
 		assertEquals(expectedMessageCount, sentMessagesCount);
 		
@@ -749,7 +748,7 @@ public class MessageManagerImplTest {
 		expectedMessageCount++;
 		
 		// Process the message (emulates the worker)
-		messageManager.processMessage(message2.getId(), null);
+		messageManager.processMessage(message2.getId());
 		
 		assertEquals(expectedMessageCount, sentMessagesCount);
 				
@@ -768,7 +767,7 @@ public class MessageManagerImplTest {
 		MessageToUser message3 = createMessage(otherTestUser, "message3", testUserIdSet, null);
 		
 		// Process the message (emulates the worker)
-		messageManager.processMessage(message3.getId(), null);
+		messageManager.processMessage(message3.getId());
 		
 		// The message is not sent, so no other call to SES should have been made
 		assertEquals(expectedMessageCount, sentMessagesCount);
@@ -803,7 +802,7 @@ public class MessageManagerImplTest {
 		message = messageManager.createMessage(otherTestUser, message, overrideNotificationSettings);
 		
 		// Process the message (emulates the worker)
-		messageManager.processMessage(message.getId(), null);		
+		messageManager.processMessage(message.getId());		
 		
 		assertEquals(1, sentMessagesCount);
 		
@@ -828,7 +827,7 @@ public class MessageManagerImplTest {
 		cleanup.add(message.getId());
 
 		// Process the message (emulates the worker)
-		messageManager.processMessage(message.getId(), null);
+		messageManager.processMessage(message.getId());
 		
 		// Check the test user's inbox
 		List<MessageBundle> inbox = messageManager.getInbox(testUser, 
@@ -852,7 +851,7 @@ public class MessageManagerImplTest {
 		cleanup.add(message.getId());
 		
 		// Process the message (emulates the worker)
-		messageManager.processMessage(message.getId(), null);
+		messageManager.processMessage(message.getId());
 		
 		// Check the test user's inbox
 		inbox = messageManager.getInbox(otherTestUser, 
@@ -875,7 +874,7 @@ public class MessageManagerImplTest {
 		cleanup.add(message.getId());
 		
 		// Process the message (emulates the worker)
-		messageManager.processMessage(message.getId(), null);
+		messageManager.processMessage(message.getId());
 		
 		// Check the test user's inbox
 		inbox = messageManager.getInbox(testUser, 
@@ -913,7 +912,7 @@ public class MessageManagerImplTest {
 		cleanup.add(message.getId());
 		
 		// Process the message (emulates the worker)
-		messageManager.processMessage(message.getId(), null);
+		messageManager.processMessage(message.getId());
 		
 		// Check the test user's inbox
 		List<MessageBundle> inbox = messageManager.getInbox(testUser, 
