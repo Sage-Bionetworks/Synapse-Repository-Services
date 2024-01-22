@@ -1,7 +1,10 @@
 package org.sagebionetworks.translator;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -46,6 +49,7 @@ public class ControllerModelDoclet implements Doclet {
 			ControllersToOpenAPIJsonTranslator translator = new ControllersToOpenAPIJsonTranslator();
 			JSONObject openAPIJson = translator.translate(env, concreteClassnames, reporter);
 
+			Files.createDirectories(Paths.get(targetFile).getParent());
 			// write resulting json to file
 			try (FileWriter fileWriter = new FileWriter(targetFile, false)) {
 				fileWriter.write(openAPIJson.toString(5));
