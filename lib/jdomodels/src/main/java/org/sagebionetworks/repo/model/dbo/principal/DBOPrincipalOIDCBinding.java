@@ -43,9 +43,13 @@ public class DBOPrincipalOIDCBinding implements MigratableDatabaseObject<DBOPrin
 			DBOPrincipalOIDCBinding subject = new DBOPrincipalOIDCBinding();
 			
 			subject.setId(rs.getLong(COL_PRINCIPAL_OIDC_BINDING_ID));
+			subject.setEtag(rs.getString(COL_PRINCIPAL_OIDC_BINDING_ETAG));
 			subject.setCreatedOn(rs.getTimestamp(COL_PRINCIPAL_OIDC_BINDING_CREATED_ON));
 			subject.setPrincipalId(rs.getLong(COL_PRINCIPAL_OIDC_BINDING_PRINCIPAL_ID));
 			subject.setAliasId(rs.getLong(COL_PRINCIPAL_OIDC_BINDING_ALIAS_ID));
+			if (rs.wasNull()) {
+				subject.setAliasId(null);
+			}
 			subject.setProvider(rs.getString(COL_PRINCIPAL_OIDC_BINDING_PROVIDER));
 			subject.setSubject(rs.getString(COL_PRINCIPAL_OIDC_BINDING_SUBJECT));
 
