@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
@@ -153,7 +154,7 @@ public class AuthenticationServiceImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
-		when(mockUserManager.lookupUserIdByOIDCSubject(any(), any())).thenReturn(Optional.of(userId));
+		when(mockUserManager.lookupOidcBindingBySubject(any(), any())).thenReturn(Optional.of(new PrincipalOidcBinding().setUserId(userId).setAliasId(456L)));
 		LoginResponse authMgrLoginResponse = new LoginResponse();
 		authMgrLoginResponse.setAcceptsTermsOfUse(true);
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
@@ -167,9 +168,126 @@ public class AuthenticationServiceImplTest {
 		assertEquals(authMgrLoginResponse, result);
 		
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
-		verify(mockUserManager).lookupUserIdByOIDCSubject(request.getProvider(), info.getSubject());
+		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
 		verifyNoMoreInteractions(mockUserManager);
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+	}
+	
+	@Test
+	public void testValidateOAuthAuthenticationCodeWithNoBoundAliasAndEmailMatch() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		info.setUsersVerifiedEmail("first.last@domain.com");
+		info.setSubject("abcd");
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+		PrincipalAlias alias = new PrincipalAlias();
+		long userId = 3456L;
+		alias.setPrincipalId(userId);
+		
+		PrincipalOidcBinding oidcBinding = new PrincipalOidcBinding().setUserId(userId).setAliasId(null);
+		
+		when(mockUserManager.lookupOidcBindingBySubject(any(), any())).thenReturn(Optional.of(oidcBinding));
+		when(mockUserManager.lookupUserByUsernameOrEmail(any())).thenReturn(alias);
+		LoginResponse authMgrLoginResponse = new LoginResponse();
+		authMgrLoginResponse.setAcceptsTermsOfUse(true);
+		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
+		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
+		
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		
+		//call under test
+		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
+		
+		assertEquals(authMgrLoginResponse, result);
+		
+		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
+		verify(mockUserManager).lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail());
+		verify(mockUserManager).setOidcBindingAlias(oidcBinding, alias);
+		verifyNoMoreInteractions(mockUserManager);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+	}
+	
+	@Test
+	public void testValidateOAuthAuthenticationCodeWithNoBoundAliasAndAliasMatch() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.ORCID);
+		request.setRedirectUrl("https://domain.com");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		info.setUsersVerifiedEmail("first.last@domain.com");
+		info.setSubject("abcd");
+		info.setAliasAndType(new AliasAndType("alias", AliasType.USER_ORCID));
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+		PrincipalAlias alias = new PrincipalAlias();
+		long userId = 3456L;
+		alias.setPrincipalId(userId);
+		
+		PrincipalOidcBinding oidcBinding = new PrincipalOidcBinding().setUserId(userId).setAliasId(null);
+		
+		when(mockUserManager.lookupOidcBindingBySubject(any(), any())).thenReturn(Optional.of(oidcBinding));
+		when(mockUserManager.lookupUserByAliasType(any(), any())).thenReturn(alias);
+		LoginResponse authMgrLoginResponse = new LoginResponse();
+		authMgrLoginResponse.setAcceptsTermsOfUse(true);
+		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
+		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
+		
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		
+		//call under test
+		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
+		
+		assertEquals(authMgrLoginResponse, result);
+		
+		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
+		verify(mockUserManager).lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail());
+		verify(mockUserManager).lookupUserByAliasType(AliasType.USER_ORCID, "alias");
+		verify(mockUserManager).setOidcBindingAlias(oidcBinding, alias);
+		verifyNoMoreInteractions(mockUserManager);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+	}
+	
+	@Test
+	public void testValidateOAuthAuthenticationCodeWithNoBoundAliasAndUserMismatch() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		info.setUsersVerifiedEmail("first.last@domain.com");
+		info.setSubject("abcd");
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+		PrincipalAlias alias = new PrincipalAlias();
+		long userId = 3456L;
+		alias.setAliasId(789L);
+		alias.setPrincipalId(userId);
+		
+		PrincipalOidcBinding oidcBinding = new PrincipalOidcBinding().setBindingId(12345L).setUserId(123L).setAliasId(null);
+		
+		when(mockUserManager.lookupOidcBindingBySubject(any(), any())).thenReturn(Optional.of(oidcBinding));
+		when(mockUserManager.lookupUserByUsernameOrEmail(any())).thenReturn(alias);
+		LoginResponse authMgrLoginResponse = new LoginResponse();
+		authMgrLoginResponse.setAcceptsTermsOfUse(true);
+		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
+		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
+		
+		String result = assertThrows(IllegalStateException.class, () -> {			
+			//call under test
+			service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
+		}).getMessage();
+		
+		assertEquals("Could not find a user matching the GOOGLE_OAUTH_2_0 provider information.", result);
+		
+		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
+		verify(mockUserManager).lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail());
+		verify(mockUserManager).deleteOidcBinding(oidcBinding.getBindingId());
+		verifyNoMoreInteractions(mockUserManager);
+		verifyNoMoreInteractions(mockAuthenticationManager);
 	}
 	
 	@Test
@@ -185,8 +303,9 @@ public class AuthenticationServiceImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
-		when(mockUserManager.lookupUserIdByOIDCSubject(any(), any())).thenReturn(Optional.empty());
+		when(mockUserManager.lookupOidcBindingBySubject(any(), any())).thenReturn(Optional.empty());
 		when(mockUserManager.lookupUserByUsernameOrEmail(any())).thenReturn(alias);
+		when(mockUserManager.bindUserToOidcSubject(any(), any(), any())).thenReturn(new PrincipalOidcBinding().setUserId(userId).setAliasId(456L));
 		LoginResponse authMgrLoginResponse = new LoginResponse();
 		authMgrLoginResponse.setAcceptsTermsOfUse(true);
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
@@ -200,9 +319,9 @@ public class AuthenticationServiceImplTest {
 		assertEquals(authMgrLoginResponse, result);
 		
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
-		verify(mockUserManager).lookupUserIdByOIDCSubject(request.getProvider(), info.getSubject());
+		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
 		verify(mockUserManager).lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail());
-		verify(mockUserManager).bindUserToOIDCSubject(alias.getPrincipalId(), request.getProvider(), info.getSubject());
+		verify(mockUserManager).bindUserToOidcSubject(alias, request.getProvider(), info.getSubject());
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
 	}
 	
@@ -220,8 +339,9 @@ public class AuthenticationServiceImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
-		when(mockUserManager.lookupUserIdByOIDCSubject(any(), any())).thenReturn(Optional.empty());
+		when(mockUserManager.lookupOidcBindingBySubject(any(), any())).thenReturn(Optional.empty());
 		when(mockUserManager.lookupUserByAliasType(any(), any())).thenReturn(alias);
+		when(mockUserManager.bindUserToOidcSubject(any(), any(), any())).thenReturn(new PrincipalOidcBinding().setUserId(userId).setAliasId(456L));
 		LoginResponse authMgrLoginResponse = new LoginResponse();
 		authMgrLoginResponse.setAcceptsTermsOfUse(true);
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
@@ -235,9 +355,9 @@ public class AuthenticationServiceImplTest {
 		assertEquals(authMgrLoginResponse, result);
 		
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
-		verify(mockUserManager).lookupUserIdByOIDCSubject(request.getProvider(), info.getSubject());
+		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
 		verify(mockUserManager).lookupUserByAliasType(AliasType.USER_ORCID, "alias");
-		verify(mockUserManager).bindUserToOIDCSubject(alias.getPrincipalId(), request.getProvider(), info.getSubject());
+		verify(mockUserManager).bindUserToOidcSubject(alias, request.getProvider(), info.getSubject());
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
 	}
 	
@@ -256,9 +376,10 @@ public class AuthenticationServiceImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
-		when(mockUserManager.lookupUserIdByOIDCSubject(any(), any())).thenReturn(Optional.empty());
+		when(mockUserManager.lookupOidcBindingBySubject(any(), any())).thenReturn(Optional.empty());
 		when(mockUserManager.lookupUserByUsernameOrEmail(any())).thenThrow(NotFoundException.class);
 		when(mockUserManager.lookupUserByAliasType(any(), any())).thenReturn(alias);
+		when(mockUserManager.bindUserToOidcSubject(any(), any(), any())).thenReturn(new PrincipalOidcBinding().setUserId(userId).setAliasId(456L));
 		LoginResponse authMgrLoginResponse = new LoginResponse();
 		authMgrLoginResponse.setAcceptsTermsOfUse(true);
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
@@ -272,10 +393,10 @@ public class AuthenticationServiceImplTest {
 		assertEquals(authMgrLoginResponse, result);
 		
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
-		verify(mockUserManager).lookupUserIdByOIDCSubject(request.getProvider(), info.getSubject());
+		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
 		verify(mockUserManager).lookupUserByUsernameOrEmail("first.last@domain.com");
 		verify(mockUserManager).lookupUserByAliasType(AliasType.USER_ORCID, "alias");
-		verify(mockUserManager).bindUserToOIDCSubject(alias.getPrincipalId(), request.getProvider(), info.getSubject());
+		verify(mockUserManager).bindUserToOidcSubject(alias, request.getProvider(), info.getSubject());
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
 	}
 	
@@ -294,7 +415,7 @@ public class AuthenticationServiceImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
-		when(mockUserManager.lookupUserIdByOIDCSubject(any(), any())).thenReturn(Optional.empty());
+		when(mockUserManager.lookupOidcBindingBySubject(any(), any())).thenReturn(Optional.empty());
 		when(mockUserManager.lookupUserByUsernameOrEmail(any())).thenThrow(NotFoundException.class);
 		when(mockUserManager.lookupUserByAliasType(any(), any())).thenThrow(NotFoundException.class);
 		LoginResponse authMgrLoginResponse = new LoginResponse();
@@ -309,7 +430,7 @@ public class AuthenticationServiceImplTest {
 		assertEquals("Could not find a user matching the ORCID provider information.", result);
 				
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
-		verify(mockUserManager).lookupUserIdByOIDCSubject(request.getProvider(), info.getSubject());
+		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
 		verify(mockUserManager).lookupUserByUsernameOrEmail("first.last@domain.com");
 		verify(mockUserManager).lookupUserByAliasType(AliasType.USER_ORCID, "alias");
 	}

@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOIDCBindingDao;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -49,7 +50,7 @@ public class UserManagerImpl implements UserManager {
 	private final AuthenticationDAO authDAO;
 	private final PrincipalAliasDAO principalAliasDAO;
 	private final NotificationEmailDAO notificationEmailDao;
-	private final PrincipalOIDCBindingDao principalOIDCBindingDao;
+	private final PrincipalOIDCBindingDao principalOidcBindingDao;
 	
 	/**
 	 * Testing purposes only
@@ -70,7 +71,7 @@ public class UserManagerImpl implements UserManager {
 		this.authDAO = authDAO;
 		this.principalAliasDAO = principalAliasDAO;
 		this.notificationEmailDao = notificationEmailDao;
-		this.principalOIDCBindingDao = principalOIDCBindingDao;
+		this.principalOidcBindingDao = principalOIDCBindingDao;
 		this.basicDAO = basicDAO;
 	}
 
@@ -91,7 +92,7 @@ public class UserManagerImpl implements UserManager {
 		}
 		// Make sure that the subject for an oauth provider is not bound yet
 		if (user.getOauthProvider() != null) {
-			lookupUserIdByOIDCSubject(user.getOauthProvider(), user.getSubject()).ifPresent((principalId)-> {
+			lookupOidcBindingBySubject(user.getOauthProvider(), user.getSubject()).ifPresent((principalId)-> {
 				throw new NameConflictException("The provided '" + user.getOauthProvider() +"' account is already registered with Synapse");
 			});
 		}
@@ -129,7 +130,7 @@ public class UserManagerImpl implements UserManager {
 		bindAlias(user.getUserName(), AliasType.USER_NAME, principalId);
 		PrincipalAlias emailAlias = bindAlias(user.getEmail(), AliasType.USER_EMAIL, principalId);
 		if (user.getOauthProvider() != null) {
-			bindUserToOIDCSubject(principalId, user.getOauthProvider(), user.getSubject());
+			bindUserToOidcSubject(emailAlias, user.getOauthProvider(), user.getSubject());
 		}
 		notificationEmailDao.create(emailAlias);
 	}	
@@ -298,21 +299,40 @@ public class UserManagerImpl implements UserManager {
 	
 
 	@Override
-	public Optional<Long> lookupUserIdByOIDCSubject(OAuthProvider provider, String subject) {
+	public Optional<PrincipalOidcBinding> lookupOidcBindingBySubject(OAuthProvider provider, String subject) {
 		ValidateArgument.required(provider, "The provider");
 		ValidateArgument.requiredNotBlank(subject, "The subject");
 		
-		return principalOIDCBindingDao.findBindingForSubject(provider, subject);
+		return principalOidcBindingDao.findBindingForSubject(provider, subject);
 	}
 	
 	@WriteTransaction
 	@Override
-	public void bindUserToOIDCSubject(Long userId, OAuthProvider provider, String subject) {
-		ValidateArgument.required(userId, "The userId");
+	public PrincipalOidcBinding bindUserToOidcSubject(PrincipalAlias principalAlias, OAuthProvider provider, String subject) {
+		ValidateArgument.required(principalAlias, "The principalAlias");
 		ValidateArgument.required(provider, "The provider");
 		ValidateArgument.requiredNotBlank(subject, "The subject");
 		
-		principalOIDCBindingDao.bindPrincipalToSubject(userId, provider, subject);
+		principalOidcBindingDao.bindPrincipalToSubject(principalAlias.getPrincipalId(), principalAlias.getAliasId(), provider, subject);
+		
+		return principalOidcBindingDao.findBindingForSubject(provider, subject).orElseThrow( () -> new IllegalStateException("Failed to bind principal to provider subject."));
+	}
+	
+	@Override
+	@WriteTransaction
+	public void setOidcBindingAlias(PrincipalOidcBinding binding, PrincipalAlias principalAlias) {
+		ValidateArgument.required(binding, "The binding");
+		ValidateArgument.required(principalAlias, "The principalAlias");
+		
+		principalOidcBindingDao.setBindingAlias(binding.getBindingId(), principalAlias.getAliasId());
+	}
+	
+	@Override
+	@WriteTransaction
+	public void deleteOidcBinding(Long bindingId) {
+		ValidateArgument.required(bindingId, "The binding id");
+		
+		principalOidcBindingDao.deleteBinding(bindingId);
 	}
 
 	@Override

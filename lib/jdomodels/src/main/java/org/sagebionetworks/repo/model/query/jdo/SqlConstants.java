@@ -1240,8 +1240,10 @@ public class SqlConstants {
 	public static final String DDL_PRINCIPAL_OIDC_BINDING = 							"schema/PrincipalOIDCBinding-ddl.sql";
 	public static final String TABLE_PRINCIPAL_OIDC_BINDING = 							"PRINCIPAL_OIDC_BINDING";
 	public static final String COL_PRINCIPAL_OIDC_BINDING_ID = 							"ID";
+	public static final String COL_PRINCIPAL_OIDC_BINDING_ETAG = 						"ETAG";
 	public static final String COL_PRINCIPAL_OIDC_BINDING_CREATED_ON = 					"CREATED_ON";
 	public static final String COL_PRINCIPAL_OIDC_BINDING_PRINCIPAL_ID = 				"PRINCIPAL_ID";
+	public static final String COL_PRINCIPAL_OIDC_BINDING_ALIAS_ID = 					"ALIAS_ID";
 	public static final String COL_PRINCIPAL_OIDC_BINDING_PROVIDER = 					"PROVIDER";
 	public static final String COL_PRINCIPAL_OIDC_BINDING_SUBJECT = 					"SUBJECT";
 	
