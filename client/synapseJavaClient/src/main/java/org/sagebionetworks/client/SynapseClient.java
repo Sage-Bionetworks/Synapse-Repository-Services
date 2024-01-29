@@ -286,6 +286,8 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ValidateDefiningSqlRequest;
+import org.sagebionetworks.repo.model.table.ValidateDefiningSqlResponse;
 import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
 import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -4202,4 +4204,9 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request) throws SynapseException;
+
+	/** 
+	 * Validate the definingSQL of an Entity.
+	 */
+	ValidateDefiningSqlResponse validateDefiningSql(ValidateDefiningSqlRequest request) throws SynapseException;
 }

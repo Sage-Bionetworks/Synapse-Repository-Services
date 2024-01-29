@@ -20,6 +20,13 @@ public interface MaterializedViewManager {
 	void validate(MaterializedView materializedView);
 
 	/**
+	 * Validates the given defining SQL
+	 * 
+	 * @param definingSql
+	 */
+	void validateDefiningSql(String definingSql);
+
+	/**
 	 * Extract and register all the tables referenced by the SQL defining a materialized view
 	 * 
 	 * @param idAndVersion The id and (optional) version of the materialized view, if a version is not

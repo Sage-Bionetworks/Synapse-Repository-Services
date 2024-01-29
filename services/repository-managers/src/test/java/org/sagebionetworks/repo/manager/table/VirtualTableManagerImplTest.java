@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -28,6 +30,7 @@ import org.sagebionetworks.table.query.ParseException;
 @ExtendWith(MockitoExtension.class)
 public class VirtualTableManagerImplTest {
 
+	@Spy
 	@InjectMocks
 	private VirtualTableManagerImpl manager;
 
@@ -39,6 +42,7 @@ public class VirtualTableManagerImplTest {
 	private TableManagerSupport mockTableManagerSupport;
 	@Mock
 	private IndexDescription mockIndexDescription;
+
 
 	@Test
 	public void testValidate() {
@@ -165,6 +169,29 @@ public class VirtualTableManagerImplTest {
 	}
 
 	@Test
+	public void testValidateDefiningSql() {
+		String sql = "select * from syn123";
+
+		doReturn(null).when(manager).buildQueryTranslator(sql);
+
+		// Call under test
+		manager.validateDefiningSql(sql);
+		verify(manager).buildQueryTranslator(sql);
+	}
+
+	@Test
+	public void testValidateDefiningSqlWithNullSql() {
+		String sql = null;
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.validateDefiningSql(sql);
+		}).getMessage();
+
+		assertEquals("The definingSQL of the virtual table is required.", message);
+	}
+
+	@Test
 	public void testGetSchemaIds() {
 		List<String> columnIds = List.of("1", "2");
 		when(mockColumnModelManager.getColumnIdsForTable(any())).thenReturn(columnIds);
@@ -273,7 +300,7 @@ public class VirtualTableManagerImplTest {
 	}
 	
 	@Test
-	public void testRegisterDefiningSqlWithJion() {
+	public void testRegisterDefiningSqlWithJoin() {
 		IdAndVersion id = IdAndVersion.parse("syn123");
 		String sql = "select * from syn1 join syn2 on (syn1.id = syn2.id)";
 		

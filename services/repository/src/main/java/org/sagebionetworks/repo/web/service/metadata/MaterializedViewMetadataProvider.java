@@ -13,9 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class MaterializedViewMetadataProvider
-		implements EntityValidator<MaterializedView>, TypeSpecificCreateProvider<MaterializedView>,
-		TypeSpecificUpdateProvider<MaterializedView>, TypeSpecificMetadataProvider<MaterializedView> {
+public class MaterializedViewMetadataProvider implements 
+	EntityValidator<MaterializedView>, 
+	TypeSpecificCreateProvider<MaterializedView>,
+	TypeSpecificUpdateProvider<MaterializedView>,
+	TypeSpecificMetadataProvider<MaterializedView>, 
+	TypeSpecificDefiningSqlProvider<MaterializedView> {
 
 	private MaterializedViewManager manager;
 
@@ -48,6 +51,11 @@ public class MaterializedViewMetadataProvider
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		IdAndVersion idAndVersion = KeyFactory.idAndVersion(entity.getId(), entity.getVersionNumber());
 		entity.setColumnIds(manager.getSchemaIds(idAndVersion));
+	}
+
+	@Override
+	public void validateDefiningSql(String definingSql) {
+		manager.validateDefiningSql(definingSql);
 	}
 
 }
