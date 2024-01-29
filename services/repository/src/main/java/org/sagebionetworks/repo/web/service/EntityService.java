@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -36,6 +37,9 @@ import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.sts.StsCredentials;
 import org.sagebionetworks.repo.model.sts.StsPermission;
+import org.sagebionetworks.repo.model.table.DefiningSqlEntityType;
+import org.sagebionetworks.repo.model.table.ValidateDefiningSqlRequest;
+import org.sagebionetworks.repo.model.table.ValidateDefiningSqlResponse;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.metadata.EventType;
@@ -727,5 +731,12 @@ public interface EntityService {
 	Keys getDerivedAnnotationKeys(Long userId, String id);
 	
 	ActionRequiredList getActionsRequiredForDownload(Long userId, String entityId);
+
+	/**
+	 * Validate the given definingSQL against the given entity type.
+	 * @param request
+	 * @return
+	 */
+	ValidateDefiningSqlResponse validateDefiningSql(ValidateDefiningSqlRequest request);
 
 }

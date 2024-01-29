@@ -2,6 +2,7 @@ logs/
 target/
 .classpath
 .idea
+.vscode
 .settings
 .project
 .pydevproject

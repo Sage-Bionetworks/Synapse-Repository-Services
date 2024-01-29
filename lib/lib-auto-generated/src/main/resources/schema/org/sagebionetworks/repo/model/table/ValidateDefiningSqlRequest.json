@@ -1,0 +1,14 @@
+{
+  "title": "DefiningSqlValidationObject",
+  "description": "The request body for validateDefiningSql",
+  "properties": {
+    "definingSql": {
+      "type": "string",
+      "description": "The synapse SQL statement that defines the data in the table."
+    },
+    "entityType": {
+      "$ref": "org.sagebionetworks.repo.model.table.DefiningSqlEntityType",
+      "description": "Which type of entity is this definingSQL for."
+    }
+  }
+}

@@ -83,7 +83,7 @@ public class MaterializedViewManagerImplTest {
 	
 	@Mock
 	private MaterializedViewDao mockMaterializedViewDao;
-	
+
 	@InjectMocks
 	private MaterializedViewManagerImpl manager;
 	
@@ -118,89 +118,95 @@ public class MaterializedViewManagerImplTest {
 
 		when(mockView.getDefiningSQL()).thenReturn(sql);
 
-		// Call under test
-		manager.validate(mockView);
+		managerSpy.validate(mockView);
 
-		verify(mockView, atLeastOnce()).getDefiningSQL();
+		verify(managerSpy, atLeastOnce()).validateDefiningSql(sql);
 	}
 
 	@Test
-	public void testValidateWithNullSQL() {
+	public void testValidateWithNullView() {
+		MaterializedView view = null;
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.validate(view);
+		}).getMessage();
+
+		assertEquals("The materialized view is required.", message);
+	}
+
+	@Test
+	public void testValidateDefiningSql() {
+		String sql = "SELECT * FROM syn123";
+
+		// Call under test
+		managerSpy.validateDefiningSql(sql);
+
+		// The test should not throw an exception if the SQL is valid
+	}
+
+	@Test
+	public void testValidateDefiningSqlWithNullSQL() {
 		String sql = null;
 
-		when(mockView.getDefiningSQL()).thenReturn(sql);
-
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.validate(mockView);
+			manager.validateDefiningSql(sql);
 		}).getMessage();
 
-		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
-		verify(mockView, atLeastOnce()).getDefiningSQL();
+		assertEquals("The definingSQL of the materialized view is required.", message);
 	}
 
 	@Test
-	public void testValidateWithEmptySQL() {
+	public void testValidateDefiningSqlWithEmptySQL() {
 		String sql = "";
 
-		when(mockView.getDefiningSQL()).thenReturn(sql);
-
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.validate(mockView);
+			manager.validateDefiningSql(sql);
 		}).getMessage();
 
 		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
-		verify(mockView, atLeastOnce()).getDefiningSQL();
 	}
 
 	@Test
-	public void testValidateWithBlankSQL() {
+	public void testValidateDefiningSqlWithBlankSQL() {
 		String sql = "   ";
-
-		when(mockView.getDefiningSQL()).thenReturn(sql);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.validate(mockView);
+			manager.validateDefiningSql(sql);
 		}).getMessage();
 
 		assertEquals("The definingSQL of the materialized view is required and must not be a blank string.", message);
-		verify(mockView, atLeastOnce()).getDefiningSQL();
 	}
 
 	@Test
-	public void testValidateWithInvalidSQL() {
+	public void testValidateDefiningSqlWithInvalidSQL() {
 		String sql = "invalid SQL";
-
-		when(mockView.getDefiningSQL()).thenReturn(sql);
 
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.validate(mockView);
+			manager.validateDefiningSql(sql);
 		});
 
 		assertTrue(ex.getCause() instanceof ParseException);
 
 		assertTrue(ex.getMessage().startsWith("Encountered \" <regular_identifier> \"invalid"));
-		verify(mockView, atLeastOnce()).getDefiningSQL();
 	}
 
 	@Test
-	public void testValidateWithWithNoTable() {
+	public void testValidateDefiningSqlWithWithNoTable() {
 		String sql = "SELECT foo";
-
-		when(mockView.getDefiningSQL()).thenReturn(sql);
 
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.validate(mockView);
+			manager.validateDefiningSql(sql);
 		});
 
 		assertTrue(ex.getCause() instanceof ParseException);
 
 		assertTrue(ex.getMessage().startsWith("Encountered \"<EOF>\" at line 1, column 10."));
-		verify(mockView, atLeastOnce()).getDefiningSQL();
 	}
 
 	@Test

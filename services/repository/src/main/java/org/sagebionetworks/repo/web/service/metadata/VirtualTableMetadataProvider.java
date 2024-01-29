@@ -16,7 +16,8 @@ public class VirtualTableMetadataProvider implements
 	EntityValidator<VirtualTable>, 
 	TypeSpecificCreateProvider<VirtualTable>,
 	TypeSpecificUpdateProvider<VirtualTable>, 
-	TypeSpecificMetadataProvider<VirtualTable> {
+	TypeSpecificMetadataProvider<VirtualTable>,
+	TypeSpecificDefiningSqlProvider<VirtualTable> {
 
 	private VirtualTableManager manager;
 	
@@ -52,6 +53,11 @@ public class VirtualTableMetadataProvider implements
 	private void registerDefiningSql(VirtualTable entity) {
 		// Note that the defining SQL is always bound to the "current" version of the entity (See https://sagebionetworks.jira.com/browse/PLFM-7963)
 		manager.registerDefiningSql(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
+	}
+
+	@Override
+	public void validateDefiningSql(String definingSql) {
+		manager.validateDefiningSql(definingSql);
 	}
 
 }
