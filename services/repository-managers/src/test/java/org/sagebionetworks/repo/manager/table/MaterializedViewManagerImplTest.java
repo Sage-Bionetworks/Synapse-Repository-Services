@@ -154,7 +154,7 @@ public class MaterializedViewManagerImplTest {
 			manager.validateDefiningSql(sql);
 		}).getMessage();
 
-		assertEquals("The definingSQL of the materialized view is required.", message);
+		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
 	}
 
 	@Test

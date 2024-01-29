@@ -71,7 +71,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 
 	@Override
 	public void validateDefiningSql(String definingSql) {
-		ValidateArgument.required(definingSql, "The definingSQL of the materialized view");
+		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the materialized view");
 		getQuerySpecification(definingSql);
 	}
 	
