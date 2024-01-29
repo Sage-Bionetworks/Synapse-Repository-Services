@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AccessToken;
@@ -252,6 +253,41 @@ public class AuthenticationServiceImplTest {
 	}
 	
 	@Test
+	public void testValidateOAuthAuthenticationCodeWithNoBoundAliasAndNoAliasFound() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		info.setUsersVerifiedEmail("first.last@domain.com");
+		info.setSubject("abcd");
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+				
+		PrincipalOidcBinding oidcBinding = new PrincipalOidcBinding().setBindingId(12345L).setUserId(123L).setAliasId(null);
+		
+		when(mockUserManager.lookupOidcBindingBySubject(any(), any())).thenReturn(Optional.of(oidcBinding));
+		when(mockUserManager.lookupUserByUsernameOrEmail(any())).thenThrow(NotFoundException.class);
+		LoginResponse authMgrLoginResponse = new LoginResponse();
+		authMgrLoginResponse.setAcceptsTermsOfUse(true);
+		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
+		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
+		
+		String result = assertThrows(NotFoundException.class, () -> {			
+			//call under test
+			service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
+		}).getMessage();
+		
+		assertEquals("Could not find a user matching the GOOGLE_OAUTH_2_0 provider information.", result);
+		
+		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
+		verify(mockUserManager).lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail());
+		verify(mockUserManager).deleteOidcBinding(oidcBinding.getBindingId());
+		verifyNoMoreInteractions(mockUserManager);
+		verifyNoMoreInteractions(mockAuthenticationManager);
+	}
+	
+	@Test
 	public void testValidateOAuthAuthenticationCodeWithNoBoundAliasAndUserMismatch() throws NotFoundException{
 		OAuthValidationRequest request = new OAuthValidationRequest();
 		request.setAuthenticationCode("some code");
@@ -275,7 +311,7 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 		
-		String result = assertThrows(IllegalStateException.class, () -> {			
+		String result = assertThrows(UnauthenticatedException.class, () -> {			
 			//call under test
 			service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
 		}).getMessage();

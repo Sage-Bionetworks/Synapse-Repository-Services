@@ -1,5 +1,7 @@
 package org.sagebionetworks.auth.services;
 
+import java.util.Optional;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
@@ -12,6 +14,7 @@ import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AccessToken;
@@ -137,7 +140,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		// We first lookup for a potential subject already bound for the given provider
 		PrincipalOidcBinding oidcBinding = userManager.lookupOidcBindingBySubject(request.getProvider(), providedInfo.getSubject()).orElseGet(() -> {
-			PrincipalAlias alias = findPrincipalAlias(request.getProvider(), providedInfo);
+			PrincipalAlias alias = findPrincipalAlias(request.getProvider(), providedInfo)
+				.orElseThrow(() -> new NotFoundException("Could not find a user matching the " + request.getProvider() + " provider information."));
 			
 			// Finally, we also migrate the user to the oauth provider subject (See https://sagebionetworks.jira.com/browse/PLFM-7302)
 			return userManager.bindUserToOidcSubject(alias, request.getProvider(), providedInfo.getSubject());
@@ -145,28 +149,38 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		// In https://sagebionetworks.jira.com/browse/PLFM-8198 we added the alias FK and we need to backfill	
 		if (oidcBinding.getAliasId() == null) {
-			PrincipalAlias alias = findPrincipalAlias(request.getProvider(), providedInfo);
-
-			// If the matched alias is different than the user id the binding is associated with, then the user might have
-			// an old binding that needs to be deleted (e.g. this is the case where they logged in and removed an alias in 
-			// the past and added that alias to another account)
-			if (!alias.getPrincipalId().equals(oidcBinding.getUserId())) {
+			
+			PrincipalAlias alias = findPrincipalAlias(request.getProvider(), providedInfo).orElseThrow(() -> {
+				// If an alias is not found the user deleted the associated alias and the binding is not valid anymore
 				userManager.deleteOidcBinding(oidcBinding.getBindingId());
+				
+				LOGGER.warn("A {} OIDC binding was found for user {} but no matching alias was found (The binding has been deleted)", request.getProvider(), oidcBinding.getUserId());
+				
+				// The not found exception will send the user to the registration page
+				return new NotFoundException("Could not find a user matching the " + request.getProvider() + " provider information.");
+			});
 
+			if (!alias.getPrincipalId().equals(oidcBinding.getUserId())) {
+				// If the matched alias is different than the user id the binding is associated with, then the user might have
+				// an old binding that needs to be deleted (e.g. this is the case where they logged in and removed an alias in 
+				// the past and added that alias to another account)
+				userManager.deleteOidcBinding(oidcBinding.getBindingId());
+				
 				LOGGER.warn("A {} OIDC binding was found for user {} but the alias {} belongs to user {} (The binding has been deleted)", request.getProvider(), oidcBinding.getUserId(), alias.getAliasId(), alias.getPrincipalId());
 				
-				// This is an unexpected database state, we throw a 500 for monitoring
-				throw new IllegalStateException("Could not find a user matching the " + request.getProvider().name() + " provider information.");
+				// The unauthenticated exception will prompt the user to login again
+				throw new UnauthenticatedException("Could not find a user matching the " + request.getProvider().name() + " provider information.");
 			}
 			
 			userManager.setOidcBindingAlias(oidcBinding, alias);
+			
 		}
 		
 		// Return the user's access token
 		return authManager.loginWithNoPasswordCheck(oidcBinding.getUserId(), tokenIssuer);
 	}
 	
-	private PrincipalAlias findPrincipalAlias(OAuthProvider provider, ProvidedUserInfo providedInfo) {
+	private Optional<PrincipalAlias> findPrincipalAlias(OAuthProvider provider, ProvidedUserInfo providedInfo) {
 		PrincipalAlias alias = null;
 		
 		// For backward compatibility we also lookup the user by the provider verified email
@@ -188,11 +202,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			}
 		}
 		
-		if (alias == null) {
-			throw new NotFoundException("Could not find a user matching the " + provider.name() + " provider information.");
-		}
-		
-		return alias;
+		return Optional.ofNullable(alias);
 	}
 	
 	@WriteTransaction
