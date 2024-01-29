@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AccessToken;
@@ -147,9 +146,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			return userManager.bindUserToOidcSubject(alias, request.getProvider(), providedInfo.getSubject());
 		});
 		
+		Long loggedInUserId = oidcBinding.getUserId();
+				
 		// In https://sagebionetworks.jira.com/browse/PLFM-8198 we added the alias FK and we need to backfill	
 		if (oidcBinding.getAliasId() == null) {
-			
+						
 			PrincipalAlias alias = findPrincipalAlias(request.getProvider(), providedInfo).orElseThrow(() -> {
 				// If an alias is not found the user deleted the associated alias and the binding is not valid anymore
 				userManager.deleteOidcBinding(oidcBinding.getBindingId());
@@ -166,18 +167,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 				// the past and added that alias to another account)
 				userManager.deleteOidcBinding(oidcBinding.getBindingId());
 				
-				LOGGER.warn("A {} OIDC binding was found for user {} but the alias {} belongs to user {} (The binding has been deleted)", request.getProvider(), oidcBinding.getUserId(), alias.getAliasId(), alias.getPrincipalId());
+				userManager.bindUserToOidcSubject(alias, request.getProvider(), providedInfo.getSubject());
 				
-				// The unauthenticated exception will prompt the user to login again
-				throw new UnauthenticatedException("Could not find a user matching the " + request.getProvider().name() + " provider information.");
+				loggedInUserId = alias.getPrincipalId();
+				
+				LOGGER.warn("A {} OIDC binding was found for user {} but the alias {} belongs to user {} (The binding has been migrated)", request.getProvider(), oidcBinding.getUserId(), alias.getAliasId(), alias.getPrincipalId());
+			} else {
+				// See See https://sagebionetworks.jira.com/browse/PLFM-8198, we backfill the missing alias
+				userManager.setOidcBindingAlias(oidcBinding, alias);
 			}
-			
-			userManager.setOidcBindingAlias(oidcBinding, alias);
 			
 		}
 		
 		// Return the user's access token
-		return authManager.loginWithNoPasswordCheck(oidcBinding.getUserId(), tokenIssuer);
+		return authManager.loginWithNoPasswordCheck(loggedInUserId, tokenIssuer);
 	}
 	
 	private Optional<PrincipalAlias> findPrincipalAlias(OAuthProvider provider, ProvidedUserInfo providedInfo) {
