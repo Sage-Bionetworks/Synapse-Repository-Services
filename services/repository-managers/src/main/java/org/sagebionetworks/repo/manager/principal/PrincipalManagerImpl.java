@@ -252,6 +252,9 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 		if (!aliasesRemoved) {
 			throw new DatastoreException("Removed zero aliases from principal: " + principalToClear + ". A principal record should have at least one alias.");
 		}
+		
+		// Clear also the OIDC bindings (See https://sagebionetworks.jira.com/browse/PLFM-8219
+		userManager.clearOidcBindings(principalToClear);
 
 		// The email address that this account will now use:
 		String gdprEmail = "gdpr-synapse+" + principalToClear + "@sagebase.org";

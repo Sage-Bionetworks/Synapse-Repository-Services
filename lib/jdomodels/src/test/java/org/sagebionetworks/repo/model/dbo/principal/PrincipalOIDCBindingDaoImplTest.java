@@ -95,8 +95,6 @@ public class PrincipalOIDCBindingDaoImplTest {
 	
 	@Test
 	public void testDeleteBinding() {
-		// Call under test
-		dao.deleteBinding(123L);
 		
 		String subject = "subject";
 		
@@ -104,6 +102,7 @@ public class PrincipalOIDCBindingDaoImplTest {
 		
 		PrincipalOidcBinding binding = dao.findBindingForSubject(OAuthProvider.GOOGLE_OAUTH_2_0, subject).get();
 		
+		// Call under test
 		dao.deleteBinding(binding.getBindingId());
 		
 		assertFalse(dao.findBindingForSubject(OAuthProvider.GOOGLE_OAUTH_2_0, subject).isPresent());
@@ -125,6 +124,19 @@ public class PrincipalOIDCBindingDaoImplTest {
 		binding = dao.findBindingForSubject(OAuthProvider.GOOGLE_OAUTH_2_0, subject).get();
 		
 		assertEquals(newAliasId, binding.getAliasId());
+	}
+	
+	@Test
+	public void testClearBindings() {
+		
+		String subject = "subject";
+		
+		dao.bindPrincipalToSubject(alias.getPrincipalId(), alias.getAliasId(), OAuthProvider.GOOGLE_OAUTH_2_0, subject);
+				
+		// Call under test
+		dao.clearBindings(alias.getPrincipalId());
+		
+		assertFalse(dao.findBindingForSubject(OAuthProvider.GOOGLE_OAUTH_2_0, subject).isPresent());
 	}
 
 }

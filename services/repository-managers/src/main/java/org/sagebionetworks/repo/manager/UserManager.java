@@ -114,6 +114,13 @@ public interface UserManager {
 	 * @param userId
 	 */
 	void deleteOidcBinding(Long bindingId);
+	
+	/**
+	 * Removes all the oidc bindings for the given user
+	 * 
+	 * @param userId
+	 */
+	void clearOidcBindings(Long userId);
 
 	/**
 	 * Clear all user
