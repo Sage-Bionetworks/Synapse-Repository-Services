@@ -1,5 +1,7 @@
 package org.sagebionetworks.auth.services;
 
+import java.util.Optional;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
@@ -30,6 +32,7 @@ import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
@@ -131,43 +134,78 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
 		
 		if (providedInfo.getSubject() == null) {
-			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide the user subject");
+			throw new IllegalArgumentException("OAuthProvider: " + request.getProvider().name() + " did not provide the user subject");
 		}
 		
 		// We first lookup for a potential subject already bound for the given provider
-		Long principalId = userManager.lookupUserIdByOIDCSubject(request.getProvider(), providedInfo.getSubject()).orElseGet(() -> {
-			PrincipalAlias alias = null;
+		PrincipalOidcBinding oidcBinding = userManager.lookupOidcBindingBySubject(request.getProvider(), providedInfo.getSubject()).orElseGet(() -> {
+			PrincipalAlias alias = findPrincipalAlias(request.getProvider(), providedInfo)
+				.orElseThrow(() -> new NotFoundException("Could not find a user matching the " + request.getProvider() + " provider information."));
 			
-			// For backward compatibility we also lookup the user by the provider verified email
-			if (providedInfo.getUsersVerifiedEmail() != null) {
-				try {
-					alias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
-				} catch (NotFoundException e) {
-					LOGGER.warn("Could not match user (Provider: {}, Sub: {}, Verified email: {}): {}", request.getProvider(), providedInfo.getSubject(), providedInfo.getUsersVerifiedEmail(), e.getMessage());
-				}
-			}
-			
-			// If the provider does not give a verified email or there is no match we try using the alias if present
-			if (alias == null && providedInfo.getAliasAndType() != null) {
-				AliasAndType aliasType = providedInfo.getAliasAndType();
-				try {
-					alias = userManager.lookupUserByAliasType(aliasType.getType(), aliasType.getAlias());
-				} catch (NotFoundException e) {
-					LOGGER.warn("Could not match user (Provider: {}, Sub: {}, Alias: {}): {}", request.getProvider(), providedInfo.getSubject(), aliasType.getAlias(), e.getMessage());
-				}
-			}
-			
-			if (alias != null) {
-				// Finally, we also migrate the user to the oauth provider subject (See https://sagebionetworks.jira.com/browse/PLFM-7302)
-				userManager.bindUserToOIDCSubject(alias.getPrincipalId(), request.getProvider(), providedInfo.getSubject());
-				return alias.getPrincipalId();
-			}
-			
-			throw new NotFoundException("Could not find a user matching the " + request.getProvider().name() + " provider information.");
+			// Finally, we also migrate the user to the oauth provider subject (See https://sagebionetworks.jira.com/browse/PLFM-7302)
+			return userManager.bindUserToOidcSubject(alias, request.getProvider(), providedInfo.getSubject());
 		});
 		
+		Long loggedInUserId = oidcBinding.getUserId();
+				
+		// In https://sagebionetworks.jira.com/browse/PLFM-8198 we added the alias FK and we need to backfill	
+		if (oidcBinding.getAliasId() == null) {
+						
+			PrincipalAlias alias = findPrincipalAlias(request.getProvider(), providedInfo).orElseThrow(() -> {
+				// If an alias is not found the user deleted the associated alias and the binding is not valid anymore
+				userManager.deleteOidcBinding(oidcBinding.getBindingId());
+				
+				LOGGER.warn("A {} OIDC binding was found for user {} but no matching alias was found (The binding has been deleted)", request.getProvider(), oidcBinding.getUserId());
+				
+				// The not found exception will send the user to the registration page
+				return new NotFoundException("Could not find a user matching the " + request.getProvider() + " provider information.");
+			});
+
+			if (!alias.getPrincipalId().equals(oidcBinding.getUserId())) {
+				// If the matched alias is different than the user id the binding is associated with, then the user might have
+				// an old binding that needs to be deleted (e.g. this is the case where they logged in and removed an alias in 
+				// the past and added that alias to another account)
+				userManager.deleteOidcBinding(oidcBinding.getBindingId());
+				
+				userManager.bindUserToOidcSubject(alias, request.getProvider(), providedInfo.getSubject());
+				
+				loggedInUserId = alias.getPrincipalId();
+				
+				LOGGER.warn("A {} OIDC binding was found for user {} but the alias {} belongs to user {} (The binding has been migrated)", request.getProvider(), oidcBinding.getUserId(), alias.getAliasId(), alias.getPrincipalId());
+			} else {
+				// See See https://sagebionetworks.jira.com/browse/PLFM-8198, we backfill the missing alias
+				userManager.setOidcBindingAlias(oidcBinding, alias);
+			}
+			
+		}
+		
 		// Return the user's access token
-		return authManager.loginWithNoPasswordCheck(principalId, tokenIssuer);
+		return authManager.loginWithNoPasswordCheck(loggedInUserId, tokenIssuer);
+	}
+	
+	private Optional<PrincipalAlias> findPrincipalAlias(OAuthProvider provider, ProvidedUserInfo providedInfo) {
+		PrincipalAlias alias = null;
+		
+		// For backward compatibility we also lookup the user by the provider verified email
+		if (providedInfo.getUsersVerifiedEmail() != null) {
+			try {
+				alias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
+			} catch (NotFoundException e) {
+				LOGGER.warn("Could not match user (Provider: {}, Sub: {}, Verified email: {}): {}", provider, providedInfo.getSubject(), providedInfo.getUsersVerifiedEmail(), e.getMessage());
+			}
+		}
+		
+		// If the provider does not give a verified email or there is no match we try using the alias if present
+		if (alias == null && providedInfo.getAliasAndType() != null) {
+			AliasAndType aliasType = providedInfo.getAliasAndType();
+			try {
+				alias = userManager.lookupUserByAliasType(aliasType.getType(), aliasType.getAlias());
+			} catch (NotFoundException e) {
+				LOGGER.warn("Could not match user (Provider: {}, Sub: {}, Alias: {}): {}", provider, providedInfo.getSubject(), aliasType.getAlias(), e.getMessage());
+			}
+		}
+		
+		return Optional.ofNullable(alias);
 	}
 	
 	@WriteTransaction

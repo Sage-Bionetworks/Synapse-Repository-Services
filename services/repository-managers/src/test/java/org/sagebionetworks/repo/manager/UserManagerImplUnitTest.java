@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -49,6 +50,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOIDCBindingDao;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -76,7 +78,7 @@ public class UserManagerImplUnitTest {
 	@Mock
 	private NotificationEmailDAO notificationEmailDao;
 	@Mock
-	private PrincipalOIDCBindingDao mockPrincipalOIDCDao;
+	private PrincipalOIDCBindingDao mockPrincipalOidcDao;
 	
 	@InjectMocks
 	private UserManagerImpl userManager;
@@ -101,6 +103,7 @@ public class UserManagerImplUnitTest {
 		principalAlias = new PrincipalAlias();
 		principalAlias.setAlias(alias);
 		principalAlias.setAliasId(3333L);
+		principalAlias.setPrincipalId(123L);
 		principalAlias.setType(AliasType.USER_NAME);
 		sessionId = SessionIdThreadLocal.createNewSessionIdForThread();
 	}
@@ -346,23 +349,23 @@ public class UserManagerImplUnitTest {
 	@Test
 	public void testLookupUserIdByOIDCSubject() {
 		
-		Optional<Long> expected = Optional.of(123L);
+		Optional<PrincipalOidcBinding> expected = Optional.of(new PrincipalOidcBinding().setBindingId(123L));
 		
-		when(mockPrincipalOIDCDao.findBindingForSubject(any(), any())).thenReturn(expected);
+		when(mockPrincipalOidcDao.findBindingForSubject(any(), any())).thenReturn(expected);
 		
 		// call under test
-		Optional<Long> result = userManager.lookupUserIdByOIDCSubject(OAuthProvider.GOOGLE_OAUTH_2_0, alias);
+		Optional<PrincipalOidcBinding> result = userManager.lookupOidcBindingBySubject(OAuthProvider.GOOGLE_OAUTH_2_0, alias);
 		
 		assertEquals(expected, result);
 		
-		verify(mockPrincipalOIDCDao).findBindingForSubject(OAuthProvider.GOOGLE_OAUTH_2_0, alias);
+		verify(mockPrincipalOidcDao).findBindingForSubject(OAuthProvider.GOOGLE_OAUTH_2_0, alias);
 	}
 	
 	@Test
 	public void testLookupUserIdByOIDCSubjectWithNoProvider() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// call under test
-			userManager.lookupUserIdByOIDCSubject(null, alias);
+			userManager.lookupOidcBindingBySubject(null, alias);
 		}).getMessage();
 		
 		assertEquals("The provider is required.", message);
@@ -372,7 +375,7 @@ public class UserManagerImplUnitTest {
 	public void testLookupUserIdByOIDCSubjectWithNoSubject() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// call under test
-			userManager.lookupUserIdByOIDCSubject(OAuthProvider.GOOGLE_OAUTH_2_0, null);
+			userManager.lookupOidcBindingBySubject(OAuthProvider.GOOGLE_OAUTH_2_0, null);
 		}).getMessage();
 		
 		assertEquals("The subject is required and must not be the empty string.", message);
@@ -382,18 +385,24 @@ public class UserManagerImplUnitTest {
 	@Test
 	public void testBindOauthProviderAlias() {
 		
-		// Call under test
-		userManager.bindUserToOIDCSubject(123L, OAuthProvider.GOOGLE_OAUTH_2_0, alias);
+		when(mockPrincipalOidcDao.findBindingForSubject(any(), any())).thenReturn(Optional.of(new PrincipalOidcBinding()));
 		
-		verify(mockPrincipalOIDCDao).bindPrincipalToSubject(123L, OAuthProvider.GOOGLE_OAUTH_2_0, alias);
+		PrincipalAlias alias = new PrincipalAlias().setPrincipalId(123L).setAliasId(456L);
+		
+		// Call under test
+		userManager.bindUserToOidcSubject(alias, OAuthProvider.GOOGLE_OAUTH_2_0, "subject");
+		
+		verify(mockPrincipalOidcDao).bindPrincipalToSubject(123L, 456L, OAuthProvider.GOOGLE_OAUTH_2_0, "subject");
 		
 	}
 	
 	@Test
 	public void testBindOauthProviderAliasWithNoProvider() {
+		PrincipalAlias alias = new PrincipalAlias().setPrincipalId(123L).setAliasId(456L);
+		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			userManager.bindUserToOIDCSubject(123L, null, alias);
+			userManager.bindUserToOidcSubject(alias, null, "subject");
 		}).getMessage();
 		
 		assertEquals("The provider is required.", message);
@@ -402,9 +411,11 @@ public class UserManagerImplUnitTest {
 	
 	@Test
 	public void testBindOauthProviderAliasWithNoSubject() {
+		PrincipalAlias alias = new PrincipalAlias().setPrincipalId(123L).setAliasId(456L);
+		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			userManager.bindUserToOIDCSubject(123L, OAuthProvider.GOOGLE_OAUTH_2_0, null);
+			userManager.bindUserToOidcSubject(alias, OAuthProvider.GOOGLE_OAUTH_2_0, null);
 		}).getMessage();
 		
 		assertEquals("The subject is required and must not be the empty string.", message);		
@@ -415,10 +426,10 @@ public class UserManagerImplUnitTest {
 				
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			userManager.bindUserToOIDCSubject(null, OAuthProvider.GOOGLE_OAUTH_2_0, alias);
+			userManager.bindUserToOidcSubject(null, OAuthProvider.GOOGLE_OAUTH_2_0, alias);
 		}).getMessage();
 		
-		assertEquals("The userId is required.", message);
+		assertEquals("The principalAlias is required.", message);
 	}
 	
 	@Test
@@ -472,7 +483,7 @@ public class UserManagerImplUnitTest {
 		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(emailAlias);
 		verify(notificationEmailDao).create(principalAlias);
 		verifyNoMoreInteractions(mockPrincipalAliasDAO);
-		verifyNoMoreInteractions(mockPrincipalOIDCDao);
+		verifyNoMoreInteractions(mockPrincipalOidcDao);
 	}
 	
 	@Test
@@ -493,7 +504,7 @@ public class UserManagerImplUnitTest {
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getEmail());
 		verifyNoMoreInteractions(mockPrincipalAliasDAO);
 		
-		verifyZeroInteractions(mockPrincipalOIDCDao);
+		verifyZeroInteractions(mockPrincipalOidcDao);
 		verifyZeroInteractions(mockUserGroupDAO);
 		verifyZeroInteractions(mockAuthDAO);
 		verifyZeroInteractions(userProfileDAO);
@@ -520,7 +531,7 @@ public class UserManagerImplUnitTest {
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getUserName());
 		
 		verifyNoMoreInteractions(mockPrincipalAliasDAO);
-		verifyZeroInteractions(mockPrincipalOIDCDao);
+		verifyZeroInteractions(mockPrincipalOidcDao);
 		verifyZeroInteractions(mockUserGroupDAO);
 		verifyZeroInteractions(mockAuthDAO);
 		verifyZeroInteractions(userProfileDAO);
@@ -535,7 +546,7 @@ public class UserManagerImplUnitTest {
 			.setOauthProvider(OAuthProvider.GOOGLE_OAUTH_2_0)
 			.setSubject(UUID.randomUUID().toString());
 		
-		when(mockPrincipalOIDCDao.findBindingForSubject(any(), any())).thenReturn(Optional.of(123L));
+		when(mockPrincipalOidcDao.findBindingForSubject(any(), any())).thenReturn(Optional.of(new PrincipalOidcBinding()));
 		
 		String result = assertThrows(NameConflictException.class, () -> {			
 			// Call under test
@@ -546,10 +557,10 @@ public class UserManagerImplUnitTest {
 		
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getEmail());
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getUserName());
-		verify(mockPrincipalOIDCDao).findBindingForSubject(user.getOauthProvider(), user.getSubject());
+		verify(mockPrincipalOidcDao).findBindingForSubject(user.getOauthProvider(), user.getSubject());
 		
 		verifyNoMoreInteractions(mockPrincipalAliasDAO);
-		verifyZeroInteractions(mockPrincipalOIDCDao);
+		verifyZeroInteractions(mockPrincipalOidcDao);
 		verifyZeroInteractions(mockUserGroupDAO);
 		verifyZeroInteractions(mockAuthDAO);
 		verifyZeroInteractions(userProfileDAO);
@@ -562,6 +573,7 @@ public class UserManagerImplUnitTest {
 		
 		when(mockUserGroupDAO.create(any())).thenReturn(userId);
 		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any())).thenReturn(principalAlias);
+		when(mockPrincipalOidcDao.findBindingForSubject(any(), any())).thenReturn(Optional.empty(), Optional.of(new PrincipalOidcBinding()));
 		
 		NewUser user = new NewUser()
 			.setUserName(UUID.randomUUID().toString())
@@ -576,7 +588,7 @@ public class UserManagerImplUnitTest {
 		
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getUserName());
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getEmail());
-		verify(mockPrincipalOIDCDao).findBindingForSubject(user.getOauthProvider(), user.getSubject());
+		verify(mockPrincipalOidcDao, times(2)).findBindingForSubject(user.getOauthProvider(), user.getSubject());
 		
 		UserGroup expectedGroup = new UserGroup()
 			.setIsIndividual(true);
@@ -605,11 +617,61 @@ public class UserManagerImplUnitTest {
 		PrincipalAlias emailAlias = new PrincipalAlias()
 			.setType(AliasType.USER_EMAIL)
 			.setAlias(user.getEmail())
-			.setPrincipalId(userId);
+			.setPrincipalId(userId);		
 		
 		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(emailAlias);
 		verify(notificationEmailDao).create(principalAlias);
-		verify(mockPrincipalOIDCDao).bindPrincipalToSubject(userId, user.getOauthProvider(), user.getSubject());
+				
+		verify(mockPrincipalOidcDao).bindPrincipalToSubject(principalAlias.getPrincipalId(), principalAlias.getAliasId(), user.getOauthProvider(), user.getSubject());
 		verifyNoMoreInteractions(mockPrincipalAliasDAO);
+	}
+	
+	@Test
+	public void testSetOidcBindingAlias() {
+		
+		// Call under test
+		userManager.setOidcBindingAlias(new PrincipalOidcBinding().setBindingId(123L), principalAlias);
+		
+		verify(mockPrincipalOidcDao).setBindingAlias(123L, principalAlias.getAliasId());
+	}
+	
+	@Test
+	public void testSetOidcBindingAliasWithNoBinding() {
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			userManager.setOidcBindingAlias(null, principalAlias);
+		}).getMessage();
+		
+		assertEquals("The binding is required.", result);
+	}
+	
+	@Test
+	public void testSetOidcBindingAliasWithNoAlias() {
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			userManager.setOidcBindingAlias(new PrincipalOidcBinding(), null);
+		}).getMessage();
+		
+		assertEquals("The principalAlias is required.", result);
+	}
+	
+	@Test
+	public void testDeleteOidcBinding() {
+		userManager.deleteOidcBinding(123L);
+		
+		verify(mockPrincipalOidcDao).deleteBinding(123L);
+	}
+	
+	@Test
+	public void testDeleteOidcBindingWithNoId() {
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			userManager.deleteOidcBinding(null);
+		}).getMessage();
+		
+		assertEquals("The binding id is required.", result);
 	}
 }

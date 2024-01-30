@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -84,21 +85,35 @@ public interface UserManager {
 	Set<String> getDistinctUserIdsForAliases(Collection<String> aliases, Long limit, Long offset);
 	
 	/**
-	 * Lookup the id of the user that is bound to the given {@link OAuthProvider}, subject pair
+	 * Lookup the oidc binding of the user that is bound to the given {@link OAuthProvider}, subject pair
 	 * 
 	 * @param provider
 	 * @param subject
 	 * @return An optional containing the id of the user bound to the given subject of the {@link OAuthProvider}
 	 */
-	Optional<Long> lookupUserIdByOIDCSubject(OAuthProvider provider, String subject);
+	Optional<PrincipalOidcBinding> lookupOidcBindingBySubject(OAuthProvider provider, String subject);
 	
 	/**
-	 * Binds the given userId to the subject of the given {@link OAuthProvider}
-	 * @param userId
+	 * Binds the given alias to the subject of the given {@link OAuthProvider}
+	 * @param principalAlias
 	 * @param provider
 	 * @param subject
 	 */
-	void bindUserToOIDCSubject(Long userId, OAuthProvider provider, String subject);
+	PrincipalOidcBinding bindUserToOidcSubject(PrincipalAlias principalAlias, OAuthProvider provider, String subject);
+	
+	/**
+	 * Updates the alias referenced by the oidc binding
+	 * @param binding
+	 * @param principalAlias
+	 */
+	void setOidcBindingAlias(PrincipalOidcBinding binding, PrincipalAlias principalAlias);
+	
+	/**
+	 * Deletes the oidc binding with the given id
+	 * 
+	 * @param userId
+	 */
+	void deleteOidcBinding(Long bindingId);
 
 	/**
 	 * Clear all user
