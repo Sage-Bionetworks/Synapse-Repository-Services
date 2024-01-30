@@ -20,6 +20,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
@@ -80,6 +82,8 @@ public class UserProfileManagerImplUnitTest {
 	FileHandleManager mockFileHandleManager;
 	@Mock
 	NodeDAO mockNodeDao;
+	@Mock
+	AuthenticationDAO mockAuthDao;
 	@InjectMocks
 	UserProfileManagerImpl userProfileManager;
 	
@@ -125,6 +129,7 @@ public class UserProfileManagerImplUnitTest {
 		Settings settings = new Settings();
 		settings.setSendEmailNotifications(true);
 		userProfile.setNotificationSettings(settings);
+		userProfile.setTwoFactorAuthEnabled(true);
 		
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(USER_EMAIL);
@@ -247,6 +252,7 @@ public class UserProfileManagerImplUnitTest {
 		}).when(mockProfileDAO).get(Mockito.anyString());
 		
 		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(aliases);
+		when(mockAuthDao.getTwoFactorAuthStateMap(any())).thenReturn(Map.of(userId, true));
 		
 		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(ownerId);
@@ -256,7 +262,8 @@ public class UserProfileManagerImplUnitTest {
 	@Test
 	public void getAll() throws Exception {
 		when(mockPrincipalAliasDAO.listPrincipalAliases(Collections.singleton(userId))).thenReturn(aliases);
-				
+		when(mockAuthDao.getTwoFactorAuthStateMap(any())).thenReturn(Map.of(userId, true));
+		
 		UserProfile upForList = new UserProfile();
 		upForList.setOwnerId(userProfile.getOwnerId());
 		upForList.setRStudioUrl(userProfile.getRStudioUrl());
@@ -267,13 +274,15 @@ public class UserProfileManagerImplUnitTest {
 		
 		List<UserProfile> upList = Collections.singletonList(upForList);
 		when(mockProfileDAO.getInRange(0L, 1L)).thenReturn(upList);
-		when(mockProfileDAO.list(Collections.singletonList(Long.parseLong(userProfile.getOwnerId())))).
-			thenReturn(upList);
 
 		List<UserProfile> results=userProfileManager.getInRange(adminUserInfo, 0, 1);
+		
 		assertFalse(upForList.getEmails().isEmpty());
 		assertFalse(upForList.getOpenIds().isEmpty());
+		
 		assertEquals(upList, results);
+		
+		when(mockProfileDAO.list(Collections.singletonList(Long.parseLong(userProfile.getOwnerId())))).thenReturn(upList);
 		
 		IdList ids = new IdList();
 		ids.setList(Collections.singletonList(Long.parseLong(userProfile.getOwnerId())));
@@ -294,6 +303,7 @@ public class UserProfileManagerImplUnitTest {
 		}).when(mockProfileDAO).get(Mockito.anyString());
 		
 		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(aliases);
+		when(mockAuthDao.getTwoFactorAuthStateMap(any())).thenReturn(Map.of(userId, true));
 		
 		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(ownerId);

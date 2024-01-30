@@ -7,14 +7,23 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_SECRET_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TWO_FA_STATUS_ENABLED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TWO_FA_STATUS_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_AUTHENTICATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CREDENTIAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TWO_FA_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
+import java.sql.ResultSet;
+import java.util.Collections;
 import java.util.Date;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -209,6 +218,29 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		return basicDAO.getObjectByPrimaryKey(DBOUserTwoFaStatus.class, new SinglePrimaryKeySqlParameterSource(principalId))
 			.map(DBOUserTwoFaStatus::getEnabled)
 			.orElse(false);
+	}
+	
+	@Override
+	public Map<Long, Boolean> getTwoFactorAuthStateMap(Set<Long> principalIds) {
+		
+		Map<Long, Boolean> stateMap =  principalIds.stream()
+			.collect(Collectors.toMap(Function.identity(), id -> false));
+		
+		String sql = "SELECT " + COL_TWO_FA_STATUS_PRINCIPAL_ID + ", " + COL_TWO_FA_STATUS_ENABLED 
+			+ " FROM " + TABLE_TWO_FA_STATUS
+			+ " WHERE " + COL_TWO_FA_STATUS_PRINCIPAL_ID + " IN ("
+			+ String.join(",", Collections.nCopies(principalIds.size(), "?"))
+			+ ")";
+		
+		jdbcTemplate.query(sql, (ResultSet rs) -> {
+				Long principalId = rs.getLong(COL_TWO_FA_STATUS_PRINCIPAL_ID);
+				Boolean twoFactorAuthEnabled = rs.getBoolean(COL_TWO_FA_STATUS_ENABLED);
+				stateMap.put(principalId, twoFactorAuthEnabled);
+			},
+			principalIds.toArray()
+		);
+
+		return stateMap;
 	}
 	
 	@Override
