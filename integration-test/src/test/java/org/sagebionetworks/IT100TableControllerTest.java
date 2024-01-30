@@ -964,7 +964,16 @@ public class IT100TableControllerTest {
 
 	@Test
 	public void validateDefiningSql() throws SynapseException {
-		String sql = "select * from syn123";
+		ColumnModel cm = new ColumnModel();
+		cm.setName("aString");
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(100L);
+		cm = synapse.createColumnModel(cm);
+		
+		// create a table
+		TableEntity table = createTable(Lists.newArrayList(cm.getId()), synapse);
+		String sql = String.format("select * from %s", table.getId());
+		
 		DefiningSqlEntityType entityType = DefiningSqlEntityType.virtualtable;
 		ValidateDefiningSqlRequest request = new ValidateDefiningSqlRequest();
 		request.setDefiningSql(sql);
