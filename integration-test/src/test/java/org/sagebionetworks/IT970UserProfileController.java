@@ -4,6 +4,7 @@ package org.sagebionetworks;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -27,6 +28,8 @@ import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.favorite.SortBy;
 import org.sagebionetworks.repo.model.favorite.SortDirection;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.warehouse.WarehouseTestHelper;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -34,9 +37,6 @@ import com.google.common.collect.Lists;
 @ExtendWith(ITTestExtension.class)
 public class IT970UserProfileController {
 
-	private static final int MAX_WAIT_MS = 40000;
-	private static final String MOCK_TEAM_ENDPOINT = "https://www.synapse.org/#Team:";
-	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org#unsub:";
 	private static final int ALL_USER_BUNDLE_FIELDS = 63;
 	
 	private static String teamToDelete;
@@ -45,8 +45,11 @@ public class IT970UserProfileController {
 	
 	private SynapseClient synapse;
 	
-	public IT970UserProfileController(SynapseClient synapse) {
+	private WarehouseTestHelper warehouseHelper;
+	
+	public IT970UserProfileController(SynapseClient synapse, WarehouseTestHelper warehouseHelper) {
 		this.synapse = synapse;
+		this.warehouseHelper = warehouseHelper;
 	}
 	
 	@BeforeAll
@@ -84,12 +87,21 @@ public class IT970UserProfileController {
 	@Test
 	public void testGetAndUpdateOwnUserProfile() throws Exception {
 		UserProfile userProfile = synapse.getMyProfile();
-		System.out.println(userProfile);
+		
 		// now update the fields
 		userProfile.setFirstName("foo");
 		userProfile.setLastName("bar");
 		
 		synapse.updateMyProfile(userProfile);
+		
+		String query = String.format(
+			"select count(*) from userprofilesnapshots where snapshot_date %s"
+					+ " and id = %s and is_two_factor_auth_enabled = false",
+			warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(Instant.now()),
+			userProfile.getOwnerId()
+		);
+		
+		warehouseHelper.assertWarehouseQuery(query);
 	}
 	
 	@Test 
