@@ -125,11 +125,9 @@ public class MaterializedViewManagerImplTest {
 
 	@Test
 	public void testValidateWithNullView() {
-		MaterializedView view = null;
-
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.validate(view);
+			manager.validate(null);
 		}).getMessage();
 
 		assertEquals("The materialized view is required.", message);

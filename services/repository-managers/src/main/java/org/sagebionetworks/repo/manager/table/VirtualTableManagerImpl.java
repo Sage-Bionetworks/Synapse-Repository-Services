@@ -71,12 +71,6 @@ public class VirtualTableManagerImpl implements VirtualTableManager {
 	}
 
 	@Override
-	public List<String> getSchemaIdsFromSqlQuery(QueryTranslator sqlQuery) {
-		return sqlQuery.getSchemaOfSelect().stream()
-				.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());
-	}
-
-	@Override
 	public List<String> getSchemaIds(IdAndVersion idAndVersion) {
 		return columModelManager.getColumnIdsForTable(idAndVersion);
 	}
@@ -87,7 +81,9 @@ public class VirtualTableManagerImpl implements VirtualTableManager {
 		ValidateArgument.required(definingSQL, "definingSQL");
 		
 		QueryTranslator sqlQuery = buildQueryTranslator(definingSQL);
-		List<String> schemaIds = getSchemaIdsFromSqlQuery(sqlQuery);
+		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
+				.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());
+
 		columModelManager.bindColumnsToVersionOfObject(schemaIds, id);
 	}
 

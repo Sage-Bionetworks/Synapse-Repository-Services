@@ -14,7 +14,7 @@ public interface VirtualTableManager {
 	/**
 	 * Validates the SQL defining the given virtual table
 	 * 
-	 * @param materializedView
+	 * @param virtualTable
 	 */
 	void validate(VirtualTable virtualTable);
 
@@ -32,14 +32,6 @@ public interface VirtualTableManager {
 	 * @return
 	 */
 	QueryTranslator buildQueryTranslator(String definingSql);
-
-	/**
-	 * Get the schema from the given SQL query
-	 * 
-	 * @param sqlQuery
-	 * @return
-	 */
-	List<String> getSchemaIdsFromSqlQuery(QueryTranslator sqlQuery);
 
 	/**
 	 * Get the column IDs for this VT's schema.

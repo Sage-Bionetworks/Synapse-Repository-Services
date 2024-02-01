@@ -1404,7 +1404,7 @@ public class TableController {
 	}
 
 	/**
-	 * Validate the given definingSQL query for an Entity.
+	 * Validate the potential definingSQL for a view before the creation of the view.
 	 * 
 	 * @param request
 	 */

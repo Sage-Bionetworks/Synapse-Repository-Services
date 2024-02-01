@@ -4,7 +4,7 @@
   "properties": {
     "isValid": {
       "type": "boolean",
-      "description": "A boolean representing whether or not the provided definingSQL is valid for the given entity type."
+      "description": "True if the provided SQL is valid, false otherwise."
     },
     "invalidReason": {
       "type": "string",
