@@ -152,6 +152,10 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 	
 	private void addTwoFactorAuthInfo(List<UserProfile> userProfiles) {
+		if (userProfiles.isEmpty()) {
+			return;
+		}
+		
 		Map<Long, Boolean> twoFactorStateMap = authDao.getTwoFactorAuthStateMap(userProfiles.stream()
 			.map(t -> Long.valueOf(t.getOwnerId()))
 			.collect(Collectors.toSet())
