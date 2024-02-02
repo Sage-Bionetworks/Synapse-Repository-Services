@@ -14,6 +14,8 @@ public interface PrincipalOIDCBindingDao {
 	
 	void deleteBinding(Long bindingId);
 	
+	void clearBindings(Long principalId);
+	
 	void truncateAll();
 
 

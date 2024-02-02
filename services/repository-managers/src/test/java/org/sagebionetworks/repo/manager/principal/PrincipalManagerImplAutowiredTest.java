@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -115,6 +117,12 @@ public class PrincipalManagerImplAutowiredTest {
 		usernameAlias.setType(AliasType.USER_NAME);
 		usernameAlias.setAlias(username);
 		principalAliasDao.bindAliasToPrincipal(usernameAlias);
+		
+		String orcIdSubject = "0000-0000-0000-0000";
+		
+		userManager.bindUserToOidcSubject(orcid, OAuthProvider.ORCID, orcIdSubject);
+		
+		assertTrue(userManager.lookupOidcBindingBySubject(OAuthProvider.ORCID, orcIdSubject).isPresent());
 
 		// Verify that we can log in before we change the password
 		LoginRequest loginRequest = new LoginRequest();
@@ -170,6 +178,8 @@ public class PrincipalManagerImplAutowiredTest {
 		assertNull(profile.getTeamName());
 		assertNull(profile.getUrl());
 
+		assertFalse(userManager.lookupOidcBindingBySubject(OAuthProvider.ORCID, orcIdSubject).isPresent());
+		
 		// Verify that the password has been changed
 		assertThrows(UnauthenticatedException.class, () -> authenticationManager.login(loginRequest, null));
 	}

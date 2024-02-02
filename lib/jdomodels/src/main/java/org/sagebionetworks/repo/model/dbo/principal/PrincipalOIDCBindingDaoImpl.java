@@ -90,6 +90,15 @@ public class PrincipalOIDCBindingDaoImpl implements PrincipalOIDCBindingDao {
 	}
 	
 	@Override
+	@WriteTransaction
+	public void clearBindings(Long principalId) {
+		String sql = "DELETE FROM " +TABLE_PRINCIPAL_OIDC_BINDING + " WHERE " + COL_PRINCIPAL_OIDC_BINDING_PRINCIPAL_ID + "=?";
+		
+		jdbcTemplate.update(sql, principalId);
+		
+	}
+	
+	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_PRINCIPAL_OIDC_BINDING);
 	}

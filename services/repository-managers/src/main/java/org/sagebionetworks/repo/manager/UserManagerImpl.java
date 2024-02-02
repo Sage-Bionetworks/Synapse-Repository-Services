@@ -334,6 +334,15 @@ public class UserManagerImpl implements UserManager {
 		
 		principalOidcBindingDao.deleteBinding(bindingId);
 	}
+	
+	@Override
+	@WriteTransaction
+	public void clearOidcBindings(Long userId) {
+		ValidateArgument.required(userId, "The user id");
+
+		principalOidcBindingDao.clearBindings(userId);
+		
+	}
 
 	@Override
 	public void truncateAll() {

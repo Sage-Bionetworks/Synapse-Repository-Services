@@ -692,6 +692,7 @@ public class PrincipalManagerImplUnitTest {
 
 
 		verify(mockPrincipalAliasDAO).removeAllAliasFromPrincipal(USER_ID);
+		verify(mockUserManager).clearOidcBindings(USER_ID);
 		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(expectedEmailAlias);
 		verify(mockNotificationEmailDao).update(expectedEmailAlias);
 		verify(mockUserProfileDAO).update(any(UserProfile.class));

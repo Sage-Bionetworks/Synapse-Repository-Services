@@ -674,4 +674,22 @@ public class UserManagerImplUnitTest {
 		
 		assertEquals("The binding id is required.", result);
 	}
+	
+	@Test
+	public void testClearOidcBindings() {
+		userManager.clearOidcBindings(123L);
+		
+		verify(mockPrincipalOidcDao).clearBindings(123L);
+	}
+	
+	@Test
+	public void testClearOidcBindingsWithNoId() {
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			userManager.clearOidcBindings(null);
+		}).getMessage();
+		
+		assertEquals("The user id is required.", result);
+	}
 }
