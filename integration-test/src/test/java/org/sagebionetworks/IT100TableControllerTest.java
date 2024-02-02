@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.DefiningSqlEntityType;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -71,6 +72,8 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
+import org.sagebionetworks.repo.model.table.ValidateDefiningSqlRequest;
+import org.sagebionetworks.repo.model.table.ValidateDefiningSqlResponse;
 import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
 import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -957,6 +960,27 @@ public class IT100TableControllerTest {
 			assertEquals("keyB", cm.getName());
 		});
 		
+	}
+
+	@Test
+	public void validateDefiningSql() throws SynapseException {
+		ColumnModel cm = new ColumnModel();
+		cm.setName("aString");
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(100L);
+		cm = synapse.createColumnModel(cm);
+		
+		// create a table
+		TableEntity table = createTable(Lists.newArrayList(cm.getId()), synapse);
+		String sql = String.format("select * from %s", table.getId());
+		
+		DefiningSqlEntityType entityType = DefiningSqlEntityType.virtualtable;
+		ValidateDefiningSqlRequest request = new ValidateDefiningSqlRequest();
+		request.setDefiningSql(sql);
+		request.setEntityType(entityType);
+		
+		ValidateDefiningSqlResponse response = synapse.validateDefiningSql(request);
+		assertTrue(response.getIsValid());
 	}
 		
 	private TableEntity createTable(List<String> columns) throws SynapseException {

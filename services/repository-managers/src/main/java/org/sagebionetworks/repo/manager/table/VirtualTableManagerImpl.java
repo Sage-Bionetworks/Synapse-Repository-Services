@@ -39,7 +39,35 @@ public class VirtualTableManagerImpl implements VirtualTableManager {
 		// This constructor will do deeper validation...
 		new VirtualTableIndexDescription(KeyFactory.idAndVersion(id, virtualTable.getVersionNumber()),
 				definingSql, tableManagerSupport);
+	}
 
+	@Override
+	public void validateDefiningSql(String definingSql) {
+		ValidateArgument.required(definingSql, "The definingSQL of the virtual table");
+		buildQueryTranslator(definingSql);
+	}
+
+	@Override
+	public QueryTranslator buildQueryTranslator(String definingSql) {
+		ValidateArgument.required(definingSql, "The definingSQL of the virtual table");
+
+		try {
+			QuerySpecification querySpec = new TableQueryParser(definingSql).querySpecificationEOF();
+			List<IdAndVersion> definingIds = querySpec.stream(TableNameCorrelation.class)
+					.map(s -> IdAndVersion.parse(s.toSql())).collect(Collectors.toList());
+			if(definingIds.size() != 1) {
+				throw new IllegalArgumentException("The defining SQL can only reference one table/view");
+			}
+			IndexDescription definingIndexDescription = tableManagerSupport.getIndexDescription(definingIds.get(0));
+			
+			QueryTranslator sqlQuery = QueryTranslator.builder().sql(definingSql)
+					.schemaProvider(tableManagerSupport).sqlContext(SqlContext.query).indexDescription(definingIndexDescription)
+					.build();
+
+			return sqlQuery;
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
 	}
 
 	@Override
@@ -51,24 +79,12 @@ public class VirtualTableManagerImpl implements VirtualTableManager {
 	public void registerDefiningSql(IdAndVersion id, String definingSQL) {
 		ValidateArgument.required(id, "table Id");
 		ValidateArgument.required(definingSQL, "definingSQL");
-		try {
-			QuerySpecification querySpec = new TableQueryParser(definingSQL).querySpecificationEOF();
-			List<IdAndVersion> definingIds = querySpec.stream(TableNameCorrelation.class)
-					.map(s -> IdAndVersion.parse(s.toSql())).collect(Collectors.toList());
-			if(definingIds.size() != 1) {
-				throw new IllegalArgumentException("The defining SQL can only reference one table/view");
-			}
-			IndexDescription definingIndexDescription = tableManagerSupport.getIndexDescription(definingIds.get(0));
-			
-			QueryTranslator sqlQuery = QueryTranslator.builder().sql(definingSQL)
-					.schemaProvider(tableManagerSupport).sqlContext(SqlContext.query).indexDescription(definingIndexDescription)
-					.build();
-			List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
-					.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());
-			columModelManager.bindColumnsToVersionOfObject(schemaIds, id);
-		} catch (ParseException e) {
-			throw new IllegalArgumentException(e);
-		}
+		
+		QueryTranslator sqlQuery = buildQueryTranslator(definingSQL);
+		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
+				.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());
+
+		columModelManager.bindColumnsToVersionOfObject(schemaIds, id);
 	}
 
 }

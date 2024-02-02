@@ -41,6 +41,8 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ValidateDefiningSqlRequest;
+import org.sagebionetworks.repo.model.table.ValidateDefiningSqlResponse;
 import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
 import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -1399,5 +1401,19 @@ public class TableController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
 			@RequestBody SnapshotRequest request) {
 		return serviceProvider.getTableServices().createTableSnapshot(userId, id, request);
+	}
+
+	/**
+	 * Validate the potential definingSQL for a view before the creation of the view.
+	 * 
+	 * @param request
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequiredScope({view})
+	@RequestMapping(value = UrlHelpers.VALIDATE_DEFINING_SQL, method = RequestMethod.POST)
+	public @ResponseBody ValidateDefiningSqlResponse validateDefiningSql(
+			@RequestBody ValidateDefiningSqlRequest request
+	) {
+		return serviceProvider.getEntityService().validateDefiningSql(request);
 	}
 }

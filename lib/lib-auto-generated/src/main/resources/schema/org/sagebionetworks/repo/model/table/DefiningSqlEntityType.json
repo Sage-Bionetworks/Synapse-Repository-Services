@@ -1,0 +1,14 @@
+{
+  "description": "Type of the entity containing definingSql",
+  "type": "string",
+  "enum": [
+    {
+      "name": "materializedview",
+      "description": "A materialized view is a view whose content is defined by a Synapse SQL query and it is persisted as a synapse table."
+    },
+    {
+      "name": "virtualtable",
+      "description": "A virtual table is represents the results of Synapse SQL query. The results are not persisted and the query is run each time the virtual table is queried."
+    }
+  ]
+}

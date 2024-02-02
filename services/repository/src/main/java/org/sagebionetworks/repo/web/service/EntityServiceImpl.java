@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.checkerframework.checker.units.qual.C;
 import org.json.JSONObject;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityAclManager;
@@ -52,6 +53,10 @@ import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.sts.StsCredentials;
 import org.sagebionetworks.repo.model.sts.StsPermission;
+import org.sagebionetworks.repo.model.table.DefiningSqlEntityType;
+import org.sagebionetworks.repo.model.table.HasDefiningSql;
+import org.sagebionetworks.repo.model.table.ValidateDefiningSqlRequest;
+import org.sagebionetworks.repo.model.table.ValidateDefiningSqlResponse;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -66,6 +71,7 @@ import org.sagebionetworks.repo.web.service.metadata.TypeSpecificCreateProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificDeleteProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificMetadataProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificUpdateProvider;
+import org.sagebionetworks.repo.web.service.metadata.TypeSpecificDefiningSqlProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificVersionDeleteProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -806,6 +812,31 @@ public class EntityServiceImpl implements EntityService {
 		List<FileActionRequired> actions = entityAuthorizationMangaer.getActionsRequiredForDownload(userInfo, KeyFactory.stringToKey(List.of(entityId)));
 		
 		return new ActionRequiredList().setActions(actions.stream().map(FileActionRequired::getAction).collect(Collectors.toList()));
+	}
+
+	@Override
+	public ValidateDefiningSqlResponse validateDefiningSql(ValidateDefiningSqlRequest request) {
+		String definingSql = request.getDefiningSql();
+		EntityType entityType = EntityType.valueOf(request.getEntityType().name());
+		ValidateDefiningSqlResponse noProviderResponse = new ValidateDefiningSqlResponse()
+				.setIsValid(false).setInvalidReason("No provider found for entity type " + entityType);
+		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(entityType);
+
+		if(providers == null) {
+			return noProviderResponse;
+		}
+
+		return providers.stream()
+				.filter(provider -> provider instanceof TypeSpecificDefiningSqlProvider)
+				.findFirst()
+				.map(provider -> {
+					try {
+						((TypeSpecificDefiningSqlProvider) provider).validateDefiningSql(definingSql);
+						return new ValidateDefiningSqlResponse().setIsValid(true);
+					} catch (IllegalArgumentException e) {
+						return new ValidateDefiningSqlResponse().setIsValid(false).setInvalidReason(e.getMessage());
+					}
+				}).orElse(noProviderResponse);
 	}
 
 }
