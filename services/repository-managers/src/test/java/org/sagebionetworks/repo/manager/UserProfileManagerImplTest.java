@@ -1,19 +1,20 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -35,11 +36,11 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Sets;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class UserProfileManagerImplTest {
 
@@ -69,7 +70,7 @@ public class UserProfileManagerImplTest {
 	List<String> projectsToDelete;
 	List<Long> usersToDelete;
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		admin = userManager.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		anonymous = userManager.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
@@ -95,7 +96,7 @@ public class UserProfileManagerImplTest {
 		usersToDelete.add(userIdTwo);
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		Collections.reverse(projectsToDelete);
 		for (String entityId : projectsToDelete) {
@@ -133,6 +134,7 @@ public class UserProfileManagerImplTest {
 			profile.setUserName(USER_NAME);
 			profile.setEtag(created.getEtag());
 			profile.setCreatedOn(created.getCreatedOn());
+			profile.setTwoFactorAuthEnabled(false);
 			assertEquals(profile, created);
 		}
 		assertNotNull(created);
@@ -148,7 +150,7 @@ public class UserProfileManagerImplTest {
 		String startEtag = created.getEtag();
 		// Changing emails is currently disabled See
 		UserProfile updated = userProfileManager.updateUserProfile(userInfo, created);
-		assertFalse("Update failed to update the etag", startEtag.equals(updated.getEtag()));
+		assertFalse(startEtag.equals(updated.getEtag()), "Update failed to update the etag");
 		// Get it back
 		clone = userProfileManager.getUserProfile(principalId.toString());
 		assertEquals(updated, clone);
@@ -193,11 +195,14 @@ public class UserProfileManagerImplTest {
 		assertEquals(Collections.singletonList(USER_EMAIL), profile.getEmails());
 	}
 
-	@Test(expected = NotFoundException.class)
+	@Test
 	public void testGetPicturePresignedUrlNotFound() throws Exception {
 		String userIdString = "" + userId;
-		// get the presigned url for this handle
-		assertNotNull(userProfileManager.getUserProfileImageUrl(userInfo, userIdString));
+		
+		assertThrows(NotFoundException.class, () -> {			
+			// get the presigned url for this handle
+			userProfileManager.getUserProfileImageUrl(userInfo, userIdString);
+		});
 	}
 
 	@Test

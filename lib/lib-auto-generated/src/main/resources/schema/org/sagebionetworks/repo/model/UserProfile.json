@@ -193,6 +193,10 @@
 					"href": "http://synapse.sagebase.org/access/public"
 				}
 			]
+		},
+		"twoFactorAuthEnabled": {
+			"type": "boolean",
+			"description": "Flag that indicates if the user has two factor authentication enabled."
 		}
 	}
 }

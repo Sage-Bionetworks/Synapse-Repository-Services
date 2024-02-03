@@ -73,11 +73,13 @@ public class UserProfileManagerUtilsTest {
 		up.setProfilePicureFileHandleId("456");
 		up.setRStudioUrl("http://rstudio");
 		up.setEmail("useremail@sagebase.org");
+		up.setTwoFactorAuthEnabled(true);
 		
 		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
 		assertEquals("456", up.getProfilePicureFileHandleId());
 		assertNull(up.getRStudioUrl());
 		assertNull(up.getEmail());
+		assertNull(up.getTwoFactorAuthEnabled());
 	}
 	
 	/**
@@ -100,10 +102,12 @@ public class UserProfileManagerUtilsTest {
 		UserInfo userInfo = new UserInfo(true);
 		UserProfile up = new UserProfile();
 		up.setEmail("useremail@sagebase.org");
+		up.setTwoFactorAuthEnabled(true);
 		
 		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
 		
 		assertEquals("useremail@sagebase.org", up.getEmail());
+		assertTrue(up.getTwoFactorAuthEnabled());
 	}
 	
 	@Test
@@ -112,10 +116,12 @@ public class UserProfileManagerUtilsTest {
 		userInfo.setGroups(Collections.singleton(TeamConstants.ACT_TEAM_ID));
 		UserProfile up = new UserProfile();
 		up.setEmail("useremail@sagebase.org");
+		up.setTwoFactorAuthEnabled(true);
 		
 		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
 		
 		assertEquals("useremail@sagebase.org", up.getEmail());
+		assertTrue(up.getTwoFactorAuthEnabled());
 	}
 
 	@Test

@@ -7,12 +7,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
-import org.sagebionetworks.repo.manager.message.PrincipalNameProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.favorite.SortBy;
@@ -41,7 +42,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Sets;
@@ -63,6 +63,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	private FileHandleManager fileHandleManager;
 	@Autowired
 	private VerificationDAO verificationDao;
+	@Autowired
+	private AuthenticationDAO authDao;
 
 	@Override
 	public UserProfile getUserProfile(String ownerId)
@@ -90,9 +92,13 @@ public class UserProfileManagerImpl implements UserProfileManager {
 				listPrincipalAliases(Long.parseLong(ownerId));
 		userProfile.setEmails(new ArrayList<String>());
 		userProfile.setOpenIds(new ArrayList<String>());
+		
 		for (PrincipalAlias alias : aliases) {
 			insertAliasIntoProfile(userProfile, alias);
 		}
+		
+		addTwoFactorAuthInfo(List.of(userProfile));
+		
 		return userProfile;
 	}
 	
@@ -144,10 +150,28 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			insertAliasIntoProfile(profile, alias);
 		}
 	}
+	
+	private void addTwoFactorAuthInfo(List<UserProfile> userProfiles) {
+		if (userProfiles.isEmpty()) {
+			return;
+		}
+		
+		Map<Long, Boolean> twoFactorStateMap = authDao.getTwoFactorAuthStateMap(userProfiles.stream()
+			.map(t -> Long.valueOf(t.getOwnerId()))
+			.collect(Collectors.toSet())
+		);
+		
+		userProfiles.forEach( profile -> {
+			Boolean twoFactorAuthEnabled = twoFactorStateMap.get(Long.valueOf(profile.getOwnerId()));
+			profile.setTwoFactorAuthEnabled(twoFactorAuthEnabled);
+		});		
+	}
+	
 	@Override
 	public List<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
 		addAliasesToProfiles(userProfiles);
+		addTwoFactorAuthInfo(userProfiles);
 		return userProfiles;
 	}
 	/**
@@ -160,6 +184,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	public ListWrapper<UserProfile> list(IdList ids) throws DatastoreException, NotFoundException {
 		List<UserProfile> userProfiles = userProfileDAO.list(ids.getList());
 		addAliasesToProfiles(userProfiles);
+		addTwoFactorAuthInfo(userProfiles);
 		return ListWrapper.wrap(userProfiles, UserProfile.class);
 	}
 	/**
@@ -171,7 +196,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		validateProfile(updated);
 		Long principalId = Long.parseLong(updated.getOwnerId());
 		String updatedUserName = updated.getUserName();
-		clearAliasFields(updated);
+		clearReadOnlyFields(updated);
 		boolean canUpdate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, updated.getOwnerId());
 		if (!canUpdate) throw new UnauthorizedException("Only owner or administrator may update UserProfile.");
 		if (authorizationManager.isAnonymousUser(userInfo)) {
@@ -318,7 +343,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Override
 	public UserProfile createUserProfile(UserProfile profile) {
 		validateProfile(profile);
-		clearAliasFields(profile);
+		clearReadOnlyFields(profile);
 		// Save the profile
 		this.userProfileDAO.create(profile);
 		return getUserProfilePrivate(profile.getOwnerId());
@@ -343,11 +368,12 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		if(profile.getUserName() == null) throw new IllegalArgumentException("Username cannot be null");
 	}
 	
-	private void clearAliasFields(UserProfile profile) {
+	private void clearReadOnlyFields(UserProfile profile) {
 		profile.setUserName(null);
 		profile.setEmail(null);
 		profile.setEmails(null);
 		profile.setOpenIds(null);
+		profile.setTwoFactorAuthEnabled(null);
 	}
 
 	@Override

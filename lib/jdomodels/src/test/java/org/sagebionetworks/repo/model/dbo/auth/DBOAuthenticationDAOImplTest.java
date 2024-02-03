@@ -13,6 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
@@ -281,6 +283,20 @@ public class DBOAuthenticationDAOImplTest {
 		
 		assertFalse(authDAO.isTwoFactorAuthEnabled(userId));
 		assertNotEquals(userEtag, userEtag = userGroupDAO.get(userId).getEtag());
+	}
+	
+	@Test
+	public void testGetTwoFactorAuthStateMap() {
+		authDAO.setTwoFactorAuthState(userId, true);
+		
+		Map<Long, Boolean> expected = Map.of(
+			-123L, false,
+			userId, true
+		);
+		// Call under test
+		Map<Long, Boolean> result = authDAO.getTwoFactorAuthStateMap(Set.of(-123L, userId));
+		
+		assertEquals(expected, result);
 	}
 
 }
