@@ -2,10 +2,8 @@ package org.sagebionetworks.repo.web.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doThrow;
@@ -14,7 +12,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,7 +29,6 @@ import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.sts.StsManager;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -47,7 +43,6 @@ import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.ValidateDefiningSqlRequest;
 import org.sagebionetworks.repo.model.table.ValidateDefiningSqlResponse;
 import org.sagebionetworks.repo.web.service.metadata.AllTypesValidator;
-import org.sagebionetworks.repo.web.service.metadata.EntityProvider;
 import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificCreateProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificDefiningSqlProvider;
@@ -245,6 +240,7 @@ public class EntityServiceImplUnitTest {
 		DefiningSqlEntityType definingSqlEntityType = DefiningSqlEntityType.materializedview;
 		EntityType entityType = EntityType.materializedview;
 		ValidateDefiningSqlRequest mockRequest = new ValidateDefiningSqlRequest().setDefiningSql(sql).setEntityType(definingSqlEntityType);
+		ValidateDefiningSqlResponse expected = new ValidateDefiningSqlResponse().setIsValid(true);
 
 		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.ofNullable(mockMaterializedViewDefiningSqlProvider));
 
@@ -254,8 +250,7 @@ public class EntityServiceImplUnitTest {
 		verify(mockMetadataProviderFactory).getMetadataProvider(entityType);
 		verify(mockMaterializedViewDefiningSqlProvider).validateDefiningSql(sql);
 
-		assertTrue(response.getIsValid());
-		assertNull(response.getInvalidReason());
+		assertEquals(expected, response);
 	}
 
 	@Test
