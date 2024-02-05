@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -81,9 +82,6 @@ public class EntityServiceImplUnitTest {
 	@Mock
 	EntityAuthorizationManager mockAuthManager;
 
-	List<EntityProvider<? extends Entity>> projectProviders;
-	List<EntityProvider<? extends Entity>> materializedViewProviders;
-
 	static final Long PRINCIPAL_ID = 101L;
 	UserInfo userInfo = null;
 
@@ -91,14 +89,6 @@ public class EntityServiceImplUnitTest {
 
 	@BeforeEach
 	public void before() {
-
-		projectProviders = new ArrayList<>();
-		projectProviders.add(mockProjectUpdateProvider);
-		projectProviders.add(mockProjectCreateProvider);
-
-		materializedViewProviders = new ArrayList<>();
-		materializedViewProviders.add(mockMaterializedViewDefiningSqlProvider);
-
 		userInfo = new UserInfo(false);
 		userInfo.setId(PRINCIPAL_ID);
 
@@ -133,7 +123,7 @@ public class EntityServiceImplUnitTest {
 	@Test
 	public void testFireCreate() {
 		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
-		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
+		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(Optional.ofNullable(mockProjectCreateProvider));
 		// Call under test.
 		entityService.createEntity(userInfo.getId(), project, null);
 		verify(mockProjectCreateProvider).entityCreated(userInfo, project);
@@ -155,7 +145,7 @@ public class EntityServiceImplUnitTest {
 	public void testFireUpdate() {
 		boolean newVersion = true;
 		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
-		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
+		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(Optional.ofNullable(mockProjectUpdateProvider));
 		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
 		// Call under test.
 		entityService.updateEntity(userInfo.getId(), project, newVersion, null);
@@ -167,7 +157,7 @@ public class EntityServiceImplUnitTest {
 	public void testFireUpdateNoNewVersion() {
 		boolean newVersion = false;
 		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
-		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
+		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(Optional.ofNullable(mockProjectUpdateProvider));
 		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
 		// Call under test.
 		entityService.updateEntity(userInfo.getId(), project, newVersion, null);
@@ -186,7 +176,7 @@ public class EntityServiceImplUnitTest {
 		boolean newVersionParameter = false;
 		final boolean wasNewVersionCreated = true;
 		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
-		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
+		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(Optional.ofNullable(mockProjectUpdateProvider));
 		when(mockEntityManager.updateEntity(userInfo, project, newVersionParameter, null))
 				.thenReturn(wasNewVersionCreated);
 		// Call under test.
@@ -256,7 +246,7 @@ public class EntityServiceImplUnitTest {
 		EntityType entityType = EntityType.materializedview;
 		ValidateDefiningSqlRequest mockRequest = new ValidateDefiningSqlRequest().setDefiningSql(sql).setEntityType(definingSqlEntityType);
 
-		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(materializedViewProviders);
+		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.ofNullable(mockMaterializedViewDefiningSqlProvider));
 
 		// Call under test
 		ValidateDefiningSqlResponse response = entityService.validateDefiningSql(mockRequest);
@@ -275,16 +265,17 @@ public class EntityServiceImplUnitTest {
 		EntityType entityType = EntityType.materializedview;
 		ValidateDefiningSqlRequest mockRequest = new ValidateDefiningSqlRequest().setDefiningSql(sql).setEntityType(definingSqlEntityType);
 
-		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(null);
+		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.empty());
 
-		// Call under test
-		ValidateDefiningSqlResponse response = entityService.validateDefiningSql(mockRequest);
+		String errorMessage = assertThrows(IllegalStateException.class, () -> {
+			// Call under test
+			entityService.validateDefiningSql(mockRequest);
+		}).getMessage();
 
 		verify(mockMetadataProviderFactory).getMetadataProvider(entityType);
 		verify(mockMaterializedViewDefiningSqlProvider, never()).validateDefiningSql(sql);
 
-		assertFalse(response.getIsValid());
-		assertEquals("No provider found for entity type " + entityType, response.getInvalidReason());
+		assertEquals("No provider found for the given entity type: " + entityType, errorMessage);
 	}
 
 	@Test 
@@ -293,19 +284,18 @@ public class EntityServiceImplUnitTest {
 		DefiningSqlEntityType definingSqlEntityType = DefiningSqlEntityType.materializedview;
 		EntityType entityType = EntityType.materializedview;
 		ValidateDefiningSqlRequest mockRequest = new ValidateDefiningSqlRequest().setDefiningSql(sql).setEntityType(definingSqlEntityType);
-		ArrayList<EntityProvider<? extends Entity>> invalidProviders = new ArrayList<>();
-		invalidProviders.add(mockProjectCreateProvider);
 
-		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(invalidProviders);
+		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.ofNullable(mockProjectCreateProvider));
 
-		// Call under test
-		ValidateDefiningSqlResponse response = entityService.validateDefiningSql(mockRequest);
+		String errorMessage = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			entityService.validateDefiningSql(mockRequest);
+		}).getMessage();
 
 		verify(mockMetadataProviderFactory).getMetadataProvider(entityType);
 		verify(mockMaterializedViewDefiningSqlProvider, never()).validateDefiningSql(sql);
 
-		assertFalse(response.getIsValid());
-		assertEquals("No provider found for entity type " + entityType, response.getInvalidReason());
+		assertEquals("The given entity has provider that is not of type TypeSpecificDefiningSqlProvider.", errorMessage);
 	}
 
 	@Test
@@ -316,7 +306,7 @@ public class EntityServiceImplUnitTest {
 		EntityType entityType = EntityType.materializedview;
 		ValidateDefiningSqlRequest mockRequest = new ValidateDefiningSqlRequest().setDefiningSql(sql).setEntityType(definingSqlEntityType);
 
-		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(materializedViewProviders);
+		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.ofNullable(mockMaterializedViewDefiningSqlProvider));
 		doThrow(new IllegalArgumentException(invalidReason))
 			.when(mockMaterializedViewDefiningSqlProvider).validateDefiningSql(sql);
 

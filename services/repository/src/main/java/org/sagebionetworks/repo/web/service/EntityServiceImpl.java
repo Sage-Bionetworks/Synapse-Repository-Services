@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.checkerframework.checker.units.qual.C;
@@ -173,16 +174,14 @@ public class EntityServiceImpl implements EntityService {
 	 */
 	private <T extends Entity> void doAddServiceSpecificMetadata(UserInfo info, T entity, EntityType type, EventType eventType) throws DatastoreException, NotFoundException, UnauthorizedException{
 		// Fetch the provider that will validate this entity.
-		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(type);
 
 		// Add the type specific metadata
-		if(providers != null) {
-			for (EntityProvider<? extends Entity> provider : providers) {
-				if (provider instanceof TypeSpecificMetadataProvider) {
-					((TypeSpecificMetadataProvider) provider).addTypeSpecificMetadata(entity, info, eventType);
-				}
+		provider.ifPresent(prov -> {
+			if (prov instanceof TypeSpecificMetadataProvider) {
+				((TypeSpecificMetadataProvider) prov).addTypeSpecificMetadata(entity, info, eventType);
 			}
-		}
+		});
 	}
 	
 	@Override
@@ -245,7 +244,6 @@ public class EntityServiceImpl implements EntityService {
 	/**
 	 * Fire an after a create event.
 	 * @param userInfo
-	 * @param eventType
 	 * @param entity
 	 * @param type
 	 * @throws NotFoundException
@@ -254,20 +252,18 @@ public class EntityServiceImpl implements EntityService {
 	 * @throws InvalidModelException
 	 */
 	private void fireAfterCreateEntityEvent(UserInfo userInfo, Entity entity, EntityType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
-		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
-		if(providers != null) {
-			for (EntityProvider<? extends Entity> provider : providers) {
-				if (provider instanceof TypeSpecificCreateProvider) {
-					((TypeSpecificCreateProvider) provider).entityCreated(userInfo, entity);
-				}
+		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(type);
+
+		provider.ifPresent(prov -> {
+			if (prov instanceof TypeSpecificCreateProvider) {
+				((TypeSpecificCreateProvider) prov).entityCreated(userInfo, entity);
 			}
-		}
+		});
 	}
 	
 	/**
 	 * Fire an after an update event.
 	 * @param userInfo
-	 * @param eventType
 	 * @param entity
 	 * @param type
 	 * @throws NotFoundException
@@ -276,14 +272,13 @@ public class EntityServiceImpl implements EntityService {
 	 * @throws InvalidModelException
 	 */
 	private void fireAfterUpdateEntityEvent(UserInfo userInfo, Entity entity, EntityType type, boolean wasNewVersionCreated) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
-		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
-		if(providers != null) {
-			for (EntityProvider<? extends Entity> provider : providers) {
-				if (provider instanceof TypeSpecificUpdateProvider) {
-					((TypeSpecificUpdateProvider) provider).entityUpdated(userInfo, entity, wasNewVersionCreated);
-				}
+		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(type);
+
+		provider.ifPresent(prov -> {
+			if (prov instanceof TypeSpecificUpdateProvider) {
+				((TypeSpecificUpdateProvider) prov).entityUpdated(userInfo, entity, wasNewVersionCreated);
 			}
-		}
+		});
 	}
 	
 	/**
@@ -307,15 +302,14 @@ public class EntityServiceImpl implements EntityService {
 		// First apply validation that is common to all types.
 		allTypesValidator.validateEntity(entity, event);
 		// Now validate for a specific type.
-		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(type);
+
 		// Validate the entity
-		if(providers != null) {
-			for (EntityProvider<? extends Entity> provider : providers) {
-				if (provider instanceof EntityValidator) {
-					((EntityValidator) provider).validateEntity(entity, event);
-				}
+		provider.ifPresent(prov -> {
+			if (prov instanceof EntityValidator) {
+				((EntityValidator) prov).validateEntity(entity, event);
 			}
-		}
+		});
 	}
 	
 	@WriteTransaction
@@ -377,16 +371,14 @@ public class EntityServiceImpl implements EntityService {
 		// First get the entity we are deleting
 		EntityType type = EntityTypeUtils.getEntityTypeForClass(clazz);
 		// Fetch the provider that will validate this entity.
-		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(type);
 		entityManager.deleteEntity(userInfo, entityId);
 		// Do extra cleanup as needed.
-		if(providers != null) {
-			for(EntityProvider<? extends Entity> provider : providers) {
-				if (provider instanceof TypeSpecificDeleteProvider) {
-					((TypeSpecificDeleteProvider) provider).entityDeleted(entityId);
-				}
+		provider.ifPresent(prov -> {
+			if (prov instanceof TypeSpecificDeleteProvider) {
+				((TypeSpecificDeleteProvider) prov).entityDeleted(entityId);
 			}
-		}
+		});
 		return;
 	}
 	
@@ -410,16 +402,14 @@ public class EntityServiceImpl implements EntityService {
 		// First get the entity we are deleting
 		EntityType type = EntityTypeUtils.getEntityTypeForClass(classForType);
 		// Fetch the provider that will validate this entity.
-		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(type);
 		entityManager.deleteEntityVersion(userInfo, id, versionNumber);
 		// Do extra cleanup as needed.
-		if(providers != null) {
-			for (EntityProvider<? extends Entity> provider : providers) {
-				if (provider instanceof TypeSpecificVersionDeleteProvider) {
-					((TypeSpecificVersionDeleteProvider) provider).entityVersionDeleted(id, versionNumber);
-				}
+		provider.ifPresent(prov -> {
+			if (prov instanceof TypeSpecificVersionDeleteProvider) {
+				((TypeSpecificVersionDeleteProvider) prov).entityVersionDeleted(id, versionNumber);
 			}
-		}
+		});
 	}
 
 	@Override
@@ -818,25 +808,20 @@ public class EntityServiceImpl implements EntityService {
 	public ValidateDefiningSqlResponse validateDefiningSql(ValidateDefiningSqlRequest request) {
 		String definingSql = request.getDefiningSql();
 		EntityType entityType = EntityType.valueOf(request.getEntityType().name());
-		ValidateDefiningSqlResponse noProviderResponse = new ValidateDefiningSqlResponse()
-				.setIsValid(false).setInvalidReason("No provider found for entity type " + entityType);
-		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(entityType);
 
-		if(providers == null) {
-			return noProviderResponse;
+		EntityProvider<? extends Entity> provider = metadataProviderFactory.getMetadataProvider(entityType)
+				.orElseThrow(() -> new IllegalStateException("No provider found for the given entity type: " + entityType));
+
+		if (provider instanceof TypeSpecificDefiningSqlProvider) {
+			try {
+				((TypeSpecificDefiningSqlProvider) provider).validateDefiningSql(definingSql);
+				return new ValidateDefiningSqlResponse().setIsValid(true);
+			} catch (IllegalArgumentException e) {
+				return new ValidateDefiningSqlResponse().setIsValid(false).setInvalidReason(e.getMessage());
+			}
+		} else {
+			throw new IllegalStateException("The given entity has provider that is not of type TypeSpecificDefiningSqlProvider.");
 		}
-
-		return providers.stream()
-				.filter(provider -> provider instanceof TypeSpecificDefiningSqlProvider)
-				.findFirst()
-				.map(provider -> {
-					try {
-						((TypeSpecificDefiningSqlProvider) provider).validateDefiningSql(definingSql);
-						return new ValidateDefiningSqlResponse().setIsValid(true);
-					} catch (IllegalArgumentException e) {
-						return new ValidateDefiningSqlResponse().setIsValid(false).setInvalidReason(e.getMessage());
-					}
-				}).orElse(noProviderResponse);
 	}
 
 }
