@@ -52,7 +52,7 @@ public class ObjectReplicationWorker implements BatchChangeMessageDrivenRunner {
 			boolean willRetry = false;
 			workerLogger.logWorkerFailure(
 					ObjectReplicationWorker.class.getName(), e, willRetry);
-			log.error("Failed while replicating:", e);
+			log.error("Failed while replicating batch {} with {}", messages, e);
 		}
 	}
 	

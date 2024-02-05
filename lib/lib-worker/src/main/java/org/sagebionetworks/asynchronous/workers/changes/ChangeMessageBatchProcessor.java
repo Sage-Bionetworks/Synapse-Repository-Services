@@ -79,9 +79,10 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 					awsSQSClient.sendMessage(queueUrl,
 							EntityFactory.createJSONStringForEntity(message));
 				}
+				log.error("Messages added back to the queue for {} batch {}", batchRunner.getClass().getName(), batch);
 			}
 		} catch (Throwable e) {
-			log.error("Failed on Batch: " + batch.toString(), e);
+			log.error("Failed on batch {} for {} with {} ", batch.toString(), batchRunner.getClass().getName(), e);
 		}
 	}
 
@@ -110,10 +111,11 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 					// Add the message back to the queue as a single message
 					awsSQSClient.sendMessage(queueUrl,
 							EntityFactory.createJSONStringForEntity(change));
+					log.error("Message {} added back to the queue for {}", change, runner.getClass().getName());
 				}
 			} catch (Throwable e) {
 				log.error(
-						"Failed on Change Number: " + change.getChangeNumber(),
+						"Failed on message {} for {} with {}: ", change, runner.getClass().getName(),
 						e);
 			}
 		}

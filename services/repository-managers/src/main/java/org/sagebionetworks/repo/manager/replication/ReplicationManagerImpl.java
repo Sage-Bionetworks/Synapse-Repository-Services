@@ -213,7 +213,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 			reconcileView(idAndVersion, filter);
 		}
 		indexManager.resetViewSynchronizeLock(replicationType, idAndVersion);
-		log.info(String.format("Finished reconcile for view: '%s'.", idAndVersion.toString()));
+		log.info(String.format("Finished reconcile for %s view: '%s'.", replicationType, idAndVersion));
 	}
 	
 	void pushSubviewsBackToQueue(IdAndVersion idAndVersion, List<ChangeMessage> toPush) {
