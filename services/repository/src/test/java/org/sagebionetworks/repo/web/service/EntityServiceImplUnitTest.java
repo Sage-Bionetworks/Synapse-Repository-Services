@@ -118,7 +118,7 @@ public class EntityServiceImplUnitTest {
 	@Test
 	public void testFireCreate() {
 		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
-		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(Optional.ofNullable(mockProjectCreateProvider));
+		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(Optional.of(mockProjectCreateProvider));
 		// Call under test.
 		entityService.createEntity(userInfo.getId(), project, null);
 		verify(mockProjectCreateProvider).entityCreated(userInfo, project);
@@ -140,7 +140,7 @@ public class EntityServiceImplUnitTest {
 	public void testFireUpdate() {
 		boolean newVersion = true;
 		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
-		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(Optional.ofNullable(mockProjectUpdateProvider));
+		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(Optional.of(mockProjectUpdateProvider));
 		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
 		// Call under test.
 		entityService.updateEntity(userInfo.getId(), project, newVersion, null);
@@ -152,7 +152,7 @@ public class EntityServiceImplUnitTest {
 	public void testFireUpdateNoNewVersion() {
 		boolean newVersion = false;
 		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
-		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(Optional.ofNullable(mockProjectUpdateProvider));
+		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(Optional.of(mockProjectUpdateProvider));
 		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
 		// Call under test.
 		entityService.updateEntity(userInfo.getId(), project, newVersion, null);
@@ -171,7 +171,7 @@ public class EntityServiceImplUnitTest {
 		boolean newVersionParameter = false;
 		final boolean wasNewVersionCreated = true;
 		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
-		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(Optional.ofNullable(mockProjectUpdateProvider));
+		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(Optional.of(mockProjectUpdateProvider));
 		when(mockEntityManager.updateEntity(userInfo, project, newVersionParameter, null))
 				.thenReturn(wasNewVersionCreated);
 		// Call under test.
@@ -242,7 +242,7 @@ public class EntityServiceImplUnitTest {
 		ValidateDefiningSqlRequest mockRequest = new ValidateDefiningSqlRequest().setDefiningSql(sql).setEntityType(definingSqlEntityType);
 		ValidateDefiningSqlResponse expected = new ValidateDefiningSqlResponse().setIsValid(true);
 
-		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.ofNullable(mockMaterializedViewDefiningSqlProvider));
+		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.of(mockMaterializedViewDefiningSqlProvider));
 
 		// Call under test
 		ValidateDefiningSqlResponse response = entityService.validateDefiningSql(mockRequest);
@@ -280,7 +280,7 @@ public class EntityServiceImplUnitTest {
 		EntityType entityType = EntityType.materializedview;
 		ValidateDefiningSqlRequest mockRequest = new ValidateDefiningSqlRequest().setDefiningSql(sql).setEntityType(definingSqlEntityType);
 
-		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.ofNullable(mockProjectCreateProvider));
+		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.of(mockProjectCreateProvider));
 
 		String errorMessage = assertThrows(IllegalStateException.class, () -> {
 			// call under test
@@ -301,7 +301,7 @@ public class EntityServiceImplUnitTest {
 		EntityType entityType = EntityType.materializedview;
 		ValidateDefiningSqlRequest mockRequest = new ValidateDefiningSqlRequest().setDefiningSql(sql).setEntityType(definingSqlEntityType);
 
-		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.ofNullable(mockMaterializedViewDefiningSqlProvider));
+		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.of(mockMaterializedViewDefiningSqlProvider));
 		doThrow(new IllegalArgumentException(invalidReason))
 			.when(mockMaterializedViewDefiningSqlProvider).validateDefiningSql(sql);
 

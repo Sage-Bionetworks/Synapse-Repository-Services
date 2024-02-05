@@ -173,13 +173,10 @@ public class EntityServiceImpl implements EntityService {
 	 * @throws UnauthorizedException
 	 */
 	private <T extends Entity> void doAddServiceSpecificMetadata(UserInfo info, T entity, EntityType type, EventType eventType) throws DatastoreException, NotFoundException, UnauthorizedException{
-		// Fetch the provider that will validate this entity.
-		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(type);
-
 		// Add the type specific metadata
-		provider.ifPresent(prov -> {
-			if (prov instanceof TypeSpecificMetadataProvider) {
-				((TypeSpecificMetadataProvider) prov).addTypeSpecificMetadata(entity, info, eventType);
+		metadataProviderFactory.getMetadataProvider(type).ifPresent(provider -> {
+			if (provider instanceof TypeSpecificMetadataProvider) {
+				((TypeSpecificMetadataProvider) provider).addTypeSpecificMetadata(entity, info, eventType);
 			}
 		});
 	}
@@ -252,11 +249,9 @@ public class EntityServiceImpl implements EntityService {
 	 * @throws InvalidModelException
 	 */
 	private void fireAfterCreateEntityEvent(UserInfo userInfo, Entity entity, EntityType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
-		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(type);
-
-		provider.ifPresent(prov -> {
-			if (prov instanceof TypeSpecificCreateProvider) {
-				((TypeSpecificCreateProvider) prov).entityCreated(userInfo, entity);
+		metadataProviderFactory.getMetadataProvider(type).ifPresent(provider -> {
+			if (provider instanceof TypeSpecificCreateProvider) {
+				((TypeSpecificCreateProvider) provider).entityCreated(userInfo, entity);
 			}
 		});
 	}
@@ -272,11 +267,9 @@ public class EntityServiceImpl implements EntityService {
 	 * @throws InvalidModelException
 	 */
 	private void fireAfterUpdateEntityEvent(UserInfo userInfo, Entity entity, EntityType type, boolean wasNewVersionCreated) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
-		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(type);
-
-		provider.ifPresent(prov -> {
-			if (prov instanceof TypeSpecificUpdateProvider) {
-				((TypeSpecificUpdateProvider) prov).entityUpdated(userInfo, entity, wasNewVersionCreated);
+		metadataProviderFactory.getMetadataProvider(type).ifPresent(provider -> {
+			if (provider instanceof TypeSpecificUpdateProvider) {
+				((TypeSpecificUpdateProvider) provider).entityUpdated(userInfo, entity, wasNewVersionCreated);
 			}
 		});
 	}
@@ -301,13 +294,11 @@ public class EntityServiceImpl implements EntityService {
 		
 		// First apply validation that is common to all types.
 		allTypesValidator.validateEntity(entity, event);
-		// Now validate for a specific type.
-		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(type);
 
 		// Validate the entity
-		provider.ifPresent(prov -> {
-			if (prov instanceof EntityValidator) {
-				((EntityValidator) prov).validateEntity(entity, event);
+		metadataProviderFactory.getMetadataProvider(type).ifPresent(provider -> {
+			if (provider instanceof EntityValidator) {
+				((EntityValidator) provider).validateEntity(entity, event);
 			}
 		});
 	}
@@ -370,13 +361,13 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// First get the entity we are deleting
 		EntityType type = EntityTypeUtils.getEntityTypeForClass(clazz);
-		// Fetch the provider that will validate this entity.
-		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(type);
+
 		entityManager.deleteEntity(userInfo, entityId);
+
 		// Do extra cleanup as needed.
-		provider.ifPresent(prov -> {
-			if (prov instanceof TypeSpecificDeleteProvider) {
-				((TypeSpecificDeleteProvider) prov).entityDeleted(entityId);
+		metadataProviderFactory.getMetadataProvider(type).ifPresent(provider -> {
+			if (provider instanceof TypeSpecificDeleteProvider) {
+				((TypeSpecificDeleteProvider) provider).entityDeleted(entityId);
 			}
 		});
 		return;
@@ -401,13 +392,13 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// First get the entity we are deleting
 		EntityType type = EntityTypeUtils.getEntityTypeForClass(classForType);
-		// Fetch the provider that will validate this entity.
-		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(type);
+
 		entityManager.deleteEntityVersion(userInfo, id, versionNumber);
+
 		// Do extra cleanup as needed.
-		provider.ifPresent(prov -> {
-			if (prov instanceof TypeSpecificVersionDeleteProvider) {
-				((TypeSpecificVersionDeleteProvider) prov).entityVersionDeleted(id, versionNumber);
+		metadataProviderFactory.getMetadataProvider(type).ifPresent(provider -> {
+			if (provider instanceof TypeSpecificVersionDeleteProvider) {
+				((TypeSpecificVersionDeleteProvider) provider).entityVersionDeleted(id, versionNumber);
 			}
 		});
 	}
