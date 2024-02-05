@@ -26,14 +26,6 @@ public interface VirtualTableManager {
 	void validateDefiningSql(String definingSql);
 
 	/**
-	 * Builds a {@link QueryTranslator} for the given defining SQL
-	 * 
-	 * @param definingSql
-	 * @return
-	 */
-	QueryTranslator buildQueryTranslator(String definingSql);
-
-	/**
 	 * Get the column IDs for this VT's schema.
 	 * 
 	 * @param idAndVersion

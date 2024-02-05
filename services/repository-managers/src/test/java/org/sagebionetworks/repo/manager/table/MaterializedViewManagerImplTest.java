@@ -120,7 +120,7 @@ public class MaterializedViewManagerImplTest {
 
 		managerSpy.validate(mockView);
 
-		verify(managerSpy, atLeastOnce()).validateDefiningSql(sql);
+		verify(managerSpy).validateDefiningSql(sql);
 	}
 
 	@Test
@@ -139,8 +139,6 @@ public class MaterializedViewManagerImplTest {
 
 		// Call under test
 		managerSpy.validateDefiningSql(sql);
-
-		// The test should not throw an exception if the SQL is valid
 	}
 
 	@Test

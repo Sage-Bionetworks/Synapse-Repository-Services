@@ -171,11 +171,11 @@ public class VirtualTableManagerImplTest {
 	public void testValidateDefiningSql() {
 		String sql = "select * from syn123";
 
-		doReturn(null).when(manager).buildQueryTranslator(sql);
+		doReturn(null).when(manager).validateSqlAndGetSchema(sql);
 
 		// Call under test
 		manager.validateDefiningSql(sql);
-		verify(manager).buildQueryTranslator(sql);
+		verify(manager).validateSqlAndGetSchema(sql);
 	}
 
 	@Test
@@ -191,83 +191,86 @@ public class VirtualTableManagerImplTest {
 	}
 
 	@Test
-	public void testBuildQueryTranslator() {
+	public void testValidateSqlAndGetSchema() {
 		String sql = "select * from syn456";
 		ColumnModel cm = new ColumnModel().setName("foo").setId("99").setColumnType(ColumnType.INTEGER);
 		IdAndVersion id = IdAndVersion.parse("syn123");
+		List<ColumnModel> expected = List.of(new ColumnModel().setName("foo").setColumnType(ColumnType.INTEGER));
 
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(List.of(cm));
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new TableIndexDescription(id));
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(cm);
 
 		// call under test
-		QueryTranslator queryTranslator = manager.buildQueryTranslator(sql);
+		List<ColumnModel> schema = manager.validateSqlAndGetSchema(sql);
 
 		verify(mockTableManagerSupport).getTableSchema(IdAndVersion.parse("syn456"));
 		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn456"));
 
-		assertNotNull(queryTranslator);
+		assertEquals(expected, schema);
 	}
 
 	@Test
-	public void testBuildQueryTranslatorWithCast() {
+	public void testValidateSqlAndGetSchemaWithCast() {
 		String sql = "select cast(foo as 88) from syn456";
 		ColumnModel foo = new ColumnModel().setName("foo").setId("99").setColumnType(ColumnType.INTEGER);
 		ColumnModel bar = new ColumnModel().setName("bar").setId("88").setColumnType(ColumnType.INTEGER);
 		IdAndVersion id = IdAndVersion.parse("syn123");
+		List<ColumnModel> expected = List.of(new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER));
 
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(List.of(foo));
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(bar);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new TableIndexDescription(id));
 
 		// call under test
-		QueryTranslator queryTranslator = manager.buildQueryTranslator(sql);
+		List<ColumnModel> schema = manager.validateSqlAndGetSchema(sql);
 
 		verify(mockTableManagerSupport).getTableSchema(IdAndVersion.parse("syn456"));
 		verify(mockTableManagerSupport, times(4)).getColumnModel("88");
 		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn456"));
 
-		assertNotNull(queryTranslator);
+		assertEquals(expected, schema);
 	}
 
 	@Test
-	public void testBuildQueryTranslatorWithCastWithFacet() {
+	public void testValidateSqlAndGetSchemaCastWithFacet() {
 		String sql = "select cast(foo as 88) from syn456";
 		ColumnModel foo = new ColumnModel().setName("foo").setId("99").setColumnType(ColumnType.INTEGER);
 		ColumnModel bar = new ColumnModel().setName("bar").setId("88").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range);
 		IdAndVersion id = IdAndVersion.parse("syn123");
+		List<ColumnModel> expected = List.of(new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range));
 
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(List.of(foo));
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(bar);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new TableIndexDescription(id));
 
 		// call under test
-		QueryTranslator queryTranslator = manager.buildQueryTranslator(sql);
+		List<ColumnModel> schema = manager.validateSqlAndGetSchema(sql);
 
 		verify(mockTableManagerSupport).getTableSchema(IdAndVersion.parse("syn456"));
 		verify(mockTableManagerSupport, times(4)).getColumnModel("88");
 		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn456"));
 
-		assertNotNull(queryTranslator);
+		assertEquals(expected, schema);
 	}
 
 	@Test
-	public void testBuildQueryTranslatorWithNullSql() {
+	public void testValidateSqlAndGetSchemaWithNullSql() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.buildQueryTranslator(null);
+			manager.validateSqlAndGetSchema(null);
 		}).getMessage();
 
 		assertEquals("The definingSQL of the virtual table is required.", message);
 	}
 
 	@Test
-	public void testRegisterDefiningSqlWithBadSql() {
+	public void testValidateSqlAndGetSchemaWithBadSql() {
 		String sql = "select foo from syn456 a wrong";
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.buildQueryTranslator(sql);
+			manager.validateSqlAndGetSchema(sql);
 		}).getMessage();
 
 		assertTrue(message.contains("Encountered \" <regular_identifier> \"wrong \""));
@@ -275,12 +278,12 @@ public class VirtualTableManagerImplTest {
 	}
 
 	@Test
-	public void testRegisterDefiningSqlWithCTE() {
+	public void testValidateSqlAndGetSchemaWithCTE() {
 		String sql = "with cte as (select foo from syn456) select * from cte";
 
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.buildQueryTranslator(sql);
+			manager.validateSqlAndGetSchema(sql);
 		}).getMessage();
 
 		assertTrue(message.contains("Encountered \" \"WITH\""));
@@ -288,12 +291,12 @@ public class VirtualTableManagerImplTest {
 	}
 
 	@Test
-	public void testBuildQueryTranslatorWithJoin() {
+	public void testValidateSqlAndGetSchemaWithJoin() {
 		String sql = "select * from syn1 join syn2 on (syn1.id = syn2.id)";
 
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.buildQueryTranslator(sql);
+			manager.validateSqlAndGetSchema(sql);
 		}).getMessage();
 
 		assertEquals("The defining SQL can only reference one table/view", message);
@@ -301,12 +304,12 @@ public class VirtualTableManagerImplTest {
 	}
 
 	@Test
-	public void testBuildQueryTranslatorWithUnion() {
+	public void testValidateSqlAndGetSchemaWithUnion() {
 		String sql = "select * from syn1 union select *from syn2";
 
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.buildQueryTranslator(sql);
+			manager.validateSqlAndGetSchema(sql);
 		}).getMessage();
 
 		assertTrue(message.contains("Encountered \" \"UNION\""));

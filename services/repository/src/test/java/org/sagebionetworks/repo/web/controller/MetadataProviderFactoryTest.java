@@ -1,10 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,11 +14,12 @@ import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.VirtualTable;
-import org.sagebionetworks.repo.web.service.metadata.EntityProvider;
-import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
+import org.sagebionetworks.repo.web.service.metadata.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -32,51 +30,58 @@ public class MetadataProviderFactoryTest {
 	
 	@Test
 	public void testGetProjectMetadataProvider() {
-		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(Project.class));
-		assertNotNull(providers);
-		assertEquals(1, providers.size());
+		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(Project.class));
+
+		assertTrue(provider.isPresent());
+		assertTrue(provider.get() instanceof ProjectMetadataProvider);
 	}
 
 	@Test
 	public void testGetEntityViewMetadataProvider() {
-		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(EntityView.class));
-		assertNotNull(providers);
-		assertEquals(1, providers.size());
+		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(EntityView.class));
+
+		assertTrue(provider.isPresent());
+		assertTrue(provider.get() instanceof EntityViewMetadataProvider);
 	}
 
 	@Test
 	public void testGetSubmissionViewMetadataProvider() {
-		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(SubmissionView.class));
-		assertNotNull(providers);
-		assertEquals(1, providers.size());
+		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(SubmissionView.class));
+
+		assertTrue(provider.isPresent());
+		assertTrue(provider.get() instanceof SubmissionViewMetadataProvider);
 	}
 	
 	@Test
 	public void testGetMaterializedViewMetadataProvider() {
-		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(MaterializedView.class));
-		assertNotNull(providers);
-		assertEquals(1, providers.size());		
+		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(MaterializedView.class));
+
+		assertTrue(provider.isPresent());
+		assertTrue(provider.get() instanceof MaterializedViewMetadataProvider);
 	}
 	
 	@Test
 	public void testGetVirtualTableMetadataProvider() {
-		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(VirtualTable.class));
-		assertNotNull(providers);
-		assertEquals(1, providers.size());		
+		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(VirtualTable.class));
+
+		assertTrue(provider.isPresent());
+		assertTrue(provider.get() instanceof VirtualTableMetadataProvider);
 	}
 	
 	@Test
 	public void testGetDatasetMetadataProvider() {
-		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(Dataset.class));
-		assertNotNull(providers);
-		assertEquals(1, providers.size());		
+		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(Dataset.class));
+
+		assertTrue(provider.isPresent());
+		assertTrue(provider.get() instanceof DatasetMetadataProvider);
 	}
 	
 	@Test
 	public void testGetDatasetCollectionMetadataProvider() {
-		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(DatasetCollection.class));
-		assertNotNull(providers);
-		assertEquals(1, providers.size());		
+		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(DatasetCollection.class));
+
+		assertTrue(provider.isPresent());
+		assertTrue(provider.get() instanceof DatasetCollectionMetadataProvider);
 	}
 
 

@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
@@ -44,11 +45,10 @@ public class VirtualTableManagerImpl implements VirtualTableManager {
 	@Override
 	public void validateDefiningSql(String definingSql) {
 		ValidateArgument.required(definingSql, "The definingSQL of the virtual table");
-		buildQueryTranslator(definingSql);
+		validateSqlAndGetSchema(definingSql);
 	}
 
-	@Override
-	public QueryTranslator buildQueryTranslator(String definingSql) {
+	List<ColumnModel> validateSqlAndGetSchema(String definingSql) {
 		ValidateArgument.required(definingSql, "The definingSQL of the virtual table");
 
 		try {
@@ -64,7 +64,7 @@ public class VirtualTableManagerImpl implements VirtualTableManager {
 					.schemaProvider(tableManagerSupport).sqlContext(SqlContext.query).indexDescription(definingIndexDescription)
 					.build();
 
-			return sqlQuery;
+			return sqlQuery.getSchemaOfSelect();
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -80,8 +80,7 @@ public class VirtualTableManagerImpl implements VirtualTableManager {
 		ValidateArgument.required(id, "table Id");
 		ValidateArgument.required(definingSQL, "definingSQL");
 		
-		QueryTranslator sqlQuery = buildQueryTranslator(definingSQL);
-		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
+		List<String> schemaIds = validateSqlAndGetSchema(definingSQL).stream()
 				.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());
 
 		columModelManager.bindColumnsToVersionOfObject(schemaIds, id);
