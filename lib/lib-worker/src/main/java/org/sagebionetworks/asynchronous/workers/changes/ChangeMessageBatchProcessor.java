@@ -78,11 +78,14 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 					// Add the message back to the queue as a single message
 					awsSQSClient.sendMessage(queueUrl,
 							EntityFactory.createJSONStringForEntity(message));
+					log.error("{} added the message back to the queue {}", batchRunner.getClass().getName(), message);
 				}
-				log.error("Messages added back to the queue for {} batch {}", batchRunner.getClass().getName(), batch);
 			}
 		} catch (Throwable e) {
-			log.error("Failed on batch {} for {} with {} ", batch.toString(), batchRunner.getClass().getName(), e);
+			log.error("Failed while processing the batch: ", e);
+			for(ChangeMessage message: batch){
+				log.error("{} will not add the message back to the queue {}", batchRunner.getClass().getName(), message);
+			}
 		}
 	}
 
@@ -111,12 +114,11 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 					// Add the message back to the queue as a single message
 					awsSQSClient.sendMessage(queueUrl,
 							EntityFactory.createJSONStringForEntity(change));
-					log.error("Message {} added back to the queue for {}", change, runner.getClass().getName());
+					log.error("{} added the message back to the queue {}", runner.getClass().getName(), change);
 				}
 			} catch (Throwable e) {
-				log.error(
-						"Failed on message {} for {} with {}: ", change, runner.getClass().getName(),
-						e);
+				log.error("Failed while processing the single message: ", e);
+				log.error("{} will not add the message back to the queue {}", runner.getClass().getName(), change);
 			}
 		}
 	}

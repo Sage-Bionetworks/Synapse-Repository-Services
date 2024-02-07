@@ -849,7 +849,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 					 * deleted annotations or versions are also removed from the replication tables.
 					 */
 					tableIndexDao.deleteObjectData(replicationType, distinctIdsInBatch);
-					log.info("The object type {} with ids {} are deleted from replication)",
+					log.info("{} objects deleted from replication are {})",
 							replicationType.getObjectType(), distinctIdsInBatch);
 					/*
 					 * Add back all of the remaining data in batches.
@@ -857,19 +857,18 @@ public class TableIndexManagerImpl implements TableIndexManager {
 					tableIndexDao.addObjectData(replicationType, batch);
 					return null;
 				});
-				log.info("The object type {} with idAndVersion {} are added to replication)",
+				log.info("{} objects added to replication are {})",
 						replicationType.getObjectType(), idAndVersionList);
 			}catch(Exception e) {
 				// The fix for PLFM-4497 is to retry failed batches as individuals.
 				//
-				log.error("The error occurred while processing replication batch {} of objects type {})",
-						idAndVersionList, replicationType.getObjectType());
+				log.error("Replication failed: ", e);
+				log.error("{} replication failed while processing the batch {})",
+						replicationType.getObjectType(), idAndVersionList);
 				if(batch.size() > 1) {
 					// throwing a RecoverableMessageException will result in an attempt to update each object separately.
-					log.error("Attempt to update each object of batch separately {}", idAndVersionList);
 					throw new RecoverableMessageException(e);
 				}else {
-					log.error("Error occurred while processing replication batch {}", idAndVersionList);
 					throw new IllegalArgumentException(e);
 				}
 			}

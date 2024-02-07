@@ -296,7 +296,7 @@ public class ReplicationManagerTest {
 		verify(mockTableIndexManager).resetViewSynchronizeLock(ReplicationType.ENTITY, viewId);
 		verify(mockReplicationMessageManager).pushChangeMessagesToReplicationQueue(changes);
 
-		verify(mockLogger).info("Finished reconcile for view: 'syn123'.");
+		verify(mockLogger).info("Finished reconcile for ENTITY view: 'syn123'.");
 	}
 
 	@Test
@@ -330,7 +330,7 @@ public class ReplicationManagerTest {
 		verify(mockReplicationMessageManager).pushChangeMessagesToReplicationQueue(changes.subList(
 				ReplicationManagerImpl.MAX_MESSAGE_PAGE_SIZE, ReplicationManagerImpl.MAX_MESSAGE_PAGE_SIZE + 1));
 
-		verify(mockLogger).info("Finished reconcile for view: 'syn123'.");
+		verify(mockLogger).info("Finished reconcile for ENTITY view: 'syn123'.");
 	}
 
 	@Test
@@ -357,7 +357,7 @@ public class ReplicationManagerTest {
 
 		verifyZeroInteractions(mockReplicationMessageManager);
 
-		verify(mockLogger).info("Finished reconcile for view: 'syn123'.");
+		verify(mockLogger).info("Finished reconcile for ENTITY view: 'syn123'.");
 	}
 
 	@Test
@@ -385,7 +385,7 @@ public class ReplicationManagerTest {
 		verify(managerSpy, never()).reconcileView(any(), any());
 
 		verify(mockLogger).info("Pushing 1 sub-view messages back to the reconciliation queue for view: 'syn123'.");
-		verify(mockLogger).info("Finished reconcile for view: 'syn123'.");
+		verify(mockLogger).info("Finished reconcile for ENTITY view: 'syn123'.");
 	}
 
 	@Test
