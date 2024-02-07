@@ -41,10 +41,10 @@ public class QueryContext {
 		ValidateArgument.required(schemaProvider, "schemaProvider");
 		ValidateArgument.required(indexDescription, "indexDescription");
 		ValidateArgument.required(userId, "userId");
-		if (additionalFilters != null && additionalFilters.size() > MAX_SIZE_ADDTIONAL_FILTERS) {
+		if (additionalFilters != null && additionalFilters.size() > MAX_SIZE_ADDITIONAL_FILTERS) {
 			throw new IllegalArgumentException(
 					String.format("The size of the provided additionalFilters is %d which exceeds the maximum of %d",
-							additionalFilters.size(), MAX_SIZE_ADDTIONAL_FILTERS));
+							additionalFilters.size(), MAX_SIZE_ADDITIONAL_FILTERS));
 		}
 
 		this.startingSql = startingSql;
