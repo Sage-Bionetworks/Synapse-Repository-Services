@@ -79,7 +79,8 @@ public class ObjectReplicationReconciliationWorker implements ChangeMessageDrive
 			replicationManager.reconcile(idAndVersion, message.getObjectType());
 
 		} catch (Throwable cause) {
-			log.error("Reconciliation failed for {} and type {} with {}:",message.getObjectId(), message.getObjectType(), cause);
+			log.error("Object reconciliation failed: ", cause);
+			log.error("Object reconciliation failed for {}", message);
 			boolean willRetry = false;
 			workerLogger.logWorkerFailure(
 					ObjectReplicationReconciliationWorker.class.getName(), cause,
