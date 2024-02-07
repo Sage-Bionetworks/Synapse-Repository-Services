@@ -16,7 +16,7 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class QueryContext {
 
-	public static final int MAX_SIZE_ADDTIONAL_FILTERS = 50;
+	public static final int MAX_SIZE_ADDITIONAL_FILTERS = 50;
 	
 	private final String startingSql;
 	private final SchemaProvider schemaProvider;
