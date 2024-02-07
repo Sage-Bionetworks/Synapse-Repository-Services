@@ -16,6 +16,8 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class QueryContext {
 
+	public static final int MAX_SIZE_ADDITIONAL_FILTERS = 50;
+	
 	private final String startingSql;
 	private final SchemaProvider schemaProvider;
 	private final IndexDescription indexDescription;
@@ -32,13 +34,18 @@ public class QueryContext {
 
 	public QueryContext(String startingSql, SchemaProvider schemaProvider, IndexDescription indexDescription,
 			Long userId, Long maxBytesPerPage, Long maxRowsPerCall, List<QueryFilter> additionalFilters,
-			List<FacetColumnRequest> selectedFacets, Long selectFileColumn, Boolean includeEntityEtag, Long offset, Long limit,
-			List<SortItem> sort) {
+			List<FacetColumnRequest> selectedFacets, Long selectFileColumn, Boolean includeEntityEtag, Long offset,
+			Long limit, List<SortItem> sort) {
 
 		ValidateArgument.required(startingSql, "startingSql");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
 		ValidateArgument.required(indexDescription, "indexDescription");
 		ValidateArgument.required(userId, "userId");
+		if (additionalFilters != null && additionalFilters.size() > MAX_SIZE_ADDITIONAL_FILTERS) {
+			throw new IllegalArgumentException(
+					String.format("The size of the provided additionalFilters is %d which exceeds the maximum of %d",
+							additionalFilters.size(), MAX_SIZE_ADDITIONAL_FILTERS));
+		}
 
 		this.startingSql = startingSql;
 		this.schemaProvider = new CachingSchemaProvider(schemaProvider);
@@ -110,7 +117,7 @@ public class QueryContext {
 	public List<FacetColumnRequest> getSelectedFacets() {
 		return selectedFacets;
 	}
-	
+
 	public Long getSelectFileColumn() {
 		return selectFileColumn;
 	}
@@ -226,9 +233,10 @@ public class QueryContext {
 			this.selectedFacets = selectedFacets;
 			return this;
 		}
-		
+
 		/**
-		 * @param selectFileColumn The id of the column to use to select files from the query
+		 * @param selectFileColumn The id of the column to use to select files from the
+		 *                         query
 		 */
 		public Builder setSelectFileColumn(Long selectFileColumn) {
 			this.selectFileColumn = selectFileColumn;
@@ -269,7 +277,8 @@ public class QueryContext {
 
 		public QueryContext build() {
 			return new QueryContext(startingSql, schemaProvider, indexDescription, userId, maxBytesPerPage,
-					maxRowsPerCall, additionalFilters, selectedFacets, selectFileColumn, includeEntityEtag, offset, limit, sort);
+					maxRowsPerCall, additionalFilters, selectedFacets, selectFileColumn, includeEntityEtag, offset,
+					limit, sort);
 		}
 
 	}
