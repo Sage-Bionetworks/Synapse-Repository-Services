@@ -1084,6 +1084,15 @@ public class DownloadListManagerImplTest {
 	}
 	
 	@Test
+	public void testCreateDownloadsListItemFromRowWithRowIdAndValues() {
+		boolean userVersion = false;
+		Row row = new Row().setRowId(8L).setVersionNumber(4L).setValues(List.of("123"));
+		// call under test
+		DownloadListItem result = manager.createDownloadsListItemFromRow(userVersion, row);
+		assertEquals(new DownloadListItem().setFileEntityId("123").setVersionNumber(null), result);
+	}
+	
+	@Test
 	public void testCreateDownloadsListItemFromRowWithMissingRowIdAndNoValues() {
 		boolean userVersion = false;
 		Row row = new Row().setRowId(null).setVersionNumber(4L);
