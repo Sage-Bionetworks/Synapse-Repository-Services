@@ -46,6 +46,8 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
@@ -53,12 +55,15 @@ import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
@@ -203,6 +208,41 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			asyncHelper.waitForTableOrViewToBeAvailable(viewId, MAX_WAIT_MS);
 			return 0;
 		});
+	}
+	
+	/**
+	 * Note: This test was added for https://sagebionetworks.jira.com/browse/PLFM-8261
+	 * @throws Exception
+	 */
+	@Test
+	public void testAddToDownloadListFromMaterializedView() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		EntityView view = createEntityView(entites);
+
+		List<String> fileIds = entites.stream()
+				.filter((e) -> e instanceof FileEntity)
+				.map(e -> e.getId()).collect(Collectors.toList());
+		assertEquals(5, fileIds.size());
+		
+
+		String definingSql = "select id, stringKey from " + view.getId();
+
+		IdAndVersion viewId = createMaterializedView(view.getParentId(), definingSql);
+		
+		Long idColumnId = columnModelManager.getTableSchema(viewId).stream().filter((c -> "id".equals(c.getName())))
+				.map(c -> Long.parseLong(c.getId())).findFirst().get();
+
+		String finalSql = "select * from " + viewId;
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter().setColumnName("id")
+				.setOperator(ColumnSingleValueFilterOperator.IN).setValues(fileIds.subList(0, 2));		
+		
+		AddToDownloadListRequest addToDownloadListrequest = new AddToDownloadListRequest()
+				.setQuery(new Query().setSql(finalSql).setAdditionalFilters(List.of(filter)).setSelectFileColumn(idColumnId));
+		
+		asyncHelper.assertJobResponse(adminUserInfo, addToDownloadListrequest, (AddToDownloadListResponse response) -> {
+			assertEquals(2L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS);
 	}
 
 	@Test

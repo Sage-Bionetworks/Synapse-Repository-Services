@@ -459,10 +459,10 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 */
 	DownloadListItem createDownloadsListItemFromRow(final boolean useVersion, Row row) {
 		DownloadListItem item = new DownloadListItem();
-		if (row.getRowId() != null) {
-			item.setFileEntityId(row.getRowId().toString());
-		} else if (row.getValues() != null && !row.getValues().isEmpty()) {
+		if (row.getValues() != null && !row.getValues().isEmpty()) {
 			item.setFileEntityId(row.getValues().get(0));
+		} else if(row.getRowId() != null) {
+			item.setFileEntityId(row.getRowId().toString());
 		} else {
 			throw new IllegalStateException("Expected a row id or a value but got none.");
 		}
