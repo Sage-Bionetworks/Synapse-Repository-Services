@@ -839,6 +839,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	void updateObjectReplication(ReplicationType replicationType, Iterator<ObjectDataDTO> objectData, int batchSize) {
 
 		Iterators.partition(objectData, batchSize).forEachRemaining(batch -> {
+			List<IdAndVersion> idAndVersionList = batch.stream()
+					.map(i -> IdAndVersion.newBuilder().setId(i.getId()).setVersion(i.getVersion()).build()).collect(Collectors.toList());
 			try {
 				List<Long> distinctIdsInBatch = batch.stream().map(i -> i.getId()).distinct().collect(Collectors.toList());
 				tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
@@ -847,20 +849,26 @@ public class TableIndexManagerImpl implements TableIndexManager {
 					 * deleted annotations or versions are also removed from the replication tables.
 					 */
 					tableIndexDao.deleteObjectData(replicationType, distinctIdsInBatch);
-
+					log.info("{} objects deleted from replication are {})",
+							replicationType.getObjectType(), distinctIdsInBatch);
 					/*
 					 * Add back all of the remaining data in batches.
 					 */
 					tableIndexDao.addObjectData(replicationType, batch);
 					return null;
 				});
+				log.info("{} objects added to replication are {})",
+						replicationType.getObjectType(), idAndVersionList);
 			}catch(Exception e) {
 				// The fix for PLFM-4497 is to retry failed batches as individuals.
+				//
+				log.error("Replication failed: ", e);
+				log.error("{} replication failed while processing the batch {})",
+						replicationType.getObjectType(), idAndVersionList);
 				if(batch.size() > 1) {
 					// throwing a RecoverableMessageException will result in an attempt to update each object separately.
 					throw new RecoverableMessageException(e);
 				}else {
-					
 					throw new IllegalArgumentException(e);
 				}
 			}
