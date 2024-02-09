@@ -1,0 +1,12 @@
+{
+	"type": "interface",
+	"properties": {
+		"values": {
+			"description": "Values to used with the filter.  Maximum of 50.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}
