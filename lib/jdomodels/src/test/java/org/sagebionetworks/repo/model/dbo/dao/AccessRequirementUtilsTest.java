@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -337,7 +338,8 @@ public class AccessRequirementUtilsTest {
 	public void testValidateAccessRequirementAclAccess() {
 		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
 			new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS)),
-			new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+			new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS)),
+		    new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.EXEMPTION_ELIGIBLE))
 		));
 		
 		// Call under test
@@ -391,7 +393,7 @@ public class AccessRequirementUtilsTest {
 			AccessRequirementUtils.validateAccessRequirementAcl(acl);
 		}).getMessage();
 		
-		assertEquals("Only the REVIEW_SUBMISSION ACCESS_TYPE is supported for access requirements.", message);
+		assertEquals("Only the REVIEW_SUBMISSION and EXEMPTION_ELIGIBLE ACCESS_TYPE are supported for access requirements.", message);
 	}
 	
 	@Test
@@ -405,7 +407,7 @@ public class AccessRequirementUtilsTest {
 			AccessRequirementUtils.validateAccessRequirementAcl(acl);
 		}).getMessage();
 		
-		assertEquals("Only the REVIEW_SUBMISSION ACCESS_TYPE is supported for access requirements.", message);
+		assertEquals("Only the REVIEW_SUBMISSION and EXEMPTION_ELIGIBLE ACCESS_TYPE are supported for access requirements.", message);
 	}
 	
 	@Test
@@ -434,5 +436,54 @@ public class AccessRequirementUtilsTest {
 		}).getMessage();
 		
 		assertEquals("Cannot assign permissions to the public group.", message);
+	}
+
+	@Test
+	public void testValidateAccessRequirementAclAccessForEntityOwnerType() {
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+				new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.DELETE,ACCESS_TYPE.UPDATE,ACCESS_TYPE.DOWNLOAD)),
+				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ))
+		));
+
+		AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.ENTITY);
+	}
+
+	@Test
+	public void testValidateAccessRequirementAclAccessForEvaluationOwnerType() {
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+				new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.DELETE,ACCESS_TYPE.UPDATE,ACCESS_TYPE.DOWNLOAD)),
+				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ))
+		));
+
+		AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.EVALUATION);
+	}
+	@Test
+	public void testValidateAccessRequirementInvalidAclAccessForEntityOwnerType() {
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+				new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.DELETE,ACCESS_TYPE.UPDATE,ACCESS_TYPE.DOWNLOAD)),
+				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ, ACCESS_TYPE.EXEMPTION_ELIGIBLE))
+		));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.ENTITY);
+		}).getMessage();
+
+		assertEquals("ACL includes unauthorized resource access [EXEMPTION_ELIGIBLE]", message);
+	}
+
+	@Test
+	public void testValidateAccessRequirementInvalidAclAccessForEvaluationOwnerType() {
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+				new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.DELETE,ACCESS_TYPE.UPDATE,ACCESS_TYPE.DOWNLOAD)),
+				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ, ACCESS_TYPE.EXEMPTION_ELIGIBLE))
+		));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.EVALUATION);
+		}).getMessage();
+
+		assertEquals("ACL includes unauthorized resource access [EXEMPTION_ELIGIBLE]", message);
 	}
 }

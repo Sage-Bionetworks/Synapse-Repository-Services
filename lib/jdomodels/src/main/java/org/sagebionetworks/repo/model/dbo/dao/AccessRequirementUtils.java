@@ -2,8 +2,10 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -17,6 +19,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
@@ -30,6 +33,12 @@ import org.sagebionetworks.util.ValidateArgument;
 
 public class AccessRequirementUtils {
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(AccessRequirement.class).build();
+	private static HashMap<ObjectType, HashSet<ACCESS_TYPE>> notAllowedPermission = new HashMap<>() {{
+		put(ObjectType.ENTITY, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
+		put(ObjectType.EVALUATION, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
+		put(ObjectType.SUBMISSION, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
+	}};
+
 
 	// the convention is that the individual fields take precedence
 	// over the serialized objects.  When restoring the dto we first deserialize
@@ -201,7 +210,21 @@ public class AccessRequirementUtils {
 			ValidateArgument.requirement(!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(access.getPrincipalId()), "Cannot assign permissions to the anonmous user.");
 			ValidateArgument.requirement(!BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().equals(access.getPrincipalId()), "Cannot assign permissions to the public group.");
 			Set<ACCESS_TYPE> accessSet = access.getAccessType();
-			ValidateArgument.requirement(accessSet.size() == 1 && accessSet.iterator().next() == ACCESS_TYPE.REVIEW_SUBMISSIONS, "Only the REVIEW_SUBMISSION ACCESS_TYPE is supported for access requirements.");
+			ValidateArgument.requirement(accessSet.stream()
+					.allMatch(access_type -> access_type == ACCESS_TYPE.REVIEW_SUBMISSIONS || access_type ==ACCESS_TYPE.EXEMPTION_ELIGIBLE),
+					"Only the REVIEW_SUBMISSION and EXEMPTION_ELIGIBLE ACCESS_TYPE are supported for access requirements.");
+		});
+	}
+
+	public static void validateResourceAccessOfAclForOwnerType(AccessControlList acl, ObjectType objectType) {
+		ValidateArgument.required(acl, "acl");
+		ValidateArgument.required(objectType, "objectType");
+		acl.getResourceAccess().forEach(resourceAccess -> {
+			Set<ACCESS_TYPE> accessSet = resourceAccess.getAccessType();
+			if (notAllowedPermission.get(objectType) != null) {
+				ValidateArgument.requirement(Collections.disjoint(accessSet, notAllowedPermission.get(objectType)),
+						"ACL includes unauthorized resource access " + notAllowedPermission.get(objectType));
+			}
 		});
 	}
 }

@@ -70,6 +70,10 @@
         {
         	"name": "REVIEW_SUBMISSIONS",
         	"description": "Allows to review a group of submissions (e.g. on ARs) for a given object"
+        },
+        {
+            "name": "EXEMPTION_ELIGIBLE",
+            "description": "Eligible for exemption when granted this permission on the ACl of the AR"
         }
     ]
 }
