@@ -40,7 +40,7 @@ public class BeanTest implements ApplicationContextAware {
 	
 	// The semaphore uses the standard transactional annotation
 	private static final Set<String> TRANSACTIONAL_EXCEPTIONS = Set.of(
-		"refreshLockTimeout", "releaseLock", "attemptToAcquireLock"
+		"refreshLockTimeout", "releaseLock", "attemptToAcquireLock", "runGarbageCollection"
 	);
 
 	@Test
