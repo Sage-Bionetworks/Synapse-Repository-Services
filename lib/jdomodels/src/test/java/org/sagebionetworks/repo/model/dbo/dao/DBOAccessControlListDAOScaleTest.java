@@ -4,10 +4,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.After;
 import org.junit.Before;
@@ -94,7 +96,7 @@ public class DBOAccessControlListDAOScaleTest {
 
 			// Add each type
 			Set<ACCESS_TYPE> types = new HashSet<ACCESS_TYPE>();
-			for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
+			for (ACCESS_TYPE type : getAccessListForEntity()) {
 				types.add(type);
 			}
 			ra.setAccessType(types);
@@ -129,16 +131,18 @@ public class DBOAccessControlListDAOScaleTest {
 		// Time the can access methods
 		Set<Long> groups = new HashSet<Long>();
 		groups.add(Long.parseLong(userGroup.getId()));
-		System.out.println("userGroup ID: \t"+userGroup.getId());
-		System.out.println("Number of base projects: \t"+toDelete.size());
-		for(ACCESS_TYPE type: ACCESS_TYPE.values()){
+		for(ACCESS_TYPE type: getAccessListForEntity()){
 			long start = System.nanoTime();
 			boolean canAccess = aclDAO.canAccess(groups, toDelete.get(0), ObjectType.ENTITY, type);
 			long end = System.nanoTime();
 			long elpaseMs = (end-start)/1000000;
 			assertTrue(canAccess);
-			System.out.println("Time for \t"+type.name()+"\t"+elpaseMs+"\tms");
 			assertTrue("Since accessControlListDAO.canAccess() is called everywhere, it cannot take more than 100 ms to run!",elpaseMs < 100);
 		}
+	}
+
+	private List<ACCESS_TYPE> getAccessListForEntity(){
+		return Arrays.stream(ACCESS_TYPE.values())
+				.filter(access_type -> access_type!= ACCESS_TYPE.EXEMPTION_ELIGIBLE).collect(Collectors.toList());
 	}
 }

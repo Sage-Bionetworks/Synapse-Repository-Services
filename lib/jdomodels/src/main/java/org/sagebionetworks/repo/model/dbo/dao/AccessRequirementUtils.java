@@ -33,10 +33,12 @@ import org.sagebionetworks.util.ValidateArgument;
 
 public class AccessRequirementUtils {
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(AccessRequirement.class).build();
-	private static HashMap<ObjectType, HashSet<ACCESS_TYPE>> notAllowedPermission = new HashMap<>() {{
-		put(ObjectType.ENTITY, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
+	private static HashMap<ObjectType, HashSet<ACCESS_TYPE>> NOT_ALLOWED_PERMISSIONS = new HashMap<>() {{
 		put(ObjectType.EVALUATION, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
-		put(ObjectType.SUBMISSION, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
+		put(ObjectType.TEAM, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
+		put(ObjectType.FORM_GROUP, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
+		put(ObjectType.ORGANIZATION, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
+		put(ObjectType.ENTITY, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
 	}};
 
 
@@ -221,9 +223,9 @@ public class AccessRequirementUtils {
 		ValidateArgument.required(objectType, "objectType");
 		acl.getResourceAccess().forEach(resourceAccess -> {
 			Set<ACCESS_TYPE> accessSet = resourceAccess.getAccessType();
-			if (notAllowedPermission.get(objectType) != null) {
-				ValidateArgument.requirement(Collections.disjoint(accessSet, notAllowedPermission.get(objectType)),
-						"ACL includes unauthorized resource access " + notAllowedPermission.get(objectType));
+			if (NOT_ALLOWED_PERMISSIONS.get(objectType) != null) {
+				ValidateArgument.requirement(Collections.disjoint(accessSet, NOT_ALLOWED_PERMISSIONS.get(objectType)),
+						"ACL includes unauthorized resource access " + NOT_ALLOWED_PERMISSIONS.get(objectType));
 			}
 		});
 	}
