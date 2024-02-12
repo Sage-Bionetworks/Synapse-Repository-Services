@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -475,8 +476,8 @@ public class IT500SynapseJavaClient {
 	public void testJavaClientCreateUpdateEntityBundle() throws SynapseException {
 		// Create resource access for me
 		UserProfile myProfile = synapse.getMyProfile();
-		Set<ACCESS_TYPE> accessTypes = new HashSet<>();
-		accessTypes.addAll(Arrays.asList(ACCESS_TYPE.values()));
+		Set<ACCESS_TYPE> accessTypes = Arrays.stream(ACCESS_TYPE.values())
+				.filter(access_type -> access_type != ACCESS_TYPE.EXEMPTION_ELIGIBLE).collect(Collectors.toSet());
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(Long.parseLong(myProfile.getOwnerId()));
 		ra.setAccessType(accessTypes);
