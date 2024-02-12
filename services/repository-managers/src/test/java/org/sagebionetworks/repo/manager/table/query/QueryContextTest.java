@@ -179,6 +179,18 @@ public class QueryContextTest {
 	}
 	
 	@Test
+	public void testMaximumNumberOfAdditionalFiltersValuesWithNullValues() {
+
+		singleValueFilter = new ColumnSingleValueQueryFilter().setColumnName("two")
+				.setOperator(ColumnSingleValueFilterOperator.LIKE).setValues(null);
+		
+		builder.setAdditionalFilters(List.of(singleValueFilter));
+		// call under test
+		QueryContext context = builder.build();
+		assertNotNull(context.getAdditionalFilters());
+	}
+	
+	@Test
 	public void testMaximumNumberOfAdditionalFiltersValuesWithOverLimit() {
 
 		singleValueFilter = new ColumnSingleValueQueryFilter().setColumnName("two")
