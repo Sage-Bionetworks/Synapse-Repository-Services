@@ -1,8 +1,15 @@
 {
-	"implements": [{"$ref":"org.sagebionetworks.repo.model.table.QueryFilter"}],
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.QueryFilter"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.HasValues"
+		}
+	],
 	"description": "A filter that applies multi-value columns functions.",
 	"properties": {
-		"columnName":{
+		"columnName": {
 			"type": "string",
 			"description": "name of the column to filter"
 		},
@@ -21,13 +28,6 @@
 					"description": "HAS_LIKE function on multi-value columns, same as the predicate: 'columnName HAS_LIKE (<values>)'. Can be used for pattern matching using wildcard %."
 				}
 			]
-		},
-		"values":{
-			"description": "Values to be used as parameters of the multi-column function.",
-			"type": "array",
-			"items": {
-				"type": "string"
-			}
 		}
 	}
 }
