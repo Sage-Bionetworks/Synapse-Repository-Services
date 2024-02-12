@@ -202,7 +202,7 @@ public class AccessRequirementUtils {
 		}		
 		return Collections.emptySet();
 	}
-	
+
 	public static void validateAccessRequirementAcl(AccessControlList acl) {
 		ValidateArgument.required(acl, "acl");
 		ValidateArgument.requiredNotEmpty(acl.getResourceAccess(), "acl.resourceAccess");
@@ -213,7 +213,7 @@ public class AccessRequirementUtils {
 			ValidateArgument.requirement(!BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().equals(access.getPrincipalId()), "Cannot assign permissions to the public group.");
 			Set<ACCESS_TYPE> accessSet = access.getAccessType();
 			ValidateArgument.requirement(accessSet.stream()
-					.allMatch(access_type -> access_type == ACCESS_TYPE.REVIEW_SUBMISSIONS || access_type ==ACCESS_TYPE.EXEMPTION_ELIGIBLE),
+							.allMatch(access_type -> access_type == ACCESS_TYPE.REVIEW_SUBMISSIONS || access_type == ACCESS_TYPE.EXEMPTION_ELIGIBLE),
 					"Only the REVIEW_SUBMISSION and EXEMPTION_ELIGIBLE ACCESS_TYPE are supported for access requirements.");
 		});
 	}

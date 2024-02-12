@@ -275,6 +275,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		if (acl == null) {
 			throw new IllegalArgumentException("ACL cannot be null.");
 		}
+
 		AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ownerType);
 
 		acl.setEtag(UUID.randomUUID().toString());
