@@ -2,6 +2,7 @@ package org.sagebionetworks.migration.worker;
 
 import java.io.IOException;
 
+import org.sagebionetworks.repo.manager.migration.DatasetChecksumBackfill;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -17,6 +18,7 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
+import org.sagebionetworks.repo.model.migration.DatasetBackfillRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.worker.AsyncJobRunner;
@@ -28,10 +30,13 @@ import org.springframework.stereotype.Service;
 public class MigrationWorker implements AsyncJobRunner<AsyncMigrationRequest, AsyncMigrationResponse> {
 	
 	private MigrationManager migrationManager;
+	
+	private DatasetChecksumBackfill datasetBackFill;
 
 	@Autowired
-	public MigrationWorker(MigrationManager migrationManager) {
+	public MigrationWorker(MigrationManager migrationManager, DatasetChecksumBackfill datasetBackFill) {
 		this.migrationManager = migrationManager;
+		this.datasetBackFill = datasetBackFill;
 	}
 	
 	@Override
@@ -72,6 +77,8 @@ public class MigrationWorker implements AsyncJobRunner<AsyncMigrationRequest, As
 			return migrationManager.calculateOptimalRanges(user, (CalculateOptimalRangeRequest)req);
 		} else if (req instanceof BatchChecksumRequest) {
 			return migrationManager.calculateBatchChecksums(user, (BatchChecksumRequest)req);
+		} else if (req instanceof DatasetBackfillRequest) {
+			return datasetBackFill.backfillChecksum(user);
 		} else {
 			throw new IllegalArgumentException("AsyncMigrationRequest not supported.");
 		}

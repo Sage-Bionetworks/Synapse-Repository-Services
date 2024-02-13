@@ -93,7 +93,9 @@ public class BeanTest implements ApplicationContextAware {
 			"getAvailableFilesFromDownloadList",
 			"getFormDataStatusForUpdate",
 			"getMatchingTokenByHashForUpdate",
-			"getAddedPartRanges");
+			"getAddedPartRanges",
+			"getFileSummary"
+	);
 
 	@Test
 	public void testNoGetterWriteTransactions() {
