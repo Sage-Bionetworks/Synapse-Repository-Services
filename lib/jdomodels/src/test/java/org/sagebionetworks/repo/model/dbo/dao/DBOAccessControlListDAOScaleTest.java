@@ -130,7 +130,7 @@ public class DBOAccessControlListDAOScaleTest {
 		// Time the can access methods
 		Set<Long> groups = new HashSet<Long>();
 		groups.add(Long.parseLong(userGroup.getId()));
-		for(ACCESS_TYPE type: ACCESS_TYPE.values()){
+		for(ACCESS_TYPE type: ALLOWED_ACCESS_TYPES.get(ObjectType.ENTITY)){
 			long start = System.nanoTime();
 			boolean canAccess = aclDAO.canAccess(groups, toDelete.get(0), ObjectType.ENTITY, type);
 			long end = System.nanoTime();
