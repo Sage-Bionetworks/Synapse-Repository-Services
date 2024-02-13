@@ -390,24 +390,24 @@ public class AccessRequirementUtilsTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			AccessRequirementUtils.validateAccessRequirementAcl(acl);
+			AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.ACCESS_REQUIREMENT);
 		}).getMessage();
 		
-		assertEquals("Only the REVIEW_SUBMISSION and EXEMPTION_ELIGIBLE ACCESS_TYPE are supported for access requirements.", message);
+		assertEquals("The access type READ is not allowed for ACCESS_REQUIREMENT.", message);
 	}
 	
 	@Test
 	public void testValidateAccessRequirementAclAccessWithWrongAccessTypes() {
 		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-			new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.READ))
+			new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.DOWNLOAD))
 		));
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			AccessRequirementUtils.validateAccessRequirementAcl(acl);
+			AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.ACCESS_REQUIREMENT);
 		}).getMessage();
 		
-		assertEquals("Only the REVIEW_SUBMISSION and EXEMPTION_ELIGIBLE ACCESS_TYPE are supported for access requirements.", message);
+		assertEquals("The access type DOWNLOAD is not allowed for ACCESS_REQUIREMENT.", message);
 	}
 	
 	@Test
@@ -469,14 +469,14 @@ public class AccessRequirementUtilsTest {
 			AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.ENTITY);
 		}).getMessage();
 
-		assertEquals("ACL includes unauthorized resource access [EXEMPTION_ELIGIBLE]", message);
+		assertEquals("The access type EXEMPTION_ELIGIBLE is not allowed for ENTITY.", message);
 	}
 
 	@Test
 	public void testValidateAccessRequirementInvalidAclAccessForEvaluationOwnerType() {
 		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
 				new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.DELETE,ACCESS_TYPE.UPDATE,ACCESS_TYPE.DOWNLOAD)),
-				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ, ACCESS_TYPE.EXEMPTION_ELIGIBLE))
+				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ, ACCESS_TYPE.UPLOAD))
 		));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -484,6 +484,6 @@ public class AccessRequirementUtilsTest {
 			AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.EVALUATION);
 		}).getMessage();
 
-		assertEquals("ACL includes unauthorized resource access [EXEMPTION_ELIGIBLE]", message);
+		assertEquals("The access type UPLOAD is not allowed for EVALUATION.", message);
 	}
 }

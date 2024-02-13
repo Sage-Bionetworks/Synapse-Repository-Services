@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils.ALLOWED_ACCESS_TYPES;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -25,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -476,11 +477,9 @@ public class IT500SynapseJavaClient {
 	public void testJavaClientCreateUpdateEntityBundle() throws SynapseException {
 		// Create resource access for me
 		UserProfile myProfile = synapse.getMyProfile();
-		Set<ACCESS_TYPE> accessTypes = Arrays.stream(ACCESS_TYPE.values())
-				.filter(access_type -> access_type != ACCESS_TYPE.EXEMPTION_ELIGIBLE).collect(Collectors.toSet());
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(Long.parseLong(myProfile.getOwnerId()));
-		ra.setAccessType(accessTypes);
+		ra.setAccessType(ALLOWED_ACCESS_TYPES.get(ObjectType.ENTITY));
 		
 		// Create an entity		
 		Folder s1 = new Folder();

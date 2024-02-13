@@ -33,12 +33,23 @@ import org.sagebionetworks.util.ValidateArgument;
 
 public class AccessRequirementUtils {
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(AccessRequirement.class).build();
-	private static HashMap<ObjectType, HashSet<ACCESS_TYPE>> NOT_ALLOWED_PERMISSIONS = new HashMap<>() {{
-		put(ObjectType.EVALUATION, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
-		put(ObjectType.TEAM, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
-		put(ObjectType.FORM_GROUP, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
-		put(ObjectType.ORGANIZATION, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
-		put(ObjectType.ENTITY, new HashSet<>(Arrays.asList(ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
+	public static HashMap<ObjectType, HashSet<ACCESS_TYPE>> ALLOWED_ACCESS_TYPES = new HashMap<>() {{
+		put(ObjectType.ENTITY, new HashSet<>(Arrays.asList(ACCESS_TYPE.CREATE, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ,
+				ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CHANGE_SETTINGS, ACCESS_TYPE.DELETE, ACCESS_TYPE.MODERATE,
+				ACCESS_TYPE.UPDATE, ACCESS_TYPE.SEND_MESSAGE, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, ACCESS_TYPE.DELETE_SUBMISSION,
+				ACCESS_TYPE.PARTICIPATE, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, ACCESS_TYPE.SUBMIT, ACCESS_TYPE.UPDATE_SUBMISSION,
+				ACCESS_TYPE.UPLOAD)));
+		put(ObjectType.EVALUATION, new HashSet<>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CREATE,
+				ACCESS_TYPE.DELETE, ACCESS_TYPE.DELETE_SUBMISSION, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, ACCESS_TYPE.SUBMIT,
+				ACCESS_TYPE.UPDATE, ACCESS_TYPE.UPDATE_SUBMISSION, ACCESS_TYPE.PARTICIPATE, ACCESS_TYPE.CHANGE_SETTINGS,
+				ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.MODERATE)));
+		put(ObjectType.FORM_GROUP, new HashSet<>(Arrays.asList(ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.READ, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, ACCESS_TYPE.SUBMIT)));
+		put(ObjectType.ORGANIZATION, new HashSet<>(Arrays.asList(ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE)));
+		put(ObjectType.ACCESS_REQUIREMENT, new HashSet<>(Arrays.asList(ACCESS_TYPE.REVIEW_SUBMISSIONS, ACCESS_TYPE.EXEMPTION_ELIGIBLE)));
+		put(ObjectType.TEAM, new HashSet<>(Arrays.asList(ACCESS_TYPE.DELETE, ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE,
+				ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DOWNLOAD,
+				ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CHANGE_SETTINGS, ACCESS_TYPE.MODERATE, ACCESS_TYPE.DELETE_SUBMISSION,
+				ACCESS_TYPE.SUBMIT, ACCESS_TYPE.UPDATE_SUBMISSION, ACCESS_TYPE.PARTICIPATE)));
 	}};
 
 
@@ -211,21 +222,25 @@ public class AccessRequirementUtils {
 			ValidateArgument.required(access.getPrincipalId(), "acl.resourceAccess.principalId");
 			ValidateArgument.requirement(!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(access.getPrincipalId()), "Cannot assign permissions to the anonmous user.");
 			ValidateArgument.requirement(!BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().equals(access.getPrincipalId()), "Cannot assign permissions to the public group.");
-			Set<ACCESS_TYPE> accessSet = access.getAccessType();
-			ValidateArgument.requirement(accessSet.stream()
-							.allMatch(access_type -> access_type == ACCESS_TYPE.REVIEW_SUBMISSIONS || access_type == ACCESS_TYPE.EXEMPTION_ELIGIBLE),
-					"Only the REVIEW_SUBMISSION and EXEMPTION_ELIGIBLE ACCESS_TYPE are supported for access requirements.");
 		});
 	}
 
+	/**
+	 * @param acl
+	 * @param objectType
+	 * This method checks if acl has allowed access type for specific object type.
+	 * It throws IllegalArgumentException if acl contains unauthorized access type.
+	 */
 	public static void validateResourceAccessOfAclForOwnerType(AccessControlList acl, ObjectType objectType) {
 		ValidateArgument.required(acl, "acl");
 		ValidateArgument.required(objectType, "objectType");
 		acl.getResourceAccess().forEach(resourceAccess -> {
-			Set<ACCESS_TYPE> accessSet = resourceAccess.getAccessType();
-			if (NOT_ALLOWED_PERMISSIONS.get(objectType) != null) {
-				ValidateArgument.requirement(Collections.disjoint(accessSet, NOT_ALLOWED_PERMISSIONS.get(objectType)),
-						"ACL includes unauthorized resource access " + NOT_ALLOWED_PERMISSIONS.get(objectType));
+			Set<ACCESS_TYPE> allowed_types = ALLOWED_ACCESS_TYPES.getOrDefault(objectType, new HashSet<>());
+			if (!allowed_types.isEmpty()) {
+				Set<ACCESS_TYPE> accessSet = resourceAccess.getAccessType();
+				for (ACCESS_TYPE type : accessSet) {
+					ValidateArgument.requirement(allowed_types.contains(type), String.format("The access type %s is not allowed for %s.", type, objectType));
+				}
 			}
 		});
 	}

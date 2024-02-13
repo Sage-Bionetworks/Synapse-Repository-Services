@@ -2,14 +2,13 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils.ALLOWED_ACCESS_TYPES;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.junit.After;
 import org.junit.Before;
@@ -96,7 +95,7 @@ public class DBOAccessControlListDAOScaleTest {
 
 			// Add each type
 			Set<ACCESS_TYPE> types = new HashSet<ACCESS_TYPE>();
-			for (ACCESS_TYPE type : getAccessListForEntity()) {
+			for (ACCESS_TYPE type : ALLOWED_ACCESS_TYPES.get(ObjectType.ENTITY)) {
 				types.add(type);
 			}
 			ra.setAccessType(types);
@@ -131,7 +130,7 @@ public class DBOAccessControlListDAOScaleTest {
 		// Time the can access methods
 		Set<Long> groups = new HashSet<Long>();
 		groups.add(Long.parseLong(userGroup.getId()));
-		for(ACCESS_TYPE type: getAccessListForEntity()){
+		for(ACCESS_TYPE type: ACCESS_TYPE.values()){
 			long start = System.nanoTime();
 			boolean canAccess = aclDAO.canAccess(groups, toDelete.get(0), ObjectType.ENTITY, type);
 			long end = System.nanoTime();
@@ -139,10 +138,5 @@ public class DBOAccessControlListDAOScaleTest {
 			assertTrue(canAccess);
 			assertTrue("Since accessControlListDAO.canAccess() is called everywhere, it cannot take more than 100 ms to run!",elpaseMs < 100);
 		}
-	}
-
-	private List<ACCESS_TYPE> getAccessListForEntity(){
-		return Arrays.stream(ACCESS_TYPE.values())
-				.filter(access_type -> access_type!= ACCESS_TYPE.EXEMPTION_ELIGIBLE).collect(Collectors.toList());
 	}
 }
