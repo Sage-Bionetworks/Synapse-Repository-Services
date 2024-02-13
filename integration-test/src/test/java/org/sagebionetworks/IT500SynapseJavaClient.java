@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils.ALLOWED_ACCESS_TYPES;
+import static org.sagebionetworks.repo.model.dbo.dao.AccessControlListUtils.ALLOWED_ACCESS_TYPES;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;

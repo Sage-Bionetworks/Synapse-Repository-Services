@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils.ALLOWED_ACCESS_TYPES;
+import static org.sagebionetworks.repo.model.dbo.dao.AccessControlListUtils.ALLOWED_ACCESS_TYPES;
 
 import java.util.ArrayList;
 import java.util.Date;

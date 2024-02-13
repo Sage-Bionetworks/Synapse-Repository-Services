@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -20,7 +19,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -384,34 +382,6 @@ public class AccessRequirementUtilsTest {
 	}
 	
 	@Test
-	public void testValidateAccessRequirementAclAccessWithMultipleAccessTypes() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-			new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS, ACCESS_TYPE.READ))
-		));
-		
-		String message = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.ACCESS_REQUIREMENT);
-		}).getMessage();
-		
-		assertEquals("The access type READ is not allowed for ACCESS_REQUIREMENT.", message);
-	}
-	
-	@Test
-	public void testValidateAccessRequirementAclAccessWithWrongAccessTypes() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-			new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.DOWNLOAD))
-		));
-		
-		String message = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.ACCESS_REQUIREMENT);
-		}).getMessage();
-		
-		assertEquals("The access type DOWNLOAD is not allowed for ACCESS_REQUIREMENT.", message);
-	}
-	
-	@Test
 	public void testValidateAccessRequirementAclAccessWithWrongAnonymousUser() {
 		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
 			new ResourceAccess().setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()).setAccessType(Set.of(ACCESS_TYPE.READ))
@@ -437,142 +407,5 @@ public class AccessRequirementUtilsTest {
 		}).getMessage();
 		
 		assertEquals("Cannot assign permissions to the public group.", message);
-	}
-
-	@Test
-	public void testValidateAccessRequirementAclAccessForEntityOwnerType() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-				new ResourceAccess().setPrincipalId(1L).setAccessType(new HashSet<>(Arrays.asList(ACCESS_TYPE.CREATE, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ,
-						ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CHANGE_SETTINGS, ACCESS_TYPE.DELETE, ACCESS_TYPE.MODERATE,
-						ACCESS_TYPE.UPDATE, ACCESS_TYPE.SEND_MESSAGE, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, ACCESS_TYPE.DELETE_SUBMISSION,
-						ACCESS_TYPE.PARTICIPATE, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, ACCESS_TYPE.SUBMIT, ACCESS_TYPE.UPDATE_SUBMISSION,
-						ACCESS_TYPE.UPLOAD))),
-				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.SUBMIT))
-		));
-
-		AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.ENTITY);
-	}
-
-	@Test
-	public void testValidateAccessRequirementAclAccessForEvaluationOwnerType() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-				new ResourceAccess().setPrincipalId(1L).setAccessType(new HashSet<>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CREATE,
-						ACCESS_TYPE.DELETE, ACCESS_TYPE.DELETE_SUBMISSION, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, ACCESS_TYPE.SUBMIT,
-						ACCESS_TYPE.UPDATE, ACCESS_TYPE.UPDATE_SUBMISSION, ACCESS_TYPE.PARTICIPATE, ACCESS_TYPE.CHANGE_SETTINGS,
-						ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.MODERATE))),
-				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.MODERATE))
-		));
-
-		AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.EVALUATION);
-	}
-
-	@Test
-	public void testValidateAccessRequirementAclAccessForTeamOwnerType() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-				new ResourceAccess().setPrincipalId(1L).setAccessType(new HashSet<>(Arrays.asList(ACCESS_TYPE.DELETE, ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE,
-						ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DOWNLOAD,
-						ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CHANGE_SETTINGS, ACCESS_TYPE.MODERATE, ACCESS_TYPE.DELETE_SUBMISSION,
-						ACCESS_TYPE.SUBMIT, ACCESS_TYPE.UPDATE_SUBMISSION, ACCESS_TYPE.PARTICIPATE))),
-				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ))
-		));
-
-		AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.TEAM);
-	}
-
-	@Test
-	public void testValidateAccessRequirementAclAccessForFormGroupOwnerType() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-				new ResourceAccess().setPrincipalId(1L).setAccessType(new HashSet<>(Arrays.asList(ACCESS_TYPE.CHANGE_PERMISSIONS,
-						ACCESS_TYPE.READ, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, ACCESS_TYPE.SUBMIT))),
-				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
-		));
-
-		AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.FORM_GROUP);
-	}
-
-	@Test
-	public void testValidateAccessRequirementAclAccessForOrganizationOwnerType() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-				new ResourceAccess().setPrincipalId(1L).setAccessType(new HashSet<>(Arrays.asList(ACCESS_TYPE.CHANGE_PERMISSIONS,
-						ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE))),
-				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.CREATE))
-		));
-
-		AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.ORGANIZATION);
-	}
-
-	@Test
-	public void testValidateAccessRequirementInvalidAclAccessForEntityOwnerType() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-				new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.DELETE,ACCESS_TYPE.UPDATE,ACCESS_TYPE.DOWNLOAD)),
-				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ, ACCESS_TYPE.EXEMPTION_ELIGIBLE))
-		));
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.ENTITY);
-		}).getMessage();
-
-		assertEquals("The access type EXEMPTION_ELIGIBLE is not allowed for ENTITY.", message);
-	}
-
-	@Test
-	public void testValidateAccessRequirementInvalidAclAccessForEvaluationOwnerType() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-				new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.DELETE,ACCESS_TYPE.UPDATE,ACCESS_TYPE.DOWNLOAD)),
-				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ, ACCESS_TYPE.UPLOAD))
-		));
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.EVALUATION);
-		}).getMessage();
-
-		assertEquals("The access type UPLOAD is not allowed for EVALUATION.", message);
-	}
-
-	@Test
-	public void testValidateAccessRequirementInvalidAclAccessForTeamOwnerType() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-				new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.DELETE,ACCESS_TYPE.UPDATE,ACCESS_TYPE.DOWNLOAD)),
-				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
-		));
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.TEAM);
-		}).getMessage();
-
-		assertEquals("The access type READ_PRIVATE_SUBMISSION is not allowed for TEAM.", message);
-	}
-
-	@Test
-	public void testValidateAccessRequirementInvalidAclAccessForFormGroupOwnerType() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-				new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.DELETE,ACCESS_TYPE.READ,ACCESS_TYPE.READ_PRIVATE_SUBMISSION)),
-				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
-		));
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.FORM_GROUP);
-		}).getMessage();
-
-		assertEquals("The access type DELETE is not allowed for FORM_GROUP.", message);
-	}
-
-	@Test
-	public void testValidateAccessRequirementInvalidAclAccessForOrganizationOwnerType() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-				new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.DELETE,ACCESS_TYPE.READ,ACCESS_TYPE.UPLOAD)),
-				new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ))
-		));
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			AccessRequirementUtils.validateResourceAccessOfAclForOwnerType(acl, ObjectType.ORGANIZATION);
-		}).getMessage();
-
-		assertEquals("The access type UPLOAD is not allowed for ORGANIZATION.", message);
 	}
 }
