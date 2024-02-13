@@ -38,7 +38,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeTypeDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -101,7 +101,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	private final ColumnModelManager columnModelManager;
 	private final NodeDAO nodeDao;
 	private final TableRowTruthDAO tableTruthDao;
-	private final ViewScopeDao viewScopeDao;
+	private final ViewScopeTypeDao viewScopeDao;
 	private final WriteReadSemaphore writeReadSemaphoreRunner;
 	private final AuthorizationManager authorizationManager;
 	private final TableSnapshotDao tableSnapshotDao;
@@ -118,7 +118,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public TableManagerSupportImpl(TableStatusDAO tableStatusDAO, TimeoutUtils timeoutUtils,
 			TransactionalMessenger transactionalMessenger, ConnectionFactory tableConnectionFactory,
 			ColumnModelManager columnModelManager, NodeDAO nodeDao, TableRowTruthDAO tableTruthDao,
-			ViewScopeDao viewScopeDao, WriteReadSemaphore writeReadSemaphoreRunner,
+			ViewScopeTypeDao viewScopeDao, WriteReadSemaphore writeReadSemaphoreRunner,
 			AuthorizationManager authorizationManager, TableSnapshotDao tableSnapshotDao,
 			MetadataIndexProviderFactory metadataIndexProviderFactory, DefaultColumnModelMapper defaultColumnMapper,
 			MaterializedViewDao materializedViewDao, FileProvider fileProvider, SynapseS3Client s3Client, Clock clock, LoggerProvider loggerProvider

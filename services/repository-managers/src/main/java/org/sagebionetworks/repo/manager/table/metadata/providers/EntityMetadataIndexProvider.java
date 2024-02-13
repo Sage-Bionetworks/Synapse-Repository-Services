@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeTypeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -50,10 +50,10 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 
 	private final NodeManager nodeManager;
 	private final NodeDAO nodeDao;
-	private final ViewScopeDao viewScopeDao;
+	private final ViewScopeTypeDao viewScopeDao;
 
 	@Autowired
-	public EntityMetadataIndexProvider(NodeManager nodeManager, NodeDAO nodeDao, ViewScopeDao viewScopeDao) {
+	public EntityMetadataIndexProvider(NodeManager nodeManager, NodeDAO nodeDao, ViewScopeTypeDao viewScopeDao) {
 		this.nodeManager = nodeManager;
 		this.nodeDao = nodeDao;
 		this.viewScopeDao = viewScopeDao;
@@ -121,7 +121,9 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public ViewFilter getViewFilter(Long viewId) {
 		ViewScopeType type = viewScopeDao.getViewScopeType(viewId);
-		Set<Long> scope = viewScopeDao.getViewScope(viewId);
+		
+		Set<Long> scope = new HashSet<>(nodeDao.getNodeScopeIds(viewId));
+		
 		return buildViewFilter(type.getTypeMask(), scope);
 	}
 

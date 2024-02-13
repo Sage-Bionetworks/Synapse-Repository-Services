@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -12,7 +13,7 @@ import org.sagebionetworks.repo.model.table.View;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public abstract class ViewMetadataProvider<T extends View> implements TypeSpecificCreateProvider<T>, TypeSpecificUpdateProvider<T>, TypeSpecificMetadataProvider<T>{
+public abstract class ViewMetadataProvider<T extends View> implements EntityValidator<T>, TypeSpecificCreateProvider<T>, TypeSpecificUpdateProvider<T>, TypeSpecificMetadataProvider<T> {
 
 	private TableViewManager viewManager;
 	
@@ -21,8 +22,15 @@ public abstract class ViewMetadataProvider<T extends View> implements TypeSpecif
 	}
 
 	@Override
+	public void validateEntity(T entity, EntityEvent event) throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
+		ViewScope scope = createViewScope(entity);
+		
+		viewManager.validateViewSchemaAndScope(entity.getColumnIds(), scope);
+	}
+
+	@Override
 	public void entityCreated(UserInfo userInfo, T entity) {
-		ViewScope scope = createViewScope(userInfo, entity);
+		ViewScope scope = createViewScope(entity);
 		
 		viewManager.setViewSchemaAndScope(userInfo, entity.getColumnIds(), scope,  entity.getId());
 	}
@@ -33,10 +41,11 @@ public abstract class ViewMetadataProvider<T extends View> implements TypeSpecif
 			throw new IllegalArgumentException("A view version can only be created by creating a view snapshot.");
 		}
 		
-		ViewScope scope = createViewScope(userInfo, entity);
+		ViewScope scope = createViewScope(entity);
 		
 		viewManager.setViewSchemaAndScope(userInfo, entity.getColumnIds(), scope, entity.getId());
 	}
+	
 
 	@Override
 	public void addTypeSpecificMetadata(T entity, UserInfo user, EventType eventType)
@@ -48,5 +57,5 @@ public abstract class ViewMetadataProvider<T extends View> implements TypeSpecif
 		entity.setColumnIds(tableSchema);
 	}
 	
-	public abstract ViewScope createViewScope(UserInfo userInfo, T view);
+	public abstract ViewScope createViewScope(T view);
 }

@@ -29,7 +29,16 @@ public class SubmissionViewMetadataProvider extends ViewMetadataProvider<Submiss
 	}
 	
 	@Override
-	public ViewScope createViewScope(UserInfo userInfo, SubmissionView view) {
+	public void validateEntity(SubmissionView view, EntityEvent event)
+			throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
+		
+		super.validateEntity(view, event);
+		
+		validateScopeAccess(event.getUserInfo(), view.getScopeIds());		
+	}
+	
+	@Override
+	public ViewScope createViewScope(SubmissionView view) {
 		ViewScope scope = new ViewScope();
 		
 		scope.setViewEntityType(ViewEntityType.submissionview);
@@ -37,12 +46,6 @@ public class SubmissionViewMetadataProvider extends ViewMetadataProvider<Submiss
 		scope.setViewTypeMask(0L);
 		
 		return scope;
-	}
-	
-	@Override
-	public void validateEntity(SubmissionView view, EntityEvent event)
-			throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
-		validateScopeAccess(event.getUserInfo(), view.getScopeIds());		
 	}
 	
 	private void validateScopeAccess(UserInfo userInfo, List<String> scope) {

@@ -5,6 +5,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -173,7 +174,6 @@ public class NodeUtils {
 		dbo.setOwner(translateNodeId(dto.getId()));
 		dbo.setRevisionNumber(translateVersionNumber(dto.getVersionNumber()));
 		dbo.setActivityId(translateActivityId(dto.getActivityId()));
-		dbo.setColumnModelIds(createByteForIdList(dto.getColumnModelIds()));
 		dbo.setComment(translateVersionComment(dto.getVersionComment()));
 		dbo.setDescription(dto.getDescription());
 		dbo.setFileHandleId(translateFileHandleId(dto.getFileHandleId()));
@@ -222,18 +222,24 @@ public class NodeUtils {
 	 * @return
 	 */
 	public static List<String> createIdListFromBytes(byte[] idListBytes) {
-		if(idListBytes == null) throw new IllegalArgumentException("idListBytes cannot be null");
+		return createLongIdListFromBytes(idListBytes).stream()
+				.map(id -> id.toString())
+				.collect(Collectors.toList());
+	}
+	
+	public static List<Long> createLongIdListFromBytes(byte[] idListBytes) {
+		if (idListBytes == null)
+			throw new IllegalArgumentException("idListBytes cannot be null");
 		try {
-			List<String> result = new LinkedList<String>();
+			List<Long> result = new LinkedList<Long>();
 			String string = new String(idListBytes, "UTF-8");
 			if (string.isEmpty()) {
 				return result;
 			}
 			String[] split = string.split(COLUMN_ID_DELIMITER);
-			for(String stringId: split){
+			for (String stringId : split) {
 				// The value must be a long
-				long value = Long.parseLong(stringId);
-				result.add(Long.toString(value));
+				result.add(Long.valueOf(stringId));
 			}
 			return result;
 		} catch (UnsupportedEncodingException e) {

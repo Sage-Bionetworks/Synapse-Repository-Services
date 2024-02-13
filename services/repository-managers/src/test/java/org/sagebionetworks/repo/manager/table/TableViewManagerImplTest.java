@@ -59,7 +59,7 @@ import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeTypeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
@@ -104,7 +104,7 @@ import com.google.common.collect.Sets;
 public class TableViewManagerImplTest {
 
 	@Mock
-	private ViewScopeDao viewScopeDao;
+	private ViewScopeTypeDao viewScopeDao;
 	@Mock
 	private ColumnModelManager mockColumnModelManager;
 	@Mock
@@ -259,28 +259,24 @@ public class TableViewManagerImplTest {
 	}
 	
 	@Test
-	public void testSetViewSchemaAndScopeOverLimit(){
+	public void testValidateSchemaAndScope() {
+		manager.validateViewSchemaAndScope(schema, viewScope);
+		
+		verify(mockTableManagerSupport).validateScope(scopeType, scopeIds);
+	}
+	
+	@Test
+	public void testValidateSchemaAndScopeOverLimit(){
 		IllegalArgumentException overLimit = new IllegalArgumentException("Over limit");
 		doThrow(overLimit).when(mockTableManagerSupport).validateScope(any(), anySet());
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+			manager.validateViewSchemaAndScope(schema, viewScope);
 		});
 	}
 	
 	@Test
-	public void testSetViewSchemaAndScope(){
-		// call under test
-		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		// the size should be validated
-		verify(mockTableManagerSupport).validateScope(scopeType, scopeIds);
-		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), scopeType);
-		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
-		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
-	}
-	
-	@Test
-	public void testSetViewSchemaAndScopeTooManyColumns(){
+	public void testValidateSchemaAndScopeTooManyColumns(){
 		this.schema = new LinkedList<>();
 		int columnCount = TableViewManagerImpl.MAX_COLUMNS_PER_VIEW+1;
 		for(int i=0; i<columnCount; i++) {
@@ -288,19 +284,50 @@ public class TableViewManagerImplTest {
 		}
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+			manager.validateViewSchemaAndScope(schema, viewScope);
 		}).getMessage();
 		// expected
 		assertTrue(message.contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
 	}
 	
+	@Test
+	public void testValidateSchemaAndScopeWithNullType(){
+		viewScope.setViewType(null);
+		viewScope.setViewTypeMask(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.validateViewSchemaAndScope(schema, viewScope);
+		});		
+	}
+	
+	@Test
+	public void testValidateSchemaAndScopeWithNullObjectType(){
+		viewScope.setViewEntityType(null);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.validateViewSchemaAndScope(schema, viewScope);
+		});
+		
+		assertEquals("The scope entity type is required.", ex.getMessage());
+	}
+	
+	@Test
+	public void testSetViewSchemaAndScope(){
+		// call under test
+		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+		
+		verify(viewScopeDao).setViewScopeType(555L, scopeType);
+		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+	}
 	
 	@Test
 	public void testSetViewSchemaAndScopeWithNullSchema(){
 		schema = null;
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), scopeType);
+		verify(viewScopeDao).setViewScopeType(555L, scopeType);
 		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(null, viewId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
@@ -310,19 +337,9 @@ public class TableViewManagerImplTest {
 		viewScope.setScope(null);
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		verify(viewScopeDao).setViewScopeAndType(555L, null, scopeType);
+		verify(viewScopeDao).setViewScopeType(555L, scopeType);
 		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
-	}
-	
-	@Test
-	public void testSetViewSchemaAndScopeWithNullType(){
-		viewScope.setViewType(null);
-		viewScope.setViewTypeMask(null);
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		});		
 	}
 	
 	/**
@@ -335,21 +352,9 @@ public class TableViewManagerImplTest {
 		ViewScopeType expectedScopeType = new ViewScopeType(ViewObjectType.ENTITY, mask);
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), expectedScopeType);
+		verify(viewScopeDao).setViewScopeType(555L, expectedScopeType);
 	}
-	
-	@Test
-	public void testSetViewSchemaAndScopeWithNullObjectType(){
-		viewScope.setViewEntityType(null);
-		
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		});
-		
-		assertEquals("The scope entity type is required.", ex.getMessage());
-	}
-		
+			
 	@Test
 	public void testApplySchemaChange(){
 		ColumnChange change = new ColumnChange();

@@ -53,18 +53,30 @@ public class ViewMetadataProviderTest {
 	}
 	
 	@Test
+	public void testValidateEntity() {
+		List<String> schema = ImmutableList.of("1", "2", "3");
+		
+		when(provider.createViewScope(any())).thenReturn(mockViewScope);
+		when(mockEntity.getColumnIds()).thenReturn(schema);
+		
+		provider.validateEntity(mockEntity, new EntityEvent());
+		
+		verify(mockViewManager).validateViewSchemaAndScope(schema, mockViewScope);
+	}
+	
+	@Test
 	public void testEntityCreated() {
 		String id = "123";
 		List<String> schema = ImmutableList.of("1", "2", "3");
 		
-		when(provider.createViewScope(any(), any())).thenReturn(mockViewScope);
+		when(provider.createViewScope(any())).thenReturn(mockViewScope);
 		when(mockEntity.getId()).thenReturn(id);
 		when(mockEntity.getColumnIds()).thenReturn(schema);
 		
 		// Call under test
 		provider.entityCreated(mockUser, mockEntity);
 		
-		verify(provider).createViewScope(mockUser, mockEntity);
+		verify(provider).createViewScope(mockEntity);
 		verify(mockViewManager).setViewSchemaAndScope(mockUser, schema, mockViewScope, id);
 	}
 	
@@ -74,14 +86,14 @@ public class ViewMetadataProviderTest {
 		List<String> schema = ImmutableList.of("1", "2", "3");
 		boolean newVersionCreated = false;
 		
-		when(provider.createViewScope(any(), any())).thenReturn(mockViewScope);
+		when(provider.createViewScope(any())).thenReturn(mockViewScope);
 		when(mockEntity.getId()).thenReturn(id);
 		when(mockEntity.getColumnIds()).thenReturn(schema);
 		
 		// Call under test
 		provider.entityUpdated(mockUser, mockEntity, newVersionCreated);
 		
-		verify(provider).createViewScope(mockUser, mockEntity);
+		verify(provider).createViewScope(mockEntity);
 		verify(mockViewManager).setViewSchemaAndScope(mockUser, schema, mockViewScope, id);
 	}
 	

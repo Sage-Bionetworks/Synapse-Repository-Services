@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import java.util.Set;
-
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 
 /**
@@ -9,7 +7,7 @@ import org.sagebionetworks.repo.model.table.ViewScopeType;
  * 
  *
  */
-public interface ViewScopeDao {
+public interface ViewScopeTypeDao {
 	
 	/**
 	 * Associate the scope and type to the view with the given id
@@ -18,15 +16,7 @@ public interface ViewScopeDao {
 	 * @param containerIds
 	 * @param scopeType
 	 */
-	void setViewScopeAndType(Long viewId, Set<Long> containerIds, ViewScopeType scopeType);
-
-	/**
-	 * Get the scope for the given view.
-	 * 
-	 * @param viewId
-	 * @return
-	 */
-	Set<Long> getViewScope(Long viewId);
+	void setViewScopeType(Long viewId, ViewScopeType scopeType);
 	
 	/**
 	 * Get the scope type for view with the given id, will include both the objectType and the type mask

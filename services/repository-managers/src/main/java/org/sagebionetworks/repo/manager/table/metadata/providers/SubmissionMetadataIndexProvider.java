@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table.metadata.providers;
 
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -9,9 +10,9 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -53,12 +54,12 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	// @formatter:on
 
 	private final SubmissionManager submissionManager;
-	private final ViewScopeDao viewScopeDao;
+	private final NodeDAO nodeDao;
 
 	@Autowired
-	public SubmissionMetadataIndexProvider(SubmissionManager submissionManager, ViewScopeDao viewScopeDao) {
+	public SubmissionMetadataIndexProvider(SubmissionManager submissionManager, NodeDAO nodeDao) {
 		this.submissionManager = submissionManager;
-		this.viewScopeDao = viewScopeDao;
+		this.nodeDao = nodeDao;
 	}
 
 	@Override
@@ -132,7 +133,8 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 
 	@Override
 	public ViewFilter getViewFilter(Long viewId) {
-		Set<Long> scope = viewScopeDao.getViewScope(viewId);
+		Set<Long> scope = new HashSet<>(nodeDao.getNodeScopeIds(viewId));
+		
 		return new HierarchicaFilter(ReplicationType.SUBMISSION, Set.of(SubType.submission), scope);
 	}
 

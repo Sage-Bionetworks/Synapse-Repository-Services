@@ -9,7 +9,6 @@ import org.sagebionetworks.repo.model.FileSummary;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -39,9 +38,13 @@ public class DatasetMetadataProvider extends ViewMetadataProvider<Dataset> imple
 	@Override
 	public void validateEntity(Dataset entity, EntityEvent event)
 			throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
+		
+		super.validateEntity(entity, event);
+		
 		if (entity.getItems() != null) {
 			
 			Set<Long> uniqueIds = new HashSet<>(entity.getItems().size());
+			
 			for(EntityRef item: entity.getItems()) {
 				if(item.getEntityId() == null) {
 					throw new IllegalArgumentException("Each dataset item must have a non-null entity ID.");
@@ -57,7 +60,8 @@ public class DatasetMetadataProvider extends ViewMetadataProvider<Dataset> imple
 			
 			// Only allow files
 			List<EntityHeader> headers = nodeDao.getEntityHeader(entity.getItems().stream()
-					.map(i -> KeyFactory.stringToKey(i.getEntityId())).collect(Collectors.toSet()));
+				.map(i -> KeyFactory.stringToKey(i.getEntityId()))
+				.collect(Collectors.toSet()));
 			
 			headers.stream()
 				.filter(Predicate.not(h -> FileEntity.class.getName().equals(h.getType())))
@@ -75,7 +79,7 @@ public class DatasetMetadataProvider extends ViewMetadataProvider<Dataset> imple
 	}
 
 	@Override
-	public ViewScope createViewScope(UserInfo userInfo, Dataset dataset) {
+	public ViewScope createViewScope(Dataset dataset) {
 		ViewScope scope = new ViewScope();
 		scope.setViewEntityType(ViewEntityType.dataset);
 		if (dataset.getItems() != null) {

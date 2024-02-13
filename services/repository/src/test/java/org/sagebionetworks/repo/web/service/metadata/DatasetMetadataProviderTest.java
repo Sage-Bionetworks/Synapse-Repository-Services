@@ -1,7 +1,16 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,22 +24,13 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.FileSummary;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anySet;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class DatasetMetadataProviderTest {
@@ -46,14 +46,16 @@ public class DatasetMetadataProviderTest {
 
 	private Dataset dataset;
 	private EntityEvent event;
-	private UserInfo user;
 
 	@BeforeEach
 	public void before() {
-		dataset = new Dataset().setItems(Lists.newArrayList(new EntityRef().setEntityId("syn111").setVersionNumber(2L),
-				new EntityRef().setEntityId("syn222").setVersionNumber(4L)));
+		dataset = new Dataset()
+			.setItems(Lists.newArrayList(
+				new EntityRef().setEntityId("syn111").setVersionNumber(2L),
+				new EntityRef().setEntityId("syn222").setVersionNumber(4L)
+			))
+			.setColumnIds(List.of("1", "2", "3"));
 		event = new EntityEvent();
-		user = new UserInfo(false, 44L);
 	}
 
 	@Test
@@ -68,6 +70,13 @@ public class DatasetMetadataProviderTest {
 		provider.validateEntity(dataset, event);
 		assertEquals(fileSummary.getSize(),dataset.getSize());
 		assertEquals(fileSummary.getChecksum(), dataset.getChecksum());
+		verify(mockTableViewManger).validateViewSchemaAndScope(
+			List.of("1", "2", "3"), 
+			new ViewScope()
+				.setScope(Arrays.asList("syn111", "syn222"))
+				.setViewEntityType(ViewEntityType.dataset)
+				.setViewTypeMask(ViewTypeMask.File.getMask())
+		);
 		verify(mockNodeDao).getEntityHeader(Sets.newHashSet(111L, 222L));
 		verify(mockNodeDao).getFileSummary(Arrays.asList(new EntityRef().setEntityId("syn111").setVersionNumber(2L),
 				new EntityRef().setEntityId("syn222").setVersionNumber(4L)));
@@ -161,7 +170,7 @@ public class DatasetMetadataProviderTest {
 	@Test
 	public void testCreateViewScope() {
 		// call under test
-		ViewScope scope = provider.createViewScope(user, dataset);
+		ViewScope scope = provider.createViewScope(dataset);
 		ViewScope expected = new ViewScope().setScope(Arrays.asList("syn111", "syn222"))
 				.setViewEntityType(ViewEntityType.dataset).setViewTypeMask(ViewTypeMask.File.getMask());
 		assertEquals(expected, scope);
@@ -171,7 +180,7 @@ public class DatasetMetadataProviderTest {
 	public void testCreateViewScopeWithNullItems() {
 		dataset.setItems(null);
 		// call under test
-		ViewScope scope = provider.createViewScope(user, dataset);
+		ViewScope scope = provider.createViewScope(dataset);
 		ViewScope expected = new ViewScope().setScope(null).setViewEntityType(ViewEntityType.dataset)
 				.setViewTypeMask(ViewTypeMask.File.getMask());
 		assertEquals(expected, scope);

@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -239,6 +238,14 @@ public class NodeUtilsTest {
 		List<String> results = NodeUtils.createIdListFromBytes(bytes);
 		List<String> expected = Lists.newArrayList();
 		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testcreateLongIdListFromBytes(){
+		List<String> idList = List.of("syn123", "456");
+		byte[] bytes = NodeUtils.createByteForIdList(idList);
+		List<Long> results = NodeUtils.createLongIdListFromBytes(bytes);
+		assertEquals(List.of(123L, 456L), results);
 	}
 	
 	@Test
