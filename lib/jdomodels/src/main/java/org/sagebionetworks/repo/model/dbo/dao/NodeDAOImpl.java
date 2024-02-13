@@ -56,6 +56,7 @@ import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SubType;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -444,7 +445,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
 
 	private static final String SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION = "SELECT COUNT(*) AS COUNT, " +
-			"MD5(GROUP_CONCAT(F." + COL_FILES_CONTENT_MD5 + " ORDER BY F." + COL_FILES_CONTENT_MD5 + " ASC )) AS CHECKSUM, " +
+			"MD5(GROUP_CONCAT(F." + COL_FILES_CONTENT_MD5 + " ORDER BY F." + COL_FILES_CONTENT_MD5 + " ASC SEPARATOR '')) AS CHECKSUM, " +
 			"SUM(F." + COL_FILES_CONTENT_SIZE + ") AS SIZE " +
 			" FROM " + TABLE_REVISION + " R JOIN " + TABLE_FILES + " F ON R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID +
 			" WHERE (R." + COL_REVISION_OWNER_NODE + ", R." + COL_REVISION_NUMBER + ") IN (:pairs)";
@@ -458,7 +459,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
-
+	
+	// See https://sagebionetworks.jira.com/browse/PLFM-8266
+	private static final int FILE_SUMMARY_GROUP_CONCAT_LENGTH = 32 * TableConstants.MAX_CONTAINERS_PER_VIEW;
+	
 	private static final RowMapper<EntityHeader> ENTITY_HEADER_ROWMAPPER = (rs, rowNum) -> {
 		EntityHeader header = new EntityHeader();
 		Long entityId = rs.getLong(COL_NODE_ID);
@@ -2293,6 +2297,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
+	@WriteTransaction
 	public FileSummary getFileSummary(List<EntityRef> entityRefs) {
 		List<Long[]> specificIdVersionPairs = new ArrayList<>(entityRefs.size());
 		for (EntityRef ref : entityRefs) {
@@ -2307,6 +2312,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 
 		Map<String, List<Long[]>> namedParameters = Collections.singletonMap("pairs", specificIdVersionPairs);
+		
+		// We temporarily increase the group_concat length to allow computing the correct MD5 with bigger lists
+		jdbcTemplate.execute("SET SESSION group_concat_max_len=" + FILE_SUMMARY_GROUP_CONCAT_LENGTH);
+		
 		return namedParameterJdbcTemplate.queryForObject(SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION, namedParameters, FILE_SUMMARY_ROW_MAPPER);
 	}
 

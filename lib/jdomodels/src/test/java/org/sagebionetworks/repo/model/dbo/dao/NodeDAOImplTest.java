@@ -61,6 +61,7 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -87,9 +88,11 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.UnexpectedRollbackException;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -121,9 +124,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 @ExtendWith(SpringExtension.class)
@@ -176,6 +187,9 @@ public class NodeDAOImplTest {
 	
 	@Autowired
 	private DerivedAnnotationDao derivedAnnotationsDao;
+	
+	@Autowired
+	private TransactionTemplate txTemplate;
 
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -1217,7 +1231,7 @@ public class NodeDAOImplTest {
 		//verify content size
 		assertEquals(Long.toString(TEST_FILE_SIZE), firstResult.getContentSize());
 		//verify md5 (is set to filename in our test filehandle)
-		assertEquals(fileHandle.getFileName(), firstResult.getContentMd5());
+		assertEquals(DigestUtils.md5Hex(fileHandle.getFileName()), firstResult.getContentMd5());
 		
 		// Get the latest version
 		Node currentNode = nodeDao.getNode(id);
@@ -3445,7 +3459,7 @@ public class NodeDAOImplTest {
 		fileHandle.setKey("key");
 		fileHandle.setCreatedBy(createdById);
 		fileHandle.setFileName(fileName);
-		fileHandle.setContentMd5(fileName);
+		fileHandle.setContentMd5(DigestUtils.md5Hex(fileName));
 		fileHandle.setContentSize(TEST_FILE_SIZE);
 		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle.setEtag(UUID.randomUUID().toString());
@@ -5309,7 +5323,7 @@ public class NodeDAOImplTest {
 	}
 
 	@Test
-	public void testFileSummary() {
+	public void testGetFileSummary() {
 		// create a file 1
 		Node file1 = privateCreateNew("file1");
 		file1.setNodeType(EntityType.file);
@@ -5331,7 +5345,7 @@ public class NodeDAOImplTest {
 		//sort md5
 		Collections.sort(md5List);
 		//concatenate sorted md5
-		String concatenatedString = String.join(",", md5List);
+		String concatenatedString = String.join("", md5List);
 		//calculate md5 of concatenated string
 		String expectedChecksum = DigestUtils.md5Hex(concatenatedString);
 		FileSummary expectedFileSummary = new FileSummary(expectedChecksum, expectedTotalSize, 2);
@@ -5340,6 +5354,47 @@ public class NodeDAOImplTest {
 				new EntityRef().setEntityId(file2Id).setVersionNumber(1L)));
 		assertNotNull(fileSummary);
 		assertEquals(expectedFileSummary, fileSummary);
+	}
+			
+	@Test
+	public void testGetFileSummaryLarge() {
+		// See https://sagebionetworks.jira.com/browse/PLFM-8266, group_concat has a default limit of 1024 bytes. Since each Md5 is 32 bytes, it enough to have 
+		// 33 items to go off limit
+		int numOfFiles = 33;
+		
+		List<String> md5List = new ArrayList<>(numOfFiles);
+		List<String> entityIds = new ArrayList<>(numOfFiles);
+		
+		txTemplate.executeWithoutResult( tx -> {
+			for (int i=0; i<numOfFiles; i++) {
+				FileHandle fileHandle = createTestFileHandle("handle" + i, creatorUserGroupId.toString());
+				md5List.add(fileHandle.getContentMd5());
+				// create a file 1
+				Node file = privateCreateNew("file" + i);
+				file.setNodeType(EntityType.file);
+				file.setFileHandleId(fileHandle.getId());
+				String entityId = nodeDao.createNew(file);
+				toDelete.add(entityId);
+				entityIds.add(entityId);
+			}	
+		});
+		
+		List<EntityRef> refs = entityIds
+				.stream()
+				.map(id -> new EntityRef().setEntityId(id).setVersionNumber(1L))				
+				.collect(Collectors.toList());
+		
+		//sort md5
+		Collections.sort(md5List);
+		//concatenate sorted md5
+		String concatenatedString = String.join("", md5List);
+		
+		//calculate md5 of concatenated string
+		String expectedChecksum = DigestUtils.md5Hex(concatenatedString);
+		
+		FileSummary fileSummary = nodeDao.getFileSummary(refs);
+		
+		assertEquals(expectedChecksum, fileSummary.getChecksum());
 	}
 
 	@Test
