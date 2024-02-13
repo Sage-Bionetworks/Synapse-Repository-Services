@@ -56,10 +56,7 @@ import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectTestUtil
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -1395,97 +1392,6 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		// Delete the access requirements
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
-	}
-		
-	@Autowired
-	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
-	private DBOChangeDAO changeDao;
-	
-	@Test
-	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
-	public void testGetMissingChangeMessages() {
-		changeDao.deleteAllChanges();
-		
-		long limit = 3;
-		
-		// We have one bootstrap lock AR
-		List<ChangeMessage> expected = List.of(
-			new ChangeMessage()
-				.setChangeType(ChangeType.CREATE)
-				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
-				.setObjectId(AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.toString())
-				.setObjectVersion(1L)
-				.setTimestamp(accessRequirementDAO.get(AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID.toString()).getModifiedOn())
-				.setUserId(1L)
-		);
-		
-		List<ChangeMessage> messages = accessRequirementDAO.getMissingArChangeMessages(limit);
-				
-		assertEquals(expected, messages);
-		
-		// Create one
-		AccessRequirement accessRequirementOne = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
-		
-		// Make an update
-		accessRequirementOne.setName("Updated");
-		accessRequirementOne.setVersionNumber(accessRequirementOne.getVersionNumber() + 1);
-		
-		accessRequirementOne = accessRequirementDAO.update(accessRequirementOne);
-		
-		expected = List.of(
-			expected.get(0),
-			new ChangeMessage()
-				.setChangeType(ChangeType.CREATE)
-				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
-				.setObjectId(accessRequirementOne.getId().toString())
-				.setObjectVersion(0L)
-				.setUserId(Long.valueOf(individualGroup.getId()))
-				.setTimestamp(accessRequirementOne.getModifiedOn()),
-			new ChangeMessage()
-				.setChangeType(ChangeType.UPDATE)
-				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
-				.setObjectId(accessRequirementOne.getId().toString())
-				.setObjectVersion(1L)
-				.setUserId(Long.valueOf(individualGroup.getId()))
-				.setTimestamp(accessRequirementOne.getModifiedOn())
-		);
-		
-		messages = accessRequirementDAO.getMissingArChangeMessages(limit);
-		
-		assertEquals(expected, messages);
-		
-		// Persists the changes
-		changeDao.storeChangeMessages(messages);
-		
-		// Create two
-		AccessRequirement accessRequirementTwo = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
-		
-		// And make an update
-		accessRequirementTwo.setName("Updated Two");
-		accessRequirementTwo.setVersionNumber(accessRequirementTwo.getVersionNumber() + 1);
-		
-		accessRequirementTwo = accessRequirementDAO.update(accessRequirementTwo);
-		
-		expected = List.of(
-			new ChangeMessage()
-				.setChangeType(ChangeType.CREATE)
-				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
-				.setObjectId(accessRequirementTwo.getId().toString())
-				.setObjectVersion(0L)
-				.setUserId(Long.valueOf(individualGroup.getId()))
-				.setTimestamp(accessRequirementTwo.getModifiedOn()),
-			new ChangeMessage()
-				.setChangeType(ChangeType.UPDATE)
-				.setObjectType(ObjectType.ACCESS_REQUIREMENT)
-				.setObjectId(accessRequirementTwo.getId().toString())
-				.setObjectVersion(1L)
-				.setUserId(Long.valueOf(individualGroup.getId()))
-				.setTimestamp(accessRequirementTwo.getModifiedOn())
-		);
-		
-		messages = accessRequirementDAO.getMissingArChangeMessages(limit);
-		
-		assertEquals(expected, messages);
 	}
 		
 	/**

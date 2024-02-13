@@ -51,7 +51,6 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResult;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSortField;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
-import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -62,7 +61,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.jrjc.JRJCHelper;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -662,18 +660,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (!toAdd.isEmpty()) {
 			accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subject, toAdd);
 		}
-	}
-	
-	@Autowired
-	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
-	private DBOChangeDAO changeDao;
-	
-	@Override
-	@WriteTransaction
-	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
-	public long backFillAccessRequirementSnapshots(long limit) {
-		List<ChangeMessage> messages = accessRequirementDAO.getMissingArChangeMessages(limit);
-		return changeDao.storeChangeMessages(messages).size();
 	}
 	
 	void sendChangeMessage(Long userId, ChangeType changeType, Long id, Long versionNumber) {
