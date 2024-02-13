@@ -11,6 +11,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.sagebionetworks.repo.model.dbo.dao.AccessControlListUtils.ALLOWED_ACCESS_TYPES;
 
 public class AccessControlListUtilsTest {
 
@@ -21,11 +22,7 @@ public class AccessControlListUtilsTest {
     @Test
     public void testValidateAclResourceAccessForEntityOwnerType() {
         AccessControlList acl = creatACL().setResourceAccess(Set.of(
-                new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.CREATE, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ,
-                        ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CHANGE_SETTINGS, ACCESS_TYPE.DELETE, ACCESS_TYPE.MODERATE,
-                        ACCESS_TYPE.UPDATE, ACCESS_TYPE.SEND_MESSAGE, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, ACCESS_TYPE.DELETE_SUBMISSION,
-                        ACCESS_TYPE.PARTICIPATE, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, ACCESS_TYPE.SUBMIT, ACCESS_TYPE.UPDATE_SUBMISSION,
-                        ACCESS_TYPE.UPLOAD)),
+                new ResourceAccess().setPrincipalId(1L).setAccessType(ALLOWED_ACCESS_TYPES.get(ObjectType.ENTITY)),
                 new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.SUBMIT))
         ));
 
@@ -35,10 +32,7 @@ public class AccessControlListUtilsTest {
     @Test
     public void testValidateAclResourceAccessForEvaluationOwnerType() {
         AccessControlList acl = creatACL().setResourceAccess(Set.of(
-                new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.READ, ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CREATE,
-                        ACCESS_TYPE.DELETE, ACCESS_TYPE.DELETE_SUBMISSION, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, ACCESS_TYPE.SUBMIT,
-                        ACCESS_TYPE.UPDATE, ACCESS_TYPE.UPDATE_SUBMISSION, ACCESS_TYPE.PARTICIPATE, ACCESS_TYPE.CHANGE_SETTINGS,
-                        ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.MODERATE)),
+                new ResourceAccess().setPrincipalId(1L).setAccessType(ALLOWED_ACCESS_TYPES.get(ObjectType.EVALUATION)),
                 new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.MODERATE))
         ));
 
@@ -48,10 +42,7 @@ public class AccessControlListUtilsTest {
     @Test
     public void testValidateAclResourceAccessForTeamOwnerType() {
         AccessControlList acl = creatACL().setResourceAccess(Set.of(
-                new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.DELETE, ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE,
-                        ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DOWNLOAD,
-                        ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CHANGE_SETTINGS, ACCESS_TYPE.MODERATE, ACCESS_TYPE.DELETE_SUBMISSION,
-                        ACCESS_TYPE.SUBMIT, ACCESS_TYPE.UPDATE_SUBMISSION, ACCESS_TYPE.PARTICIPATE)),
+                new ResourceAccess().setPrincipalId(1L).setAccessType(ALLOWED_ACCESS_TYPES.get(ObjectType.TEAM)),
                 new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ))
         ));
 
@@ -61,8 +52,7 @@ public class AccessControlListUtilsTest {
     @Test
     public void testValidateAclResourceAccessForFormGroupOwnerType() {
         AccessControlList acl = creatACL().setResourceAccess(Set.of(
-                new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.CHANGE_PERMISSIONS,
-                        ACCESS_TYPE.READ, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, ACCESS_TYPE.SUBMIT)),
+                new ResourceAccess().setPrincipalId(1L).setAccessType(ALLOWED_ACCESS_TYPES.get(ObjectType.FORM_GROUP)),
                 new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
         ));
 
@@ -72,8 +62,7 @@ public class AccessControlListUtilsTest {
     @Test
     public void testValidateAclResourceAccessForOrganizationOwnerType() {
         AccessControlList acl = creatACL().setResourceAccess(Set.of(
-                new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.CHANGE_PERMISSIONS,
-                        ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE)),
+                new ResourceAccess().setPrincipalId(1L).setAccessType(ALLOWED_ACCESS_TYPES.get(ObjectType.ORGANIZATION)),
                 new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.CREATE))
         ));
 
@@ -83,8 +72,7 @@ public class AccessControlListUtilsTest {
     @Test
     public void testValidateAclResourceAccessForAccessRequirementOwnerType() {
         AccessControlList acl = creatACL().setResourceAccess(Set.of(
-                new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS,
-                        ACCESS_TYPE.EXEMPTION_ELIGIBLE)),
+                new ResourceAccess().setPrincipalId(1L).setAccessType(ALLOWED_ACCESS_TYPES.get(ObjectType.ACCESS_REQUIREMENT)),
                 new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.EXEMPTION_ELIGIBLE))
         ));
 

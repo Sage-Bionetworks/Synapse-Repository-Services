@@ -31,7 +31,6 @@ import org.sagebionetworks.util.ValidateArgument;
 public class AccessRequirementUtils {
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(AccessRequirement.class).build();
 
-
 	// the convention is that the individual fields take precedence
 	// over the serialized objects.  When restoring the dto we first deserialize
 	// the 'blob' and then populate the individual fields
@@ -203,5 +202,4 @@ public class AccessRequirementUtils {
 			ValidateArgument.requirement(!BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().equals(access.getPrincipalId()), "Cannot assign permissions to the public group.");
 		});
 	}
-
 }
