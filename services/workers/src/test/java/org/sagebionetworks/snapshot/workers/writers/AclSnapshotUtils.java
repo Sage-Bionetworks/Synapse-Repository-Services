@@ -5,13 +5,16 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import static org.sagebionetworks.repo.model.dbo.dao.AccessControlListUtils.ALLOWED_ACCESS_TYPES;
+
 public class AclSnapshotUtils {
-	private static List<ACCESS_TYPE> accessTypeArray = Lists.newArrayList(ACCESS_TYPE.values());
+	private static List<ACCESS_TYPE> accessTypeArray = Lists.newArrayList(ALLOWED_ACCESS_TYPES.get(ObjectType.ENTITY));
 
 	/**
 	 * Generate a set of ResourceAccess, each with a given principalId and the same numberOfAccessType

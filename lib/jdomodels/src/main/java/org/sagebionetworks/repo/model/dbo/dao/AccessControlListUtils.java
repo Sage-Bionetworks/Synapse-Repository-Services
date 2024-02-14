@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -12,6 +13,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * AccessControlList utils.
@@ -20,6 +22,24 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
  *
  */
 public class AccessControlListUtils {
+
+	public static Map<ObjectType, Set<ACCESS_TYPE>> ALLOWED_ACCESS_TYPES = Map.of(
+			ObjectType.ENTITY, Set.of(ACCESS_TYPE.CREATE, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ,
+					ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CHANGE_SETTINGS, ACCESS_TYPE.DELETE, ACCESS_TYPE.MODERATE,
+					ACCESS_TYPE.UPDATE, ACCESS_TYPE.SEND_MESSAGE, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, ACCESS_TYPE.DELETE_SUBMISSION,
+					ACCESS_TYPE.PARTICIPATE, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, ACCESS_TYPE.SUBMIT, ACCESS_TYPE.UPDATE_SUBMISSION,
+					ACCESS_TYPE.UPLOAD),
+			ObjectType.EVALUATION, Set.of(ACCESS_TYPE.READ, ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CREATE,
+					ACCESS_TYPE.DELETE, ACCESS_TYPE.DELETE_SUBMISSION, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, ACCESS_TYPE.SUBMIT,
+					ACCESS_TYPE.UPDATE, ACCESS_TYPE.UPDATE_SUBMISSION, ACCESS_TYPE.PARTICIPATE, ACCESS_TYPE.CHANGE_SETTINGS,
+					ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.MODERATE),
+			ObjectType.FORM_GROUP, Set.of(ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.READ, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, ACCESS_TYPE.SUBMIT),
+			ObjectType.ORGANIZATION, Set.of(ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE),
+			ObjectType.ACCESS_REQUIREMENT, Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS, ACCESS_TYPE.EXEMPTION_ELIGIBLE),
+			ObjectType.TEAM, Set.of(ACCESS_TYPE.DELETE, ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE,
+					ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DOWNLOAD,
+					ACCESS_TYPE.CHANGE_PERMISSIONS, ACCESS_TYPE.CHANGE_SETTINGS, ACCESS_TYPE.MODERATE, ACCESS_TYPE.DELETE_SUBMISSION,
+					ACCESS_TYPE.SUBMIT, ACCESS_TYPE.UPDATE_SUBMISSION, ACCESS_TYPE.PARTICIPATE));
 
 	/**
 	 * Create a DBO from the ACL
@@ -76,14 +96,27 @@ public class AccessControlListUtils {
 	}
 	
 	/**
-	 * Validate the ACL has all of the expected fields.
+	 * Validate the ACL has all the expected fields and has allowed access type for specific object type.
 	 * @param acl
 	 */
-	public static void validateACL(AccessControlList acl) {
-		if(acl == null) throw new IllegalArgumentException("ACL cannot be null.");
-		if(acl.getId() == null) throw new IllegalArgumentException("ACL.getID() cannot return null.");
-		if(acl.getEtag() == null) throw new IllegalArgumentException("ACL.getEtag() cannot return null.");
-		if(acl.getCreationDate() == null) throw new IllegalArgumentException("ACL.getCreationDate() cannot return null.");
-		if(acl.getResourceAccess() == null) throw new IllegalArgumentException("ACL.getResourceAccess() cannot return null.");
+	public static void validateACL(AccessControlList acl, ObjectType objectType) {
+		ValidateArgument.required(acl, "acl");
+		ValidateArgument.required(acl.getId(), "acl.id");
+		ValidateArgument.required(acl.getEtag(), "acl.etag");
+		ValidateArgument.required(acl.getCreationDate(), "acl.creationDate");
+		ValidateArgument.required(acl.getResourceAccess(), "acl.resourceAccess");
+		ValidateArgument.required(objectType, "objectType");
+
+		acl.getResourceAccess().forEach(resourceAccess -> {
+			Set<ACCESS_TYPE> allowed_types = ALLOWED_ACCESS_TYPES.get(objectType);
+			if (allowed_types == null) {
+				throw new IllegalStateException(String.format("The Acl of owner type %s is not allowed.", objectType));
+			} else {
+				Set<ACCESS_TYPE> accessSet = resourceAccess.getAccessType();
+				for (ACCESS_TYPE type : accessSet) {
+					ValidateArgument.requirement(allowed_types.contains(type), String.format("The access type %s is not allowed for %s.", type, objectType));
+				}
+			}
+		});
 	}
 }

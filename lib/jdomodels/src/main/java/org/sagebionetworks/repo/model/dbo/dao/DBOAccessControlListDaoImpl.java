@@ -278,7 +278,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 		acl.setEtag(UUID.randomUUID().toString());
 
-		AccessControlListUtils.validateACL(acl);
+		AccessControlListUtils.validateACL(acl, ownerType);
 
 		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl,
 				idGenerator.generateNewId(IdType.ACL_ID), ownerType);
@@ -442,7 +442,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	public void update(AccessControlList acl, ObjectType ownerType)
 			throws DatastoreException, NotFoundException {
 
-		AccessControlListUtils.validateACL(acl);
+		AccessControlListUtils.validateACL(acl, ownerType);
 
 		// Check e-tags before update
 		final Long ownerKey = KeyFactory.stringToKey(acl.getId());

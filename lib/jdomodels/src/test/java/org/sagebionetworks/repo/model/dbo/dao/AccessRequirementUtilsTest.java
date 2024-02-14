@@ -337,7 +337,8 @@ public class AccessRequirementUtilsTest {
 	public void testValidateAccessRequirementAclAccess() {
 		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
 			new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS)),
-			new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+			new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS)),
+		    new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.EXEMPTION_ELIGIBLE))
 		));
 		
 		// Call under test
@@ -378,34 +379,6 @@ public class AccessRequirementUtilsTest {
 		}).getMessage();
 		
 		assertEquals("acl.resourceAccess is required and must not be empty.", message);
-	}
-	
-	@Test
-	public void testValidateAccessRequirementAclAccessWithMultipleAccessTypes() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-			new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS, ACCESS_TYPE.READ))
-		));
-		
-		String message = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			AccessRequirementUtils.validateAccessRequirementAcl(acl);
-		}).getMessage();
-		
-		assertEquals("Only the REVIEW_SUBMISSION ACCESS_TYPE is supported for access requirements.", message);
-	}
-	
-	@Test
-	public void testValidateAccessRequirementAclAccessWithWrongAccessTypes() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-			new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.READ))
-		));
-		
-		String message = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			AccessRequirementUtils.validateAccessRequirementAcl(acl);
-		}).getMessage();
-		
-		assertEquals("Only the REVIEW_SUBMISSION ACCESS_TYPE is supported for access requirements.", message);
 	}
 	
 	@Test

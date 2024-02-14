@@ -191,7 +191,7 @@ public class AccessRequirementUtils {
 		}		
 		return Collections.emptySet();
 	}
-	
+
 	public static void validateAccessRequirementAcl(AccessControlList acl) {
 		ValidateArgument.required(acl, "acl");
 		ValidateArgument.requiredNotEmpty(acl.getResourceAccess(), "acl.resourceAccess");
@@ -200,8 +200,6 @@ public class AccessRequirementUtils {
 			ValidateArgument.required(access.getPrincipalId(), "acl.resourceAccess.principalId");
 			ValidateArgument.requirement(!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(access.getPrincipalId()), "Cannot assign permissions to the anonmous user.");
 			ValidateArgument.requirement(!BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().equals(access.getPrincipalId()), "Cannot assign permissions to the public group.");
-			Set<ACCESS_TYPE> accessSet = access.getAccessType();
-			ValidateArgument.requirement(accessSet.size() == 1 && accessSet.iterator().next() == ACCESS_TYPE.REVIEW_SUBMISSIONS, "Only the REVIEW_SUBMISSION ACCESS_TYPE is supported for access requirements.");
 		});
 	}
 }
