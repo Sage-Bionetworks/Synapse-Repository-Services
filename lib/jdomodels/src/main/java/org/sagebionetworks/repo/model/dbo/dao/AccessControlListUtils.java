@@ -110,7 +110,7 @@ public class AccessControlListUtils {
 		acl.getResourceAccess().forEach(resourceAccess -> {
 			Set<ACCESS_TYPE> allowed_types = ALLOWED_ACCESS_TYPES.get(objectType);
 			if (allowed_types == null) {
-				throw new IllegalArgumentException(String.format("The Acl of owner type %s is not allowed.", objectType));
+				throw new IllegalStateException(String.format("The Acl of owner type %s is not allowed.", objectType));
 			} else {
 				Set<ACCESS_TYPE> accessSet = resourceAccess.getAccessType();
 				for (ACCESS_TYPE type : accessSet) {

@@ -174,7 +174,7 @@ public class AccessControlListUtilsTest {
                 new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS, ACCESS_TYPE.READ))
         ));
 
-        String message = assertThrows(IllegalArgumentException.class, () -> {
+        String message = assertThrows(IllegalStateException.class, () -> {
             // Call under test
             AccessControlListUtils.validateACL(acl, ObjectType.JSON_SCHEMA);
         }).getMessage();
