@@ -230,7 +230,7 @@ public class AccessControlListUtilsTest {
     }
 
     @Test
-    public void testValidateAclWithout() {
+    public void testValidateAclWithoutResourceAccess() {
         AccessControlList acl = new AccessControlList().setId("1").setEtag("test").setCreationDate(new Date());
 
         String message = assertThrows(IllegalArgumentException.class, () -> {
