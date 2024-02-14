@@ -2300,10 +2300,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 		Map<String, List<Long[]>> namedParameters = Collections.singletonMap("pairs", specificIdVersionPairs);
 		
-		// We temporarily increase the group_concat length to allow computing the correct MD5 with bigger lists
-		jdbcTemplate.execute("SET SESSION group_concat_max_len=" + FILE_SUMMARY_GROUP_CONCAT_LENGTH);
+		Long currentGroupConcatMax = jdbcTemplate.queryForObject("SHOW SESSION VARIABLES LIKE ?", (rs, i) -> rs.getLong("Value"), "group_concat_max_len");
 		
-		return namedParameterJdbcTemplate.queryForObject(SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION, namedParameters, FILE_SUMMARY_ROW_MAPPER);
+		try {
+			// We temporarily increase the group_concat length to allow computing the correct MD5 with bigger lists
+			jdbcTemplate.execute("SET SESSION group_concat_max_len=" + FILE_SUMMARY_GROUP_CONCAT_LENGTH);
+			
+			return namedParameterJdbcTemplate.queryForObject(SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION, namedParameters, FILE_SUMMARY_ROW_MAPPER);
+		} finally {
+			// Restores the group_concat length for the connection/session
+			jdbcTemplate.execute("SET SESSION group_concat_max_len=" + currentGroupConcatMax);
+		}
 	}
 
 	@Override
