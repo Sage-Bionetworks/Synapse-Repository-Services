@@ -18,6 +18,7 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
@@ -1303,7 +1304,7 @@ public class SQLTranslatorUtils {
 				newSchema.add(clone);
 				for (int schemaIndex = 1; schemaIndex < selectSchemas.size(); schemaIndex++) {
 					ColumnModel compareToColumn = selectSchemas.get(schemaIndex).get(colunIndex);
-					clone.setMaximumSize(maxWithNulls(clone.getMaximumSize(), compareToColumn.getMaximumSize()));
+					clone.setMaximumSize(maxWithNulls(clone.getMaximumSize(), compareToColumn.getMaximumSize()));			
 					clone.setMaximumListLength(maxWithNulls(clone.getMaximumListLength(), compareToColumn.getMaximumListLength()));
 				}
 			} catch (JSONObjectAdapterException e) {
@@ -1396,9 +1397,16 @@ public class SQLTranslatorUtils {
 					jsonSubColumns = ctr.getJsonSubColumns();
 				}
 			}
+			
+			// When the derived column contains a CONCAT, adjust the maximumSize accordingly
+			MySqlFunction mySqlFunction = derivedColumn.getFirstElementOfType(MySqlFunction.class);
+			if (mySqlFunction != null) {
+				if (MySqlFunctionName.CONCAT.equals(mySqlFunction.getFunctionName())) {
+					maximumSize = caclulateMaxSizeForConcatDerivedColumn(derivedColumn, tableAndColumnMapper, mySqlFunction);
+				}
+			}
 		}
-
-
+		
 		ColumnModel result = new ColumnModel();
 		result.setColumnType(columnType);
 		result.setMaximumSize(maximumSize);
@@ -1531,5 +1539,33 @@ public class SQLTranslatorUtils {
 	
 	public static BooleanFactor wrapSearchConditionInBooleanFactor(SearchCondition condition) {
 		return new BooleanFactor(null, new BooleanTest(new BooleanPrimary(condition), null, null, null));
+	}
+	
+	/**
+	 * Calculate the column maximumSize required for a MySqlFunction after performing a CONCAT
+	 * @param derivedColumn
+	 * @param tableAndColumnMapper
+	 * @param mySqlFunction
+	 * @return
+	 */
+	public static Long caclulateMaxSizeForConcatDerivedColumn(
+			DerivedColumn derivedColumn, TableAndColumnMapper tableAndColumnMapper, MySqlFunction mySqlFunction
+	) {
+		Long maximumSize = 0L;
+		
+		for (ValueExpression valueExpression : mySqlFunction.getParameterValues()) {
+			ColumnReference cr = valueExpression.getFirstElementOfType(ColumnReference.class);
+			if (cr != null) {
+				ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
+				if (ctr != null) {
+					maximumSize = addLongsWithNull(maximumSize, ctr.getMaximumSize());
+				}
+			} else {
+				String concatString = valueExpression.getDisplayName();
+				maximumSize = addLongsWithNull(maximumSize, Long.valueOf(concatString.length()));
+			}
+		}
+		
+		return maximumSize;
 	}
 }

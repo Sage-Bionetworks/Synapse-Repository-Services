@@ -82,6 +82,8 @@ import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasSearchCondition;
 import org.sagebionetworks.table.query.model.InPredicate;
+import org.sagebionetworks.table.query.model.MySqlFunction;
+import org.sagebionetworks.table.query.model.MySqlFunctionName;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QueryExpression;
@@ -94,6 +96,7 @@ import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
+import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WithListElement;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
@@ -3984,20 +3987,28 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSchemaOfDerivedColumnWithDerivedWithConcat() throws ParseException {
-		QueryExpression rootModel = new TableQueryParser("select concat(foo,\"-\", bar) AS \"concat\" from syn123").queryExpression();
+		String delimiter = "-";
+		String columnAlias = "concatenated"; 
+		String sql = String.format("SELECT CONCAT(foo, '%s', bar) AS %s FROM syn123", delimiter, columnAlias);
+		
+		QueryExpression rootModel = new TableQueryParser(sql).queryExpression();
 		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
-	
+		
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
 				.thenReturn(List.of(columnNameMap.get("foo"), columnNameMap.get("bar")));
 		
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
-		
 		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
-		ColumnModel expected = new ColumnModel();
-		expected.setName("concat");
-		expected.setColumnType(ColumnType.STRING);
-		expected.setMaximumSize(columnNameMap.get("foo").getMaximumSize() + columnNameMap.get("bar").getMaximumSize());
-		expected.setId(null);
+		
+		Long expectedMaximumSize = columnNameMap.get("foo").getMaximumSize() 
+				+ Long.valueOf(delimiter.length()) + columnNameMap.get("bar").getMaximumSize();
+		
+		ColumnModel expected = new ColumnModel()
+				.setName(columnAlias)
+				.setColumnType(ColumnType.STRING)
+				.setMaximumSize(expectedMaximumSize)
+				.setId(null);
+		
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
 	}
@@ -4409,5 +4420,78 @@ public class SQLTranslatorUtilsTest {
 	public void testAllTheSameSizeWithDifferentSizes() {
 		List<List<String>> lists = List.of(List.of("a","b"),List.of("c","d"),List.of("e"));
 		assertFalse(SQLTranslatorUtils.hasSameSize(lists));
+	}
+	
+	@Test
+	public void testCaclulateMaxSizeForConcatDerivedColumn() throws ParseException {
+		String concatString = "abc";
+		String columnAlias = "concatenated"; 
+		String sql = String.format("SELECT CONCAT(foo, '%s') AS %s FROM syn123", concatString, columnAlias);
+		
+		QueryExpression rootModel = new TableQueryParser(sql).queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("foo"), columnNameMap.get("bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		
+		Long expectedMaximumSize = columnNameMap.get("foo").getMaximumSize() 
+				+ Long.valueOf(concatString.length());
+		
+		// call under test
+		Long maximumSize = SQLTranslatorUtils.caclulateMaxSizeForConcatDerivedColumn(dc, mapper, dc.getFirstElementOfType(MySqlFunction.class));
+		
+		assertEquals(expectedMaximumSize, maximumSize);
+	}
+	
+	@Test
+	public void testCaclulateMaxSizeForConcatDerivedColumnWithMultipleStrings() throws ParseException {
+		String concatStringOne = "abc";
+		String concatStringTwo = "defgh";
+		String columnAlias = "concatenated"; 
+		String sql = String.format("SELECT CONCAT(foo, '%s', '%s') AS %s FROM syn123", concatStringOne, concatStringTwo, columnAlias);
+		
+		QueryExpression rootModel = new TableQueryParser(sql).queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("foo"), columnNameMap.get("bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		
+		Long expectedMaximumSize = columnNameMap.get("foo").getMaximumSize() 
+				+ Long.valueOf(concatStringOne.length()) + Long.valueOf(concatStringTwo.length());
+		
+		// call under test
+		Long maximumSize = SQLTranslatorUtils.caclulateMaxSizeForConcatDerivedColumn(dc, mapper, dc.getFirstElementOfType(MySqlFunction.class));
+		
+		assertEquals(expectedMaximumSize, maximumSize);
+	}
+	
+	@Test
+	public void testCaclulateMaxSizeForConcatDerivedColumnWithMultipleColumns() throws ParseException {
+		String concatString = "abc";
+		String columnAlias = "concatenated"; 
+		String sql = String.format("SELECT CONCAT(foo, '%s', bar) AS %s FROM syn123", concatString, columnAlias);
+		
+		QueryExpression rootModel = new TableQueryParser(sql).queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+		
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("foo"), columnNameMap.get("bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		
+		Long expectedMaximumSize = columnNameMap.get("foo").getMaximumSize() 
+				+ Long.valueOf(concatString.length()) + columnNameMap.get("bar").getMaximumSize();
+		
+		// call under test
+		Long maximumSize = SQLTranslatorUtils.caclulateMaxSizeForConcatDerivedColumn(dc, mapper, dc.getFirstElementOfType(MySqlFunction.class));
+		
+		assertEquals(expectedMaximumSize, maximumSize);
 	}
 }
