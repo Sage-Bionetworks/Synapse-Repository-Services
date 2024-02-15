@@ -27,15 +27,24 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
+import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
+import org.sagebionetworks.table.cluster.view.filter.IdAndVersionFilter;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -47,16 +56,10 @@ public class SubmissionMetadataIndexProviderUnitTest {
 	private SubmissionManager mockSubmissionManager;
 
 	@Mock
-	private SubmissionDAO mockSubmissionDao;
-
-	@Mock
-	private EvaluationDAO mockEvaluationDao;
-
+	private NodeDAO mockNodeDao;
+	
 	@InjectMocks
 	private SubmissionMetadataIndexProvider provider;
-
-	@Mock
-	private ObjectDataDTO mockData;
 
 	@Mock
 	private UserInfo mockUser;
@@ -66,9 +69,6 @@ public class SubmissionMetadataIndexProviderUnitTest {
 
 	@Mock
 	private ColumnModel mockModel;
-
-	@Mock
-	private IdAndEtag mockIdAndEtag;
 
 	@Mock
 	private SubmissionStatus mockSubmissionStatus;
@@ -282,5 +282,21 @@ public class SubmissionMetadataIndexProviderUnitTest {
 			provider.validateScopeAndType(typeMask, scopeIds, maxContainersPerView);
 		}).getMessage();
 		assertEquals("The view's scope exceeds the maximum number of 1 evaluations.", message);
+	}
+	
+	@Test
+	public void testGetViewFilter() {
+		
+		Long viewId = 123L;
+		
+		when(mockNodeDao.getNodeScopeIds(viewId)).thenReturn(List.of(1L, 2L));
+		
+		ViewFilter expected = new HierarchicaFilter(ReplicationType.SUBMISSION, Set.of(SubType.submission), Set.of(1L, 2L));
+		// call under test
+		ViewFilter filter = provider.getViewFilter(viewId);
+		
+		assertEquals(expected, filter);
+		
+		verify(mockNodeDao).getNodeScopeIds(viewId);
 	}
 }

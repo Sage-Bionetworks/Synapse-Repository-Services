@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,7 +28,7 @@ import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeTypeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -53,7 +54,7 @@ public class EntityMetadataIndexProviderUnitTest {
 	private NodeDAO mockNodeDao;
 	
 	@Mock
-	private ViewScopeDao mockViewScopDao;
+	private ViewScopeTypeDao mockViewScopDao;
 
 	@InjectMocks
 	private EntityMetadataIndexProvider provider;
@@ -268,13 +269,13 @@ public class EntityMetadataIndexProviderUnitTest {
 			IdAndVersion.parse("1"),
 			IdAndVersion.parse("2")
 		);
-		when(mockViewScopDao.getViewScope(viewId)).thenReturn(Set.of(1L, 2L));
+		when(mockNodeDao.getNodeScopeIds(viewId)).thenReturn(List.of(1L, 2L));
 		when(mockViewScopDao.getViewScopeType(viewId)).thenReturn(new ViewScopeType(ViewObjectType.ENTITY, viewTypeMask));
 		// call under test
 		ViewFilter filter= provider.getViewFilter(viewId);
 		ViewFilter expected = new IdAndVersionFilter(ReplicationType.ENTITY, Set.of(SubType.project), scope);
 		assertEquals(expected, filter);
-		verify(mockViewScopDao).getViewScope(viewId);
+		verify(mockNodeDao).getNodeScopeIds(viewId);
 		verify(mockViewScopDao).getViewScopeType(viewId);
 	}
 	

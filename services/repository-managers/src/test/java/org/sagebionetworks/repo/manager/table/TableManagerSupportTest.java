@@ -73,7 +73,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeTypeDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.entity.IdAndVersionParser;
@@ -141,7 +141,7 @@ public class TableManagerSupportTest {
 	@Mock
 	private TableRowTruthDAO mockTableTruthDao;
 	@Mock
-	private ViewScopeDao mockViewScopeDao;
+	private ViewScopeTypeDao mockViewScopeDao;
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
 	@Mock

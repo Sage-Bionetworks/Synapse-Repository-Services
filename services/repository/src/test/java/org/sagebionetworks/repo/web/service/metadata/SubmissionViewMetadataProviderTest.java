@@ -67,7 +67,7 @@ public class SubmissionViewMetadataProviderTest {
 		when(mockSubmissionView.getScopeIds()).thenReturn(scope.getScope());
 				
 		// Call under test
-		ViewScope result = provider.createViewScope(mockUser, mockSubmissionView);
+		ViewScope result = provider.createViewScope(mockSubmissionView);
 	
 		assertEquals(scope, result);
 	}
@@ -76,11 +76,13 @@ public class SubmissionViewMetadataProviderTest {
 	public void testValidateEntity() {
 		when(mockEntityEvent.getUserInfo()).thenReturn(mockUser);
 		when(mockSubmissionView.getScopeIds()).thenReturn(scope.getScope());
+		when(mockSubmissionView.getColumnIds()).thenReturn(List.of("1", "2", "3"));
 		when(mockPermissionManager.hasAccess(any(), any(), anyList())).thenReturn(AuthorizationStatus.authorized());
 		
 		// Call under test
 		provider.validateEntity(mockSubmissionView, mockEntityEvent);
 		
+		verify(mockViewManager).validateViewSchemaAndScope(List.of("1", "2", "3"), scope);
 		verify(mockPermissionManager).hasAccess(mockUser, ACCESS_TYPE.READ_PRIVATE_SUBMISSION, scope.getScope());	
 	}
 	

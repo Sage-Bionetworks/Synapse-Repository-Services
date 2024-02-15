@@ -1,6 +1,76 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import com.google.common.collect.Maps;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DERIVED_ANNOTATIONS_ANNOS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JONS_SCHEMA_BINDING_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_BIND_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_LAST_ACCESSED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_USER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DEFINING_SQL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DESCRIPTION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ITEMS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_OBJECT_BINDING;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STAT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
@@ -56,6 +126,7 @@ import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SubType;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -75,76 +146,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
-import java.io.IOException;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DERIVED_ANNOTATIONS_ANNOS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JONS_SCHEMA_BINDING_OBJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_BIND_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_LAST_ACCESSED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_USER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DEFINING_SQL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DESCRIPTION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ITEMS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_PROJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_OBJECT_BINDING;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STAT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
+import com.google.common.collect.Maps;
 
 /**
  * This is a basic implementation of the NodeDAO.
@@ -444,7 +446,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
 
 	private static final String SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION = "SELECT COUNT(*) AS COUNT, " +
-			"MD5(GROUP_CONCAT(F." + COL_FILES_CONTENT_MD5 + " ORDER BY F." + COL_FILES_CONTENT_MD5 + " ASC )) AS CHECKSUM, " +
+			"MD5(GROUP_CONCAT(F." + COL_FILES_CONTENT_MD5 + " ORDER BY F." + COL_FILES_CONTENT_MD5 + " ASC SEPARATOR '')) AS CHECKSUM, " +
 			"SUM(F." + COL_FILES_CONTENT_SIZE + ") AS SIZE " +
 			" FROM " + TABLE_REVISION + " R JOIN " + TABLE_FILES + " F ON R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID +
 			" WHERE (R." + COL_REVISION_OWNER_NODE + ", R." + COL_REVISION_NUMBER + ") IN (:pairs)";
@@ -458,7 +460,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
-
+	
+	// See https://sagebionetworks.jira.com/browse/PLFM-8266
+	private static final int FILE_SUMMARY_GROUP_CONCAT_LENGTH = 32 * TableConstants.MAX_CONTAINERS_PER_VIEW;
+	
 	private static final RowMapper<EntityHeader> ENTITY_HEADER_ROWMAPPER = (rs, rowNum) -> {
 		EntityHeader header = new EntityHeader();
 		Long entityId = rs.getLong(COL_NODE_ID);
@@ -2206,19 +2211,24 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public List<EntityRef> getNodeItems(Long datasetId) {
 		ValidateArgument.required(datasetId, "datasetId");
-		String sql = "SELECT R." + COL_REVISION_ITEMS + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION
-				+ " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + " AND N." + COL_NODE_CURRENT_REV
-				+ " = R." + COL_REVISION_NUMBER + ") WHERE N."+COL_NODE_ID+" = ?";
 		
-		List<EntityRef> items;
+		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(datasetId).build();		
 		
-		try {
-			 items = NodeUtils.readJsonToItems(this.jdbcTemplate.queryForObject(sql, String.class, datasetId));
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException(String.format("View '%s' not found", datasetId), e);
-		}
+		return selectRevisionColumnValue(idAndVersion, COL_REVISION_ITEMS, String.class)
+			.map(NodeUtils::readJsonToItems)
+			.orElse(Collections.emptyList());
 		
-		return items == null ? Collections.emptyList() : items;
+	}
+	
+	@Override
+	public List<Long> getNodeScopeIds(Long viewId) {
+		ValidateArgument.required(viewId, "viewId");
+		
+		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(viewId).build();		
+		
+		return selectRevisionColumnValue(idAndVersion, COL_REVISION_SCOPE_IDS, String.class)
+			.map( scopeSerialized -> NodeUtils.createLongIdListFromBytes(scopeSerialized.getBytes(StandardCharsets.UTF_8)))
+			.orElse(Collections.emptyList());
 	}
 
 	@Override
@@ -2268,31 +2278,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public boolean isSearchEnabled(Long nodeId, Long versionNumber) {
 		ValidateArgument.required(nodeId, "The nodeId");
 		
-		String sql = "SELECT R." + COL_REVISION_SEARCH_ENABLED + " R FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION + " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + ")"
-				+ " WHERE N." + COL_NODE_ID + " = ?";
-		
-		List<Object> args;
-		
-		if (versionNumber == null) {
-			sql += " AND N." + COL_NODE_CURRENT_REV + " = R." + COL_REVISION_NUMBER;
-			args = List.of(nodeId);
-		} else {
-			sql += " AND R." + COL_REVISION_NUMBER + " = ?";
-			args = List.of(nodeId, versionNumber);
-		}
-			
-		Boolean result;
-		
-		try {
-			result = jdbcTemplate.queryForObject(sql, Boolean.class, args.toArray());
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Entity " + KeyFactory.idAndVersion(nodeId.toString(), versionNumber) + " does not exist.");
-		}
-		
-		return result != null && result;
+		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(nodeId).setVersion(versionNumber).build();
+				
+		return selectRevisionColumnValue(idAndVersion, COL_REVISION_SEARCH_ENABLED, Boolean.class).orElse(false);
 	}
 
 	@Override
+	@WriteTransaction
 	public FileSummary getFileSummary(List<EntityRef> entityRefs) {
 		List<Long[]> specificIdVersionPairs = new ArrayList<>(entityRefs.size());
 		for (EntityRef ref : entityRefs) {
@@ -2307,41 +2299,47 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 
 		Map<String, List<Long[]>> namedParameters = Collections.singletonMap("pairs", specificIdVersionPairs);
-		return namedParameterJdbcTemplate.queryForObject(SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION, namedParameters, FILE_SUMMARY_ROW_MAPPER);
+		
+		Long currentGroupConcatMax = jdbcTemplate.queryForObject("SHOW SESSION VARIABLES LIKE ?", (rs, i) -> rs.getLong("Value"), "group_concat_max_len");
+		
+		try {
+			// We temporarily increase the group_concat length to allow computing the correct MD5 with bigger lists
+			jdbcTemplate.execute("SET SESSION group_concat_max_len=" + FILE_SUMMARY_GROUP_CONCAT_LENGTH);
+			
+			return namedParameterJdbcTemplate.queryForObject(SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION, namedParameters, FILE_SUMMARY_ROW_MAPPER);
+		} finally {
+			// Restores the group_concat length for the connection/session
+			jdbcTemplate.execute("SET SESSION group_concat_max_len=" + currentGroupConcatMax);
+		}
 	}
 
 	@Override
 	public Optional<String> getDefiningSql(IdAndVersion id) {
-		ValidateArgument.required(id, "idAndVersion");
-		if (id.getVersion().isPresent()) {
-			return getDefiningSqlForVersion(id.getId(), id.getVersion().get());
-		} else {
-			return getDefiningSqlForCurrentVersion(id.getId());
-		}
-	}
-	
-	Optional<String> getDefiningSqlForVersion(Long id, Long versionNumber) {
-		ValidateArgument.required(id, "id");
-		ValidateArgument.required(versionNumber, "version");
-		try {
-			String sql = "SELECT R." + COL_REVISION_DEFINING_SQL + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION
-					+ " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + ") WHERE  N." + COL_NODE_ID
-					+ " = ? AND R." + COL_REVISION_NUMBER + " = ?";
-			return Optional.ofNullable(jdbcTemplate.queryForObject(sql, String.class, id, versionNumber));
-		} catch (EmptyResultDataAccessException e) {
-			return Optional.empty();
-		}
+		return selectRevisionColumnValue(id, COL_REVISION_DEFINING_SQL, String.class);
 	}
 
-	Optional<String> getDefiningSqlForCurrentVersion(Long id) {
-		ValidateArgument.required(id, "id");
+	<T> Optional<T> selectRevisionColumnValue(IdAndVersion idAndVersion, String columnName, Class<T> columnType) {
+		ValidateArgument.required(idAndVersion, "The id");
+		ValidateArgument.required(columnName, "The column name");
+		ValidateArgument.required(columnType, "The column type");
+		
+		String sql = "SELECT R." + columnName + " R FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION + " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + ")"
+				+ " WHERE N." + COL_NODE_ID + " = ?";
+		
+		List<Object> args;
+		
+		if (idAndVersion.getVersion().isEmpty()) {
+			sql += " AND N." + COL_NODE_CURRENT_REV + " = R." + COL_REVISION_NUMBER;
+			args = List.of(idAndVersion.getId());
+		} else {
+			sql += " AND R." + COL_REVISION_NUMBER + " = ?";
+			args = List.of(idAndVersion.getId(), idAndVersion.getVersion().get());
+		}
+		
 		try {
-			String sql = "SELECT R." + COL_REVISION_DEFINING_SQL + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION
-					+ " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + " AND N." + COL_NODE_CURRENT_REV
-					+ " = R." + COL_REVISION_NUMBER + ") WHERE N." + COL_NODE_ID + " = ?";
-			return Optional.ofNullable(jdbcTemplate.queryForObject(sql, String.class, id));
+			return Optional.ofNullable(jdbcTemplate.queryForObject(sql, columnType, args.toArray()));
 		} catch (EmptyResultDataAccessException e) {
-			return Optional.empty();
+			throw new NotFoundException("Entity " + idAndVersion.toString() + " does not exist.");
 		}
 	}
 	

@@ -17,6 +17,14 @@ import org.sagebionetworks.repo.model.table.ViewScope;
  *
  */
 public interface TableViewManager {
+	
+	/**
+	 * Validates the given schema and scope
+	 * 
+	 * @param schema
+	 * @param scope
+	 */
+	void validateViewSchemaAndScope(List<String> schema, ViewScope scope);
 
 	/**
 	 * Set the schema and scope for a file view.
@@ -81,6 +89,5 @@ public interface TableViewManager {
 	 * @throws Exception
 	 */
 	void createOrUpdateViewIndex(IdAndVersion idAndVersion, ProgressCallback progressCallback) throws Exception;
-
 
 }

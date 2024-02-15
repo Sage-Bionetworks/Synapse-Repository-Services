@@ -41,7 +41,6 @@ import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
-import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -144,21 +143,6 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	
 	private TableMapping<DBOChange> rowMapper = new DBOChange().getTableMapping();
 	
-	@WriteTransaction
-	@Override
-	@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
-	public List<ChangeMessage> storeChangeMessages(List<ChangeMessage> batch) {
-		List<DBOChange> changeDbos = ChangeMessageUtils.createDBOList(batch);
-
-		changeDbos.forEach( change -> {			
-			change.setChangeNumber(idGenerator.generateNewId(IdType.CHANGE_ID));
-		});
-		
-		basicDao.createOrUpdateBatch(changeDbos);
-		
-		return ChangeMessageUtils.createDTOList(changeDbos);
-	}
-
 	@WriteTransaction
 	@Override
 	public ChangeMessage replaceChange(ChangeMessage change) {

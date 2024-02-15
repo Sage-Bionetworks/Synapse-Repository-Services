@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -44,16 +43,16 @@ public class DatasetCollectionMetadataProviderTest {
 
 	private DatasetCollection datasetCollection;
 	private EntityEvent event;
-	private UserInfo user;
 
 	@BeforeEach
 	public void before() {
-		datasetCollection = new DatasetCollection().setItems(List.of(
-			new EntityRef().setEntityId("syn111").setVersionNumber(2L),
-			new EntityRef().setEntityId("syn222").setVersionNumber(4L))
-		);
+		datasetCollection = new DatasetCollection()
+			.setItems(List.of(
+				new EntityRef().setEntityId("syn111").setVersionNumber(2L),
+				new EntityRef().setEntityId("syn222").setVersionNumber(4L)
+			))
+			.setColumnIds(List.of("1", "2", "3"));
 		event = new EntityEvent();
-		user = new UserInfo(false, 44L);
 	}
 
 	@Test
@@ -70,6 +69,13 @@ public class DatasetCollectionMetadataProviderTest {
 		// call under test
 		provider.validateEntity(datasetCollection, event);
 
+		verify(mockTableViewManger).validateViewSchemaAndScope(
+			List.of("1", "2", "3"), 
+			new ViewScope().setScope(Arrays.asList("syn111", "syn222"))
+				.setViewEntityType(ViewEntityType.datasetcollection)
+				.setViewTypeMask(ViewTypeMask.Dataset.getMask())
+		);
+		
 		verify(mockNodeDao).getEntityHeader(Set.of(111L, 222L));
 	}
 
@@ -171,7 +177,7 @@ public class DatasetCollectionMetadataProviderTest {
 	@Test
 	public void testCreateViewScope() {
 		// call under test
-		ViewScope scope = provider.createViewScope(user, datasetCollection);
+		ViewScope scope = provider.createViewScope(datasetCollection);
 		ViewScope expected = new ViewScope().setScope(Arrays.asList("syn111", "syn222"))
 				.setViewEntityType(ViewEntityType.datasetcollection).setViewTypeMask(ViewTypeMask.Dataset.getMask());
 		assertEquals(expected, scope);
@@ -181,7 +187,7 @@ public class DatasetCollectionMetadataProviderTest {
 	public void testCreateViewScopeWithNullItems() {
 		datasetCollection.setItems(null);
 		// call under test
-		ViewScope scope = provider.createViewScope(user, datasetCollection);
+		ViewScope scope = provider.createViewScope(datasetCollection);
 		ViewScope expected = new ViewScope().setScope(null).setViewEntityType(ViewEntityType.datasetcollection)
 				.setViewTypeMask(ViewTypeMask.Dataset.getMask());
 		assertEquals(expected, scope);

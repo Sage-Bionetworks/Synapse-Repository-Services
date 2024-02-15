@@ -1,8 +1,40 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -61,6 +93,7 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -69,6 +102,7 @@ import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
@@ -90,41 +124,11 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.UnexpectedRollbackException;
+import org.springframework.transaction.support.TransactionTemplate;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -176,6 +180,9 @@ public class NodeDAOImplTest {
 	
 	@Autowired
 	private DerivedAnnotationDao derivedAnnotationsDao;
+	
+	@Autowired
+	private TransactionTemplate txTemplate;
 
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -1217,7 +1224,7 @@ public class NodeDAOImplTest {
 		//verify content size
 		assertEquals(Long.toString(TEST_FILE_SIZE), firstResult.getContentSize());
 		//verify md5 (is set to filename in our test filehandle)
-		assertEquals(fileHandle.getFileName(), firstResult.getContentMd5());
+		assertEquals(DigestUtils.md5Hex(fileHandle.getFileName()), firstResult.getContentMd5());
 		
 		// Get the latest version
 		Node currentNode = nodeDao.getNode(id);
@@ -3445,7 +3452,7 @@ public class NodeDAOImplTest {
 		fileHandle.setKey("key");
 		fileHandle.setCreatedBy(createdById);
 		fileHandle.setFileName(fileName);
-		fileHandle.setContentMd5(fileName);
+		fileHandle.setContentMd5(DigestUtils.md5Hex(fileName));
 		fileHandle.setContentSize(TEST_FILE_SIZE);
 		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle.setEtag(UUID.randomUUID().toString());
@@ -4862,6 +4869,56 @@ public class NodeDAOImplTest {
 		List<EntityRef> fetched = nodeDao.getNodeItems(KeyFactory.stringToKey(dataset.getId()));
 		assertEquals(Collections.emptyList(), fetched);
 	}
+	
+	@Test
+	public void testGetNodeScopeIds() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		
+		List<String> scopeIds = List.of("1", "2"); 
+		
+		toDelete.add(project.getId());
+		
+		Node view = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.entityview);
+			n.setScopeIds(scopeIds);
+		});
+		
+		assertEquals(scopeIds, view.getScopeIds());
+		// Call under test
+		List<Long> fetched = nodeDao.getNodeScopeIds(KeyFactory.stringToKey(view.getId()));
+		assertEquals(List.of(1L, 2L), fetched);
+	}
+	
+	@Test
+	public void testGetNodeScopeIdsWithNullScope() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		
+		List<String> scopeIds = null; 
+		
+		toDelete.add(project.getId());
+		
+		Node view = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.entityview);
+			n.setScopeIds(scopeIds);
+		});
+		
+		assertEquals(scopeIds, view.getScopeIds());
+		// Call under test
+		List<Long> fetched = nodeDao.getNodeScopeIds(KeyFactory.stringToKey(view.getId()));
+		assertEquals(Collections.emptyList(), fetched);
+	}
 
 	@Test
 	public void testCreateTableWithSearchFlag() {
@@ -4976,7 +5033,7 @@ public class NodeDAOImplTest {
 			// call under test
 			nodeDao.getNodeItems(datasetId);
 		}).getMessage();
-		assertEquals("View '-1' not found", message);
+		assertEquals("Entity syn-1 does not exist.", message);
 	}
 	
 	@Test
@@ -5309,7 +5366,7 @@ public class NodeDAOImplTest {
 	}
 
 	@Test
-	public void testFileSummary() {
+	public void testGetFileSummary() {
 		// create a file 1
 		Node file1 = privateCreateNew("file1");
 		file1.setNodeType(EntityType.file);
@@ -5331,7 +5388,7 @@ public class NodeDAOImplTest {
 		//sort md5
 		Collections.sort(md5List);
 		//concatenate sorted md5
-		String concatenatedString = String.join(",", md5List);
+		String concatenatedString = String.join("", md5List);
 		//calculate md5 of concatenated string
 		String expectedChecksum = DigestUtils.md5Hex(concatenatedString);
 		FileSummary expectedFileSummary = new FileSummary(expectedChecksum, expectedTotalSize, 2);
@@ -5340,6 +5397,47 @@ public class NodeDAOImplTest {
 				new EntityRef().setEntityId(file2Id).setVersionNumber(1L)));
 		assertNotNull(fileSummary);
 		assertEquals(expectedFileSummary, fileSummary);
+	}
+			
+	@Test
+	public void testGetFileSummaryLarge() {
+		// See https://sagebionetworks.jira.com/browse/PLFM-8266, group_concat has a default limit of 1024 bytes. Since each Md5 is 32 bytes, it enough to have 
+		// 33 items to go off limit
+		int numOfFiles = 33;
+		
+		List<String> md5List = new ArrayList<>(numOfFiles);
+		List<String> entityIds = new ArrayList<>(numOfFiles);
+		
+		txTemplate.executeWithoutResult( tx -> {
+			for (int i=0; i<numOfFiles; i++) {
+				FileHandle fileHandle = createTestFileHandle("handle" + i, creatorUserGroupId.toString());
+				md5List.add(fileHandle.getContentMd5());
+				// create a file 1
+				Node file = privateCreateNew("file" + i);
+				file.setNodeType(EntityType.file);
+				file.setFileHandleId(fileHandle.getId());
+				String entityId = nodeDao.createNew(file);
+				toDelete.add(entityId);
+				entityIds.add(entityId);
+			}	
+		});
+		
+		List<EntityRef> refs = entityIds
+				.stream()
+				.map(id -> new EntityRef().setEntityId(id).setVersionNumber(1L))				
+				.collect(Collectors.toList());
+		
+		//sort md5
+		Collections.sort(md5List);
+		//concatenate sorted md5
+		String concatenatedString = String.join("", md5List);
+		
+		//calculate md5 of concatenated string
+		String expectedChecksum = DigestUtils.md5Hex(concatenatedString);
+		
+		FileSummary fileSummary = nodeDao.getFileSummary(refs);
+		
+		assertEquals(expectedChecksum, fileSummary.getChecksum());
 	}
 
 	@Test
@@ -5368,100 +5466,6 @@ public class NodeDAOImplTest {
 		FileSummary fileSummary = nodeDao.getFileSummary(Collections.singletonList(new EntityRef().setEntityId(null).setVersionNumber(1L)));
 		assertEquals(expectedFileSummary, fileSummary);
 	}
-	
-	@Test
-	public void testGetGetDefiningSqlForCurrentVersion() {
-		String sql = "select * from syn123";
-		Node materializedView = nodeDaoHelper.create(n -> {
-			n.setName("materializedView");
-			n.setNodeType(EntityType.materializedview);
-			n.setDefiningSQL(sql);
-		});
-		IdAndVersion idAndVersion = IdAndVersion.parse(materializedView.getId());
-		// call under test
-		assertEquals(Optional.of(sql), nodeDao.getDefiningSqlForCurrentVersion(idAndVersion.getId()));
-	}
-
-	@Test
-	public void testGetDefiningSqlForCurrentVersionWithDoesNotExist() {
-		// call under test
-		assertEquals(Optional.empty(), nodeDao.getDefiningSqlForCurrentVersion(123L));
-	}
-
-	@Test
-	public void testGetDefiningSqlForCurrentVersionWithNullSql() {
-		Node materializedView = nodeDaoHelper.create(n -> {
-			n.setName("materializedView");
-			n.setNodeType(EntityType.materializedview);
-			n.setDefiningSQL(null);
-		});
-		IdAndVersion idAndVersion = IdAndVersion.parse(materializedView.getId());
-		// call under test
-		assertEquals(Optional.empty(), nodeDao.getDefiningSqlForCurrentVersion(idAndVersion.getId()));
-	}
-	
-	@Test
-	public void testGetDefiningSqlForCurrentVersionWithNullId() {
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			nodeDao.getDefiningSqlForCurrentVersion(null);
-		}).getMessage();
-		assertEquals("id is required.", message);
-	}
-
-	// with version
-	@Test
-	public void testGetDefiningSqlForVersion() {
-		String sql = "select * from syn123";
-		Node materializedView = nodeDaoHelper.create(n -> {
-			n.setName("materializedView");
-			n.setNodeType(EntityType.materializedview);
-			n.setDefiningSQL(sql);
-		});
-		IdAndVersion idAndVersion = KeyFactory.idAndVersion(materializedView.getId(),
-				materializedView.getVersionNumber());
-		// call under test
-		assertEquals(Optional.of(sql),
-				nodeDao.getDefiningSqlForVersion(idAndVersion.getId(), idAndVersion.getVersion().get()));
-	}
-
-	@Test
-	public void testGetDefiningSqlForVersionWithDoesNotExist() {
-		// call under test
-		assertEquals(Optional.empty(), nodeDao.getDefiningSqlForVersion(123L, 3L));
-	}
-
-	@Test
-	public void testGetDefiningSqlForVersionWithNullSql() {
-		Node materializedView = nodeDaoHelper.create(n -> {
-			n.setName("materializedView");
-			n.setNodeType(EntityType.materializedview);
-			n.setDefiningSQL(null);
-		});
-		IdAndVersion idAndVersion = KeyFactory.idAndVersion(materializedView.getId(),
-				materializedView.getVersionNumber());
-		// call under test
-		assertEquals(Optional.empty(),
-				nodeDao.getDefiningSqlForVersion(idAndVersion.getId(), idAndVersion.getVersion().get()));
-	}
-
-	@Test
-	public void testGetDefiningSqlForVersionWithNullId() {
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			nodeDao.getDefiningSqlForVersion(null, 1L);
-		}).getMessage();
-		assertEquals("id is required.", message);
-	}
-
-	@Test
-	public void testGetDefiningSqlForVersionWithNullVersion() {
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			nodeDao.getDefiningSqlForVersion(123L, null);
-		}).getMessage();
-		assertEquals("version is required.", message);
-	}
 
 	@Test
 	public void testGetDefiningSqlWithMultipleVersion() {
@@ -5489,6 +5493,85 @@ public class NodeDAOImplTest {
 				nodeDao.getDefiningSql(IdAndVersion.parse(view.getId() + ".2")));
 		assertEquals(Optional.of("select one from syn123"),
 				nodeDao.getDefiningSql(IdAndVersion.parse(view.getId() + ".1")));
+	}
+	
+
+	@Test
+	public void testSelectRevisionColumnValueForCurrentVersion() {
+		String sql = "select * from syn123";
+		Node materializedView = nodeDaoHelper.create(n -> {
+			n.setName("materializedView");
+			n.setNodeType(EntityType.materializedview);
+			n.setDefiningSQL(sql);
+		});
+		IdAndVersion idAndVersion = IdAndVersion.parse(materializedView.getId());
+		// call under test
+		assertEquals(Optional.of(sql), nodeDao.selectRevisionColumnValue(idAndVersion, SqlConstants.COL_REVISION_DEFINING_SQL, String.class));
+	}
+
+	@Test
+	public void testSelectRevisionColumnValueWithDoesNotExist() {
+		// call under test
+		assertThrows(NotFoundException.class, () -> {
+			nodeDao.selectRevisionColumnValue(IdAndVersion.parse("123"), SqlConstants.COL_REVISION_DEFINING_SQL, String.class);
+		});
+	}
+
+	@Test
+	public void testSelectRevisionColumnValueWithNullValue() {
+		Node materializedView = nodeDaoHelper.create(n -> {
+			n.setName("materializedView");
+			n.setNodeType(EntityType.materializedview);
+			n.setDefiningSQL(null);
+		});
+		IdAndVersion idAndVersion = IdAndVersion.parse(materializedView.getId());
+		// call under test
+		assertEquals(Optional.empty(), nodeDao.selectRevisionColumnValue(idAndVersion, SqlConstants.COL_REVISION_DEFINING_SQL, String.class));
+	}
+	
+	@Test
+	public void testSelectRevisionColumnValueForCurrentVersionWithNullId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			nodeDao.selectRevisionColumnValue(null, SqlConstants.COL_REVISION_DEFINING_SQL, String.class);
+		}).getMessage();
+		assertEquals("The id is required.", message);
+	}
+
+	// with version
+	@Test
+	public void testSelectRevisionColumnValueWithVersion() {
+		String sql = "select * from syn123";
+		Node materializedView = nodeDaoHelper.create(n -> {
+			n.setName("materializedView");
+			n.setNodeType(EntityType.materializedview);
+			n.setDefiningSQL(sql);
+		});
+		IdAndVersion idAndVersion = KeyFactory.idAndVersion(materializedView.getId(),
+				materializedView.getVersionNumber());
+		// call under test
+		assertEquals(Optional.of(sql), nodeDao.selectRevisionColumnValue(idAndVersion, SqlConstants.COL_REVISION_DEFINING_SQL, String.class));
+	}
+
+	@Test
+	public void testSelectRevisionColumnValueWithVersionAndDoesNotExist() {
+		// call under test
+		assertThrows(NotFoundException.class, () -> {
+			nodeDao.selectRevisionColumnValue(IdAndVersion.parse("123.3"), SqlConstants.COL_REVISION_DEFINING_SQL, String.class);
+		});
+	}
+
+	@Test
+	public void testSelectRevisionColumnValueWithVersionAndNullValue() {
+		Node materializedView = nodeDaoHelper.create(n -> {
+			n.setName("materializedView");
+			n.setNodeType(EntityType.materializedview);
+			n.setDefiningSQL(null);
+		});
+		IdAndVersion idAndVersion = KeyFactory.idAndVersion(materializedView.getId(),
+				materializedView.getVersionNumber());
+		// call under test
+		assertEquals(Optional.empty(), nodeDao.selectRevisionColumnValue(idAndVersion, SqlConstants.COL_REVISION_DEFINING_SQL, String.class));
 	}
 	
 }

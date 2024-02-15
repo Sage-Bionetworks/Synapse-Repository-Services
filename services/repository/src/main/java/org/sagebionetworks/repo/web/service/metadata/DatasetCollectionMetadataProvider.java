@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetCollection;
@@ -38,6 +37,9 @@ public class DatasetCollectionMetadataProvider extends ViewMetadataProvider<Data
 	@Override
 	public void validateEntity(DatasetCollection entity, EntityEvent event)
 			throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
+		
+		super.validateEntity(entity, event);
+		
 		if (entity.getItems() != null) {
 			
 			Set<Long> uniqueIds = new HashSet<>(entity.getItems().size());
@@ -68,7 +70,7 @@ public class DatasetCollectionMetadataProvider extends ViewMetadataProvider<Data
 	}
 
 	@Override
-	public ViewScope createViewScope(UserInfo userInfo, DatasetCollection view) {
+	public ViewScope createViewScope(DatasetCollection view) {
 		ViewScope scope = new ViewScope();
 		scope.setViewEntityType(ViewEntityType.datasetcollection);
 		if (view.getItems() != null) {

@@ -666,7 +666,14 @@ public interface NodeDAO {
 	 * @param nodeId
 	 * @return
 	 */
-	public List<EntityRef> getNodeItems(Long nodeId);
+	List<EntityRef> getNodeItems(Long nodeId);
+	
+	/**
+	 * 
+	 * @param viewId
+	 * @return The list of scope ids assigned to the node (e.g. used by views)
+	 */
+	List<Long> getNodeScopeIds(Long viewId);
 
 	/**
 	 * Get all of the IdAndChecksums for children of the given parent.

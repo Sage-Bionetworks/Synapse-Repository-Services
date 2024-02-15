@@ -57,7 +57,15 @@ public class EntityViewMetadataProviderTest {
 		
 		userInfo = new UserInfo(false, 55L);
 		
-		scope = provider.createViewScope(userInfo, table);
+		scope = provider.createViewScope(table);
+	}
+	
+	@Test
+	public void testValidate() {
+		// Call under test
+		provider.validateEntity(table, new EntityEvent());
+		
+		verify(mockFileViewManager).validateViewSchemaAndScope(columnIds, scope);
 	}
 
 	@Test
@@ -89,7 +97,7 @@ public class EntityViewMetadataProviderTest {
 	
 	@Test
 	public void testCreateViewScopeWithType() {
-		ViewScope scope = provider.createViewScope(userInfo, table);
+		ViewScope scope = provider.createViewScope(table);
 		assertNotNull(scope);
 		assertEquals(viewType, scope.getViewType());
 		assertEquals(scopeIds, scope.getScope());
@@ -102,7 +110,7 @@ public class EntityViewMetadataProviderTest {
 		Long mask = new Long(0x10);
 		table.setViewTypeMask(mask);
 		table.setType(null);
-		ViewScope scope = provider.createViewScope(userInfo, table);
+		ViewScope scope = provider.createViewScope(table);
 		assertNotNull(scope);
 		assertEquals(null, scope.getViewType());
 		assertEquals(scopeIds, scope.getScope());

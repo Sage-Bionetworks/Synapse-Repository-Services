@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeTypeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
@@ -42,7 +42,6 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
-import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
@@ -82,9 +81,20 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * The maximum number of view rows that can be updated in a single transaction.
 	 */
 	public static final long MAX_ROWS_PER_TRANSACTION = 100_000;
+	
+	private static ViewScopeType mapViewScopeType(ViewScope scope) {
+		ValidateArgument.required(scope, "scope");
+		ValidateArgument.required(scope.getViewEntityType(), "The scope entity type");
+		
+		Long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
+		
+		ViewObjectType objectType = ViewObjectType.map(scope.getViewEntityType());
+		
+		return new ViewScopeType(objectType, viewTypeMask);
+	}
 
 	@Autowired
-	private ViewScopeDao viewScopeDao;
+	private ViewScopeTypeDao viewScopeDao;
 	@Autowired
 	private ColumnModelManager columModelManager;
 	@Autowired
@@ -117,32 +127,35 @@ public class TableViewManagerImpl implements TableViewManager {
 	public void setViewSchemaAndScope(UserInfo userInfo, List<String> schema, ViewScope scope, String viewIdString) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(scope, "scope");
-		ValidateArgument.required(scope.getViewEntityType(), "The scope entity type");
-		validateViewSchemaSize(schema);
+		
 		Long viewId = KeyFactory.stringToKey(viewIdString);
-		IdAndVersion idAndVersion = IdAndVersion.parse(viewIdString);
+		IdAndVersion idAndVersion = IdAndVersion.parse(viewIdString);		
+
+		ViewScopeType scopeType = mapViewScopeType(scope);
+		
+		// Define the scope type of this view.
+		viewScopeDao.setViewScopeType(viewId, scopeType);
+		// Define the schema of this view.
+		columModelManager.bindColumnsToDefaultVersionOfObject(schema, viewIdString);
+		// trigger an update
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
+	}
+	
+	@Override
+	public void validateViewSchemaAndScope(List<String> schema, ViewScope scope) {
+		
+		validateViewSchemaSize(schema);
+		
+		ViewScopeType scopeType = mapViewScopeType(scope);		
+
 		Set<Long> scopeIds = null;
 		
 		if (scope.getScope() != null) {
 			scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
 		}
-		
-		Long viewTypeMask = ViewTypeMask.getViewTypeMask(scope);
-		
-		ViewEntityType viewEntityType = scope.getViewEntityType();
-		ViewObjectType objectType = ViewObjectType.map(viewEntityType);
-		
-		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);
 
 		// validate the scope
 		tableManagerSupport.validateScope(scopeType, scopeIds);
-		
-		// Define the scope of this view.
-		viewScopeDao.setViewScopeAndType(viewId, scopeIds, scopeType);
-		// Define the schema of this view.
-		columModelManager.bindColumnsToDefaultVersionOfObject(schema, viewIdString);
-		// trigger an update
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 
 	@Override

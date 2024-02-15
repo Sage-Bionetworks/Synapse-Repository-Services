@@ -16,7 +16,7 @@ public class EntityViewMetadataProvider extends ViewMetadataProvider<EntityView>
 		super(viewManager);
 	}
 	
-	public ViewScope createViewScope(UserInfo userInfo, EntityView view) {
+	public ViewScope createViewScope(EntityView view) {
 		ViewScope scope = new ViewScope();
 		scope.setViewEntityType(ViewEntityType.entityview);
 		scope.setScope(view.getScopeIds());

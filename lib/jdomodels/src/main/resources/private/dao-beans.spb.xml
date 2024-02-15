@@ -293,10 +293,6 @@
 	<bean id="subscriptionDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.subscription.DBOSubscriptionDAOImpl" />
 
-	<!--  DAO for View Scope -->
-	<bean id="viewScopeDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDaoImpl" />
-
 	<!-- Misc beans -->
 		
 	<bean id="clockImpl" class="org.sagebionetworks.common.util.ClockImpl"/>

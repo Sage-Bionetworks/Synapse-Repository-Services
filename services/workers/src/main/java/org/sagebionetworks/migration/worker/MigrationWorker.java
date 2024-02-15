@@ -2,15 +2,13 @@ package org.sagebionetworks.migration.worker;
 
 import java.io.IOException;
 
-import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
+import org.sagebionetworks.repo.manager.migration.DatasetChecksumBackfill;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.migration.AdminRequest;
 import org.sagebionetworks.repo.model.migration.AdminResponse;
-import org.sagebionetworks.repo.model.migration.ArSnapshotsBackfillRequest;
-import org.sagebionetworks.repo.model.migration.ArSnapshotsBackfillResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
@@ -20,9 +18,9 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
+import org.sagebionetworks.repo.model.migration.DatasetBackfillRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,12 +30,13 @@ import org.springframework.stereotype.Service;
 public class MigrationWorker implements AsyncJobRunner<AsyncMigrationRequest, AsyncMigrationResponse> {
 	
 	private MigrationManager migrationManager;
-	private AccessRequirementManager arManager;
+	
+	private DatasetChecksumBackfill datasetBackFill;
 
 	@Autowired
-	public MigrationWorker(MigrationManager migrationManager, AccessRequirementManager arManager) {
+	public MigrationWorker(MigrationManager migrationManager, DatasetChecksumBackfill datasetBackFill) {
 		this.migrationManager = migrationManager;
-		this.arManager = arManager;
+		this.datasetBackFill = datasetBackFill;
 	}
 	
 	@Override
@@ -78,10 +77,8 @@ public class MigrationWorker implements AsyncJobRunner<AsyncMigrationRequest, As
 			return migrationManager.calculateOptimalRanges(user, (CalculateOptimalRangeRequest)req);
 		} else if (req instanceof BatchChecksumRequest) {
 			return migrationManager.calculateBatchChecksums(user, (BatchChecksumRequest)req);
-		} else if (req instanceof ArSnapshotsBackfillRequest) {
-			@TemporaryCode(author = "Marco Marasca", comment = "Temp code used to backfill AR snapshots")
-			long result = arManager.backFillAccessRequirementSnapshots(((ArSnapshotsBackfillRequest) req).getLimit());
-			return new ArSnapshotsBackfillResponse().setCount(result);
+		} else if (req instanceof DatasetBackfillRequest) {
+			return datasetBackFill.backfillChecksum(user);
 		} else {
 			throw new IllegalArgumentException("AsyncMigrationRequest not supported.");
 		}
