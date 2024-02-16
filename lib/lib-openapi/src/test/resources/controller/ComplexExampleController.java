@@ -42,7 +42,9 @@ import org.sagebionetworks.openapi.pet.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
+ * <p>
  * This controller is used to test translating for complex types.
+ * </p>
  * @author lli
  *
  */
