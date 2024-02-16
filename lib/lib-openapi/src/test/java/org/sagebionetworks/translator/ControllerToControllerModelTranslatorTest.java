@@ -5,15 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.never;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
@@ -33,13 +33,13 @@ import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.element.Modifier;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,7 +63,6 @@ import org.sagebionetworks.openapi.pet.Husky;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
-import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -83,8 +82,8 @@ import com.sun.source.doctree.ParamTree;
 import com.sun.source.doctree.ReturnTree;
 import com.sun.source.util.DocTrees;
 
-import jdk.javadoc.doclet.Reporter;
 import jdk.javadoc.doclet.DocletEnvironment;
+import jdk.javadoc.doclet.Reporter;
 
 @ExtendWith(MockitoExtension.class)
 public class ControllerToControllerModelTranslatorTest {
@@ -2429,13 +2428,11 @@ public class ControllerToControllerModelTranslatorTest {
 
 	@Test
 	public void testGetBehaviorComment() {
-		List<? extends DocTree> fullBody = mock(List.class);
-		when(fullBody.isEmpty()).thenReturn(false);
-		when(fullBody.toString()).thenReturn(METHOD_BEHAVIOR_COMMENT);
+		DocTree docTreeMock = mock(DocTree.class);
+		when(docTreeMock.toString()).thenReturn(METHOD_BEHAVIOR_COMMENT);
+		List<? extends DocTree> fullBody = List.of(docTreeMock, docTreeMock);
 		// call under test
-		assertEquals(Optional.of(METHOD_BEHAVIOR_COMMENT), translator.getBehaviorComment(fullBody));
-
-		verify(fullBody).isEmpty();
+		assertEquals(Optional.of(METHOD_BEHAVIOR_COMMENT + METHOD_BEHAVIOR_COMMENT), translator.getBehaviorComment(fullBody));
 	}
 
 	@Test

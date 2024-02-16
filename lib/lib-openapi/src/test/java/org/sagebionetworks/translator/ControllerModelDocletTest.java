@@ -105,7 +105,7 @@ public class ControllerModelDocletTest {
 			String controllerDescription = obj.get("description").toString();
 			if (controllerName.equals("ComplexPets")) {
 				foundComplexPetsTag = true;
-				assertEquals("This controller is used to test translating for complex types.", controllerDescription);
+				assertEquals("<p>\n This controller is used to test translating for complex types.\n </p>", controllerDescription);
 			}
 		}
 		assertTrue(foundComplexPetsTag);

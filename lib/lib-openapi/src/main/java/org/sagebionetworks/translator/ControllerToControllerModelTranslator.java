@@ -1,5 +1,6 @@
 package org.sagebionetworks.translator;
 
+import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -952,9 +953,14 @@ public class ControllerToControllerModelTranslator {
 		if (fullBody == null || fullBody.isEmpty()) {
 			return Optional.empty();
 		}
-		return Optional.of(fullBody.toString());
+		StringWriter writer = new StringWriter();
+		
+		fullBody.forEach( docTree -> {
+			writer.append(docTree.toString());
+		});
+		
+		return Optional.of(writer.toString());
 	}
-
 
 	/**
 	 * Determines if a method takes in parameter userId
