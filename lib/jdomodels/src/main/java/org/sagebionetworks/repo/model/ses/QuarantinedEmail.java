@@ -14,6 +14,7 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class QuarantinedEmail {
 
+	private String etag;
 	private String email;
 	private Instant createdOn;
 	private Instant updatedOn;
@@ -29,6 +30,15 @@ public class QuarantinedEmail {
 		this.reason = reason;
 	}
 
+	public String getEtag() {
+		return etag;
+	}
+	
+	public QuarantinedEmail withEtag(String etag) {
+		this.etag = etag;
+		return this;
+	}
+	
 	public String getEmail() {
 		return email;
 	}
@@ -84,7 +94,7 @@ public class QuarantinedEmail {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdOn, email, expiresOn, reason, reasonDetails, sesMessageId, updatedOn);
+		return Objects.hash(createdOn, email, etag, expiresOn, reason, reasonDetails, sesMessageId, updatedOn);
 	}
 
 	@Override
@@ -92,14 +102,11 @@ public class QuarantinedEmail {
 		if (this == obj) {
 			return true;
 		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (!(obj instanceof QuarantinedEmail)) {
 			return false;
 		}
 		QuarantinedEmail other = (QuarantinedEmail) obj;
-		return Objects.equals(createdOn, other.createdOn) && Objects.equals(email, other.email)
+		return Objects.equals(createdOn, other.createdOn) && Objects.equals(email, other.email) && Objects.equals(etag, other.etag)
 				&& Objects.equals(expiresOn, other.expiresOn) && reason == other.reason
 				&& Objects.equals(reasonDetails, other.reasonDetails) && Objects.equals(sesMessageId, other.sesMessageId)
 				&& Objects.equals(updatedOn, other.updatedOn);
@@ -107,8 +114,9 @@ public class QuarantinedEmail {
 
 	@Override
 	public String toString() {
-		return "QuarantinedEmail [email=" + email + ", createdOn=" + createdOn + ", updatedOn=" + updatedOn + ", expiresOn=" + expiresOn
-				+ ", reason=" + reason + ", reasonDetails=" + reasonDetails + ", sesMessageId=" + sesMessageId + "]";
+		return "QuarantinedEmail [etag=" + etag + ", email=" + email + ", createdOn=" + createdOn + ", updatedOn=" + updatedOn
+				+ ", expiresOn=" + expiresOn + ", reason=" + reason + ", reasonDetails=" + reasonDetails + ", sesMessageId=" + sesMessageId
+				+ "]";
 	}
 
 }

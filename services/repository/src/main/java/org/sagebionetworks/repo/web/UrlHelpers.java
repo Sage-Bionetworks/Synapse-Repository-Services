@@ -1237,6 +1237,8 @@ public class UrlHelpers {
 	 */
 	public static final String ADMIN_USER_TOKEN = ADMIN_USER + ID + "/token";
 	
+	public static final String ADMIN_EMAIL_QUARANTINE_EXPIRE = ADMIN + "/emailQuarantine/expire";
+	
 	/**
 	 * Request paramter to specify a target user id
 	 */
