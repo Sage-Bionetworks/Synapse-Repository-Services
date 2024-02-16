@@ -1631,6 +1631,30 @@ public class QueryTranslatorTest {
 		assertEquals(expected, schema);
 	}
 	
+	@Test
+	public void testGetSchemaOfSelectWithConcat() throws ParseException {
+
+		IdAndVersion one = IdAndVersion.parse("syn1");
+		ColumnModel foo = TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING).setMaximumSize(100L);
+		
+		when(mockSchemaProvider.getTableSchema(one)).thenReturn(List.of(foo));
+		setupGetColumns(foo);
+
+		sql = "SELECT foo, CONCAT(foo, 'abc', 'defg') AS c FROM syn1";
+		
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
+		
+		List<ColumnModel> schema = query.getSchemaOfSelect();
+		List<ColumnModel> expected = Arrays.asList(
+				new ColumnModel().setName("foo").setColumnType(ColumnType.STRING).setId(null).setMaximumSize(100L),
+				new ColumnModel().setName("c").setColumnType(ColumnType.STRING).setId(null).setMaximumSize(107L)
+		);
+
+		assertEquals(expected, schema);
+	}
+	
 	/**
 	 * Test added for PLFM-7738.
 	 * @throws ParseException

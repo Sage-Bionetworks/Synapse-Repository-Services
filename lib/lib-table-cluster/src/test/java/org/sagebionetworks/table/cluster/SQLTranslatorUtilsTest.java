@@ -3984,20 +3984,63 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSchemaOfDerivedColumnWithDerivedWithConcat() throws ParseException {
-		QueryExpression rootModel = new TableQueryParser("select concat(foo,\"-\", bar) AS \"concat\" from syn123").queryExpression();
+		QueryExpression rootModel = new TableQueryParser("SELECT CONCAT(foo, '123') AS concatenated FROM syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+	
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("foo")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		
+		ColumnModel expected = new ColumnModel()
+				.setName("concatenated")
+				.setColumnType(ColumnType.STRING)
+				.setMaximumSize(columnNameMap.get("foo").getMaximumSize() + 3)
+				.setId(null);
+		
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithDerivedWithConcatWithMultipleStrings() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser("SELECT CONCAT(foo, '123', '456789') AS concatenated FROM syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+	
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("foo")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		
+		ColumnModel expected = new ColumnModel()
+				.setName("concatenated")
+				.setColumnType(ColumnType.STRING)
+				.setMaximumSize(columnNameMap.get("foo").getMaximumSize() + 9)
+				.setId(null);
+		
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithDerivedWithConcatWithMultipleColumns() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser("SELECT CONCAT(foo, '1', bar) AS concatenated FROM syn123").queryExpression();
 		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 	
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
 				.thenReturn(List.of(columnNameMap.get("foo"), columnNameMap.get("bar")));
 		
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
-		
 		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
-		ColumnModel expected = new ColumnModel();
-		expected.setName("concat");
-		expected.setColumnType(ColumnType.STRING);
-		expected.setMaximumSize(columnNameMap.get("foo").getMaximumSize() + columnNameMap.get("bar").getMaximumSize());
-		expected.setId(null);
+		
+		ColumnModel expected = new ColumnModel()
+				.setName("concatenated")
+				.setColumnType(ColumnType.STRING)
+				.setMaximumSize(columnNameMap.get("foo").getMaximumSize() + 1 + columnNameMap.get("bar").getMaximumSize())
+				.setId(null);
+		
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
 	}

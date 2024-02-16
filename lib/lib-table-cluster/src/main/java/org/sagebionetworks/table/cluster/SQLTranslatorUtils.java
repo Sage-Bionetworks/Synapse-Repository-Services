@@ -1366,49 +1366,65 @@ public class SQLTranslatorUtils {
 	 * @return
 	 */
 	public static ColumnModel getSchemaOfDerivedColumn(DerivedColumn derivedColumn,
-			TableAndColumnMapper tableAndColumnMapper) {
-		// the SelectColumn provides a starting name and type.
+			TableAndColumnMapper tableAndColumnMapper) 
+	{
+		// The SelectColumn provides a starting name and type.
 		SelectColumn selectColumn = getSelectColumns(derivedColumn, tableAndColumnMapper);
-		Long maximumSize = null;
-		Long maxListLength = null;
-		List<String> enumValues = null;
 		// The data type is correctly inferred by the #getSelectColumns call
 		ColumnType columnType = selectColumn.getColumnType();
-		String defaultValue = null;
-		FacetType facetType = null;
-		List<JsonSubColumnModel> jsonSubColumns = null;
+		
+		// Local object to store temporary column attributes while we build them
+		class ColumnAttributes {
+	        Long maximumSize = null;
+	        Long maxListLength = null;
+	        String defaultValue = null;
+	        FacetType facetType = null;
+	        List<String> enumValues = null;
+	        List<JsonSubColumnModel> jsonSubColumns = null;
+	    }
+		final ColumnAttributes attrs = new ColumnAttributes();
+		
+		// If we have an existing selectColumn id, we can model the columnModel off of its attributes
 		if(selectColumn.getId() != null) {
 			ColumnModel cm = tableAndColumnMapper.getColumnModel(selectColumn.getId());
-			maximumSize = cm.getMaximumSize();
-			maxListLength = cm.getMaximumListLength();
-			defaultValue = cm.getDefaultValue();
-			facetType = cm.getFacetType();
-			enumValues = cm.getEnumValues();
-			jsonSubColumns = cm.getJsonSubColumns();
-		}else {
-			for (ColumnReference cr : derivedColumn.createIterable(ColumnReference.class)) {
-				ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
-				if (ctr != null) {
-					maximumSize = addLongsWithNull(maximumSize, ctr.getMaximumSize());
-					maxListLength = addLongsWithNull(maxListLength, ctr.getMaximumListLength());
-					defaultValue = ctr.getDefaultValues();
-					facetType = ctr.getFacetType();
-					jsonSubColumns = ctr.getJsonSubColumns();
-				}
-			}
+			attrs.maximumSize = cm.getMaximumSize();
+			attrs.maxListLength = cm.getMaximumListLength();
+			attrs.defaultValue = cm.getDefaultValue();
+			attrs.facetType = cm.getFacetType();
+			attrs.enumValues = cm.getEnumValues();
+			attrs.jsonSubColumns = cm.getJsonSubColumns();
+		} else {
+			derivedColumn.createIterable(ValueExpressionPrimary.class).forEach(vep -> {
+				switch(vep.getChild().getClass().getName()) {
+				
+					case "org.sagebionetworks.table.query.model.UnsignedValueSpecification":
+						attrs.maximumSize = addLongsWithNull(attrs.maximumSize, Long.valueOf(vep.toSqlWithoutQuotes().length()));
+						break;	
+					
+					default:
+						tableAndColumnMapper.lookupColumnReference(vep.getFirstElementOfType(ColumnReference.class))
+							.ifPresent(ctr -> {
+								attrs.maximumSize = addLongsWithNull(attrs.maximumSize, ctr.getMaximumSize());
+								attrs.maxListLength = addLongsWithNull(attrs.maxListLength, ctr.getMaximumListLength());
+								attrs.defaultValue = ctr.getDefaultValues();
+								attrs.facetType = ctr.getFacetType();
+								attrs.jsonSubColumns = ctr.getJsonSubColumns();
+							});				
+				}	
+			});
 		}
-
-
-		ColumnModel result = new ColumnModel();
-		result.setColumnType(columnType);
-		result.setMaximumSize(maximumSize);
-		result.setMaximumListLength(maxListLength);
-		result.setName(selectColumn.getName());
-		result.setFacetType(facetType);
-		result.setDefaultValue(defaultValue);
-		result.setEnumValues(enumValues);
-		result.setJsonSubColumns(jsonSubColumns);
-		result.setId(null);
+		
+		ColumnModel result = new ColumnModel()
+				.setColumnType(columnType)
+				.setName(selectColumn.getName())
+				.setMaximumSize(attrs.maximumSize)
+				.setMaximumListLength(attrs.maxListLength)
+				.setDefaultValue(attrs.defaultValue)
+				.setFacetType(attrs.facetType)
+				.setEnumValues(attrs.enumValues)
+				.setJsonSubColumns(attrs.jsonSubColumns)
+				.setId(null);
+		
 		return result;
 	}
 	

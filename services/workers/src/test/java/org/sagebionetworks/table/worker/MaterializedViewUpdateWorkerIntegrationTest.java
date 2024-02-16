@@ -1180,6 +1180,28 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertEquals(lastChangedOn, tableManagerSupport.getLastChangedOn(materializedViewId));
 		}, MAX_WAIT_MS);
 	}
+	
+	@Test
+	public void testMaterializedViewWithConcatResultLongerThanMaxSize() throws AssertionError, AsynchJobFailedException {
+		String projectId = createProject();
+		IdAndVersion tableId = createTable(projectId);
+
+		String concatString = "01234567890123456789012345678901234567890123456789";
+		String definingSql = "SELECT aString, CONCAT(aString,'" + concatString + "') FROM " + tableId.toString();
+
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
+
+		List<Row> expected = Arrays.asList(
+			    new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList("string0", "string0" + concatString)),
+			    new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList("string1", "string1" + concatString))
+		);
+
+		String sqlQuery = "SELECT * FROM " + materializedViewId.toString() + " ORDER BY row_id ASC";
+
+		asyncHelper.assertQueryResult(adminUserInfo, sqlQuery, (results) -> {
+			assertEquals(expected, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+	}
 
 	/**
 	 * Create a snapshot of the passed table/view.
