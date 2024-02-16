@@ -55,8 +55,16 @@ public interface EmailQuarantineDao {
 	boolean isQuarantined(String email);
 
 	/**
+	 * Updates the expiration of a quarantined email address to the current time, effectively removing it from the quarantine list
+	 * 
+	 * @param email
+	 */
+	void expireQuarantinedEmail(String email);
+	
+	/**
 	 * Clear the quarantine
 	 */
 	void clearAll();
+
 
 }

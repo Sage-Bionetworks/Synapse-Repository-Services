@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.ses;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_EMAIL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_EXPIRES_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_REASON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_REASON_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_SES_MESSAGE_ID;
@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.principal.EmailQuarantineReason;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -48,6 +49,7 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 
 	private static QuarantinedEmail map(DBOQuarantinedEmail dbo) {
 		return new QuarantinedEmail(dbo.getEmail(), EmailQuarantineReason.valueOf(dbo.getReason()))
+				.withEtag(dbo.getEtag())
 				.withCreatedOn(dbo.getCreatedOn().toInstant())
 				.withUpdatedOn(dbo.getUpdatedOn().toInstant())
 				.withExpiresOn(dbo.getExpiresOn() == null ? null : dbo.getExpiresOn().toInstant())
@@ -174,6 +176,25 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 				+ COL_QUARANTINED_EMAILS_EXPIRES_ON + " IS NULL OR " + COL_QUARANTINED_EMAILS_EXPIRES_ON + " > ?)";
 
 		return jdbcTemplate.queryForObject(sql, Long.class, email, Timestamp.from(Instant.now())) > 0;
+	}
+	
+	@Override
+	@WriteTransaction
+	public void expireQuarantinedEmail(String email) {
+		validateInputEmail(email);
+		
+		String sql = "UPDATE " + TABLE_QUARANTINED_EMAILS + " SET " + COL_QUARANTINED_EMAILS_ETAG + " = UUID(),"
+			+ COL_QUARANTINED_EMAILS_EXPIRES_ON + " = ?,"
+			+ COL_QUARANTINED_EMAILS_UPDATED_ON + " = ? "
+			+ "WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ?";
+		
+		Timestamp updatedOn = Timestamp.from(Instant.now());
+		
+		int result = jdbcTemplate.update(sql, updatedOn, updatedOn, email);
+		
+		if (result <= 0) {
+			throw new NotFoundException("The supplied email address was not quarantined.");
+		}
 	}
 
 	@Override

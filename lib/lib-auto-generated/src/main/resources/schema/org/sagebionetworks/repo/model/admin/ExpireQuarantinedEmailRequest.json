@@ -1,0 +1,9 @@
+{
+	"description": "Request body used to remove an email address from quarantine",
+	"properties": {
+		"email": {
+			"type": "string",
+			"description": "The email address to be removed from the quarantine list"
+		}
+	}
+}

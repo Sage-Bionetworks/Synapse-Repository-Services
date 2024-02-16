@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.admin.ExpireQuarantinedEmailRequest;
 import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -378,6 +379,22 @@ public class AdministrationController {
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) Long targetUserId)
 			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		return serviceProvider.getAdministrationService().getUserAccessToken(userId, targetUserId);
+	}
+	
+	/**
+	 * Removes an email address from the quarantine list
+	 * 
+	 * @param userId
+	 * @param request
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	@RequiredScope({modify})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.ADMIN_EMAIL_QUARANTINE_EXPIRE, method = RequestMethod.POST)
+	public @ResponseBody void removeQuarantinedEmail(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ExpireQuarantinedEmailRequest request)
+			throws NotFoundException, UnauthorizedException {
+		serviceProvider.getAdministrationService().expireQuarantinedEmail(userId, request);
 	}
 
 }

@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.admin.ExpireQuarantinedEmailRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.feature.Feature;
@@ -36,7 +37,7 @@ public interface AdministrationService {
 	 * @throws IOException
 	 * @throws ConflictingUpdateException
 	 */
-	public StackStatus getStackStatus();
+	StackStatus getStackStatus();
 
 	/**
 	 * Update the current status of the stack.
@@ -52,7 +53,7 @@ public interface AdministrationService {
 	 * @throws IOException
 	 * @throws ConflictingUpdateException
 	 */
-	public StackStatus updateStatusStackStatus(Long userId,
+	StackStatus updateStatusStackStatus(Long userId,
 			HttpHeaders header, HttpServletRequest request)
 			throws DatastoreException, NotFoundException,
 			UnauthorizedException, IOException;
@@ -64,7 +65,7 @@ public interface AdministrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public ChangeMessages listChangeMessages(Long userId, Long startChangeNumber, ObjectType type, Long limit) throws DatastoreException, NotFoundException;
+	ChangeMessages listChangeMessages(Long userId, Long startChangeNumber, ObjectType type, Long limit) throws DatastoreException, NotFoundException;
 
 
 	/**
@@ -109,12 +110,12 @@ public interface AdministrationService {
 	/**
 	 * Creates a test user
 	 */
-	public LoginResponse createOrGetTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException;
+	LoginResponse createOrGetTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException;
 
 	/**
 	 * Deletes a user, iff all FK constraints are met
 	 */
-	public void deleteUser(Long userId, String id) throws NotFoundException;
+	void deleteUser(Long userId, String id) throws NotFoundException;
 
 	/**
 	 * Rebuild a table's index and caches
@@ -123,7 +124,7 @@ public interface AdministrationService {
 	 * @param tableId
 	 * @throws IOException
 	 */
-	public void rebuildTable(Long userId, String tableId) throws NotFoundException, IOException;
+	void rebuildTable(Long userId, String tableId) throws NotFoundException, IOException;
 
 	/**
 	 * Clear all locks.
@@ -131,14 +132,14 @@ public interface AdministrationService {
 	 * @param userId
 	 * @throws NotFoundException
 	 */
-	public void clearAllLocks(Long userId) throws NotFoundException;
+	void clearAllLocks(Long userId) throws NotFoundException;
 
 	/**
 	 * Create an ID generator export.
 	 * @param userId
 	 * @return
 	 */
-	public IdGeneratorExport createIdGeneratorExport(Long userId);
+	IdGeneratorExport createIdGeneratorExport(Long userId);
 	
 	/**
 	 * @param userId
@@ -164,6 +165,14 @@ public interface AdministrationService {
 	 * @param targetUserId
 	 * @return
 	 */
-	public LoginResponse getUserAccessToken(Long userId, Long targetUserId);
+	LoginResponse getUserAccessToken(Long userId, Long targetUserId);
+
+	/**
+	 * Update the expiration of a quarantined email address to the current time, effectively removing it from the quarantine list
+	 * 
+	 * @param userId
+	 * @param request
+	 */
+	void expireQuarantinedEmail(Long userId, ExpireQuarantinedEmailRequest request);
 
 }

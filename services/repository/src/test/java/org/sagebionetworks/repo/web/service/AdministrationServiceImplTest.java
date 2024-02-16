@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -28,9 +29,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.admin.ExpireQuarantinedEmailRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -63,6 +66,8 @@ public class AdministrationServiceImplTest {
 	private IdGenerator mockIdGenerator;
 	@Mock
 	private PasswordValidator mockPasswordValidator;
+	@Mock
+	private EmailQuarantineDao mockEmailQuarantineDao;
 
 	@InjectMocks
 	private AdministrationServiceImpl adminService;
@@ -218,5 +223,55 @@ public class AdministrationServiceImplTest {
 		});
 		
 		verify(mockUserManager).getUserInfo(adminUserId);
+	}
+	
+	@Test
+	public void testExpireQuarantinedEmail() {
+		
+		when(mockUserManager.getUserInfo(any())).thenReturn(admin);
+		
+		// Call under test
+		adminService.expireQuarantinedEmail(adminUserId, new ExpireQuarantinedEmailRequest().setEmail("email@sagebase.org"));
+		
+		verify(mockEmailQuarantineDao).expireQuarantinedEmail("email@sagebase.org");
+	}
+	
+	@Test
+	public void testExpireQuarantinedEmailWithUnatuhorized() {
+		
+		when(mockUserManager.getUserInfo(any())).thenReturn(nonAdmin);
+		
+		assertThrows(UnauthorizedException.class, () -> {
+			// Call under test
+			adminService.expireQuarantinedEmail(nonAdminUserId, new ExpireQuarantinedEmailRequest().setEmail("email@sagebase.org"));
+		});
+		
+		verifyZeroInteractions(mockEmailQuarantineDao);
+	}
+	
+	@Test
+	public void testExpireQuarantinedEmailWithNoRequest() {
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			adminService.expireQuarantinedEmail(nonAdminUserId, null);
+		}).getMessage();
+		
+		assertEquals("The request is required.", result);
+		
+		verifyZeroInteractions(mockEmailQuarantineDao);
+	}
+	
+	@Test
+	public void testExpireQuarantinedEmailWithNoEmail() {
+				
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			adminService.expireQuarantinedEmail(nonAdminUserId, new ExpireQuarantinedEmailRequest());
+		}).getMessage();
+		
+		assertEquals("The request.email is required and must not be the empty string.", result);
+		
+		verifyZeroInteractions(mockEmailQuarantineDao);
 	}
 }

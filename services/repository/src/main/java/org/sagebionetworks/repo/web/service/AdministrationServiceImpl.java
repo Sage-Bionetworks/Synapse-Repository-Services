@@ -20,12 +20,14 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.admin.ExpireQuarantinedEmailRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.feature.Feature;
@@ -90,6 +92,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 
 	@Autowired
 	private VerificationDAO verificationDao;
+	
+	@Autowired
+	private EmailQuarantineDao emailQuarantineDao;
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
@@ -247,6 +252,16 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		ValidateArgument.required(targetUserId, "The targetUserId");
 		adminCheck(userId);
 		return authManager.loginWithNoPasswordCheck(targetUserId, null);
+	}
+	
+	@Override
+	public void expireQuarantinedEmail(Long userId, ExpireQuarantinedEmailRequest request) {
+		ValidateArgument.required(request, "The request");
+		ValidateArgument.requiredNotBlank(request.getEmail(), "The request.email");
+		
+		adminCheck(userId);
+		
+		emailQuarantineDao.expireQuarantinedEmail(request.getEmail());		
 	}
 
 }
