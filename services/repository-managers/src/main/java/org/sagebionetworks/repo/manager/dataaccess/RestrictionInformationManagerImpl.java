@@ -36,7 +36,7 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 
 		List<UsersRestrictionStatus> statusList = accessRestrictionStatusDao.getSubjectStatus(
 				Arrays.asList(KeyFactory.stringToKey(request.getObjectId())), request.getRestrictableObjectType(),
-				userInfo.getId());
+				userInfo.getId(), userInfo.getGroups());
 
 		return statusList.stream().findFirst().map((s) -> {
 			RestrictionInformationResponse info = new RestrictionInformationResponse();

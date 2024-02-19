@@ -108,7 +108,7 @@ public class RestrictionInformationManagerImplUnitTest {
 
 	@Test
 	public void testGetRestrictionInformationWithZeroAR() {
-		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any())).thenReturn(Collections.emptyList());
+		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any(), any())).thenReturn(Collections.emptyList());
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_ENTITY_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -119,7 +119,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(RestrictionLevel.OPEN, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
 		verify(mockRestrictionStatusDao).getSubjectStatus(Arrays.asList(entityIdAsLong), RestrictableObjectType.ENTITY,
-				userInfo.getId());
+				userInfo.getId(), userInfo.getGroups());
 	}
 
 	@Test
@@ -128,7 +128,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		touStatus.setHasUnmet(true);
 		touStatus.addRestrictionStatus(
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.SELF_SIGNED));
-		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any())).thenReturn(Arrays.asList(touStatus));
+		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any(), any())).thenReturn(Arrays.asList(touStatus));
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_ENTITY_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -137,7 +137,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
 		verify(mockRestrictionStatusDao).getSubjectStatus(Arrays.asList(entityIdAsLong), RestrictableObjectType.ENTITY,
-				userInfo.getId());
+				userInfo.getId(), userInfo.getGroups());
 	}
 	
 	@Test
@@ -146,7 +146,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		touStatus.setHasUnmet(false);
 		touStatus.addRestrictionStatus(
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.SELF_SIGNED));
-		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any())).thenReturn(Arrays.asList(touStatus));
+		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any(), any())).thenReturn(Arrays.asList(touStatus));
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_ENTITY_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -155,7 +155,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
 		verify(mockRestrictionStatusDao).getSubjectStatus(Arrays.asList(entityIdAsLong), RestrictableObjectType.ENTITY,
-				userInfo.getId());
+				userInfo.getId(), userInfo.getGroups());
 	}
 
 	@Test
@@ -164,7 +164,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		touStatus.setHasUnmet(true);
 		touStatus.addRestrictionStatus(
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.LOCK));
-		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any())).thenReturn(Arrays.asList(touStatus));
+		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any(), any())).thenReturn(Arrays.asList(touStatus));
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_ENTITY_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -173,7 +173,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
 		verify(mockRestrictionStatusDao).getSubjectStatus(Arrays.asList(entityIdAsLong), RestrictableObjectType.ENTITY,
-				userInfo.getId());
+				userInfo.getId(), userInfo.getGroups());
 	}
 
 	@Test
@@ -182,7 +182,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		touStatus.setHasUnmet(true);
 		touStatus.addRestrictionStatus(
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.MANAGED_ATC));
-		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any())).thenReturn(Arrays.asList(touStatus));
+		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any(), any())).thenReturn(Arrays.asList(touStatus));
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_ENTITY_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -191,7 +191,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
 		verify(mockRestrictionStatusDao).getSubjectStatus(Arrays.asList(entityIdAsLong), RestrictableObjectType.ENTITY,
-				userInfo.getId());
+				userInfo.getId(), userInfo.getGroups());
 	}
 
 	@Test
@@ -202,7 +202,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.MANAGED_ATC));
 		touStatus.addRestrictionStatus(
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.TOU));
-		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any())).thenReturn(Arrays.asList(touStatus));
+		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any(), any())).thenReturn(Arrays.asList(touStatus));
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_ENTITY_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -211,7 +211,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
 		verify(mockRestrictionStatusDao).getSubjectStatus(Arrays.asList(entityIdAsLong), RestrictableObjectType.ENTITY,
-				userInfo.getId());
+				userInfo.getId(), userInfo.getGroups());
 	}
 
 
@@ -221,7 +221,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		touStatus.setHasUnmet(true);
 		touStatus.addRestrictionStatus(
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.TOU));
-		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any())).thenReturn(Arrays.asList(touStatus));
+		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any(), any())).thenReturn(Arrays.asList(touStatus));
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_PRINCIPAL_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.TEAM);
@@ -230,6 +230,6 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
 		verify(mockRestrictionStatusDao).getSubjectStatus(Arrays.asList(teamIdAsLong), RestrictableObjectType.TEAM,
-				userInfo.getId());
+				userInfo.getId(), userInfo.getGroups());
 	}
 }

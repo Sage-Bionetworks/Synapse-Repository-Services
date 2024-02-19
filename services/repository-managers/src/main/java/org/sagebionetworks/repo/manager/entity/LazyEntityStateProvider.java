@@ -45,7 +45,7 @@ public class LazyEntityStateProvider implements EntityStateProvider {
 	@Override
 	public UsersRestrictionStatus getRestrictionStatus(Long entityId) {
 		if (usersRestrictionStatus == null) {
-			usersRestrictionStatus = accessRestrictionStatusDao.getEntityStatusAsMap(entityIds, userInfo.getId());
+			usersRestrictionStatus = accessRestrictionStatusDao.getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		}
 		return usersRestrictionStatus.get(entityId);
 	}

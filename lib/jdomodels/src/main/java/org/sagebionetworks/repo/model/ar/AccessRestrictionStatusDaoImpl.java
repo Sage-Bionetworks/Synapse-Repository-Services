@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -33,26 +34,32 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 	private static final String APPROVED2 = "APPROVED";
 	private static final String REQUIREMENT_ID = "REQUIREMENT_ID";
 	private static final String SUBJECT_ID = "SUBJECT_ID";
+
+	private static final String IS_EXEMPTION_ELIGIBLE= "IS_EXAMPTION_ELIGIBLE";
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	@Override
 	public List<UsersRestrictionStatus> getSubjectStatus(List<Long> subjectIds, RestrictableObjectType subjectType,
-			Long userId) {
+			Long userId,  Set<Long> userGroups) {
 		ValidateArgument.required(subjectIds, "subjectIds");
 		ValidateArgument.required(subjectType, "subjectType");
 		ValidateArgument.required(userId, "userId");
 		if (RestrictableObjectType.ENTITY.equals(subjectType)) {
-			return getEntityStatus(subjectIds, userId);
+			return getEntityStatus(subjectIds, userId, userGroups);
 		} else {
 			return getNonEntityStatus(subjectIds, subjectType, userId);
 		}
 	}
 	
 	@Override
-	public Map<Long, UsersRestrictionStatus> getEntityStatusAsMap(List<Long> entityIds, Long userId) {
+	public Map<Long, UsersRestrictionStatus> getEntityStatusAsMap(List<Long> entityIds, Long userId, Set<Long> userGroups) {
 		ValidateArgument.required(entityIds, "entityIds");
 		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(userGroups, "userGroups");
+		if (userGroups.isEmpty()) {
+			throw new IllegalArgumentException("User's groups cannot be empty");
+		}
 		if (entityIds.isEmpty()) {
 			return Collections.emptyMap();
 		}
@@ -65,6 +72,7 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 		params.addValue("entityIds", entityIds);
 		params.addValue("userId", userId);
 		params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
+		params.addValue("usersGroups", userGroups);
 		namedJdbcTemplate.query(GET_ENTITY_ACCESS_RESTRICTIONS_SQL, params, (ResultSet rs) -> {
 			Long entityId = rs.getLong(ENTITY_ID);
 			EntityType entityType = EntityType.valueOf(rs.getString(NODE_TYPE));
@@ -87,21 +95,23 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 			if (EntityType.file.equals(entityType) && userId.equals(createdBy)) {
 				approved = true;
 			}
+			Boolean isExemptionEligible = rs.getBoolean(IS_EXEMPTION_ELIGIBLE);
 			UsersRestrictionStatus status = statusMap.get(entityId);
 			if (approved != null && !approved) {
 				status.setHasUnmet(true);
 			}			
 			if (requirementId != null) {
 				status.addRestrictionStatus(new UsersRequirementStatus().withRequirementId(requirementId)
-						.withRequirementType(requirementType).withIsUnmet(!approved).withIsTwoFaRequired(isTwoFaRequired));
+						.withRequirementType(requirementType).withIsUnmet(!approved).withIsTwoFaRequired(isTwoFaRequired)
+						.withIsExemptionEligible(isExemptionEligible));
 			}
 		});
 		return statusMap;
 	}
 
 	@Override
-	public List<UsersRestrictionStatus> getEntityStatus(List<Long> entityIds, Long userId) {
-		Map<Long, UsersRestrictionStatus> statusMap = getEntityStatusAsMap(entityIds, userId);
+	public List<UsersRestrictionStatus> getEntityStatus(List<Long> entityIds, Long userId, Set<Long> userGroups) {
+		Map<Long, UsersRestrictionStatus> statusMap = getEntityStatusAsMap(entityIds, userId, userGroups);
 		return new ArrayList<UsersRestrictionStatus>(statusMap.values());
 	}
 
