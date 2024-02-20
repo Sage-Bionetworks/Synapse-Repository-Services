@@ -319,7 +319,7 @@ public class TableEntityManagerTest {
 		doAnswer(new Answer<Boolean>() {
 			@Override
 			public Boolean answer(InvocationOnMock invocation) throws Throwable {
-				RowHandler handler = (RowHandler) invocation.getArguments()[2];
+				RowHandler handler = (RowHandler) invocation.getArguments()[1];
 				// pass each row
 				long rowId = 0;
 				for(Row row: rows){
