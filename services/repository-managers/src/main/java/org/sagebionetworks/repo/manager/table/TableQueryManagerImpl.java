@@ -15,14 +15,16 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.table.query.ActionsRequiredQuery;
 import org.sagebionetworks.repo.manager.table.query.BasicQuery;
+import org.sagebionetworks.repo.manager.table.query.CacheableQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
+import org.sagebionetworks.repo.manager.table.query.QueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
+import org.sagebionetworks.repo.manager.table.query.StreamingQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
@@ -50,11 +52,11 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -127,8 +129,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// pre-flight includes parsing and authorization
 			QueryTranslations sqlQuery = queryPreflight(user, query, this.maxBytesPerRequest, options);
 			
+			QueryExecutor queryExecutor = new CacheableQueryExecutor(queryCacheManager, CACHED_QUERY_EXPIRES_IN_SEC);
+			
 			// run the query as a stream.
-			QueryResultBundle bundle = queryAfterAuthorization(progressCallback, user, sqlQuery, options, null);
+			QueryResultBundle bundle = queryAfterAuthorization(progressCallback, user, sqlQuery, options, queryExecutor);
 			
 			// add combined sql to the bundle
 			bundle.setCombinedSql(combinedSql);
@@ -267,7 +271,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableLockUnavailableException
 	 */
 	QueryResultBundle queryAfterAuthorization(final ProgressCallback progressCallback, final UserInfo user, final QueryTranslations query,
-			final QueryOptions options, final RowHandler rowHandler)
+			final QueryOptions options, final QueryExecutor queryExecutor)
 			throws DatastoreException, NotFoundException, TableUnavailableException, TableFailedException,
 			LockUnavilableException, EmptyResultException {
 		// run with a read lock on the table and include the current etag.
@@ -276,7 +280,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					// We can only run this query if the table is available.
 					final TableStatus status = validateTableIsAvailable(idAndVersion.toString());
 					// run the query
-					QueryResultBundle bundle = executeQuery(user, query, options, rowHandler);
+					QueryResultBundle bundle = executeQuery(user, query, options, queryExecutor);
 					// add the status to the result
 					if (options.runQuery()) {
 						// the etag is only returned for consistent queries.
@@ -329,7 +333,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle executeQuery(UserInfo user, QueryTranslations query, final QueryOptions options, RowHandler rowHandler)
+	QueryResultBundle executeQuery(UserInfo user, QueryTranslations query, final QueryOptions options, QueryExecutor queryExecutor)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
 		QueryResultBundle bundle = new QueryResultBundle();
@@ -351,7 +355,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// run the actual query if needed.
 		if (options.runQuery()) {
 			// run the query
-			RowSet rowSet = runMainQuery(query.getMainQuery().getTranslator(), indexDao, rowHandler);
+			RowSet rowSet = runMainQuery(queryExecutor, indexDao, query.getMainQuery().getTranslator());
 			QueryResult queryResult = new QueryResult();
 			queryResult.setQueryResults(rowSet);
 			bundle.setQueryResult(queryResult);
@@ -539,8 +543,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				handler.writeHeader();
 			}
 
+			StreamingQueryExecutor queryExecutor = new StreamingQueryExecutor(handler);
 
-			QueryResultBundle result = queryAfterAuthorization(progressCallback, user, query, options, handler);
+			QueryResultBundle result = queryAfterAuthorization(progressCallback, user, query, options, queryExecutor);
 			// convert the response
 			DownloadFromTableResult response = new DownloadFromTableResult();
 			response.setHeaders(result.getSelectColumns());
@@ -553,32 +558,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 	}
 
-	/**
-	 * The last step to running an actaul query against the table as a stream.
-	 * @param query
-	 * @param rowHandler
-	 * @param callback
-	 * 
-	 * @return
-	 */
-	RowSet runMainQuery(QueryTranslator query, TableIndexDAO indexDao, RowHandler rowHandler) {
-		ValidateArgument.required(query, "query");
-		
-		if (rowHandler != null) {
-			indexDao.queryAsStream(query, rowHandler);
-			
-			return new RowSet()
-				.setTableId(query.getSingleTableIdOptional().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT))	
-				.setHeaders(query.getSelectColumns());
-			
-		}
-		
-		if (query.getIndexDescription().supportQueryCache()) {
-			CachedQueryRequest cacheRequest = CachedQueryRequest.clone(query).setExpiresInSec(CACHED_QUERY_EXPIRES_IN_SEC);
-			return queryCacheManager.getQueryResults(indexDao, cacheRequest);
-		}
-		
-		return indexDao.query(query);
+	RowSet runMainQuery(QueryExecutor queryExecutor, TableIndexDAO indexDao, QueryTranslator query) {
+		ValidateArgument.required(queryExecutor, "The queryExecutor");
+		ValidateArgument.required(indexDao, "The indexDao");
+		ValidateArgument.required(query, "The query");
+		return queryExecutor.executeQuery(indexDao, query);
 	}
 
 	/**
