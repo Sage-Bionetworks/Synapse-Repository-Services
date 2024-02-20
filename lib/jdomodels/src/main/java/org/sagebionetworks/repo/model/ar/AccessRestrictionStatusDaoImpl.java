@@ -58,7 +58,7 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(userGroups, "userGroups");
 		if (userGroups.isEmpty()) {
-			throw new IllegalArgumentException("User's groups cannot be empty");
+			throw new IllegalArgumentException("User's groups cannot be empty.");
 		}
 		if (entityIds.isEmpty()) {
 			return Collections.emptyMap();

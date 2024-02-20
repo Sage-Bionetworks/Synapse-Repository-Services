@@ -163,6 +163,26 @@ public class AccessRestrictionStatusDaoImplTest {
 	}
 
 	@Test
+	public void testGetEntityStatusWithNullGroupId() {
+		List<Long> subjectIds = Arrays.asList(123L);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			accessRestrictionStatusDao.getEntityStatus(subjectIds, userTwoId, null);
+		}).getMessage();
+		assertEquals("userGroups is required.", message);
+	}
+
+	@Test
+	public void testGetEntityStatusWithEmptySetOfGroupId() {
+		List<Long> subjectIds = Arrays.asList(123L);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			accessRestrictionStatusDao.getEntityStatus(subjectIds, userTwoId, Collections.emptySet());
+		}).getMessage();
+		assertEquals("User's groups cannot be empty.", message);
+	}
+
+	@Test
 	public void testGetEntityStatusWithNoEmptySubjects() {
 		List<Long> subjectIds = Collections.emptyList();
 		// call under test
