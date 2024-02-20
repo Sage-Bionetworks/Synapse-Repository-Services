@@ -116,32 +116,28 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		try {
 			// Set the default values
 			TableQueryManagerImpl.setDefaultsValues(query);
-			// handler will capture the results of the query.
-			SinglePageRowHandler rowHandler = null;
-			if (options.runQuery()) {
-				rowHandler = new SinglePageRowHandler();
-			}
-
+			
 			//get combined sql before pre-flight and authorization
 			String combinedSql = null;
+			
 			if (options.returnCombinedSql()) {
 				combinedSql = createCombinedSql(user, query);
 			}
+			
 			// pre-flight includes parsing and authorization
 			QueryTranslations sqlQuery = queryPreflight(user, query, this.maxBytesPerRequest, options);
 			
 			// run the query as a stream.
-			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, rowHandler, options);
+			QueryResultBundle bundle = queryAfterAuthorization(progressCallback, user, sqlQuery, options, null);
+			
 			// add combined sql to the bundle
 			bundle.setCombinedSql(combinedSql);
+			
 			// save the max rows per page.
-			if(options.returnMaxRowsPerPage()) {
+			if (options.returnMaxRowsPerPage()) {
 				bundle.setMaxRowsPerPage(sqlQuery.getMainQuery().getTranslator().getMaxRowsPerPage());
 			}
-			// add captured rows to the bundle
-			if (options.runQuery()) {
-				bundle.getQueryResult().getQueryResults().setRows(rowHandler.getRows());
-			}
+			
 			int maxRowsPerPage = sqlQuery.getMainQuery().getTranslator().getMaxRowsPerPage().intValue();
 			// add the next page token if needed
 			if (isRowCountEqualToMaxRowsPerPage(bundle, maxRowsPerPage)) {
@@ -150,6 +146,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 						nextOffset, query.getLimit(), query.getSelectedFacets());
 				bundle.getQueryResult().setNextPageToken(nextPageToken);
 			}
+			
 			return bundle;
 		} catch (EmptyResultException e) {
 			// return an empty result.
@@ -269,8 +266,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws EmptyResultException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStream(final ProgressCallback progressCallback, final UserInfo user, final QueryTranslations query,
-			final RowHandler rowHandler, final QueryOptions options)
+	QueryResultBundle queryAfterAuthorization(final ProgressCallback progressCallback, final UserInfo user, final QueryTranslations query,
+			final QueryOptions options, final RowHandler rowHandler)
 			throws DatastoreException, NotFoundException, TableUnavailableException, TableFailedException,
 			LockUnavilableException, EmptyResultException {
 		// run with a read lock on the table and include the current etag.
@@ -279,10 +276,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					// We can only run this query if the table is available.
 					final TableStatus status = validateTableIsAvailable(idAndVersion.toString());
 					// run the query
-					QueryResultBundle bundle = queryAsStreamAfterAuthorization(user, progressCallback, query,
-							rowHandler, options);
+					QueryResultBundle bundle = executeQuery(user, query, options, rowHandler);
 					// add the status to the result
-					if (rowHandler != null) {
+					if (options.runQuery()) {
 						// the etag is only returned for consistent queries.
 						bundle.getQueryResult().getQueryResults().setEtag(status.getLastTableChangeEtag());
 					}
@@ -320,7 +316,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * Run a query as a stream after all authorization checks have been performed
 	 * and any any required row-level filtering has been applied.
 	 * 
-	 * @param progressCallback
 	 * @param user
 	 * @param query
 	 * @param offset
@@ -334,8 +329,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStreamAfterAuthorization(UserInfo user, ProgressCallback progressCallback, QueryTranslations query,
-			RowHandler rowHandler, final QueryOptions options)
+	QueryResultBundle executeQuery(UserInfo user, QueryTranslations query, final QueryOptions options, RowHandler rowHandler)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
 		QueryResultBundle bundle = new QueryResultBundle();
@@ -355,9 +349,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 
 		// run the actual query if needed.
-		if (rowHandler != null) {
+		if (options.runQuery()) {
 			// run the query
-			RowSet rowSet = runQueryAsStream(progressCallback, query.getMainQuery().getTranslator(), rowHandler, indexDao);
+			RowSet rowSet = runMainQuery(query.getMainQuery().getTranslator(), indexDao, rowHandler);
 			QueryResult queryResult = new QueryResult();
 			queryResult.setQueryResults(rowSet);
 			bundle.setQueryResult(queryResult);
@@ -415,8 +409,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		List<Future<FacetColumnResult>> futures = new ArrayList<>(transformers.size());
 		for (FacetTransformer facetQueryTransformer : transformers) {
 			futures.add(threadPool.submit(() -> {
-				RowSet rowSet = queryCacheManager.getQueryResults(indexDao, CachedQueryRequest
-						.clone(facetQueryTransformer.getFacetSqlQuery()).setExpiresInSec(CACHED_QUERY_EXPIRES_IN_SEC));
+				CachedQueryRequest cacheRequest = CachedQueryRequest.clone(facetQueryTransformer.getFacetSqlQuery()).setExpiresInSec(CACHED_QUERY_EXPIRES_IN_SEC);
+				RowSet rowSet = queryCacheManager.getQueryResults(indexDao, cacheRequest);
 				return facetQueryTransformer.translateToResult(rowSet);
 			}));
 		}
@@ -546,7 +540,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			}
 
 
-			QueryResultBundle result = queryAsStream(progressCallback, user, query, handler, options);
+			QueryResultBundle result = queryAfterAuthorization(progressCallback, user, query, options, handler);
 			// convert the response
 			DownloadFromTableResult response = new DownloadFromTableResult();
 			response.setHeaders(result.getSelectColumns());
@@ -561,20 +555,30 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 	/**
 	 * The last step to running an actaul query against the table as a stream.
-	 * 
-	 * @param callback
 	 * @param query
 	 * @param rowHandler
+	 * @param callback
+	 * 
 	 * @return
 	 */
-	RowSet runQueryAsStream(ProgressCallback callback, QueryTranslator query, RowHandler rowHandler, TableIndexDAO indexDao) {
+	RowSet runMainQuery(QueryTranslator query, TableIndexDAO indexDao, RowHandler rowHandler) {
 		ValidateArgument.required(query, "query");
-		ValidateArgument.required(rowHandler, "rowHandler");
-		indexDao.queryAsStream(callback, query, rowHandler);
-		RowSet results = new RowSet();
-		results.setHeaders(query.getSelectColumns());
-		results.setTableId(query.getSingleTableIdOptional().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
-		return results;
+		
+		if (rowHandler != null) {
+			indexDao.queryAsStream(query, rowHandler);
+			
+			return new RowSet()
+				.setTableId(query.getSingleTableIdOptional().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT))	
+				.setHeaders(query.getSelectColumns());
+			
+		}
+		
+		if (query.getIndexDescription().supportQueryCache()) {
+			CachedQueryRequest cacheRequest = CachedQueryRequest.clone(query).setExpiresInSec(CACHED_QUERY_EXPIRES_IN_SEC);
+			return queryCacheManager.getQueryResults(indexDao, cacheRequest);
+		}
+		
+		return indexDao.query(query);
 	}
 
 	/**

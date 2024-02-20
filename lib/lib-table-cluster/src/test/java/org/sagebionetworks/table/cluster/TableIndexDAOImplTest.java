@@ -524,7 +524,7 @@ public class TableIndexDAOImplTest {
 		// This is our query
 		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider(allTypes), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		System.out.println(results);
 		assertEquals(headers, results.getHeaders());
@@ -638,7 +638,7 @@ public class TableIndexDAOImplTest {
 		// This is our query
 		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		System.out.println(results);
 		assertEquals(headers, results.getHeaders());
@@ -688,7 +688,7 @@ public class TableIndexDAOImplTest {
 		// This is our query
 		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider, userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		System.out.println(results);
 		assertEquals(2, results.getRows().size());
@@ -718,7 +718,7 @@ public class TableIndexDAOImplTest {
 		
 		// Now query for the results
 		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider(allTypes), userId).indexDescription(new TableIndexDescription(tableId)).build();
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		System.out.println(results);
 		assertEquals(headers, results.getHeaders());
@@ -770,7 +770,7 @@ public class TableIndexDAOImplTest {
 		QueryTranslator query = QueryTranslator.builder("select count(*) from " + tableId,
 				schemaProvider(allTypes), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		List<SelectColumn> expectedHeaders = Lists.newArrayList(TableModelUtils
 				.createSelectColumn("COUNT(*)", ColumnType.INTEGER, null));
@@ -827,7 +827,7 @@ public class TableIndexDAOImplTest {
 						+ " where foo is not null group by foo order by sum(bar) desc limit 1 offset 0",
 				schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		assertEquals(schema.size(),
 				results.getHeaders().size());
@@ -880,7 +880,7 @@ public class TableIndexDAOImplTest {
 				+ " where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0",
 				schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		assertNotNull(results.getRows());
 		assertEquals(tableId.toString(), results.getTableId());
@@ -2523,7 +2523,7 @@ public class TableIndexDAOImplTest {
 		// This is our query
 		QueryTranslator query = QueryTranslator.builder("select foo from " + tableId, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Query the results
-		RowSet result = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet result = tableIndexDAO.query(query);
 		assertEquals(2, result.getRows().size());
 		assertEquals(Collections.singletonList("[\"NaN\", \"1.2\", \"Infinity\"]"), result.getRows().get(0).getValues());
 		assertEquals(Collections.singletonList("[\"Infinity\", \"222.222\"]"), result.getRows().get(1).getValues());
@@ -3246,7 +3246,7 @@ public class TableIndexDAOImplTest {
 		// This is our query
 		QueryTranslator query = QueryTranslator.builder("select 2 + 2, col1/10 from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		System.out.println(results);
 		assertNotNull(results.getRows());
@@ -3281,7 +3281,7 @@ public class TableIndexDAOImplTest {
 		// This is our query
 		QueryTranslator query = QueryTranslator.builder("select col1 from " + tableId+" where col1 = -5*10", schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		System.out.println(results);
 		assertNotNull(results.getRows());
@@ -3317,7 +3317,7 @@ public class TableIndexDAOImplTest {
 		// This is our query
 		QueryTranslator query = QueryTranslator.builder("select aDate from " + tableId+" where aDate > " + timeFilter, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		System.out.println(results);
 		assertNotNull(results.getRows());
@@ -4261,7 +4261,7 @@ public class TableIndexDAOImplTest {
 		
 		QueryTranslator query = QueryTranslator.builder("select ROW_ID, ROW_BENEFACTOR from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		assertEquals(Lists.newArrayList(file1.getId().toString(),file1.getBenefactorId().toString()), results.getRows().get(0).getValues());
 		assertEquals(Lists.newArrayList(file2.getId().toString(),file2.getBenefactorId().toString()), results.getRows().get(1).getValues());
@@ -4277,7 +4277,7 @@ public class TableIndexDAOImplTest {
 		assertTrue(result);
 		
 		// The benefactors should be updated.
-		results = tableIndexDAO.query(mockProgressCallback, query);
+		results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		// file one should change while file two should remain the same.
 		assertEquals(Lists.newArrayList(file1.getId().toString(),file1.getBenefactorId().toString()), results.getRows().get(0).getValues());
@@ -4329,7 +4329,7 @@ public class TableIndexDAOImplTest {
 		QueryTranslator query = QueryTranslator.builder("select ROW_ID, ROW_BENEFACTOR from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet results = tableIndexDAO.query(query);
 		
 		assertEquals(expectedRows, results.getRows());
 				
@@ -4339,7 +4339,7 @@ public class TableIndexDAOImplTest {
 		assertFalse(result);
 		
 		// No changes
-		assertEquals(expectedRows, tableIndexDAO.query(mockProgressCallback, query).getRows());
+		assertEquals(expectedRows, tableIndexDAO.query(query).getRows());
 	}
 	
 	@Test
@@ -4386,7 +4386,7 @@ public class TableIndexDAOImplTest {
 		// This is our query
 		QueryTranslator query = QueryTranslator.builder("select round(col1, 2) from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		assertNotNull(results.getRows());
 		assertEquals(tableId.toString(), results.getTableId());
@@ -4432,7 +4432,7 @@ public class TableIndexDAOImplTest {
 		
 		QueryTranslator query = QueryTranslator.builder("select ROW_ID, ROW_VERSION, `key0` from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
-		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		assertEquals(2, results.getRows().size());
 		assertEquals(Lists.newArrayList(v1.getId().toString(),v1.getVersion().toString(), "0-1"), results.getRows().get(0).getValues());

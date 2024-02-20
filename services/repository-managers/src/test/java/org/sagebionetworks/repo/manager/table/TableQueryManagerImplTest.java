@@ -10,7 +10,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -254,10 +253,10 @@ public class TableQueryManagerImplTest {
 	}
 
 	void setupQueryCallback() {
-		when(mockTableIndexDAO.queryAsStream(any(ProgressCallback.class),any(QueryTranslator.class), any(RowHandler.class))).thenAnswer(new Answer<Boolean>() {
+		when(mockTableIndexDAO.queryAsStream(any(QueryTranslator.class), any(RowHandler.class))).thenAnswer(new Answer<Boolean>() {
 			@Override
 			public Boolean answer(InvocationOnMock invocation) throws Throwable {
-				RowHandler handler =  (RowHandler) invocation.getArguments()[2];
+				RowHandler handler =  (RowHandler) invocation.getArguments()[1];
 				// Pass all rows to the handler
 				for (Row row : rows) {
 					handler.nextRow(row);
@@ -451,7 +450,7 @@ public class TableQueryManagerImplTest {
 	}
 
 	@Test
-	public void testQueryAsStream() throws Exception{
+	public void testQueryAfterAuthorization() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
@@ -463,7 +462,7 @@ public class TableQueryManagerImplTest {
 		RowHandler rowHandler = new SinglePageRowHandler();
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		// call under test.
-		QueryResultBundle result = manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+		QueryResultBundle result = manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, rowHandler);
 		assertNotNull(result);
 		assertNotNull(result.getQueryResult());
 		assertNotNull(result.getQueryResult().getQueryResults());
@@ -475,7 +474,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamNotFoundException() throws Exception{
+	public void testQueryAfterAuthorizationNotFoundException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
@@ -488,12 +487,12 @@ public class TableQueryManagerImplTest {
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		assertThrows(NotFoundException.class, ()->{
 			// call under test.
-			manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, rowHandler);
 		});
 	}
 	
 	@Test
-	public void testQueryAsStreamTableUnavailableException() throws Exception{
+	public void testQueryAfterAuthorizationTableUnavailableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
@@ -506,12 +505,12 @@ public class TableQueryManagerImplTest {
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		assertThrows(TableUnavailableException.class, ()->{
 			// call under test.
-			manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, rowHandler);
 		});
 	}
 	
 	@Test
-	public void testQueryAsStreamTableFailedException() throws Exception{
+	public void testQueryAfterAuthorizationTableFailedException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
@@ -524,12 +523,12 @@ public class TableQueryManagerImplTest {
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		assertThrows(TableFailedException.class, ()->{
 			// call under test.
-			manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, rowHandler);
 		});
 	}
 	
 	@Test
-	public void testQueryAsStreamLockUnavilableException() throws Exception{
+	public void testQueryAfterAuthorizationLockUnavilableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
@@ -542,13 +541,13 @@ public class TableQueryManagerImplTest {
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		assertThrows(LockUnavilableException.class, ()->{
 			// call under test.
-			manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, rowHandler);
 		});
 
 	}
 	
 	@Test
-	public void testQueryAsStreamEmptyResultException() throws Exception{
+	public void testQueryAfterAuthorizationEmptyResultException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
@@ -561,7 +560,7 @@ public class TableQueryManagerImplTest {
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		assertThrows(EmptyResultException.class, ()->{
 			// call under test.
-			manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, rowHandler);
 		});
 	}
 	
@@ -657,7 +656,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterAuthorizationCountOnly() throws Exception {
+	public void testExecuteQueryCountOnly() throws Exception {
 		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
@@ -672,7 +671,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunCount(true);
 				QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user, mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, rowHandler);
 		assertNotNull(results);
 		assertEquals(null, results.getColumnModels());
 		assertEquals(null, results.getSelectColumns());
@@ -681,7 +680,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterAuthorizationColumnsOnly() throws Exception {
+	public void testExecuteQueryColumnsOnly() throws Exception {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		// null handler indicates not to run the main query.
@@ -689,13 +688,13 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withReturnColumnModels(true);
 				QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.executeQuery(user,query, queryOptions, rowHandler);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterAuthorizationSelectOnly() throws Exception {
+	public void testExecuteQuerySelectOnly() throws Exception {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
@@ -706,7 +705,7 @@ public class TableQueryManagerImplTest {
 				QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.executeQuery(user,query, queryOptions, rowHandler);
 		assertNotNull(results);
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
 	}
@@ -716,7 +715,7 @@ public class TableQueryManagerImplTest {
 	 * @throws Exception
 	 */
 	@Test
-	public void testQueryAsStreamAfterAuthorizationWithLimit() throws Exception {
+	public void testExecuteQueryWithLimit() throws Exception {
 		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
@@ -731,13 +730,13 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId+" limit 11").build(), queryOptions);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.executeQuery(user,query, queryOptions, rowHandler);
 		assertNotNull(results);
 		assertEquals(new Long(11), results.getQueryCount());
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterAuthorizationNoCount() throws Exception {
+	public void testExecuteQueryNoCount() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		setupQueryCallback();
@@ -747,7 +746,7 @@ public class TableQueryManagerImplTest {
 		RowHandler rowHandler = new SinglePageRowHandler();
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.executeQuery(user,query, queryOptions, rowHandler);
 		assertNotNull(results);
 		assertEquals(null, results.getColumnModels());
 		assertEquals(null, results.getSelectColumns());
@@ -757,7 +756,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterAuthorizationQueryAndCount() throws Exception {
+	public void testExecuteQueryQueryAndCount() throws Exception {
 		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
@@ -773,7 +772,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunCount(true).withRunQuery(true);
 				QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.executeQuery(user,query, queryOptions, rowHandler);
 		assertNotNull(results);
 		assertEquals(null, results.getColumnModels());
 		assertEquals(null, results.getSelectColumns());
@@ -784,41 +783,46 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterAuthorization_LastUpdatedOn() throws Exception {
+	public void testExecuteQuery_LastUpdatedOn() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
-		setupQueryCallback();
-		
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);		
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		when(mockTableIndexDAO.query(any())).thenReturn(new RowSet().setRows(rows));
 		
 		Date lastUpdatedOn = new Date(567L);
 		when(mockTableManagerSupport.getLastChangedOn(idAndVersion)).thenReturn(Optional.of(lastUpdatedOn));
-
-		// non-null handler indicates the query should be run.
-		RowHandler rowHandler = new SinglePageRowHandler();
-		queryOptions = new QueryOptions().withReturnLastUpdatedOn(true);
-				QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
+		
+		queryOptions = new QueryOptions()
+			.withRunQuery(true)
+			.withReturnLastUpdatedOn(true);
+		
+		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
+		
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.executeQuery(user,query, queryOptions, null);
+		
 		assertNotNull(results);
 		assertEquals(lastUpdatedOn, results.getLastUpdatedOn());
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterAuthorizationWithLastUpdatedOnEmpty() throws Exception {
+	public void testExecuteQueryWithLastUpdatedOnEmpty() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
-		setupQueryCallback();
-		
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		when(mockTableManagerSupport.getLastChangedOn(idAndVersion)).thenReturn(Optional.empty());
+		when(mockTableIndexDAO.query(any())).thenReturn(new RowSet().setRows(rows));
+		
 
-		// non-null handler indicates the query should be run.
-		RowHandler rowHandler = new SinglePageRowHandler();
-		queryOptions = new QueryOptions().withReturnLastUpdatedOn(true);
-				QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
+		queryOptions = new QueryOptions()
+				.withRunQuery(true)
+				.withReturnLastUpdatedOn(true);
+		
+		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
+		
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.executeQuery(user,query, queryOptions, null);
+		
 		assertNotNull(results);
 		assertNotNull(results.getLastUpdatedOn());
 		long now = System.currentTimeMillis();
@@ -830,7 +834,7 @@ public class TableQueryManagerImplTest {
 	
 
 	@Test
-	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListNotReturningFacets() throws Exception{
+	public void testExecuteQueryNonEmptyFacetColumnsListNotReturningFacets() throws Exception{
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		
@@ -854,7 +858,7 @@ public class TableQueryManagerImplTest {
 		
 		assertEquals(1, facetRequestList.size());
 		
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.executeQuery(user,query, queryOptions, rowHandler);
 		assertNotNull(results);
 		assertEquals(models, results.getColumnModels());
 		assertEquals(TableModelUtils.getSelectColumns(models), results.getSelectColumns());
@@ -869,7 +873,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListReturnFacets() throws Exception {
+	public void testExecuteQueryNonEmptyFacetColumnsListReturnFacets() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		
@@ -893,7 +897,7 @@ public class TableQueryManagerImplTest {
 		setupThreadPool();
 		
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user,mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.executeQuery(user,query, queryOptions, rowHandler);
 		assertNotNull(results);
 		assertNull(results.getColumnModels());
 		assertNull(results.getSelectColumns());
@@ -911,7 +915,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterAuthorizationWithSearchDisabled() throws Exception {
+	public void testExecuteQueryWithSearchDisabled() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.isSearchEnabled(any())).thenReturn(false);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
@@ -927,7 +931,7 @@ public class TableQueryManagerImplTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// call under test
-			manager.queryAsStreamAfterAuthorization(user, mockProgressCallbackVoid, query, rowHandler, queryOptions);
+			manager.executeQuery(user, query, queryOptions, rowHandler);
 		}).getMessage();
 		
 		assertEquals("Invalid use of TEXT_MATCHES. Full text search is not enabled on table syn123.", message);
@@ -935,7 +939,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterAuthorizationWithActionsRequired() throws Exception {
+	public void testExecuteQueryWithActionsRequired() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		setupQueryCallback();
@@ -963,7 +967,7 @@ public class TableQueryManagerImplTest {
 		QueryTranslations query = new QueryTranslations(context, queryOptions);
 		
 		// call under test
-		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(user, mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, rowHandler);
 				
 		verify(mockTableIndexDAO).executeInWriteTransaction(any());
 		
@@ -983,19 +987,71 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testRunQueryAsStream() throws ParseException{
+	public void testRunMainQueryWithRowHandler() throws ParseException {
 		setupQueryCallback();
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
 		SinglePageRowHandler rowHandler = new SinglePageRowHandler();
+		
 		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, mockSchemaProvider, user.getId()).indexDescription(new TableIndexDescription(idAndVersion)).build();
+		
+		RowSet expectedResult = new RowSet()
+				.setTableId(tableId)
+				.setHeaders(TableModelUtils.getSelectColumns(models));
+		
 		// call under test
-		RowSet rowSet = manager.runQueryAsStream(mockProgressCallbackVoid, query, rowHandler, mockTableIndexDAO);
-		assertNotNull(rowSet);
-		assertEquals(TableModelUtils.getSelectColumns(models), rowSet.getHeaders());
-		assertEquals(tableId, rowSet.getTableId());
+		RowSet rowSet = manager.runMainQuery(query, mockTableIndexDAO, rowHandler);
+		
+		verify(mockTableIndexDAO).queryAsStream(query, rowHandler);
+		
+		assertEquals(expectedResult, rowSet);
 		assertEquals(rows, rowHandler.getRows());
+	}
+	
+	@Test
+	public void testRunMainQueryWithCacheable() throws ParseException {
+		
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new TableIndexDescription(IdAndVersion.parse("syn456")));
+		
+		RowSet expectedResult = new RowSet().setTableId(tableId);
+		
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(expectedResult);
+		
+		IndexDescription cacheableIndexDescription = new VirtualTableIndexDescription(idAndVersion, "select * from syn456", mockTableManagerSupport);
+		
+		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, mockSchemaProvider, user.getId()).indexDescription(cacheableIndexDescription).build();
+		
+		// call under test
+		RowSet rowSet = manager.runMainQuery(query, mockTableIndexDAO, null);
+		
+		verify(mockQueryCacheManager).getQueryResults(mockTableIndexDAO, CachedQueryRequest.clone(query));
+
+		assertEquals(expectedResult, rowSet);
+	}
+	
+	@Test
+	public void testRunMainQueryWithNotCacheable() throws ParseException {
+		
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		
+		RowSet expectedResult = new RowSet().setTableId(tableId);
+		
+		when(mockTableIndexDAO.query(any())).thenReturn(expectedResult);
+		
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		
+		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, mockSchemaProvider, user.getId()).indexDescription(indexDescription).build();
+		
+		// call under test
+		RowSet rowSet = manager.runMainQuery(query, mockTableIndexDAO, null);
+
+		verify(mockTableIndexDAO).query(query);
+		
+		assertEquals(expectedResult, rowSet);
 	}
 	
 	@Test
@@ -1132,10 +1188,9 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		setupQueryCallback();
-		
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
+		when(mockTableIndexDAO.query(any())).thenReturn(new RowSet().setRows(rows));
 		
 		List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(models);
 		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(models);
@@ -1823,15 +1878,16 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		setupQueryCallback();
-		
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		// setup the results to return one row.
 		Row row = rows.get(0);
 		rows.clear();
 		rows.add(row);
+		
+		when(mockTableIndexDAO.query(any())).thenReturn(new RowSet().setRows(rows));
+		
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false).withReturnMaxRowsPerPage(true);
 		Query query = new Query();
 		query.setSql("select * from "+tableId);
@@ -1907,12 +1963,12 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		setupQueryCallback();
-		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		addRowIdAndVersionToRows();
 		convertRowsToEntityRows();
+		
+		when(mockTableIndexDAO.query(any())).thenReturn(new RowSet().setRows(rows));
 		
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false);
 		Query query = new Query();

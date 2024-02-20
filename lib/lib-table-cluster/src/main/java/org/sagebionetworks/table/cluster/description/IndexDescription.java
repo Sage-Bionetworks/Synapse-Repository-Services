@@ -122,6 +122,13 @@ public interface IndexDescription extends Comparable<IndexDescription> {
 	default String preprocessQuery(String sql) {
 		return sql;
 	}
+	
+	/**
+	 * @return True if a query against this index supports caching
+	 */
+	default boolean supportQueryCache() {
+		return false;
+	}
 
 	/**
 	 * Default @Comparable based on IdAndVersion.
