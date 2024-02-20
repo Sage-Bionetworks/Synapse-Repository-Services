@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster.description;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -131,5 +132,13 @@ public class TableIndexDescriptionTest {
 		// call under test
 		String expectedHash = DigestUtils.md5Hex("+syn3-3+syn1.1-1+syn1.2-2");
 		assertEquals(expectedHash, mv2.getTableHash());
+	}
+	
+	@Test
+	public void testSupportQueryCache() {
+		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"));
+		
+		// Call under test
+		assertFalse(tid.supportQueryCache());
 	}
 }

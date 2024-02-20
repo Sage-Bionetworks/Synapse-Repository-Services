@@ -2,6 +2,7 @@ package org.sagebionetworks.table.cluster.description;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -102,5 +103,15 @@ public class VirtualTableIndexDescriptionTest {
 			new VirtualTableIndexDescription(idAndVersion, definingSql, mockLookup);
 		}).getMessage();
 		assertEquals("IndexDescriptionLookup is required.", message);
+	}
+	
+	@Test
+	public void testSupportQueryCache() {
+		when(mockLookup.getIndexDescription(any())).thenReturn(mockIndexDescription);
+		
+		VirtualTableIndexDescription vtd = new VirtualTableIndexDescription(idAndVersion, definingSql, mockLookup);
+		
+		// call under test
+		assertTrue(vtd.supportQueryCache());
 	}
 }
