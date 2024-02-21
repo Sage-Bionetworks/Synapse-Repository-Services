@@ -56,7 +56,7 @@ public class QueryCacheManagerImpl implements QueryCacheManager {
 	RowSet executeQueryAndSaveToCache(TableIndexDAO indexDao, CachedQueryRequest request, String requestJson,
 			String hash, int expiresInSec) {
 		long start = clock.currentTimeMillis();
-		RowSet results = indexDao.query(null, request);
+		RowSet results = indexDao.query(request);
 		long runtimeMS = clock.currentTimeMillis() - start;
 		indexDao.saveCachedQuery(hash, requestJson, rowSetToJson(results), runtimeMS, expiresInSec);
 		return results;

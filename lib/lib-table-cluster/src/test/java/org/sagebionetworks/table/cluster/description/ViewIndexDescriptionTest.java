@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster.description;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
@@ -146,5 +147,13 @@ public class ViewIndexDescriptionTest {
 		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
 		// Call under test
 		assertTrue(vid.addRowIdToSearchIndex());
+	}
+	
+	@Test
+	public void testSupportQueryCache() {
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview);
+		
+		// Call under test
+		assertFalse(vid.supportQueryCache());
 	}
 }

@@ -185,7 +185,7 @@ public class QueryCacheManagerImplTest {
 		String requestJson = objectMapper.writeValueAsString(request);
 		int expiresInSec = 14;
 		RowSet rowSet = new RowSet().setTableId("syn123");
-		when(mockTableIndexDao.query(any(), any())).thenReturn(rowSet);
+		when(mockTableIndexDao.query(any())).thenReturn(rowSet);
 		when(mockClock.currentTimeMillis()).thenReturn(1L, 8L);
 		long runtime = 8-1;
 		String resultJson = "resultJson";
@@ -195,7 +195,7 @@ public class QueryCacheManagerImplTest {
 		RowSet result = manager.executeQueryAndSaveToCache(mockTableIndexDao, request, requestJson, hash, expiresInSec);
 		assertEquals(rowSet, result);
 		
-		verify(mockTableIndexDao).query(null, request);
+		verify(mockTableIndexDao).query(request);
 		verify(mockTableIndexDao).saveCachedQuery(hash, requestJson, resultJson, runtime, expiresInSec);
 		verify(mockClock, times(2)).currentTimeMillis();
 	}

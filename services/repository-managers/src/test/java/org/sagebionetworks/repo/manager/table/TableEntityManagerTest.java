@@ -123,7 +123,6 @@ import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -320,7 +319,7 @@ public class TableEntityManagerTest {
 		doAnswer(new Answer<Boolean>() {
 			@Override
 			public Boolean answer(InvocationOnMock invocation) throws Throwable {
-				RowHandler handler = (RowHandler) invocation.getArguments()[2];
+				RowHandler handler = (RowHandler) invocation.getArguments()[1];
 				// pass each row
 				long rowId = 0;
 				for(Row row: rows){
@@ -331,7 +330,7 @@ public class TableEntityManagerTest {
 				}
 				return true;
 			}
-		}).when(mockTableIndexDAO).queryAsStream(isNull(), any(QueryTranslator.class), any(RowHandler.class));
+		}).when(mockTableIndexDAO).queryAsStream(any(QueryTranslator.class), any(RowHandler.class));
 	}
 
 	void setUserAsFileHandleCreator() {

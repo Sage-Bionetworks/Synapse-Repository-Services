@@ -8,7 +8,6 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -75,11 +74,11 @@ public interface TableIndexDAO {
 
 	/**
 	 * Query a RowSet from the table.
-	 * 
 	 * @param query
+	 * 
 	 * @return
 	 */
-	RowSet query(ProgressCallback callback, TranslatedQuery query);
+	RowSet query(TranslatedQuery query);
 
 	/**
 	 * Run a simple count query.
@@ -93,12 +92,12 @@ public interface TableIndexDAO {
 	/**
 	 * Provides the means to stream over query results without keeping the row data
 	 * in memory.
-	 * 
 	 * @param query
 	 * @param handler
+	 * 
 	 * @return
 	 */
-	boolean queryAsStream(ProgressCallback callback, TranslatedQuery query, RowHandler handler);
+	boolean queryAsStream(TranslatedQuery query, RowHandler handler);
 
 	/**
 	 * 
