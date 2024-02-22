@@ -252,7 +252,7 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToU.getId())
-						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
+						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
@@ -288,9 +288,9 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<UsersRequirementStatus> expectedOne = Arrays.asList(
 				new UsersRequirementStatus().withRequirementId(projectToU.getId())
-						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true),
+						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true).withIsExemptionEligible(false),
 				new UsersRequirementStatus().withRequirementId(lockFolderOne.getId())
-						.withRequirementType(AccessRequirementType.LOCK).withIsUnmet(true));
+						.withRequirementType(AccessRequirementType.LOCK).withIsUnmet(true).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
@@ -298,9 +298,9 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<UsersRequirementStatus> expectedTwo = Arrays.asList(
 				new UsersRequirementStatus().withRequirementId(projectToU.getId())
-						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true),
+						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true).withIsExemptionEligible(false),
 				new UsersRequirementStatus().withRequirementId(managedFolderTwo.getId())
-						.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(true));
+						.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(true).withIsExemptionEligible(false));
 
 		result = results.get(1);
 		assertTrue(result.hasUnmet());
@@ -328,7 +328,8 @@ public class AccessRestrictionStatusDaoImplTest {
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(new UsersRequirementStatus()
-				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
+				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU)
+				.withIsUnmet(true).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
@@ -365,11 +366,11 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<UsersRequirementStatus> expected = Arrays.asList(
 				new UsersRequirementStatus().withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU)
-						.withIsUnmet(true),
+						.withIsUnmet(true).withIsExemptionEligible(false),
 				new UsersRequirementStatus().withRequirementId(lock.getId()).withRequirementType(AccessRequirementType.LOCK)
-						.withIsUnmet(true),
+						.withIsUnmet(true).withIsExemptionEligible(false),
 				new UsersRequirementStatus().withRequirementId(managed.getId())
-						.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(true));
+						.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(true).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
@@ -391,7 +392,7 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToU.getId())
-						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(false));
+						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(false).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
@@ -426,7 +427,7 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToU.getId())
-						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(false));
+						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(false).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
@@ -457,7 +458,7 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToU.getId())
-						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
+						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
@@ -506,7 +507,7 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToUV2.getId())
-						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(false));
+						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(false).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
@@ -555,7 +556,7 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToUV2.getId())
-						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
+						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
@@ -599,7 +600,7 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToUV2.getId())
-						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(false));
+						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(false).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
@@ -986,7 +987,8 @@ public class AccessRestrictionStatusDaoImplTest {
 		
 		expectedStatus.setHasUnmet(true);
 		expectedStatus.addRestrictionStatus(new UsersRequirementStatus().withRequirementId(managedAr.getId())
-				.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(true).withIsTwoFaRequired(true));
+				.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(true)
+				.withIsTwoFaRequired(true).withIsExemptionEligible(false));
 		
 		// call under test
 		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId), userOneId, Set.of(userOneId));
@@ -1085,7 +1087,8 @@ public class AccessRestrictionStatusDaoImplTest {
 		validateBasicSubjectStatus(subjectIds, results, userTwoId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(new UsersRequirementStatus()
-				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
+				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU)
+				.withIsUnmet(true).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
@@ -1123,7 +1126,8 @@ public class AccessRestrictionStatusDaoImplTest {
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(new UsersRequirementStatus()
-				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU).withIsUnmet(false));
+				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU)
+				.withIsUnmet(false).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
@@ -1155,7 +1159,8 @@ public class AccessRestrictionStatusDaoImplTest {
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(new UsersRequirementStatus()
-				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
+				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU)
+				.withIsUnmet(true).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
@@ -1189,9 +1194,9 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<UsersRequirementStatus> expected = Arrays.asList(
 				new UsersRequirementStatus().withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU)
-						.withIsUnmet(true),
+						.withIsUnmet(true).withIsExemptionEligible(false),
 				new UsersRequirementStatus().withRequirementId(lock.getId()).withRequirementType(AccessRequirementType.LOCK)
-						.withIsUnmet(true));
+						.withIsUnmet(true).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
@@ -1234,9 +1239,9 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<UsersRequirementStatus> expected = Arrays.asList(
 				new UsersRequirementStatus().withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU)
-						.withIsUnmet(true),
+						.withIsUnmet(true).withIsExemptionEligible(false),
 				new UsersRequirementStatus().withRequirementId(lock.getId()).withRequirementType(AccessRequirementType.LOCK)
-						.withIsUnmet(false));
+						.withIsUnmet(false).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
@@ -1288,9 +1293,9 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<UsersRequirementStatus> expected = Arrays.asList(
 				new UsersRequirementStatus().withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU)
-						.withIsUnmet(false),
+						.withIsUnmet(false).withIsExemptionEligible(false),
 				new UsersRequirementStatus().withRequirementId(lock.getId()).withRequirementType(AccessRequirementType.LOCK)
-						.withIsUnmet(false));
+						.withIsUnmet(false).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
@@ -1318,7 +1323,8 @@ public class AccessRestrictionStatusDaoImplTest {
 		validateBasicSubjectStatus(subjectIds, results, userTwoId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(new UsersRequirementStatus()
-				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
+				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU)
+				.withIsUnmet(true).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
@@ -1373,7 +1379,8 @@ public class AccessRestrictionStatusDaoImplTest {
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(new UsersRequirementStatus()
-				.withRequirementId(touV2.getId()).withRequirementType(AccessRequirementType.TOU).withIsUnmet(false));
+				.withRequirementId(touV2.getId()).withRequirementType(AccessRequirementType.TOU)
+				.withIsUnmet(false).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
@@ -1433,7 +1440,7 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		List<UsersRequirementStatus> expected = Arrays
 				.asList(new UsersRequirementStatus().withRequirementId(projectToU.getId())
-						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true));
+						.withRequirementType(AccessRequirementType.TOU).withIsUnmet(true).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertTrue(result.hasUnmet());
@@ -1472,7 +1479,8 @@ public class AccessRestrictionStatusDaoImplTest {
 		validateBasicSubjectStatus(subjectIds, results, userOneId);
 
 		List<UsersRequirementStatus> expected = Arrays.asList(new UsersRequirementStatus()
-				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU).withIsUnmet(false));
+				.withRequirementId(tou.getId()).withRequirementType(AccessRequirementType.TOU)
+				.withIsUnmet(false).withIsExemptionEligible(false));
 
 		UsersRestrictionStatus result = results.get(0);
 		assertFalse(result.hasUnmet());
