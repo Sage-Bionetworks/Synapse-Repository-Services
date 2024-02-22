@@ -15,14 +15,16 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.table.query.ActionsRequiredQuery;
 import org.sagebionetworks.repo.manager.table.query.BasicQuery;
+import org.sagebionetworks.repo.manager.table.query.CacheableQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
+import org.sagebionetworks.repo.manager.table.query.QueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
+import org.sagebionetworks.repo.manager.table.query.StreamingQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
@@ -50,11 +52,11 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -116,32 +118,30 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		try {
 			// Set the default values
 			TableQueryManagerImpl.setDefaultsValues(query);
-			// handler will capture the results of the query.
-			SinglePageRowHandler rowHandler = null;
-			if (options.runQuery()) {
-				rowHandler = new SinglePageRowHandler();
-			}
-
+			
 			//get combined sql before pre-flight and authorization
 			String combinedSql = null;
+			
 			if (options.returnCombinedSql()) {
 				combinedSql = createCombinedSql(user, query);
 			}
+			
 			// pre-flight includes parsing and authorization
 			QueryTranslations sqlQuery = queryPreflight(user, query, this.maxBytesPerRequest, options);
 			
+			QueryExecutor queryExecutor = new CacheableQueryExecutor(queryCacheManager, CACHED_QUERY_EXPIRES_IN_SEC);
+			
 			// run the query as a stream.
-			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, rowHandler, options);
+			QueryResultBundle bundle = queryAfterAuthorization(progressCallback, user, sqlQuery, options, queryExecutor);
+			
 			// add combined sql to the bundle
 			bundle.setCombinedSql(combinedSql);
+			
 			// save the max rows per page.
-			if(options.returnMaxRowsPerPage()) {
+			if (options.returnMaxRowsPerPage()) {
 				bundle.setMaxRowsPerPage(sqlQuery.getMainQuery().getTranslator().getMaxRowsPerPage());
 			}
-			// add captured rows to the bundle
-			if (options.runQuery()) {
-				bundle.getQueryResult().getQueryResults().setRows(rowHandler.getRows());
-			}
+			
 			int maxRowsPerPage = sqlQuery.getMainQuery().getTranslator().getMaxRowsPerPage().intValue();
 			// add the next page token if needed
 			if (isRowCountEqualToMaxRowsPerPage(bundle, maxRowsPerPage)) {
@@ -150,6 +150,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 						nextOffset, query.getLimit(), query.getSelectedFacets());
 				bundle.getQueryResult().setNextPageToken(nextPageToken);
 			}
+			
 			return bundle;
 		} catch (EmptyResultException e) {
 			// return an empty result.
@@ -269,8 +270,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws EmptyResultException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStream(final ProgressCallback progressCallback, final UserInfo user, final QueryTranslations query,
-			final RowHandler rowHandler, final QueryOptions options)
+	QueryResultBundle queryAfterAuthorization(final ProgressCallback progressCallback, final UserInfo user, final QueryTranslations query,
+			final QueryOptions options, final QueryExecutor queryExecutor)
 			throws DatastoreException, NotFoundException, TableUnavailableException, TableFailedException,
 			LockUnavilableException, EmptyResultException {
 		// run with a read lock on the table and include the current etag.
@@ -279,10 +280,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					// We can only run this query if the table is available.
 					final TableStatus status = validateTableIsAvailable(idAndVersion.toString());
 					// run the query
-					QueryResultBundle bundle = queryAsStreamAfterAuthorization(user, progressCallback, query,
-							rowHandler, options);
+					QueryResultBundle bundle = executeQuery(user, query, options, queryExecutor);
 					// add the status to the result
-					if (rowHandler != null) {
+					if (options.runQuery()) {
 						// the etag is only returned for consistent queries.
 						bundle.getQueryResult().getQueryResults().setEtag(status.getLastTableChangeEtag());
 					}
@@ -320,7 +320,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * Run a query as a stream after all authorization checks have been performed
 	 * and any any required row-level filtering has been applied.
 	 * 
-	 * @param progressCallback
 	 * @param user
 	 * @param query
 	 * @param offset
@@ -334,8 +333,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStreamAfterAuthorization(UserInfo user, ProgressCallback progressCallback, QueryTranslations query,
-			RowHandler rowHandler, final QueryOptions options)
+	QueryResultBundle executeQuery(UserInfo user, QueryTranslations query, final QueryOptions options, QueryExecutor queryExecutor)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
 		QueryResultBundle bundle = new QueryResultBundle();
@@ -355,9 +353,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 
 		// run the actual query if needed.
-		if (rowHandler != null) {
+		if (options.runQuery()) {
 			// run the query
-			RowSet rowSet = runQueryAsStream(progressCallback, query.getMainQuery().getTranslator(), rowHandler, indexDao);
+			RowSet rowSet = runMainQuery(queryExecutor, indexDao, query.getMainQuery().getTranslator());
 			QueryResult queryResult = new QueryResult();
 			queryResult.setQueryResults(rowSet);
 			bundle.setQueryResult(queryResult);
@@ -415,8 +413,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		List<Future<FacetColumnResult>> futures = new ArrayList<>(transformers.size());
 		for (FacetTransformer facetQueryTransformer : transformers) {
 			futures.add(threadPool.submit(() -> {
-				RowSet rowSet = queryCacheManager.getQueryResults(indexDao, CachedQueryRequest
-						.clone(facetQueryTransformer.getFacetSqlQuery()).setExpiresInSec(CACHED_QUERY_EXPIRES_IN_SEC));
+				CachedQueryRequest cacheRequest = CachedQueryRequest.clone(facetQueryTransformer.getFacetSqlQuery()).setExpiresInSec(CACHED_QUERY_EXPIRES_IN_SEC);
+				RowSet rowSet = queryCacheManager.getQueryResults(indexDao, cacheRequest);
 				return facetQueryTransformer.translateToResult(rowSet);
 			}));
 		}
@@ -545,8 +543,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				handler.writeHeader();
 			}
 
+			StreamingQueryExecutor queryExecutor = new StreamingQueryExecutor(handler);
 
-			QueryResultBundle result = queryAsStream(progressCallback, user, query, handler, options);
+			QueryResultBundle result = queryAfterAuthorization(progressCallback, user, query, options, queryExecutor);
 			// convert the response
 			DownloadFromTableResult response = new DownloadFromTableResult();
 			response.setHeaders(result.getSelectColumns());
@@ -559,22 +558,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 	}
 
-	/**
-	 * The last step to running an actaul query against the table as a stream.
-	 * 
-	 * @param callback
-	 * @param query
-	 * @param rowHandler
-	 * @return
-	 */
-	RowSet runQueryAsStream(ProgressCallback callback, QueryTranslator query, RowHandler rowHandler, TableIndexDAO indexDao) {
-		ValidateArgument.required(query, "query");
-		ValidateArgument.required(rowHandler, "rowHandler");
-		indexDao.queryAsStream(callback, query, rowHandler);
-		RowSet results = new RowSet();
-		results.setHeaders(query.getSelectColumns());
-		results.setTableId(query.getSingleTableIdOptional().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
-		return results;
+	RowSet runMainQuery(QueryExecutor queryExecutor, TableIndexDAO indexDao, QueryTranslator query) {
+		ValidateArgument.required(queryExecutor, "The queryExecutor");
+		ValidateArgument.required(indexDao, "The indexDao");
+		ValidateArgument.required(query, "The query");
+		return queryExecutor.executeQuery(indexDao, query);
 	}
 
 	/**

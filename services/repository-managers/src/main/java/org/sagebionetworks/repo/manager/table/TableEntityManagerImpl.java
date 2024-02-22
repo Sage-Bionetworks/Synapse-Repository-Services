@@ -495,7 +495,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		final Map<Long, Row> rowMap = new HashMap<Long, Row>(rows.size());
 		QueryTranslator query = QueryTranslator.builder(sql, tableManagerSupport, userInfo.getId())
 				.indexDescription(indexDescription).build();
-		indexDao.queryAsStream(null, query, new RowHandler() {
+		indexDao.queryAsStream(query, new RowHandler() {
 			@Override
 			public void nextRow(Row row) {
 				rowMap.put(row.getRowId(), row);

@@ -76,5 +76,10 @@ public class VirtualTableIndexDescription implements IndexDescription {
 	public String preprocessQuery(String sql) {
 		return String.format("WITH %s AS (%s) %s", idAndVersion.toString(), definingSql, sql);
 	}
+	
+	@Override
+	public boolean supportQueryCache() {
+		return true;
+	}
 
 }

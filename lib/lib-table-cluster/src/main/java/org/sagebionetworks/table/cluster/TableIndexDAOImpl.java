@@ -74,7 +74,6 @@ import javax.sql.DataSource;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.json.JSONArray;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -435,21 +434,19 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public RowSet query(ProgressCallback callback, final TranslatedQuery query) {
-		if (query == null)
-			throw new IllegalArgumentException("SqlQuery cannot be null");
+	public RowSet query(final TranslatedQuery query) {
+		ValidateArgument.required(query, "The query");
+		
 		final List<Row> rows = new LinkedList<Row>();
 		final RowSet rowSet = new RowSet();
+		
 		rowSet.setRows(rows);
 		rowSet.setHeaders(query.getSelectColumns());
+		
 		// Stream over the results and save the results in a a list
-		queryAsStream(callback, query, new RowHandler() {
-			@Override
-			public void nextRow(Row row) {
-				rows.add(row);
-			}
-		});
-		if(query.getSingleTableId() == null) {
+		queryAsStream(query, rows::add);
+		
+		if (query.getSingleTableId() == null) {
 			throw TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT.get();
 		}
 		rowSet.setTableId(query.getSingleTableId());
@@ -465,17 +462,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public boolean queryAsStream(final ProgressCallback callback, final TranslatedQuery query, final RowHandler handler) {
+	public boolean queryAsStream(final TranslatedQuery query, final RowHandler handler) {
 		ValidateArgument.required(query, "Query");
 		final ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(query.getSelectColumns());
+		
 		// We use spring to create create the prepared statement
-		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
-			@Override
-			public void processRow(ResultSet rs) throws SQLException {
-				Row row = SQLTranslatorUtils.readRow(rs, query.getIncludesRowIdAndVersion(), query.getIncludeEntityEtag(), infoArray);
-				handler.nextRow(row);
-			}
+		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), (RowCallbackHandler) rs -> {
+			Row row = SQLTranslatorUtils.readRow(rs, query.getIncludesRowIdAndVersion(), query.getIncludeEntityEtag(), infoArray);
+			handler.nextRow(row);
 		});
+		
 		return true;
 	}
 	

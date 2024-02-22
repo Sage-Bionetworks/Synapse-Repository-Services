@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster.description;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -213,5 +214,13 @@ public class MaterializedViewIndexDescriptionTest {
 				new ViewIndexDescription(IdAndVersion.parse("syn888.2"), TableType.entityview),
 				new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview));
 		assertEquals(expectedDependencies, mid.getDependencies());
+	}
+	
+	@Test
+	public void testSupportQueryCache() {
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(IdAndVersion.parse("syn123"), Collections.emptyList());
+		
+		// Call under test
+		assertFalse(mid.supportQueryCache());
 	}
 }
