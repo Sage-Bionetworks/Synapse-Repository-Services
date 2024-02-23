@@ -675,7 +675,7 @@ public class AccessRestrictionStatusDaoImplTest {
 	}
 
 	@Test
-	public void testIsExemptionEligibleWhenMultipleACLsShareSameAR() {
+	public void testIsExemptionEligibleWhenMultipleACLsONAR() {
 		setupNodeHierarchy(userTwoId);
 		Long subjectIdOne = KeyFactory.stringToKey(file.getId());
 		Long subjectIdTwo = KeyFactory.stringToKey(fileTwo.getId());
