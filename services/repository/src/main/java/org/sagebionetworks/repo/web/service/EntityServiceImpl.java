@@ -797,7 +797,7 @@ public class EntityServiceImpl implements EntityService {
 
 	@Override
 	public ValidateDefiningSqlResponse validateDefiningSql(ValidateDefiningSqlRequest request) {
-		ValidateArgument.requiredNotBlank(request.getDefiningSql(), "definingSql");
+		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getEntityType(), "entityType");
 
 		EntityType entityType = EntityType.valueOf(request.getEntityType().name());

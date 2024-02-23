@@ -12,6 +12,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -135,16 +136,16 @@ public class MaterializedViewManagerImplTest {
 
 	@Test
 	public void testValidateDefiningSql() {
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new MaterializedViewIndexDescription(
-				idAndVersion, Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
+		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn123"))).thenReturn(new MaterializedViewIndexDescription(
+				IdAndVersion.parse("syn123"), Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(syn123Schema);	
 		setupGetColumns(syn123Schema);
 		
 		// Call under test
 		managerSpy.validateDefiningSql("SELECT * FROM syn123");
 		
-		verify(mockTableManagerSupport).getIndexDescription(any());
-		verify(mockTableManagerSupport).getTableSchema(idAndVersion);
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn123"));
+		verify(mockTableManagerSupport).getTableSchema(IdAndVersion.parse("syn123"));
 	}
 
 	@Test
@@ -212,26 +213,58 @@ public class MaterializedViewManagerImplTest {
 		}).getMessage();
 		
 		assertEquals("Resource '192' does not exist", errorMessage);
+		
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn192"));
+	}
+	
+	@Test
+	public void testValidateDefiningSqlWithMultipleDependencies() {
+		List<ColumnModel> syn456Schema = Arrays.asList(TableModelTestUtils.createColumn(111L, "abc", ColumnType.INTEGER),
+				TableModelTestUtils.createColumn(222L, "def", ColumnType.STRING));
+		
+		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn123"))).thenReturn(new MaterializedViewIndexDescription(
+				IdAndVersion.parse("syn123"), Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
+		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn456"))).thenReturn(new MaterializedViewIndexDescription(
+				IdAndVersion.parse("syn456"), Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
+		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
+		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn456"))).thenReturn(syn456Schema);
+		setupGetColumns(syn123Schema);
+		setupGetColumns(syn456Schema);
+		
+		// Call under test
+		managerSpy.validateDefiningSql("SELECT foo, bar FROM syn123 UNION SELECT abc, def FROM syn456");
+		
+		verify(mockTableManagerSupport, times(2)).getIndexDescription(any());
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn123"));
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn456"));
+		verify(mockTableManagerSupport, times(2)).getTableSchema(any());
+		verify(mockTableManagerSupport).getTableSchema(IdAndVersion.parse("syn123"));
+		verify(mockTableManagerSupport).getTableSchema(IdAndVersion.parse("syn456"));
 	}
 	
 	@Test
 	public void testValidateDefiningSqlWithExistentAndNonExistentDependencies() {
+		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn123"))).thenReturn(new MaterializedViewIndexDescription(
+				IdAndVersion.parse("syn123"), Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
 		doThrow(new NotFoundException("Resource '192' does not exist"))
 				.when(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn192"));
 		
 		// Call under test
 		String errorMessage = assertThrows(NotFoundException.class, () -> {
-			managerSpy.validateDefiningSql("SELECT * FROM syn123 JOIN syn192");
+			managerSpy.validateDefiningSql("SELECT * FROM syn123 UNION SELECT * FROM syn192");
 		}).getMessage();
 		
 		assertEquals("Resource '192' does not exist", errorMessage);
+		verify(mockTableManagerSupport, times(2)).getIndexDescription(any());
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn123"));
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn192"));
 	}
 	
 	@Test
 	public void testValidateDefiningSqlWithUnknownColumn() {
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new MaterializedViewIndexDescription(
+		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn123"))).thenReturn(new MaterializedViewIndexDescription(
 				idAndVersion, Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
-		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(syn123Schema);
+		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
 		
 		// Call under test
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
@@ -239,6 +272,9 @@ public class MaterializedViewManagerImplTest {
 		}).getMessage();
 		
 		assertEquals("Unknown column notreal", errorMessage);
+		
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn123"));
+		verify(mockTableManagerSupport).getTableSchema(IdAndVersion.parse("syn123"));
 	}
 	
 

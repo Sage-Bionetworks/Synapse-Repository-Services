@@ -76,12 +76,16 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		QueryExpression query = getQuerySpecification(definingSql);
 		
 		List<IndexDescription> indexDescriptions = getSourceTableIds(query).stream()
+				.sorted() // Sorting to keep iteration sequence consistent for testing
+				// getIndexDescription is validating each column we are trying to reference
 				.map(sourceTableId -> tableManagerSupport.getIndexDescription(sourceTableId))
 				.collect(Collectors.toList());
 
+		// We do not know the id of the MV yet, so we use a temporary one just for validation
 		IndexDescription indexDescription = 
 				new MaterializedViewIndexDescription(IdAndVersion.parse("syn1"), indexDescriptions);
 		
+		// Performs validation on the schema of the definingSql
 		QueryTranslator.builder()
 				.sql(definingSql)
 				.schemaProvider(tableManagerSupport)

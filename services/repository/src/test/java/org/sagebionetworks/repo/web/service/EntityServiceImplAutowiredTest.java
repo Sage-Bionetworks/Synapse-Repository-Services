@@ -894,6 +894,7 @@ public class EntityServiceImplAutowiredTest  {
 		assertFalse(table.getIsSearchEnabled());
 	}
 	
+	// Test to reproduce https://sagebionetworks.jira.com/browse/PLFM-8209
 	@Test
 	public void testValidateDefiningSqlWithNonExistentDependencies() {
 		ValidateDefiningSqlRequest request = new ValidateDefiningSqlRequest()

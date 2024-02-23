@@ -334,16 +334,14 @@ public class EntityServiceImplUnitTest {
 	}
 	
 	@Test
-	public void testValidateDefiningSqlWithBlankSql() {
-		ValidateDefiningSqlRequest request = new ValidateDefiningSqlRequest()
-				.setDefiningSql("   ")
-				.setEntityType(DefiningSqlEntityType.materializedview);
+	public void testValidateDefiningSqlWithNullRequest() {
+		ValidateDefiningSqlRequest request = null;
 		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			entityService.validateDefiningSql(request);	
 		}).getMessage();
 		
-		assertEquals("definingSql is required and must not be a blank string.", errorMessage);
+		assertEquals("request is required.", errorMessage);
 	}
 	
 	@Test
