@@ -72,7 +72,22 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	@Override
 	public void validateDefiningSql(String definingSql) {
 		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the materialized view");
-		getQuerySpecification(definingSql);
+		
+		QueryExpression query = getQuerySpecification(definingSql);
+		
+		List<IndexDescription> indexDescriptions = getSourceTableIds(query).stream()
+				.map(sourceTableId -> tableManagerSupport.getIndexDescription(sourceTableId))
+				.collect(Collectors.toList());
+
+		IndexDescription indexDescription = 
+				new MaterializedViewIndexDescription(IdAndVersion.parse("syn1"), indexDescriptions);
+		
+		QueryTranslator.builder()
+				.sql(definingSql)
+				.schemaProvider(tableManagerSupport)
+				.sqlContext(SqlContext.build)
+				.indexDescription(indexDescription)
+				.build();
 	}
 	
 	@Override

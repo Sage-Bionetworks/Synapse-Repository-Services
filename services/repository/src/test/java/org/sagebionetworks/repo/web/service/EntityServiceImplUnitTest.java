@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.table.DefiningSqlEntityType;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.ValidateDefiningSqlRequest;
 import org.sagebionetworks.repo.model.table.ValidateDefiningSqlResponse;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.metadata.AllTypesValidator;
 import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificCreateProvider;
@@ -236,82 +237,125 @@ public class EntityServiceImplUnitTest {
 
 	@Test
 	public void testValidateDefiningSql() {
-		String sql = "select * from syn123";
-		DefiningSqlEntityType definingSqlEntityType = DefiningSqlEntityType.materializedview;
-		EntityType entityType = EntityType.materializedview;
-		ValidateDefiningSqlRequest mockRequest = new ValidateDefiningSqlRequest().setDefiningSql(sql).setEntityType(definingSqlEntityType);
+		ValidateDefiningSqlRequest mockRequest = new ValidateDefiningSqlRequest()
+				.setDefiningSql("SELECT * FROM syn123")
+				.setEntityType(DefiningSqlEntityType.materializedview);
 		ValidateDefiningSqlResponse expected = new ValidateDefiningSqlResponse().setIsValid(true);
-
+	
+		
 		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.of(mockMaterializedViewDefiningSqlProvider));
 
 		// Call under test
 		ValidateDefiningSqlResponse response = entityService.validateDefiningSql(mockRequest);
 
-		verify(mockMetadataProviderFactory).getMetadataProvider(entityType);
-		verify(mockMaterializedViewDefiningSqlProvider).validateDefiningSql(sql);
+		verify(mockMetadataProviderFactory).getMetadataProvider(EntityType.materializedview);
+		verify(mockMaterializedViewDefiningSqlProvider).validateDefiningSql("SELECT * FROM syn123");
 
 		assertEquals(expected, response);
 	}
 
 	@Test
 	public void testValidateDefiningSqlWithNullProviders() {
-		String sql = "select * from syn123";
-		DefiningSqlEntityType definingSqlEntityType = DefiningSqlEntityType.materializedview;
-		EntityType entityType = EntityType.materializedview;
-		ValidateDefiningSqlRequest mockRequest = new ValidateDefiningSqlRequest().setDefiningSql(sql).setEntityType(definingSqlEntityType);
+		ValidateDefiningSqlRequest request = new ValidateDefiningSqlRequest()
+				.setDefiningSql("SELECT * FROM syn123")
+				.setEntityType(DefiningSqlEntityType.materializedview);
 
 		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.empty());
 
 		String errorMessage = assertThrows(IllegalStateException.class, () -> {
 			// Call under test
-			entityService.validateDefiningSql(mockRequest);
+			entityService.validateDefiningSql(request);
 		}).getMessage();
 
-		verify(mockMetadataProviderFactory).getMetadataProvider(entityType);
-		verify(mockMaterializedViewDefiningSqlProvider, never()).validateDefiningSql(sql);
+		verify(mockMetadataProviderFactory).getMetadataProvider(EntityType.materializedview);
+		verify(mockMaterializedViewDefiningSqlProvider, never()).validateDefiningSql(any());
 
-		assertEquals("No provider found for the given entity type: " + entityType, errorMessage);
+		assertEquals("No provider found for the given entity type: materializedview", errorMessage);
 	}
 
 	@Test 
 	public void testValidateDefiningSqlWithInvalidProviders() {
-		String sql = "select * from syn123";
-		DefiningSqlEntityType definingSqlEntityType = DefiningSqlEntityType.materializedview;
-		EntityType entityType = EntityType.materializedview;
-		ValidateDefiningSqlRequest mockRequest = new ValidateDefiningSqlRequest().setDefiningSql(sql).setEntityType(definingSqlEntityType);
+		ValidateDefiningSqlRequest request = new ValidateDefiningSqlRequest()
+				.setDefiningSql("SELECT * FROM syn123")
+				.setEntityType(DefiningSqlEntityType.materializedview);
 
 		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.of(mockProjectCreateProvider));
 
 		String errorMessage = assertThrows(IllegalStateException.class, () -> {
 			// call under test
-			entityService.validateDefiningSql(mockRequest);
+			entityService.validateDefiningSql(request);
 		}).getMessage();
 
-		verify(mockMetadataProviderFactory).getMetadataProvider(entityType);
-		verify(mockMaterializedViewDefiningSqlProvider, never()).validateDefiningSql(sql);
+		verify(mockMetadataProviderFactory).getMetadataProvider(EntityType.materializedview);
+		verify(mockMaterializedViewDefiningSqlProvider, never()).validateDefiningSql(any());
 
 		assertEquals("The given entity has provider that is not of type TypeSpecificDefiningSqlProvider.", errorMessage);
 	}
 
 	@Test
 	public void testValidateDefiningSqlWithInvalidSql() {
-		String sql = "this is invalid sql";
-		String invalidReason = "Encountered \" <regular_identifier> \"invalid\"";
-		DefiningSqlEntityType definingSqlEntityType = DefiningSqlEntityType.materializedview;
-		EntityType entityType = EntityType.materializedview;
-		ValidateDefiningSqlRequest mockRequest = new ValidateDefiningSqlRequest().setDefiningSql(sql).setEntityType(definingSqlEntityType);
+		ValidateDefiningSqlRequest request = new ValidateDefiningSqlRequest()
+				.setDefiningSql("this is invalid sql")
+				.setEntityType(DefiningSqlEntityType.materializedview);
 
 		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.of(mockMaterializedViewDefiningSqlProvider));
-		doThrow(new IllegalArgumentException(invalidReason))
-			.when(mockMaterializedViewDefiningSqlProvider).validateDefiningSql(sql);
+		doThrow(new IllegalArgumentException("Encountered \" <regular_identifier> \"invalid\""))
+			.when(mockMaterializedViewDefiningSqlProvider).validateDefiningSql(request.getDefiningSql());
 
 		// Call under test
-		ValidateDefiningSqlResponse response = entityService.validateDefiningSql(mockRequest);
+		ValidateDefiningSqlResponse response = entityService.validateDefiningSql(request);
 
-		verify(mockMetadataProviderFactory).getMetadataProvider(entityType);
-		verify(mockMaterializedViewDefiningSqlProvider).validateDefiningSql(sql);
+		verify(mockMetadataProviderFactory).getMetadataProvider(EntityType.materializedview);
+		verify(mockMaterializedViewDefiningSqlProvider).validateDefiningSql("this is invalid sql");
 
 		assertFalse(response.getIsValid());
-		assertEquals(invalidReason, response.getInvalidReason());
+		assertEquals("Encountered \" <regular_identifier> \"invalid\"", response.getInvalidReason());
+	}
+	
+	@Test
+	public void testValidateDefiningSqlWithNonExistentDependencies() {
+		ValidateDefiningSqlRequest request = new ValidateDefiningSqlRequest()
+				.setDefiningSql("SELECT * FROM syn192")
+				.setEntityType(DefiningSqlEntityType.materializedview);
+		
+		when(mockMetadataProviderFactory.getMetadataProvider(any())).thenReturn(Optional.of(mockMaterializedViewDefiningSqlProvider));
+		doThrow(new NotFoundException("Resource '192' does not exist"))
+				.when(mockMaterializedViewDefiningSqlProvider).validateDefiningSql(request.getDefiningSql());
+		
+		// Call under test
+		String errorMessage = assertThrows(NotFoundException.class, () -> {
+			entityService.validateDefiningSql(request);	
+		}).getMessage();
+		
+		verify(mockMetadataProviderFactory).getMetadataProvider(EntityType.materializedview);
+		verify(mockMaterializedViewDefiningSqlProvider).validateDefiningSql("SELECT * FROM syn192");
+		
+		assertEquals("Resource '192' does not exist", errorMessage);
+	}
+	
+	@Test
+	public void testValidateDefiningSqlWithBlankSql() {
+		ValidateDefiningSqlRequest request = new ValidateDefiningSqlRequest()
+				.setDefiningSql("   ")
+				.setEntityType(DefiningSqlEntityType.materializedview);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.validateDefiningSql(request);	
+		}).getMessage();
+		
+		assertEquals("definingSql is required and must not be a blank string.", errorMessage);
+	}
+	
+	@Test
+	public void testValidateDefiningSqlWithNullEntityType() {
+		ValidateDefiningSqlRequest request = new ValidateDefiningSqlRequest()
+				.setDefiningSql("SELECT * FROM syn123")
+				.setEntityType(null);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.validateDefiningSql(request);	
+		}).getMessage();
+		
+		assertEquals("entityType is required.", errorMessage); 
 	}
 }

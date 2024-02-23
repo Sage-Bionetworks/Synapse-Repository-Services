@@ -50,11 +50,13 @@ import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DefiningSqlEntityType;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.ValidateDefiningSqlRequest;
 import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
@@ -890,5 +892,16 @@ public class EntityServiceImplAutowiredTest  {
 		// The failure of the lock acquisition should roll back the main transaction
 		assertEquals("SampleTable", table.getName());
 		assertFalse(table.getIsSearchEnabled());
+	}
+	
+	@Test
+	public void testValidateDefiningSqlWithNonExistentDependencies() {
+		ValidateDefiningSqlRequest request = new ValidateDefiningSqlRequest()
+				.setDefiningSql("SELECT * FROM syn192")
+				.setEntityType(DefiningSqlEntityType.materializedview);
+		
+		assertThrows(NotFoundException.class, () -> {
+			entityService.validateDefiningSql(request);
+		});
 	}
 }
