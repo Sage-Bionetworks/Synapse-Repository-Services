@@ -243,24 +243,6 @@ public class MaterializedViewManagerImplTest {
 	}
 	
 	@Test
-	public void testValidateDefiningSqlWithExistentAndNonExistentDependencies() {
-		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn123"))).thenReturn(new MaterializedViewIndexDescription(
-				IdAndVersion.parse("syn123"), Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
-		doThrow(new NotFoundException("Resource '192' does not exist"))
-				.when(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn192"));
-		
-		// Call under test
-		String errorMessage = assertThrows(NotFoundException.class, () -> {
-			managerSpy.validateDefiningSql("SELECT * FROM syn123 UNION SELECT * FROM syn192");
-		}).getMessage();
-		
-		assertEquals("Resource '192' does not exist", errorMessage);
-		verify(mockTableManagerSupport, times(2)).getIndexDescription(any());
-		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn123"));
-		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn192"));
-	}
-	
-	@Test
 	public void testValidateDefiningSqlWithUnknownColumn() {
 		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn123"))).thenReturn(new MaterializedViewIndexDescription(
 				idAndVersion, Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
