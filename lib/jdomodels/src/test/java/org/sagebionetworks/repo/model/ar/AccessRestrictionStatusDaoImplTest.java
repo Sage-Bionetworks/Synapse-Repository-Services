@@ -626,17 +626,22 @@ public class AccessRestrictionStatusDaoImplTest {
 		});
 
 		Long subjectId = KeyFactory.stringToKey(project.getId());
-		
-		UsersRestrictionStatus expectedStatus = new UsersRestrictionStatus(subjectId, userOneId);
-		
-		expectedStatus.setHasUnmet(false);
-		expectedStatus.addRestrictionStatus(new UsersRequirementStatus().withRequirementId(managedAr.getId())
-				.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(false).withIsTwoFaRequired(true)
-				.withIsExemptionEligible(false));
 
 		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId), userOneId, Set.of(userOneId));
-		
-		assertEquals(List.of(expectedStatus), results);
+
+		assertEquals(List.of(
+				new UsersRestrictionStatus()
+						.withSubjectId(subjectId)
+						.withUserId(userOneId)
+						.withHasUnmet(false)
+						.withRestrictionStatus(List.of(
+								new UsersRequirementStatus()
+										.withRequirementId(managedAr.getId())
+										.withRequirementType(AccessRequirementType.MANAGED_ATC)
+										.withIsUnmet(false)
+										.withIsTwoFaRequired(true)
+										.withIsExemptionEligible(false)))
+		), results);
 	}
 
 	/**
@@ -669,15 +674,39 @@ public class AccessRestrictionStatusDaoImplTest {
 		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId), userTwoId,
 				Set.of(userTwoId));
 
-		assertEquals(List.of(getUserRestrictionStatus(subjectId, userTwoId, managedAr.getId(), true,
-				false, true)), results);
+		assertEquals(List.of(
+				new UsersRestrictionStatus()
+						.withSubjectId(subjectId)
+						.withUserId(userTwoId)
+						.withHasUnmet(true)
+						.withRestrictionStatus(List.of(
+								new UsersRequirementStatus()
+										.withRequirementId(managedAr.getId())
+										.withRequirementType(AccessRequirementType.MANAGED_ATC)
+										.withIsUnmet(true)
+										.withIsTwoFaRequired(false)
+										.withIsExemptionEligible(true)
+						))
+		), results);
 
 		// call under test for the user does not have exemption
 		List<UsersRestrictionStatus> resultTwo = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId), userOneId,
 				Set.of(userOneId));
 
-		assertEquals(List.of(getUserRestrictionStatus(subjectId, userOneId, managedAr.getId(), true,
-				false, false)), resultTwo);
+		assertEquals(List.of(
+				new UsersRestrictionStatus()
+						.withSubjectId(subjectId)
+						.withUserId(userOneId)
+						.withHasUnmet(true)
+						.withRestrictionStatus(List.of(
+								new UsersRequirementStatus()
+										.withRequirementId(managedAr.getId())
+										.withRequirementType(AccessRequirementType.MANAGED_ATC)
+										.withIsUnmet(true)
+										.withIsTwoFaRequired(false)
+										.withIsExemptionEligible(false)
+						))
+		), resultTwo);
 	}
 
 	/**
@@ -687,7 +716,7 @@ public class AccessRestrictionStatusDaoImplTest {
 	@Test
 	public void testIsExemptionEligibleWhenMultipleACLsONAR() {
 		setupNodeHierarchy(userTwoId);
-		Long subjectIdOne = KeyFactory.stringToKey(file.getId());
+		Long subjectId = KeyFactory.stringToKey(file.getId());
 
 		ManagedACTAccessRequirement managedAr = managedHelper.create(ar -> {
 			ar.setCreatedBy(userThreeId.toString());
@@ -726,17 +755,26 @@ public class AccessRestrictionStatusDaoImplTest {
 		} , ObjectType.ACCESS_REQUIREMENT);
 
 
-		UsersRestrictionStatus expectedStatusOne = new UsersRestrictionStatus(subjectIdOne, userTwoId);
-		expectedStatusOne.setHasUnmet(false);
-		expectedStatusOne.addRestrictionStatus(new UsersRequirementStatus().withRequirementId(managedAr.getId())
-				.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(false).withIsTwoFaRequired(false)
-				.withIsExemptionEligible(true));
-		expectedStatusOne.addRestrictionStatus(new UsersRequirementStatus().withRequirementId(managedArTwo.getId())
-				.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(false).withIsTwoFaRequired(false)
-				.withIsExemptionEligible(false));
+		UsersRestrictionStatus expectedStatusOne = new UsersRestrictionStatus()
+				.withSubjectId(subjectId)
+				.withUserId(userTwoId)
+				.withHasUnmet(false)
+				.withRestrictionStatus(List.of(
+						new UsersRequirementStatus()
+								.withRequirementId(managedAr.getId())
+								.withRequirementType(AccessRequirementType.MANAGED_ATC)
+								.withIsUnmet(false)
+								.withIsTwoFaRequired(false)
+								.withIsExemptionEligible(true),
+						new UsersRequirementStatus()
+								.withRequirementId(managedArTwo.getId())
+								.withRequirementType(AccessRequirementType.MANAGED_ATC)
+								.withIsUnmet(false)
+								.withIsTwoFaRequired(false)
+								.withIsExemptionEligible(false)));
 
 		// call under test
-		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectIdOne), userTwoId,
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId), userTwoId,
 				Set.of(userTwoId));
 
 		assertEquals(List.of(expectedStatusOne), results);
@@ -752,7 +790,7 @@ public class AccessRestrictionStatusDaoImplTest {
 		groupMembersDAO.addMembers(teamTwoId.toString(), List.of(userTwoId.toString()));
 
 		setupNodeHierarchy(userTwoId);
-		Long subjectIdOne = KeyFactory.stringToKey(file.getId());
+		Long subjectId = KeyFactory.stringToKey(file.getId());
 
 		ManagedACTAccessRequirement managedAr = managedHelper.create(ar -> {
 			ar.setCreatedBy(userThreeId.toString());
@@ -774,18 +812,40 @@ public class AccessRestrictionStatusDaoImplTest {
 		} , ObjectType.ACCESS_REQUIREMENT);
 
 		// call under test for user has groups which are exempted
-		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectIdOne),
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId),
 				userTwoId, Set.of(teamOneId, teamTwoId, userTwoId));
 
-		assertEquals(List.of(getUserRestrictionStatus(subjectIdOne, userTwoId, managedAr.getId(), false,
-				false, true)), results);
+		assertEquals(List.of(
+						new UsersRestrictionStatus()
+								.withSubjectId(subjectId)
+								.withUserId(userTwoId)
+								.withHasUnmet(false)
+								.withRestrictionStatus(List.of(
+										new UsersRequirementStatus()
+												.withRequirementId(managedAr.getId())
+												.withRequirementType(AccessRequirementType.MANAGED_ATC)
+												.withIsUnmet(false)
+												.withIsTwoFaRequired(false)
+												.withIsExemptionEligible(true)))
+			), results);
 
 		// call under test for user itself
-		List<UsersRestrictionStatus> resultsTwo = accessRestrictionStatusDao.getEntityStatus(List.of(subjectIdOne),
+		List<UsersRestrictionStatus> resultsTwo = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId),
 				userTwoId, Set.of(userTwoId));
 
-		assertEquals(List.of(getUserRestrictionStatus(subjectIdOne, userTwoId, managedAr.getId(), false,
-				false, false)), resultsTwo);
+		assertEquals(List.of(
+						new UsersRestrictionStatus()
+								.withSubjectId(subjectId)
+								.withUserId(userTwoId)
+								.withHasUnmet(false)
+								.withRestrictionStatus(List.of(
+										new UsersRequirementStatus()
+												.withRequirementId(managedAr.getId())
+												.withRequirementType(AccessRequirementType.MANAGED_ATC)
+												.withIsUnmet(false)
+												.withIsTwoFaRequired(false)
+												.withIsExemptionEligible(false)))
+		), resultsTwo);
 	}
 
 	/**
@@ -796,7 +856,7 @@ public class AccessRestrictionStatusDaoImplTest {
 		groupMembersDAO.addMembers(teamOneId.toString(),List.of(userTwoId.toString()));
 
 		setupNodeHierarchy(userTwoId);
-		Long subjectIdOne = KeyFactory.stringToKey(file.getId());
+		Long subjectId = KeyFactory.stringToKey(file.getId());
 
 		ManagedACTAccessRequirement managedAr = managedHelper.create(ar -> {
 			ar.setCreatedBy(userThreeId.toString());
@@ -836,18 +896,40 @@ public class AccessRestrictionStatusDaoImplTest {
 		} , ObjectType.ORGANIZATION);
 
 		// call under test for user group has exemption eligible
-		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectIdOne),
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId),
 				userTwoId, Set.of(teamOneId, userTwoId));
 
-		assertEquals(List.of(getUserRestrictionStatus(subjectIdOne, userTwoId, managedAr.getId(), false,
-				false, true)), results);
+		assertEquals(List.of(
+						new UsersRestrictionStatus()
+								.withSubjectId(subjectId)
+								.withUserId(userTwoId)
+								.withHasUnmet(false)
+								.withRestrictionStatus(List.of(
+										new UsersRequirementStatus()
+												.withRequirementId(managedAr.getId())
+												.withRequirementType(AccessRequirementType.MANAGED_ATC)
+												.withIsUnmet(false)
+												.withIsTwoFaRequired(false)
+												.withIsExemptionEligible(true)))
+		), results);
 
 		// call under test for user itself
-		List<UsersRestrictionStatus> resultsTwo = accessRestrictionStatusDao.getEntityStatus(List.of(subjectIdOne),
+		List<UsersRestrictionStatus> resultsTwo = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId),
 				userTwoId, Set.of(userTwoId));
 
-		assertEquals(List.of(getUserRestrictionStatus(subjectIdOne, userTwoId, managedAr.getId(), false,
-				false, false)), resultsTwo);
+		assertEquals(List.of(
+						new UsersRestrictionStatus()
+								.withSubjectId(subjectId)
+								.withUserId(userTwoId)
+								.withHasUnmet(false)
+								.withRestrictionStatus(List.of(
+										new UsersRequirementStatus()
+												.withRequirementId(managedAr.getId())
+												.withRequirementType(AccessRequirementType.MANAGED_ATC)
+												.withIsUnmet(false)
+												.withIsTwoFaRequired(false)
+												.withIsExemptionEligible(false)))
+		), resultsTwo);
 	}
 
 	/**
@@ -858,7 +940,7 @@ public class AccessRestrictionStatusDaoImplTest {
 	public void testSameAClGrantsExemptionEligibleAndNonExemptionEligibleToSameUser() {
 		groupMembersDAO.addMembers(teamOneId.toString(),List.of(userTwoId.toString(), userOneId.toString()));
 		setupNodeHierarchy(userTwoId);
-		Long subjectIdOne = KeyFactory.stringToKey(file.getId());
+		Long subjectId = KeyFactory.stringToKey(file.getId());
 
 		ManagedACTAccessRequirement managedAr = managedHelper.create(ar -> {
 			ar.setCreatedBy(userThreeId.toString());
@@ -880,18 +962,40 @@ public class AccessRestrictionStatusDaoImplTest {
 		} , ObjectType.ACCESS_REQUIREMENT);
 
 		// call under test for user has exemption as individual, User is also member of group has no exemption
-		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectIdOne),
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId),
 				userTwoId, Set.of(userTwoId, teamOneId));
 
-		assertEquals(List.of(getUserRestrictionStatus(subjectIdOne, userTwoId, managedAr.getId(), false,
-				false, true)), results);
+		assertEquals(List.of(
+				new UsersRestrictionStatus()
+						.withSubjectId(subjectId)
+						.withUserId(userTwoId)
+						.withHasUnmet(false)
+						.withRestrictionStatus(List.of(
+								new UsersRequirementStatus()
+										.withRequirementId(managedAr.getId())
+										.withRequirementType(AccessRequirementType.MANAGED_ATC)
+										.withIsUnmet(false)
+										.withIsTwoFaRequired(false)
+										.withIsExemptionEligible(true)))
+		), results);
 
 		// call under test for user and its groups have no exemption
-		List<UsersRestrictionStatus> resultsTwo = accessRestrictionStatusDao.getEntityStatus(List.of(subjectIdOne),
+		List<UsersRestrictionStatus> resultsTwo = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId),
 				userOneId, Set.of(userOneId, teamOneId));
 
-		assertEquals(List.of(getUserRestrictionStatus(subjectIdOne, userOneId, managedAr.getId(), true,
-				false, false)), resultsTwo);
+		assertEquals(List.of(
+						new UsersRestrictionStatus()
+								.withSubjectId(subjectId)
+								.withUserId(userOneId)
+								.withHasUnmet(true)
+								.withRestrictionStatus(List.of(
+										new UsersRequirementStatus()
+												.withRequirementId(managedAr.getId())
+												.withRequirementType(AccessRequirementType.MANAGED_ATC)
+												.withIsUnmet(true)
+												.withIsTwoFaRequired(false)
+												.withIsExemptionEligible(false)))
+		), resultsTwo);
 	}
 
 
@@ -901,7 +1005,7 @@ public class AccessRestrictionStatusDaoImplTest {
 	@Test
 	public void testIsExemptionEligibleOnARButNotForUser() {
 		setupNodeHierarchy(userTwoId);
-		Long subjectIdOne = KeyFactory.stringToKey(file.getId());
+		Long subjectId = KeyFactory.stringToKey(file.getId());
 
 		ManagedACTAccessRequirement managedAr = managedHelper.create(ar -> {
 			ar.setCreatedBy(userThreeId.toString());
@@ -921,24 +1025,42 @@ public class AccessRestrictionStatusDaoImplTest {
 		} , ObjectType.ACCESS_REQUIREMENT);
 
 		// call under test for user does not have exemption for AR
-		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectIdOne),
+		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId),
 				userTwoId, Set.of(userTwoId));
 
-		assertEquals(List.of(getUserRestrictionStatus(subjectIdOne, userTwoId, managedAr.getId(), false,
-				false, false)), results);
-
-		UsersRestrictionStatus expectedStatusTwo = new UsersRestrictionStatus(subjectIdOne, userOneId);
-		expectedStatusTwo.setHasUnmet(true);
-		expectedStatusTwo.addRestrictionStatus(new UsersRequirementStatus().withRequirementId(managedAr.getId())
-				.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(true).withIsTwoFaRequired(false)
-				.withIsExemptionEligible(true));
+		assertEquals(List.of(
+				new UsersRestrictionStatus()
+						.withSubjectId(subjectId)
+						.withUserId(userTwoId)
+						.withHasUnmet(false)
+						.withRestrictionStatus(List.of(
+										new UsersRequirementStatus()
+												.withRequirementId(managedAr.getId())
+												.withRequirementType(AccessRequirementType.MANAGED_ATC)
+												.withIsUnmet(false)
+												.withIsTwoFaRequired(false)
+												.withIsExemptionEligible(false)
+						))
+		), results);
 
 		// call under test for has exemption for AR
-		List<UsersRestrictionStatus> resultsTwo = accessRestrictionStatusDao.getEntityStatus(List.of(subjectIdOne),
+		List<UsersRestrictionStatus> resultsTwo = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId),
 				userOneId, Set.of(userOneId));
 
-		assertEquals(List.of(getUserRestrictionStatus(subjectIdOne, userOneId, managedAr.getId(), true,
-				false, true)), resultsTwo);
+		assertEquals(List.of(
+				new UsersRestrictionStatus()
+						.withSubjectId(subjectId)
+						.withUserId(userOneId)
+						.withHasUnmet(true)
+						.withRestrictionStatus(List.of(
+								new UsersRequirementStatus()
+										.withRequirementId(managedAr.getId())
+										.withRequirementType(AccessRequirementType.MANAGED_ATC)
+										.withIsUnmet(true)
+										.withIsTwoFaRequired(false)
+										.withIsExemptionEligible(true)
+						))
+		), resultsTwo);
 	}
 	
 	@Test
@@ -953,17 +1075,23 @@ public class AccessRestrictionStatusDaoImplTest {
 
 		Long subjectId = KeyFactory.stringToKey(project.getId());
 		
-		UsersRestrictionStatus expectedStatus = new UsersRestrictionStatus(subjectId, userOneId);
-		
-		expectedStatus.setHasUnmet(true);
-		expectedStatus.addRestrictionStatus(new UsersRequirementStatus().withRequirementId(managedAr.getId())
-				.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(true)
-				.withIsTwoFaRequired(true).withIsExemptionEligible(false));
-		
 		// call under test
 		List<UsersRestrictionStatus> results = accessRestrictionStatusDao.getEntityStatus(List.of(subjectId), userOneId, Set.of(userOneId));
 		
-		assertEquals(List.of(expectedStatus), results);
+		assertEquals(List.of(
+				new UsersRestrictionStatus()
+						.withSubjectId(subjectId)
+						.withUserId(userOneId)
+						.withHasUnmet(true)
+						.withRestrictionStatus(List.of(
+								new UsersRequirementStatus()
+										.withRequirementId(managedAr.getId())
+										.withRequirementType(AccessRequirementType.MANAGED_ATC)
+										.withIsUnmet(true)
+										.withIsTwoFaRequired(true)
+										.withIsExemptionEligible(false)
+						))
+		), results);
 	}
 
 	@Test
@@ -1514,16 +1642,6 @@ public class AccessRestrictionStatusDaoImplTest {
 			n.setParentId(folderTwo.getId());
 			n.setNodeType(EntityType.file);
 		});
-	}
-
-	private UsersRestrictionStatus getUserRestrictionStatus(Long subjectId, Long userId, Long requirementId,
-															boolean hasUnmet, boolean isTwoFaRequired, boolean isExemptionEligible) {
-		UsersRestrictionStatus expectedStatus = new UsersRestrictionStatus(subjectId, userId);
-		expectedStatus.setHasUnmet(hasUnmet);
-		expectedStatus.addRestrictionStatus(new UsersRequirementStatus().withRequirementId(requirementId)
-				.withRequirementType(AccessRequirementType.MANAGED_ATC).withIsUnmet(hasUnmet).withIsTwoFaRequired(isTwoFaRequired)
-				.withIsExemptionEligible(isExemptionEligible));
-		return expectedStatus;
 	}
 
 }

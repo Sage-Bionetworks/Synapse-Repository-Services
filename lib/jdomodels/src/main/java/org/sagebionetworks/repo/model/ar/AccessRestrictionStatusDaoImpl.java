@@ -1,13 +1,5 @@
 package org.sagebionetworks.repo.model.ar;
 
-import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -18,6 +10,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Repository
 public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDao {
@@ -65,7 +65,9 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 		}
 		final Map<Long, UsersRestrictionStatus> statusMap = new LinkedHashMap<Long, UsersRestrictionStatus>(entityIds.size());
 		for (Long entityId : entityIds) {
-			UsersRestrictionStatus status = new UsersRestrictionStatus(entityId, userId);
+			UsersRestrictionStatus status = new UsersRestrictionStatus()
+												.withSubjectId(entityId)
+												.withUserId(userId);
 			statusMap.put(entityId, status);
 		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
@@ -98,12 +100,17 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 			Boolean isExemptionEligible = rs.getBoolean(IS_EXEMPTION_ELIGIBLE);
 			UsersRestrictionStatus status = statusMap.get(entityId);
 			if (approved != null && !approved) {
-				status.setHasUnmet(true);
+				status.withHasUnmet(true);
 			}			
 			if (requirementId != null) {
-				status.addRestrictionStatus(new UsersRequirementStatus().withRequirementId(requirementId)
-						.withRequirementType(requirementType).withIsUnmet(!approved).withIsTwoFaRequired(isTwoFaRequired)
-						.withIsExemptionEligible(isExemptionEligible));
+				status.withRestrictionStatus(List.of(
+						new UsersRequirementStatus()
+								.withRequirementId(requirementId)
+								.withRequirementType(requirementType)
+								.withIsUnmet(!approved)
+								.withIsTwoFaRequired(isTwoFaRequired)
+								.withIsExemptionEligible(isExemptionEligible)
+				));
 			}
 		});
 		return statusMap;
@@ -129,7 +136,9 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 		}
 		final Map<Long, UsersRestrictionStatus> statusMap = new LinkedHashMap<Long, UsersRestrictionStatus>(subjectIds.size());
 		for (Long subjectId : subjectIds) {
-			UsersRestrictionStatus status = new UsersRestrictionStatus(subjectId, userId);
+			UsersRestrictionStatus status = new UsersRestrictionStatus()
+												.withSubjectId(subjectId)
+												.withUserId(userId);
 			statusMap.put(subjectId, status);
 		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
@@ -153,11 +162,14 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 			}
 			UsersRestrictionStatus status = statusMap.get(subjectId);
 			if (!approved) {
-				status.setHasUnmet(true);
+				status.withHasUnmet(true);
 			}
 			if (requirementId != null) {
-				status.addRestrictionStatus(new UsersRequirementStatus().withRequirementId(requirementId)
-						.withRequirementType(requirementType).withIsUnmet(!approved));
+				status.withRestrictionStatus(List.of(
+						new UsersRequirementStatus()
+								.withRequirementId(requirementId)
+								.withRequirementType(requirementType)
+								.withIsUnmet(!approved)));
 			}
 		});
 		return new ArrayList<UsersRestrictionStatus>(statusMap.values());

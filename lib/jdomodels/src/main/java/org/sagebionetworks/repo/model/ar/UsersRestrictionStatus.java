@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.model.ar;
 
+import org.sagebionetworks.repo.model.RestrictionLevel;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
-import org.sagebionetworks.repo.model.RestrictionLevel;
 
 /**
  * The user's access restriction status for a single subject. This object
@@ -16,18 +16,48 @@ public class UsersRestrictionStatus {
 
 	private Long subjectId;
 	private Long userId;
-	private List<UsersRequirementStatus> accessRestrictions;
-	private boolean hasUnmet;
+	private List<UsersRequirementStatus> accessRestrictions = new ArrayList<>();
+	private boolean hasUnmet = false;
 
-	public UsersRestrictionStatus(Long subjectId, Long userId) {
+	/**
+	 *
+	 * @param subjectId
+	 * @return
+	 */
+	public UsersRestrictionStatus withSubjectId(Long subjectId) {
 		this.subjectId = subjectId;
-		this.userId = userId;
-		this.accessRestrictions = new ArrayList<UsersRequirementStatus>();
-		this.hasUnmet = false;
+		return this;
 	}
 
-	public void addRestrictionStatus(UsersRequirementStatus toAdd) {
-		this.accessRestrictions.add(toAdd);
+	/**
+	 *
+	 * @param userId
+	 * @return
+	 */
+	public UsersRestrictionStatus withUserId(Long userId) {
+		this.userId = userId;
+		return this;
+	}
+
+
+	/**
+	 *
+	 * @param accessRestrictions
+	 * @return
+	 */
+	public UsersRestrictionStatus withRestrictionStatus(List<UsersRequirementStatus> accessRestrictions) {
+		this.accessRestrictions.addAll(accessRestrictions);
+		return this;
+	}
+
+	/**
+	 *
+	 * @param hasUnmet
+	 * @return
+	 */
+	public UsersRestrictionStatus withHasUnmet(boolean hasUnmet) {
+		this.hasUnmet = hasUnmet;
+		return this;
 	}
 
 	/**
@@ -38,12 +68,6 @@ public class UsersRestrictionStatus {
 		return hasUnmet;
 	}
 
-	/**
-	 * @param hasUnmet True if the user has unmet access restrictions for this
-	 */
-	public void setHasUnmet(boolean hasUnmet) {
-		this.hasUnmet = hasUnmet;
-	}
 
 	/**
 	 * @return the subjectId
