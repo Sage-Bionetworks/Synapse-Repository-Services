@@ -1,18 +1,5 @@
 package org.sagebionetworks.repo.manager.entity;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
-
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +27,19 @@ import org.sagebionetworks.repo.model.download.EnableTwoFa;
 import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
 import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 
 @ExtendWith(MockitoExtension.class)
 public class EntityAuthorizationManagerUnitTest {
@@ -87,11 +87,11 @@ public class EntityAuthorizationManagerUnitTest {
 		mapIdToState = new LinkedHashMap<Long, UserEntityPermissionsState>();
 		mapIdToState.put(entityIdLong, permissionsState);
 		
-		accessRestrictions = new UsersRestrictionStatus(entityIdLong, userInfo.getId());
+		accessRestrictions = new UsersRestrictionStatus().withSubjectId(entityIdLong).withUserId(userInfo.getId());
 		mapIdToAccess = new LinkedHashMap<Long, UsersRestrictionStatus>();
 		mapIdToAccess.put(entityIdLong, accessRestrictions);
 		
-		restrictionStatus = new UsersRestrictionStatus(entityIdLong, userInfo.getId());
+		restrictionStatus = new UsersRestrictionStatus().withSubjectId(entityIdLong).withUserId(userInfo.getId());
 		accessContext = new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
 				.withRestrictionStatus(restrictionStatus);
 	}
@@ -99,7 +99,7 @@ public class EntityAuthorizationManagerUnitTest {
 	@Test
 	public void testGetUserPermissionsForEntityWithNoPermissions() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		userInfo.setAcceptsTermsOfUse(false);
@@ -110,7 +110,7 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
@@ -118,7 +118,7 @@ public class EntityAuthorizationManagerUnitTest {
 	@Test
 	public void testGetUserPermissionsForEntityWithCertifiedUser() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		userInfo.setAcceptsTermsOfUse(false);
@@ -130,14 +130,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanCreate() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -154,14 +154,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanCreateButNotCertified() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -178,14 +178,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanChangePermission() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -200,14 +200,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanMoveTrue() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -226,14 +226,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanMoveAndNoChangePermissoins() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -252,14 +252,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanMoveAndNoUpdate() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -278,14 +278,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanChangeSettings() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -300,14 +300,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanDelete() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -322,14 +322,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanEdit() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -345,14 +345,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanEditNotCertified() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -369,14 +369,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanView() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -391,14 +391,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanPublicRead() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -413,14 +413,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanDownload() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -435,7 +435,7 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
@@ -445,7 +445,7 @@ public class EntityAuthorizationManagerUnitTest {
 	@Test
 	public void testGetUserPermissionsForEntityWithCanUploadFalse() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -459,7 +459,7 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
@@ -470,7 +470,7 @@ public class EntityAuthorizationManagerUnitTest {
 	@Test
 	public void testGetUserPermissionsForEntityWithCanUploadTrue() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -484,14 +484,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanModerate() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -506,14 +506,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCreatedBy() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -529,14 +529,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithCanEnableInheritance() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
@@ -553,14 +553,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithNullDateType() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDataType(null);
@@ -574,14 +574,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithDateTypeOpenDate() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDataType(DataType.OPEN_DATA);
@@ -595,14 +595,14 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
 	@Test
 	public void testGetUserPermissionsForEntityWithDateTypeSensitiveDate() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
-		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);		
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);		
 		
 		permissionsState.withDataType(DataType.SENSITIVE_DATA);
 
@@ -615,7 +615,7 @@ public class EntityAuthorizationManagerUnitTest {
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
-		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
 	
@@ -781,8 +781,8 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
 		
-		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L));
-		restrictionStatus.setHasUnmet(false);
+		restrictionStatus.withRestrictionStatus(List.of(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L)));
+		restrictionStatus.withHasUnmet(false);
 
 		List<FileActionRequired> expected = List.of(
 			new FileActionRequired().withFileId(entityIdLong)
@@ -803,9 +803,10 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
 		
-		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L));
-		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(321L));
-		restrictionStatus.setHasUnmet(true);
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L),
+				new UsersRequirementStatus().withIsUnmet(true).withRequirementId(321L)));
+		restrictionStatus.withHasUnmet(true);
 
 		List<FileActionRequired> expected = List.of(
 			new FileActionRequired().withFileId(entityIdLong)
@@ -841,9 +842,10 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
 		
-		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(432L));
-		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(321L));
-		restrictionStatus.setHasUnmet(true);
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus().withIsUnmet(true).withRequirementId(432L),
+				new UsersRequirementStatus().withIsUnmet(true).withRequirementId(321L)));
+		restrictionStatus.withHasUnmet(true);
 
 		List<FileActionRequired> expected = List.of(
 			new FileActionRequired().withFileId(entityIdLong)
@@ -867,9 +869,10 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
 		
-		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(432L).withIsTwoFaRequired(false));
-		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(789L).withIsTwoFaRequired(true));
-		restrictionStatus.setHasUnmet(true);
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus().withIsUnmet(true).withRequirementId(432L).withIsTwoFaRequired(false),
+				new UsersRequirementStatus().withIsUnmet(true).withRequirementId(789L).withIsTwoFaRequired(true)));
+		restrictionStatus.withHasUnmet(true);
 
 		List<FileActionRequired> expected = List.of(
 			new FileActionRequired().withFileId(entityIdLong)
@@ -895,8 +898,8 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
 		
-		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L).withIsTwoFaRequired(true));
-		restrictionStatus.setHasUnmet(false);
+		restrictionStatus.withRestrictionStatus(List.of(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L).withIsTwoFaRequired(true)));
+		restrictionStatus.withHasUnmet(false);
 		userInfo.setTwoFactorAuthEnabled(true);
 
 		List<FileActionRequired> expected = List.of(
@@ -918,8 +921,8 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
 		
-		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L).withIsTwoFaRequired(true));
-		restrictionStatus.setHasUnmet(false);
+		restrictionStatus.withRestrictionStatus(List.of(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L).withIsTwoFaRequired(true)));
+		restrictionStatus.withHasUnmet(false);
 
 		List<FileActionRequired> expected = List.of(
 			new FileActionRequired().withFileId(entityIdLong)
