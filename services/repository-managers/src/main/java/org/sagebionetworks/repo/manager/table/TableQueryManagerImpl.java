@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
@@ -572,10 +573,24 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @return
 	 */
 	long runCountQuery(CountQuery query, TableIndexDAO indexDao) {
-		return query.getCountQuery().map(countSqlQuery->{
-
-			// execute the count query
-			Long count = indexDao.countQuery(countSqlQuery.getSql(), countSqlQuery.getParameters());
+		return query.getCountQuery().map(countSqlQuery-> {
+			
+			CachedQueryRequest cacheRequest = new CachedQueryRequest()
+				.setOutputSQL(countSqlQuery.getSql())
+				.setParameters(countSqlQuery.getParameters())
+				.setSelectColumns(List.of(new SelectColumn().setColumnType(ColumnType.INTEGER)))
+				.setIncludesRowIdAndVersion(false)
+				.setIncludesRowIdAndVersion(false)
+				.setSingleTableId(query.getSingleTableId())
+				.setTableHash(query.getTableHash())
+				.setExpiresInSec(CACHED_QUERY_EXPIRES_IN_SEC);
+			
+			RowSet result = queryCacheManager.getQueryResults(indexDao, cacheRequest);
+			
+			Long count = result.getRows().stream()
+				.findFirst()
+				.map( row -> row.getValues().stream().findFirst().map(Long::valueOf).orElse(0L))
+				.orElse(0L);
 
 			/*
 			 * Post processing for count. When a limit and/or offset is specified in a
@@ -583,7 +598,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			 * to the one row count(*) returns. In actuality, we want to apply that limit &
 			 * offset to the count itself. We do that here manually.
 			 */
-			Pagination pagination = query.getOrignialPagination();
+			Pagination pagination = query.getOriginalPagination();
 			if (pagination != null) {
 				if (pagination.getOffsetLong() != null) {
 					long offsetForCount = pagination.getOffsetLong();

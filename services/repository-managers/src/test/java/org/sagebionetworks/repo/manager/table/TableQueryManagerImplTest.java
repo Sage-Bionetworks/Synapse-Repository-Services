@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -17,6 +16,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COLUMN_MODELS;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COUNT;
@@ -190,6 +190,8 @@ public class TableQueryManagerImplTest {
 	
 	private QueryContext.Builder queriesBuilder;
 	private RowSet rowSet;
+	private RowSet countRowSet;
+	private Long count;
 	
 	@BeforeEach
 	public void before() throws Exception {
@@ -214,6 +216,9 @@ public class TableQueryManagerImplTest {
 					.setRows(rows)
 					.setTableId(tableId)
 					.setHeaders(TableModelUtils.getSelectColumns(models));
+		count = 201L;
+		countRowSet = new RowSet()
+				.setRows(List.of(new Row().setValues(List.of(count.toString()))));
 				
 		// Writer that captures lines
 		writtenLines = new LinkedList<String[]>();
@@ -662,18 +667,15 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testExecuteQueryCountOnly() throws Exception {
-		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
-		
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
-		Long count = 201L;
 		// setup count results
-		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(count);
-		// null handler indicates not to run the main query.
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		
 		queryOptions = new QueryOptions().withRunCount(true);
+		
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
 		
 		// call under test
@@ -719,21 +721,19 @@ public class TableQueryManagerImplTest {
 	 */
 	@Test
 	public void testExecuteQueryWithLimit() throws Exception {
-		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
-		Long count = 201L;
 		// setup count results
-		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(count);
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId+" limit 11").build(), queryOptions);
 		// call under test
 		QueryResultBundle results = manager.executeQuery(user,query, queryOptions, mockQueryExecutor);
 		assertNotNull(results);
-		assertEquals(new Long(11), results.getQueryCount());
+		assertEquals(11L, results.getQueryCount());
 	}
 	
 	@Test
@@ -759,15 +759,11 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testExecuteQueryQueryAndCount() throws Exception {
-		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		when(mockQueryExecutor.executeQuery(any(), any())).thenReturn(rowSet);	
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
-		
-		Long count = 201L;
-		// setup count results
-		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(count);
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		
 		queryOptions = new QueryOptions().withRunCount(true).withRunQuery(true);
 				QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
@@ -839,11 +835,10 @@ public class TableQueryManagerImplTest {
 		
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
-		Long count = 201L;
 		// setup count results
-		ArgumentCaptor<String> queryStringCaptor = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<CachedQueryRequest> countQueryCaptor = ArgumentCaptor.forClass(CachedQueryRequest.class);
 		//capture the query to check that the queryToRun is result of appendFacetSearchCondition() and not the original query
-		when(mockTableIndexDAO.countQuery(queryStringCaptor.capture(), paramsCaptor.capture())).thenReturn(count);
+		when(mockQueryCacheManager.getQueryResults(any(), countQueryCaptor.capture())).thenReturn(countRowSet);
 
 		List<FacetColumnRequest> facetRequestList = new ArrayList<>();
 		facetRequestList.add(facetColumnRequest);
@@ -864,10 +859,8 @@ public class TableQueryManagerImplTest {
 		assertNull(results.getQueryResult());
 		
 		//check to make sure count query was run using a SqlQuery with an facet WHERE clause
-		assertTrue(queryStringCaptor.getValue().contains("WHERE ( ( _C2_ <= :b0 ) )"));
-		Map<String, Object> capturedParams = paramsCaptor.getValue();
-		assertFalse(capturedParams.isEmpty());
-		assertEquals(facetMax, capturedParams.get("b0").toString());
+		assertTrue(countQueryCaptor.getValue().getOutputSQL().contains("WHERE ( ( _C2_ <= :b0 ) )"));
+		assertEquals(facetMax, countQueryCaptor.getValue().getParameters().get("b0").toString());
 	}
 	
 	@Test
@@ -1163,7 +1156,6 @@ public class TableQueryManagerImplTest {
 			throws Exception {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
-		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
@@ -1177,9 +1169,8 @@ public class TableQueryManagerImplTest {
 		maxBytesPerRequest = maxRowSizeBytes*10;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
 		Long maxRowsPerPage = new Long(maxBytesPerRequest/maxRowSizeBytes);
-		// setup the count
-		Long count = 101L;
-		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(count);
+
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
@@ -1718,81 +1709,148 @@ public class TableQueryManagerImplTest {
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
 		assertEquals(1l, count);
 		// no need to run a query for a simple aggregate
-		verify(mockTableIndexDAO, never()).countQuery(anyString(), anyMap());
+		verifyZeroInteractions(mockQueryCacheManager);
 	}
 	
 	@Test
 	public void testRunCountQueryNoPagination() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		CountQuery query = new CountQuery(queriesBuilder.setStartingSql("select i0 from "+tableId+" where i0 = 'aValue'").build());
-		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
-		assertEquals(200L, count);
-		assertEquals("SELECT COUNT(*) FROM T123 WHERE _C0_ = :b0", sqlCaptrue.getValue());
-		verify(mockTableIndexDAO).countQuery(anyString(), anyMap());
+		
+		assertEquals(this.count, count);
+		
+		verify(mockQueryCacheManager).getQueryResults(mockTableIndexDAO, new CachedQueryRequest()
+			.setExpiresInSec(TableQueryManagerImpl.CACHED_QUERY_EXPIRES_IN_SEC)
+			.setIncludeEntityEtag(false)
+			.setIncludesRowIdAndVersion(false)
+			.setOutputSQL("SELECT COUNT(*) FROM T123 WHERE _C0_ = :b0")
+			.setParameters(Map.of("b0", "aValue"))
+			.setSelectColumns(List.of(new SelectColumn().setColumnType(ColumnType.INTEGER)))
+			.setSingleTableId("syn123")
+			.setTableHash("d41d8cd98f00b204e9800998ecf8427e")
+		);
+		
 	}
 	
 	@Test
 	public void testRunCountQueryWithLimitLessCount() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		CountQuery query = new CountQuery(queriesBuilder.setStartingSql("select i0 from "+tableId+" limit 100").build());
-		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
+		
 		assertEquals(100L, count);
+		
+		verify(mockQueryCacheManager).getQueryResults(mockTableIndexDAO, new CachedQueryRequest()
+			.setExpiresInSec(TableQueryManagerImpl.CACHED_QUERY_EXPIRES_IN_SEC)
+			.setIncludeEntityEtag(false)
+			.setIncludesRowIdAndVersion(false)
+			.setOutputSQL("SELECT COUNT(*) FROM T123")
+			.setParameters(Collections.emptyMap())
+			.setSelectColumns(List.of(new SelectColumn().setColumnType(ColumnType.INTEGER)))
+			.setSingleTableId("syn123")
+			.setTableHash("d41d8cd98f00b204e9800998ecf8427e")
+		);
 	}
 	
 	@Test
 	public void testRunCountQueryWithLimitMoreCount() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		CountQuery query = new CountQuery(queriesBuilder.setStartingSql("select i0 from "+tableId+" limit 300").build());
-		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
-		assertEquals(200L, count);
+		
+		assertEquals(this.count, count);
+		
+		verify(mockQueryCacheManager).getQueryResults(mockTableIndexDAO, new CachedQueryRequest()
+			.setExpiresInSec(TableQueryManagerImpl.CACHED_QUERY_EXPIRES_IN_SEC)
+			.setIncludeEntityEtag(false)
+			.setIncludesRowIdAndVersion(false)
+			.setOutputSQL("SELECT COUNT(*) FROM T123")
+			.setParameters(Collections.emptyMap())
+			.setSelectColumns(List.of(new SelectColumn().setColumnType(ColumnType.INTEGER)))
+			.setSingleTableId("syn123")
+			.setTableHash("d41d8cd98f00b204e9800998ecf8427e")
+		);
 	}
 		
 	@Test
 	public void testRunCountQueryWithLimitAndOffsetLessThanCount() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		CountQuery query = new CountQuery(queriesBuilder.setStartingSql("select i0 from "+tableId+" limit 100 offset 50").build());
-		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
+		
 		assertEquals(100L, count);
+		
+		verify(mockQueryCacheManager).getQueryResults(mockTableIndexDAO, new CachedQueryRequest()
+			.setExpiresInSec(TableQueryManagerImpl.CACHED_QUERY_EXPIRES_IN_SEC)
+			.setIncludeEntityEtag(false)
+			.setIncludesRowIdAndVersion(false)
+			.setOutputSQL("SELECT COUNT(*) FROM T123")
+			.setParameters(Collections.emptyMap())
+			.setSelectColumns(List.of(new SelectColumn().setColumnType(ColumnType.INTEGER)))
+			.setSingleTableId("syn123")
+			.setTableHash("d41d8cd98f00b204e9800998ecf8427e")
+		);
 	}
 	
 	@Test
 	public void testRunCountQueryWithLimitAndOffsetMoreThanCount() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		CountQuery query = new CountQuery(queriesBuilder.setStartingSql("select i0 from "+tableId+" limit 100 offset 150").build());
-		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
+		
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
-		assertEquals(50L, count);
+		
+		assertEquals(51L, count);
+		
+		verify(mockQueryCacheManager).getQueryResults(mockTableIndexDAO, new CachedQueryRequest()
+			.setExpiresInSec(TableQueryManagerImpl.CACHED_QUERY_EXPIRES_IN_SEC)
+			.setIncludeEntityEtag(false)
+			.setIncludesRowIdAndVersion(false)
+			.setOutputSQL("SELECT COUNT(*) FROM T123")
+			.setParameters(Collections.emptyMap())
+			.setSelectColumns(List.of(new SelectColumn().setColumnType(ColumnType.INTEGER)))
+			.setSingleTableId("syn123")
+			.setTableHash("d41d8cd98f00b204e9800998ecf8427e")
+		);
 	}
 	
 	@Test
 	public void testRunCountQueryWithCountLessThanOffset() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
-		CountQuery query = new CountQuery(queriesBuilder.setStartingSql("select i0 from "+tableId+" limit 100 offset 150").build());
-		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
+		CountQuery query = new CountQuery(queriesBuilder.setStartingSql("select i0 from "+tableId+" limit 100 offset 300").build());
+		
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(149L);
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
+		
 		assertEquals(0L, count);
+		
+		verify(mockQueryCacheManager).getQueryResults(mockTableIndexDAO, new CachedQueryRequest()
+			.setExpiresInSec(TableQueryManagerImpl.CACHED_QUERY_EXPIRES_IN_SEC)
+			.setIncludeEntityEtag(false)
+			.setIncludesRowIdAndVersion(false)
+			.setOutputSQL("SELECT COUNT(*) FROM T123")
+			.setParameters(Collections.emptyMap())
+			.setSelectColumns(List.of(new SelectColumn().setColumnType(ColumnType.INTEGER)))
+			.setSingleTableId("syn123")
+			.setTableHash("d41d8cd98f00b204e9800998ecf8427e")
+		);
 	}
 	
 	/**
@@ -1804,12 +1862,24 @@ public class TableQueryManagerImplTest {
 	public void testRunCountQueryPLFM_3899() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		CountQuery query = new CountQuery(queriesBuilder.setStartingSql("select i0 as bar from "+tableId+" group by bar").build());
-		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
+		
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
-		assertEquals("SELECT COUNT(DISTINCT _C0_) FROM T123", sqlCaptrue.getValue());
+		
+		assertEquals(this.count, count);
+		
+		verify(mockQueryCacheManager).getQueryResults(mockTableIndexDAO, new CachedQueryRequest()
+			.setExpiresInSec(TableQueryManagerImpl.CACHED_QUERY_EXPIRES_IN_SEC)
+			.setIncludeEntityEtag(false)
+			.setIncludesRowIdAndVersion(false)
+			.setOutputSQL("SELECT COUNT(DISTINCT _C0_) FROM T123")
+			.setParameters(Collections.emptyMap())
+			.setSelectColumns(List.of(new SelectColumn().setColumnType(ColumnType.INTEGER)))
+			.setSingleTableId("syn123")
+			.setTableHash("d41d8cd98f00b204e9800998ecf8427e")
+		);
 	}
 	
 	/**
@@ -1821,12 +1891,23 @@ public class TableQueryManagerImplTest {
 	public void testRunCountQueryPLFM_3900() throws ParseException{
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		CountQuery query = new CountQuery(queriesBuilder.setStartingSql("select distinct i0 as bar, i4 from "+tableId).build());
-		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
 		// setup the count returned from query
-		when(mockTableIndexDAO.countQuery(sqlCaptrue.capture(), anyMap())).thenReturn(200L);
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		// method under test
 		long count = manager.runCountQuery(query, mockTableIndexDAO);
-		assertEquals("SELECT COUNT(DISTINCT _C0_, _C4_) FROM T123", sqlCaptrue.getValue());
+		
+		assertEquals(this.count, count);
+		
+		verify(mockQueryCacheManager).getQueryResults(mockTableIndexDAO, new CachedQueryRequest()
+			.setExpiresInSec(TableQueryManagerImpl.CACHED_QUERY_EXPIRES_IN_SEC)
+			.setIncludeEntityEtag(false)
+			.setIncludesRowIdAndVersion(false)
+			.setOutputSQL("SELECT COUNT(DISTINCT _C0_, _C4_) FROM T123")
+			.setParameters(Collections.emptyMap())
+			.setSelectColumns(List.of(new SelectColumn().setColumnType(ColumnType.INTEGER)))
+			.setSingleTableId("syn123")
+			.setTableHash("d41d8cd98f00b204e9800998ecf8427e")
+		);
 	}
 	
 	@Test
@@ -1853,13 +1934,13 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageWithNextPage() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
-		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		
 		// setup the results to return one row.
 		Row row = rows.get(0);
@@ -2011,7 +2092,6 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageOverrideLimit() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
-		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
@@ -2020,8 +2100,10 @@ public class TableQueryManagerImplTest {
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
-		Long totalCount = 101L;
-		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(totalCount);
+		ArgumentCaptor<CachedQueryRequest> countQuery = ArgumentCaptor.forClass(CachedQueryRequest.class);
+		
+		when(mockQueryCacheManager.getQueryResults(any(), countQuery.capture())).thenReturn(countRowSet);
+		
 		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
 		query.setSql("select * from "+tableId);
@@ -2034,8 +2116,8 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		// there should be no query results.
 		assertNull(result.getQueryResult());
-		verify(mockTableIndexDAO).countQuery(eq("SELECT COUNT(*) FROM T123"), any());
-		assertEquals(totalCount, result.getQueryCount());
+		assertEquals("SELECT COUNT(*) FROM T123", countQuery.getValue().getOutputSQL());
+		assertEquals(count, result.getQueryCount());
 	}
 	
 	/**
@@ -2047,7 +2129,6 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageWithLimit() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
-		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
 		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
@@ -2056,8 +2137,8 @@ public class TableQueryManagerImplTest {
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
-		Long totalCount = 101L;
-		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(totalCount);
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+		
 		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
 		query.setSql("select * from "+tableId+" limit 11");
@@ -2071,7 +2152,7 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		// there should be no query results.
 		assertNull(result.getQueryResult());
-		assertEquals(new Long(11), result.getQueryCount());
+		assertEquals(11L, result.getQueryCount());
 	}
 	
 	@Test
