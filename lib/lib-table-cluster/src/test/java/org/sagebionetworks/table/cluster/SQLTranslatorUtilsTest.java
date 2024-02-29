@@ -3817,14 +3817,6 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translateCastToDouble(spec);
 		assertEquals("SELECT * FROM syn1", spec.toSql());
 	}
-
-	@Test
-	public void testAddLongWithNull() {
-		assertEquals(null, SQLTranslatorUtils.addLongsWithNull(null, null));
-		assertEquals(123L, SQLTranslatorUtils.addLongsWithNull(null, 123L));
-		assertEquals(123L, SQLTranslatorUtils.addLongsWithNull(123L, null));
-		assertEquals(4L, SQLTranslatorUtils.addLongsWithNull(3L, 1L));
-	}
 	
 	@Test
 	public void testGetSchemaOfDerivedColumnWithSimpleString() throws ParseException {

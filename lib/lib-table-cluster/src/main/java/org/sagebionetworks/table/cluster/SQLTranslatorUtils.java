@@ -18,6 +18,7 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
@@ -38,6 +39,8 @@ import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslati
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.ColumnToAdd;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.stats.ElementGenerator;
+import org.sagebionetworks.table.cluster.stats.ElementsStats;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -100,6 +103,7 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SetFunctionSpecification;
 import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -113,6 +117,7 @@ import org.sagebionetworks.table.query.model.TruthSpecification;
 import org.sagebionetworks.table.query.model.TruthValue;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
+import org.sagebionetworks.table.query.model.UnsignedValueSpecification;
 import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
@@ -1366,84 +1371,39 @@ public class SQLTranslatorUtils {
 	 * @return
 	 */
 	public static ColumnModel getSchemaOfDerivedColumn(DerivedColumn derivedColumn,
-			TableAndColumnMapper tableAndColumnMapper) 
-	{
+			TableAndColumnMapper tableAndColumnMapper) {
 		// The SelectColumn provides a starting name and type.
 		SelectColumn selectColumn = getSelectColumns(derivedColumn, tableAndColumnMapper);
 		// The data type is correctly inferred by the #getSelectColumns call
 		ColumnType columnType = selectColumn.getColumnType();
+		Optional<ElementsStats> elementsStats;
 		
-		// Local object to store temporary column attributes while we build them
-		class ColumnAttributes {
-	        Long maximumSize = null;
-	        Long maxListLength = null;
-	        String defaultValue = null;
-	        FacetType facetType = null;
-	        List<String> enumValues = null;
-	        List<JsonSubColumnModel> jsonSubColumns = null;
-	    }
-		final ColumnAttributes attrs = new ColumnAttributes();
-		
-		// If we have an existing selectColumn id, we can model the columnModel off of its attributes
 		if(selectColumn.getId() != null) {
 			ColumnModel cm = tableAndColumnMapper.getColumnModel(selectColumn.getId());
-			attrs.maximumSize = cm.getMaximumSize();
-			attrs.maxListLength = cm.getMaximumListLength();
-			attrs.defaultValue = cm.getDefaultValue();
-			attrs.facetType = cm.getFacetType();
-			attrs.enumValues = cm.getEnumValues();
-			attrs.jsonSubColumns = cm.getJsonSubColumns();
+			elementsStats = Optional.of(ElementsStats.builder()
+					.setMaximumSize(cm.getMaximumSize())
+					.setMaxListLength(cm.getMaximumListLength())
+					.setDefaultValue(cm.getDefaultValue())
+					.setFacetType(cm.getFacetType())
+					.setEnumValues(cm.getEnumValues())
+					.setJsonSubColumns(cm.getJsonSubColumns())
+					.build());
 		} else {
-			derivedColumn.createIterable(ValueExpressionPrimary.class).forEach(vep -> {
-				switch(vep.getChild().getClass().getName()) {
-				
-					case "org.sagebionetworks.table.query.model.UnsignedValueSpecification":
-						attrs.maximumSize = addLongsWithNull(attrs.maximumSize, Long.valueOf(vep.toSqlWithoutQuotes().length()));
-						break;	
-					
-					default:
-						tableAndColumnMapper.lookupColumnReference(vep.getFirstElementOfType(ColumnReference.class))
-							.ifPresent(ctr -> {
-								attrs.maximumSize = addLongsWithNull(attrs.maximumSize, ctr.getMaximumSize());
-								attrs.maxListLength = addLongsWithNull(attrs.maxListLength, ctr.getMaximumListLength());
-								attrs.defaultValue = ctr.getDefaultValues();
-								attrs.facetType = ctr.getFacetType();
-								attrs.jsonSubColumns = ctr.getJsonSubColumns();
-							});				
-				}	
-			});
+			elementsStats = new ElementGenerator().generate(derivedColumn.getValueExpression(), tableAndColumnMapper);
 		}
 		
 		ColumnModel result = new ColumnModel()
 				.setColumnType(columnType)
 				.setName(selectColumn.getName())
-				.setMaximumSize(attrs.maximumSize)
-				.setMaximumListLength(attrs.maxListLength)
-				.setDefaultValue(attrs.defaultValue)
-				.setFacetType(attrs.facetType)
-				.setEnumValues(attrs.enumValues)
-				.setJsonSubColumns(attrs.jsonSubColumns)
+				.setMaximumSize(elementsStats.get().getMaximumSize())
+				.setMaximumListLength(elementsStats.get().getMaxListLength())
+				.setDefaultValue(elementsStats.get().getDefaultValue())
+				.setFacetType(elementsStats.get().getFacetType())
+				.setEnumValues(elementsStats.get().getEnumValues())
+				.setJsonSubColumns(elementsStats.get().getJsonSubColumns())
 				.setId(null);
 		
 		return result;
-	}
-	
-	
-	/**
-	 * Addition for Longs that can be null.
-	 * 
-	 * @param currentValue
-	 * @param newValue
-	 * @return
-	 */
-	public static Long addLongsWithNull(Long currentValue, Long newValue) {
-		if(currentValue == null) {
-			return newValue;
-		}
-		if(newValue == null) {
-			return currentValue;
-		}
-		return currentValue + newValue;
 	}
 
 	/**
