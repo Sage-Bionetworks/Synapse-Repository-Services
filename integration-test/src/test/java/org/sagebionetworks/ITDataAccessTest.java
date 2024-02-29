@@ -1,21 +1,6 @@
 package org.sagebionetworks;
 
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +16,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
@@ -72,9 +58,31 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.warehouse.WarehouseTestHelper;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @ExtendWith(ITTestExtension.class)
 public class ITDataAccessTest {
@@ -353,6 +361,68 @@ public class ITDataAccessTest {
 			adminSynapse.getAccessRequirementAcl(actAR.getId().toString());
 		});
 		
+	}
+
+	/**
+	 * Test for PLFM-8248
+	 * A user is considered exempt only if they have been granted both EDIT and DELETE permission on a file,
+	 * and they have been granted the EXEMPTION_ELIGIBLE permission on the AR.
+	 */
+	@Test
+	public void testExemptionEligibleForDataContributor() throws SynapseException, IOException, JSONObjectAdapterException {
+		Project project = synapse.createEntity(new Project());
+		URL url = IT054FileEntityTest.class.getClassLoader().getResource("LittleImage.png");
+		File imageFile = new File(url.getFile().replaceAll("%20", " "));
+		assertNotNull(imageFile);
+		assertTrue(imageFile.exists());
+
+		CloudProviderFileHandleInterface fileHandle = synapse.multipartUpload(imageFile, null, true, true);
+		Folder folder = new Folder();
+		folder.setName("someFolder");
+		folder.setParentId(project.getId());
+		folder = this.synapse.createEntity(folder);
+		// Add a file to the folder
+		FileEntity file = new FileEntity();
+		file.setName("someFile");
+		file.setParentId(folder.getId());
+		file.setDataFileHandleId(fileHandle.getId());
+		file = this.synapse.createEntity(file);
+		String fileId = IdAndVersion.parse(file.getId()).getId().toString();
+		SynapseClient synapseContributor = new SynapseClientImpl();
+		Long contributorId = SynapseClientHelper.createUser(adminSynapse, synapseContributor, true, false);
+		AccessControlList acl = new AccessControlList()
+				.setId(file.getId())
+				.setResourceAccess(Collections.singleton(
+						new ResourceAccess().setPrincipalId(contributorId)
+								.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE))
+				));
+
+		adminSynapse.createACL(acl);
+		managedAR = new ManagedACTAccessRequirement()
+				.setAccessType(ACCESS_TYPE.DOWNLOAD)
+				.setSubjectIds(Collections.singletonList(new RestrictableObjectDescriptor().setId(file.getId()).setType(RestrictableObjectType.ENTITY)));
+
+		managedAR = adminSynapse.createAccessRequirement(managedAR);
+		// download file
+		FileHandleAssociation fileHandleAssociation = new FileHandleAssociation().setFileHandleId(fileHandle.getId())
+				.setAssociateObjectId(fileId).setAssociateObjectType(FileHandleAssociateType.FileEntity);
+
+		String message = assertThrows(SynapseForbiddenException.class, ()->{
+			// call under test
+			synapseContributor.getFileURL(fileHandleAssociation);
+		}).getMessage();
+		assertEquals("There are unmet access requirements that must be met and exemption is not eligible to read content in the requested container.", message);
+
+		AccessControlList aclOnAR = new AccessControlList()
+				.setId(managedAR.getId().toString())
+				.setResourceAccess(Set.of(
+						new ResourceAccess().setPrincipalId(Long.valueOf(contributorId))
+								.setAccessType(Collections.singleton(ACCESS_TYPE.EXEMPTION_ELIGIBLE))
+				));
+
+		adminSynapse.createAccessRequirementAcl(aclOnAR);
+
+		synapseContributor.getFileURL(fileHandleAssociation);
 	}
 	
 	@Test

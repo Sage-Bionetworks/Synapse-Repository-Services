@@ -1,18 +1,5 @@
 package org.sagebionetworks.repo.manager.entity.decider;
 
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ACCESS_DENIED;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_NEED_TWO_FA;
-import static org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES.ROOT;
-
-import java.util.Optional;
-
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DataType;
@@ -20,7 +7,22 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.web.NotFoundException;;
+import org.sagebionetworks.repo.web.NotFoundException;
+
+import java.util.Optional;
+
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ACCESS_DENIED;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_AND_NON_EXEMPTED_ACCESS_REQUIREMENTS;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_NEED_TWO_FA;
+import static org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES.ROOT;
+
+;
 
 /**
  * The set of functions that can be used in making entity access decisions.
@@ -65,10 +67,17 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	/**
 	 * Denies access if the user has unmet access restrictions on this entity.
 	 */
-	DENY_IF_HAS_UNMET_ACCESS_RESTRICTIONS((c) -> {
+	DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS((c) -> {
+		boolean isUserDataContributor = c.getPermissionsState().hasUpdate() && c.getPermissionsState().hasDelete();
+		boolean isExemptionEligible = c.getRestrictionStatus().getAccessRestrictions().stream()
+				.anyMatch(UsersRequirementStatus::isExemptionEligible);
+		boolean isUserExempted = isUserDataContributor && isExemptionEligible;
+		if(isUserExempted){
+			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
+		}
 		if (c.getRestrictionStatus().hasUnmet()) {
 			return Optional.of(new UsersEntityAccessInfo(c,
-					AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS)));
+					AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_AND_NON_EXEMPTED_ACCESS_REQUIREMENTS)));
 		} else {
 			return Optional.empty();
 		}
