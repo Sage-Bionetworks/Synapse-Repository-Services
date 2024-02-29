@@ -84,22 +84,23 @@ public class MainQueryTest {
 		assertNotNull(main);
 		assertNotNull(main.getTranslator());
 		assertEquals("SELECT _C1_, _C2_, _C3_, ROW_ID, ROW_VERSION FROM T123_4 WHERE"
-				// original authorization filter
-				+ " ( ( ROW_BENEFACTOR IN ( :b0, :b1 ) )"
-				// additional filter
-				+ " AND ( ( _C2_ = :b2 OR _C2_ = :b3 ) ) )"
-				// selected facet
-				+ " AND ( ( ( ( JSON_OVERLAPS(_C1_,JSON_ARRAY(:b4)) IS TRUE ) ) ) )"
-				// additional sort
-				+ " ORDER BY _C3_ DESC"
-				// override pagination
-				+ " LIMIT :b5 OFFSET :b6", main.getTranslator().getOutputSQL());
+			// selected facet
+			+ " ( ( ( ( JSON_OVERLAPS(_C1_,JSON_ARRAY(:b0)) IS TRUE ) ) ) )"
+			// additional filter
+			+ " AND ( ( ( _C2_ = :b1 OR _C2_ = :b2 ) )"
+			// original authorization filter
+			+ " AND ( ROW_BENEFACTOR IN ( :b3, :b4 ) ) )"
+			// additional sort
+			+ " ORDER BY _C3_ DESC"
+			// override pagination
+			+ " LIMIT :b5 OFFSET :b6", main.getTranslator().getOutputSQL());
+		
 		Map<String, Object> expectedParmeters = new HashMap<>();
-		expectedParmeters.put("b0", 11L);
-		expectedParmeters.put("b1", 22L);
+		expectedParmeters.put("b0", "cat");
+		expectedParmeters.put("b1", 89L);
 		expectedParmeters.put("b2", 99L);
-		expectedParmeters.put("b3", 89L);
-		expectedParmeters.put("b4", "cat");
+		expectedParmeters.put("b3", 11L);
+		expectedParmeters.put("b4", 22L);
 		expectedParmeters.put("b5", 12L);
 		expectedParmeters.put("b6", 3L);
 		assertEquals(expectedParmeters, main.getTranslator().getParameters());

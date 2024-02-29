@@ -48,7 +48,7 @@ public class ArrayHasLikePredicateTest {
 		assertEquals("foo", element.getLeftHandSide().toSql());
 		assertNull(element.getEscapeCharacter());
 
-		List<String> expectedValues = Arrays.asList("1", "2", "3");
+		List<String> expectedValues = Arrays.asList("2", "1", "3");
 
 		List<String> values = StreamSupport.stream(element.getRightHandSideValues().spliterator(), false)
 				.map(l -> l.toSqlWithoutQuotes()).collect(Collectors.toList());
@@ -64,7 +64,7 @@ public class ArrayHasLikePredicateTest {
 		assertNotNull(element.getEscapeCharacter());
 		assertEquals("'_'", element.getEscapeCharacter().toSql());
 
-		List<String> expectedValues = Arrays.asList("1", "2", "3", "_");
+		List<String> expectedValues = Arrays.asList("2", "1", "3", "_");
 
 		List<String> values = StreamSupport.stream(element.getRightHandSideValues().spliterator(), false)
 				.map(l -> l.toSqlWithoutQuotes()).collect(Collectors.toList());

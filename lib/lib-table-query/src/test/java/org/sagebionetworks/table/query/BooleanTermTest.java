@@ -36,7 +36,7 @@ public class BooleanTermTest {
 	public void testBooleanTermToSQLMultiple() throws ParseException{
 		List<BooleanFactor> list = SqlElementUtils.createBooleanFactors("foo=1", "bar=2");
 		BooleanTerm element = new BooleanTerm(list);
-		assertEquals("foo = 1 AND bar = 2", element.toString());
+		assertEquals("bar = 2 AND foo = 1", element.toString());
 	}
 	
 	@Test

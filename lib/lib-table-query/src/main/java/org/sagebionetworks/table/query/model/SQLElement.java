@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -200,7 +201,7 @@ public abstract class SQLElement implements Element {
 	 * @param children
 	 * @return
 	 */
-	static Iterable<Element> buildChildren(List<? extends Element> children){
+	static Iterable<Element> buildChildren(Collection<? extends Element> children){
 		if(children == null) {
 			return Collections.emptyList();
 		}else {
@@ -257,6 +258,5 @@ public abstract class SQLElement implements Element {
 		}
 		return this.parent.getContext(type);
 	}
-	
 	
 }

@@ -54,12 +54,12 @@ public class CombinedQueryTest {
 		);
 
 		additionalFilters = List.of(new ColumnSingleValueQueryFilter().setColumnName("foo")
-				.setOperator(ColumnSingleValueFilterOperator.LIKE).setValues(List.of("one", "two")));
+				.setOperator(ColumnSingleValueFilterOperator.LIKE).setValues(List.of("two", "one")));
 
 		Set<String> ids = new LinkedHashSet<>();
-		ids.add("1");
-		ids.add("2");
 		ids.add("3");
+		ids.add("2");
+		ids.add("1");
 		selectedFacets = List.of(new FacetColumnValuesRequest().setColumnName("bar").setFacetValues(ids));
 
 		sortList = List.of(new SortItem().setColumn("foo").setDirection(SortDirection.DESC));
@@ -81,6 +81,7 @@ public class CombinedQueryTest {
 				"SELECT * FROM syn123 WHERE " + "( ( \"foo\" LIKE 'one' OR \"foo\" LIKE 'two' ) ) "
 						+ "AND ( ( ( \"bar\" HAS ( '1', '2', '3' ) ) ) ) " + "ORDER BY \"foo\" DESC LIMIT 99 OFFSET 2",
 				combined.getCombinedSql());
+		
 	}
 
 	@Test
@@ -93,9 +94,11 @@ public class CombinedQueryTest {
 				.setSelectedFacets(selectedFacets).build();
 
 		assertEquals(
-				"SELECT aBool FROM syn123 WHERE ( ( aBool IS TRUE ) "
-						+ "AND ( ( \"foo\" LIKE 'one' OR \"foo\" LIKE 'two' ) ) )"
-						+ " AND ( ( ( \"bar\" HAS ( '1', '2', '3' ) ) ) ) ORDER BY \"foo\" DESC LIMIT 99 OFFSET 2",
+				"SELECT aBool FROM syn123 WHERE"
+					+ " ( ( ( \"bar\" HAS ( '1', '2', '3' ) ) ) )"
+					+ " AND ( ( ( \"foo\" LIKE 'one' OR \"foo\" LIKE 'two' ) )"
+					+ " AND ( aBool IS TRUE ) )"
+					+ " ORDER BY \"foo\" DESC LIMIT 99 OFFSET 2",
 				combined.getCombinedSql());
 	}
 
@@ -260,10 +263,11 @@ public class CombinedQueryTest {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		
 		additionalFilters = List.of(
-				new ColumnSingleValueQueryFilter().setColumnName("foo")
-				.setOperator(ColumnSingleValueFilterOperator.LIKE).setValues(List.of("one", "two"))
-				,new ColumnSingleValueQueryFilter().setColumnName("aBool")
-				.setOperator(ColumnSingleValueFilterOperator.IN).setValues(List.of("false")).setIsDefiningCondition(true));
+			new ColumnSingleValueQueryFilter().setColumnName("foo").setOperator(ColumnSingleValueFilterOperator.LIKE)
+				.setValues(List.of("two", "one")),
+			new ColumnSingleValueQueryFilter().setColumnName("aBool").setOperator(ColumnSingleValueFilterOperator.IN)
+				.setValues(List.of("false")).setIsDefiningCondition(true)
+		);
 		
 		// call under test
 		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
