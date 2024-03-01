@@ -8,7 +8,7 @@ import java.util.stream.StreamSupport;
  * The base of all elements.
  *
  */
-public interface Element extends Comparable<Element> {
+public interface Element {
 
 	/**
 	 * Write the SQL for this element.
@@ -113,10 +113,5 @@ public interface Element extends Comparable<Element> {
 	 * Recursively clear the parent element for all elements in this tree.
 	 */
 	void recursiveClearParent();
-	
-	@Override
-	default int compareTo(Element o) {
-		return toSql().compareTo(o.toSql());
-	}
 
 }
