@@ -452,15 +452,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		rowSet.setTableId(query.getSingleTableId());
 		return rowSet;
 	}
-	
-	@Override
-	public Long countQuery(String sql, Map<String, Object> parameters) {
-		ValidateArgument.required(sql, "sql");
-		ValidateArgument.required(parameters, "parameters");
-		// We use spring to create create the prepared statement
-		return namedTemplate.queryForObject(sql, new MapSqlParameterSource(parameters), Long.class);
-	}
-	
+		
 	@Override
 	public boolean queryAsStream(final TranslatedQuery query, final RowHandler handler) {
 		ValidateArgument.required(query, "Query");

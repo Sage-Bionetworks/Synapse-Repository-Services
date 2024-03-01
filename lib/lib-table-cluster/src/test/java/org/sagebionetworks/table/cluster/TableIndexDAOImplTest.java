@@ -44,8 +44,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
@@ -88,7 +86,6 @@ import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
@@ -112,8 +109,6 @@ public class TableIndexDAOImplTest {
 	
 	// not a bean
 	private TableIndexDAO tableIndexDAO;
-	
-	private ProgressCallback mockProgressCallback;
 
 	private IdAndVersion tableId;
 	private IndexDescription indexDescription;
@@ -133,7 +128,6 @@ public class TableIndexDAOImplTest {
 		objectType = ViewObjectType.ENTITY;
 		otherObjectType = ViewObjectType.SUBMISSION;
 		mainType = ReplicationType.ENTITY;
-		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		tableId = IdAndVersion.parse("syn123");
 		// First get a connection for this table
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
@@ -531,11 +525,6 @@ public class TableIndexDAOImplTest {
 		assertNotNull(results.getRows());
 		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(2, results.getRows().size());
-		// test the count
-		QuerySpecification countModel = new TableQueryParser(query.getTranslatedModel().toSql()).querySpecification();
-		assertTrue(SqlElementUtils.createCountSql(countModel));
-		Long count = tableIndexDAO.countQuery(countModel.toSql(), query.getParameters());
-		assertEquals(new Long(2), count);
 		// test the rowIds
 		long limit = 2;
 		String rowIdSql = SqlElementUtils.buildSqlSelectRowIdAndVersions(query.getTranslatedModel().getFirstElementOfType(QuerySpecification.class), limit).get();
@@ -605,8 +594,6 @@ public class TableIndexDAOImplTest {
 			"{\"foo\": \"bar1900001\"}"
 		);
 		assertEquals(expectedValues, row.getValues());
-		// must also be able to run the query with a null callback
-		mockProgressCallback = null;
 	}
 
 	@Test

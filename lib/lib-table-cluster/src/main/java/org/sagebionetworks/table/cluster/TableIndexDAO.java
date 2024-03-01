@@ -81,15 +81,6 @@ public interface TableIndexDAO {
 	RowSet query(TranslatedQuery query);
 
 	/**
-	 * Run a simple count query.
-	 * 
-	 * @param sql
-	 * @param parameters
-	 * @return
-	 */
-	Long countQuery(String sql, Map<String, Object> parameters);
-
-	/**
 	 * Provides the means to stream over query results without keeping the row data
 	 * in memory.
 	 * @param query
