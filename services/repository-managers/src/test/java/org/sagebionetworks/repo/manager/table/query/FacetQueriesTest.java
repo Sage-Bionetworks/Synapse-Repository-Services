@@ -77,20 +77,21 @@ public class FacetQueriesTest {
 		assertEquals(2, facet.getFacetInformationQueries().size());
 		// one
 		FacetTransformer transformer = facet.getFacetInformationQueries().get(0);
-		assertEquals("SELECT _C1_ AS value, COUNT(*) AS frequency FROM T123_4 WHERE "
-				// authentication filter
-				+ "( ( ROW_BENEFACTOR IN ( :b0, :b1 ) )"
+		assertEquals("SELECT _C1_ AS value, COUNT(*) AS frequency FROM T123_4 WHERE"
 				// additional filter
-				+ " AND ( ( _C3_ = :b2 OR _C3_ = :b3 ) ) )"
+				+ " ( ( ( _C3_ = :b0 OR _C3_ = :b1 ) )"
+				// authentication filter
+				+ " AND ( ROW_BENEFACTOR IN ( :b2, :b3 ) ) )"
 				// selected facet on other row
 				+ " AND ( ( ( _C2_ BETWEEN :b4 AND :b5 ) ) )"
 				+ " GROUP BY _C1_ ORDER BY frequency DESC, value ASC LIMIT :b6",
 				transformer.getFacetSqlQuery().getOutputSQL());
+		
 		Map<String, Object> expectedParmeters = new HashMap<>();
-		expectedParmeters.put("b0", 11L);
-		expectedParmeters.put("b1", 22L);
-		expectedParmeters.put("b2", "a");
-		expectedParmeters.put("b3", "b");
+		expectedParmeters.put("b0", "a");
+		expectedParmeters.put("b1", "b");		
+		expectedParmeters.put("b2", 11L);
+		expectedParmeters.put("b3", 22L);
 		expectedParmeters.put("b4", 15L);
 		expectedParmeters.put("b5", 38L);
 		expectedParmeters.put("b6", 100L);
@@ -99,18 +100,21 @@ public class FacetQueriesTest {
 		// two
 		transformer = facet.getFacetInformationQueries().get(1);
 		assertEquals("SELECT MIN(_C2_) AS minimum, MAX(_C2_) AS maximum FROM T123_4 WHERE"
-				// auth filter
-				+ " ( ( ROW_BENEFACTOR IN ( :b0, :b1 ) )"
-				// additional filter
-				+ " AND ( ( _C3_ = :b2 OR _C3_ = :b3 ) ) )"
-				// selected facet on other column
-				+ " AND ( ( ( _C1_ = :b4 ) ) )", transformer.getFacetSqlQuery().getOutputSQL());
+			// selected facet on other column
+			+ " ( ( ( _C1_ = :b0 ) ) )"
+			// additional filter
+			+ " AND ( ( ( _C3_ = :b1 OR _C3_ = :b2 ) )"
+			// auth filter
+			+ " AND ( ROW_BENEFACTOR IN ( :b3, :b4 ) ) )", 
+			transformer.getFacetSqlQuery().getOutputSQL());
+		
 		expectedParmeters = new HashMap<>();
-		expectedParmeters.put("b0", 11L);
-		expectedParmeters.put("b1", 22L);
-		expectedParmeters.put("b2", "a");
-		expectedParmeters.put("b3", "b");
-		expectedParmeters.put("b4", "cat");
+		expectedParmeters.put("b0", "cat");
+		expectedParmeters.put("b1", "a");
+		expectedParmeters.put("b2", "b");
+		expectedParmeters.put("b3", 11L);
+		expectedParmeters.put("b4", 22L);
+		
 		assertEquals(expectedParmeters, transformer.getFacetSqlQuery().getParameters());
 	}
 

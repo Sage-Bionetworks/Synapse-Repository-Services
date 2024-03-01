@@ -73,7 +73,6 @@ import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
-import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
@@ -977,14 +976,14 @@ public class SQLTranslatorUtilsTest {
 	public void testReplaceBooleanFunctionIsNaN() throws ParseException{
 		BooleanPrimary element = new TableQueryParser("isNaN(_C777_)").booleanPrimary();
 		SQLTranslatorUtils.replaceBooleanFunction(element, createTableAndColumnMapper());
-		assertEquals("( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )", element.toSql());
+		assertEquals("( _DBL_C777_ = 'NaN' AND _DBL_C777_ IS NOT NULL )", element.toSql());
 	}
 	
 	@Test
 	public void testReplaceBooleanFunctionIsInfinity() throws ParseException{
 		BooleanPrimary element = new TableQueryParser("isInfinity(_C777_)").booleanPrimary();
 		SQLTranslatorUtils.replaceBooleanFunction(element, createTableAndColumnMapper());
-		assertEquals("( _DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ( '-Infinity', 'Infinity' ) )", element.toSql());
+		assertEquals("( _DBL_C777_ IN ( '-Infinity', 'Infinity' ) AND _DBL_C777_ IS NOT NULL )", element.toSql());
 	}
 	
 	@Test
@@ -1547,8 +1546,8 @@ public class SQLTranslatorUtilsTest {
 		// call under test
 		SQLTranslatorUtils.translate(hasPredicate, parameters, createTableAndColumnMapper());
 		assertEquals("_C888_ IN ( :b0, :b1 )", predicate.toSql());
-		assertEquals(Long.parseLong(DATE1TIME), parameters.get("b0"));
-		assertEquals(Long.parseLong(DATE2TIME), parameters.get("b1"));
+		assertEquals(Long.parseLong(DATE2TIME), parameters.get("b0"));
+		assertEquals(Long.parseLong(DATE1TIME), parameters.get("b1"));
 	}
 
 	@Test
@@ -1953,8 +1952,8 @@ public class SQLTranslatorUtilsTest {
 		//parameter mapping should have stripped out the "syn" prefixes
 		Map<String, Object> expected = ImmutableMap.of(
 			"b0", 123L,
-			"b1", 456L,
-			"b2", 789L
+			"b1", 789L,
+			"b2", 456L
 		);
 
 		assertEquals(expected, parameters);
@@ -2206,7 +2205,7 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals("SELECT _C111_ FROM T123 WHERE ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )",element.toSql());
+		assertEquals("SELECT _C111_ FROM T123 WHERE ( _DBL_C777_ = 'NaN' AND _DBL_C777_ IS NOT NULL )",element.toSql());
 	}
 	
 	@Test
@@ -2217,7 +2216,7 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals("SELECT _C111_ FROM T123 WHERE ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ( '-Infinity', 'Infinity' ) )",element.toSql());
+		assertEquals("SELECT _C111_ FROM T123 WHERE ( _DBL_C777_ IN ( '-Infinity', 'Infinity' ) AND _DBL_C777_ IS NOT NULL )",element.toSql());
 	}
 	
 	@Test
@@ -2530,12 +2529,14 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals("SELECT * FROM T123 WHERE ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE ) AND ( ( JSON_OVERLAPS(_C111_,JSON_ARRAY(:b3)) IS TRUE ) OR _C333_ = :b4 )",element.toSql());
-		assertEquals(1L, parameters.get("b0"));
-		assertEquals(2L, parameters.get("b1"));
-		assertEquals(3L, parameters.get("b2"));
-		assertEquals("yah", parameters.get("b3"));
-		assertEquals("yeet", parameters.get("b4"));
+		assertEquals("SELECT * FROM T123 WHERE ( _C333_ = :b0 OR ( JSON_OVERLAPS(_C111_,JSON_ARRAY(:b1)) IS TRUE ) ) AND ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b2,:b3,:b4)) IS TRUE )",element.toSql());
+		assertEquals(Map.of(
+			"b0", "yeet",
+			"b1", "yah",
+			"b2", 1L,
+			"b3", 2L,
+			"b4", 3L
+		), parameters);
 	}
 	
 	@Test
@@ -2549,13 +2550,26 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals("SELECT * FROM T123 WHERE ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE ) AND ( ( JSON_SEARCH(_C111_,'one',:b3 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b4 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL ) OR _C333_ = :b5 )",element.toSql());
-		assertEquals(1L, parameters.get("b0"));
-		assertEquals(2L, parameters.get("b1"));
-		assertEquals(3L, parameters.get("b2"));
-		assertEquals("yah%", parameters.get("b3"));
-		assertEquals("wow", parameters.get("b4"));
-		assertEquals("yeet", parameters.get("b5"));
+		assertEquals("SELECT * FROM T123"
+			+ " WHERE ("
+				+ " _C333_ = :b0 OR ("
+					+ " JSON_SEARCH(_C111_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL"
+					+ " OR JSON_SEARCH(_C111_,'one',:b2 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL"
+				+ " )"
+			+ " )"
+			+ " AND ("
+				+ " JSON_OVERLAPS(_C777_,JSON_ARRAY(:b3,:b4,:b5)"
+			+ ") IS TRUE )",element.toSql());
+		
+		assertEquals(Map.of(
+			"b0", "yeet",
+			"b1", "wow",
+			"b2", "yah%",
+			"b3", 1L,
+			"b4", 2L,
+			"b5", 3L
+		), parameters);
+		
 	}
 	
 	@Test
@@ -2569,14 +2583,22 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals("SELECT * FROM T123 WHERE ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE ) AND ( ( JSON_SEARCH(_C111_,'one',:b3 COLLATE 'utf8mb4_0900_ai_ci',:b5,'$[*]') IS NOT NULL OR JSON_SEARCH(_C111_,'one',:b4 COLLATE 'utf8mb4_0900_ai_ci',:b5,'$[*]') IS NOT NULL ) OR _C333_ = :b6 )",element.toSql());
-		assertEquals(1L, parameters.get("b0"));
-		assertEquals(2L, parameters.get("b1"));
-		assertEquals(3L, parameters.get("b2"));
-		assertEquals("yah%", parameters.get("b3"));
-		assertEquals("wow", parameters.get("b4"));
-		assertEquals("_", parameters.get("b5"));
-		assertEquals("yeet", parameters.get("b6"));
+		assertEquals("SELECT * FROM T123 WHERE ("
+			+ " _C333_ = :b0 OR ("
+				+ " JSON_SEARCH(_C111_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',:b3,'$[*]') IS NOT NULL"
+				+ " OR JSON_SEARCH(_C111_,'one',:b2 COLLATE 'utf8mb4_0900_ai_ci',:b3,'$[*]') IS NOT NULL ) )"
+			+ " AND ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b4,:b5,:b6)) IS TRUE )",element.toSql());
+		
+		assertEquals(Map.of(
+			"b0", "yeet",
+			"b1", "wow",
+			"b2", "yah%",
+			"b3", "_",
+			"b4", 1L,
+			"b5", 2L,
+			"b6", 3L
+		), parameters);
+		
 	}
 	
 	@Test
@@ -2801,7 +2823,7 @@ public class SQLTranslatorUtilsTest {
 
 		// method under test
 		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(filter));
-		assertEquals("FROM syn1 WHERE ( \"myCol\" LIKE 'foo%' OR \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%' )",
+		assertEquals("FROM syn1 WHERE ( \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%' OR \"myCol\" LIKE 'foo%' )",
 				tableExpression.toSql());
 	}
 
@@ -2821,7 +2843,7 @@ public class SQLTranslatorUtilsTest {
 		// method under test
 		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(filter, filter2));
 		assertEquals(
-				"FROM syn1 WHERE ( \"myCol\" LIKE 'foo%' OR \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%' ) AND ( \"otherCol\" LIKE '%asdf' )",
+				"FROM syn1 WHERE ( \"myCol\" LIKE '%bar' OR \"myCol\" LIKE '%baz%' OR \"myCol\" LIKE 'foo%' ) AND ( \"otherCol\" LIKE '%asdf' )",
 				tableExpression.toSql());
 	}
 	
@@ -2900,7 +2922,7 @@ public class SQLTranslatorUtilsTest {
 
 		// method under test
 		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(filter));
-		assertEquals("FROM syn1 WHERE ( \"myCol\" = 'foo%' OR \"myCol\" = '%bar' OR \"myCol\" = '%baz%' )", tableExpression.toSql());
+		assertEquals("FROM syn1 WHERE ( \"myCol\" = '%bar' OR \"myCol\" = '%baz%' OR \"myCol\" = 'foo%' )", tableExpression.toSql());
 	}
 	
 	@Test
@@ -2913,7 +2935,7 @@ public class SQLTranslatorUtilsTest {
 
 		// method under test
 		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(filter));
-		assertEquals("FROM syn1 WHERE ( a > b ) AND ( ( \"myCol\" = 'foo' ) )", tableExpression.toSql());
+		assertEquals("FROM syn1 WHERE ( ( \"myCol\" = 'foo' ) ) AND ( a > b )", tableExpression.toSql());
 	}
 	
 	@Test
@@ -2941,7 +2963,7 @@ public class SQLTranslatorUtilsTest {
 
 		// method under test
 		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(filter));
-		assertEquals("FROM syn1 DEFINING_WHERE ( a > b ) AND ( ( \"myCol\" = 'foo' ) )", tableExpression.toSql());
+		assertEquals("FROM syn1 DEFINING_WHERE ( ( \"myCol\" = 'foo' ) ) AND ( a > b )", tableExpression.toSql());
 	}
 	
 	@Test
@@ -2974,7 +2996,7 @@ public class SQLTranslatorUtilsTest {
 		// method under test
 		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(filter, filter2));
 		assertEquals(
-				"FROM syn1 WHERE ( \"myCol\" = 'foo%' OR \"myCol\" = '%bar' OR \"myCol\" = '%baz%' ) AND ( \"otherCol\" = '%asdf' )",
+				"FROM syn1 WHERE ( \"myCol\" = '%bar' OR \"myCol\" = '%baz%' OR \"myCol\" = 'foo%' ) AND ( \"otherCol\" = '%asdf' )",
 				tableExpression.toSql());
 	}
 
@@ -3243,10 +3265,10 @@ public class SQLTranslatorUtilsTest {
 		
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
 		
-		String expectedSql = "SELECT * FROM T123 WHERE MATCH(ROW_SEARCH_CONTENT) AGAINST(:b0) AND ( _C111_ = :b1 OR MATCH(ROW_SEARCH_CONTENT) AGAINST(:b2) )";
+		String expectedSql = "SELECT * FROM T123 WHERE ( MATCH(ROW_SEARCH_CONTENT) AGAINST(:b0) OR _C111_ = :b1 ) AND MATCH(ROW_SEARCH_CONTENT) AGAINST(:b2)";
 		
 		assertEquals(expectedSql, element.toSql());
-		assertEquals(ImmutableMap.of("b0", "some text", "b1", "bar", "b2", "some other text"), parameters);
+		assertEquals(Map.of("b2", "some text", "b1", "bar", "b0", "some other text"), parameters);
 	}
 	
 	@Test
@@ -4276,7 +4298,7 @@ public class SQLTranslatorUtilsTest {
 		// call under test
 		SQLTranslatorUtils.translateDefiningClause(element);
 		assertEquals("WITH syn2 AS "
-				+ "(SELECT * FROM syn1 WHERE ( a = b AND ( b > c OR c > d ) ) AND ( foo > bar OR bar IS NULL AND foo < 1 ))"
+				+ "(SELECT * FROM syn1 WHERE ( ( b > c OR c > d ) AND a = b ) AND ( bar IS NULL AND foo < 1 OR foo > bar ))"
 				+ " SELECT * FROM syn2", element.toSql());
 		element.stream(SearchCondition.class).forEach(s->assertNotNull(s.getParent()));
 	}
@@ -4317,7 +4339,7 @@ public class SQLTranslatorUtilsTest {
 		SearchCondition one = new TableQueryParser("foo > bar").searchCondition();
 		SearchCondition two = new TableQueryParser("bar is not null").searchCondition();
 		SearchCondition result = SQLTranslatorUtils.mergeSearchConditions(one, two);
-		assertEquals("( foo > bar ) AND ( bar IS NOT NULL )", result.toSql());
+		assertEquals("( bar IS NOT NULL ) AND ( foo > bar )", result.toSql());
 	}
 	
 	@Test
@@ -4327,7 +4349,7 @@ public class SQLTranslatorUtilsTest {
 		when(mockHas.getSearchCondition()).thenReturn(one);
 		SearchCondition two = new TableQueryParser("bar is not null").searchCondition();
 		SearchCondition result = SQLTranslatorUtils.mergeSearchConditions(mockHas, two);
-		assertEquals("( foo > bar ) AND ( bar IS NOT NULL )", result.toSql());
+		assertEquals("( bar IS NOT NULL ) AND ( foo > bar )", result.toSql());
 		verify(mockHas).getSearchCondition();
 	}
 	

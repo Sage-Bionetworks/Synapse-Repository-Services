@@ -1,9 +1,11 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -12,7 +14,7 @@ import java.util.stream.StreamSupport;
  * An element that be serialized to SQL.
  *
  */
-public abstract class SQLElement implements Element {
+public abstract class SQLElement implements Element, Comparable<SQLElement> {
 	
 	Element parent;
 			
@@ -200,7 +202,7 @@ public abstract class SQLElement implements Element {
 	 * @param children
 	 * @return
 	 */
-	static Iterable<Element> buildChildren(List<? extends Element> children){
+	static Iterable<Element> buildChildren(Collection<? extends Element> children){
 		if(children == null) {
 			return Collections.emptyList();
 		}else {
@@ -257,6 +259,30 @@ public abstract class SQLElement implements Element {
 		}
 		return this.parent.getContext(type);
 	}
+
+	@Override
+	public int compareTo(SQLElement o) {
+		return toSql().compareTo(o.toSql());
+	}
+
+	@Override
+	public int hashCode() {
+		String sql = toSql();
+		return Objects.hash(sql);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof SQLElement)) {
+			return false;
+		}
+		SQLElement other = (SQLElement) obj;
+		return Objects.equals(this.toSql(), other.toSql());
+	}
+	
 	
 	
 }

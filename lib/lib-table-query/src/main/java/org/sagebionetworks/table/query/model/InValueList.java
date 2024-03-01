@@ -1,7 +1,8 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.LinkedList;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * This matches &ltin value list&gt in:
@@ -9,21 +10,21 @@ import java.util.List;
  */
 public class InValueList extends SQLElement {
 
-	List<ValueExpression> valueExpressions;
+	private SortedSet<ValueExpression> valueExpressions;
 
 	public InValueList() {
-		this.valueExpressions = new LinkedList<ValueExpression>();
+		this.valueExpressions = new TreeSet<>();
 	}
 
 	public InValueList(List<ValueExpression> list) {
-		this.valueExpressions = list;
+		this.valueExpressions = new TreeSet<>(list);
 	}
 
 	public void addValueExpression(ValueExpression valueExpression) {
 		this.valueExpressions.add(valueExpression);
 	}
 
-	public List<ValueExpression> getValueExpressions() {
+	public SortedSet<ValueExpression> getValueExpressions() {
 		return valueExpressions;
 	}
 

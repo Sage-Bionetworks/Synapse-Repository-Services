@@ -42,7 +42,7 @@ public class ArrayHasPredicateTest {
 		ArrayHasPredicate element = predicate.getFirstElementOfType(ArrayHasPredicate.class);
 		assertEquals("foo", element.getLeftHandSide().toSql());
 
-		List<String> expectedValues = Arrays.asList("1", "2", "3");
+		List<String> expectedValues = Arrays.asList("2", "1", "3");
 
 		List<String> values = StreamSupport.stream(element.getRightHandSideValues().spliterator(), false)
 				.map(l -> l.toSqlWithoutQuotes()).collect(Collectors.toList());

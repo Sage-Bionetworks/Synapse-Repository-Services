@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
@@ -103,7 +104,6 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
-import org.sagebionetworks.table.query.model.TableName;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.Term;
@@ -1007,7 +1007,7 @@ public class SQLTranslatorUtils {
 	// Translate the expression foo HAS_LIKE ('a%', 'b%') -> JSON_SEARCH(foo, 'one', 'a%', NULL, '$[*]') IS NOT NULL OR JSON_SEARCH(foo, 'one', 'b%', NULL, '$[*]') IS NOT NULL
 	private static SearchCondition createArrayHasLikeJsonSearchSearchCondition(ArrayHasLikePredicate predicate, ColumnReference columnReference) throws ParseException {
 		
-		List<ValueExpression> values = predicate.getFirstElementOfType(InValueList.class).getValueExpressions();
+		SortedSet<ValueExpression> values = predicate.getFirstElementOfType(InValueList.class).getValueExpressions();
 		
 		List<BooleanPrimary> booleanPrimaries = new ArrayList<>(values.size());
 		
@@ -1089,16 +1089,7 @@ public class SQLTranslatorUtils {
 		
 		return new SearchCondition(List.of(new BooleanTerm(List.of(new BooleanFactor(null, new BooleanTest(new BooleanPrimary(isPredicate), null, null, null))))));
 	}
-
-	/**
-	 * Wraps string table name inside a TableReference
-	 * @param tableName
-	 * @return
-	 */
-	private static TableReference tableReferenceForName(String tableName){
-		return new TableReference(new TableNameCorrelation(new TableName(new RegularIdentifier(tableName)), null));
-	}
-
+	
 	/**
 	 *
 	 * @param columnTranslationReferenceLookup lookup table for ColumnTranslationReferences

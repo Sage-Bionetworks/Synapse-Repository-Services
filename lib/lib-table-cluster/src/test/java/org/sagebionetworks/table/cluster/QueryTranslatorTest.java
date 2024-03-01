@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -559,8 +560,8 @@ public class QueryTranslatorTest {
 		// The value should be bound in the SQL
 		assertEquals(
 				"SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE"
-						+ " ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' ) "
-						+ "OR ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ( '-Infinity', 'Infinity' ) )",
+						+ " ( _DBL_C777_ IN ( '-Infinity', 'Infinity' ) AND _DBL_C777_ IS NOT NULL )"
+						+ " OR ( _DBL_C777_ = 'NaN' AND _DBL_C777_ IS NOT NULL )",
 				translator.getOutputSQL());
 	}
 
@@ -588,11 +589,11 @@ public class QueryTranslatorTest {
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 where foo = 1 or bar = 2",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		// The value should be bound in the SQL
-		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0 OR _C333_ = :b1",
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE _C333_ = :b0 OR _C111_ = :b1",
 				translator.getOutputSQL());
 		// The value should be in the parameters map.
-		assertEquals("1", translator.getParameters().get("b0"));
-		assertEquals("2", translator.getParameters().get("b1"));
+		assertEquals("2", translator.getParameters().get("b0"));
+		assertEquals("1", translator.getParameters().get("b1"));
 	}
 
 	@Test
@@ -604,11 +605,11 @@ public class QueryTranslatorTest {
 		QueryTranslator translator = QueryTranslator.builder("select * from syn123 where foo = 1 and bar = 2",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		// The value should be bound in the SQL
-		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0 AND _C333_ = :b1",
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE _C333_ = :b0 AND _C111_ = :b1",
 				translator.getOutputSQL());
 		// The value should be in the parameters map.
-		assertEquals("1", translator.getParameters().get("b0"));
-		assertEquals("2", translator.getParameters().get("b1"));
+		assertEquals("1", translator.getParameters().get("b1"));
+		assertEquals("2", translator.getParameters().get("b0"));
 	}
 
 	@Test
@@ -622,11 +623,11 @@ public class QueryTranslatorTest {
 		// The value should be bound in the SQL
 		assertEquals(
 				"SELECT " + STAR_COLUMNS
-						+ ", ROW_ID, ROW_VERSION FROM T123 WHERE ( _C111_ = :b0 AND _C333_ = :b1 ) OR _C444_ = :b2",
+						+ ", ROW_ID, ROW_VERSION FROM T123 WHERE ( _C333_ = :b0 AND _C111_ = :b1 ) OR _C444_ = :b2",
 				translator.getOutputSQL());
 		// The value should be in the parameters map.
-		assertEquals("1", translator.getParameters().get("b0"));
-		assertEquals("2", translator.getParameters().get("b1"));
+		assertEquals("2", translator.getParameters().get("b0"));
+		assertEquals("1", translator.getParameters().get("b1"));
 		assertEquals("3", translator.getParameters().get("b2"));
 	}
 
@@ -946,7 +947,7 @@ public class QueryTranslatorTest {
 		QueryTranslator translator = QueryTranslator.builder("select foo from syn123 where not isNaN(doubletype)",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals(
-				"SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE NOT ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )",
+				"SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE NOT ( _DBL_C777_ = 'NaN' AND _DBL_C777_ IS NOT NULL )",
 				translator.getOutputSQL());
 	}
 
@@ -966,7 +967,7 @@ public class QueryTranslatorTest {
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals(
 				"SELECT " + "CASE WHEN _DBL_C123_ IS NULL THEN _C123_ ELSE _DBL_C123_ END," + " ROW_ID, ROW_VERSION"
-						+ " FROM T123 WHERE NOT ( _DBL_C123_ IS NOT NULL AND _DBL_C123_ = 'NaN' )",
+						+ " FROM T123 WHERE NOT ( _DBL_C123_ = 'NaN' AND _DBL_C123_ IS NOT NULL )",
 				translator.getOutputSQL());
 	}
 
@@ -1000,7 +1001,7 @@ public class QueryTranslatorTest {
 		QueryTranslator translator = QueryTranslator.builder("select foo from syn123 where not isNaN(doubletype)",
 				mockSchemaProvider, userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals(
-				"SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE NOT ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )",
+				"SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE NOT ( _DBL_C777_ = 'NaN' AND _DBL_C777_ IS NOT NULL )",
 				translator.getOutputSQL());
 	}
 
@@ -1552,7 +1553,7 @@ public class QueryTranslatorTest {
 		assertEquals(
 				"SELECT _C111_," + " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END,"
 						+ " ROW_ID, ROW_VERSION FROM T1 "
-						+ "WHERE ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ( '-Infinity', 'Infinity' ) )",
+						+ "WHERE ( _DBL_C777_ IN ( '-Infinity', 'Infinity' ) AND _DBL_C777_ IS NOT NULL )",
 				query.getOutputSQL());
 	}
 	
@@ -1569,7 +1570,7 @@ public class QueryTranslatorTest {
 		assertEquals(
 				"SELECT _C111_," + " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END,"
 						+ " ROW_ID, ROW_VERSION FROM T1 "
-						+ "WHERE ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )",
+						+ "WHERE ( _DBL_C777_ = 'NaN' AND _DBL_C777_ IS NOT NULL )",
 				query.getOutputSQL());
 	}
 	
@@ -2450,6 +2451,145 @@ public class QueryTranslatorTest {
 				+ " CASE WHEN _DBL_C4_ IS NULL THEN _C4_ ELSE _DBL_C4_ END"
 				+ " FROM T2", query.getOutputSQL());
 		assertTrue(query.isAggregatedResult());
+	}
+	
+	// Tests to make sure that the output SQL is deterministic independently of the search conditions
+	// (See https://sagebionetworks.jira.com/browse/PLFM-8299)
+	@Test
+	public void testTranslateDeterministicSqlWithSearchConditions() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+		
+		ColumnModel foo = new ColumnModel().setName("foo").setColumnType(ColumnType.STRING).setMaximumSize(100L).setId("1");
+		ColumnModel bar = new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER).setId("2"); 
+
+		setupGetColumns(foo, bar);
+		
+		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(foo, bar));
+		
+		// call under test
+		QueryTranslator query = QueryTranslator.builder("select * from syn1 where foo = 'a' AND (bar = 42 OR bar = 32)", userId)
+			.schemaProvider(mockSchemaProvider)
+			.sqlContext(SqlContext.query)
+			.indexDescription(indexDescription)
+			.build();
+		
+		String expectedSql = "SELECT _C1_, _C2_, ROW_ID, ROW_VERSION FROM T1 WHERE ( _C2_ = :b0 OR _C2_ = :b1 ) AND _C1_ = :b2"; 
+		Map<String, Object> expectedParams = new LinkedHashMap<>();
+		
+		expectedParams.put("b0", 32L);
+		expectedParams.put("b1", 42L);
+		expectedParams.put("b2", "a");
+		
+		assertEquals(expectedSql, query.getOutputSQL());
+		// We want to make sure that the order is deterministic, so we compare the toString
+		assertEquals(expectedParams.toString(), query.getParameters().toString());
+		
+		// Call under test, the order of the search conditions should not matter, repetition and spacing of the same condition also do not change the query results
+		query = QueryTranslator.builder("select * from syn1 where (bar = 32 OR bar = 42 OR bar = 32) AND (bar = 42 OR bar = 32) AND foo = 'a' and foo ='a'", userId)
+				.schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query)
+				.indexDescription(indexDescription)
+				.build();
+		
+		assertEquals(expectedSql, query.getOutputSQL());
+		// We want to make sure that the order is deterministic, so we compare the toString
+		assertEquals(expectedParams.toString(), query.getParameters().toString());
+	}
+	
+	@Test
+	public void testTranslateDeterministicSqlWithInClause() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+		
+		ColumnModel foo = new ColumnModel().setName("foo").setColumnType(ColumnType.STRING).setMaximumSize(100L).setId("1");
+		ColumnModel bar = new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER).setId("2"); 
+
+		setupGetColumns(foo, bar);
+		
+		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(foo, bar));
+		
+		// call under test
+		QueryTranslator query = QueryTranslator.builder("select * from syn1 where foo IN ('b', 'a', 'c') AND bar IN (42, 32)", userId)
+			.schemaProvider(mockSchemaProvider)
+			.sqlContext(SqlContext.query)
+			.indexDescription(indexDescription)
+			.build();
+		
+		String expectedSql = "SELECT _C1_, _C2_, ROW_ID, ROW_VERSION FROM T1 WHERE _C2_ IN ( :b0, :b1 ) AND _C1_ IN ( :b2, :b3, :b4 )"; 
+		Map<String, Object> expectedParams = new LinkedHashMap<>();
+		
+		expectedParams.put("b0", 32L);
+		expectedParams.put("b1", 42L);
+		expectedParams.put("b2", "a");
+		expectedParams.put("b3", "b");
+		expectedParams.put("b4", "c");
+		
+		assertEquals(expectedSql, query.getOutputSQL());
+		// We want to make sure that the order is deterministic, so we compare the toString
+		assertEquals(expectedParams.toString(), query.getParameters().toString());
+		
+		// Call under test, the order of the search conditions or in values should not matter, duplicate values also do not change the query results
+		query = QueryTranslator.builder("select * from syn1 where    bar IN (32, 42) AND bar IN (42, 42, 32) AND foo IN ('c' , 'b', 'a', 'b', 'c', 'c')", userId)
+				.schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query)
+				.indexDescription(indexDescription)
+				.build();
+		
+		assertEquals(expectedSql, query.getOutputSQL());
+		// We want to make sure that the order is deterministic, so we compare the toString
+		assertEquals(expectedParams.toString(), query.getParameters().toString());
+	}
+	
+	@Test
+	public void testTranslateDeterministicSqlWithMultiValue() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+		
+		ColumnModel foo = new ColumnModel().setName("foo").setColumnType(ColumnType.STRING_LIST).setMaximumSize(100L).setMaximumListLength(5L).setId("1");
+		ColumnModel bar = new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER_LIST).setId("2").setMaximumListLength(5L); 
+
+		setupGetColumns(foo, bar);
+		
+		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(foo, bar));
+		
+		// call under test
+		QueryTranslator query = QueryTranslator.builder("select * from syn1 where foo HAS_LIKE ('b', 'a', 'c') AND bar HAS (42, 32)", userId)
+			.schemaProvider(mockSchemaProvider)
+			.sqlContext(SqlContext.query)
+			.indexDescription(indexDescription)
+			.build();
+		
+		String expectedSql = "SELECT _C1_, _C2_, ROW_ID, ROW_VERSION FROM T1"
+			+ " WHERE ( JSON_OVERLAPS(_C2_,JSON_ARRAY(:b0,:b1)) IS TRUE )"
+			+ " AND ("
+				+ " JSON_SEARCH(_C1_,'one',:b2 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL"
+				+ " OR JSON_SEARCH(_C1_,'one',:b3 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL"
+				+ " OR JSON_SEARCH(_C1_,'one',:b4 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL "
+			+ ")";
+		
+		Map<String, Object> expectedParams = new LinkedHashMap<>();
+		
+		expectedParams.put("b0", 32L);
+		expectedParams.put("b1", 42L);
+		expectedParams.put("b2", "a");
+		expectedParams.put("b3", "b");
+		expectedParams.put("b4", "c");
+		
+		assertEquals(expectedSql, query.getOutputSQL());
+		// We want to make sure that the order is deterministic, so we compare the toString
+		assertEquals(expectedParams.toString(), query.getParameters().toString());
+		
+		// Call under test, the order of the search conditions or values should not matter, duplicate values do not change the query results
+		query = QueryTranslator.builder("select * from syn1 where bar HAS (32, 42) AND bar HAS (42, 42, 32) AND foo HAS_LIKE ('a', 'c', 'b', 'a', 'a', 'b')", userId)
+				.schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query)
+				.indexDescription(indexDescription)
+				.build();
+		
+		assertEquals(expectedSql, query.getOutputSQL());
+		// We want to make sure that the order is deterministic, so we compare the toString
+		assertEquals(expectedParams.toString(), query.getParameters().toString());
 	}
 		
 }

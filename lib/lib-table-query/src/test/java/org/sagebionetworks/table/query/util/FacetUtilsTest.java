@@ -180,7 +180,7 @@ public class FacetUtilsTest {
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		WhereClause modifiedSql = FacetUtils.appendFacetSearchConditionToQuerySpecification(
 				simpleModel.getTableExpression().getWhereClause(), validatedQueryFacetColumns);
-		assertEquals("WHERE ( i LIKE 'trains' ) AND ( ( ( searchCondition = asdf ) ) )",
+		assertEquals("WHERE ( ( ( searchCondition = asdf ) ) ) AND ( i LIKE 'trains' )",
 				modifiedSql.toSql());
 	}
 	

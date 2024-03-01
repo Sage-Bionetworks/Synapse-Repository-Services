@@ -382,7 +382,7 @@ public class TableQueryManagerImplTest {
 		query.setSelectedFacets(Collections.singletonList(facetColumnRequest));
 		// call under test
 		String sql = manager.createCombinedSql(user, query);
-		assertEquals("SELECT * FROM syn123 WHERE ( i1 = 1.0 ) AND ( ( ( \"i2\" <= '45' ) ) )", sql);
+		assertEquals("SELECT * FROM syn123 WHERE ( ( ( \"i2\" <= '45' ) ) ) AND ( i1 = 1.0 )", sql);
 	}
 
 	@Test
@@ -404,7 +404,7 @@ public class TableQueryManagerImplTest {
 		query.setSql("select * from " + tableId);
 		query.setAdditionalFilters(Arrays.asList(likeFilter, hasFilter));
 		String sql = manager.createCombinedSql(user, query);
-		assertEquals("SELECT * FROM syn123 WHERE ( \"i0\" LIKE 'foo%' ) AND ( \"i12\" HAS ( 'foo%', 'bar' ) )", sql);
+		assertEquals("SELECT * FROM syn123 WHERE ( \"i0\" LIKE 'foo%' ) AND ( \"i12\" HAS ( 'bar', 'foo%' ) )", sql);
 	}
 
 	@Test
@@ -459,9 +459,9 @@ public class TableQueryManagerImplTest {
 		query.setLimit(2L);
 		query.setOffset(3L);
 		String sql = manager.createCombinedSql(user, query);
-		assertEquals("SELECT * FROM syn123 WHERE ( ( i1 = 1 ) AND ( ( \"i0\" LIKE 'foo%' ) " +
-				"AND ( \"i12\" HAS ( 'foo%', 'bar' ) ) ) ) AND ( ( ( \"i2\" <= '45' ) ) ) " +
-				"ORDER BY \"i0\" DESC LIMIT 2 OFFSET 3", sql);
+		assertEquals("SELECT * FROM syn123 WHERE"
+				+ " ( ( ( \"i0\" LIKE 'foo%' ) AND ( \"i12\" HAS ( 'bar', 'foo%' ) ) ) AND ( i1 = 1 ) ) AND ( ( ( \"i2\" <= '45' ) ) )"
+				+ " ORDER BY \"i0\" DESC LIMIT 2 OFFSET 3", sql);
 	}
 
 	@Test
@@ -617,7 +617,7 @@ public class TableQueryManagerImplTest {
 		// a benefactor check must occur for FileViews
 		verify(mockTableManagerSupport).getAccessibleBenefactors(any(), any(), any());
 		// validate the benefactor filter is applied
-		assertEquals("SELECT COUNT(*) FROM T123 WHERE ROW_BENEFACTOR IN ( :b0, -:b1 )", results.getMainQuery().getTranslator().getOutputSQL());
+		assertEquals("SELECT COUNT(*) FROM T123 WHERE ROW_BENEFACTOR IN ( -:b0, :b1 )", results.getMainQuery().getTranslator().getOutputSQL());
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, benfactors);
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR);
 	}
@@ -659,7 +659,7 @@ public class TableQueryManagerImplTest {
 		
 		// validate the benefactor filter is applied
 		assertEquals("WITH T2 (_C22_) AS "
-				+ "(SELECT _C11_ FROM T1 WHERE ROW_BENEFACTOR IN ( :b0, -:b1 ))"
+				+ "(SELECT _C11_ FROM T1 WHERE ROW_BENEFACTOR IN ( -:b0, :b1 ))"
 				+ " SELECT COUNT(*) FROM T2", results.getMainQuery().getTranslator().getOutputSQL());
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, benfactors);
 		verify(mockTableIndexDAO).getDistinctLongValues(viewId, TableConstants.ROW_BENEFACTOR);
@@ -1427,8 +1427,8 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ( JSON_SEARCH(_C13_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL OR JSON_SEARCH(_C13_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL ) )",
 				result.getMainQuery().getTranslator().getOutputSQL());
-		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b0"));
-		assertEquals("bar", result.getMainQuery().getTranslator().getParameters().get("b1"));
+		assertEquals("bar", result.getMainQuery().getTranslator().getParameters().get("b0"));
+		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b1"));
 	}
 	
 	@Test
@@ -1457,8 +1457,8 @@ public class TableQueryManagerImplTest {
 		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ( JSON_OVERLAPS(_C13_,JSON_ARRAY(:b0,:b1)) IS TRUE ) )",
 				result.getMainQuery().getTranslator().getOutputSQL());
 		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
-		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b0"));
-		assertEquals("bar", result.getMainQuery().getTranslator().getParameters().get("b1"));
+		assertEquals("bar", result.getMainQuery().getTranslator().getParameters().get("b0"));
+		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b1"));
 	}
 	
 	@Test
@@ -2165,7 +2165,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123, -1 )", query.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( -1, 123, 456 )", query.toSql());
 	}
 
 	@Test
@@ -2178,7 +2178,7 @@ public class TableQueryManagerImplTest {
 
 		// call under test
 		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123, -1 )", query.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( -1, 123, 456 )", query.toSql());
 	}
 
 	@Test
@@ -2228,7 +2228,7 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(123L);
 		// call under test
 		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
-		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 456, 123, -1 )", query.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1, 123, 456 )", query.toSql());
 	}
 
 	@Test
@@ -2256,7 +2256,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumnName);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND BENEFACTOR_TWO IN ( 456, 123, -1 )", query.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND BENEFACTOR_TWO IN ( -1, 123, 456 )", query.toSql());
 	}
 	
 	@Test
@@ -2270,7 +2270,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123, -1 )", query.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( -1, 123, 456 )", query.toSql());
 	}
 	
 	/**
@@ -2295,7 +2295,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 > 0 OR i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123, -1 )", query.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 > 0 OR i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( -1, 123, 456 )", query.toSql());
 	}
 	
 	@Test
@@ -2307,7 +2307,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 123, -1 )", query.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1, 123 )", query.toSql());
 	}
 
 	@Test
@@ -2378,7 +2378,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		manager.addRowLevelFilter(user, query);
 
-		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 444, -1 )", query.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1, 444 )", query.toSql());
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR);
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, benfactors);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
@@ -2405,7 +2405,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		manager.addRowLevelFilter(user, query);
 
-		assertEquals("SELECT * FROM syn123 WHERE ( ROW_BENEFACTOR_T1 IN ( 444, -1 ) ) AND ROW_BENEFACTOR_T2 IN ( -1, 111 )", query.toSql());
+		assertEquals("SELECT * FROM syn123 WHERE ( ROW_BENEFACTOR_T1 IN ( -1, 444 ) ) AND ROW_BENEFACTOR_T2 IN ( -1, 111 )", query.toSql());
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR_T1");
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR_T2");
 		verify(mockTableIndexDAO, times(2)).getDistinctLongValues(any(), any());

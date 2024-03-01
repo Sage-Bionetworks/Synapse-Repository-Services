@@ -81,19 +81,21 @@ public class SumFileSizesQueryTest {
 		// call under test
 		SumFileSizesQuery size = new SumFileSizesQuery(builder.build());
 		assertNotNull(size);
-		String sql = "SELECT ROW_ID, ROW_VERSION FROM T123_4 WHERE " + "( ( ROW_BENEFACTOR IN ( :b0, :b1 ) )"
-				+ " AND ( ( _C3_ = :b2 OR _C3_ = :b3 ) ) )"
-				+ " AND ( ( ( _C1_ = :b4 ) AND ( _C2_ BETWEEN :b5 AND :b6 ) ) )"
+		String sql = "SELECT ROW_ID, ROW_VERSION FROM T123_4 WHERE"
+				+ " ( ( ( _C1_ = :b0 ) AND ( _C2_ BETWEEN :b1 AND :b2 ) ) )"
+				+ " AND ( ( ( _C3_ = :b3 OR _C3_ = :b4 ) )"
+				+ " AND ( ROW_BENEFACTOR IN ( :b5, :b6 ) ) )"
 				// maxRowsPerCall + 1
 				+ " LIMIT 19";
+
 		Map<String, Object> expectedParmeters = new HashMap<>();
-		expectedParmeters.put("b0", 11L);
-		expectedParmeters.put("b1", 22L);
-		expectedParmeters.put("b2", "a");
-		expectedParmeters.put("b3", "b");
-		expectedParmeters.put("b4", "cat");
-		expectedParmeters.put("b5", 15L);
-		expectedParmeters.put("b6", 38L);
+		expectedParmeters.put("b0", "cat");
+		expectedParmeters.put("b1", 15L);
+		expectedParmeters.put("b2", 38L);
+		expectedParmeters.put("b3", "a");
+		expectedParmeters.put("b4", "b");
+		expectedParmeters.put("b5", 11L);
+		expectedParmeters.put("b6", 22L);
 		assertEquals(Optional.of(new BasicQuery(sql, expectedParmeters)), size.getRowIdAndVersionQuery());
 	}
 

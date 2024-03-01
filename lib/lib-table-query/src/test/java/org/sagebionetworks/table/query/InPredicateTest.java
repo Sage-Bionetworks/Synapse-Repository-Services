@@ -56,8 +56,8 @@ public class InPredicateTest {
 		List<UnsignedLiteral> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
 		assertEquals(3, values.size());
-		assertEquals("1", values.get(0).toSqlWithoutQuotes());
-		assertEquals("2", values.get(1).toSqlWithoutQuotes());
+		assertEquals("2", values.get(0).toSqlWithoutQuotes());
+		assertEquals("1", values.get(1).toSqlWithoutQuotes());
 		assertEquals("3", values.get(2).toSqlWithoutQuotes());
 	}
 

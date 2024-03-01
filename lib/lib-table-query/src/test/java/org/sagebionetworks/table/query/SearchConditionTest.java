@@ -42,7 +42,7 @@ public class SearchConditionTest {
 	public void testSearchConditionToSQLMultiple() throws ParseException {
 		List<BooleanTerm> terms = SqlElementUtils.createBooleanTerms("foo=1", "bar=2");
 		SearchCondition element = new SearchCondition(terms);
-		assertEquals("foo = 1 OR bar = 2", element.toString());
+		assertEquals("bar = 2 OR foo = 1", element.toString());
 	}
 
 	@Test
