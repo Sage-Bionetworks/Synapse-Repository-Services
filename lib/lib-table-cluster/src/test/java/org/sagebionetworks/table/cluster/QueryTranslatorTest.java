@@ -2485,8 +2485,8 @@ public class QueryTranslatorTest {
 		// We want to make sure that the order is deterministic, so we compare the toString
 		assertEquals(expectedParams.toString(), query.getParameters().toString());
 		
-		// Call under test, the order of the search conditions should not matter
-		query = QueryTranslator.builder("select * from syn1 where (bar = 32 OR bar = 42 ) AND foo = 'a'", userId)
+		// Call under test, the order of the search conditions should not matter, repetition and spacing of the same condition also do not change the query results
+		query = QueryTranslator.builder("select * from syn1 where (bar = 32 OR bar = 42 OR bar = 32) AND (bar = 42 OR bar = 32) AND foo = 'a' and foo ='a'", userId)
 				.schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.query)
 				.indexDescription(indexDescription)
@@ -2529,8 +2529,8 @@ public class QueryTranslatorTest {
 		// We want to make sure that the order is deterministic, so we compare the toString
 		assertEquals(expectedParams.toString(), query.getParameters().toString());
 		
-		// Call under test, the order of the search conditions should not matter
-		query = QueryTranslator.builder("select * from syn1 where    bar IN (32, 42) AND foo IN ('c' , 'b', 'a')", userId)
+		// Call under test, the order of the search conditions or in values should not matter, duplicate values also do not change the query results
+		query = QueryTranslator.builder("select * from syn1 where    bar IN (32, 42) AND bar IN (42, 42, 32) AND foo IN ('c' , 'b', 'a', 'b', 'c', 'c')", userId)
 				.schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.query)
 				.indexDescription(indexDescription)
@@ -2580,8 +2580,8 @@ public class QueryTranslatorTest {
 		// We want to make sure that the order is deterministic, so we compare the toString
 		assertEquals(expectedParams.toString(), query.getParameters().toString());
 		
-		// Call under test, the order of the search conditions should not matter
-		query = QueryTranslator.builder("select * from syn1 where bar HAS (32, 42) AND foo HAS_LIKE ('a', 'c', 'b')", userId)
+		// Call under test, the order of the search conditions or values should not matter, duplicate values do not change the query results
+		query = QueryTranslator.builder("select * from syn1 where bar HAS (32, 42) AND bar HAS (42, 42, 32) AND foo HAS_LIKE ('a', 'c', 'b', 'a', 'a', 'b')", userId)
 				.schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.query)
 				.indexDescription(indexDescription)
