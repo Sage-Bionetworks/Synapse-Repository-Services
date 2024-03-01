@@ -371,20 +371,15 @@ public class ITDataAccessTest {
 	@Test
 	public void testExemptionEligibleForDataContributor() throws SynapseException, IOException, JSONObjectAdapterException {
 		Project project = synapse.createEntity(new Project());
-		URL url = IT054FileEntityTest.class.getClassLoader().getResource("LittleImage.png");
+		URL url = IT054FileEntityTest.class.getClassLoader().getResource("images/LittleImage.png");
 		File imageFile = new File(url.getFile().replaceAll("%20", " "));
 		assertNotNull(imageFile);
 		assertTrue(imageFile.exists());
 
 		CloudProviderFileHandleInterface fileHandle = synapse.multipartUpload(imageFile, null, true, true);
-		Folder folder = new Folder();
-		folder.setName("someFolder");
-		folder.setParentId(project.getId());
-		folder = this.synapse.createEntity(folder);
-		// Add a file to the folder
 		FileEntity file = new FileEntity();
 		file.setName("someFile");
-		file.setParentId(folder.getId());
+		file.setParentId(project.getId());
 		file.setDataFileHandleId(fileHandle.getId());
 		file = this.synapse.createEntity(file);
 		String fileId = IdAndVersion.parse(file.getId()).getId().toString();
