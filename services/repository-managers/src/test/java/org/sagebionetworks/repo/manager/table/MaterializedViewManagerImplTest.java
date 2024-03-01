@@ -8,11 +8,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
@@ -114,13 +115,13 @@ public class MaterializedViewManagerImplTest {
 
 	@Test
 	public void testValidate() {
-		String sql = "SELECT * FROM syn123";
-
-		when(mockView.getDefiningSQL()).thenReturn(sql);
-
+		when(mockView.getDefiningSQL()).thenReturn("SELECT * FROM syn123");
+		doNothing().when(managerSpy).validateDefiningSql(any());
+		
+		// Call under test
 		managerSpy.validate(mockView);
 
-		verify(managerSpy).validateDefiningSql(sql);
+		verify(managerSpy).validateDefiningSql("SELECT * FROM syn123");
 	}
 
 	@Test
@@ -135,19 +136,23 @@ public class MaterializedViewManagerImplTest {
 
 	@Test
 	public void testValidateDefiningSql() {
-		String sql = "SELECT * FROM syn123";
-
+		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn123"))).thenReturn(new MaterializedViewIndexDescription(
+				IdAndVersion.parse("syn123"), Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
+		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(syn123Schema);	
+		setupGetColumns(syn123Schema);
+		
 		// Call under test
-		managerSpy.validateDefiningSql(sql);
+		managerSpy.validateDefiningSql("SELECT * FROM syn123");
+		
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn123"));
+		verify(mockTableManagerSupport).getTableSchema(IdAndVersion.parse("syn123"));
 	}
 
 	@Test
 	public void testValidateDefiningSqlWithNullSQL() {
-		String sql = null;
-
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.validateDefiningSql(sql);
+			manager.validateDefiningSql(null);
 		}).getMessage();
 
 		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
@@ -155,11 +160,9 @@ public class MaterializedViewManagerImplTest {
 
 	@Test
 	public void testValidateDefiningSqlWithEmptySQL() {
-		String sql = "";
-
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.validateDefiningSql(sql);
+			manager.validateDefiningSql("");
 		}).getMessage();
 
 		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
@@ -167,11 +170,9 @@ public class MaterializedViewManagerImplTest {
 
 	@Test
 	public void testValidateDefiningSqlWithBlankSQL() {
-		String sql = "   ";
-
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.validateDefiningSql(sql);
+			manager.validateDefiningSql("   ");
 		}).getMessage();
 
 		assertEquals("The definingSQL of the materialized view is required and must not be a blank string.", message);
@@ -179,11 +180,9 @@ public class MaterializedViewManagerImplTest {
 
 	@Test
 	public void testValidateDefiningSqlWithInvalidSQL() {
-		String sql = "invalid SQL";
-
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.validateDefiningSql(sql);
+			manager.validateDefiningSql("invalid SQL");
 		});
 
 		assertTrue(ex.getCause() instanceof ParseException);
@@ -193,17 +192,73 @@ public class MaterializedViewManagerImplTest {
 
 	@Test
 	public void testValidateDefiningSqlWithWithNoTable() {
-		String sql = "SELECT foo";
-
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.validateDefiningSql(sql);
+			manager.validateDefiningSql("SELECT foo");
 		});
 
 		assertTrue(ex.getCause() instanceof ParseException);
 
 		assertTrue(ex.getMessage().startsWith("Encountered \"<EOF>\" at line 1, column 10."));
 	}
+	
+	@Test
+	public void testValidateDefiningSqlWithNonExistentDependencies() {
+		doThrow(new NotFoundException("Resource '192' does not exist"))
+				.when(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn192"));
+		
+		// Call under test
+		String errorMessage = assertThrows(NotFoundException.class, () -> {
+			managerSpy.validateDefiningSql("SELECT * FROM syn192");
+		}).getMessage();
+		
+		assertEquals("Resource '192' does not exist", errorMessage);
+		
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn192"));
+	}
+	
+	@Test
+	public void testValidateDefiningSqlWithMultipleDependencies() {
+		List<ColumnModel> syn456Schema = Arrays.asList(TableModelTestUtils.createColumn(111L, "abc", ColumnType.INTEGER),
+				TableModelTestUtils.createColumn(222L, "def", ColumnType.STRING));
+		
+		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn123"))).thenReturn(new MaterializedViewIndexDescription(
+				IdAndVersion.parse("syn123"), Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
+		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn456"))).thenReturn(new MaterializedViewIndexDescription(
+				IdAndVersion.parse("syn456"), Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
+		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
+		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn456"))).thenReturn(syn456Schema);
+		setupGetColumns(syn123Schema);
+		setupGetColumns(syn456Schema);
+		
+		// Call under test
+		managerSpy.validateDefiningSql("SELECT foo, bar FROM syn123 UNION SELECT abc, def FROM syn456");
+		
+		verify(mockTableManagerSupport, times(2)).getIndexDescription(any());
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn123"));
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn456"));
+		verify(mockTableManagerSupport, times(2)).getTableSchema(any());
+		verify(mockTableManagerSupport).getTableSchema(IdAndVersion.parse("syn123"));
+		verify(mockTableManagerSupport).getTableSchema(IdAndVersion.parse("syn456"));
+	}
+	
+	@Test
+	public void testValidateDefiningSqlWithUnknownColumn() {
+		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn123"))).thenReturn(new MaterializedViewIndexDescription(
+				idAndVersion, Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
+		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
+		
+		// Call under test
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			managerSpy.validateDefiningSql("SELECT notreal FROM syn123");
+		}).getMessage();
+		
+		assertEquals("Unknown column notreal", errorMessage);
+		
+		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn123"));
+		verify(mockTableManagerSupport).getTableSchema(IdAndVersion.parse("syn123"));
+	}
+	
 
 	@Test
 	public void testRegisterSourceTables() {

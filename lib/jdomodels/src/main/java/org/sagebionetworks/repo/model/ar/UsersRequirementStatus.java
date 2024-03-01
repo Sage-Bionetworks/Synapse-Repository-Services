@@ -12,6 +12,7 @@ public class UsersRequirementStatus {
 	private AccessRequirementType requirementType;
 	private boolean isUnmet;
 	private boolean isTwoFaRequired;
+	private boolean isExemptionEligible;
 
 	/**
 	 * 
@@ -74,9 +75,18 @@ public class UsersRequirementStatus {
 		return this;
 	}
 
+	public boolean isExemptionEligible() {
+		return isExemptionEligible;
+	}
+
+	public UsersRequirementStatus withIsExemptionEligible(boolean isExemptionEligible) {
+		this.isExemptionEligible = isExemptionEligible;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(isTwoFaRequired, isUnmet, requirementId, requirementType);
+		return Objects.hash(isTwoFaRequired, isUnmet, requirementId, requirementType, isTwoFaRequired, isExemptionEligible);
 	}
 
 	@Override
@@ -89,13 +99,13 @@ public class UsersRequirementStatus {
 		}
 		UsersRequirementStatus other = (UsersRequirementStatus) obj;
 		return isTwoFaRequired == other.isTwoFaRequired && isUnmet == other.isUnmet && Objects.equals(requirementId, other.requirementId)
-				&& requirementType == other.requirementType;
+				&& requirementType == other.requirementType && isExemptionEligible == other.isExemptionEligible;
 	}
 
 	@Override
 	public String toString() {
 		return "UsersRequirementStatus [requirementId=" + requirementId + ", requirementType=" + requirementType + ", isUnmet=" + isUnmet
-				+ ", isTwoFaRequired=" + isTwoFaRequired + "]";
+				+ ", isTwoFaRequired=" + isTwoFaRequired + ", isExemptionEligible=" + isExemptionEligible + "]";
 	}
 	
 }

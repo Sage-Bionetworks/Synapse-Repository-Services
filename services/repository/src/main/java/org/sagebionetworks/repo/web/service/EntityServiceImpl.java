@@ -797,15 +797,17 @@ public class EntityServiceImpl implements EntityService {
 
 	@Override
 	public ValidateDefiningSqlResponse validateDefiningSql(ValidateDefiningSqlRequest request) {
-		String definingSql = request.getDefiningSql();
-		EntityType entityType = EntityType.valueOf(request.getEntityType().name());
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getEntityType(), "entityType");
 
+		EntityType entityType = EntityType.valueOf(request.getEntityType().name());
+		
 		EntityProvider<? extends Entity> provider = metadataProviderFactory.getMetadataProvider(entityType)
 				.orElseThrow(() -> new IllegalStateException("No provider found for the given entity type: " + entityType));
 
 		if (provider instanceof TypeSpecificDefiningSqlProvider) {
 			try {
-				((TypeSpecificDefiningSqlProvider) provider).validateDefiningSql(definingSql);
+				((TypeSpecificDefiningSqlProvider) provider).validateDefiningSql(request.getDefiningSql());
 				return new ValidateDefiningSqlResponse().setIsValid(true);
 			} catch (IllegalArgumentException e) {
 				return new ValidateDefiningSqlResponse().setIsValid(false).setInvalidReason(e.getMessage());
