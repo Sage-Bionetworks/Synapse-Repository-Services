@@ -88,7 +88,7 @@ public class CountQueryTest {
 		QueryContext expantion = builder.build();
 		// call under test
 		CountQuery count = new CountQuery(expantion);
-		assertNotNull(count);
+
 		String sql = "SELECT COUNT(*) FROM T123_4 WHERE"
 				// auth filter
 				+ " ( ( ROW_BENEFACTOR IN ( :b0, :b1 ) ) "
@@ -104,10 +104,11 @@ public class CountQueryTest {
 		expectedParmeters.put("b4", "cat");
 		expectedParmeters.put("b5", 15L);
 		expectedParmeters.put("b6", 38L);
+
 		assertEquals(Optional.of(new BasicQuery(sql, expectedParmeters)), count.getCountQuery());
-
-		assertNull(count.getOrignialPagination());
-
+		assertNull(count.getOriginalPagination());
+		assertEquals("syn123.4", count.getSingleTableId());
+		assertEquals("d41d8cd98f00b204e9800998ecf8427e", count.getTableHash());
 	}
 
 	@Test
@@ -118,13 +119,15 @@ public class CountQueryTest {
 		QueryContext expantion = builder.build();
 		// call under test
 		CountQuery count = new CountQuery(expantion);
-		assertNotNull(count);
+		
 		String sql = "SELECT COUNT(*) FROM T123_4";
 		Map<String, Object> expectedParmeters = new HashMap<>();
 		assertEquals(Optional.of(new BasicQuery(sql, expectedParmeters)), count.getCountQuery());
 
-		assertNotNull(count.getOrignialPagination());
-		assertEquals("LIMIT 10 OFFSET 2", count.getOrignialPagination().toSql());
+		assertNotNull(count.getOriginalPagination());
+		assertEquals("LIMIT 10 OFFSET 2", count.getOriginalPagination().toSql());
+		assertEquals("syn123.4", count.getSingleTableId());
+		assertEquals("d41d8cd98f00b204e9800998ecf8427e", count.getTableHash());
 
 	}
 
@@ -136,13 +139,15 @@ public class CountQueryTest {
 		QueryContext expantion = builder.build();
 		// call under test
 		CountQuery count = new CountQuery(expantion);
-		assertNotNull(count);
+		
 		String sql = "SELECT COUNT(*) FROM T123_4 WHERE _C2_ = :b0";
 		Map<String, Object> expectedParmeters = new HashMap<>();
 		expectedParmeters.put("b0", userId);
 		assertEquals(Optional.of(new BasicQuery(sql, expectedParmeters)), count.getCountQuery());
 
-		assertNull(count.getOrignialPagination());
+		assertNull(count.getOriginalPagination());
+		assertEquals("syn123.4", count.getSingleTableId());
+		assertEquals("d41d8cd98f00b204e9800998ecf8427e", count.getTableHash());
 
 	}
 
@@ -155,12 +160,16 @@ public class CountQueryTest {
 		QueryContext expantion = builder.build();
 		// call under test
 		CountQuery count = new CountQuery(expantion);
-		assertNotNull(count);
+		
 		String sql = "SELECT COUNT(*) FROM T123_4 WHERE ROW_BENEFACTOR IN ( :b0, :b1 )";
 		Map<String, Object> expectedParmeters = new HashMap<>();
 		expectedParmeters.put("b0", 11L);
 		expectedParmeters.put("b1", 22L);
 		assertEquals(Optional.of(new BasicQuery(sql, expectedParmeters)), count.getCountQuery());
+		
+		assertNull(count.getOriginalPagination());
+		assertEquals("syn123.4", count.getSingleTableId());
+		assertEquals("d41d8cd98f00b204e9800998ecf8427e", count.getTableHash());
 
 	}
 
@@ -193,13 +202,19 @@ public class CountQueryTest {
 		QueryContext expantion = builder.build();
 		// call under test
 		CountQuery count = new CountQuery(expantion);
+		
 		assertEquals(Optional.empty(), count.getCountQuery());
+		assertNull(count.getOriginalPagination());
+		assertNull(count.getSingleTableId());
+		assertNull(count.getTableHash());
 	}
 
 	@Test
 	public void testCountQueryWithVirtualTable() {
 		tableId = IdAndVersion.parse("syn1");
-		TableIndexDescription sourceTableDescription = new TableIndexDescription(tableId);
+		// This affects the hash of the virtual table
+		Long lastTableChangeNumber = 2L;
+		TableIndexDescription sourceTableDescription = new TableIndexDescription(tableId, lastTableChangeNumber);
 		when(mockIndexDescriptionLookup.getIndexDescription(any())).thenReturn(sourceTableDescription);
 		IdAndVersion virtualId = IdAndVersion.parse("syn2");
 		String definingSql = "select one, cast(sum(two) as 33) from syn1 where two > 12 group by one";
@@ -217,15 +232,16 @@ public class CountQueryTest {
 
 		// call under test
 		CountQuery count = new CountQuery(expantion);
-		
-		assertNotNull(count);
+
 		String expectedSql = "WITH T2 (_C1_, _C33_) AS"
 				+ " (SELECT _C1_, CAST(SUM(_C2_) AS SIGNED) FROM T1 WHERE _C2_ > :b0 GROUP BY _C1_)"
 				+ " SELECT COUNT(*) FROM T2";
 		Map<String, Object> expectedParmeters = new HashMap<>();
 		expectedParmeters.put("b0", 12L);
 		assertEquals(Optional.of(new BasicQuery(expectedSql, expectedParmeters)), count.getCountQuery());
-		assertNull(count.getOrignialPagination());
+		assertNull(count.getOriginalPagination());
+		assertEquals("syn2", count.getSingleTableId());
+		assertEquals("38b522e72524bc4e58f29fbc0493fbf4", count.getTableHash());
 		
 		verify(mockIndexDescriptionLookup).getIndexDescription(tableId);
 		verify(schemaProvider, times(2)).getTableSchema(any());

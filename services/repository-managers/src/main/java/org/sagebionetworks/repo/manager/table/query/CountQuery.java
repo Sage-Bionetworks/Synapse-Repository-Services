@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.QueryTranslator;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.Pagination;
@@ -22,6 +23,8 @@ public class CountQuery {
 
 	private final BasicQuery countQuery;
 	private final Pagination originalPagination;
+	private final String tableHash;
+	private final String singleTableId;
 
 	public CountQuery(QueryContext expansion) {
 		ValidateArgument.required(expansion, "expansion");
@@ -35,15 +38,25 @@ public class CountQuery {
 			QueryExpression queryExpression = new TableQueryParser(combined.getCombinedSql()).queryExpression();
 			QuerySpecification model = queryExpression.getFirstElementOfType(QuerySpecification.class);
 			originalPagination = model.getFirstElementOfType(Pagination.class);
-			if(SqlElementUtils.createCountSql(model)) {
+			
+			if (SqlElementUtils.createCountSql(model)) {
 				QueryTranslator sqlQuery = QueryTranslator.builder(queryExpression.toSql(), expansion.getUserId())
-						.schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription())
-						.build();
+					.schemaProvider(expansion.getSchemaProvider())
+					.indexDescription(expansion.getIndexDescription())
+					.build();
+				
 				countQuery = new BasicQuery(
-						sqlQuery.getTranslatedModel().toSql(),
-						sqlQuery.getParameters());
-			}else {
+					sqlQuery.getTranslatedModel().toSql(),
+					sqlQuery.getParameters()
+				);
+				
+				tableHash = sqlQuery.getIndexDescription().getTableHash();
+				singleTableId = sqlQuery.getSingleTableId();
+				
+			} else {
 				countQuery = null;
+				tableHash = null;
+				singleTableId = null;
 			}
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
@@ -59,8 +72,18 @@ public class CountQuery {
 		return Optional.ofNullable(countQuery);
 	}
 
-	public Pagination getOrignialPagination() {
+	public Pagination getOriginalPagination() {
 		return originalPagination;
 	}
+	
+	public String getTableHash() {
+		return tableHash;
+	}
+	
+	public String getSingleTableId() {
+		return singleTableId;
+	}
+	
+	
 
 }
