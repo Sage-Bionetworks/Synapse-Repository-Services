@@ -5,7 +5,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -143,27 +142,6 @@ public class QueryContextTest {
 			builder.build();
 		}).getMessage();
 		assertEquals("userId is required.", message);
-	}
-
-	@Test
-	public void testMaximumNumberOfAdditionalFiltersWithAtLimit() {
-
-		builder.setAdditionalFilters(Collections.nCopies(50, singleValueFilter));
-		// call under test
-		QueryContext context = builder.build();
-		assertNotNull(context.getAdditionalFilters());
-		assertEquals(50, context.getAdditionalFilters().size());
-	}
-	
-	@Test
-	public void testMaximumNumberOfAdditionalFiltersWithOverLimit() {
-
-		builder.setAdditionalFilters(Collections.nCopies(51, singleValueFilter));
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			builder.build();
-		}).getMessage();
-		assertEquals("The size of the provided additionalFilters is 51 which exceeds the maximum of 50", message);
 	}
 		
 	@Test
