@@ -165,7 +165,7 @@ public class EntityDeciderFunctionsTest {
 	@Test
 	public void testDenyIfHasUnmetAccessRestrictionsWithUnMetAndWithExemptionEligible() {
 		restrictionStatus.withHasUnmet(true);
-		permissionState.withHasUpdate(true).withHasDelete(true);
+		permissionState.withHasUpdate(true).withHasDelete(true).withHasDownload(true);
 		restrictionStatus.withRestrictionStatus(List.of(
 				new UsersRequirementStatus()
 						.withRequirementId(1L)
@@ -183,14 +183,13 @@ public class EntityDeciderFunctionsTest {
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
 				.determineAccess(context);
-		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
-		assertEquals(expected, resultOptional.get());
+		assertFalse(resultOptional.isPresent());
 	}
 
 	@Test
 	public void testDenyIfNotExemptAndHasUnmetAccessRestrictionsWithMetAndWithExemptionEligible() {
 		restrictionStatus.withHasUnmet(false);
-		permissionState.withHasUpdate(true).withHasDelete(true);
+		permissionState.withHasUpdate(true).withHasDelete(true).hasDownload();
 		restrictionStatus.withRestrictionStatus(List.of(
 				new UsersRequirementStatus()
 						.withRequirementId(1L)
@@ -209,8 +208,7 @@ public class EntityDeciderFunctionsTest {
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
 				.determineAccess(context);
-		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
-		assertEquals(expected, resultOptional.get());
+		assertFalse(resultOptional.isPresent());
 	}
 
 	@Test

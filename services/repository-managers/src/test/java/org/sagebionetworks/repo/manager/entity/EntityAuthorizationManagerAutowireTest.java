@@ -385,7 +385,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.setResourceAccess(Collections.singleton(
 					new ResourceAccess().setPrincipalId(userTwo.getId())
-							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE))));
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))));
 		});
 
 		Long arId = managedHelper.create(a -> {
@@ -417,7 +417,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.setResourceAccess(Collections.singleton(
 					new ResourceAccess().setPrincipalId(userTwo.getId())
-							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE))));
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))));
 		});
 
 		Long arId = managedHelper.create(a -> {
@@ -485,7 +485,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(projectOne.getId());
 			a.setResourceAccess(Collections.singleton(
 					new ResourceAccess().setPrincipalId(userTwo.getId())
-							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE))));
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))));
 		});
 
 		// userTwo is contributor for projectTwo
@@ -552,7 +552,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(projectOne.getId());
 			a.setResourceAccess(Collections.singleton(
 					new ResourceAccess().setPrincipalId(teamOneId)
-							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE))));
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))));
 		});
 
 		// userOne is contributor for projectTwo
@@ -560,7 +560,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(projectTwo.getId());
 			a.setResourceAccess(Collections.singleton(
 					new ResourceAccess().setPrincipalId(userOne.getId())
-							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE))));
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))));
 		});
 
 		//AR for projectOne and projectTwo

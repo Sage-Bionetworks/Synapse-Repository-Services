@@ -72,10 +72,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 		boolean isExemptionEligible = c.getRestrictionStatus().getAccessRestrictions().stream()
 				.anyMatch(UsersRequirementStatus::isExemptionEligible);
 		boolean isUserExempted = isUserDataContributor && isExemptionEligible;
-		if(isUserExempted){
-			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.authorized()));
-		}
-		if (c.getRestrictionStatus().hasUnmet()) {
+		if (!isUserExempted && c.getRestrictionStatus().hasUnmet()) {
 			return Optional.of(new UsersEntityAccessInfo(c,
 					AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_AND_NON_EXEMPTED_ACCESS_REQUIREMENTS)));
 		} else {

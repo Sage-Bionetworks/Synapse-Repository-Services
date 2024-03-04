@@ -389,7 +389,7 @@ public class ITDataAccessTest {
 				.setId(file.getId())
 				.setResourceAccess(Collections.singleton(
 						new ResourceAccess().setPrincipalId(contributorId)
-								.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE))
+								.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))
 				));
 
 		adminSynapse.createACL(acl);
