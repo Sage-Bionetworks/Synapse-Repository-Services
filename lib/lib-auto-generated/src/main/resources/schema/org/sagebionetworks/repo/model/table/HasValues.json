@@ -2,7 +2,7 @@
 	"type": "interface",
 	"properties": {
 		"values": {
-			"description": "Values to be used with the filter.  Maximum of 50.",
+			"description": "Values to be used with the filter.",
 			"type": "array",
 			"items": {
 				"type": "string"
