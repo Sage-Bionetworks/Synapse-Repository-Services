@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.table.query;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
-import org.sagebionetworks.repo.model.table.HasValues;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.SchemaProvider;
@@ -42,21 +41,6 @@ public class QueryContext {
 		ValidateArgument.required(schemaProvider, "schemaProvider");
 		ValidateArgument.required(indexDescription, "indexDescription");
 		ValidateArgument.required(userId, "userId");
-		if (additionalFilters != null) {
-			if (additionalFilters.size() > MAX_SIZE_ADDITIONAL_FILTERS) {
-				throw new IllegalArgumentException(String.format(
-						"The size of the provided additionalFilters is %d which exceeds the maximum of %d",
-						additionalFilters.size(), MAX_SIZE_ADDITIONAL_FILTERS));
-			}
-			additionalFilters.stream().filter(f -> f instanceof HasValues).map(f -> (HasValues) f)
-					.filter(f -> f.getValues() != null).map(f -> f.getValues().size())
-					.filter(s -> s > MAX_SIZE_ADDITIONAL_FILTERS).findFirst().ifPresent(i -> {
-						throw new IllegalArgumentException(String.format(
-								"The size of the provided additionalFilters.values is %d which exceeds the maximum of %d",
-								i, MAX_SIZE_ADDITIONAL_FILTERS));
-					});
-		}
-
 		this.startingSql = startingSql;
 		this.schemaProvider = new CachingSchemaProvider(schemaProvider);
 		this.indexDescription = indexDescription;
