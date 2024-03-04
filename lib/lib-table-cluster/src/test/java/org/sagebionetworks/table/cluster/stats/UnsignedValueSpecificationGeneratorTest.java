@@ -44,39 +44,18 @@ public class UnsignedValueSpecificationGeneratorTest {
 	private TableAndColumnMapper mockTableAndColumnMapper;
 	
 	@InjectMocks
-	private UnsignedValueSpecificationGenerator generator;
+	private UnsignedValueSpecificationGenerator unsignedValueSpecificationGenerator;
 	
-	
-	private ColumnModel columnFoo;
-	private List<ColumnModel> schema;
-	private Map<String, ColumnModel> columnNameMap;
-	
-	
-	@BeforeEach
-	public void before() throws Exception {
-		columnFoo = TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING);
-		schema = Lists.newArrayList(columnFoo);
-		columnNameMap = schema.stream()
-			      .collect(Collectors.toMap(ColumnModel::getName, Function.identity()));
-	}
 	
 	@Test
 	public void testGenerate() throws ParseException {
-		QueryExpression rootModel = new TableQueryParser("SELECT foo FROM syn123").queryExpression();
-		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
-	
-		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
-				.thenReturn(List.of(columnNameMap.get("foo")));
-		
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
-		
 		UnsignedValueSpecification element = new UnsignedValueSpecification(
 				new UnsignedLiteral(new GeneralLiteral(new CharacterStringLiteral("12345"))));
 		
-		Optional<ElementsStats> expected = Optional.of(ElementsStats.builder()
+		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
 	            .setMaximumSize(5L)
 	            .build());
 		
-		assertEquals(expected, generator.generate(element, mapper));
+		assertEquals(expected, unsignedValueSpecificationGenerator.generate(element, mockTableAndColumnMapper));
 	}
 }

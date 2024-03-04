@@ -7,7 +7,7 @@ import java.util.Optional;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 
-public class ElementsStats {
+public class ElementStats {
 	private final Long maximumSize;
 	private final Long maxListLength;
 	private final String defaultValue;
@@ -16,7 +16,7 @@ public class ElementsStats {
 	private final List<JsonSubColumnModel> jsonSubColumns;
 	
 	
-	private ElementsStats(Long maximumSize, Long maxListLength, String defaultValue, FacetType facetType,
+	private ElementStats(Long maximumSize, Long maxListLength, String defaultValue, FacetType facetType,
 			List<String> enumValues, List<JsonSubColumnModel> jsonSubColumns) {
 		this.maximumSize = maximumSize;
 		this.maxListLength = maxListLength;
@@ -63,7 +63,7 @@ public class ElementsStats {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ElementsStats other = (ElementsStats) obj;
+		ElementStats other = (ElementStats) obj;
 		return Objects.equals(defaultValue, other.defaultValue) && Objects.equals(enumValues, other.enumValues)
 				&& facetType == other.facetType && Objects.equals(jsonSubColumns, other.jsonSubColumns)
 				&& Objects.equals(maxListLength, other.maxListLength) && Objects.equals(maximumSize, other.maximumSize);
@@ -71,20 +71,20 @@ public class ElementsStats {
 
 	@Override
 	public String toString() {
-		return "ElementsStats [maximumSize=" + maximumSize + ", maxListLength=" + maxListLength + ", defaultValue="
+		return "ElementStats [maximumSize=" + maximumSize + ", maxListLength=" + maxListLength + ", defaultValue="
 				+ defaultValue + ", facetType=" + facetType + ", enumValues=" + enumValues + ", jsonSubColumns="
 				+ jsonSubColumns + "]";
 	}
 
 	/**
-	 * Create a new ElementsStats with a sum of the first and second maximumSizes
-	 * All other stats will try to find a non null value, tie breaker in favor of the second ElementsStats
+	 * Create a new ElementStats with a sum of the first and second maximumSizes
+	 * All other stats will try to find a non null value, tie breaker in favor of the second ElementStats
 	 * 
 	 * @param other
 	 * @return
 	 */
-	public static ElementsStats generateSumStats(ElementsStats one, ElementsStats two) {
-		return new ElementsStats.Builder()
+	public static ElementStats generateSumStats(ElementStats one, ElementStats two) {
+		return new ElementStats.Builder()
 				.setMaximumSize(addLongsWithNull(one.getMaximumSize(), two.getMaximumSize()))
 				.setMaxListLength(lastNonNull(one.getMaxListLength(), two.getMaxListLength()))
 				.setDefaultValue(lastNonNull(one.getDefaultValue(), two.getDefaultValue()))
@@ -158,8 +158,8 @@ public class ElementsStats {
 			return this;
 		}
 		
-		public ElementsStats build() {
-			return new ElementsStats(maximumSize, maxListLength, defaultValue, facetType, enumValues, jsonSubColumns);
+		public ElementStats build() {
+			return new ElementStats(maximumSize, maxListLength, defaultValue, facetType, enumValues, jsonSubColumns);
 		}
 	}
 	

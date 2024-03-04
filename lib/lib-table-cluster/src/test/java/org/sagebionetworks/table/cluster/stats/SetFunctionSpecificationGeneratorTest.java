@@ -23,16 +23,14 @@ import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableAndColumnMapper;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.MySqlFunction;
-import org.sagebionetworks.table.query.model.MySqlFunctionName;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.util.SqlElementUtils;
+import org.sagebionetworks.table.query.model.SetFunctionSpecification;
 
 import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
-public class MySqlFunctionGeneratorTest {
+public class SetFunctionSpecificationGeneratorTest {
 
 	@Mock
 	private SchemaProvider mockSchemaProvider;
@@ -40,57 +38,34 @@ public class MySqlFunctionGeneratorTest {
 	private TableAndColumnMapper mockTableAndColumnMapper;
 	
 	@InjectMocks
-	private MySqlFunctionGenerator mySqlFunctionGenerator;
+	private SetFunctionSpecificationGenerator mockSetFunctionSpecificationGenerator;
 	
 	private ColumnModel columnFoo;
 	private List<ColumnModel> schema;
 	private Map<String, ColumnModel> columnNameMap;
 	
-		
+	
 	@BeforeEach
 	public void before() throws Exception {
 		columnFoo = TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING);
 		schema = Lists.newArrayList(columnFoo);
-		
 		columnNameMap = schema.stream()
 			      .collect(Collectors.toMap(ColumnModel::getName, Function.identity()));
 	}
 	
 	@Test
-	public void testGenerateWithConcat() throws ParseException {
-		QueryExpression rootModel = new TableQueryParser("SELECT CONCAT(foo, '123') FROM syn123").queryExpression();
+	public void testGenerateWithUnimplementedFunctionType() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser("SELECT foo FROM syn123").queryExpression();
 		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 	
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
 				.thenReturn(List.of(columnNameMap.get("foo")));
 		
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
-			
-		MySqlFunction element = new MySqlFunction(MySqlFunctionName.CONCAT);
-		element.setParameterValues(SqlElementUtils.createValueExpressions("foo", "'12345'"));
 		
-		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-	            .setMaximumSize(55L)
-	            .build());
-		
-		assertEquals(expected, mySqlFunctionGenerator.generate(element, mapper));
-	}
-	
-	@Test
-	public void testGenerateWithUnimplementedFunctionName() throws ParseException {
-		QueryExpression rootModel = new TableQueryParser("SELECT CONCAT(foo, '123') FROM syn123").queryExpression();
-		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
-	
-		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
-				.thenReturn(List.of(columnNameMap.get("foo")));
-		
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
-			
-		MySqlFunction element = new MySqlFunction(MySqlFunctionName.YEAR);
-		element.setParameterValues(SqlElementUtils.createValueExpressions("foo", "'12345'"));
-		
+		SetFunctionSpecification element = new SetFunctionSpecification(true);
 		Optional<ElementStats> expected = Optional.empty();
 		
-		assertEquals(expected, mySqlFunctionGenerator.generate(element, mapper));
+		assertEquals(expected, mockSetFunctionSpecificationGenerator.generate(element, mapper));
 	}
 }

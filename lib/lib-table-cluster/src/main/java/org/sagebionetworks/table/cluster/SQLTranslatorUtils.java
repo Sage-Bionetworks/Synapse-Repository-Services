@@ -39,8 +39,8 @@ import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslati
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.ColumnToAdd;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
-import org.sagebionetworks.table.cluster.stats.ElementGenerator;
-import org.sagebionetworks.table.cluster.stats.ElementsStats;
+import org.sagebionetworks.table.cluster.stats.StatGenerator;
+import org.sagebionetworks.table.cluster.stats.ElementStats;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -1376,11 +1376,11 @@ public class SQLTranslatorUtils {
 		SelectColumn selectColumn = getSelectColumns(derivedColumn, tableAndColumnMapper);
 		// The data type is correctly inferred by the #getSelectColumns call
 		ColumnType columnType = selectColumn.getColumnType();
-		Optional<ElementsStats> elementsStats;
+		Optional<ElementStats> elementsStats;
 		
 		if(selectColumn.getId() != null) {
 			ColumnModel cm = tableAndColumnMapper.getColumnModel(selectColumn.getId());
-			elementsStats = Optional.of(ElementsStats.builder()
+			elementsStats = Optional.of(ElementStats.builder()
 					.setMaximumSize(cm.getMaximumSize())
 					.setMaxListLength(cm.getMaximumListLength())
 					.setDefaultValue(cm.getDefaultValue())
@@ -1389,7 +1389,7 @@ public class SQLTranslatorUtils {
 					.setJsonSubColumns(cm.getJsonSubColumns())
 					.build());
 		} else {
-			elementsStats = new ElementGenerator().generate(derivedColumn.getValueExpression(), tableAndColumnMapper);
+			elementsStats = new StatGenerator().generate(derivedColumn.getValueExpression(), tableAndColumnMapper);
 		}
 		
 		ColumnModel result = new ColumnModel()

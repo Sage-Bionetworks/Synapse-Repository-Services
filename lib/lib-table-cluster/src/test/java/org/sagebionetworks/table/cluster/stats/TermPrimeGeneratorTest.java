@@ -23,16 +23,24 @@ import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableAndColumnMapper;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.MySqlFunction;
-import org.sagebionetworks.table.query.model.MySqlFunctionName;
+import org.sagebionetworks.table.query.model.ActualIdentifier;
+import org.sagebionetworks.table.query.model.ArithmeticOperator;
+import org.sagebionetworks.table.query.model.ColumnName;
+import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.Factor;
+import org.sagebionetworks.table.query.model.Identifier;
+import org.sagebionetworks.table.query.model.NumericPrimary;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.util.SqlElementUtils;
+import org.sagebionetworks.table.query.model.RegularIdentifier;
+import org.sagebionetworks.table.query.model.Term;
+import org.sagebionetworks.table.query.model.TermPrime;
+import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 
 import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
-public class MySqlFunctionGeneratorTest {
+public class TermPrimeGeneratorTest {
 
 	@Mock
 	private SchemaProvider mockSchemaProvider;
@@ -40,57 +48,56 @@ public class MySqlFunctionGeneratorTest {
 	private TableAndColumnMapper mockTableAndColumnMapper;
 	
 	@InjectMocks
-	private MySqlFunctionGenerator mySqlFunctionGenerator;
+	private TermPrimeGenerator mockTermPrimeGenerator;
 	
 	private ColumnModel columnFoo;
 	private List<ColumnModel> schema;
 	private Map<String, ColumnModel> columnNameMap;
 	
-		
+	
 	@BeforeEach
 	public void before() throws Exception {
 		columnFoo = TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING);
 		schema = Lists.newArrayList(columnFoo);
-		
 		columnNameMap = schema.stream()
 			      .collect(Collectors.toMap(ColumnModel::getName, Function.identity()));
 	}
 	
 	@Test
-	public void testGenerateWithConcat() throws ParseException {
-		QueryExpression rootModel = new TableQueryParser("SELECT CONCAT(foo, '123') FROM syn123").queryExpression();
+	public void testGenerateWithPlusSign() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser("SELECT foo FROM syn123").queryExpression();
 		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 	
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
 				.thenReturn(List.of(columnNameMap.get("foo")));
 		
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
-			
-		MySqlFunction element = new MySqlFunction(MySqlFunctionName.CONCAT);
-		element.setParameterValues(SqlElementUtils.createValueExpressions("foo", "'12345'"));
+		
+		TermPrime element = new TermPrime(ArithmeticOperator.PLUS_SIGN, new Term(new Factor(null, new NumericPrimary(new ValueExpressionPrimary(new ColumnReference(
+				new ColumnName(new Identifier(new ActualIdentifier(new RegularIdentifier("foo")))), null))))));
 		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-	            .setMaximumSize(55L)
+	            .setMaximumSize(50L)
 	            .build());
 		
-		assertEquals(expected, mySqlFunctionGenerator.generate(element, mapper));
+		assertEquals(expected, mockTermPrimeGenerator.generate(element, mapper));
 	}
 	
 	@Test
-	public void testGenerateWithUnimplementedFunctionName() throws ParseException {
-		QueryExpression rootModel = new TableQueryParser("SELECT CONCAT(foo, '123') FROM syn123").queryExpression();
+	public void testGenerateWithUnimplementedOperator() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser("SELECT foo FROM syn123").queryExpression();
 		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 	
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
 				.thenReturn(List.of(columnNameMap.get("foo")));
 		
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
-			
-		MySqlFunction element = new MySqlFunction(MySqlFunctionName.YEAR);
-		element.setParameterValues(SqlElementUtils.createValueExpressions("foo", "'12345'"));
+		
+		TermPrime element = new TermPrime(ArithmeticOperator.SOLIDUS, new Term(new Factor(null, new NumericPrimary(new ValueExpressionPrimary(new ColumnReference(
+				new ColumnName(new Identifier(new ActualIdentifier(new RegularIdentifier("foo")))), null))))));
 		
 		Optional<ElementStats> expected = Optional.empty();
 		
-		assertEquals(expected, mySqlFunctionGenerator.generate(element, mapper));
+		assertEquals(expected, mockTermPrimeGenerator.generate(element, mapper));
 	}
 }

@@ -150,6 +150,7 @@ public class SQLTranslatorUtilsTest {
 	public void before() throws Exception {
 		columnFoo = TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING);
 		columnHasSpace = TableModelTestUtils.createColumn(222L, "has space", ColumnType.STRING);
+//		columnBar = TableModelTestUtils.createColumn(333L, "bar", ColumnType.STRING).setMaximumSize(102L);
 		columnBar = TableModelTestUtils.createColumn(333L, "bar", ColumnType.STRING);
 		columnId = TableModelTestUtils.createColumn(444L, "id", ColumnType.INTEGER);
 		String specialChars = "Specialchars~!@#$%^^&*()_+|}{:?></.,;'[]\'";
@@ -3972,6 +3973,26 @@ public class SQLTranslatorUtilsTest {
 		expected.setId(null);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithAliasThatExists() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser("select foo as bar from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+	
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+		.thenReturn(List.of(columnNameMap.get("foo"), columnNameMap.get("bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		ColumnModel exp = new ColumnModel()
+				.setName("bar")
+				.setColumnType(ColumnType.STRING)
+				.setMaximumSize(50L)
+				.setId(null);
+		
+		assertEquals(exp, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
 	}
 	
 	@Test
