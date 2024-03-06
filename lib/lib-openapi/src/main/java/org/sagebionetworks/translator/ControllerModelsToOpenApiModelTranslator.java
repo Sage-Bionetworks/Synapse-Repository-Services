@@ -2,6 +2,7 @@ package org.sagebionetworks.translator;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,8 +47,11 @@ public class ControllerModelsToOpenApiModelTranslator {
 	 */
 	public OpenApiSpecModel translate(List<ControllerModel> controllerModels) {
 		ValidateArgument.required(controllerModels, "controllerModels");
+		
 		List<TagInfo> tags = new ArrayList<>();
+		
 		Map<String, Map<String, EndpointInfo>> paths = new LinkedHashMap<>();
+		
 		for (ControllerModel controllerModel : controllerModels) {
 			String displayName = controllerModel.getDisplayName();
 			String basePath = controllerModel.getPath();
@@ -56,6 +60,9 @@ public class ControllerModelsToOpenApiModelTranslator {
 			insertPaths(methods, basePath, displayName, paths);
 			tags.add(new TagInfo().withDescription(description).withName(displayName));
 		}
+		
+		Collections.sort(tags, (t1, t2) -> t1.getName().compareTo(t2.getName()));
+		
 		return new OpenApiSpecModel().withInfo(getApiInfo()).withOpenapi("3.0.1").withServers(getServers())
 				.withComponents(getComponents()).withPaths(paths).withTags(tags);
 	}

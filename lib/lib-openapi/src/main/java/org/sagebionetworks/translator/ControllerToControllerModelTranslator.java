@@ -1,5 +1,7 @@
 package org.sagebionetworks.translator;
 
+import static org.sagebionetworks.repo.web.PathConstants.PATH_REGEX;
+
 import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -62,8 +64,6 @@ import com.sun.source.util.DocTrees;
 import jdk.javadoc.doclet.DocletEnvironment;
 import jdk.javadoc.doclet.Reporter;
 
-import static org.sagebionetworks.repo.web.PathConstants.PATH_REGEX;
-
 /**
  * This translator pulls information from a generic doclet model into our
  * representation of a controller model. This is a layer of abstraction that is
@@ -106,10 +106,12 @@ public class ControllerToControllerModelTranslator {
 	public List<ControllerModel> extractControllerModels(DocletEnvironment env, Map<String, ObjectSchema> schemaMap,
 			Reporter reporter) {
 		List<ControllerModel> controllerModels = new ArrayList<>();
+		
 		for (TypeElement t : getControllers(ElementFilter.typesIn(env.getIncludedElements()))) {
 			ControllerModel controllerModel = translate(t, env.getDocTrees(), schemaMap, reporter);
 			controllerModels.add(controllerModel);
 		}
+		
 		return controllerModels;
 	}
 

@@ -7,20 +7,20 @@
   "servers": [{"url": "https://repo-prod.prod.sagebase.org"}],
   "tags": [
     {
-      "name": "Person",
-      "description": "This is a basic example controller."
-    },
-    {
-      "name": "Pet",
-      "description": "This exists to test the multiple controller case."
-    },
-    {
       "name": "ComplexPets",
       "description": "<p>\n This controller is used to test translating for complex types.\n <\/p>"
     },
     {
       "name": "NoComment",
       "description": "Auto-generated description"
+    },
+    {
+      "name": "Person",
+      "description": "This is a basic example controller."
+    },
+    {
+      "name": "Pet",
+      "description": "This exists to test the multiple controller case."
     }
   ],
   "paths": {

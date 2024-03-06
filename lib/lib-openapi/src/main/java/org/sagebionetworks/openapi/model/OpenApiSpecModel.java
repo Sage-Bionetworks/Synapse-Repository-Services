@@ -6,7 +6,6 @@ import java.util.Objects;
 
 import org.json.JSONObject;
 import org.sagebionetworks.openapi.model.pathinfo.EndpointInfo;
-import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;

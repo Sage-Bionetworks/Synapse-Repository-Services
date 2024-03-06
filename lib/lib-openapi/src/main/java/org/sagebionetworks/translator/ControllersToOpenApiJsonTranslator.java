@@ -7,7 +7,6 @@ import java.util.Map;
 import org.json.JSONObject;
 import org.sagebionetworks.controller.model.ControllerModel;
 import org.sagebionetworks.openapi.model.OpenApiJsonSchema;
-import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.schema.ObjectSchema;
 
 import jdk.javadoc.doclet.DocletEnvironment;
