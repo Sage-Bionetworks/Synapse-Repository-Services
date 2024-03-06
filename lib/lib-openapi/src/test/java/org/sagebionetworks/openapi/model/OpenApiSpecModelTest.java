@@ -1,13 +1,10 @@
 package org.sagebionetworks.openapi.model;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -15,27 +12,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.io.IOUtils;
-import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.openapi.model.ApiInfo;
-import org.sagebionetworks.openapi.model.Components;
-import org.sagebionetworks.openapi.model.OpenApiSpecModel;
-import org.sagebionetworks.openapi.model.SecurityScheme;
-import org.sagebionetworks.openapi.model.ServerInfo;
-import org.sagebionetworks.openapi.model.TagInfo;
 import org.sagebionetworks.openapi.model.pathinfo.EndpointInfo;
-import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONArrayAdapterImpl;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
-import org.sagebionetworks.translator.ControllerModelDoclet;
-
-import com.google.gson.Gson;
 
 public class OpenApiSpecModelTest {
 	@Test
@@ -65,9 +50,9 @@ public class OpenApiSpecModelTest {
 		JSONObjectAdapterImpl apiInfoResult = new JSONObjectAdapterImpl();
 		Mockito.doReturn(apiInfoResult).when(apiInfo).writeToJSONObject(any());
 
-		JsonSchema jsonSchema = new JsonSchema();
+		OpenApiJsonSchema jsonSchema = new OpenApiJsonSchema();
 		jsonSchema.setType(Type.integer);
-		Map<String, JsonSchema> schemas = new LinkedHashMap<>();
+		Map<String, OpenApiJsonSchema> schemas = new LinkedHashMap<>();
 		schemas.put("COMPONENT_TYPE_1", jsonSchema);
 		Map<String, SecurityScheme> securitySchemes = new HashMap<>();
 		securitySchemes.put("bearerAuth", new SecurityScheme().withType("http").withScheme("bearer"));

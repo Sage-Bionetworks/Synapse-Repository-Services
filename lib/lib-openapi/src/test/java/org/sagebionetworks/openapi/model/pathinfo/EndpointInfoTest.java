@@ -1,9 +1,9 @@
 package org.sagebionetworks.openapi.model.pathinfo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -18,10 +18,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
-import org.sagebionetworks.openapi.model.pathinfo.EndpointInfo;
-import org.sagebionetworks.openapi.model.pathinfo.ParameterInfo;
-import org.sagebionetworks.openapi.model.pathinfo.RequestBodyInfo;
-import org.sagebionetworks.openapi.model.pathinfo.ResponseInfo;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;

@@ -29,6 +29,7 @@ import org.sagebionetworks.controller.model.RequestBodyModel;
 import org.sagebionetworks.controller.model.ResponseModel;
 import org.sagebionetworks.openapi.model.ApiInfo;
 import org.sagebionetworks.openapi.model.Components;
+import org.sagebionetworks.openapi.model.OpenApiJsonSchema;
 import org.sagebionetworks.openapi.model.OpenApiSpecModel;
 import org.sagebionetworks.openapi.model.SecurityScheme;
 import org.sagebionetworks.openapi.model.ServerInfo;
@@ -46,15 +47,14 @@ public class ControllerModelsToOpenApiModelTranslatorTest {
 
 	private static final String DESCRIPTION = "DESCRIPTION";
 	private static final String MOCK_CLASS_NAME = "MOCK_CLASS_NAME";
-	private Map<String, JsonSchema> schemaMap;
+	private Map<String, OpenApiJsonSchema> schemaMap;
 	
 	@BeforeEach
 	private void setUp() {
-		Map<String, JsonSchema> schemaMap = new HashMap<>();
-		JsonSchema js = new JsonSchema();
+		schemaMap = new HashMap<>();
+		OpenApiJsonSchema js = new OpenApiJsonSchema();
 		js.setType(Type.integer);
 		schemaMap.put(MOCK_CLASS_NAME, js);
-		this.schemaMap = schemaMap;
 
 		this.translator = spy(new ControllerModelsToOpenApiModelTranslator(schemaMap));
 	}

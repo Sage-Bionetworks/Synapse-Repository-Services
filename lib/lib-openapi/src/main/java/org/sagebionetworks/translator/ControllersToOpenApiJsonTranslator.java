@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.json.JSONObject;
 import org.sagebionetworks.controller.model.ControllerModel;
+import org.sagebionetworks.openapi.model.OpenApiJsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.schema.ObjectSchema;
 
@@ -26,7 +27,7 @@ public class ControllersToOpenApiJsonTranslator {
 		
 		Map<String, ObjectSchema> classNameToObjectSchema = objectSchemaUtils.getConcreteClasses(concreteClassNames);
 		List<ControllerModel> controllerModels = new ControllerToControllerModelTranslator().extractControllerModels(env, classNameToObjectSchema, reporter);
-		Map<String, JsonSchema> classNameToJsonSchema = objectSchemaUtils.getClassNameToJsonSchema(classNameToObjectSchema);
+		Map<String, OpenApiJsonSchema> classNameToJsonSchema = objectSchemaUtils.getClassNameToJsonSchema(classNameToObjectSchema);
 
 		return new ControllerModelsToOpenApiModelTranslator(classNameToJsonSchema).translate(controllerModels).generateJSON();
 	}

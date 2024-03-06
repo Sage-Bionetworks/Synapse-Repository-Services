@@ -7,7 +7,6 @@ import static org.mockito.ArgumentMatchers.eq;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.openapi.model.ServerInfo;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 

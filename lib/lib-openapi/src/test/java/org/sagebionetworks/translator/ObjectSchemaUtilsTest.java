@@ -1,6 +1,6 @@
 package org.sagebionetworks.translator;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,11 +13,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Iterator;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +25,7 @@ import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.velocity.schema.TypeReference;
+import org.sagebionetworks.openapi.model.OpenApiJsonSchema;
 import org.sagebionetworks.openapi.server.ServerSideOnlyFactory;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
@@ -67,10 +68,10 @@ public class ObjectSchemaUtilsTest {
 		objectSchema.setType(TYPE.INTEGER);
 		String className = "className";
 		classNameToObjectSchema.put(className, objectSchema);
-		doReturn(new JsonSchema()).when(util).translateObjectSchemaToJsonSchema(any(ObjectSchema.class));
+		doReturn(new OpenApiJsonSchema()).when(util).translateObjectSchemaToJsonSchema(any(ObjectSchema.class));
 		
-		Map<String, JsonSchema> expected = new HashMap<>();
-		expected.put(className, new JsonSchema());
+		Map<String, OpenApiJsonSchema> expected = new HashMap<>();
+		expected.put(className, new OpenApiJsonSchema());
 		// call under test
 		assertEquals(expected, util.getClassNameToJsonSchema(classNameToObjectSchema));
 		
@@ -92,7 +93,7 @@ public class ObjectSchemaUtilsTest {
 		doReturn(Type.object).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
 		doReturn(new LinkedHashMap<>()).when(util).translatePropertiesFromObjectSchema(any(Map.class), any(String.class));
 		
-		JsonSchema expected = new JsonSchema();
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
 		expected.setType(Type.object);
 		expected.setProperties(new LinkedHashMap<>());
 		expected.setDescription("TESTING");
@@ -116,7 +117,7 @@ public class ObjectSchemaUtilsTest {
 		doReturn(Type.object).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
 		doReturn(new LinkedHashMap<>()).when(util).translatePropertiesFromObjectSchema(any(Map.class), any(String.class));
 		
-		JsonSchema expected = new JsonSchema();
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
 		expected.setType(Type.object);
 		expected.setProperties(new LinkedHashMap<>());
 
@@ -133,10 +134,10 @@ public class ObjectSchemaUtilsTest {
 		objectSchema = new ObjectSchemaImpl(adpater);
 		objectSchema.setType(TYPE.INTEGER);
 		
-		doReturn(new JsonSchema()).when(util).getSchemaForPrimitiveType(any(TYPE.class));
+		doReturn(new OpenApiJsonSchema()).when(util).getSchemaForPrimitiveType(any(TYPE.class));
 		doReturn(true).when(util).isPrimitive(any(TYPE.class));
 		
-		assertEquals(new JsonSchema(), util.translateObjectSchemaToJsonSchema(objectSchema));
+		assertEquals(new OpenApiJsonSchema(), util.translateObjectSchemaToJsonSchema(objectSchema));
 		verify(util).isPrimitive(TYPE.INTEGER);
 		verify(util).getSchemaForPrimitiveType(TYPE.INTEGER);
 	}
@@ -156,9 +157,9 @@ public class ObjectSchemaUtilsTest {
 		doReturn(Type.array).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
 		doReturn(false).when(util).isSelfReferencing(any(ObjectSchema.class));
 
-		JsonSchema expected = new JsonSchema();
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
 		expected.setType(Type.array);
-		expected.setItems(new JsonSchema().set$ref("#/components/schemas/org.sagebionetworks.testclass"));
+		expected.setItems(new OpenApiJsonSchema().set$ref("#/components/schemas/org.sagebionetworks.testclass"));
 
 		// call under test
 		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
@@ -179,9 +180,9 @@ public class ObjectSchemaUtilsTest {
 		doReturn(Type.array).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
 		doReturn(false).when(util).isSelfReferencing(any(ObjectSchema.class));
 
-		JsonSchema expected = new JsonSchema();
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
 		expected.setType(Type.array);
-		expected.setItems(new JsonSchema().setType(Type.string));
+		expected.setItems(new OpenApiJsonSchema().setType(Type.string));
 
 		// call under test
 		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
@@ -200,7 +201,7 @@ public class ObjectSchemaUtilsTest {
 		objectSchema.setEnum(enumValues);
 		objectSchema.setId("MOCK_ID");
 
-		JsonSchema expected = new JsonSchema();
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
 		expected.setType(Type.string);
 		expected.set_enum(List.of("value1", "value2"));
 
@@ -235,12 +236,12 @@ public class ObjectSchemaUtilsTest {
 		properties.put(className1, objectSchema1);
 		properties.put(className2, objectSchema2);
 		
-		JsonSchema schema1 = new JsonSchema();
+		OpenApiJsonSchema schema1 = new OpenApiJsonSchema();
 		schema1.setType(Type.string);
-		JsonSchema schema2 = new JsonSchema();
+		OpenApiJsonSchema schema2 = new OpenApiJsonSchema();
 		schema2.setType(Type.integer);
 		doReturn(schema1, schema2).when(util).getPropertyAsJsonSchema(any(), any());
-		Map<String, JsonSchema> expected = new LinkedHashMap<>();
+		Map<String, OpenApiJsonSchema> expected = new LinkedHashMap<>();
 		expected.put(className1, schema1);
 		expected.put(className2, schema2);
 		
@@ -275,7 +276,7 @@ public class ObjectSchemaUtilsTest {
 		
 		Mockito.doNothing().when(util).populateSchemaForObjectType(any(), any(), any());
 		// call under test
-		JsonSchema result = util.translateObjectSchemaPropertyToJsonSchema(objectSchema, "MOCK_ID");
+		OpenApiJsonSchema result = util.translateObjectSchemaPropertyToJsonSchema(objectSchema, "MOCK_ID");
 		assertTrue(result.getDescription().equals("MOCK_DESCRIPTION"));
 	}
 	
@@ -303,9 +304,9 @@ public class ObjectSchemaUtilsTest {
 		doReturn(false).when(util).isPrimitive(any());
 		Mockito.doNothing().when(util).populateSchemaForMapType(any(), any(), any());	
 		// call under test
-		assertEquals(new JsonSchema(), util.translateObjectSchemaPropertyToJsonSchema(objectSchema, "MOCK_ID"));
+		assertEquals(new OpenApiJsonSchema(), util.translateObjectSchemaPropertyToJsonSchema(objectSchema, "MOCK_ID"));
 		verify(util).isPrimitive(TYPE.TUPLE_ARRAY_MAP);
-		verify(util).populateSchemaForMapType(any(JsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
+		verify(util).populateSchemaForMapType(any(OpenApiJsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
 	}
 	
 	@Test
@@ -318,9 +319,9 @@ public class ObjectSchemaUtilsTest {
 		doReturn(false).when(util).isPrimitive(any());
 		Mockito.doNothing().when(util).populateSchemaForMapType(any(), any(), any());	
 		// call under test
-		assertEquals(new JsonSchema(), util.translateObjectSchemaPropertyToJsonSchema(objectSchema, "MOCK_ID"));
+		assertEquals(new OpenApiJsonSchema(), util.translateObjectSchemaPropertyToJsonSchema(objectSchema, "MOCK_ID"));
 		verify(util).isPrimitive(TYPE.MAP);
-		verify(util).populateSchemaForMapType(any(JsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
+		verify(util).populateSchemaForMapType(any(OpenApiJsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
 	}
 	
 	@Test
@@ -333,13 +334,13 @@ public class ObjectSchemaUtilsTest {
 		
 		doReturn(false).when(util).isPrimitive(any());
 		doReturn("MOCK_PATH").when(util).getPathInComponents(any());
-		JsonSchema result = new JsonSchema();
+		OpenApiJsonSchema result = new OpenApiJsonSchema();
 		result.set$ref("MOCK_PATH");
 		
 		// call under test
 		assertEquals(result, util.translateObjectSchemaPropertyToJsonSchema(objectSchema, "MOCK_ID"));
 		verify(util).isPrimitive(TYPE.INTERFACE);
-		verify(util).populateSchemaForObjectType(any(JsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
+		verify(util).populateSchemaForObjectType(any(OpenApiJsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
 	}
 	
 	@Test
@@ -352,12 +353,12 @@ public class ObjectSchemaUtilsTest {
 		
 		doReturn(false).when(util).isPrimitive(any());
 		doReturn("MOCK_PATH").when(util).getPathInComponents(any());
-		JsonSchema result = new JsonSchema();
+		OpenApiJsonSchema result = new OpenApiJsonSchema();
 		result.set$ref("MOCK_PATH");
 		
 		// call under test
 		assertEquals(result, util.translateObjectSchemaPropertyToJsonSchema(objectSchema, "MOCK_ID"));
-		verify(util).populateSchemaForObjectType(any(JsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
+		verify(util).populateSchemaForObjectType(any(OpenApiJsonSchema.class), eq(objectSchema), eq("MOCK_ID"));
 	}
 	
 	@Test
@@ -375,9 +376,9 @@ public class ObjectSchemaUtilsTest {
 		
 		schema.setItems(items);
 		
-		JsonSchema result = new JsonSchema();
+		OpenApiJsonSchema result = new OpenApiJsonSchema();
 		result.setType(Type.array);
-		JsonSchema resultItems = new JsonSchema();
+		OpenApiJsonSchema resultItems = new OpenApiJsonSchema();
 		resultItems.setType(Type.string);
 		result.setItems(resultItems);
 		
@@ -385,12 +386,12 @@ public class ObjectSchemaUtilsTest {
 		doReturn(false).when(util).isSelfReferencing(any());
 		// call under test
 		assertEquals(result, util.translateObjectSchemaPropertyToJsonSchema(schema, schemaId));
-		verify(util).populateSchemaForArrayType(any(JsonSchema.class), eq(items), eq(schemaId));
+		verify(util).populateSchemaForArrayType(any(OpenApiJsonSchema.class), eq(items), eq(schemaId));
 	}
 	
 	@Test
 	public void testTranslateObjectSchemaPropertyToJsonSchemaWithPrimitiveType() throws JSONObjectAdapterException {
-		JsonSchema result = new JsonSchema();
+		OpenApiJsonSchema result = new OpenApiJsonSchema();
 		result.setType(Type.string);
 		doReturn(result).when(util).getSchemaForPrimitiveType(any());
 		
@@ -439,14 +440,14 @@ public class ObjectSchemaUtilsTest {
 	
 	@Test
 	public void testPopulateSchemaForArrayType() throws JSONObjectAdapterException {
-		JsonSchema schema = new JsonSchema();
+		OpenApiJsonSchema schema = new OpenApiJsonSchema();
 		ObjectSchema property;
 		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 		property = new ObjectSchemaImpl(adpater);
 		property.setId("PROPERTY_SCHEMA_ID");
 		property.setType(TYPE.ARRAY);
 		
-		JsonSchema items = new JsonSchema();
+		OpenApiJsonSchema items = new OpenApiJsonSchema();
 		items.setType(Type.array);
 		doReturn(items).when(util).getPropertyAsJsonSchema(any(), any());
 		
@@ -461,7 +462,7 @@ public class ObjectSchemaUtilsTest {
 	public void testPopulateSchemaForArrayTypeWithNullSchemaId() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			util.populateSchemaForArrayType(new JsonSchema(), Mockito.mock(ObjectSchema.class), null);
+			util.populateSchemaForArrayType(new OpenApiJsonSchema(), Mockito.mock(ObjectSchema.class), null);
 		});
 		assertEquals("schemaId is required.", exception.getMessage());
 	}
@@ -470,7 +471,7 @@ public class ObjectSchemaUtilsTest {
 	public void testPopulateSchemaForArrayTypeWithNullProperty() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			util.populateSchemaForArrayType(new JsonSchema(), null, "SCHEMA_ID");
+			util.populateSchemaForArrayType(new OpenApiJsonSchema(), null, "SCHEMA_ID");
 		});
 		assertEquals("items is required.", exception.getMessage());
 	}
@@ -486,7 +487,7 @@ public class ObjectSchemaUtilsTest {
 	
 	@Test
 	public void testPopulateSchemaForMapType() throws JSONObjectAdapterException {
-		JsonSchema schema = new JsonSchema();
+		OpenApiJsonSchema schema = new OpenApiJsonSchema();
 		ObjectSchema property;
 		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl();
 		property = new ObjectSchemaImpl(adapter);
@@ -496,7 +497,7 @@ public class ObjectSchemaUtilsTest {
 		value = new ObjectSchemaImpl(valueAdapter);
 		property.setValue(value);
 		
-		JsonSchema additionalProperties = new JsonSchema();
+		OpenApiJsonSchema additionalProperties = new OpenApiJsonSchema();
 		additionalProperties.setType(Type.object);
 		doReturn(additionalProperties).when(util).getPropertyAsJsonSchema(any(), any());
 		
@@ -511,7 +512,7 @@ public class ObjectSchemaUtilsTest {
 	public void testPopulateSchemaForMapTypeWithNullSchemaId() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			util.populateSchemaForMapType(new JsonSchema(), Mockito.mock(ObjectSchema.class), null);
+			util.populateSchemaForMapType(new OpenApiJsonSchema(), Mockito.mock(ObjectSchema.class), null);
 		});
 		assertEquals("schemaId is required.", exception.getMessage());
 	}
@@ -520,7 +521,7 @@ public class ObjectSchemaUtilsTest {
 	public void testPopulateSchemaForMapTypeWithNullProperty() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			util.populateSchemaForMapType(new JsonSchema(), null, "SCHEMA_ID");
+			util.populateSchemaForMapType(new OpenApiJsonSchema(), null, "SCHEMA_ID");
 		});
 		assertEquals("property is required.", exception.getMessage());
 	}
@@ -539,7 +540,7 @@ public class ObjectSchemaUtilsTest {
 		ObjectSchema property = Mockito.mock(ObjectSchema.class);
 		String schemaId = "SCHEMA_ID";
 		
-		JsonSchema propertyTranslated = new JsonSchema();
+		OpenApiJsonSchema propertyTranslated = new OpenApiJsonSchema();
 		propertyTranslated.setType(Type.array);
 		doReturn(propertyTranslated).when(util).translateObjectSchemaPropertyToJsonSchema(any(), any());
 		doReturn(false).when(util).isSelfReferencing(any());
@@ -555,7 +556,7 @@ public class ObjectSchemaUtilsTest {
 		ObjectSchema property = Mockito.mock(ObjectSchema.class);
 		String schemaId = "SCHEMA_ID";
 		
-		JsonSchema propertyTranslated = new JsonSchema();
+		OpenApiJsonSchema propertyTranslated = new OpenApiJsonSchema();
 		propertyTranslated.setType(Type.array);
 		doReturn(propertyTranslated).when(util).generateReferenceSchema(any());
 		doReturn(true).when(util).isSelfReferencing(any());
@@ -586,7 +587,7 @@ public class ObjectSchemaUtilsTest {
 	
 	@Test
 	public void testPopulateSchemaForObjectType() throws JSONObjectAdapterException {
-		JsonSchema schema = new JsonSchema();
+		OpenApiJsonSchema schema = new OpenApiJsonSchema();
 		ObjectSchema property;
 		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 		property = new ObjectSchemaImpl(adpater);
@@ -604,7 +605,7 @@ public class ObjectSchemaUtilsTest {
 	
 	@Test
 	public void testPopulateSchemaForObjectTypeWithNullId() throws JSONObjectAdapterException {
-		JsonSchema schema = new JsonSchema();
+		OpenApiJsonSchema schema = new OpenApiJsonSchema();
 		ObjectSchema property;
 		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 		property = new ObjectSchemaImpl(adpater);
@@ -621,7 +622,7 @@ public class ObjectSchemaUtilsTest {
 	
 	@Test
 	public void testPopulateSchemaForObjectTypeWithSelfReferencingProperty() throws JSONObjectAdapterException {
-		JsonSchema schema = new JsonSchema();
+		OpenApiJsonSchema schema = new OpenApiJsonSchema();
 		ObjectSchema property;
 		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 		property = new ObjectSchemaImpl(adpater);
@@ -640,7 +641,7 @@ public class ObjectSchemaUtilsTest {
 	public void testPopulateSchemaForObjectTypeWithNullSchemaId() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			util.populateSchemaForObjectType(new JsonSchema(), Mockito.mock(ObjectSchema.class), null);
+			util.populateSchemaForObjectType(new OpenApiJsonSchema(), Mockito.mock(ObjectSchema.class), null);
 		});
 		assertEquals("schemaId is required.", exception.getMessage());
 	}
@@ -649,7 +650,7 @@ public class ObjectSchemaUtilsTest {
 	public void testPopulateSchemaForObjectTypeWithNullProperty() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			util.populateSchemaForObjectType(new JsonSchema(), null, "SCHEMA_ID");
+			util.populateSchemaForObjectType(new OpenApiJsonSchema(), null, "SCHEMA_ID");
 		});
 		assertEquals("property is required.", exception.getMessage());
 	}
@@ -668,7 +669,7 @@ public class ObjectSchemaUtilsTest {
 		String schemaId = "SCHEMA_ID";
 		doReturn("MOCK_PATH").when(util).getPathInComponents(any());
 		
-		JsonSchema expected = new JsonSchema();
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
 		expected.set$ref("MOCK_PATH");
 		
 		// call under test
@@ -720,11 +721,11 @@ public class ObjectSchemaUtilsTest {
 	
 	@Test
 	public void testInsertOneOfPropertyForInterfaces() {
-		Map<String, JsonSchema> classNameToJsonSchema = new HashMap<>();
+		Map<String, OpenApiJsonSchema> classNameToJsonSchema = new HashMap<>();
 		Map<String, List<TypeReference>> interfaces = new HashMap<>();
 		String className = "ClassName";
-		classNameToJsonSchema.put(className, new JsonSchema());
-		classNameToJsonSchema.put("mock.implementer.class.name", new JsonSchema());
+		classNameToJsonSchema.put(className, new OpenApiJsonSchema());
+		classNameToJsonSchema.put("mock.implementer.class.name", new OpenApiJsonSchema());
 		interfaces.put(className, new ArrayList<>());
 
 		Set<TypeReference> implementers = new HashSet<>();
@@ -736,15 +737,15 @@ public class ObjectSchemaUtilsTest {
 		// call under test
 		util.insertOneOfPropertyForInterfaces(classNameToJsonSchema, interfaces);
 		
-		JsonSchema expectedSchema = new JsonSchema();
+		OpenApiJsonSchema expectedSchema = new OpenApiJsonSchema();
 		expectedSchema.set$ref("#/components/mock.implementer.class.name");
 		List<JsonSchema> oneOf = new ArrayList<>();
 		oneOf.add(expectedSchema);
 		expectedSchema.setOneOf(oneOf);
 
-		Map<String, JsonSchema> expectedClassNameToJsonSchema = new HashMap<>();
+		Map<String, OpenApiJsonSchema> expectedClassNameToJsonSchema = new HashMap<>();
 		expectedClassNameToJsonSchema.put(className, expectedSchema);
-		expectedClassNameToJsonSchema.put("mock.implementer.class.name", new JsonSchema());
+		expectedClassNameToJsonSchema.put("mock.implementer.class.name", new OpenApiJsonSchema());
 		
 		assertEquals(classNameToJsonSchema, classNameToJsonSchema);
 		verify(util).getImplementers(className, interfaces);
@@ -752,24 +753,24 @@ public class ObjectSchemaUtilsTest {
 	
 	@Test
 	public void testInsertOneOfPropertyForInterfacesWithNonInterfaceClass() {
-		Map<String, JsonSchema> classNameToJsonSchema = new HashMap<>();
+		Map<String, OpenApiJsonSchema> classNameToJsonSchema = new HashMap<>();
 		Map<String, List<TypeReference>> interfaces = new HashMap<>();
 		String className = "ClassName";
-		classNameToJsonSchema.put(className, new JsonSchema());
+		classNameToJsonSchema.put(className, new OpenApiJsonSchema());
 		// call under test
 		util.insertOneOfPropertyForInterfaces(classNameToJsonSchema, interfaces);
 		// should not modify classNameToJsonSchema
-		Map<String, JsonSchema> expectedClassNameToJsonSchema = new HashMap<>();
-		expectedClassNameToJsonSchema.put(className, new JsonSchema());
+		Map<String, OpenApiJsonSchema> expectedClassNameToJsonSchema = new HashMap<>();
+		expectedClassNameToJsonSchema.put(className, new OpenApiJsonSchema());
 		assertEquals(expectedClassNameToJsonSchema, classNameToJsonSchema);
 	}
 	
 	@Test
 	public void testInsertOneOfPropertyForInterfacesWithIdMissingInClassNameToJsonSchema() {
-		Map<String, JsonSchema> classNameToJsonSchema = new HashMap<>();
+		Map<String, OpenApiJsonSchema> classNameToJsonSchema = new HashMap<>();
 		Map<String, List<TypeReference>> interfaces = new HashMap<>();
 		String className = "ClassName";
-		classNameToJsonSchema.put(className, new JsonSchema());
+		classNameToJsonSchema.put(className, new OpenApiJsonSchema());
 		interfaces.put(className, new ArrayList<>());
 		
 		Set<TypeReference> implementers = new HashSet<>();
@@ -894,7 +895,7 @@ public class ObjectSchemaUtilsTest {
 	
 	@Test
 	public void testGetSchemaForPrimitiveTypeWithBoolean() {
-		JsonSchema expected = new JsonSchema();
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
 		expected.setType(Type._boolean);
 		// call under test
 		assertEquals(expected, util.getSchemaForPrimitiveType(TYPE.BOOLEAN));
@@ -902,7 +903,7 @@ public class ObjectSchemaUtilsTest {
 	
 	@Test
 	public void testGetSchemaForPrimitiveTypeWithNumber() {
-		JsonSchema expected = new JsonSchema();
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
 		expected.setType(Type.number);
 		// call under test
 		assertEquals(expected, util.getSchemaForPrimitiveType(TYPE.NUMBER));
@@ -910,7 +911,7 @@ public class ObjectSchemaUtilsTest {
 	
 	@Test
 	public void testGetSchemaForPrimitiveTypeWithInteger() {
-		JsonSchema expected = new JsonSchema();
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
 		expected.setType(Type.integer);
 		expected.setFormat("int32");
 		// call under test
@@ -919,7 +920,7 @@ public class ObjectSchemaUtilsTest {
 	
 	@Test
 	public void testGetSchemaForPrimitiveTypeWithString() {
-		JsonSchema expected = new JsonSchema();
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
 		expected.setType(Type.string);
 		// call under test
 		assertEquals(expected, util.getSchemaForPrimitiveType(TYPE.STRING));

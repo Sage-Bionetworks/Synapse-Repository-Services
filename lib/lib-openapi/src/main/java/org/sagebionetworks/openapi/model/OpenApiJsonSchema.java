@@ -39,7 +39,5 @@ public class OpenApiJsonSchema extends JsonSchema {
 	public OpenApiJsonSchema setDiscriminator(Discriminator discriminator) {
 		this.discriminator = discriminator;
 		return this;
-	}
-	
-	
+	}	
 }

@@ -15,6 +15,7 @@ import org.sagebionetworks.controller.model.RequestBodyModel;
 import org.sagebionetworks.controller.model.ResponseModel;
 import org.sagebionetworks.openapi.model.ApiInfo;
 import org.sagebionetworks.openapi.model.Components;
+import org.sagebionetworks.openapi.model.OpenApiJsonSchema;
 import org.sagebionetworks.openapi.model.OpenApiSpecModel;
 import org.sagebionetworks.openapi.model.SecurityScheme;
 import org.sagebionetworks.openapi.model.ServerInfo;
@@ -31,9 +32,9 @@ import org.sagebionetworks.util.ValidateArgument;
 import static org.sagebionetworks.translator.ControllerToControllerModelTranslator.getJsonSchemaBasicTypeForClass;
 
 public class ControllerModelsToOpenApiModelTranslator {
-	private final Map<String, JsonSchema> classNameToJsonSchema;
+	private final Map<String, OpenApiJsonSchema> classNameToJsonSchema;
 	
-	public ControllerModelsToOpenApiModelTranslator(Map<String, JsonSchema> classNameToJsonSchema) {
+	public ControllerModelsToOpenApiModelTranslator(Map<String, OpenApiJsonSchema> classNameToJsonSchema) {
 		this.classNameToJsonSchema = classNameToJsonSchema;
 	}
 		
