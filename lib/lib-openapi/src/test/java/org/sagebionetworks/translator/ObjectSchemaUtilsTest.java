@@ -25,6 +25,7 @@ import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.velocity.schema.TypeReference;
+import org.sagebionetworks.openapi.model.Discriminator;
 import org.sagebionetworks.openapi.model.OpenApiJsonSchema;
 import org.sagebionetworks.openapi.server.ServerSideOnlyFactory;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
@@ -217,6 +218,31 @@ public class ObjectSchemaUtilsTest {
 			util.translateObjectSchemaToJsonSchema(null);
 		});
 		assertEquals("objectSchema is required.", exception.getMessage());
+	}
+	
+	@Test
+	public void testTranslateObjectSchemaToJsonSchemaWithInterfaceType() throws JSONObjectAdapterException {
+		ObjectSchema objectSchema;
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+
+		objectSchema.setType(TYPE.INTERFACE);
+		objectSchema.setProperties(new LinkedHashMap<>());
+		objectSchema.setId("MOCK_ID");
+		
+		doReturn(Type.object).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
+		doReturn(new LinkedHashMap<>()).when(util).translatePropertiesFromObjectSchema(any(Map.class), any(String.class));
+		
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
+		expected.setType(Type.object);
+		expected.setProperties(new LinkedHashMap<>());
+		expected.setDiscriminator(new Discriminator().setPropertyName("concreteType"));
+
+		// call under test
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		
+		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.INTERFACE);
+		verify(util).translatePropertiesFromObjectSchema(new LinkedHashMap<>(), "MOCK_ID");
 	}
 	
 	@Test

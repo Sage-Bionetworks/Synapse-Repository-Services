@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.velocity.schema.TypeReference;
+import org.sagebionetworks.openapi.model.Discriminator;
 import org.sagebionetworks.openapi.model.OpenApiJsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
@@ -92,6 +93,7 @@ public class ObjectSchemaUtils {
 			return getSchemaForPrimitiveType(schemaType);
 		}
 		OpenApiJsonSchema jsonSchema = new OpenApiJsonSchema();
+		
 		jsonSchema.setType(translateObjectSchemaTypeToJsonSchemaType(schemaType));
 
 		Map<String, ObjectSchema> properties = objectSchema.getProperties();
@@ -106,6 +108,11 @@ public class ObjectSchemaUtils {
 
 		if (objectSchema.getDescription() != null) {
 			jsonSchema.setDescription(objectSchema.getDescription());
+		}
+		
+		// If the object is an interface we need to add the discriminator on the concrete type
+		if (TYPE.INTERFACE == schemaType) {
+			jsonSchema.setDiscriminator(new Discriminator().setPropertyName(ObjectSchema.CONCRETE_TYPE));
 		}
 
 		return jsonSchema;
