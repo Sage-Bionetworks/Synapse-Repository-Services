@@ -75,13 +75,13 @@ public class ControllerModelDocletTest {
 		DocumentationTool docTool = ToolProvider.getSystemDocumentationTool();
 		docTool.run(System.in, System.out, System.err, docletArgs);
 				
-		ClassLoader classLoader = ControllerModelDoclet.class.getClassLoader();
+		ClassLoader classLoader = ControllerModelDocletTest.class.getClassLoader();
 		
 		JSONObject expectedJson;
 		JSONObject generatedJson;
 		
 		// get the resulting json generated
-		try (InputStream expectedIs = classLoader.getResourceAsStream("ExpectedOpenAPISpec.json");
+		try (InputStream expectedIs = classLoader.getResourceAsStream("ExpectedOpenApiSpec.json");
 			 InputStream generatedIs = classLoader.getResourceAsStream("GeneratedOpenAPISpec.json");) {			
 			expectedJson = new JSONObject(IOUtils.toString(expectedIs, StandardCharsets.UTF_8));
 			generatedJson = new JSONObject(IOUtils.toString(generatedIs, StandardCharsets.UTF_8));
