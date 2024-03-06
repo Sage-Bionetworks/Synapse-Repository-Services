@@ -15,10 +15,11 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 @ExtendWith(MockitoExtension.class)
-public class ElementStatsTest {
+public class ElementStatsUnitTest {
 
 	@InjectMocks
 	private ElementStats elementStats;
+	
 	
 	@Test
 	public void testGenerateSumStats() throws JSONObjectAdapterException {
@@ -40,7 +41,6 @@ public class ElementStatsTest {
 	            .setJsonSubColumns(List.of(new JsonSubColumnModel(new JSONObjectAdapterImpl("{key: \"two\"}"))))
 	            .build();
 		
-		
 		ElementStats expected = ElementStats.builder()
 	            .setMaximumSize(3L)
 	            .setMaxListLength(20L)
@@ -51,6 +51,38 @@ public class ElementStatsTest {
 	            .build();
 
 		assertEquals(expected, ElementStats.generateSumStats(one, two));
+	}
+	
+	@Test
+	public void testGenerateMaxStats() throws JSONObjectAdapterException {
+		ElementStats one = ElementStats.builder()
+	            .setMaximumSize(1L)
+	            .setMaxListLength(10L)
+	            .setDefaultValue("default1")
+	            .setFacetType(FacetType.enumeration)
+	            .setEnumValues(List.of("enum1"))
+	            .setJsonSubColumns(List.of(new JsonSubColumnModel(new JSONObjectAdapterImpl("{key: \"one\"}"))))
+	            .build();
+
+		ElementStats two = ElementStats.builder()
+	            .setMaximumSize(2L)
+	            .setMaxListLength(20L)
+	            .setDefaultValue("default2")
+	            .setFacetType(FacetType.range)
+	            .setEnumValues(List.of("enum2"))
+	            .setJsonSubColumns(List.of(new JsonSubColumnModel(new JSONObjectAdapterImpl("{key: \"two\"}"))))
+	            .build();
+		
+		ElementStats expected = ElementStats.builder()
+	            .setMaximumSize(2L)
+	            .setMaxListLength(20L)
+	            .setDefaultValue("default2")
+	            .setFacetType(FacetType.range)
+	            .setEnumValues(List.of("enum2"))
+	            .setJsonSubColumns(List.of(new JsonSubColumnModel(new JSONObjectAdapterImpl("{key: \"two\"}"))))
+	            .build();
+
+		assertEquals(expected, ElementStats.generateMaxStats(one, two));
 	}
 	
 	@Test
@@ -74,6 +106,26 @@ public class ElementStatsTest {
 	}
 	
 	@Test
+	public void testMaxLongWithNullBothNull() {
+		assertEquals(null, ElementStats.maxLongsWithNull(null, null));
+	}
+	
+	@Test
+	public void testMaxLongWithNullFirstNull() {
+		assertEquals(Long.valueOf(123), ElementStats.maxLongsWithNull(null, 123L));
+	}
+	
+	@Test
+	public void testMaxLongWithNullSecondNull() {
+		assertEquals(Long.valueOf(123), ElementStats.maxLongsWithNull(123L, null));
+	}
+	
+	@Test
+	public void testMaxLongWithNullNeitherNull() {
+		assertEquals(Long.valueOf(3), ElementStats.maxLongsWithNull(3L, 1L));
+	}
+	
+	@Test
 	public void testFirstNonNullBothNull() {
 		assertNull(ElementStats.lastNonNull(null, null));
 	}
@@ -92,4 +144,5 @@ public class ElementStatsTest {
 	public void testFirstNonNullNeitherNull() {
 		assertEquals(Long.valueOf(2), ElementStats.lastNonNull(Long.valueOf(1), Long.valueOf(2)));
 	}
+	
 }

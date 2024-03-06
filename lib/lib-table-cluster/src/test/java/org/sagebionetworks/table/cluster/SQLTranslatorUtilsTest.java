@@ -40,6 +40,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunction;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
@@ -150,7 +151,6 @@ public class SQLTranslatorUtilsTest {
 	public void before() throws Exception {
 		columnFoo = TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING);
 		columnHasSpace = TableModelTestUtils.createColumn(222L, "has space", ColumnType.STRING);
-//		columnBar = TableModelTestUtils.createColumn(333L, "bar", ColumnType.STRING).setMaximumSize(102L);
 		columnBar = TableModelTestUtils.createColumn(333L, "bar", ColumnType.STRING);
 		columnId = TableModelTestUtils.createColumn(444L, "id", ColumnType.INTEGER);
 		String specialChars = "Specialchars~!@#$%^^&*()_+|}{:?></.,;'[]\'";
@@ -3826,7 +3826,7 @@ public class SQLTranslatorUtilsTest {
 		
 		ColumnModel foo = columnNameMap.get("foo");
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
-				.thenReturn(List.of(foo, columnNameMap.get("has space")));
+				.thenReturn(List.of(foo));
 		
 		when(mockSchemaProvider.getColumnModel(foo.getId())).thenReturn(foo);
 		
@@ -3949,7 +3949,7 @@ public class SQLTranslatorUtilsTest {
 		ColumnModel expected = new ColumnModel();
 		expected.setName("count");
 		expected.setColumnType(ColumnType.INTEGER);
-		expected.setMaximumSize(null);
+		expected.setMaximumSize(Long.valueOf(ColumnConstants.MAX_INTEGER_BYTES_AS_STRING));
 		expected.setId(null);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
@@ -3969,7 +3969,7 @@ public class SQLTranslatorUtilsTest {
 		ColumnModel expected = new ColumnModel();
 		expected.setName("AVG(id)");
 		expected.setColumnType(ColumnType.DOUBLE);
-		expected.setMaximumSize(null);
+		expected.setMaximumSize(Long.valueOf(ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING));
 		expected.setId(null);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));

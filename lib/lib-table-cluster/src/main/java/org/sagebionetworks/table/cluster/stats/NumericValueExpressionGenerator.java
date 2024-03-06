@@ -15,16 +15,17 @@ public class NumericValueExpressionGenerator implements StatGeneratorInteface<Nu
 		
 		Optional<ElementStats> termStats = generator.generate(numericValueExpression.getTerm(), tableAndColumnMapper);
 		
+		if (termStats.isEmpty()) {
+			return Optional.empty();
+		}
+		
 		ElementStats termPrimeStats = ElementStats.builder().build();
+		
 		for (TermPrime termPrime : numericValueExpression.getPrimeList()) {
 			Optional<ElementStats> child = generator.generate(termPrime, tableAndColumnMapper);
 			if (!child.isEmpty()) {
 				termPrimeStats = ElementStats.generateSumStats(termPrimeStats, child.get());
 			}
-		}
-		
-		if (termStats.isEmpty()) {
-			return Optional.of(termPrimeStats);
 		}
 		
 		return Optional.of(ElementStats.generateSumStats(termStats.get(), termPrimeStats));

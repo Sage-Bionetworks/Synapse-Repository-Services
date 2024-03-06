@@ -1376,31 +1376,32 @@ public class SQLTranslatorUtils {
 		SelectColumn selectColumn = getSelectColumns(derivedColumn, tableAndColumnMapper);
 		// The data type is correctly inferred by the #getSelectColumns call
 		ColumnType columnType = selectColumn.getColumnType();
-		Optional<ElementStats> elementsStats;
+		ElementStats elementStats;
 		
 		if(selectColumn.getId() != null) {
 			ColumnModel cm = tableAndColumnMapper.getColumnModel(selectColumn.getId());
-			elementsStats = Optional.of(ElementStats.builder()
+			elementStats = ElementStats.builder()
 					.setMaximumSize(cm.getMaximumSize())
 					.setMaxListLength(cm.getMaximumListLength())
 					.setDefaultValue(cm.getDefaultValue())
 					.setFacetType(cm.getFacetType())
 					.setEnumValues(cm.getEnumValues())
 					.setJsonSubColumns(cm.getJsonSubColumns())
-					.build());
+					.build();
 		} else {
-			elementsStats = new StatGenerator().generate(derivedColumn.getValueExpression(), tableAndColumnMapper);
+			elementStats = new StatGenerator().generate(derivedColumn.getValueExpression(), tableAndColumnMapper)
+					.orElse(ElementStats.builder().setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE).build());
 		}
 		
 		ColumnModel result = new ColumnModel()
 				.setColumnType(columnType)
 				.setName(selectColumn.getName())
-				.setMaximumSize(elementsStats.get().getMaximumSize())
-				.setMaximumListLength(elementsStats.get().getMaxListLength())
-				.setDefaultValue(elementsStats.get().getDefaultValue())
-				.setFacetType(elementsStats.get().getFacetType())
-				.setEnumValues(elementsStats.get().getEnumValues())
-				.setJsonSubColumns(elementsStats.get().getJsonSubColumns())
+				.setMaximumSize(elementStats.getMaximumSize())
+				.setMaximumListLength(elementStats.getMaxListLength())
+				.setDefaultValue(elementStats.getDefaultValue())
+				.setFacetType(elementStats.getFacetType())
+				.setEnumValues(elementStats.getEnumValues())
+				.setJsonSubColumns(elementStats.getJsonSubColumns())
 				.setId(null);
 		
 		return result;

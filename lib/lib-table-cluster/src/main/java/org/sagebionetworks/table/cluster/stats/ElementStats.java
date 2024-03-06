@@ -2,7 +2,6 @@
 package org.sagebionetworks.table.cluster.stats;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
@@ -95,20 +94,55 @@ public class ElementStats {
 	}
 	
 	/**
+	 * Create a new ElementStats with a max of the first and second maximumSizes
+	 * All other stats will try to find a non null value, tie breaker in favor of the second ElementStats
+	 * 
+	 * @param other
+	 * @return
+	 */
+	public static ElementStats generateMaxStats(ElementStats one, ElementStats two) {
+		return new ElementStats.Builder()
+				.setMaximumSize(maxLongsWithNull(one.getMaximumSize(), two.getMaximumSize()))
+				.setMaxListLength(lastNonNull(one.getMaxListLength(), two.getMaxListLength()))
+				.setDefaultValue(lastNonNull(one.getDefaultValue(), two.getDefaultValue()))
+				.setFacetType(lastNonNull(one.getFacetType(), two.getFacetType()))
+				.setEnumValues(lastNonNull(one.getEnumValues(), two.getEnumValues()))
+				.setJsonSubColumns(lastNonNull(one.getJsonSubColumns(), two.getJsonSubColumns()))
+				.build();
+	}
+	
+	/**
 	 * Addition for Longs that can be null.
 	 * 
 	 * @param currentValue
 	 * @param newValue
 	 * @return
 	 */
-	public static Long addLongsWithNull(Long currentValue, Long newValue) {
-		if(currentValue == null) {
-			return newValue;
+	public static Long addLongsWithNull(Long one, Long two) {
+		if(one == null) {
+			return two;
 		}
-		if(newValue == null) {
-			return currentValue;
+		if(two == null) {
+			return one;
 		}
-		return currentValue + newValue;
+		return one + two;
+	}
+	
+	/**
+	 * Max for Longs that can be null.
+	 * 
+	 * @param currentValue
+	 * @param newValue
+	 * @return
+	 */
+	public static Long maxLongsWithNull(Long one, Long two) {
+		if(one == null) {
+			return two;
+		}
+		if(two == null) {
+			return one;
+		}
+		return Math.max(one, two);
 	}
 	
 	public static <T> T lastNonNull(T one, T two) {

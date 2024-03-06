@@ -2,15 +2,14 @@ package org.sagebionetworks.table.cluster.stats;
 
 import java.util.Optional;
 
-import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.cluster.TableAndColumnMapper;
+import org.sagebionetworks.table.query.model.ArrayFunctionSpecification;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.Factor;
 import org.sagebionetworks.table.query.model.MySqlFunction;
 import org.sagebionetworks.table.query.model.NumericValueExpression;
 import org.sagebionetworks.table.query.model.SetFunctionSpecification;
-import org.sagebionetworks.table.query.model.SetFunctionType;
 import org.sagebionetworks.table.query.model.SimpleBranch;
 import org.sagebionetworks.table.query.model.Term;
 import org.sagebionetworks.table.query.model.TermPrime;
@@ -44,6 +43,10 @@ public class StatGenerator implements StatGeneratorInteface<Element> {
 			return new NumericValueExpressionGenerator().generate((NumericValueExpression) element, tableAndColumnMapper);
 		}
 		
+		if (element instanceof ArrayFunctionSpecification) {
+			return new ArrayFunctionSpecificationGenerator().generate((ArrayFunctionSpecification) element, tableAndColumnMapper);
+		}
+		
 		if (element instanceof Term) {
 			return generate(((Term) element).getFactor(), tableAndColumnMapper);
 		}
@@ -60,9 +63,7 @@ public class StatGenerator implements StatGeneratorInteface<Element> {
 			return generate(((SimpleBranch) element).getChild(), tableAndColumnMapper);
 		}
 		
-		return Optional.of(ElementStats.builder()
-				.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE)
-				.build());
+		return Optional.empty();
 	}
 
 }

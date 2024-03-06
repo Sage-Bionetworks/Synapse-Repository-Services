@@ -10,20 +10,21 @@ public class MySqlFunctionGenerator implements StatGeneratorInteface<MySqlFuncti
 
 	@Override
 	public Optional<ElementStats> generate(MySqlFunction element, TableAndColumnMapper tableAndColumnMapper) {
-		ElementStats elementsStats = ElementStats.builder().build();
+		ElementStats elementStats = ElementStats.builder().build();
 		
 		switch (element.getFunctionName()) {
 			case CONCAT:
 				for (ValueExpression valueExpression : element.getParameterValues()) {
 					Optional<ElementStats> childStats = new StatGenerator().generate(valueExpression, tableAndColumnMapper);
+					
 					if (childStats.isEmpty()) {
 						return Optional.empty();
 					}
 					
-					elementsStats = ElementStats.generateSumStats(elementsStats, childStats.get());
+					elementStats = ElementStats.generateSumStats(elementStats, childStats.get());
 				}
 				
-				return Optional.of(elementsStats);
+				return elementStats.getMaximumSize() > 0 ? Optional.of(elementStats) : Optional.empty();
 				
 			default:
 				return Optional.empty();

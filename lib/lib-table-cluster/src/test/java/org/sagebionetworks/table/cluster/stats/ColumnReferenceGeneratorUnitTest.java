@@ -12,19 +12,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableAndColumnMapper;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ColumnReference;
-import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 
 @ExtendWith(MockitoExtension.class)
-public class ColumnReferenceGeneratorTest {
+public class ColumnReferenceGeneratorUnitTest {
 	
-	@Mock
-	private SchemaProvider mockSchemaProvider;
 	@Mock
 	private TableAndColumnMapper mockTableAndColumnMapper;
 	
@@ -34,12 +31,12 @@ public class ColumnReferenceGeneratorTest {
 	
 	@Test
 	public void testGenerate() throws ParseException {
-		ColumnReference element = SqlElementUtils.createColumnReference("foo");
+		ColumnReference element = new TableQueryParser("foo").columnReference();
 		
 		ColumnModel cm = new ColumnModel()
 				.setColumnType(ColumnType.STRING)
+				.setName("foo")
 				.setId("111")
-				.setName("_C111_")
 				.setMaximumSize(50L);
 		
 		when(mockTableAndColumnMapper.lookupColumnReference(element))
@@ -53,8 +50,8 @@ public class ColumnReferenceGeneratorTest {
 	}
 	
 	@Test
-	public void testGenerateWithNoColumnTranslationReference() throws ParseException {
-		ColumnReference element = SqlElementUtils.createColumnReference("foo");
+	public void testGenerateWithEmptyColumnTranslationReference() throws ParseException {
+		ColumnReference element = new TableQueryParser("foo").columnReference();
 		
 		when(mockTableAndColumnMapper.lookupColumnReference(element))
 				.thenReturn(Optional.empty());

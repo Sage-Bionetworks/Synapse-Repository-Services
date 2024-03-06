@@ -15,6 +15,10 @@ public class ValueExpressionList extends SQLElement {
 		this.list = new ArrayList<>();
 	}
 	
+	public List<ValueExpression> getList() {
+		return list;
+	}
+
 	public void addValueExpression(ValueExpression toAdd) {
 		this.list.add(toAdd);
 	}
