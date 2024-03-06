@@ -1,6 +1,7 @@
 package org.sagebionetworks.translator;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -8,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.velocity.schema.TypeReference;
@@ -47,13 +49,17 @@ public class ObjectSchemaUtils {
 	 */
 	public Map<String, JsonSchema> getClassNameToJsonSchema(Map<String, ObjectSchema> classNameToObjectSchema) {
 		Map<String, JsonSchema> classNameToJsonSchema = new HashMap<>();
+		
 		for (String className : classNameToObjectSchema.keySet()) {
 			ObjectSchema schema = classNameToObjectSchema.get(className);
 			classNameToJsonSchema.put(className, translateObjectSchemaToJsonSchema(schema));
 		}
-		Map<String, List<TypeReference>> interfaces = SchemaUtils
-				.mapImplementationsToIntefaces(classNameToObjectSchema);
+		
+		Map<String, List<TypeReference>> interfaces = SchemaUtils.mapImplementationsToIntefaces(classNameToObjectSchema);
+		
 		insertOneOfPropertyForInterfaces(classNameToJsonSchema, interfaces);
+		
+				
 		return classNameToJsonSchema;
 	}
 

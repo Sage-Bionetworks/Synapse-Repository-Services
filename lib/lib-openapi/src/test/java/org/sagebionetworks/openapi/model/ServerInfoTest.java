@@ -1,4 +1,4 @@
-package org.sagebionetworks.openapi.datamodel;
+package org.sagebionetworks.openapi.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.openapi.model.ServerInfo;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 

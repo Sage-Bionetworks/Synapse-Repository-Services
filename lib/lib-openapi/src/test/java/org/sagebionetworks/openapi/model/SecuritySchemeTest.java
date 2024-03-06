@@ -1,10 +1,11 @@
-package org.sagebionetworks.openapi.datamodel;
+package org.sagebionetworks.openapi.model;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.openapi.model.SecurityScheme;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 

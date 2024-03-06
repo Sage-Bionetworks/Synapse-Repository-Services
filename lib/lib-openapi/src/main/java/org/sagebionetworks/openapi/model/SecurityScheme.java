@@ -1,4 +1,4 @@
-package org.sagebionetworks.openapi.datamodel;
+package org.sagebionetworks.openapi.model;
 
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;

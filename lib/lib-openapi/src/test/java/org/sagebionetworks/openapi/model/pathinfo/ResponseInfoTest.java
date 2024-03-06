@@ -1,4 +1,4 @@
-package org.sagebionetworks.openapi.datamodel.pathinfo;
+package org.sagebionetworks.openapi.model.pathinfo;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -12,6 +12,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
+import org.sagebionetworks.openapi.model.pathinfo.ResponseInfo;
+import org.sagebionetworks.openapi.model.pathinfo.Schema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;

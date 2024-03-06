@@ -10,6 +10,9 @@
 		"hasTail": {
 			"type": "boolean",
 			"description": "Describes if the pet has a tail."
+		},
+		"concreteType": {
+			"type": "string"
 		}
 	}
 }

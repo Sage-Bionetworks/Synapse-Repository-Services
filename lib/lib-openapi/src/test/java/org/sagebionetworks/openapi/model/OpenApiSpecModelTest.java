@@ -1,4 +1,4 @@
-package org.sagebionetworks.openapi.datamodel;
+package org.sagebionetworks.openapi.model;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -19,7 +19,13 @@ import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.openapi.datamodel.pathinfo.EndpointInfo;
+import org.sagebionetworks.openapi.model.ApiInfo;
+import org.sagebionetworks.openapi.model.Components;
+import org.sagebionetworks.openapi.model.OpenApiSpecModel;
+import org.sagebionetworks.openapi.model.SecurityScheme;
+import org.sagebionetworks.openapi.model.ServerInfo;
+import org.sagebionetworks.openapi.model.TagInfo;
+import org.sagebionetworks.openapi.model.pathinfo.EndpointInfo;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
@@ -31,13 +37,13 @@ import org.sagebionetworks.translator.ControllerModelDoclet;
 
 import com.google.gson.Gson;
 
-public class OpenAPISpecModelTest {
+public class OpenApiSpecModelTest {
 	@Test
 	public void testInitializeFromJSONObject() {
 		assertThrows(UnsupportedOperationException.class, () -> {
 			JSONObjectAdapter adapter = Mockito.mock(JSONObjectAdapter.class);
 			// call under test
-			new OpenAPISpecModel().initializeFromJSONObject(adapter);
+			new OpenApiSpecModel().initializeFromJSONObject(adapter);
 		});
 	}
 
@@ -68,7 +74,7 @@ public class OpenAPISpecModelTest {
 		Components components = new Components().withSchemas(schemas).withSecuritySchemes(securitySchemes);
 
 
-		OpenAPISpecModel model = Mockito.spy(new OpenAPISpecModel().withOpenapi("V3").withInfo(apiInfo).withPaths(paths)
+		OpenApiSpecModel model = Mockito.spy(new OpenApiSpecModel().withOpenapi("V3").withInfo(apiInfo).withPaths(paths)
 				.withServers(new ArrayList<>()).withTags(new ArrayList<>()).withComponents(components));
 		Mockito.doNothing().when(model).populateServers(any());
 		Mockito.doNothing().when(model).populateTags(any());
@@ -100,7 +106,7 @@ public class OpenAPISpecModelTest {
 		paths.put("PATH_1", path1);
 		paths.put("PATH_2", path2);
 
-		OpenAPISpecModel model = Mockito.spy(new OpenAPISpecModel().withPaths(paths));
+		OpenApiSpecModel model = Mockito.spy(new OpenApiSpecModel().withPaths(paths));
 		// call under test
 		model.populatePaths(pathsAdapter);
 		Mockito.verify(pathsAdapter).put("PATH_1", pathAdapterImpl1);
@@ -127,7 +133,7 @@ public class OpenAPISpecModelTest {
 		paths.get("PATH_1").put("OPERATION_2", endpoint2);
 
 		// call under test
-		new OpenAPISpecModel().withPaths(paths).populateCurrentPath(currentPathAdapter, "PATH_1");
+		new OpenApiSpecModel().withPaths(paths).populateCurrentPath(currentPathAdapter, "PATH_1");
 		Mockito.verify(currentPathAdapter).put("OPERATION_1", endpoint1Impl);
 		Mockito.verify(currentPathAdapter).put("OPERATION_2", endpoint2Impl);
 		Mockito.verify(endpoint1).writeToJSONObject(currentPathAdapterImpl);
@@ -148,7 +154,7 @@ public class OpenAPISpecModelTest {
 		List<TagInfo> tagInfoList = new ArrayList<>(Arrays.asList(tag1, tag2));
 
 		// call under test
-		new OpenAPISpecModel().withTags(tagInfoList).populateTags(tags);
+		new OpenApiSpecModel().withTags(tagInfoList).populateTags(tags);
 		Mockito.verify(tags).put(0, tag1Impl);
 		Mockito.verify(tags).put(1, tag2Impl);
 		Mockito.verify(tag1).writeToJSONObject(tagsImpl);
@@ -169,7 +175,7 @@ public class OpenAPISpecModelTest {
 		List<ServerInfo> serverInfoList = new ArrayList<>(Arrays.asList(server1, server2));
 
 		// call under test
-		new OpenAPISpecModel().withServers(serverInfoList).populateServers(servers);
+		new OpenApiSpecModel().withServers(serverInfoList).populateServers(servers);
 		Mockito.verify(servers).put(0, server1Impl);
 		Mockito.verify(servers).put(1, server2Impl);
 		Mockito.verify(server1).writeToJSONObject(serversImpl);
@@ -182,8 +188,8 @@ public class OpenAPISpecModelTest {
 		paths.put("PATH", new LinkedHashMap<>());
 		ApiInfo apiInfo = Mockito.mock(ApiInfo.class);
 		Mockito.doReturn(new JSONObjectAdapterImpl()).when(apiInfo).writeToJSONObject(any());
-		OpenAPISpecModel model = Mockito
-				.spy(new OpenAPISpecModel().withOpenapi("V3").withInfo(apiInfo).withPaths(paths));
+		OpenApiSpecModel model = Mockito
+				.spy(new OpenApiSpecModel().withOpenapi("V3").withInfo(apiInfo).withPaths(paths));
 		Mockito.doNothing().when(model).populatePaths(any());
 		JSONObjectAdapter adapter = Mockito.mock(JSONObjectAdapter.class);
 
@@ -201,7 +207,7 @@ public class OpenAPISpecModelTest {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			JSONObjectAdapter adapter = Mockito.mock(JSONObjectAdapter.class);
 			// call under test
-			new OpenAPISpecModel().withOpenapi("V3").withInfo(new ApiInfo()).withPaths(new LinkedHashMap<>())
+			new OpenApiSpecModel().withOpenapi("V3").withInfo(new ApiInfo()).withPaths(new LinkedHashMap<>())
 					.writeToJSONObject(adapter);
 		});
 		assertEquals("The 'paths' field should not be empty.", exception.getMessage());
@@ -212,7 +218,7 @@ public class OpenAPISpecModelTest {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			JSONObjectAdapter adapter = Mockito.mock(JSONObjectAdapter.class);
 			// call under test
-			new OpenAPISpecModel().withOpenapi("V3").withInfo(new ApiInfo()).withPaths(null).writeToJSONObject(adapter);
+			new OpenApiSpecModel().withOpenapi("V3").withInfo(new ApiInfo()).withPaths(null).writeToJSONObject(adapter);
 		});
 		assertEquals("The 'paths' field should not be null.", exception.getMessage());
 	}
@@ -222,7 +228,7 @@ public class OpenAPISpecModelTest {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			JSONObjectAdapter adapter = Mockito.mock(JSONObjectAdapter.class);
 			// call under test
-			new OpenAPISpecModel().withOpenapi("V3").withInfo(null).writeToJSONObject(adapter);
+			new OpenApiSpecModel().withOpenapi("V3").withInfo(null).writeToJSONObject(adapter);
 		});
 		assertEquals("The 'info' field should not be null.", exception.getMessage());
 	}
@@ -232,7 +238,7 @@ public class OpenAPISpecModelTest {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			JSONObjectAdapter adapter = Mockito.mock(JSONObjectAdapter.class);
 			// call under test
-			new OpenAPISpecModel().withOpenapi(null).writeToJSONObject(adapter);
+			new OpenApiSpecModel().withOpenapi(null).writeToJSONObject(adapter);
 		});
 		assertEquals("The 'openapi' field should not be null.", exception.getMessage());
 	}

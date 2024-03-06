@@ -1,4 +1,4 @@
-package org.sagebionetworks.openapi.datamodel;
+package org.sagebionetworks.openapi.model;
 
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
