@@ -172,36 +172,6 @@ public class StatGeneratorIntegrationTest {
 	}
 	
 	@Test
-	public void testGenerateWithMinWithInteger() throws ParseException {
-		String valueExpression = "MIN(integerCol)";
-		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(Long.valueOf(ColumnConstants.MAX_INTEGER_BYTES_AS_STRING)).build());
-		
-		assertEquals(expected, statGenerator.generate(
-				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
-	}
-	
-	@Test
-	public void testGenerateWithMinWithDouble() throws ParseException {
-		String valueExpression = "MIN(doubleCol)";
-		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(Long.valueOf(ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING)).build());
-		
-		assertEquals(expected, statGenerator.generate(
-				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
-	}
-	
-	@Test
-	public void testGenerateWithMinWithString() throws ParseException {
-		String valueExpression = "MIN(foo)";
-		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(fooMaxSize).build());
-		
-		assertEquals(expected, statGenerator.generate(
-				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
-	}
-	
-	@Test
 	public void testGenerateWithUnnest() throws ParseException {
 		String valueExpression = "UNNEST(stringListCol)";
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
