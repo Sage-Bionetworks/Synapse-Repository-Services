@@ -246,6 +246,57 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
+	public void testTranslateObjectSchemaToJsonSchemaWithInterfaceTypeAndConcreteTypeProperty() throws JSONObjectAdapterException {
+		ObjectSchema objectSchema;
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+
+		objectSchema.setType(TYPE.INTERFACE);
+		objectSchema.setProperties(new LinkedHashMap<>());
+		objectSchema.setId("MOCK_ID");
+		
+		doReturn(Type.object).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
+		doReturn(Map.of("concreteType", new JsonSchema())).when(util).translatePropertiesFromObjectSchema(any(Map.class), any(String.class));
+		
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
+		expected.setType(Type.object);
+		expected.setProperties(Map.of("concreteType", new JsonSchema()));
+		expected.setDiscriminator(new Discriminator().setPropertyName("concreteType"));
+		expected.setRequired(List.of("concreteType"));
+		
+		// call under test
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		
+		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.INTERFACE);
+		verify(util).translatePropertiesFromObjectSchema(new LinkedHashMap<>(), "MOCK_ID");
+	}
+	
+	@Test
+	public void testTranslateObjectSchemaToJsonSchemaWithObjectTypeAndConcreteTypeProperty() throws JSONObjectAdapterException {
+		ObjectSchema objectSchema;
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+
+		objectSchema.setType(TYPE.OBJECT);
+		objectSchema.setProperties(new LinkedHashMap<>());
+		objectSchema.setId("MOCK_ID");
+		
+		doReturn(Type.object).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
+		doReturn(Map.of("concreteType", new JsonSchema())).when(util).translatePropertiesFromObjectSchema(any(Map.class), any(String.class));
+		
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
+		expected.setType(Type.object);
+		expected.setProperties(Map.of("concreteType", new JsonSchema().set_enum(List.of("MOCK_ID"))));
+		expected.setRequired(List.of("concreteType"));
+
+		// call under test
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		
+		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.OBJECT);
+		verify(util).translatePropertiesFromObjectSchema(new LinkedHashMap<>(), "MOCK_ID");
+	}
+	
+	@Test
 	public void testTranslatePropertiesFromObjectSchema() throws JSONObjectAdapterException {
 		ObjectSchema objectSchema1;
 		ObjectSchema objectSchema2;

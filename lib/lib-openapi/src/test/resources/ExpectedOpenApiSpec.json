@@ -633,6 +633,7 @@
           {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Poodle"},
           {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Pug"}
         ],
+        "required": ["concreteType"],
         "discriminator": {"propertyName": "concreteType"}
       },
       "ListWrapperOfPet": {
@@ -657,12 +658,16 @@
           {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Cat"},
           {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Pug"}
         ],
+        "required": ["concreteType"],
         "discriminator": {"propertyName": "concreteType"}
       },
       "org.sagebionetworks.repo.model.principal.EmailValidationSignedToken": {
         "type": "object",
         "properties": {
-          "concreteType": {"type": "string"},
+          "concreteType": {
+            "type": "string",
+            "enum": ["org.sagebionetworks.repo.model.principal.EmailValidationSignedToken"]
+          },
           "hmac": {"type": "string"},
           "version": {
             "type": "integer",
@@ -673,14 +678,18 @@
           "email": {"type": "string"},
           "userId": {"type": "string"}
         },
-        "description": "Signed token containing the the information necessary to create a new account or add an email address to an existing account."
+        "description": "Signed token containing the the information necessary to create a new account or add an email address to an existing account.",
+        "required": ["concreteType"]
       },
       "org.sagebionetworks.openapi.pet.Husky": {
         "type": "object",
         "properties": {
           "name": {"type": "string"},
           "hasTail": {"type": "boolean"},
-          "concreteType": {"type": "string"},
+          "concreteType": {
+            "type": "string",
+            "enum": ["org.sagebionetworks.openapi.pet.Husky"]
+          },
           "age": {
             "type": "integer",
             "format": "int32"
@@ -702,7 +711,8 @@
             }
           }
         },
-        "description": "Describes the husky breed of Dog."
+        "description": "Describes the husky breed of Dog.",
+        "required": ["concreteType"]
       },
       "org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest": {
         "type": "object",
@@ -717,7 +727,10 @@
         "properties": {
           "name": {"type": "string"},
           "hasTail": {"type": "boolean"},
-          "concreteType": {"type": "string"},
+          "concreteType": {
+            "type": "string",
+            "enum": ["org.sagebionetworks.openapi.pet.Pug"]
+          },
           "age": {
             "type": "integer",
             "format": "int32"
@@ -739,7 +752,8 @@
             }
           }
         },
-        "description": "Describes the pug breed of Dog."
+        "description": "Describes the pug breed of Dog.",
+        "required": ["concreteType"]
       },
       "org.sagebionetworks.repo.model.oauth.TokenTypeHint": {
         "type": "string",
@@ -753,13 +767,17 @@
         "properties": {
           "name": {"type": "string"},
           "hasTail": {"type": "boolean"},
-          "concreteType": {"type": "string"},
+          "concreteType": {
+            "type": "string",
+            "enum": ["org.sagebionetworks.openapi.pet.Cat"]
+          },
           "numWhiskers": {
             "type": "integer",
             "format": "int32"
           }
         },
-        "description": "This class describes a Cat."
+        "description": "This class describes a Cat.",
+        "required": ["concreteType"]
       },
       "org.sagebionetworks.repo.model.status.StatusEnum": {
         "type": "string",
@@ -782,7 +800,10 @@
         "properties": {
           "name": {"type": "string"},
           "hasTail": {"type": "boolean"},
-          "concreteType": {"type": "string"},
+          "concreteType": {
+            "type": "string",
+            "enum": ["org.sagebionetworks.openapi.pet.Terrier"]
+          },
           "age": {
             "type": "integer",
             "format": "int32"
@@ -804,7 +825,8 @@
             }
           }
         },
-        "description": "Describes the terrier breed of Dog."
+        "description": "Describes the terrier breed of Dog.",
+        "required": ["concreteType"]
       },
       "org.sagebionetworks.repo.model.principal.AccountSetupInfo": {
         "type": "object",
@@ -825,7 +847,10 @@
         "properties": {
           "name": {"type": "string"},
           "hasTail": {"type": "boolean"},
-          "concreteType": {"type": "string"},
+          "concreteType": {
+            "type": "string",
+            "enum": ["org.sagebionetworks.openapi.pet.Poodle"]
+          },
           "age": {
             "type": "integer",
             "format": "int32"
@@ -845,7 +870,8 @@
             }
           }
         },
-        "description": "Describes the poodle breed of Dog."
+        "description": "Describes the poodle breed of Dog.",
+        "required": ["concreteType"]
       },
       "org.sagebionetworks.repo.model.SignedTokenInterface": {
         "type": "object",
@@ -861,6 +887,7 @@
         },
         "description": "Interface for signed tokens",
         "oneOf": [{"$ref": "#/components/schemas/org.sagebionetworks.repo.model.principal.EmailValidationSignedToken"}],
+        "required": ["concreteType"],
         "discriminator": {"propertyName": "concreteType"}
       },
       "org.sagebionetworks.openapi.model.Discriminator": {
