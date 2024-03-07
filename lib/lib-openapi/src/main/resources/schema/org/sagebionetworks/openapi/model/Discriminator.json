@@ -2,7 +2,8 @@
 	"name": "Discriminator",
 	"properties": {
 		"propertyName": {
-			"type": "string"
+			"type": "string",
+			"required": true
 		}
 	}
 }

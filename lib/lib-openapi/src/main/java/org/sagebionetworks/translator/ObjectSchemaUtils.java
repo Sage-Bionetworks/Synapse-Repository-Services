@@ -92,6 +92,7 @@ public class ObjectSchemaUtils {
 		if (isPrimitive(schemaType)) {
 			return getSchemaForPrimitiveType(schemaType);
 		}
+		
 		OpenApiJsonSchema jsonSchema = new OpenApiJsonSchema();
 		
 		jsonSchema.setType(translateObjectSchemaTypeToJsonSchemaType(schemaType));
@@ -113,6 +114,23 @@ public class ObjectSchemaUtils {
 		// If the object is an interface we need to add the discriminator on the concrete type
 		if (TYPE.INTERFACE == schemaType) {
 			jsonSchema.setDiscriminator(new Discriminator().setPropertyName(ObjectSchema.CONCRETE_TYPE));
+		}
+		
+		// If the concreteType is included then make sure to set it as a required property
+		if (jsonSchema.getProperties() != null && jsonSchema.getProperties().containsKey(ObjectSchema.CONCRETE_TYPE)) {
+			List<String> requiredProperties = jsonSchema.getRequired() == null ? new ArrayList<>() : new ArrayList<>(jsonSchema.getRequired());
+									
+			if (!requiredProperties.contains(ObjectSchema.CONCRETE_TYPE)) {
+				requiredProperties.add(ObjectSchema.CONCRETE_TYPE);
+			}
+						
+			jsonSchema.setRequired(requiredProperties);
+			
+			// Include the single value of the class in the enum of the concreteType property See https://sagebionetworks.jira.com/browse/PLFM-8257
+			if (TYPE.OBJECT == schemaType) {
+				jsonSchema.getProperties().get(ObjectSchema.CONCRETE_TYPE)
+					.set_enum(List.of(objectSchema.getId()));
+			}
 		}
 
 		return jsonSchema;
