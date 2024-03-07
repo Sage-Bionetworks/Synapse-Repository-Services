@@ -5,7 +5,7 @@ import java.util.Objects;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
+import org.sagebionetworks.repo.model.ar.UserRestrictionStatusWithHasUnmet;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 
 /**
@@ -16,7 +16,7 @@ public class AccessContext {
 
 	private UserInfo user;
 	private UserEntityPermissionsState permissionsState;
-	private UsersRestrictionStatus restrictionStatus;
+	private UserRestrictionStatusWithHasUnmet restrictionStatusWithHasUnmet;
 	private ACCESS_TYPE accessType;
 	private EntityType entityCreateType;
 
@@ -35,13 +35,6 @@ public class AccessContext {
 	}
 
 	/**
-	 * @return the restrictionStatus
-	 */
-	public UsersRestrictionStatus getRestrictionStatus() {
-		return restrictionStatus;
-	}
-	
-	/**
 	 * @param user the user to set
 	 */
 	public AccessContext withUser(UserInfo user) {
@@ -58,13 +51,20 @@ public class AccessContext {
 	}
 
 	/**
-	 * @param restrictionStatus the restrictionStatus to set
+	 * @param restrictionStatusWithHasUnmet the restrictionStatus to set
 	 */
-	public AccessContext withRestrictionStatus(UsersRestrictionStatus restrictionStatus) {
-		this.restrictionStatus = restrictionStatus;
+	public AccessContext withUserRestrictionStatusWithHasUnmet(UserRestrictionStatusWithHasUnmet restrictionStatusWithHasUnmet){
+		this.restrictionStatusWithHasUnmet = restrictionStatusWithHasUnmet;
 		return this;
 	}
-		
+
+	/**
+	 * @return the restrictionStatusWithHasUnmet
+	 */
+	public UserRestrictionStatusWithHasUnmet getRestrictionStatusWithHasUnmet() {
+		return restrictionStatusWithHasUnmet;
+	}
+
 	/**
 	 * @return the accessType
 	 */
@@ -97,7 +97,7 @@ public class AccessContext {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(accessType, entityCreateType, permissionsState, restrictionStatus, user);
+		return Objects.hash(accessType, entityCreateType, permissionsState, restrictionStatusWithHasUnmet, user);
 	}
 
 	@Override
@@ -110,15 +110,17 @@ public class AccessContext {
 		}
 		AccessContext other = (AccessContext) obj;
 		return accessType == other.accessType && entityCreateType == other.entityCreateType
-				&& Objects.equals(permissionsState, other.permissionsState) && Objects.equals(restrictionStatus, other.restrictionStatus)
+				&& Objects.equals(permissionsState, other.permissionsState)
+				&& Objects.equals(restrictionStatusWithHasUnmet, other.restrictionStatusWithHasUnmet)
 				&& Objects.equals(user, other.user);
 	}
 
 	@Override
 	public String toString() {
-		return "AccessContext [user=" + user + ", permissionsState=" + permissionsState + ", restrictionStatus=" + restrictionStatus
+		return "AccessContext [user=" + user + ", permissionsState=" + permissionsState
+				+ ",restrictionStatusWithHasUnmet=" + restrictionStatusWithHasUnmet
 				+ ", accessType=" + accessType + ", entityCreateType=" + entityCreateType
 				+ "]";
 	}
-	
+
 }
