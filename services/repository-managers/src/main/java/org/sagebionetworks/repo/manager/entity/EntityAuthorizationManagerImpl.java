@@ -10,8 +10,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
+import org.sagebionetworks.repo.model.ar.UserRestrictionStatusWithHasUnmet;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
-import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
@@ -197,8 +197,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		case CHANGE_PERMISSIONS:
 			return determineChangePermissionAccess(userInfo, provider.getPermissionsState(id));
 		case DOWNLOAD:
-			return determineDownloadAccess(userInfo, provider.getPermissionsState(id),
-					provider.getRestrictionStatus(id));
+			return determineDownloadAccess(userInfo, provider.getPermissionsState(id), provider.getUserRestrictionStatusWithHasUnmet(id));
 		case CHANGE_SETTINGS:
 			return determineChangeSettingsAccess(userInfo, provider.getPermissionsState(id));
 		case MODERATE:
@@ -213,15 +212,15 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	 * 
 	 * @param userState
 	 * @param permissionsState
-	 * @param restrictionStatus
+	 * @param userRestrictionStatusWithHasUnmet
 	 * @return
 	 */
 	UsersEntityAccessInfo determineDownloadAccess(UserInfo userState, UserEntityPermissionsState permissionsState,
-			UsersRestrictionStatus restrictionStatus) {
+												  UserRestrictionStatusWithHasUnmet userRestrictionStatusWithHasUnmet) {
 		
 		// @formatter:off
 		return AccessDecider.makeAccessDecision(new AccessContext().withUser(userState).withPermissionsState(permissionsState)
-				.withRestrictionStatus(restrictionStatus).withAccessType(ACCESS_TYPE.DOWNLOAD),
+				.withUserRestrictionStatusWithHasUnmet(userRestrictionStatusWithHasUnmet).withAccessType(ACCESS_TYPE.DOWNLOAD),
 			DENY_IF_DOES_NOT_EXIST,
 			DENY_IF_IN_TRASH,
 			GRANT_IF_ADMIN,
@@ -369,45 +368,45 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	public List<FileActionRequired> getActionsRequiredForDownload(UserInfo userInfo, List<Long> entityIds) {
 		ValidateArgument.required(userInfo, "The userInfo");
 		ValidateArgument.required(entityIds, "The entityIds");
-		
-		List<UsersEntityAccessInfo> batchInfo = batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
 
+		List<UsersEntityAccessInfo> batchInfo = batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
 		List<FileActionRequired> actions = new ArrayList<>(batchInfo.size());
-		
 		boolean hasTwoFactorAuthEnabled = userInfo.hasTwoFactorAuthEnabled();
-		
+
 		for (UsersEntityAccessInfo info : batchInfo) {
 			ValidateArgument.required(info.getAuthorizationStatus(), "info.authroizationStatus");
-			ValidateArgument.required(info.getAccessRestrictions(), "info.accessRestrictions()");
+			ValidateArgument.required(info.getUserRestrictionStatusWithHasUnmet(), "info.userRestrictionStatusWithHasUnmet()");
+			ValidateArgument.required(info.getUserRestrictionStatusWithHasUnmet().getUsersRestrictionStatus(),
+					"info.userRestrictionStatusWithHasUnmet().usersRestrictionStatus()");
 			if (!info.getAuthorizationStatus().isAuthorized() && info.doesEntityExist()) {
 				// First check if the user has any unapproved AR
-				if (info.getAccessRestrictions().hasUnmet()) {
-					for (UsersRequirementStatus status : info.getAccessRestrictions().getAccessRestrictions()) {
+				if (info.getUserRestrictionStatusWithHasUnmet().hasUnmet()) {
+					for (UsersRequirementStatus status : info.getUserRestrictionStatusWithHasUnmet().getUsersRestrictionStatus().getAccessRestrictions()) {
 						if (status.isUnmet()) {
 							actions.add(new FileActionRequired().withFileId(info.getEntityId()).withAction(
-									new MeetAccessRequirement().setAccessRequirementId(status.getRequirementId())
-								)
+											new MeetAccessRequirement().setAccessRequirementId(status.getRequirementId())
+									)
 							);
-						}			
+						}
 					}
 				}
-				
-				// The user might need to enable 2FA in order to download data
-				Optional<UsersRequirementStatus> twoFaRequirement = info.getAccessRestrictions().getAccessRestrictions().stream().filter(UsersRequirementStatus::isTwoFaRequired).findFirst();
-				if (!hasTwoFactorAuthEnabled && twoFaRequirement.isPresent()) {
-					actions.add(new FileActionRequired().withFileId(info.getEntityId()).withAction(
-							new EnableTwoFa().setAccessRequirementId(twoFaRequirement.get().getRequirementId())
-						)
-					);
-				} else if (!info.getAccessRestrictions().hasUnmet()) {
-					// The last check is on the ACL
-					actions.add(new FileActionRequired().withFileId(info.getEntityId())
-						.withAction(new RequestDownload().setBenefactorId(info.getBenefactorId())));
+					// The user might need to enable 2FA in order to download data
+					Optional<UsersRequirementStatus> twoFaRequirement = info.getUserRestrictionStatusWithHasUnmet()
+							.getUsersRestrictionStatus().getAccessRestrictions().stream()
+							.filter(UsersRequirementStatus::isTwoFaRequired).findFirst();
+					if (!hasTwoFactorAuthEnabled && twoFaRequirement.isPresent()) {
+						actions.add(new FileActionRequired().withFileId(info.getEntityId()).withAction(
+										new EnableTwoFa().setAccessRequirementId(twoFaRequirement.get().getRequirementId())
+								)
+						);
+					} else if (!info.getUserRestrictionStatusWithHasUnmet().hasUnmet()) {
+						// The last check is on the ACL
+						actions.add(new FileActionRequired().withFileId(info.getEntityId())
+								.withAction(new RequestDownload().setBenefactorId(info.getBenefactorId())));
+					}
 				}
 			}
-		}
-		
-		return actions;
-	}
 
+			return actions;
+		}
 }

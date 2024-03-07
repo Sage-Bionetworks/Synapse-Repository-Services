@@ -84,9 +84,6 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 				requirementId = null;
 			}
 			Boolean approved = rs.getBoolean(APPROVED2);
-			if (rs.wasNull()) {
-				approved = null;
-			}
 			String requirementTypeString = rs.getString(REQUIREMENT_TYPE);
 			AccessRequirementType requirementType = null;
 			if(requirementTypeString != null) {
@@ -99,9 +96,6 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 			}
 			Boolean isExemptionEligible = rs.getBoolean(IS_EXEMPTION_ELIGIBLE);
 			UsersRestrictionStatus status = statusMap.get(entityId);
-			if (approved != null && !approved) {
-				status.withHasUnmet(true);
-			}			
 			if (requirementId != null) {
 				status.withRestrictionStatus(List.of(
 						new UsersRequirementStatus()
@@ -152,18 +146,12 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 				requirementId = null;
 			}
 			Boolean approved = rs.getBoolean(APPROVED2);
-			if (rs.wasNull()) {
-				approved = null;
-			}
 			String requirementTypeString = rs.getString(REQUIREMENT_TYPE);
 			AccessRequirementType requirementType = null;
 			if(requirementTypeString != null) {
 				requirementType = AccessRequirementType.lookupClassName(requirementTypeString);
 			}
 			UsersRestrictionStatus status = statusMap.get(subjectId);
-			if (!approved) {
-				status.withHasUnmet(true);
-			}
 			if (requirementId != null) {
 				status.withRestrictionStatus(List.of(
 						new UsersRequirementStatus()

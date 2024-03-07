@@ -68,11 +68,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * Denies access if the user has unmet access restrictions on this entity.
 	 */
 	DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS((c) -> {
-		boolean isUserDataContributor = c.getPermissionsState().hasUpdate() && c.getPermissionsState().hasDelete();
-		boolean isExemptionEligible = c.getRestrictionStatus().getAccessRestrictions().stream()
-				.anyMatch(UsersRequirementStatus::isExemptionEligible);
-		boolean isUserExempted = isUserDataContributor && isExemptionEligible;
-		if (!isUserExempted && c.getRestrictionStatus().hasUnmet()) {
+		if (c.getRestrictionStatusWithHasUnmet().hasUnmet()) {
 			return Optional.of(new UsersEntityAccessInfo(c,
 					AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_AND_NON_EXEMPTED_ACCESS_REQUIREMENTS)));
 		} else {
@@ -251,7 +247,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * Denies access if the an access requirement required 2FA and the user does not have 2FA enabled
 	 */
 	DENY_IF_TWO_FA_REQUIREMENT_NOT_MET((c) -> {
-		if (!c.getUser().hasTwoFactorAuthEnabled() && c.getRestrictionStatus().getAccessRestrictions().stream().filter(UsersRequirementStatus::isTwoFaRequired).findFirst().isPresent()) {
+		if (!c.getUser().hasTwoFactorAuthEnabled() && c.getRestrictionStatusWithHasUnmet().getUsersRestrictionStatus().getAccessRestrictions().stream().filter(UsersRequirementStatus::isTwoFaRequired).findFirst().isPresent()) {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_YOU_NEED_TWO_FA)));
 		} else {
 			return Optional.empty();

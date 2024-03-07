@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.entity.decider;
 
-import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
+import org.sagebionetworks.repo.model.ar.UserRestrictionStatusWithHasUnmet;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -16,7 +16,8 @@ public class UsersEntityAccessInfo {
 	Long benefactorId;
 	boolean entityExists;
 	AuthorizationStatus authorizationStatus;
-	UsersRestrictionStatus accessRestrictions;
+
+	UserRestrictionStatusWithHasUnmet userRestrictionStatusWithHasUnmet;
 	
 	public UsersEntityAccessInfo(){}
 
@@ -28,7 +29,7 @@ public class UsersEntityAccessInfo {
 		this.entityId = context.getPermissionsState().getEntityId();
 		this.benefactorId = context.getPermissionsState().getBenefactorId();
 		this.entityExists= context.getPermissionsState().doesEntityExist();
-		this.accessRestrictions = context.getRestrictionStatus();
+		this.userRestrictionStatusWithHasUnmet = context.getRestrictionStatusWithHasUnmet();
 		this.authorizationStatus = status;
 	}
 
@@ -63,17 +64,17 @@ public class UsersEntityAccessInfo {
 	}
 
 	/**
-	 * @return the accessRestrictions
+	 * @return the userRestrictionStatusWithHasUnmet
 	 */
-	public UsersRestrictionStatus getAccessRestrictions() {
-		return accessRestrictions;
+	public UserRestrictionStatusWithHasUnmet getUserRestrictionStatusWithHasUnmet() {
+		return userRestrictionStatusWithHasUnmet;
 	}
 
 	/**
-	 * @param accessRestrictions the accessRestrictions to set
+	 * @param userRestrictionStatusWithHasUnmet the userRestrictionStatusWithHasUnmet to set
 	 */
-	public UsersEntityAccessInfo withAccessRestrictions(UsersRestrictionStatus accessRestrictions) {
-		this.accessRestrictions = accessRestrictions;
+	public UsersEntityAccessInfo withUserRestrictionStatusWithHasUnmet(UserRestrictionStatusWithHasUnmet userRestrictionStatusWithHasUnmet) {
+		this.userRestrictionStatusWithHasUnmet = userRestrictionStatusWithHasUnmet;
 		return this;
 	}
 
@@ -97,7 +98,7 @@ public class UsersEntityAccessInfo {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((accessRestrictions == null) ? 0 : accessRestrictions.hashCode());
+		result = prime * result + ((userRestrictionStatusWithHasUnmet == null) ? 0 : userRestrictionStatusWithHasUnmet.hashCode());
 		result = prime * result + ((authorizationStatus == null) ? 0 : authorizationStatus.hashCode());
 		result = prime * result + ((benefactorId == null) ? 0 : benefactorId.hashCode());
 		result = prime * result + (entityExists ? 1231 : 1237);
@@ -114,10 +115,10 @@ public class UsersEntityAccessInfo {
 		if (getClass() != obj.getClass())
 			return false;
 		UsersEntityAccessInfo other = (UsersEntityAccessInfo) obj;
-		if (accessRestrictions == null) {
-			if (other.accessRestrictions != null)
+		if (userRestrictionStatusWithHasUnmet == null) {
+			if (other.userRestrictionStatusWithHasUnmet != null)
 				return false;
-		} else if (!accessRestrictions.equals(other.accessRestrictions))
+		} else if (!userRestrictionStatusWithHasUnmet.equals(other.userRestrictionStatusWithHasUnmet))
 			return false;
 		if (authorizationStatus == null) {
 			if (other.authorizationStatus != null)
@@ -142,7 +143,7 @@ public class UsersEntityAccessInfo {
 	@Override
 	public String toString() {
 		return "UsersEntityAccessInfo [entityId=" + entityId + ", authroizationStatus=" + authorizationStatus
-				+ ", accessRestrictions=" + accessRestrictions + "]";
+				+ ", userRestrictionStatusWithHasUnmet=" + userRestrictionStatusWithHasUnmet + "]";
 	}
 
 }

@@ -18,12 +18,16 @@ import org.sagebionetworks.repo.model.ar.AccessRequirementType;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
+import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
+import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -42,6 +46,8 @@ public class RestrictionInformationManagerImplUnitTest {
 
 	@Mock
 	private AccessRestrictionStatusDao mockRestrictionStatusDao;
+	@Mock
+	private UsersEntityPermissionsDao mockUsersEntityPermissionsDao;
 
 	@InjectMocks
 	private RestrictionInformationManagerImpl arm;
@@ -51,6 +57,8 @@ public class RestrictionInformationManagerImplUnitTest {
 	private Node testEntity;
 	private Long entityIdAsLong;
 	private Long teamIdAsLong;
+	private Map<Long, UsersRestrictionStatus> mapIdToAccess = new LinkedHashMap<Long, UsersRestrictionStatus>();
+	private Map<Long, UserEntityPermissionsState> userEntityPermissionsState = new LinkedHashMap<Long,UserEntityPermissionsState>();
 
 	@BeforeEach
 	public void setUp() throws Exception {
@@ -60,6 +68,11 @@ public class RestrictionInformationManagerImplUnitTest {
 		testEntity.setNodeType(EntityType.file);
 		entityIdAsLong = KeyFactory.stringToKey(TEST_ENTITY_ID);
 		teamIdAsLong = KeyFactory.stringToKey(TEST_PRINCIPAL_ID);
+		userEntityPermissionsState.put(entityIdAsLong,
+				new UserEntityPermissionsState(entityIdAsLong)
+						.withHasRead(true)
+						.withHasDelete(true)
+						.withHasDownload(true));
 	}
 
 	@Test
@@ -110,7 +123,13 @@ public class RestrictionInformationManagerImplUnitTest {
 
 	@Test
 	public void testGetRestrictionInformationWithZeroAR() {
-		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any(), any())).thenReturn(Collections.emptyList());
+		UsersRestrictionStatus touStatus = new UsersRestrictionStatus()
+				.withSubjectId(entityIdAsLong)
+				.withUserId(userInfo.getId())
+				.withRestrictionStatus(Collections.emptyList());
+		mapIdToAccess.put(entityIdAsLong, touStatus);
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(userEntityPermissionsState);
+		when(mockRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_ENTITY_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -120,17 +139,22 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.OPEN, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
-		verify(mockRestrictionStatusDao).getSubjectStatus(Arrays.asList(entityIdAsLong), RestrictableObjectType.ENTITY,
-				userInfo.getId(), userInfo.getGroups());
+		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
 	}
 
 	@Test
 	public void testGetRestrictionInformationWithToU() {
-		UsersRestrictionStatus touStatus = new UsersRestrictionStatus().withSubjectId(entityIdAsLong).withUserId(userInfo.getId());
-		touStatus.withHasUnmet(true);
-		touStatus.withRestrictionStatus(List.of(
-				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.SELF_SIGNED)));
-		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any(), any())).thenReturn(Arrays.asList(touStatus));
+		UsersRestrictionStatus touStatus = new UsersRestrictionStatus()
+				.withSubjectId(entityIdAsLong)
+				.withUserId(userInfo.getId())
+				.withRestrictionStatus(List.of(
+						new UsersRequirementStatus()
+								.withIsUnmet(true)
+								.withRequirementType(AccessRequirementType.SELF_SIGNED)));
+		mapIdToAccess.put(entityIdAsLong, touStatus);
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(userEntityPermissionsState);
+		when(mockRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_ENTITY_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -138,17 +162,22 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
-		verify(mockRestrictionStatusDao).getSubjectStatus(Arrays.asList(entityIdAsLong), RestrictableObjectType.ENTITY,
-				userInfo.getId(), userInfo.getGroups());
+		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
 	}
 	
 	@Test
 	public void testGetRestrictionInformationWithToUMet() {
-		UsersRestrictionStatus touStatus = new UsersRestrictionStatus().withSubjectId(entityIdAsLong).withUserId(userInfo.getId());
-		touStatus.withHasUnmet(false);
-		touStatus.withRestrictionStatus(List.of(
-				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.SELF_SIGNED)));
-		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any(), any())).thenReturn(Arrays.asList(touStatus));
+		UsersRestrictionStatus touStatus = new UsersRestrictionStatus()
+				.withSubjectId(entityIdAsLong)
+				.withUserId(userInfo.getId())
+				.withRestrictionStatus(List.of(
+						new UsersRequirementStatus()
+								.withIsUnmet(false)
+								.withRequirementType(AccessRequirementType.SELF_SIGNED)));
+		mapIdToAccess.put(entityIdAsLong, touStatus);
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(userEntityPermissionsState);
+		when(mockRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_ENTITY_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -156,17 +185,20 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
-		verify(mockRestrictionStatusDao).getSubjectStatus(Arrays.asList(entityIdAsLong), RestrictableObjectType.ENTITY,
-				userInfo.getId(), userInfo.getGroups());
+		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
 	}
 
 	@Test
 	public void testGetRestrictionInformationWithLock() {
-		UsersRestrictionStatus touStatus = new UsersRestrictionStatus().withSubjectId(entityIdAsLong).withUserId(userInfo.getId());
-		touStatus.withHasUnmet(true);
-		touStatus.withRestrictionStatus(List.of(
-				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.LOCK)));
-		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any(), any())).thenReturn(Arrays.asList(touStatus));
+		UsersRestrictionStatus touStatus = new UsersRestrictionStatus()
+				.withSubjectId(entityIdAsLong)
+				.withUserId(userInfo.getId())
+				.withRestrictionStatus(List.of(
+						new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.LOCK)));
+		mapIdToAccess.put(entityIdAsLong, touStatus);
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(userEntityPermissionsState);
+		when(mockRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_ENTITY_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -174,17 +206,22 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
-		verify(mockRestrictionStatusDao).getSubjectStatus(Arrays.asList(entityIdAsLong), RestrictableObjectType.ENTITY,
-				userInfo.getId(), userInfo.getGroups());
+		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));;
 	}
 
 	@Test
 	public void testGetRestrictionInformationWithACT() {
-		UsersRestrictionStatus touStatus = new UsersRestrictionStatus().withSubjectId(entityIdAsLong).withUserId(userInfo.getId());
-		touStatus.withHasUnmet(true);
-		touStatus.withRestrictionStatus(List.of(
-				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.MANAGED_ATC)));
-		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any(), any())).thenReturn(Arrays.asList(touStatus));
+		UsersRestrictionStatus touStatus = new UsersRestrictionStatus()
+				.withSubjectId(entityIdAsLong)
+				.withUserId(userInfo.getId())
+						.withRestrictionStatus(List.of(
+								new UsersRequirementStatus()
+										.withIsUnmet(true)
+										.withRequirementType(AccessRequirementType.MANAGED_ATC)));
+		mapIdToAccess.put(entityIdAsLong, touStatus);
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(userEntityPermissionsState);
+		when(mockRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_ENTITY_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -192,18 +229,21 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
-		verify(mockRestrictionStatusDao).getSubjectStatus(Arrays.asList(entityIdAsLong), RestrictableObjectType.ENTITY,
-				userInfo.getId(), userInfo.getGroups());
+		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
 	}
 
 	@Test
 	public void testGetRestrictionInformationWithBoth() {
-		UsersRestrictionStatus touStatus = new UsersRestrictionStatus().withSubjectId(entityIdAsLong).withUserId(userInfo.getId());
-		touStatus.withHasUnmet(true);
-		touStatus.withRestrictionStatus(List.of(
-				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.MANAGED_ATC),
-				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.TOU)));
-		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any(), any())).thenReturn(Arrays.asList(touStatus));
+		UsersRestrictionStatus touStatus = new UsersRestrictionStatus()
+				.withSubjectId(entityIdAsLong)
+				.withUserId(userInfo.getId())
+				.withRestrictionStatus(List.of(
+						new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.MANAGED_ATC),
+						new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.TOU)));
+		mapIdToAccess.put(entityIdAsLong, touStatus);
+		when(mockRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(userEntityPermissionsState);
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_ENTITY_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -211,19 +251,27 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
-		verify(mockRestrictionStatusDao).getSubjectStatus(Arrays.asList(entityIdAsLong), RestrictableObjectType.ENTITY,
-				userInfo.getId(), userInfo.getGroups());
+		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
 	}
 
 
 	@Test
 	public void testGetRestrictionInformationForTeam() {
-		UsersRestrictionStatus touStatus = new UsersRestrictionStatus().withSubjectId(entityIdAsLong).withUserId(userInfo.getId());
-		touStatus.withHasUnmet(true);
-		touStatus.withRestrictionStatus(List.of(
-				new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.TOU)));
-
-		when(mockRestrictionStatusDao.getSubjectStatus(any(), any(), any(), any())).thenReturn(Arrays.asList(touStatus));
+		UsersRestrictionStatus touStatus = new UsersRestrictionStatus()
+				.withSubjectId(entityIdAsLong)
+				.withUserId(userInfo.getId())
+				.withRestrictionStatus(List.of(
+						new UsersRequirementStatus().withIsUnmet(true).withRequirementType(AccessRequirementType.TOU)));
+		long teamId = Long.parseLong(TEST_PRINCIPAL_ID);
+		mapIdToAccess.put(teamId, touStatus);
+		userEntityPermissionsState.put(teamId,
+				new UserEntityPermissionsState(entityIdAsLong)
+						.withHasRead(true)
+						.withHasDelete(true)
+						.withHasDownload(true));
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(userEntityPermissionsState);
+		when(mockRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_PRINCIPAL_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.TEAM);
@@ -231,7 +279,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
-		verify(mockRestrictionStatusDao).getSubjectStatus(Arrays.asList(teamIdAsLong), RestrictableObjectType.TEAM,
-				userInfo.getId(), userInfo.getGroups());
+		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(teamId), userInfo.getId(), userInfo.getGroups());
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(teamId));
 	}
 }

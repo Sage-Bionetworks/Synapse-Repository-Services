@@ -1,15 +1,15 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
-import java.util.Arrays;
-import java.util.List;
-
+import org.sagebionetworks.repo.manager.entity.EntityStateProvider;
+import org.sagebionetworks.repo.manager.entity.LazyEntityStateProvider;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
-import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
+import org.sagebionetworks.repo.model.ar.UserRestrictionStatusWithHasUnmet;
+import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +20,8 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 
 	@Autowired
 	private AccessRestrictionStatusDao accessRestrictionStatusDao;
+	@Autowired
+	private UsersEntityPermissionsDao usersEntityPermissionsDao;
 
 	@Override
 	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo,
@@ -34,15 +36,17 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 			throw new IllegalArgumentException("Unsupported type: " + request.getRestrictableObjectType());
 		}
 
-		List<UsersRestrictionStatus> statusList = accessRestrictionStatusDao.getSubjectStatus(
-				Arrays.asList(KeyFactory.stringToKey(request.getObjectId())), request.getRestrictableObjectType(),
-				userInfo.getId(), userInfo.getGroups());
+		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
+				usersEntityPermissionsDao, userInfo, KeyFactory.stringToKeySingletonList(request.getObjectId()));
 
-		return statusList.stream().findFirst().map((s) -> {
-			RestrictionInformationResponse info = new RestrictionInformationResponse();
-			info.setHasUnmetAccessRequirement(s.hasUnmet());
-			info.setRestrictionLevel(s.getMostRestrictiveLevel());
-			return info;
+		UserRestrictionStatusWithHasUnmet userRestrictionStatusWithHasUnmet =
+				stateProvider.getUserRestrictionStatusWithHasUnmet((KeyFactory.stringToKey(request.getObjectId())));
+
+		return userRestrictionStatusWithHasUnmet.getUsersRestrictionStatus().getAccessRestrictions().stream().findFirst().map((s) -> {
+					RestrictionInformationResponse info = new RestrictionInformationResponse();
+					info.setHasUnmetAccessRequirement(userRestrictionStatusWithHasUnmet.hasUnmet());
+					info.setRestrictionLevel(s.getRequirementType().getRestrictionLevel());
+					return info;
 		}).orElseGet(() -> {
 			// If there are no restrictions then the data is open and met.
 			RestrictionInformationResponse info = new RestrictionInformationResponse();

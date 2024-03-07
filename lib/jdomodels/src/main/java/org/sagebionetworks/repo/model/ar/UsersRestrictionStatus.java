@@ -17,7 +17,6 @@ public class UsersRestrictionStatus {
 	private Long subjectId;
 	private Long userId;
 	private List<UsersRequirementStatus> accessRestrictions = new ArrayList<>();
-	private boolean hasUnmet = false;
 
 	/**
 	 *
@@ -48,24 +47,6 @@ public class UsersRestrictionStatus {
 	public UsersRestrictionStatus withRestrictionStatus(List<UsersRequirementStatus> accessRestrictions) {
 		this.accessRestrictions.addAll(accessRestrictions);
 		return this;
-	}
-
-	/**
-	 *
-	 * @param hasUnmet
-	 * @return
-	 */
-	public UsersRestrictionStatus withHasUnmet(boolean hasUnmet) {
-		this.hasUnmet = hasUnmet;
-		return this;
-	}
-
-	/**
-	 * @return the hasUnmet True if the user has unmet access restrictions for this
-	 *         subject.
-	 */
-	public boolean hasUnmet() {
-		return hasUnmet;
 	}
 
 
@@ -110,7 +91,7 @@ public class UsersRestrictionStatus {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(accessRestrictions, hasUnmet, subjectId, userId);
+		return Objects.hash(accessRestrictions, subjectId, userId);
 	}
 
 	@Override
@@ -122,14 +103,15 @@ public class UsersRestrictionStatus {
 			return false;
 		}
 		UsersRestrictionStatus other = (UsersRestrictionStatus) obj;
-		return Objects.equals(accessRestrictions, other.accessRestrictions) && hasUnmet == other.hasUnmet
-				&& Objects.equals(subjectId, other.subjectId) && Objects.equals(userId, other.userId);
+		return Objects.equals(accessRestrictions, other.accessRestrictions)
+				&& Objects.equals(subjectId, other.subjectId)
+				&& Objects.equals(userId, other.userId);
 	}
 
 	@Override
 	public String toString() {
 		return "SubjectStatus [subjectId=" + subjectId + ", userId=" + userId + ", accessRestrictions="
-				+ accessRestrictions + ", hasUnmet=" + hasUnmet + "]";
+				+ accessRestrictions + "]";
 	}
 
 }

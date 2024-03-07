@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.entity;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
+import org.sagebionetworks.repo.model.ar.UserRestrictionStatusWithHasUnmet;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 
 /**
@@ -33,5 +33,6 @@ public interface EntityStateProvider {
 	 * @param entityId
 	 * @return
 	 */
-	UsersRestrictionStatus getRestrictionStatus(Long entityId);
+
+	UserRestrictionStatusWithHasUnmet getUserRestrictionStatusWithHasUnmet(Long entityId);
 }

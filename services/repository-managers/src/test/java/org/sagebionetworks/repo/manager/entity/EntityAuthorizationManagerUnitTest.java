@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
+import org.sagebionetworks.repo.model.ar.UserRestrictionStatusWithHasUnmet;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -68,6 +69,7 @@ public class EntityAuthorizationManagerUnitTest {
 	private Map<Long, UsersRestrictionStatus> mapIdToAccess;
 	
 	private UsersRestrictionStatus restrictionStatus;
+	private UserRestrictionStatusWithHasUnmet userRestrictionStatusWithHasUnmet;
 	private AccessContext accessContext;
 
 	@BeforeEach
@@ -92,8 +94,9 @@ public class EntityAuthorizationManagerUnitTest {
 		mapIdToAccess.put(entityIdLong, accessRestrictions);
 		
 		restrictionStatus = new UsersRestrictionStatus().withSubjectId(entityIdLong).withUserId(userInfo.getId());
+		userRestrictionStatusWithHasUnmet = new UserRestrictionStatusWithHasUnmet(permissionsState, restrictionStatus);
 		accessContext = new AccessContext().withUser(userInfo).withPermissionsState(permissionsState)
-				.withRestrictionStatus(restrictionStatus);
+				.withUserRestrictionStatusWithHasUnmet(userRestrictionStatusWithHasUnmet);
 	}
 
 	@Test
@@ -782,8 +785,7 @@ public class EntityAuthorizationManagerUnitTest {
 		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
 		
 		restrictionStatus.withRestrictionStatus(List.of(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L)));
-		restrictionStatus.withHasUnmet(false);
-
+		
 		List<FileActionRequired> expected = List.of(
 			new FileActionRequired().withFileId(entityIdLong)
 				.withAction(new RequestDownload().setBenefactorId(benefactorId))
@@ -800,13 +802,12 @@ public class EntityAuthorizationManagerUnitTest {
 	@Test
 	public void testGetActionsRequiredForDownloadWithMixedRestrictions() {
 		EntityAuthorizationManagerImpl manager = Mockito.spy(entityAuthManager);
-		
-		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
-		
 		restrictionStatus.withRestrictionStatus(List.of(
 				new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L),
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementId(321L)));
-		restrictionStatus.withHasUnmet(true);
+		accessContext.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionsState, restrictionStatus));
+
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
 
 		List<FileActionRequired> expected = List.of(
 			new FileActionRequired().withFileId(entityIdLong)
@@ -823,7 +824,7 @@ public class EntityAuthorizationManagerUnitTest {
 
 	@Test
 	public void testGetActionsRequiredForDownloadWithNullRestrictionStatus() {
-		accessContext.withRestrictionStatus(null);
+		accessContext.withUserRestrictionStatusWithHasUnmet(null);
 		
 		EntityAuthorizationManagerImpl manager = Mockito.spy(entityAuthManager);
 		
@@ -833,19 +834,18 @@ public class EntityAuthorizationManagerUnitTest {
 			manager.getActionsRequiredForDownload(userInfo, entityIds);
 		}).getMessage();
 
-		assertEquals("info.accessRestrictions() is required.", message);
+		assertEquals("info.userRestrictionStatusWithHasUnmet() is required.", message);
 	}
 
 	@Test
 	public void testGetActionsRequiredForDownloadWithMultipleUnmetRestrictions() {
 		EntityAuthorizationManagerImpl manager = Mockito.spy(entityAuthManager);
-		
-		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
-		
 		restrictionStatus.withRestrictionStatus(List.of(
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementId(432L),
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementId(321L)));
-		restrictionStatus.withHasUnmet(true);
+		accessContext.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionsState, restrictionStatus));
+
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
 
 		List<FileActionRequired> expected = List.of(
 			new FileActionRequired().withFileId(entityIdLong)
@@ -866,13 +866,12 @@ public class EntityAuthorizationManagerUnitTest {
 	public void testGetActionsRequiredForDownloadWithUnmetRestrictionsAndUnmetTwoFaRestriction() {
 		
 		EntityAuthorizationManagerImpl manager = Mockito.spy(entityAuthManager);
-		
-		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
-		
 		restrictionStatus.withRestrictionStatus(List.of(
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementId(432L).withIsTwoFaRequired(false),
 				new UsersRequirementStatus().withIsUnmet(true).withRequirementId(789L).withIsTwoFaRequired(true)));
-		restrictionStatus.withHasUnmet(true);
+		accessContext.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionsState, restrictionStatus));
+
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
 
 		List<FileActionRequired> expected = List.of(
 			new FileActionRequired().withFileId(entityIdLong)
@@ -899,7 +898,6 @@ public class EntityAuthorizationManagerUnitTest {
 		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
 		
 		restrictionStatus.withRestrictionStatus(List.of(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L).withIsTwoFaRequired(true)));
-		restrictionStatus.withHasUnmet(false);
 		userInfo.setTwoFactorAuthEnabled(true);
 
 		List<FileActionRequired> expected = List.of(
@@ -922,8 +920,7 @@ public class EntityAuthorizationManagerUnitTest {
 		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
 		
 		restrictionStatus.withRestrictionStatus(List.of(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L).withIsTwoFaRequired(true)));
-		restrictionStatus.withHasUnmet(false);
-
+		
 		List<FileActionRequired> expected = List.of(
 			new FileActionRequired().withFileId(entityIdLong)
 				.withAction(new EnableTwoFa().setAccessRequirementId(432L))

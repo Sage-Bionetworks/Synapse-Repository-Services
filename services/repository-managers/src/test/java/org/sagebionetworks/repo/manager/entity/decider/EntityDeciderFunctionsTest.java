@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRequirementType;
+import org.sagebionetworks.repo.model.ar.UserRestrictionStatusWithHasUnmet;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -45,6 +46,7 @@ public class EntityDeciderFunctionsTest {
 
 	UsersRestrictionStatus restrictionStatus;
 	UserEntityPermissionsState permissionState;
+	UserRestrictionStatusWithHasUnmet userRestrictionStatusWithHasUnmet;
 	AccessContext context;
 
 	@BeforeEach
@@ -60,8 +62,9 @@ public class EntityDeciderFunctionsTest {
 		certifiedUser.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 
 		restrictionStatus = new UsersRestrictionStatus().withSubjectId(entityId).withUserId(nonAdminUser.getId());
+		userRestrictionStatusWithHasUnmet = new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus);
 		context = new AccessContext().withUser(nonAdminUser).withPermissionsState(permissionState)
-				.withRestrictionStatus(restrictionStatus);
+				.withUserRestrictionStatusWithHasUnmet(userRestrictionStatusWithHasUnmet);
 	}
 	
 	
@@ -141,7 +144,16 @@ public class EntityDeciderFunctionsTest {
 
 	@Test
 	public void testDenyIfHasUnmetAccessRestrictionsWithUnmetWithoutExemptionEligible() {
-		restrictionStatus.withHasUnmet(true);
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus()
+						.withRequirementId(1L)
+						.withRequirementType(AccessRequirementType.MANAGED_ATC)
+						.withIsUnmet(true)
+						.withIsTwoFaRequired(false)
+						.withIsExemptionEligible(false)
+		));
+
+		context.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus));
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
@@ -154,7 +166,16 @@ public class EntityDeciderFunctionsTest {
 
 	@Test
 	public void testDenyIfHasUnmetAccessRestrictionsWithMetWithoutExemptionEligible() {
-		restrictionStatus.withHasUnmet(false);
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus()
+						.withRequirementId(1L)
+						.withRequirementType(AccessRequirementType.MANAGED_ATC)
+						.withIsUnmet(false)
+						.withIsTwoFaRequired(false)
+						.withIsExemptionEligible(false)
+		));
+
+		context.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus));
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
@@ -163,8 +184,7 @@ public class EntityDeciderFunctionsTest {
 	}
 
 	@Test
-	public void testDenyIfHasUnmetAccessRestrictionsWithUnMetAndWithExemptionEligible() {
-		restrictionStatus.withHasUnmet(true);
+	public void testDenyIfHasUnmetAccessRestrictionsWithUnMetAndWithOneExemptionEligibleAR() {
 		permissionState.withHasUpdate(true).withHasDelete(true).withHasDownload(true);
 		restrictionStatus.withRestrictionStatus(List.of(
 				new UsersRequirementStatus()
@@ -174,21 +194,47 @@ public class EntityDeciderFunctionsTest {
 						.withIsTwoFaRequired(false)
 						.withIsExemptionEligible(false),
 				new UsersRequirementStatus()
-						.withRequirementId(1L)
+						.withRequirementId(2L)
 						.withRequirementType(AccessRequirementType.MANAGED_ATC)
 						.withIsUnmet(true)
 						.withIsTwoFaRequired(false)
 						.withIsExemptionEligible(true)
 		));
+		context.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus));
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
+				.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
+				AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_AND_NON_EXEMPTED_ACCESS_REQUIREMENTS));
+		assertEquals(expected, resultOptional.get());
+	}
+
+	@Test
+	public void testDenyIfNotExemptAndHasUnmetAccessRestrictionsWithUnMetAndWithExemptionEligible() {
+		permissionState.withHasUpdate(true).withHasDelete(true).hasDownload();
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus()
+						.withRequirementId(1L)
+						.withRequirementType(AccessRequirementType.MANAGED_ATC)
+						.withIsUnmet(true)
+						.withIsTwoFaRequired(false)
+						.withIsExemptionEligible(true),
+				new UsersRequirementStatus()
+						.withRequirementId(2L)
+						.withRequirementType(AccessRequirementType.MANAGED_ATC)
+						.withIsUnmet(false)
+						.withIsTwoFaRequired(false)
+						.withIsExemptionEligible(true)
+		));
+		context.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus));
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
 				.determineAccess(context);
 		assertFalse(resultOptional.isPresent());
 	}
-
 	@Test
 	public void testDenyIfNotExemptAndHasUnmetAccessRestrictionsWithMetAndWithExemptionEligible() {
-		restrictionStatus.withHasUnmet(false);
 		permissionState.withHasUpdate(true).withHasDelete(true).hasDownload();
 		restrictionStatus.withRestrictionStatus(List.of(
 				new UsersRequirementStatus()
@@ -196,15 +242,15 @@ public class EntityDeciderFunctionsTest {
 						.withRequirementType(AccessRequirementType.MANAGED_ATC)
 						.withIsUnmet(false)
 						.withIsTwoFaRequired(false)
-						.withIsExemptionEligible(false),
+						.withIsExemptionEligible(true),
 				new UsersRequirementStatus()
-						.withRequirementId(1L)
+						.withRequirementId(2L)
 						.withRequirementType(AccessRequirementType.MANAGED_ATC)
 						.withIsUnmet(false)
 						.withIsTwoFaRequired(false)
 						.withIsExemptionEligible(true)
 		));
-
+		context.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus));
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
 				.determineAccess(context);
@@ -213,7 +259,6 @@ public class EntityDeciderFunctionsTest {
 
 	@Test
 	public void testDenyIfNotExemptAndHasUnmetAccessRestrictionsWithUnMetAndWithNonContributorUser() {
-		restrictionStatus.withHasUnmet(true);
 		permissionState.withHasUpdate(true).withHasDelete(false);
 		restrictionStatus.withRestrictionStatus(List.of(
 				new UsersRequirementStatus()
@@ -221,14 +266,16 @@ public class EntityDeciderFunctionsTest {
 						.withRequirementType(AccessRequirementType.MANAGED_ATC)
 						.withIsUnmet(true)
 						.withIsTwoFaRequired(false)
-						.withIsExemptionEligible(false),
+						.withIsExemptionEligible(true),
 				new UsersRequirementStatus()
-						.withRequirementId(1L)
+						.withRequirementId(2L)
 						.withRequirementType(AccessRequirementType.MANAGED_ATC)
-						.withIsUnmet(true)
+						.withIsUnmet(false)
 						.withIsTwoFaRequired(false)
 						.withIsExemptionEligible(true)
 		));
+
+		context.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus));
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
@@ -241,7 +288,6 @@ public class EntityDeciderFunctionsTest {
 
 	@Test
 	public void testDenyIfNotExemptAndHasUnmetAccessRestrictionsWithUnMetAndWithContributorUserWithoutExemption() {
-		restrictionStatus.withHasUnmet(true);
 		permissionState.withHasUpdate(true).withHasDelete(true);
 		restrictionStatus.withRestrictionStatus(List.of(
 				new UsersRequirementStatus()
@@ -251,13 +297,14 @@ public class EntityDeciderFunctionsTest {
 						.withIsTwoFaRequired(false)
 						.withIsExemptionEligible(false),
 				new UsersRequirementStatus()
-						.withRequirementId(1L)
+						.withRequirementId(2L)
 						.withRequirementType(AccessRequirementType.MANAGED_ATC)
 						.withIsUnmet(true)
 						.withIsTwoFaRequired(false)
-						.withIsExemptionEligible(false)
+						.withIsExemptionEligible(true)
 		));
 
+		context.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus));
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
 				.determineAccess(context);
