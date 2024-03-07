@@ -1,4 +1,4 @@
-package org.sagebionetworks.openapi.datamodel;
+package org.sagebionetworks.openapi.model;
 
 import java.util.Objects;
 
@@ -7,20 +7,20 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
- * Provides connectivity information to a target server 
+ * Provides information regarding the Controllers in the API.
  * @author lli
  *
  */
-public class ServerInfo implements JSONEntity {
-	private String url;
+public class TagInfo implements JSONEntity {
+	private String name;
 	private String description;
 	
-	public String getUrl() {
-		return url;
+	public String getName() {
+		return name;
 	}
 	
-	public ServerInfo withUrl(String url) {
-		this.url = url;
+	public TagInfo withName(String name) {
+		this.name = name;
 		return this;
 	}
 	
@@ -28,14 +28,14 @@ public class ServerInfo implements JSONEntity {
 		return description;
 	}
 	
-	public ServerInfo withDescription(String description) {
+	public TagInfo withDescription(String description) {
 		this.description = description;
 		return this;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(description, url);
+		return Objects.hash(description, name);
 	}
 
 	@Override
@@ -46,13 +46,13 @@ public class ServerInfo implements JSONEntity {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ServerInfo other = (ServerInfo) obj;
-		return Objects.equals(description, other.description) && Objects.equals(url, other.url);
+		TagInfo other = (TagInfo) obj;
+		return Objects.equals(description, other.description) && Objects.equals(name, other.name);
 	}
 
 	@Override
 	public String toString() {
-		return "ServerInfo [url=" + url + ", description=" + description + "]";
+		return "TagInfo [name=" + name + ", description=" + description + "]";
 	}
 
 	@Override
@@ -62,10 +62,10 @@ public class ServerInfo implements JSONEntity {
 
 	@Override
 	public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter writeTo) throws JSONObjectAdapterException {
-		if (url == null) {
-			throw new IllegalArgumentException("The 'url' field is required.");
+		if (name == null) {
+			throw new IllegalArgumentException("The 'name' field is required.");
 		}
-		writeTo.put("url", url);
+		writeTo.put("name", name);
 		if (description != null) {
 			writeTo.put("description", description);
 		}

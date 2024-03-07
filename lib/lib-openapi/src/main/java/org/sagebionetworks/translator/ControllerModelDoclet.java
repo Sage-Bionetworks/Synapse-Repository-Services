@@ -1,6 +1,5 @@
 package org.sagebionetworks.translator;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -46,7 +45,7 @@ public class ControllerModelDoclet implements Doclet {
 			Method method = c.getMethod("getKeySetIterator", null);
 			Iterator<String> concreteClassnames = (Iterator<String>) method
 					.invoke(c.getDeclaredConstructor().newInstance(), null);
-			ControllersToOpenAPIJsonTranslator translator = new ControllersToOpenAPIJsonTranslator();
+			ControllersToOpenApiJsonTranslator translator = new ControllersToOpenApiJsonTranslator();
 			JSONObject openAPIJson = translator.translate(env, concreteClassnames, reporter);
 
 			Files.createDirectories(Paths.get(targetFile).getParent());

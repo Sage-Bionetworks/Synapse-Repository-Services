@@ -2,6 +2,7 @@ package org.sagebionetworks.translator;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -13,27 +14,28 @@ import org.sagebionetworks.controller.model.MethodModel;
 import org.sagebionetworks.controller.model.ParameterModel;
 import org.sagebionetworks.controller.model.RequestBodyModel;
 import org.sagebionetworks.controller.model.ResponseModel;
-import org.sagebionetworks.openapi.datamodel.ApiInfo;
-import org.sagebionetworks.openapi.datamodel.Components;
-import org.sagebionetworks.openapi.datamodel.OpenAPISpecModel;
-import org.sagebionetworks.openapi.datamodel.SecurityScheme;
-import org.sagebionetworks.openapi.datamodel.ServerInfo;
-import org.sagebionetworks.openapi.datamodel.TagInfo;
-import org.sagebionetworks.openapi.datamodel.pathinfo.EndpointInfo;
-import org.sagebionetworks.openapi.datamodel.pathinfo.ParameterInfo;
-import org.sagebionetworks.openapi.datamodel.pathinfo.RequestBodyInfo;
-import org.sagebionetworks.openapi.datamodel.pathinfo.ResponseInfo;
-import org.sagebionetworks.openapi.datamodel.pathinfo.Schema;
+import org.sagebionetworks.openapi.model.ApiInfo;
+import org.sagebionetworks.openapi.model.Components;
+import org.sagebionetworks.openapi.model.OpenApiJsonSchema;
+import org.sagebionetworks.openapi.model.OpenApiSpecModel;
+import org.sagebionetworks.openapi.model.SecurityScheme;
+import org.sagebionetworks.openapi.model.ServerInfo;
+import org.sagebionetworks.openapi.model.TagInfo;
+import org.sagebionetworks.openapi.model.pathinfo.EndpointInfo;
+import org.sagebionetworks.openapi.model.pathinfo.ParameterInfo;
+import org.sagebionetworks.openapi.model.pathinfo.RequestBodyInfo;
+import org.sagebionetworks.openapi.model.pathinfo.ResponseInfo;
+import org.sagebionetworks.openapi.model.pathinfo.Schema;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.util.ValidateArgument;
 
 import static org.sagebionetworks.translator.ControllerToControllerModelTranslator.getJsonSchemaBasicTypeForClass;
 
-public class ControllerModelsToOpenAPIModelTranslator {
-	private final Map<String, JsonSchema> classNameToJsonSchema;
+public class ControllerModelsToOpenApiModelTranslator {
+	private final Map<String, OpenApiJsonSchema> classNameToJsonSchema;
 	
-	public ControllerModelsToOpenAPIModelTranslator(Map<String, JsonSchema> classNameToJsonSchema) {
+	public ControllerModelsToOpenApiModelTranslator(Map<String, OpenApiJsonSchema> classNameToJsonSchema) {
 		this.classNameToJsonSchema = classNameToJsonSchema;
 	}
 		
@@ -43,10 +45,13 @@ public class ControllerModelsToOpenAPIModelTranslator {
 	 * @param controllerModels - the list of controller models to be translated
 	 * @return the resulting OpenAPI model.
 	 */
-	public OpenAPISpecModel translate(List<ControllerModel> controllerModels) {
+	public OpenApiSpecModel translate(List<ControllerModel> controllerModels) {
 		ValidateArgument.required(controllerModels, "controllerModels");
+		
 		List<TagInfo> tags = new ArrayList<>();
+		
 		Map<String, Map<String, EndpointInfo>> paths = new LinkedHashMap<>();
+		
 		for (ControllerModel controllerModel : controllerModels) {
 			String displayName = controllerModel.getDisplayName();
 			String basePath = controllerModel.getPath();
@@ -55,7 +60,10 @@ public class ControllerModelsToOpenAPIModelTranslator {
 			insertPaths(methods, basePath, displayName, paths);
 			tags.add(new TagInfo().withDescription(description).withName(displayName));
 		}
-		return new OpenAPISpecModel().withInfo(getApiInfo()).withOpenapi("3.0.1").withServers(getServers())
+		
+		Collections.sort(tags, (t1, t2) -> t1.getName().compareTo(t2.getName()));
+		
+		return new OpenApiSpecModel().withInfo(getApiInfo()).withOpenapi("3.0.1").withServers(getServers())
 				.withComponents(getComponents()).withPaths(paths).withTags(tags);
 	}
 	

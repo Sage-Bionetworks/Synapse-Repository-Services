@@ -6,13 +6,13 @@ import java.util.Map;
 
 import org.json.JSONObject;
 import org.sagebionetworks.controller.model.ControllerModel;
-import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.openapi.model.OpenApiJsonSchema;
 import org.sagebionetworks.schema.ObjectSchema;
 
 import jdk.javadoc.doclet.DocletEnvironment;
 import jdk.javadoc.doclet.Reporter;
 
-public class ControllersToOpenAPIJsonTranslator {
+public class ControllersToOpenApiJsonTranslator {
 	
 	/**
 	 * Goes through all controllers found in DocletEnvironment and outputs a JSONObject that
@@ -26,8 +26,8 @@ public class ControllersToOpenAPIJsonTranslator {
 		
 		Map<String, ObjectSchema> classNameToObjectSchema = objectSchemaUtils.getConcreteClasses(concreteClassNames);
 		List<ControllerModel> controllerModels = new ControllerToControllerModelTranslator().extractControllerModels(env, classNameToObjectSchema, reporter);
-		Map<String, JsonSchema> classNameToJsonSchema = objectSchemaUtils.getClassNameToJsonSchema(classNameToObjectSchema);
+		Map<String, OpenApiJsonSchema> classNameToJsonSchema = objectSchemaUtils.getClassNameToJsonSchema(classNameToObjectSchema);
 
-		return new ControllerModelsToOpenAPIModelTranslator(classNameToJsonSchema).translate(controllerModels).generateJSON();
+		return new ControllerModelsToOpenApiModelTranslator(classNameToJsonSchema).translate(controllerModels).generateJSON();
 	}
 }

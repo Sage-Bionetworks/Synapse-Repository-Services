@@ -1,20 +1,20 @@
-package org.sagebionetworks.openapi.datamodel;
+package org.sagebionetworks.openapi.model;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class ComponentsTest {
@@ -35,8 +35,8 @@ public class ComponentsTest {
 	
 	@Test
 	public void testWriteToJSONObject() throws JSONObjectAdapterException {
-		Map<String, JsonSchema> schemaMap = new HashMap<>();
-		JsonSchema schema = new JsonSchema();
+		Map<String, OpenApiJsonSchema> schemaMap = new HashMap<>();
+		OpenApiJsonSchema schema = new OpenApiJsonSchema();
 		schema.setType(Type.integer);
 		schemaMap.put("test.class", schema);
 		Map<String, SecurityScheme> securitySchemes = new HashMap<>();

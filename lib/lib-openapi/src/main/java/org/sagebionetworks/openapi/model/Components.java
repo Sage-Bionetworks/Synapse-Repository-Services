@@ -1,4 +1,4 @@
-package org.sagebionetworks.openapi.datamodel;
+package org.sagebionetworks.openapi.model;
 
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -15,14 +15,14 @@ import java.util.Objects;
  *
  */
 public class Components implements JSONEntity {
-	private Map<String, JsonSchema> schemas;
+	private Map<String, OpenApiJsonSchema> schemas;
 	private Map<String, SecurityScheme> securitySchemes;
 
-	public Map<String, JsonSchema> getSchemas() {
+	public Map<String, OpenApiJsonSchema> getSchemas() {
 		return schemas;
 	}
 	
-	public Components withSchemas(Map<String, JsonSchema> schemas) {
+	public Components withSchemas(Map<String, OpenApiJsonSchema> schemas) {
 		this.schemas = schemas;
 		return this;
 	}
@@ -68,7 +68,7 @@ public class Components implements JSONEntity {
 	public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter writeTo) throws JSONObjectAdapterException {
 		if (schemas != null) {
 			JSONObjectAdapter schemas = writeTo.createNew();
-			for (Map.Entry<String, JsonSchema> schema : this.schemas.entrySet()) {
+			for (Map.Entry<String, OpenApiJsonSchema> schema : this.schemas.entrySet()) {
 				JsonSchema s = schema.getValue();
 				JSONObjectAdapter newAdapter = writeTo.createNew();
 				JSONObjectAdapter schemaAdapter = s.writeToJSONObject(newAdapter);

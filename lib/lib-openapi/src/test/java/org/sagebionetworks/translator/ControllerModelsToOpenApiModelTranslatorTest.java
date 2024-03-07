@@ -27,36 +27,36 @@ import org.sagebionetworks.controller.model.ParameterLocation;
 import org.sagebionetworks.controller.model.ParameterModel;
 import org.sagebionetworks.controller.model.RequestBodyModel;
 import org.sagebionetworks.controller.model.ResponseModel;
-import org.sagebionetworks.openapi.datamodel.ApiInfo;
-import org.sagebionetworks.openapi.datamodel.Components;
-import org.sagebionetworks.openapi.datamodel.OpenAPISpecModel;
-import org.sagebionetworks.openapi.datamodel.SecurityScheme;
-import org.sagebionetworks.openapi.datamodel.ServerInfo;
-import org.sagebionetworks.openapi.datamodel.TagInfo;
-import org.sagebionetworks.openapi.datamodel.pathinfo.EndpointInfo;
-import org.sagebionetworks.openapi.datamodel.pathinfo.ParameterInfo;
-import org.sagebionetworks.openapi.datamodel.pathinfo.RequestBodyInfo;
-import org.sagebionetworks.openapi.datamodel.pathinfo.ResponseInfo;
-import org.sagebionetworks.openapi.datamodel.pathinfo.Schema;
+import org.sagebionetworks.openapi.model.ApiInfo;
+import org.sagebionetworks.openapi.model.Components;
+import org.sagebionetworks.openapi.model.OpenApiJsonSchema;
+import org.sagebionetworks.openapi.model.OpenApiSpecModel;
+import org.sagebionetworks.openapi.model.SecurityScheme;
+import org.sagebionetworks.openapi.model.ServerInfo;
+import org.sagebionetworks.openapi.model.TagInfo;
+import org.sagebionetworks.openapi.model.pathinfo.EndpointInfo;
+import org.sagebionetworks.openapi.model.pathinfo.ParameterInfo;
+import org.sagebionetworks.openapi.model.pathinfo.RequestBodyInfo;
+import org.sagebionetworks.openapi.model.pathinfo.ResponseInfo;
+import org.sagebionetworks.openapi.model.pathinfo.Schema;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 
-public class ControllerModelsToOpenAPIModelTranslatorTest {
-	ControllerModelsToOpenAPIModelTranslator translator;
+public class ControllerModelsToOpenApiModelTranslatorTest {
+	ControllerModelsToOpenApiModelTranslator translator;
 
 	private static final String DESCRIPTION = "DESCRIPTION";
 	private static final String MOCK_CLASS_NAME = "MOCK_CLASS_NAME";
-	private Map<String, JsonSchema> schemaMap;
+	private Map<String, OpenApiJsonSchema> schemaMap;
 	
 	@BeforeEach
 	private void setUp() {
-		Map<String, JsonSchema> schemaMap = new HashMap<>();
-		JsonSchema js = new JsonSchema();
+		schemaMap = new HashMap<>();
+		OpenApiJsonSchema js = new OpenApiJsonSchema();
 		js.setType(Type.integer);
 		schemaMap.put(MOCK_CLASS_NAME, js);
-		this.schemaMap = schemaMap;
 
-		this.translator = spy(new ControllerModelsToOpenAPIModelTranslator(schemaMap));
+		this.translator = spy(new ControllerModelsToOpenApiModelTranslator(schemaMap));
 	}
 	
 	@Test
@@ -80,10 +80,10 @@ public class ControllerModelsToOpenAPIModelTranslatorTest {
 		doReturn(servers).when(translator).getServers();
 		doReturn(components).when(translator).getComponents();
 
-		OpenAPISpecModel result = translator.translate(Arrays.asList(controllerModel));
+		OpenApiSpecModel result = translator.translate(Arrays.asList(controllerModel));
 		List<TagInfo> tags = new ArrayList<>();
 		tags.add(new TagInfo().withDescription(DESCRIPTION).withName(displayName));
-		OpenAPISpecModel expected = new OpenAPISpecModel().withInfo(apiInfo).withOpenapi("3.0.1").withServers(servers)
+		OpenApiSpecModel expected = new OpenApiSpecModel().withInfo(apiInfo).withOpenapi("3.0.1").withServers(servers)
 				.withComponents(components).withPaths(new LinkedHashMap<>()).withTags(tags);
 		assertEquals(expected, result);
 

@@ -1,12 +1,11 @@
-package org.sagebionetworks.openapi.datamodel;
+package org.sagebionetworks.openapi.model;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import org.json.JSONObject;
-import org.sagebionetworks.openapi.datamodel.pathinfo.EndpointInfo;
-import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.openapi.model.pathinfo.EndpointInfo;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -18,7 +17,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
  * @author lli
  *
  */
-public class OpenAPISpecModel implements JSONEntity {
+public class OpenApiSpecModel implements JSONEntity {
 	private String openapi;
 	private ApiInfo info;
 	private List<ServerInfo> servers;
@@ -31,7 +30,7 @@ public class OpenAPISpecModel implements JSONEntity {
 		return openapi;
 	}
 	
-	public OpenAPISpecModel withOpenapi(String openapi) {
+	public OpenApiSpecModel withOpenapi(String openapi) {
 		this.openapi = openapi;
 		return this;
 	}
@@ -40,7 +39,7 @@ public class OpenAPISpecModel implements JSONEntity {
 		return info;
 	}
 	
-	public OpenAPISpecModel withInfo(ApiInfo info) {
+	public OpenApiSpecModel withInfo(ApiInfo info) {
 		this.info = info;
 		return this;
 	}
@@ -49,7 +48,7 @@ public class OpenAPISpecModel implements JSONEntity {
 		return servers;
 	}
 	
-	public OpenAPISpecModel withServers(List<ServerInfo> servers) {
+	public OpenApiSpecModel withServers(List<ServerInfo> servers) {
 		this.servers = servers;
 		return this;
 	}
@@ -58,7 +57,7 @@ public class OpenAPISpecModel implements JSONEntity {
 		return paths;
 	}
 	
-	public OpenAPISpecModel withPaths(Map<String, Map<String, EndpointInfo>> paths) {
+	public OpenApiSpecModel withPaths(Map<String, Map<String, EndpointInfo>> paths) {
 		this.paths = paths;
 		return this;
 	}
@@ -67,7 +66,7 @@ public class OpenAPISpecModel implements JSONEntity {
 		return components;
 	}
 	
-	public OpenAPISpecModel withComponents(Components components) {
+	public OpenApiSpecModel withComponents(Components components) {
 		this.components = components;
 		return this;
 	}
@@ -76,7 +75,7 @@ public class OpenAPISpecModel implements JSONEntity {
 		return this.tags;
 	}
 	
-	public OpenAPISpecModel withTags(List<TagInfo> tags) {
+	public OpenApiSpecModel withTags(List<TagInfo> tags) {
 		this.tags = tags;
 		return this;
 	}
@@ -107,7 +106,7 @@ public class OpenAPISpecModel implements JSONEntity {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		OpenAPISpecModel other = (OpenAPISpecModel) obj;
+		OpenApiSpecModel other = (OpenApiSpecModel) obj;
 		return Objects.equals(components, other.components) && Objects.equals(info, other.info)
 				&& Objects.equals(openapi, other.openapi) && Objects.equals(paths, other.paths)
 				&& Objects.equals(servers, other.servers) && Objects.equals(tags, other.tags);

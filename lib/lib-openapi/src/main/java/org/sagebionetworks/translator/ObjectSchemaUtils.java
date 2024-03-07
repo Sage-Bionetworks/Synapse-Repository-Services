@@ -11,6 +11,8 @@ import java.util.Set;
 
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.velocity.schema.TypeReference;
+import org.sagebionetworks.openapi.model.Discriminator;
+import org.sagebionetworks.openapi.model.OpenApiJsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.EnumValue;
@@ -40,37 +42,41 @@ public class ObjectSchemaUtils {
 
 	/**
 	 * Translates a mapping from class id to ObjectSchema to a mapping from class id
-	 * to JsonSchema;
+	 * to OpenApiJsonSchema;
 	 * 
 	 * @param classNameToObjectSchema - the mapping being translated
-	 * @return a translated mapping consisting of class id to JsonSchema
+	 * @return a translated mapping consisting of class id to OpenApiJsonSchema
 	 */
-	public Map<String, JsonSchema> getClassNameToJsonSchema(Map<String, ObjectSchema> classNameToObjectSchema) {
-		Map<String, JsonSchema> classNameToJsonSchema = new HashMap<>();
+	public Map<String, OpenApiJsonSchema> getClassNameToJsonSchema(Map<String, ObjectSchema> classNameToObjectSchema) {
+		Map<String, OpenApiJsonSchema> classNameToJsonSchema = new HashMap<>();
+		
 		for (String className : classNameToObjectSchema.keySet()) {
 			ObjectSchema schema = classNameToObjectSchema.get(className);
 			classNameToJsonSchema.put(className, translateObjectSchemaToJsonSchema(schema));
 		}
-		Map<String, List<TypeReference>> interfaces = SchemaUtils
-				.mapImplementationsToIntefaces(classNameToObjectSchema);
+		
+		Map<String, List<TypeReference>> interfaces = SchemaUtils.mapImplementationsToIntefaces(classNameToObjectSchema);
+		
 		insertOneOfPropertyForInterfaces(classNameToJsonSchema, interfaces);
+		
+				
 		return classNameToJsonSchema;
 	}
 
 	/**
-	 * Translates an ObjectSchema to a JsonSchema
+	 * Translates an ObjectSchema to a OpenApiJsonSchema
 	 * 
 	 * @param objectSchema - the schema being translated.
-	 * @return the resulting JsonSchema
+	 * @return the resulting OpenApiJsonSchema
 	 */
-	JsonSchema translateObjectSchemaToJsonSchema(ObjectSchema objectSchema) {
+	OpenApiJsonSchema translateObjectSchemaToJsonSchema(ObjectSchema objectSchema) {
 		ValidateArgument.required(objectSchema, "objectSchema");
 
 		TYPE schemaType = objectSchema.getType();
 
 		EnumValue[] enumValues = objectSchema.getEnum();
 		if (enumValues != null) {
-			JsonSchema jsonSchema = new JsonSchema();
+			OpenApiJsonSchema jsonSchema = new OpenApiJsonSchema();
 			jsonSchema.setType(translateObjectSchemaTypeToJsonSchemaType(schemaType));
 
 			List<Object> values = new ArrayList<>();
@@ -86,7 +92,8 @@ public class ObjectSchemaUtils {
 		if (isPrimitive(schemaType)) {
 			return getSchemaForPrimitiveType(schemaType);
 		}
-		JsonSchema jsonSchema = new JsonSchema();
+		OpenApiJsonSchema jsonSchema = new OpenApiJsonSchema();
+		
 		jsonSchema.setType(translateObjectSchemaTypeToJsonSchemaType(schemaType));
 
 		Map<String, ObjectSchema> properties = objectSchema.getProperties();
@@ -102,6 +109,11 @@ public class ObjectSchemaUtils {
 		if (objectSchema.getDescription() != null) {
 			jsonSchema.setDescription(objectSchema.getDescription());
 		}
+		
+		// If the object is an interface we need to add the discriminator on the concrete type
+		if (TYPE.INTERFACE == schemaType) {
+			jsonSchema.setDiscriminator(new Discriminator().setPropertyName(ObjectSchema.CONCRETE_TYPE));
+		}
 
 		return jsonSchema;
 	}
@@ -112,26 +124,26 @@ public class ObjectSchemaUtils {
 	 * 
 	 * @param properties - the properties we are translating
 	 * @param schemaId   - the id of the schema whose properties we are translating
-	 * @return an equivalent mapping between class id to JsonSchema
+	 * @return an equivalent mapping between class id to OpenApiJsonSchema
 	 */
 	Map<String, JsonSchema> translatePropertiesFromObjectSchema(Map<String, ObjectSchema> properties, String schemaId) {
 		ValidateArgument.required(properties, "properties");
 		Map<String, JsonSchema> result = new LinkedHashMap<>();
 		for (String propertyName : properties.keySet()) {
-			JsonSchema property = getPropertyAsJsonSchema(properties.get(propertyName), schemaId);
+			OpenApiJsonSchema property = getPropertyAsJsonSchema(properties.get(propertyName), schemaId);
 			result.put(propertyName, property);
 		}
 		return result;
 	}
 
 	/**
-	 * Translates a property of an ObjectSchema to a JsonSchema.
+	 * Translates a property of an ObjectSchema to a OpenApiJsonSchema.
 	 * 
 	 * @param property     the ObjectSchema property
 	 * @param schemaId	   the id of the schema whose property we are translating
-	 * @return the JsonSchema that is equivalent to the ObjectSchema property
+	 * @return the OpenApiJsonSchema that is equivalent to the ObjectSchema property
 	 */
-	public JsonSchema translateObjectSchemaPropertyToJsonSchema(ObjectSchema property, String schemaId) {
+	public OpenApiJsonSchema translateObjectSchemaPropertyToJsonSchema(ObjectSchema property, String schemaId) {
 		ValidateArgument.required(property, "property");
 		ValidateArgument.required(schemaId, "schemaId");
 		ValidateArgument.required(property.getType(), "property.type");
@@ -139,7 +151,7 @@ public class ObjectSchemaUtils {
 		if (isPrimitive(propertyType)) {
 			return getSchemaForPrimitiveType(propertyType);
 		} else {
-			JsonSchema schema = new JsonSchema();
+			OpenApiJsonSchema schema = new OpenApiJsonSchema();
 			if (property.getDescription() != null) {
 				schema.setDescription(property.getDescription());
 			}
@@ -170,12 +182,12 @@ public class ObjectSchemaUtils {
 	 * @param items the schema which represents each element in the array
 	 * @param schemaId the id of the schema which contains the property
 	 */
-	void populateSchemaForArrayType(JsonSchema schema, ObjectSchema items, String schemaId) {
+	void populateSchemaForArrayType(OpenApiJsonSchema schema, ObjectSchema items, String schemaId) {
 		ValidateArgument.required(schema, "schema");
 		ValidateArgument.required(items, "items");
 		ValidateArgument.required(schemaId, "schemaId");
 		schema.setType(Type.array);
-		JsonSchema itemsSchema = getPropertyAsJsonSchema(items, schemaId);
+		OpenApiJsonSchema itemsSchema = getPropertyAsJsonSchema(items, schemaId);
 		schema.setItems(itemsSchema);
 	}
 	
@@ -186,23 +198,23 @@ public class ObjectSchemaUtils {
 	 * @param property the property being looked at
 	 * @param schemaId the id of the schema which contains the property
 	 */
-	void populateSchemaForMapType(JsonSchema schema, ObjectSchema property, String schemaId) {
+	void populateSchemaForMapType(OpenApiJsonSchema schema, ObjectSchema property, String schemaId) {
 		ValidateArgument.required(schema, "schema");
 		ValidateArgument.required(property, "property");
 		ValidateArgument.required(schemaId, "schemaId");
 		schema.setType(Type.object);
-		JsonSchema additionalProperty = getPropertyAsJsonSchema(property.getValue(), schemaId);
+		OpenApiJsonSchema additionalProperty = getPropertyAsJsonSchema(property.getValue(), schemaId);
 		schema.setAdditionalProperties(additionalProperty);
 	}
 	
 	/**
-	 * Get the JsonSchema representation of a property.
+	 * Get the OpenApiJsonSchema representation of a property.
 	 * 
 	 * @param property the property to be translated
 	 * @param schemaId the id of the original schema which contains this property
-	 * @return the JsonSchema representation of the property
+	 * @return the OpenApiJsonSchema representation of the property
 	 */
-	JsonSchema getPropertyAsJsonSchema(ObjectSchema property, String schemaId) {
+	OpenApiJsonSchema getPropertyAsJsonSchema(ObjectSchema property, String schemaId) {
 		ValidateArgument.required(property, "property");
 		ValidateArgument.required(schemaId, "schemaId");
 		if (isSelfReferencing(property)) {
@@ -218,7 +230,7 @@ public class ObjectSchemaUtils {
 	 * @param property the property being looked at
 	 * @param schemaId the id of the schema which contains the property
 	 */
-	void populateSchemaForObjectType(JsonSchema schema, ObjectSchema property, String schemaId) {
+	void populateSchemaForObjectType(OpenApiJsonSchema schema, ObjectSchema property, String schemaId) {
 		ValidateArgument.required(schema, "schema");
 		ValidateArgument.required(property, "property");
 		ValidateArgument.required(schemaId, "schemaId");
@@ -229,14 +241,14 @@ public class ObjectSchemaUtils {
 	}
 	
 	/**
-	 * Generates a JsonSchema that is a reference to schema with schemaId
+	 * Generates a OpenApiJsonSchema that is a reference to schema with schemaId
 	 * 
 	 * @param schemaId the id of the schema
-	 * @return a JsonSchema that is a reference to schemaId
+	 * @return a OpenApiJsonSchema that is a reference to schemaId
 	 */
-	JsonSchema generateReferenceSchema(String schemaId) {
+	OpenApiJsonSchema generateReferenceSchema(String schemaId) {
 		ValidateArgument.required(schemaId, "schemaId");
-		JsonSchema schema = new JsonSchema();
+		OpenApiJsonSchema schema = new OpenApiJsonSchema();
 		schema.set$ref(getPathInComponents(schemaId));
 		return schema;
 	}
@@ -269,12 +281,12 @@ public class ObjectSchemaUtils {
 	 * Inserts the oneOf properties into all of the JsonSchemas which represent
 	 * interfaces.
 	 * 
-	 * @param classNameToJsonSchema mapping from class ids to a JsonSchema that
+	 * @param classNameToJsonSchema mapping from class ids to a OpenApiJsonSchema that
 	 *                              represents that class.
 	 * @param interfaces            the interfaces present in the application mapped
 	 *                              to the list of classes that implement them.
 	 */
-	void insertOneOfPropertyForInterfaces(Map<String, JsonSchema> classNameToJsonSchema,
+	void insertOneOfPropertyForInterfaces(Map<String, OpenApiJsonSchema> classNameToJsonSchema,
 			Map<String, List<TypeReference>> interfaces) {
 		for (String className : classNameToJsonSchema.keySet()) {
 			if (interfaces.containsKey(className)) {
@@ -286,7 +298,7 @@ public class ObjectSchemaUtils {
 						throw new IllegalArgumentException(
 								"Implementation of " + className + " interface with name " + id + " was not found.");
 					}
-					JsonSchema newSchema = new JsonSchema();
+					OpenApiJsonSchema newSchema = new OpenApiJsonSchema();
 					newSchema.set$ref(getPathInComponents(id));
 					oneOf.add(newSchema);
 				}
@@ -334,10 +346,10 @@ public class ObjectSchemaUtils {
 	}
 
 	/**
-	 * Translates the TYPE enum used for ObjectSchema to type used for JsonSchema
+	 * Translates the TYPE enum used for ObjectSchema to type used for OpenApiJsonSchema
 	 * 
 	 * @param type the ObjectSchema type being translated
-	 * @return the equivalent JsonSchema type.
+	 * @return the equivalent OpenApiJsonSchema type.
 	 */
 	Type translateObjectSchemaTypeToJsonSchemaType(TYPE type) {
 		ValidateArgument.required(type, "type");
@@ -357,14 +369,14 @@ public class ObjectSchemaUtils {
 	}
 
 	/**
-	 * Constructs a JsonSchema for a primitive class.
+	 * Constructs a OpenApiJsonSchema for a primitive class.
 	 * 
 	 * @param type - the primitive type
-	 * @return the JsonSchema used to represent this type.
+	 * @return the OpenApiJsonSchema used to represent this type.
 	 */
-	JsonSchema getSchemaForPrimitiveType(TYPE type) {
+	OpenApiJsonSchema getSchemaForPrimitiveType(TYPE type) {
 		ValidateArgument.required(type, "type");
-		JsonSchema schema = new JsonSchema();
+		OpenApiJsonSchema schema = new OpenApiJsonSchema();
 		switch (type) {
 		case STRING:
 			schema.setType(Type.string);

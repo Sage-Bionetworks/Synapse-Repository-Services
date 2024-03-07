@@ -1,0 +1,8 @@
+{
+	"name": "Discriminator",
+	"properties": {
+		"propertyName": {
+			"type": "string"
+		}
+	}
+}

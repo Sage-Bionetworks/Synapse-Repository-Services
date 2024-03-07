@@ -1,0 +1,924 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Synapse REST API",
+    "version": "v1"
+  },
+  "servers": [{"url": "https://repo-prod.prod.sagebase.org"}],
+  "tags": [
+    {
+      "name": "ComplexPets",
+      "description": "<p>\n This controller is used to test translating for complex types.\n <\/p>"
+    },
+    {
+      "name": "NoComment",
+      "description": "Auto-generated description"
+    },
+    {
+      "name": "Person",
+      "description": "This is a basic example controller."
+    },
+    {
+      "name": "Pet",
+      "description": "This exists to test the multiple controller case."
+    }
+  ],
+  "paths": {
+    "/repo/v1/person/age/{name}": {"get": {
+      "tags": ["Person"],
+      "operationId": "get-/repo/v1/person/age/{name}",
+      "parameters": [{
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "description": "- the name of the person",
+        "schema": {"type": "string"}
+      }],
+      "responses": {"200": {
+        "description": "the age of the person. If no record of person is found, then return 0.",
+        "content": {"application/json": {"schema": {"type": "integer"}}}
+      }}
+    }},
+    "/repo/v1/person/{name}": {"post": {
+      "tags": ["Person"],
+      "operationId": "post-/repo/v1/person/{name}",
+      "parameters": [{
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "description": "- the name of the person",
+        "schema": {"type": "string"}
+      }],
+      "requestBody": {
+        "content": {"application/json": {"schema": {"type": "integer"}}},
+        "required": true
+      },
+      "responses": {"200": {
+        "description": "the name of the person that was added",
+        "content": {"application/json": {"schema": {"type": "string"}}}
+      }}
+    }},
+    "/repo/v1/pet/num-pets/{name}": {"get": {
+      "tags": ["Pet"],
+      "operationId": "get-/repo/v1/pet/num-pets/{name}",
+      "parameters": [{
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "description": "- the name of the person",
+        "schema": {"type": "string"}
+      }],
+      "responses": {"200": {
+        "description": "the number of pets this person has, default to 0 if name of person does not exist.",
+        "content": {"application/json": {"schema": {"type": "integer"}}}
+      }}
+    }},
+    "/repo/v1/pet/{name}": {"post": {
+      "tags": ["Pet"],
+      "operationId": "post-/repo/v1/pet/{name}",
+      "parameters": [{
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "description": "- the name of the person",
+        "schema": {"type": "string"}
+      }],
+      "requestBody": {
+        "content": {"application/json": {"schema": {"type": "integer"}}},
+        "required": true
+      },
+      "responses": {"201": {
+        "description": "the name of the person that was added",
+        "content": {"application/json": {"schema": {"type": "string"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/{petName}": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/{petName}",
+      "parameters": [{
+        "name": "petName",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "string"}
+      }],
+      "responses": {"200": {
+        "description": "the Pet associated with 'name'.",
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Pet"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/dog/{name}": {"post": {
+      "tags": ["ComplexPets"],
+      "operationId": "post-/repo/v1/complex-pet/dog/{name}",
+      "parameters": [{
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "description": "- the name of the dog",
+        "schema": {"type": "string"}
+      }],
+      "requestBody": {
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Poodle"}}},
+        "required": true
+      },
+      "responses": {"200": {
+        "description": "the name of the Dog that was added",
+        "content": {"application/json": {"schema": {"type": "string"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/cat/{name}": {"post": {
+      "tags": ["ComplexPets"],
+      "operationId": "post-/repo/v1/complex-pet/cat/{name}",
+      "parameters": [{
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "description": "- the name of the cat",
+        "schema": {"type": "string"}
+      }],
+      "requestBody": {
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Cat"}}},
+        "required": true
+      },
+      "responses": {"200": {
+        "description": "the name of the cat that was added",
+        "content": {"application/json": {"schema": {"type": "string"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/redirected": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/redirected",
+      "parameters": [],
+      "requestBody": {
+        "content": {"application/json": {"schema": {"type": "boolean"}}},
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "description": "Status 200 will be returned if the 'redirect' boolean param is false",
+          "content": {"text/plain": {"schema": {}}}
+        },
+        "307": {"description": "Status 307 will be returned if the 'redirect' boolean param is true or null"}
+      }
+    }},
+    "/repo/v1/complex-pet/voidreturnnoredirect/{name}": {"delete": {
+      "tags": ["ComplexPets"],
+      "operationId": "delete-/repo/v1/complex-pet/voidreturnnoredirect/{name}",
+      "parameters": [{
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "description": "the name of the pet",
+        "schema": {"type": "string"}
+      }],
+      "responses": {"200": {"description": "Void"}}
+    }},
+    "/repo/v1/complex-pet/noreturndescription/{name}": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/noreturndescription/{name}",
+      "parameters": [{
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "description": "the name of the pet",
+        "schema": {"type": "string"}
+      }],
+      "responses": {"200": {
+        "description": "Auto-generated description",
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Pet"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/file/{fileId}/url/httpservletresponse": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/file/{fileId}/url/httpservletresponse",
+      "parameters": [
+        {
+          "name": "fileId",
+          "in": "path",
+          "required": true,
+          "description": "the file for the pet",
+          "schema": {"type": "string"}
+        },
+        {
+          "name": "redirect",
+          "in": "query",
+          "required": false,
+          "schema": {"type": "boolean"}
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Status 200 will be returned if the 'redirect' boolean param is false",
+          "content": {"text/plain": {"schema": {}}}
+        },
+        "307": {"description": "Status 307 will be returned if the 'redirect' boolean param is true or null"}
+      }
+    }},
+    "/repo/v1/complex-pet/dog/{name}/httpservletrequest": {"delete": {
+      "tags": ["ComplexPets"],
+      "operationId": "delete-/repo/v1/complex-pet/dog/{name}/httpservletrequest",
+      "parameters": [{
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "description": "the name for the dog",
+        "schema": {"type": "string"}
+      }],
+      "responses": {"200": {"description": "Void"}}
+    }},
+    "/repo/v1/complex-pet/account/uricomponentsbuilder": {"post": {
+      "tags": ["ComplexPets"],
+      "operationId": "post-/repo/v1/complex-pet/account/uricomponentsbuilder",
+      "parameters": [],
+      "requestBody": {
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/org.sagebionetworks.repo.model.principal.AccountSetupInfo"}}},
+        "required": true
+      },
+      "responses": {"200": {"description": "an access token, allowing the client to begin making authenticated requests"}}
+    }},
+    "/repo/v1/complex-pet/requestheader": {"post": {
+      "tags": ["ComplexPets"],
+      "operationId": "post-/repo/v1/complex-pet/requestheader",
+      "parameters": [{
+        "name": "testClientId",
+        "in": "header",
+        "required": true,
+        "schema": {"type": "string"}
+      }],
+      "requestBody": {
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest"}}},
+        "required": true
+      },
+      "responses": {"200": {"description": "Void"}}
+    }},
+    "/repo/v1/complex-pet/nocontentresponsestatus": {"post": {
+      "tags": ["ComplexPets"],
+      "operationId": "post-/repo/v1/complex-pet/nocontentresponsestatus",
+      "parameters": [{
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "description": "a name",
+        "schema": {"type": "string"}
+      }],
+      "responses": {"204": {"description": "Void"}}
+    }},
+    "/repo/v1/complex-pet/acceptedresponsestatus": {"post": {
+      "tags": ["ComplexPets"],
+      "operationId": "post-/repo/v1/complex-pet/acceptedresponsestatus",
+      "parameters": [{
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "description": "a name",
+        "schema": {"type": "string"}
+      }],
+      "responses": {"202": {"description": "the name that was added"}}
+    }},
+    "/repo/v1/complex-pet/goneresponsestatus": {"post": {
+      "tags": ["ComplexPets"],
+      "operationId": "post-/repo/v1/complex-pet/goneresponsestatus",
+      "parameters": [{
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "description": "a name",
+        "schema": {"type": "string"}
+      }],
+      "responses": {"410": {"description": "the name that was added"}}
+    }},
+    "/repo/v1/complex-pet/noresponsestatus": {"post": {
+      "tags": ["ComplexPets"],
+      "operationId": "post-/repo/v1/complex-pet/noresponsestatus",
+      "parameters": [{
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "description": "a name",
+        "schema": {"type": "string"}
+      }],
+      "responses": {"200": {"description": "the name that was added"}}
+    }},
+    "/repo/v1/complex-pet/differentpathandmethodparameternames/{petName}": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/differentpathandmethodparameternames/{petName}",
+      "parameters": [{
+        "name": "petName",
+        "in": "path",
+        "required": true,
+        "description": "the name of the pet",
+        "schema": {"type": "string"}
+      }],
+      "responses": {"200": {
+        "description": "boolean on if the pet as a tail or not",
+        "content": {"application/json": {"schema": {"type": "boolean"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/differentheaderandmethodparameternames": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/differentheaderandmethodparameternames",
+      "parameters": [{
+        "name": "annotationValue",
+        "in": "header",
+        "required": true,
+        "schema": {"type": "string"}
+      }],
+      "responses": {"200": {"description": "Void"}}
+    }},
+    "/repo/v1/complex-pet/differentrequestparameterandmethodparameternames": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/differentrequestparameterandmethodparameternames",
+      "parameters": [{
+        "name": "annotationValue",
+        "in": "query",
+        "required": true,
+        "schema": {"type": "string"}
+      }],
+      "responses": {"200": {"description": "Void"}}
+    }},
+    "/repo/v1/complex-pet/regularexpression/{id}/test": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/regularexpression/{id}/test",
+      "parameters": [{
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "an id",
+        "schema": {"type": "string"}
+      }],
+      "responses": {"200": {"description": "a string"}}
+    }},
+    "/repo/v1/complex-pet/string/{testString}": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/string/{testString}",
+      "parameters": [{
+        "name": "testString",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "string"}
+      }],
+      "responses": {"200": {
+        "description": "a string",
+        "content": {"application/json": {"schema": {"type": "string"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/integerclass/{testIntegerClass}": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/integerclass/{testIntegerClass}",
+      "parameters": [{
+        "name": "testIntegerClass",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "integer"}
+      }],
+      "responses": {"200": {
+        "description": "an integer object",
+        "content": {"application/json": {"schema": {"type": "integer"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/booleanclass/{testBooleanClass}": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/booleanclass/{testBooleanClass}",
+      "parameters": [{
+        "name": "testBooleanClass",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "boolean"}
+      }],
+      "responses": {"200": {
+        "description": "a boolean object",
+        "content": {"application/json": {"schema": {"type": "boolean"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/longclass/{testLongClass}": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/longclass/{testLongClass}",
+      "parameters": [{
+        "name": "testLongClass",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "number"}
+      }],
+      "responses": {"200": {
+        "description": "a long object",
+        "content": {"application/json": {"schema": {"type": "number"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/intprimitive/{testIntPrimitive}": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/intprimitive/{testIntPrimitive}",
+      "parameters": [{
+        "name": "testIntPrimitive",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "integer"}
+      }],
+      "responses": {"200": {
+        "description": "an integer",
+        "content": {"application/json": {"schema": {"type": "integer"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/booleanprimitive/{testBooleanPrimitive}": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/booleanprimitive/{testBooleanPrimitive}",
+      "parameters": [{
+        "name": "testBooleanPrimitive",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "boolean"}
+      }],
+      "responses": {"200": {
+        "description": "a boolean",
+        "content": {"application/json": {"schema": {"type": "boolean"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/longprimitive/{testLongPrimitive}": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/longprimitive/{testLongPrimitive}",
+      "parameters": [{
+        "name": "testLongPrimitive",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "number"}
+      }],
+      "responses": {"200": {
+        "description": "a boolean",
+        "content": {"application/json": {"schema": {"type": "number"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/objectclass/{testObject}": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/objectclass/{testObject}",
+      "parameters": [{
+        "name": "testObject",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "object"}
+      }],
+      "responses": {"200": {
+        "description": "an object",
+        "content": {"application/json": {"schema": {"type": "object"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/booleanresult": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/booleanresult",
+      "parameters": [],
+      "responses": {"200": {
+        "description": "a BooleanResult",
+        "content": {"application/json": {"schema": {"type": "boolean"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/jsonobject/{testJsonObject}": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/jsonobject/{testJsonObject}",
+      "parameters": [{
+        "name": "testJsonObject",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "object"}
+      }],
+      "responses": {"200": {
+        "description": "a JSONObject",
+        "content": {"application/json": {"schema": {"type": "object"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/objectschema": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/objectschema",
+      "parameters": [],
+      "responses": {"200": {
+        "description": "an ObjectSchema",
+        "content": {"application/json": {"schema": {"type": "object"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/paginatedresultsofclass": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/paginatedresultsofclass",
+      "parameters": [],
+      "responses": {"200": {
+        "description": "a paginated result for a pug",
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PaginatedResultsOfPug"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/listwrapperofclass": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/listwrapperofclass",
+      "parameters": [],
+      "requestBody": {
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ListWrapperOfPet"}}},
+        "required": true
+      },
+      "responses": {"200": {
+        "description": "a ListWrapper result for a cat",
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ListWrapperOfCat"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/listofclass": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/listofclass",
+      "parameters": [{
+        "name": "terriers",
+        "in": "query",
+        "required": true,
+        "schema": {"$ref": "#/components/schemas/ListOfTerrier"}
+      }],
+      "responses": {"200": {
+        "description": "Auto-generated description",
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ListOfHusky"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/listofstring": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/listofstring",
+      "parameters": [{
+        "name": "strings",
+        "in": "query",
+        "required": true,
+        "schema": {"$ref": "#/components/schemas/ListOfString"}
+      }],
+      "responses": {"200": {"description": "Void"}}
+    }},
+    "/repo/v1/complex-pet/httpheaders": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/httpheaders",
+      "parameters": [],
+      "responses": {"200": {"description": "Void"}}
+    }},
+    "/repo/v1/complex-pet/requiredfalse": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/requiredfalse",
+      "parameters": [{
+        "name": "testRequestParamFalse",
+        "in": "query",
+        "required": false,
+        "schema": {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Cat"}
+      }],
+      "requestBody": {
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Dog"}}},
+        "required": false
+      },
+      "responses": {"200": {"description": "Void"}}
+    }},
+    "/repo/v1/complex-pet/requiredtrue": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/requiredtrue",
+      "parameters": [{
+        "name": "testRequestParamTrue",
+        "in": "query",
+        "required": true,
+        "schema": {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Owner"}
+      }],
+      "requestBody": {
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Pet"}}},
+        "required": true
+      },
+      "responses": {"200": {"description": "Void"}}
+    }},
+    "/repo/v1/complex-pet/enum": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/enum",
+      "parameters": [{
+        "name": "aliasEnum",
+        "in": "query",
+        "required": true,
+        "schema": {"$ref": "#/components/schemas/org.sagebionetworks.repo.model.principal.AliasEnum"}
+      }],
+      "requestBody": {
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/org.sagebionetworks.repo.model.form.StateEnum"}}},
+        "required": true
+      },
+      "responses": {"200": {
+        "description": "a StatusEnum value",
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/org.sagebionetworks.repo.model.status.StatusEnum"}}}
+      }}
+    }},
+    "/repo/v1/complex-pet/userid": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/userid",
+      "parameters": [],
+      "security": [{"bearerAuth": []}],
+      "responses": {"200": {"description": "Void"}}
+    }},
+    "/repo/v1/complex-pet/authorization": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/authorization",
+      "parameters": [],
+      "security": [{"bearerAuth": []}],
+      "responses": {"200": {"description": "Void"}}
+    }},
+    "/repo/v1/complex-pet/noauthorization": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/noauthorization",
+      "parameters": [],
+      "responses": {"200": {"description": "Void"}}
+    }}
+  },
+  "components": {
+    "schemas": {
+      "org.sagebionetworks.openapi.pet.Dog": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "hasTail": {"type": "boolean"},
+          "concreteType": {"type": "string"},
+          "age": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "This class describes a Dog.",
+        "oneOf": [
+          {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Terrier"},
+          {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Husky"},
+          {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Poodle"},
+          {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Pug"}
+        ],
+        "discriminator": {"propertyName": "concreteType"}
+      },
+      "ListWrapperOfPet": {
+        "type": "object",
+        "properties": {"list": {
+          "type": "array",
+          "items": {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Pet"}
+        }}
+      },
+      "org.sagebionetworks.openapi.pet.Pet": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "hasTail": {"type": "boolean"},
+          "concreteType": {"type": "string"}
+        },
+        "description": "This interface represents a pet.",
+        "oneOf": [
+          {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Terrier"},
+          {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Husky"},
+          {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Poodle"},
+          {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Cat"},
+          {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Pug"}
+        ],
+        "discriminator": {"propertyName": "concreteType"}
+      },
+      "org.sagebionetworks.repo.model.principal.EmailValidationSignedToken": {
+        "type": "object",
+        "properties": {
+          "concreteType": {"type": "string"},
+          "hmac": {"type": "string"},
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiresOn": {"type": "string"},
+          "createdOn": {"type": "string"},
+          "email": {"type": "string"},
+          "userId": {"type": "string"}
+        },
+        "description": "Signed token containing the the information necessary to create a new account or add an email address to an existing account."
+      },
+      "org.sagebionetworks.openapi.pet.Husky": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "hasTail": {"type": "boolean"},
+          "concreteType": {"type": "string"},
+          "age": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasLongHair": {"type": "boolean"},
+          "owners": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Owner",
+              "description": "Describes the owner of a Pet."
+            }
+          },
+          "treatToRating": {
+            "type": "object",
+            "description": "A mapping from treats to the rating of each treat.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        },
+        "description": "Describes the husky breed of Dog."
+      },
+      "org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest": {
+        "type": "object",
+        "properties": {
+          "token": {"type": "string"},
+          "token_type_hint": {"type": "string"}
+        },
+        "description": "Request body used by OAuth 2.0 clients to revoke an OAuth 2.0 token. Defined by <a href=\"https://tools.ietf.org/html/rfc7009#section-2.1\">RFC 7009 Section 2.1<\/a>"
+      },
+      "org.sagebionetworks.openapi.pet.Pug": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "hasTail": {"type": "boolean"},
+          "concreteType": {"type": "string"},
+          "age": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasLongHair": {"type": "boolean"},
+          "owners": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Owner",
+              "description": "Describes the owner of a Pet."
+            }
+          },
+          "treatToRating": {
+            "type": "object",
+            "description": "A mapping from treats to the rating of each treat.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        },
+        "description": "Describes the pug breed of Dog."
+      },
+      "org.sagebionetworks.repo.model.oauth.TokenTypeHint": {
+        "type": "string",
+        "enum": [
+          "access_token",
+          "refresh_token"
+        ]
+      },
+      "org.sagebionetworks.openapi.pet.Cat": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "hasTail": {"type": "boolean"},
+          "concreteType": {"type": "string"},
+          "numWhiskers": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "This class describes a Cat."
+      },
+      "org.sagebionetworks.repo.model.status.StatusEnum": {
+        "type": "string",
+        "enum": [
+          "READ_WRITE",
+          "READ_ONLY",
+          "DOWN"
+        ]
+      },
+      "ListOfTerrier": {
+        "type": "array",
+        "items": {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Terrier"}
+      },
+      "ListOfHusky": {
+        "type": "array",
+        "items": {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Husky"}
+      },
+      "org.sagebionetworks.openapi.pet.Terrier": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "hasTail": {"type": "boolean"},
+          "concreteType": {"type": "string"},
+          "age": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasLongHair": {"type": "boolean"},
+          "owners": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Owner",
+              "description": "Describes the owner of a Pet."
+            }
+          },
+          "treatToRating": {
+            "type": "object",
+            "description": "A mapping from treats to the rating of each treat.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        },
+        "description": "Describes the terrier breed of Dog."
+      },
+      "org.sagebionetworks.repo.model.principal.AccountSetupInfo": {
+        "type": "object",
+        "properties": {
+          "firstName": {"type": "string"},
+          "lastName": {"type": "string"},
+          "username": {"type": "string"},
+          "password": {"type": "string"},
+          "emailValidationSignedToken": {
+            "$ref": "#/components/schemas/org.sagebionetworks.repo.model.principal.EmailValidationSignedToken",
+            "description": "Signed token containing the the information necessary to create a new account or add an email address to an existing account."
+          }
+        },
+        "description": "Information needed to establish a new user account, following email validation."
+      },
+      "org.sagebionetworks.openapi.pet.Poodle": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "hasTail": {"type": "boolean"},
+          "concreteType": {"type": "string"},
+          "age": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isFluffy": {"type": "boolean"},
+          "owner": {
+            "$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Owner",
+            "description": "Describes the owner of a Pet."
+          },
+          "address": {},
+          "ownersToAge": {
+            "type": "object",
+            "description": "A mapping from the name of the owners of this poodle to their respective age.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        },
+        "description": "Describes the poodle breed of Dog."
+      },
+      "org.sagebionetworks.repo.model.SignedTokenInterface": {
+        "type": "object",
+        "properties": {
+          "concreteType": {"type": "string"},
+          "hmac": {"type": "string"},
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiresOn": {"type": "string"},
+          "createdOn": {"type": "string"}
+        },
+        "description": "Interface for signed tokens",
+        "oneOf": [{"$ref": "#/components/schemas/org.sagebionetworks.repo.model.principal.EmailValidationSignedToken"}],
+        "discriminator": {"propertyName": "concreteType"}
+      },
+      "org.sagebionetworks.openapi.model.Discriminator": {
+        "type": "object",
+        "properties": {"propertyName": {"type": "string"}}
+      },
+      "ListWrapperOfCat": {
+        "type": "object",
+        "properties": {"list": {
+          "type": "array",
+          "items": {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Cat"}
+        }}
+      },
+      "org.sagebionetworks.openapi.pet.Owner": {
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+        "description": "Describes the owner of a Pet."
+      },
+      "ListOfString": {
+        "type": "array",
+        "items": {"type": "string"}
+      },
+      "org.sagebionetworks.repo.model.form.StateEnum": {
+        "type": "string",
+        "enum": [
+          "WAITING_FOR_SUBMISSION",
+          "SUBMITTED_WAITING_FOR_REVIEW",
+          "ACCEPTED",
+          "REJECTED"
+        ]
+      },
+      "PaginatedResultsOfPug": {
+        "type": "object",
+        "properties": {
+          "totalNumberOfResults": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "results": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Pug"}
+          }
+        }
+      },
+      "org.sagebionetworks.repo.model.principal.AliasEnum": {
+        "type": "string",
+        "enum": [
+          "USER_NAME",
+          "TEAM_NAME",
+          "USER_EMAIL",
+          "USER_OPEN_ID",
+          "USER_ORCID"
+        ]
+      }
+    },
+    "securitySchemes": {"bearerAuth": {
+      "type": "http",
+      "scheme": "bearer"
+    }}
+  }
+}
