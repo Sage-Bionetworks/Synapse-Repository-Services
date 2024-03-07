@@ -633,7 +633,7 @@
           {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Poodle"},
           {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Pug"}
         ],
-        "required": ["concreteType"],
+        "required": ["name", "age", "concreteType"],
         "discriminator": {"propertyName": "concreteType"}
       },
       "ListWrapperOfPet": {
@@ -658,7 +658,7 @@
           {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Cat"},
           {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Pug"}
         ],
-        "required": ["concreteType"],
+        "required": ["name", "concreteType"],
         "discriminator": {"propertyName": "concreteType"}
       },
       "org.sagebionetworks.repo.model.principal.EmailValidationSignedToken": {
@@ -712,7 +712,7 @@
           }
         },
         "description": "Describes the husky breed of Dog.",
-        "required": ["concreteType"]
+        "required": ["name", "age", "owners", "concreteType"]
       },
       "org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest": {
         "type": "object",
@@ -753,7 +753,7 @@
           }
         },
         "description": "Describes the pug breed of Dog.",
-        "required": ["concreteType"]
+        "required": ["name", "age", "concreteType"]
       },
       "org.sagebionetworks.repo.model.oauth.TokenTypeHint": {
         "type": "string",
@@ -777,7 +777,7 @@
           }
         },
         "description": "This class describes a Cat.",
-        "required": ["concreteType"]
+        "required": ["name", "numWhiskers", "concreteType"]
       },
       "org.sagebionetworks.repo.model.status.StatusEnum": {
         "type": "string",
@@ -826,7 +826,7 @@
           }
         },
         "description": "Describes the terrier breed of Dog.",
-        "required": ["concreteType"]
+        "required": ["name", "age", "concreteType"]
       },
       "org.sagebionetworks.repo.model.principal.AccountSetupInfo": {
         "type": "object",
@@ -871,7 +871,7 @@
           }
         },
         "description": "Describes the poodle breed of Dog.",
-        "required": ["concreteType"]
+        "required": ["name", "age", "concreteType"]
       },
       "org.sagebionetworks.repo.model.SignedTokenInterface": {
         "type": "object",
@@ -892,7 +892,8 @@
       },
       "org.sagebionetworks.openapi.model.Discriminator": {
         "type": "object",
-        "properties": {"propertyName": {"type": "string"}}
+        "properties": {"propertyName": {"type": "string"}},
+        "required": ["propertyName"]
       },
       "ListWrapperOfCat": {
         "type": "object",

@@ -297,6 +297,71 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
+	public void testTranslateObjectSchemaToJsonSchemaWithRequiredProperties() throws JSONObjectAdapterException {
+		ObjectSchema objectSchema;
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+
+		LinkedHashMap<String, ObjectSchema> requiredProperties = new LinkedHashMap<>();
+		
+		ObjectSchema requiredProperty = new ObjectSchemaImpl();
+		requiredProperty.setRequired(true);
+		
+		requiredProperties.put("requiredProperty", requiredProperty);
+		
+		objectSchema.setType(TYPE.OBJECT);
+		objectSchema.setProperties(requiredProperties);
+		objectSchema.setId("MOCK_ID");
+		
+		doReturn(Type.object).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
+		doReturn(Map.of("requiredProperty", new JsonSchema())).when(util).translatePropertiesFromObjectSchema(any(Map.class), any(String.class));
+		
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
+		expected.setType(Type.object);
+		expected.setProperties(Map.of("requiredProperty", new JsonSchema()));
+		expected.setRequired(List.of("requiredProperty"));
+
+		// call under test
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		
+		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.OBJECT);
+		verify(util).translatePropertiesFromObjectSchema(requiredProperties, "MOCK_ID");
+	}
+	
+	@Test
+	public void testTranslateObjectSchemaToJsonSchemaWithConcreteTypePropertyAndExistingRequiredProperties() throws JSONObjectAdapterException {
+		ObjectSchema objectSchema;
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+
+		LinkedHashMap<String, ObjectSchema> properties = new LinkedHashMap<>();
+		
+		ObjectSchema requiredProperty = new ObjectSchemaImpl();
+		requiredProperty.setRequired(true);
+		
+		properties.put("requiredProperty", requiredProperty);
+		properties.put("concreteType", new ObjectSchemaImpl());
+		
+		objectSchema.setType(TYPE.OBJECT);
+		objectSchema.setProperties(properties);
+		objectSchema.setId("MOCK_ID");
+		
+		doReturn(Type.object).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
+		doReturn(Map.of("requiredProperty", new JsonSchema(), "concreteType", new JsonSchema())).when(util).translatePropertiesFromObjectSchema(any(Map.class), any(String.class));
+		
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
+		expected.setType(Type.object);
+		expected.setProperties(Map.of("requiredProperty", new JsonSchema(), "concreteType", new JsonSchema().set_enum(List.of("MOCK_ID"))));
+		expected.setRequired(List.of("requiredProperty", "concreteType"));
+
+		// call under test
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		
+		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.OBJECT);
+		verify(util).translatePropertiesFromObjectSchema(properties, "MOCK_ID");
+	}
+	
+	@Test
 	public void testTranslatePropertiesFromObjectSchema() throws JSONObjectAdapterException {
 		ObjectSchema objectSchema1;
 		ObjectSchema objectSchema2;

@@ -10,7 +10,8 @@
 	"properties": {
 		"age": {
 			"type": "integer",
-			"description": "The age of the dog."
+			"description": "The age of the dog.",
+			"required": true
 		}
 	}
 }
