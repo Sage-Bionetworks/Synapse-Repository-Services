@@ -7,7 +7,9 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.velocity.schema.TypeReference;
@@ -98,8 +100,18 @@ public class ObjectSchemaUtils {
 		jsonSchema.setType(translateObjectSchemaTypeToJsonSchemaType(schemaType));
 
 		Map<String, ObjectSchema> properties = objectSchema.getProperties();
+		
 		if (properties != null) {
 			jsonSchema.setProperties(translatePropertiesFromObjectSchema(properties, objectSchema.getId()));
+			
+			List<String> requiredProperties = properties.entrySet().stream()
+				.filter(property -> property.getValue().isRequired())
+				.map(Entry<String, ObjectSchema>::getKey)
+				.collect(Collectors.toList());
+			
+			if (!requiredProperties.isEmpty()) {
+				jsonSchema.setRequired(requiredProperties);
+			}
 		}
 
 		ObjectSchema items = objectSchema.getItems();

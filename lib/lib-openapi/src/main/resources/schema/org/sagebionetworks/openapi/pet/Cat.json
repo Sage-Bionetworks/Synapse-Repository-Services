@@ -9,7 +9,8 @@
     "properties": {
 		"numWhiskers": {
 			"type": "integer",
-			"description": "The number of whiskers the cat has."
+			"description": "The number of whiskers the cat has.",
+			"required": true
 		}
 	}
 }

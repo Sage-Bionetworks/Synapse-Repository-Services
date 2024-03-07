@@ -16,7 +16,8 @@
 			"items": {
 			    "type":"object",
 				"$ref":"org.sagebionetworks.openapi.pet.Owner"
-			}
+			},
+			"required": true
 		},
 		"treatToRating": {
 			"description": "A mapping from treats to the rating of each treat.",
