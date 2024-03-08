@@ -1,5 +1,18 @@
 package org.sagebionetworks.repo.manager.entity.decider;
 
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ACCESS_DENIED;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_NEED_TWO_FA;
+import static org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES.ROOT;
+
+import java.util.Optional;
+
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DataType;
@@ -7,22 +20,8 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.web.NotFoundException;
-
-import java.util.Optional;
-
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ACCESS_DENIED;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_AND_NON_EXEMPTED_ACCESS_REQUIREMENTS;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_NEED_TWO_FA;
-import static org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES.ROOT;
-
-;
+import org.sagebionetworks.repo.manager.util.UserAccessRestrictionUtils;
+import org.sagebionetworks.repo.web.NotFoundException;;
 
 /**
  * The set of functions that can be used in making entity access decisions.
@@ -68,9 +67,9 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * Denies access if the user has unmet access restrictions on this entity.
 	 */
 	DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS((c) -> {
-		if (c.getRestrictionStatusWithHasUnmet().hasUnmet()) {
+		if (UserAccessRestrictionUtils.doesUserHaveUnmetAccessRestrictionsForEntity(c.getPermissionsState(), c.getRestrictionStatus())) {
 			return Optional.of(new UsersEntityAccessInfo(c,
-					AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_AND_NON_EXEMPTED_ACCESS_REQUIREMENTS)));
+					AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS)));
 		} else {
 			return Optional.empty();
 		}
@@ -247,7 +246,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * Denies access if the an access requirement required 2FA and the user does not have 2FA enabled
 	 */
 	DENY_IF_TWO_FA_REQUIREMENT_NOT_MET((c) -> {
-		if (!c.getUser().hasTwoFactorAuthEnabled() && c.getRestrictionStatusWithHasUnmet().getUsersRestrictionStatus().getAccessRestrictions().stream().filter(UsersRequirementStatus::isTwoFaRequired).findFirst().isPresent()) {
+		if (!c.getUser().hasTwoFactorAuthEnabled() && c.getRestrictionStatus().getAccessRestrictions().stream().filter(UsersRequirementStatus::isTwoFaRequired).findFirst().isPresent()) {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_YOU_NEED_TWO_FA)));
 		} else {
 			return Optional.empty();

@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRequirementType;
-import org.sagebionetworks.repo.model.ar.UserRestrictionStatusWithHasUnmet;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -30,7 +29,7 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANON
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_AND_NON_EXEMPTED_ACCESS_REQUIREMENTS;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_NEED_TWO_FA;
@@ -46,7 +45,6 @@ public class EntityDeciderFunctionsTest {
 
 	UsersRestrictionStatus restrictionStatus;
 	UserEntityPermissionsState permissionState;
-	UserRestrictionStatusWithHasUnmet userRestrictionStatusWithHasUnmet;
 	AccessContext context;
 
 	@BeforeEach
@@ -62,9 +60,8 @@ public class EntityDeciderFunctionsTest {
 		certifiedUser.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 
 		restrictionStatus = new UsersRestrictionStatus().withSubjectId(entityId).withUserId(nonAdminUser.getId());
-		userRestrictionStatusWithHasUnmet = new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus);
 		context = new AccessContext().withUser(nonAdminUser).withPermissionsState(permissionState)
-				.withUserRestrictionStatusWithHasUnmet(userRestrictionStatusWithHasUnmet);
+				.withRestrictionStatus(restrictionStatus);
 	}
 	
 	
@@ -153,14 +150,14 @@ public class EntityDeciderFunctionsTest {
 						.withIsExemptionEligible(false)
 		));
 
-		context.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus));
+		context.withRestrictionStatus(restrictionStatus);
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
 				.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
-				AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_AND_NON_EXEMPTED_ACCESS_REQUIREMENTS));
+				AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS));
 		assertEquals(expected, resultOptional.get());
 	}
 
@@ -175,7 +172,7 @@ public class EntityDeciderFunctionsTest {
 						.withIsExemptionEligible(false)
 		));
 
-		context.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus));
+		context.withRestrictionStatus(restrictionStatus);
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
@@ -200,13 +197,13 @@ public class EntityDeciderFunctionsTest {
 						.withIsTwoFaRequired(false)
 						.withIsExemptionEligible(true)
 		));
-		context.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus));
+		context.withRestrictionStatus(restrictionStatus);
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
 				.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
-				AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_AND_NON_EXEMPTED_ACCESS_REQUIREMENTS));
+				AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS));
 		assertEquals(expected, resultOptional.get());
 	}
 
@@ -227,7 +224,7 @@ public class EntityDeciderFunctionsTest {
 						.withIsTwoFaRequired(false)
 						.withIsExemptionEligible(true)
 		));
-		context.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus));
+		context.withRestrictionStatus(restrictionStatus);
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
 				.determineAccess(context);
@@ -250,7 +247,7 @@ public class EntityDeciderFunctionsTest {
 						.withIsTwoFaRequired(false)
 						.withIsExemptionEligible(true)
 		));
-		context.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus));
+		context.withRestrictionStatus(restrictionStatus);
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
 				.determineAccess(context);
@@ -275,14 +272,14 @@ public class EntityDeciderFunctionsTest {
 						.withIsExemptionEligible(true)
 		));
 
-		context.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus));
+		context.withRestrictionStatus(restrictionStatus);
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
 				.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
-				AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_AND_NON_EXEMPTED_ACCESS_REQUIREMENTS));
+				AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS));
 		assertEquals(expected, resultOptional.get());
 	}
 
@@ -304,13 +301,13 @@ public class EntityDeciderFunctionsTest {
 						.withIsExemptionEligible(true)
 		));
 
-		context.withUserRestrictionStatusWithHasUnmet(new UserRestrictionStatusWithHasUnmet(permissionState, restrictionStatus));
+		context.withRestrictionStatus(restrictionStatus);
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
 				.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
-				AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_AND_NON_EXEMPTED_ACCESS_REQUIREMENTS));
+				AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS));
 		assertEquals(expected, resultOptional.get());
 	}
 

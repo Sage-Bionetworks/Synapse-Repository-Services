@@ -1,10 +1,9 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -104,25 +103,41 @@ public class RestrictionInformationManagerImplAutoWiredTest {
 		}
 	}
 	
-	private static TermsOfUseAccessRequirement newEntityAccessRequirement(String entityId) {
+	private static TermsOfUseAccessRequirement newEntityAccessRequirement(ACCESS_TYPE accessType,
+																		  List<RestrictableObjectDescriptor> rod) {
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(entityId);
-		rod.setType(RestrictableObjectType.ENTITY);
-		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+		ar.setSubjectIds(rod);
 		ar.setConcreteType(ar.getClass().getName());
-		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setAccessType(accessType);
 		ar.setTermsOfUse(TERMS_OF_USE);
 		return ar;
 	}
 
 	@Test
-	public void testGetRestrictionInformationInherited() {
-		ar = newEntityAccessRequirement(entityId);
+	public void testGetRestrictionInformationInheritedForEntity() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(entityId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar = newEntityAccessRequirement(ACCESS_TYPE.DOWNLOAD, List.of(rod));
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(childId);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+		RestrictionInformationResponse info = restrictionInformationManager.getRestrictionInformation(adminUserInfo, request);
+		assertNotNull(info);
+		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
+	}
+
+	@Test
+	public void testGetRestrictionInformationForTeam() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(entityId);
+		rod.setType(RestrictableObjectType.TEAM);
+		ar = newEntityAccessRequirement(ACCESS_TYPE.PARTICIPATE, List.of(rod));
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(entityId);
+		request.setRestrictableObjectType(RestrictableObjectType.TEAM);
 		RestrictionInformationResponse info = restrictionInformationManager.getRestrictionInformation(adminUserInfo, request);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());

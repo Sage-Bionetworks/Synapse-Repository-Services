@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
-import org.sagebionetworks.repo.model.ar.UserRestrictionStatusWithHasUnmet;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
@@ -43,16 +42,12 @@ public class LazyEntityStateProvider implements EntityStateProvider {
 		return userEntityPermissionsState.get(entityId);
 	}
 
-	private UsersRestrictionStatus getRestrictionStatus(Long entityId) {
+	@Override
+	public UsersRestrictionStatus getRestrictionStatus(Long entityId) {
 		if (usersRestrictionStatus == null) {
 			usersRestrictionStatus = accessRestrictionStatusDao.getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		}
 		return usersRestrictionStatus.get(entityId);
-	}
-
-	@Override
-	public UserRestrictionStatusWithHasUnmet getUserRestrictionStatusWithHasUnmet(Long entityId) {
-		return new UserRestrictionStatusWithHasUnmet(getPermissionsState(entityId), getRestrictionStatus(entityId));
 	}
 
 	@Override
