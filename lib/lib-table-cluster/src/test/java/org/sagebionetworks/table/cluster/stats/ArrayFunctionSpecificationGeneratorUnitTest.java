@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.cluster.stats;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -17,7 +17,6 @@ import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslati
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ArrayFunctionSpecification;
-import org.sagebionetworks.table.query.model.ArrayFunctionType;
 
 @ExtendWith(MockitoExtension.class)
 public class ArrayFunctionSpecificationGeneratorUnitTest {
@@ -30,8 +29,7 @@ public class ArrayFunctionSpecificationGeneratorUnitTest {
 	
 	@Test
 	public void testGenerateWithUnnest() throws ParseException {
-		ArrayFunctionSpecification element = new ArrayFunctionSpecification(ArrayFunctionType.UNNEST, 
-				new TableQueryParser("foo").columnReference());
+		ArrayFunctionSpecification element = new TableQueryParser("UNNEST(foo)").arrayFunctionSpecification();
 		
 		ColumnModel cm = new ColumnModel()
 				.setColumnType(ColumnType.STRING)
@@ -51,8 +49,7 @@ public class ArrayFunctionSpecificationGeneratorUnitTest {
 	
 	@Test
 	public void testGenerateWithUnnestWithEmptyColumnTranslationReference() throws ParseException {
-		ArrayFunctionSpecification element = new ArrayFunctionSpecification(ArrayFunctionType.UNNEST, 
-				new TableQueryParser("foo").columnReference());
+		ArrayFunctionSpecification element = new TableQueryParser("UNNEST(foo)").arrayFunctionSpecification();
 		
 		when(mockTableAndColumnMapper.lookupColumnReference(element.getColumnReference()))
 				.thenReturn(Optional.empty());

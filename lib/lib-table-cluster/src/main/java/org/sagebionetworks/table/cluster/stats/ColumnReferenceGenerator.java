@@ -11,17 +11,18 @@ public class ColumnReferenceGenerator implements StatGeneratorInteface<ColumnRef
 	@Override
 	public Optional<ElementStats> generate(ColumnReference element, TableAndColumnMapper tableAndColumnMapper) {
 		Optional<ColumnTranslationReference> ctrOptional = tableAndColumnMapper.lookupColumnReference(element);
-
-	    if (ctrOptional.isPresent()) {
-	        return Optional.of(ElementStats.builder()
-	                .setMaximumSize(ctrOptional.get().getMaximumSize())
-	                .setMaxListLength(ctrOptional.get().getMaximumListLength())
-	                .setDefaultValue(ctrOptional.get().getDefaultValues())
-	                .setFacetType(ctrOptional.get().getFacetType())
-	                .setJsonSubColumns(ctrOptional.get().getJsonSubColumns())
-	                .build());
-	    } 
-	        
-	    return Optional.empty();
+		
+		if (ctrOptional.isEmpty()) {
+			return Optional.empty();
+		}
+		
+		ColumnTranslationReference ctr = ctrOptional.get();
+		return Optional.of(ElementStats.builder()
+                .setMaximumSize(ctr.getMaximumSize())
+                .setMaxListLength(ctr.getMaximumListLength())
+                .setDefaultValue(ctr.getDefaultValues())
+                .setFacetType(ctr.getFacetType())
+                .setJsonSubColumns(ctr.getJsonSubColumns())
+                .build()); 
 	}
 }

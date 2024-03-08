@@ -12,13 +12,15 @@ import org.sagebionetworks.table.query.model.NumericValueExpression;
 import org.sagebionetworks.table.query.model.SetFunctionSpecification;
 import org.sagebionetworks.table.query.model.SimpleBranch;
 import org.sagebionetworks.table.query.model.Term;
-import org.sagebionetworks.table.query.model.TermPrime;
 import org.sagebionetworks.table.query.model.UnsignedValueSpecification;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class StatGenerator implements StatGeneratorInteface<Element> {
 
 	@Override
-	public Optional<ElementStats> generate(Element element, TableAndColumnMapper tableAndColumnMapper) {		
+	public Optional<ElementStats> generate(Element element, TableAndColumnMapper tableAndColumnMapper) {	
+		ValidateArgument.required(tableAndColumnMapper, "tableAndColumnMapper");
+		
 		if (element == null) {
 			return Optional.empty();
 		}
@@ -49,10 +51,6 @@ public class StatGenerator implements StatGeneratorInteface<Element> {
 		
 		if (element instanceof Term) {
 			return generate(((Term) element).getFactor(), tableAndColumnMapper);
-		}
-		
-		if (element instanceof TermPrime) {
-			return new TermPrimeGenerator().generate((TermPrime) element, tableAndColumnMapper);
 		}
 		
 		if (element instanceof Factor) {

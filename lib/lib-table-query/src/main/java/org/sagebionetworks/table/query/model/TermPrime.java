@@ -24,14 +24,6 @@ public class TermPrime extends SQLElement {
 		this.term = term;
 	}
 
-	public ArithmeticOperator getOperator() {
-		return operator;
-	}
-	
-	public Term getTerm() {
-		return term;
-	}
-
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append(operator.toSQL());

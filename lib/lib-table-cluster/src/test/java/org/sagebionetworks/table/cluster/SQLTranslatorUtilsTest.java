@@ -3929,7 +3929,7 @@ public class SQLTranslatorUtilsTest {
 		ColumnModel expected = new ColumnModel();
 		expected.setName("foo+bar");
 		expected.setColumnType(ColumnType.STRING);
-		expected.setMaximumSize(columnNameMap.get("foo").getMaximumSize() + columnNameMap.get("bar").getMaximumSize());
+		expected.setMaximumSize(Long.valueOf(ColumnConstants.MAX_DOUBLE_CHARACTERS_AS_STRING));
 		expected.setId(null);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
@@ -3969,7 +3969,7 @@ public class SQLTranslatorUtilsTest {
 		ColumnModel expected = new ColumnModel();
 		expected.setName("AVG(id)");
 		expected.setColumnType(ColumnType.DOUBLE);
-		expected.setMaximumSize(Long.valueOf(ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING));
+		expected.setMaximumSize(Long.valueOf(ColumnConstants.MAX_DOUBLE_CHARACTERS_AS_STRING));
 		expected.setId(null);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));

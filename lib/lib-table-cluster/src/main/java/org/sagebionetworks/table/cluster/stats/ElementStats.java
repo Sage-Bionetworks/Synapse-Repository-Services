@@ -1,5 +1,5 @@
-
 package org.sagebionetworks.table.cluster.stats;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -74,42 +74,6 @@ public class ElementStats {
 				+ defaultValue + ", facetType=" + facetType + ", enumValues=" + enumValues + ", jsonSubColumns="
 				+ jsonSubColumns + "]";
 	}
-
-	/**
-	 * Create a new ElementStats with a sum of the first and second maximumSizes
-	 * All other stats will try to find a non null value, tie breaker in favor of the second ElementStats
-	 * 
-	 * @param other
-	 * @return
-	 */
-	public static ElementStats generateSumStats(ElementStats one, ElementStats two) {
-		return new ElementStats.Builder()
-				.setMaximumSize(addLongsWithNull(one.getMaximumSize(), two.getMaximumSize()))
-				.setMaxListLength(lastNonNull(one.getMaxListLength(), two.getMaxListLength()))
-				.setDefaultValue(lastNonNull(one.getDefaultValue(), two.getDefaultValue()))
-				.setFacetType(lastNonNull(one.getFacetType(), two.getFacetType()))
-				.setEnumValues(lastNonNull(one.getEnumValues(), two.getEnumValues()))
-				.setJsonSubColumns(lastNonNull(one.getJsonSubColumns(), two.getJsonSubColumns()))
-				.build();
-	}
-	
-	/**
-	 * Create a new ElementStats with a max of the first and second maximumSizes
-	 * All other stats will try to find a non null value, tie breaker in favor of the second ElementStats
-	 * 
-	 * @param other
-	 * @return
-	 */
-	public static ElementStats generateMaxStats(ElementStats one, ElementStats two) {
-		return new ElementStats.Builder()
-				.setMaximumSize(maxLongsWithNull(one.getMaximumSize(), two.getMaximumSize()))
-				.setMaxListLength(lastNonNull(one.getMaxListLength(), two.getMaxListLength()))
-				.setDefaultValue(lastNonNull(one.getDefaultValue(), two.getDefaultValue()))
-				.setFacetType(lastNonNull(one.getFacetType(), two.getFacetType()))
-				.setEnumValues(lastNonNull(one.getEnumValues(), two.getEnumValues()))
-				.setJsonSubColumns(lastNonNull(one.getJsonSubColumns(), two.getJsonSubColumns()))
-				.build();
-	}
 	
 	/**
 	 * Addition for Longs that can be null.
@@ -127,30 +91,19 @@ public class ElementStats {
 		}
 		return one + two;
 	}
-	
-	/**
-	 * Max for Longs that can be null.
-	 * 
-	 * @param currentValue
-	 * @param newValue
-	 * @return
-	 */
-	public static Long maxLongsWithNull(Long one, Long two) {
-		if(one == null) {
-			return two;
-		}
-		if(two == null) {
-			return one;
-		}
-		return Math.max(one, two);
-	}
-	
-	public static <T> T lastNonNull(T one, T two) {
-		return two != null ? two : one;
-	}
 
 	public static Builder builder() {
 		return new Builder();
+	}
+	
+	public Builder cloneBuilder() {
+		return new Builder()
+				.setMaximumSize(this.maximumSize)
+				.setMaxListLength(this.maxListLength)
+				.setDefaultValue(this.defaultValue)
+				.setFacetType(this.facetType)
+				.setEnumValues(this.enumValues)
+				.setJsonSubColumns(this.jsonSubColumns);
 	}
 	
 	public static class Builder {

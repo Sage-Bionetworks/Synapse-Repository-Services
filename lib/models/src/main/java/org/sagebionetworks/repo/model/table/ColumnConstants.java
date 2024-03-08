@@ -62,6 +62,18 @@ public class ColumnConstants {
 	public static final int MAX_USER_ID_BYTES_AS_STRING = MAX_INTEGER_BYTES_AS_STRING;
 	
 	/**
+	 * The maximum number of characters of a integer (a long in java terms) when represented as a string.
+	 */
+	public static final int MAX_INTEGER_CHARACTERS_AS_STRING = Long.toString(-Long.MIN_VALUE).length();
+	/**
+	 * The maximum number of characters of a double when represented as a string.
+	 * 
+	 * This is derived from the buffer size of BinaryToASCIIBuffer of FloatingDecimal$BinaryToASCIIBuffer.class,
+	 * which is used to construct a String when Double.toString() is called
+	 */
+	public static final int MAX_DOUBLE_CHARACTERS_AS_STRING = 26;
+	
+	/**
 	 * The maximum available memory to each machine in bytes.
 	 * Currently 3 GB.
 	 */

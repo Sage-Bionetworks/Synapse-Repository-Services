@@ -1,8 +1,6 @@
 package org.sagebionetworks.table.cluster.stats;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Optional;
 
@@ -12,16 +10,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.cluster.TableAndColumnMapper;
-import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.SetFunctionSpecification;
 import org.sagebionetworks.table.query.model.SetFunctionType;
-import org.sagebionetworks.table.query.model.ValueExpressionList;
-
 
 @ExtendWith(MockitoExtension.class)
 public class SetFunctionSpecificationGeneratorUnitTest {
@@ -35,10 +28,10 @@ public class SetFunctionSpecificationGeneratorUnitTest {
 	
 	@Test
 	public void testGenerateWithLong() throws ParseException {
-		SetFunctionSpecification element = new SetFunctionSpecification(true);
+		SetFunctionSpecification element = new TableQueryParser("COUNT(*)").setFunctionSpecification();
 		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(Long.valueOf(ColumnConstants.MAX_INTEGER_BYTES_AS_STRING))
+				.setMaximumSize(Long.valueOf(ColumnConstants.MAX_INTEGER_CHARACTERS_AS_STRING))
 				.build());
 		
 		assertEquals(expected, mockSetFunctionSpecificationGenerator.generate(element, mockTableAndColumnMapper));
@@ -46,12 +39,20 @@ public class SetFunctionSpecificationGeneratorUnitTest {
 	
 	@Test
 	public void testGenerateWithDouble() throws ParseException {
-		SetFunctionSpecification element = 
-				new SetFunctionSpecification(SetFunctionType.AVG, null, null, null, null);
+		SetFunctionSpecification element = new TableQueryParser("AVG(someCol)").setFunctionSpecification();
 		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(Long.valueOf(ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING))
+				.setMaximumSize(Long.valueOf(ColumnConstants.MAX_DOUBLE_CHARACTERS_AS_STRING))
 				.build());
+		
+		assertEquals(expected, mockSetFunctionSpecificationGenerator.generate(element, mockTableAndColumnMapper));
+	}
+	
+	@Test
+	public void testGenerateWithUnimplementedCase() throws ParseException {
+		SetFunctionSpecification element = new SetFunctionSpecification(SetFunctionType.JSON_ARRAYAGG, null, null, null, null);
+		
+		Optional<ElementStats> expected = Optional.empty();
 		
 		assertEquals(expected, mockSetFunctionSpecificationGenerator.generate(element, mockTableAndColumnMapper));
 	}

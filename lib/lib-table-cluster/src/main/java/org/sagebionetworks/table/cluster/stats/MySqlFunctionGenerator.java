@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster.stats;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.table.cluster.TableAndColumnMapper;
@@ -10,21 +11,31 @@ public class MySqlFunctionGenerator implements StatGeneratorInteface<MySqlFuncti
 
 	@Override
 	public Optional<ElementStats> generate(MySqlFunction element, TableAndColumnMapper tableAndColumnMapper) {
-		ElementStats elementStats = ElementStats.builder().build();
+		StatGenerator generator = new StatGenerator(); 
 		
 		switch (element.getFunctionName()) {
 			case CONCAT:
-				for (ValueExpression valueExpression : element.getParameterValues()) {
-					Optional<ElementStats> childStats = new StatGenerator().generate(valueExpression, tableAndColumnMapper);
+				List<ValueExpression> children = element.getParameterValues();
+				
+				if (children.size() == 0) {
+					return Optional.empty();
+				}
+				
+				ElementStats elementStats = ElementStats.builder().build();
+				
+				for (ValueExpression valueExpression : children) {
+					Optional<ElementStats> childStats = generator.generate(valueExpression, tableAndColumnMapper);
 					
 					if (childStats.isEmpty()) {
 						return Optional.empty();
 					}
 					
-					elementStats = ElementStats.generateSumStats(elementStats, childStats.get());
+					elementStats = elementStats.cloneBuilder()
+							.setMaximumSize(ElementStats.addLongsWithNull(elementStats.getMaximumSize(), childStats.get().getMaximumSize()))
+							.build();
 				}
 				
-				return elementStats.getMaximumSize() > 0 ? Optional.of(elementStats) : Optional.empty();
+				return Optional.of(elementStats);
 				
 			default:
 				return Optional.empty();

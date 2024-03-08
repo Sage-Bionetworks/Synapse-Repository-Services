@@ -15,13 +15,13 @@ public class ArrayFunctionSpecificationGenerator implements StatGeneratorIntefac
 				Optional<ColumnTranslationReference> ctrOptional = 
 						tableAndColumnMapper.lookupColumnReference(element.getColumnReference());
 				
-				if (ctrOptional.isPresent()) {
-					return Optional.of(ElementStats.builder()
-			                .setMaximumSize(ctrOptional.get().getMaximumSize())
-			                .build());
-				} else {
+				if (ctrOptional.isEmpty()) {
 					return Optional.empty();
 				}
+				
+				return Optional.of(ElementStats.builder()
+			                .setMaximumSize(ctrOptional.get().getMaximumSize())
+			                .build());
 				
 			default:
 				return Optional.empty();

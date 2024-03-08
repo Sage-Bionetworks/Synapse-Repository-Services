@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.cluster.stats;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Optional;
 
@@ -13,7 +13,6 @@ import org.sagebionetworks.table.cluster.TableAndColumnMapper;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.UnsignedValueSpecification;
-
 
 @ExtendWith(MockitoExtension.class)
 public class UnsignedValueSpecificationGeneratorUnitTest {

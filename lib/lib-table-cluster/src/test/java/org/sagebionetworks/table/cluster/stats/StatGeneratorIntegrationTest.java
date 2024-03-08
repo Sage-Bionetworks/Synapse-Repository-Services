@@ -1,13 +1,13 @@
 package org.sagebionetworks.table.cluster.stats;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,12 +22,14 @@ import org.sagebionetworks.table.cluster.TableAndColumnMapper;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.RegularIdentifier;
 
 import com.google.common.collect.Lists;
 
-
-// These tests serve as integration tests for specific SQL trees. Although they are integration tests,
-// we mock the TableAndColumnMapper as to only test the generators.
+/**
+ * These tests serve as integration tests for specific SQL trees. Although they are integration tests,
+ * we mock the TableAndColumnMapper as to only test the generators.
+ */
 
 @ExtendWith(MockitoExtension.class)
 public class StatGeneratorIntegrationTest {
@@ -41,41 +43,103 @@ public class StatGeneratorIntegrationTest {
 	private StatGenerator statGenerator;
 	
 	
-	private Long fooMaxSize = 31L;
-	private Long barMaxSize = 53L;
-	private Long stringListColMaxSize = 97L;
+	private Long stringColMaxSize = 31L;
+	private Long anotherStringColMaxSize = 53L;
+	private Long stringListColMaxSize = 67L;
+	private Long integerColMaxSize = 97L;
+	private Long anotherIntegerColMaxSize = 113L;
 	private Long doubleColMaxSize = 131L;
-	private Long integerColMaxSize = 157L;
-	
-	
-	@BeforeEach
-	public void before() throws ParseException {
-		setupTableAndColumnMapper();
-	}
+	private Long anotherDoubleColMaxSize = 149L;
 	
 	
 	@Test
-	public void testGenerateWithNull() throws ParseException {
+	public void testGenerateWithNullElement() {
 		Optional<ElementStats> expected = Optional.empty();
 		
 		assertEquals(expected, statGenerator.generate(null, mockTableAndColumnMapper));
 	}
 	
 	@Test
+	public void testGenerateWithNullTableAndColumnMapper() {
+		String valueExpression = "123";
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			statGenerator.generate(
+					new TableQueryParser(valueExpression).valueExpression(), null);
+		}).getMessage();
+		
+		assertEquals("tableAndColumnMapper is required.", errorMessage);
+	}
+	
+	@Test
+	public void testGenerateWithUnimplementedCase() {
+		RegularIdentifier unhandledElement = new RegularIdentifier("string"); 
+		
+		Optional<ElementStats> expected = Optional.empty();
+		
+		assertEquals(expected, statGenerator.generate(unhandledElement, mockTableAndColumnMapper));
+	}
+	
+	@Test
 	public void testGerenateWithColumn() throws ParseException{
-		String valueExpression = "foo";
+		String valueExpression = "stringCol";
+		
+		setupTableAndColumnMapper();
+		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(fooMaxSize).build());
+				.setMaximumSize(stringColMaxSize).build());
 		
 		assertEquals(expected, statGenerator.generate(
 				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
 	}
 	
 	@Test
-	public void testGenerateWithAddition() throws ParseException {
-		String valueExpression = "foo+bar";
+	public void testGenerateWithAdditionWithStrings() throws ParseException {
+		String valueExpression = "stringCol+anotherStringCol";
+		
+		setupTableAndColumnMapper();
+		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(fooMaxSize + barMaxSize).build());
+				.setMaximumSize(Long.valueOf(ColumnConstants.MAX_DOUBLE_CHARACTERS_AS_STRING)).build());
+		
+		assertEquals(expected, statGenerator.generate(
+				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
+	}
+	
+	@Test
+	public void testGenerateWithAdditionWithIntegers() throws ParseException {
+		String valueExpression = "integerCol+anotherIntegerCol";
+		
+		setupTableAndColumnMapper();
+		
+		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
+				.setMaximumSize(Long.valueOf(ColumnConstants.MAX_DOUBLE_CHARACTERS_AS_STRING)).build());
+		
+		assertEquals(expected, statGenerator.generate(
+				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
+	}
+	
+	@Test
+	public void testGenerateWithAdditionWithIntegerPlusDouble() throws ParseException {
+		String valueExpression = "integerCol+doubleCol";
+		
+		setupTableAndColumnMapper();
+		
+		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
+				.setMaximumSize(Long.valueOf(ColumnConstants.MAX_DOUBLE_CHARACTERS_AS_STRING)).build());
+		
+		assertEquals(expected, statGenerator.generate(
+				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
+	}
+	
+	@Test
+	public void testGenerateWithAdditionWithDoubles() throws ParseException {
+		String valueExpression = "doubleCol+anotherDoubleCol";
+		
+		setupTableAndColumnMapper();
+		
+		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
+				.setMaximumSize(Long.valueOf(ColumnConstants.MAX_DOUBLE_CHARACTERS_AS_STRING)).build());
 		
 		assertEquals(expected, statGenerator.generate(
 				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
@@ -84,6 +148,7 @@ public class StatGeneratorIntegrationTest {
 	@Test
 	public void testGenerateWithString() throws ParseException {
 		String valueExpression = "123";
+		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
 				.setMaximumSize(3L).build());
 		
@@ -93,9 +158,12 @@ public class StatGeneratorIntegrationTest {
 	
 	@Test
 	public void testGenerateWithConcat() throws ParseException {
-		String valueExpression = "CONCAT(foo, '12345')";
+		String valueExpression = "CONCAT(stringCol, '12345')";
+		
+		setupTableAndColumnMapper();
+		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(fooMaxSize + 5L).build());
+				.setMaximumSize(stringColMaxSize + 5L).build());
 		
 		assertEquals(expected, statGenerator.generate(
 				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
@@ -103,9 +171,12 @@ public class StatGeneratorIntegrationTest {
 	
 	@Test
 	public void testGenerateWithConcatWithMultipleStrings() throws ParseException {
-		String valueExpression = "CONCAT(foo, '12345', '678')";
+		String valueExpression = "CONCAT(stringCol, '12345', '678')";
+		
+		setupTableAndColumnMapper();
+		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(fooMaxSize + 8L).build());
+				.setMaximumSize(stringColMaxSize + 8L).build());
 		
 		assertEquals(expected, statGenerator.generate(
 				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
@@ -113,9 +184,12 @@ public class StatGeneratorIntegrationTest {
 	
 	@Test
 	public void testGenerateWithConcatWithMultipleColumns() throws ParseException {
-		String valueExpression = "CONCAT(foo, '1', bar)";
+		String valueExpression = "CONCAT(stringCol, '1', anotherStringCol)";
+		
+		setupTableAndColumnMapper();
+		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(fooMaxSize + 1L + barMaxSize).build());
+				.setMaximumSize(stringColMaxSize + 1L + anotherStringColMaxSize).build());
 		
 		assertEquals(expected, statGenerator.generate(
 				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
@@ -123,9 +197,12 @@ public class StatGeneratorIntegrationTest {
 	
 	@Test
 	public void testGenerateWithNestedConcat() throws ParseException {
-		String valueExpression = "CONCAT(CONCAT(foo, '12345'), '678')";
+		String valueExpression = "CONCAT(CONCAT(stringCol, '12345'), '678')";
+		
+		setupTableAndColumnMapper();
+		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(fooMaxSize + 8L).build());
+				.setMaximumSize(stringColMaxSize + 8L).build());
 		
 		assertEquals(expected, statGenerator.generate(
 				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
@@ -133,9 +210,12 @@ public class StatGeneratorIntegrationTest {
 	
 	@Test
 	public void testGenerateWithConcatWithCount() throws ParseException {
-		String valueExpression = "CONCAT(foo, '1', COUNT(foo))";
+		String valueExpression = "CONCAT(stringCol, '1', COUNT(stringCol))";
+		
+		setupTableAndColumnMapper();
+		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(fooMaxSize + 1L + ColumnConstants.MAX_INTEGER_BYTES_AS_STRING).build());
+				.setMaximumSize(stringColMaxSize + 1L + ColumnConstants.MAX_INTEGER_CHARACTERS_AS_STRING).build());
 		
 		assertEquals(expected, statGenerator.generate(
 				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
@@ -143,9 +223,12 @@ public class StatGeneratorIntegrationTest {
 	
 	@Test
 	public void testGenerateWithConcatWithUnnest() throws ParseException {
-		String valueExpression = "CONCAT(foo, '1', UNNEST(stringListCol))";
+		String valueExpression = "CONCAT(stringCol, '1', UNNEST(stringListCol))";
+		
+		setupTableAndColumnMapper();
+		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(fooMaxSize + 1L + stringListColMaxSize).build());
+				.setMaximumSize(stringColMaxSize + 1L + stringListColMaxSize).build());
 		
 		assertEquals(expected, statGenerator.generate(
 				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
@@ -153,9 +236,10 @@ public class StatGeneratorIntegrationTest {
 	
 	@Test
 	public void testGenerateWithAverage() throws ParseException {
-		String valueExpression = "AVG(foo)";
+		String valueExpression = "AVG(stringCol)";
+		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(Long.valueOf(ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING)).build());
+				.setMaximumSize(Long.valueOf(ColumnConstants.MAX_DOUBLE_CHARACTERS_AS_STRING)).build());
 		
 		assertEquals(expected, statGenerator.generate(
 				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
@@ -164,8 +248,9 @@ public class StatGeneratorIntegrationTest {
 	@Test
 	public void testGenerateWithCount() throws ParseException {
 		String valueExpression = "COUNT(*)";
+		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
-				.setMaximumSize(Long.valueOf(ColumnConstants.MAX_INTEGER_BYTES_AS_STRING)).build());
+				.setMaximumSize(Long.valueOf(ColumnConstants.MAX_INTEGER_CHARACTERS_AS_STRING)).build());
 		
 		assertEquals(expected, statGenerator.generate(
 				new TableQueryParser(valueExpression).valueExpression(), mockTableAndColumnMapper));
@@ -174,6 +259,9 @@ public class StatGeneratorIntegrationTest {
 	@Test
 	public void testGenerateWithUnnest() throws ParseException {
 		String valueExpression = "UNNEST(stringListCol)";
+		
+		setupTableAndColumnMapper();
+		
 		Optional<ElementStats> expected = Optional.of(ElementStats.builder()
 				.setMaximumSize(stringListColMaxSize).build());
 		
@@ -183,11 +271,13 @@ public class StatGeneratorIntegrationTest {
 	
 	void setupTableAndColumnMapper() throws ParseException {
 		List<ColumnModel> schema = Lists.newArrayList(
-				TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING).setMaximumSize(fooMaxSize),
-				TableModelTestUtils.createColumn(222L, "bar", ColumnType.STRING).setMaximumSize(barMaxSize),
+				TableModelTestUtils.createColumn(111L, "stringCol", ColumnType.STRING).setMaximumSize(stringColMaxSize),
+				TableModelTestUtils.createColumn(222L, "anotherStringCol", ColumnType.STRING).setMaximumSize(anotherStringColMaxSize),
 				TableModelTestUtils.createColumn(333L, "stringListCol", ColumnType.STRING_LIST).setMaximumSize(stringListColMaxSize),
-				TableModelTestUtils.createColumn(444L, "doubleCol", ColumnType.DOUBLE).setMaximumSize(doubleColMaxSize),
-				TableModelTestUtils.createColumn(555L, "integerCol", ColumnType.INTEGER).setMaximumSize(integerColMaxSize));
+				TableModelTestUtils.createColumn(444L, "integerCol", ColumnType.INTEGER).setMaximumSize(integerColMaxSize),
+				TableModelTestUtils.createColumn(555L, "anotherIntegerCol", ColumnType.INTEGER).setMaximumSize(anotherIntegerColMaxSize),
+				TableModelTestUtils.createColumn(666L, "doubleCol", ColumnType.DOUBLE).setMaximumSize(doubleColMaxSize),
+				TableModelTestUtils.createColumn(777L, "anotherDoubleCol", ColumnType.DOUBLE).setMaximumSize(anotherDoubleColMaxSize));
 		
 		QuerySpecification model = new TableQueryParser("SELECT foo FROM syn123").queryExpression()
 				.getFirstElementOfType(QuerySpecification.class);
