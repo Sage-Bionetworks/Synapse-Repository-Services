@@ -14,5 +14,14 @@ import org.sagebionetworks.table.query.model.Element;
 
 @FunctionalInterface
 public interface StatGeneratorInteface<T extends Element> {
+	
+	/**
+	 * For the given element, attempt to estimate the stats for that element, if we are able to estimate the stats return them as an optional.
+	 * If the element is of an unhandled case, return Optional.empty()
+	 * 
+	 * @param element
+	 * @param tableAndColumnMapper
+	 * @return
+	 */
 	Optional<ElementStats> generate(T element, TableAndColumnMapper tableAndColumnMapper);
 }

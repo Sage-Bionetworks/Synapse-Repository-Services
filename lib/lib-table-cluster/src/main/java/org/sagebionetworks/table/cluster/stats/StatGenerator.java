@@ -57,6 +57,8 @@ public class StatGenerator implements StatGeneratorInteface<Element> {
 			return generate(((Factor) element).getNumericPrimary(), tableAndColumnMapper);
 		}
 		
+		// Catch all for SimpleBranches
+		// Should be the last if statement as some of the implemented cases above may also be of SimpleBranch
 		if (element instanceof SimpleBranch) {
 			return generate(((SimpleBranch) element).getChild(), tableAndColumnMapper);
 		}

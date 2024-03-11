@@ -46,10 +46,6 @@ public class StatGeneratorIntegrationTest {
 	private Long stringColMaxSize = 31L;
 	private Long anotherStringColMaxSize = 53L;
 	private Long stringListColMaxSize = 67L;
-	private Long integerColMaxSize = 97L;
-	private Long anotherIntegerColMaxSize = 113L;
-	private Long doubleColMaxSize = 131L;
-	private Long anotherDoubleColMaxSize = 149L;
 	
 	
 	@Test
@@ -274,10 +270,11 @@ public class StatGeneratorIntegrationTest {
 				TableModelTestUtils.createColumn(111L, "stringCol", ColumnType.STRING).setMaximumSize(stringColMaxSize),
 				TableModelTestUtils.createColumn(222L, "anotherStringCol", ColumnType.STRING).setMaximumSize(anotherStringColMaxSize),
 				TableModelTestUtils.createColumn(333L, "stringListCol", ColumnType.STRING_LIST).setMaximumSize(stringListColMaxSize),
-				TableModelTestUtils.createColumn(444L, "integerCol", ColumnType.INTEGER).setMaximumSize(integerColMaxSize),
-				TableModelTestUtils.createColumn(555L, "anotherIntegerCol", ColumnType.INTEGER).setMaximumSize(anotherIntegerColMaxSize),
-				TableModelTestUtils.createColumn(666L, "doubleCol", ColumnType.DOUBLE).setMaximumSize(doubleColMaxSize),
-				TableModelTestUtils.createColumn(777L, "anotherDoubleCol", ColumnType.DOUBLE).setMaximumSize(anotherDoubleColMaxSize));
+				TableModelTestUtils.createColumn(444L, "integerCol", ColumnType.INTEGER),
+				TableModelTestUtils.createColumn(555L, "anotherIntegerCol", ColumnType.INTEGER),
+				TableModelTestUtils.createColumn(666L, "doubleCol", ColumnType.DOUBLE),
+				TableModelTestUtils.createColumn(777L, "anotherDoubleCol", ColumnType.DOUBLE));
+				
 		
 		QuerySpecification model = new TableQueryParser("SELECT foo FROM syn123").queryExpression()
 				.getFirstElementOfType(QuerySpecification.class);

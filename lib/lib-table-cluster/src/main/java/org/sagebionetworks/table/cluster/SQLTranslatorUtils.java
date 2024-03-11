@@ -24,8 +24,6 @@ import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.FacetType;
-import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -103,7 +101,6 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.model.SetFunctionSpecification;
 import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -117,7 +114,6 @@ import org.sagebionetworks.table.query.model.TruthSpecification;
 import org.sagebionetworks.table.query.model.TruthValue;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
-import org.sagebionetworks.table.query.model.UnsignedValueSpecification;
 import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
@@ -1376,35 +1372,33 @@ public class SQLTranslatorUtils {
 		SelectColumn selectColumn = getSelectColumns(derivedColumn, tableAndColumnMapper);
 		// The data type is correctly inferred by the #getSelectColumns call
 		ColumnType columnType = selectColumn.getColumnType();
-		ElementStats elementStats;
-		
+				
+		ColumnModel result = new ColumnModel();
+				
 		if(selectColumn.getId() != null) {
 			ColumnModel cm = tableAndColumnMapper.getColumnModel(selectColumn.getId());
-			elementStats = ElementStats.builder()
-					.setMaximumSize(cm.getMaximumSize())
-					.setMaxListLength(cm.getMaximumListLength())
-					.setDefaultValue(cm.getDefaultValue())
+			result.setDefaultValue(cm.getDefaultValue())
 					.setFacetType(cm.getFacetType())
 					.setEnumValues(cm.getEnumValues())
 					.setJsonSubColumns(cm.getJsonSubColumns())
-					.build();
+					.setMaximumSize(cm.getMaximumSize())
+					.setMaximumListLength(cm.getMaximumListLength());
 		} else {
-			elementStats = new StatGenerator().generate(derivedColumn.getValueExpression(), tableAndColumnMapper)
+			ElementStats elementStats = new StatGenerator().generate(derivedColumn.getValueExpression(), tableAndColumnMapper)
 					.orElse(ElementStats.builder().setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE).build());
+			
+			result.setMaximumSize(containsMaximumSize(columnType) ? elementStats.getMaximumSize() : null)
+					.setMaximumListLength(ColumnTypeListMappings.isList(columnType) ? elementStats.getMaxListLength() : null);
 		}
-		
-		ColumnModel result = new ColumnModel()
+				
+		return result
 				.setColumnType(columnType)
 				.setName(selectColumn.getName())
-				.setMaximumSize(elementStats.getMaximumSize())
-				.setMaximumListLength(elementStats.getMaxListLength())
-				.setDefaultValue(elementStats.getDefaultValue())
-				.setFacetType(elementStats.getFacetType())
-				.setEnumValues(elementStats.getEnumValues())
-				.setJsonSubColumns(elementStats.getJsonSubColumns())
 				.setId(null);
-		
-		return result;
+	}
+	
+	public static Boolean containsMaximumSize(ColumnType columnType) {
+		return ColumnType.STRING.equals(columnType) || ColumnType.STRING_LIST.equals(columnType);
 	}
 
 	/**

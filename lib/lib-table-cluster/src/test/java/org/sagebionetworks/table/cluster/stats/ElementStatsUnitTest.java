@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 @ExtendWith(MockitoExtension.class)
 public class ElementStatsUnitTest {
@@ -32,6 +33,19 @@ public class ElementStatsUnitTest {
 	@Test
 	public void testAddLongWithNullNeitherNull() {
 		assertEquals(Long.valueOf(4), ElementStats.addLongsWithNull(3L, 1L));
+	}
+	
+	@Test
+	public void testCloneBuilder() throws JSONObjectAdapterException {
+		ElementStats original = ElementStats.builder()
+	            .setMaximumSize(1L)
+	            .setMaxListLength(10L)
+	            .build();
+		
+		ElementStats cloned = original.cloneBuilder().build();
+		
+		assertEquals(original.getMaximumSize(), cloned.getMaximumSize());
+		assertEquals(original.getMaxListLength(), cloned.getMaxListLength());
 	}
 	
 }

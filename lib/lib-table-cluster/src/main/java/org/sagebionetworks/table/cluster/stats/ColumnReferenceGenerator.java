@@ -20,9 +20,6 @@ public class ColumnReferenceGenerator implements StatGeneratorInteface<ColumnRef
 		return Optional.of(ElementStats.builder()
                 .setMaximumSize(ctr.getMaximumSize())
                 .setMaxListLength(ctr.getMaximumListLength())
-                .setDefaultValue(ctr.getDefaultValues())
-                .setFacetType(ctr.getFacetType())
-                .setJsonSubColumns(ctr.getJsonSubColumns())
                 .build()); 
 	}
 }
