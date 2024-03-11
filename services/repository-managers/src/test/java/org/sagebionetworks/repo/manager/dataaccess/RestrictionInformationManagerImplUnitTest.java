@@ -128,7 +128,6 @@ public class RestrictionInformationManagerImplUnitTest {
 				.withUserId(userInfo.getId())
 				.withRestrictionStatus(Collections.emptyList());
 		mapIdToAccess.put(entityIdAsLong, touStatus);
-		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(userEntityPermissionsState);
 		when(mockRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_ENTITY_ID);
@@ -140,7 +139,6 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(RestrictionLevel.OPEN, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
 		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
 	}
 
 	@Test
@@ -427,7 +425,6 @@ public class RestrictionInformationManagerImplUnitTest {
 				.withRestrictionStatus(Collections.emptyList());
 		mapIdToAccess.put(entityIdAsLong, touStatus);
 		when(mockRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
-		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(userEntityPermissionsState);
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(TEST_ENTITY_ID);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -436,6 +433,5 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(RestrictionLevel.OPEN, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
 		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
 	}
 }

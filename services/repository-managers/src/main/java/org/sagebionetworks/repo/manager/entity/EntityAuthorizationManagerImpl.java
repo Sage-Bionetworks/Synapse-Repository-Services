@@ -381,14 +381,12 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 			ValidateArgument.required(info.getAccessRestrictions(), "info.accessRestrictions()");
 			if (!info.getAuthorizationStatus().isAuthorized() && info.doesEntityExist()) {
 				// First check if the user has any unapproved AR
-				if (info.hasUnmet()) {
-					for (UsersRequirementStatus status : info.getAccessRestrictions().getAccessRestrictions()) {
-						if (status.isUnmet()) {
+				if (!info.getUnmetAccessRequirements().isEmpty()) {
+					for (long arId : info.getUnmetAccessRequirements()) {
 							actions.add(new FileActionRequired().withFileId(info.getEntityId()).withAction(
-									new MeetAccessRequirement().setAccessRequirementId(status.getRequirementId())
+									new MeetAccessRequirement().setAccessRequirementId(arId)
 								)
 							);
-						}
 					}
 				}
 
@@ -399,7 +397,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 							new EnableTwoFa().setAccessRequirementId(twoFaRequirement.get().getRequirementId())
 						)
 					);
-				} else if (!info.hasUnmet()) {
+				} else if (info.getUnmetAccessRequirements().isEmpty()) {
 					// The last check is on the ACL
 					actions.add(new FileActionRequired().withFileId(info.getEntityId())
 						.withAction(new RequestDownload().setBenefactorId(info.getBenefactorId())));

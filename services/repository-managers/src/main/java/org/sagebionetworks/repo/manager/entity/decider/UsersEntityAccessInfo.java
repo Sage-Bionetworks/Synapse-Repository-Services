@@ -5,6 +5,9 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.util.UserAccessRestrictionUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * The final determination of a user's access to an Entity. Includes information
  * about all access restrictions on the entity and the user's current status for
@@ -16,7 +19,7 @@ public class UsersEntityAccessInfo {
 	Long entityId;
 	Long benefactorId;
 	boolean entityExists;
-	boolean hasUnmet;
+	List<Long> unmetAccessRequirements;
 	AuthorizationStatus authorizationStatus;
 	UsersRestrictionStatus accessRestrictions;
 	
@@ -32,7 +35,8 @@ public class UsersEntityAccessInfo {
 		this.entityExists= context.getPermissionsState().doesEntityExist();
 		this.accessRestrictions = context.getRestrictionStatus();
 		this.authorizationStatus = status;
-		this.hasUnmet = doesUserHaveUnmetAccessRestrictionsForEntity(context);
+		this.unmetAccessRequirements = context.getRestrictionStatus() == null ? Collections.emptyList() :
+				UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForEntity(context.getPermissionsState(), context.getRestrictionStatus());
 	}
 
 	/**
@@ -96,17 +100,8 @@ public class UsersEntityAccessInfo {
 		this.entityExists = entityExists;
 	}
 
-	public boolean doesUserHaveUnmetAccessRestrictionsForEntity(AccessContext context) {
-		if(context.getPermissionsState() == null || context.getRestrictionStatus() == null){
-			return false;
-		}else {
-			return UserAccessRestrictionUtils.doesUserHaveUnmetAccessRestrictionsForEntity(context.getPermissionsState(),
-					context.getRestrictionStatus());
-		}
-	}
-
-	public boolean hasUnmet() {
-		return hasUnmet;
+	public List<Long> getUnmetAccessRequirements() {
+		return unmetAccessRequirements;
 	}
 
 	@Override
@@ -118,7 +113,7 @@ public class UsersEntityAccessInfo {
 		result = prime * result + ((benefactorId == null) ? 0 : benefactorId.hashCode());
 		result = prime * result + (entityExists ? 1231 : 1237);
 		result = prime * result + ((entityId == null) ? 0 : entityId.hashCode());
-		result = prime * result + ((hasUnmet ? 1233 : 1235));
+		result = prime * result + ((unmetAccessRequirements == null ? 0 : unmetAccessRequirements.hashCode()));
 		return result;
 	}
 
@@ -148,7 +143,7 @@ public class UsersEntityAccessInfo {
 			return false;
 		if (entityExists != other.entityExists)
 			return false;
-		if (hasUnmet != other.hasUnmet)
+		if (!unmetAccessRequirements.equals(other.unmetAccessRequirements))
 			return false;
 		if (entityId == null) {
 			if (other.entityId != null)

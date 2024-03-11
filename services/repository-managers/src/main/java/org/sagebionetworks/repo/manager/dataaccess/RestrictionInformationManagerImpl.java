@@ -1,12 +1,10 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.manager.entity.EntityStateProvider;
 import org.sagebionetworks.repo.manager.entity.LazyEntityStateProvider;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
@@ -35,44 +33,53 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 		ValidateArgument.required(request.getObjectId(), "RestrictionInformationRequest.objectId");
 		ValidateArgument.required(request.getRestrictableObjectType(),
 				"RestrictionInformationRequest.restrictableObjectType");
-		if (RestrictableObjectType.ENTITY != request.getRestrictableObjectType()
-				&& RestrictableObjectType.TEAM != request.getRestrictableObjectType()) {
-			throw new IllegalArgumentException("Unsupported type: " + request.getRestrictableObjectType());
+
+		switch (request.getRestrictableObjectType()) {
+			case ENTITY:
+				return getEntityRestrictionInformationResponse(request, userInfo);
+			case TEAM:
+				return getTeamRestrictionInformationResponse(request, userInfo);
+			default:
+				throw new IllegalArgumentException("Unsupported type: " + request.getRestrictableObjectType());
+
 		}
-
-		List<UsersRestrictionStatus> statusList = new ArrayList<>();
-		boolean hasUnmet = populateUsersRestrictionStatusAndGetHasUnmetRestrictions(request, userInfo, statusList);
-
-		return statusList.stream().findFirst().map((s) -> {
-			RestrictionInformationResponse info = new RestrictionInformationResponse();
-			info.setHasUnmetAccessRequirement(hasUnmet);
-			info.setRestrictionLevel(s.getMostRestrictiveLevel());
-			return info;
-		}).orElseGet(() -> {
-			// If there are no restrictions then the data is open and met.
-			RestrictionInformationResponse info = new RestrictionInformationResponse();
-			info.setHasUnmetAccessRequirement(hasUnmet);
-			info.setRestrictionLevel(RestrictionLevel.OPEN);
-			return info;
-		});
 	}
 
-	private boolean populateUsersRestrictionStatusAndGetHasUnmetRestrictions(RestrictionInformationRequest request,
-																			 UserInfo userInfo,
-																			 List<UsersRestrictionStatus> statusList) {
+	private RestrictionInformationResponse getEntityRestrictionInformationResponse(RestrictionInformationRequest request,
+																							 UserInfo userInfo){
+		long objectId = KeyFactory.stringToKey(request.getObjectId());
+		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
+				usersEntityPermissionsDao, userInfo, KeyFactory.stringToKeySingletonList(request.getObjectId()));
+		UsersRestrictionStatus usersRestrictionStatus = stateProvider.getRestrictionStatus(objectId);
+
+		if(usersRestrictionStatus.getAccessRestrictions().isEmpty()){
+			return getOpenAndMetRestrictionInformationResponse();
+		}else {
+			List<Long> unmetARIdList = UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForEntity(
+					stateProvider.getPermissionsState(objectId), usersRestrictionStatus);
+			return new RestrictionInformationResponse().setHasUnmetAccessRequirement(!unmetARIdList.isEmpty())
+					.setRestrictionLevel(usersRestrictionStatus.getMostRestrictiveLevel());
+		}
+	}
+
+	private RestrictionInformationResponse getTeamRestrictionInformationResponse(RestrictionInformationRequest request,
+																							 UserInfo userInfo){
 		long objectId = KeyFactory.stringToKey(request.getObjectId());
 
-		if (RestrictableObjectType.ENTITY.equals(request.getRestrictableObjectType())) {
-			EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
-					usersEntityPermissionsDao, userInfo, KeyFactory.stringToKeySingletonList(request.getObjectId()));
-			statusList.add(stateProvider.getRestrictionStatus(objectId));
-			return UserAccessRestrictionUtils.doesUserHaveUnmetAccessRestrictionsForEntity(
-					stateProvider.getPermissionsState(objectId), stateProvider.getRestrictionStatus(objectId));
+		Optional<UsersRestrictionStatus> usersRestrictionStatus = accessRestrictionStatusDao.getNonEntityStatus(List.of(objectId),
+				request.getRestrictableObjectType(), userInfo.getId()).stream().findFirst();
+		if(usersRestrictionStatus.isEmpty() || usersRestrictionStatus.get().getAccessRestrictions().isEmpty()){
+			return getOpenAndMetRestrictionInformationResponse();
+		}else {
+			List<Long> unmetARIdList = UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForNonEntity(usersRestrictionStatus.get());
+			return new RestrictionInformationResponse().setHasUnmetAccessRequirement(!unmetARIdList.isEmpty())
+							.setRestrictionLevel(usersRestrictionStatus.get().getMostRestrictiveLevel());
 		}
+	}
 
-		statusList.addAll(accessRestrictionStatusDao.getNonEntityStatus(Arrays.asList(objectId),
-				request.getRestrictableObjectType(), userInfo.getId()));
-		return UserAccessRestrictionUtils.doesUserHaveUnmetAccessRestrictionsForNonEntity(
-				statusList.stream().findFirst().orElse(new UsersRestrictionStatus()));
+	private RestrictionInformationResponse getOpenAndMetRestrictionInformationResponse(){
+		// In case there is no restrictions then the data is open and met.
+		return new  RestrictionInformationResponse().setHasUnmetAccessRequirement(false)
+				.setRestrictionLevel(RestrictionLevel.OPEN);
 	}
 }
