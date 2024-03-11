@@ -19,7 +19,6 @@ public class ColumnReferenceGenerator implements StatGeneratorInteface<ColumnRef
 		ColumnTranslationReference ctr = ctrOptional.get();
 		return Optional.of(ElementStats.builder()
                 .setMaximumSize(ctr.getMaximumSize())
-                .setMaxListLength(ctr.getMaximumListLength())
                 .build()); 
 	}
 }

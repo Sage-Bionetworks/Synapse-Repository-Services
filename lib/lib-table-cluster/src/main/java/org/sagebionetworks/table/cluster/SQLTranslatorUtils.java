@@ -1387,18 +1387,13 @@ public class SQLTranslatorUtils {
 			ElementStats elementStats = new StatGenerator().generate(derivedColumn.getValueExpression(), tableAndColumnMapper)
 					.orElse(ElementStats.builder().setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE).build());
 			
-			result.setMaximumSize(containsMaximumSize(columnType) ? elementStats.getMaximumSize() : null)
-					.setMaximumListLength(ColumnTypeListMappings.isList(columnType) ? elementStats.getMaxListLength() : null);
+			result.setMaximumSize(ColumnType.STRING.equals(columnType) ? elementStats.getMaximumSize() : null);
 		}
 				
 		return result
 				.setColumnType(columnType)
 				.setName(selectColumn.getName())
 				.setId(null);
-	}
-	
-	public static Boolean containsMaximumSize(ColumnType columnType) {
-		return ColumnType.STRING.equals(columnType) || ColumnType.STRING_LIST.equals(columnType);
 	}
 
 	/**

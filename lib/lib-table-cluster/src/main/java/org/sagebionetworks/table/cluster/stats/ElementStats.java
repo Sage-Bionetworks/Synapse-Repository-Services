@@ -5,25 +5,19 @@ import java.util.Objects;
 
 public class ElementStats {
 	private final Long maximumSize;
-	private final Long maxListLength;
 	
 	
-	private ElementStats(Long maximumSize, Long maxListLength) {
+	private ElementStats(Long maximumSize) {
 		this.maximumSize = maximumSize;
-		this.maxListLength = maxListLength;
 	}
 	
 	public Long getMaximumSize() {
 		return maximumSize;
 	}
-
-	public Long getMaxListLength() {
-		return maxListLength;
-	}
 	
 	@Override
 	public int hashCode() {
-		return Objects.hash(maxListLength, maximumSize);
+		return Objects.hash(maximumSize);
 	}
 
 	@Override
@@ -35,12 +29,12 @@ public class ElementStats {
 		if (getClass() != obj.getClass())
 			return false;
 		ElementStats other = (ElementStats) obj;
-		return Objects.equals(maxListLength, other.maxListLength) && Objects.equals(maximumSize, other.maximumSize);
+		return Objects.equals(maximumSize, other.maximumSize);
 	}
 
 	@Override
 	public String toString() {
-		return "ElementStats [maximumSize=" + maximumSize + ", maxListLength=" + maxListLength + "]";
+		return "ElementStats [maximumSize=" + maximumSize + "]";
 	}
 	
 	/**
@@ -66,27 +60,19 @@ public class ElementStats {
 	
 	public Builder cloneBuilder() {
 		return new Builder()
-				.setMaximumSize(this.maximumSize)
-				.setMaxListLength(this.maxListLength);
+				.setMaximumSize(this.maximumSize);
 	}
 	
 	public static class Builder {
-		private Long maximumSize;
-		private Long maxListLength;
-		
+		private Long maximumSize;		
 		
 		public Builder setMaximumSize(Long maximumSize) {
 			this.maximumSize = maximumSize;
 			return this;
 		}
-		
-		public Builder setMaxListLength(Long maxListLength) {
-			this.maxListLength = maxListLength;
-			return this;
-		}
-		
+
 		public ElementStats build() {
-			return new ElementStats(maximumSize, maxListLength);
+			return new ElementStats(maximumSize);
 		}
 	}
 	

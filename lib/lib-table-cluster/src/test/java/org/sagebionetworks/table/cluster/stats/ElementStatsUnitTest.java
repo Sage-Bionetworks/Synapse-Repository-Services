@@ -39,13 +39,11 @@ public class ElementStatsUnitTest {
 	public void testCloneBuilder() throws JSONObjectAdapterException {
 		ElementStats original = ElementStats.builder()
 	            .setMaximumSize(1L)
-	            .setMaxListLength(10L)
 	            .build();
 		
 		ElementStats cloned = original.cloneBuilder().build();
 		
 		assertEquals(original.getMaximumSize(), cloned.getMaximumSize());
-		assertEquals(original.getMaxListLength(), cloned.getMaxListLength());
 	}
 	
 }
