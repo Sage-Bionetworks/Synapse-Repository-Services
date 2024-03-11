@@ -23,10 +23,12 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
@@ -52,9 +54,11 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.doubles.DoubleJSONStringWrapper;
+import org.sagebionetworks.warehouse.WarehouseTestHelper;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -81,10 +85,12 @@ public class ITJsonSchemaControllerTest {
 	
 	private SynapseAdminClient adminSynapse;
 	private SynapseClient synapse;
+	private WarehouseTestHelper warehouseHelper;
 	
-	public ITJsonSchemaControllerTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+	public ITJsonSchemaControllerTest(SynapseAdminClient adminSynapse, SynapseClient synapse, WarehouseTestHelper warehouseHelper) {
 		this.adminSynapse = adminSynapse;
 		this.synapse = synapse;
+		this.warehouseHelper = warehouseHelper;
 	}
 
 	@BeforeEach
@@ -584,18 +590,48 @@ public class ITJsonSchemaControllerTest {
 		folder.setName("child");
 		folder.setParentId(project.getId());
 		folder = synapse.createEntity(folder);
-		
+				
 		final String folderId = folder.getId();
 		
-		waitFor("Waiting for derived annotations...",()->{
+		Annotations annotations = AnnotationsV2Utils.emptyAnnotations();
+		
+		AnnotationsV2TestUtils.putAnnotations(annotations, "testAnnotation", "testValue", AnnotationsValueType.STRING);
+		
+		annotations = synapse.updateAnnotationsV2(folderId, annotations);
+		
+		waitFor("Waiting for derived annotations...", () -> {
 			boolean includeDerived = true;
 			// call under test
 			Annotations annos = synapse.getAnnotationsV2(folderId, includeDerived);
+			
 			Annotations expected = new Annotations();
+			
+			AnnotationsV2TestUtils.putAnnotations(expected, "testAnnotation", List.of("testValue"), AnnotationsValueType.STRING);
 			AnnotationsV2TestUtils.putAnnotations(expected, "hasDefault", List.of("12345"), AnnotationsValueType.LONG);
+			
 			assertEquals(expected.getAnnotations(), annos.getAnnotations());
+			
 			return annos;
 		});
+		
+		Instant now = Instant.now();
+		
+		String query = String.format(
+			"select count(*) from nodesnapshots where"
+					+ " snapshot_date %s and"
+					+ " change_timestamp %s and"
+					+ " id = %s and"
+					+ " json_array_contains(json_extract(annotations, '$.annotations.testAnnotation.value'), 'testValue')"
+					+ " json_extract(derived_annotations, '$.annotations.hasDefault.value'), '12345')",
+			warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
+			warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(now),
+			KeyFactory.stringToKey(folderId)
+		);
+		
+		warehouseHelper.assertWarehouseQuery(query);
+		
+		// Sleeping gives the snapshot worker a chance to take the snapshots before the test suite deletes the project.
+		Thread.sleep(10_000);
 	}
 	
 	@Test
