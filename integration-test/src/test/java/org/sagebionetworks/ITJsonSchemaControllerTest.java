@@ -1,7 +1,20 @@
 package org.sagebionetworks;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.function.Consumer;
+
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
@@ -56,20 +69,8 @@ import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.doubles.DoubleJSONStringWrapper;
 import org.sagebionetworks.warehouse.WarehouseTestHelper;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.function.Consumer;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @ExtendWith(ITTestExtension.class)
 public class ITJsonSchemaControllerTest {
@@ -593,7 +594,9 @@ public class ITJsonSchemaControllerTest {
 				
 		final String folderId = folder.getId();
 		
-		Annotations annotations = AnnotationsV2Utils.emptyAnnotations();
+		Annotations annotations = AnnotationsV2Utils.emptyAnnotations()
+			.setId(folderId)
+			.setEtag(folder.getEtag());
 		
 		AnnotationsV2TestUtils.putAnnotations(annotations, "testAnnotation", "testValue", AnnotationsValueType.STRING);
 		
