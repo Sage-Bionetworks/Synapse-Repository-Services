@@ -131,7 +131,6 @@ public class SQLTranslatorUtilsTest {
 	ColumnModel columnQuoted;
 	ColumnModel columnStringList;
 	ColumnModel columnAnotherStringList;
-	ColumnModel columnLink;
 	
 	List<ColumnModel> schema;
 	@Mock
@@ -162,10 +161,9 @@ public class SQLTranslatorUtilsTest {
 		columnQuoted = TableModelTestUtils.createColumn(999L, "colWith\"Quotes\"InIt", ColumnType.STRING);
 		columnStringList = TableModelTestUtils.createColumn(123L, "stringList", ColumnType.STRING_LIST);
 		columnAnotherStringList = TableModelTestUtils.createColumn(456L, "anotherStringList", ColumnType.STRING_LIST);
-		columnLink = TableModelTestUtils.createColumn(789L, "aLink", ColumnType.LINK);
 
 		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial, columnDouble, 
-				columnDate, columnQuoted, columnStringList, columnAnotherStringList, columnLink);
+				columnDate, columnQuoted, columnStringList, columnAnotherStringList);
 		
 		columnNameMap = schema.stream()
 			      .collect(Collectors.toMap(ColumnModel::getName, Function.identity()));
@@ -4353,7 +4351,7 @@ public class SQLTranslatorUtilsTest {
 
 		assertEquals(
 				"T123 ("
-				+ "_C111_, _C222_, _C333_, _C444_, _C555_, _DBL_C555_, _C777_, _DBL_C777_, _C888_, _C999_, _C123_, _C456_, _C789_"
+				+ "_C111_, _C222_, _C333_, _C444_, _C555_, _DBL_C555_, _C777_, _DBL_C777_, _C888_, _C999_, _C123_, _C456_"
 				+ ") AS (SELECT * FROM syn456)",
 				element.toSql());
 		verify(mockSchemaProvider).getTableSchema(IdAndVersion.parse("syn123"));

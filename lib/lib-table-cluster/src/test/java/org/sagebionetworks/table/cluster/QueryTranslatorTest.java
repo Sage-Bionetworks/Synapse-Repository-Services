@@ -1631,6 +1631,10 @@ public class QueryTranslatorTest {
 		assertEquals(expected, schema);
 	}
 	
+	/**
+	 * Test added for PLFM-7546.
+	 * @throws ParseException
+	 */
 	@Test
 	public void testGetSchemaOfSelectWithConcat() throws ParseException {
 
