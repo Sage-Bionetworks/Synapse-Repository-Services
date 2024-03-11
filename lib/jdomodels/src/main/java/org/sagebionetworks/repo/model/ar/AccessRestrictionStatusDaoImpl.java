@@ -38,19 +38,6 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 	private static final String IS_EXEMPTION_ELIGIBLE= "IS_EXAMPTION_ELIGIBLE";
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
-
-	@Override
-	public List<UsersRestrictionStatus> getSubjectStatus(List<Long> subjectIds, RestrictableObjectType subjectType,
-			Long userId,  Set<Long> userGroups) {
-		ValidateArgument.required(subjectIds, "subjectIds");
-		ValidateArgument.required(subjectType, "subjectType");
-		ValidateArgument.required(userId, "userId");
-		if (RestrictableObjectType.ENTITY.equals(subjectType)) {
-			return getEntityStatus(subjectIds, userId, userGroups);
-		} else {
-			return getNonEntityStatus(subjectIds, subjectType, userId);
-		}
-	}
 	
 	@Override
 	public Map<Long, UsersRestrictionStatus> getEntityStatusAsMap(List<Long> entityIds, Long userId, Set<Long> userGroups) {
@@ -108,12 +95,6 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 			}
 		});
 		return statusMap;
-	}
-
-	@Override
-	public List<UsersRestrictionStatus> getEntityStatus(List<Long> entityIds, Long userId, Set<Long> userGroups) {
-		Map<Long, UsersRestrictionStatus> statusMap = getEntityStatusAsMap(entityIds, userId, userGroups);
-		return new ArrayList<UsersRestrictionStatus>(statusMap.values());
 	}
 
 	@Override

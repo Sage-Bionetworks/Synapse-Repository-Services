@@ -269,7 +269,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
 		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));;
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
 	}
 
 	@Test

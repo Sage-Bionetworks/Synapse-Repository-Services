@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.util.UserAccessRestrictionUtils;
-import org.sagebionetworks.repo.web.NotFoundException;;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * The set of functions that can be used in making entity access decisions.

@@ -2331,7 +2331,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		
 		String message = assertThrows(EntityInTrashCanException.class, () -> {
 			// call under test
-			entityAuthManager.canDeleteACL(user, entityId).checkAuthorizationOrElseThrow();;
+			entityAuthManager.canDeleteACL(user, entityId).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), message);
 	}
@@ -2359,7 +2359,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		
 		String message = assertThrows(UnauthorizedException.class, () -> {
 			// call under test
-			entityAuthManager.canDeleteACL(user, entityId).checkAuthorizationOrElseThrow();;
+			entityAuthManager.canDeleteACL(user, entityId).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, message);
 	}
@@ -2406,7 +2406,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityAuthManager.canCreateWiki(entityId, user).checkAuthorizationOrElseThrow();;
+			entityAuthManager.canCreateWiki(entityId, user).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(ERR_MSG_CERTIFIED_USER_CONTENT, newMessage);
 	}

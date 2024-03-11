@@ -416,7 +416,7 @@ public class ITDataAccessTest {
 				));
 
 		adminSynapse.createAccessRequirementAcl(aclOnAR);
-
+		// call under test
 		synapseContributor.getFileURL(fileHandleAssociation);
 	}
 	
