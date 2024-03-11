@@ -5,6 +5,7 @@ import java.nio.charset.Charset;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.json.JSONObject;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -54,8 +55,8 @@ public class SerializationUtils {
 	 */
 	public static <T extends JSONEntity> T cloneJSONEntity(T toClone){
 		try {
-			String json =  EntityFactory.createJSONStringForEntity(toClone);
-			return EntityFactory.createEntityFromJSONString(json, (Class<T>)toClone.getClass());
+			JSONObject json = EntityFactory.createJSONObjectForEntity(toClone);
+			return EntityFactory.createEntityFromJSONObject(json, (Class<T>)toClone.getClass());
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}

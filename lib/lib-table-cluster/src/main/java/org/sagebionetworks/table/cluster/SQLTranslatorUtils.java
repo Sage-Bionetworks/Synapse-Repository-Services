@@ -120,6 +120,7 @@ import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.model.WithListElement;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
+import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.collect.Lists;
@@ -1377,12 +1378,7 @@ public class SQLTranslatorUtils {
 				
 		if(selectColumn.getId() != null) {
 			ColumnModel cm = tableAndColumnMapper.getColumnModel(selectColumn.getId());
-			result.setDefaultValue(cm.getDefaultValue())
-					.setFacetType(cm.getFacetType())
-					.setEnumValues(cm.getEnumValues())
-					.setJsonSubColumns(cm.getJsonSubColumns())
-					.setMaximumSize(cm.getMaximumSize())
-					.setMaximumListLength(cm.getMaximumListLength());
+			result = SerializationUtils.cloneJSONEntity(cm);
 		} else {
 			ElementStats elementStats = new StatGenerator().generate(derivedColumn.getValueExpression(), tableAndColumnMapper)
 					.orElse(ElementStats.builder().setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE).build());
