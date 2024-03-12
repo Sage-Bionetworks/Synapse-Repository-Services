@@ -67,7 +67,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * Denies access if the user has unmet access restrictions on this entity.
 	 */
 	DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS((c) -> {
-		if (!UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForEntity(c.getPermissionsState(), c.getRestrictionStatus()).isEmpty()) {
+		if (!UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(c.getPermissionsState(), c.getRestrictionStatus()).isEmpty()) {
 			return Optional.of(new UsersEntityAccessInfo(c,
 					AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS)));
 		} else {

@@ -36,7 +36,7 @@ public class UsersEntityAccessInfo {
 		this.accessRestrictions = context.getRestrictionStatus();
 		this.authorizationStatus = status;
 		this.unmetAccessRequirements = context.getRestrictionStatus() == null ? Collections.emptyList() :
-				UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForEntity(context.getPermissionsState(), context.getRestrictionStatus());
+				UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(context.getPermissionsState(), context.getRestrictionStatus());
 	}
 
 	/**

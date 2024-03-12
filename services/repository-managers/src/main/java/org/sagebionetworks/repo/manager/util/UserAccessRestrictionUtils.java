@@ -10,8 +10,8 @@ import java.util.List;
 
 public class UserAccessRestrictionUtils {
 
-    public static List<Long> usersUnmetAccessRestrictionsForEntity(UserEntityPermissionsState userEntityPermissionsState,
-                                                                   UsersRestrictionStatus usersRestrictionStatus) {
+    public static List<Long> getUsersUnmetAccessRestrictionsForEntity(UserEntityPermissionsState userEntityPermissionsState,
+                                                                      UsersRestrictionStatus usersRestrictionStatus) {
         ValidateArgument.required(userEntityPermissionsState, "userEntityPermissionsState");
         ValidateArgument.required(usersRestrictionStatus, "usersRestrictionStatus");
         List<Long> unmetAccessRequirements = new ArrayList<>();
@@ -26,7 +26,7 @@ public class UserAccessRestrictionUtils {
         return unmetAccessRequirements;
     }
 
-    public static List<Long> usersUnmetAccessRestrictionsForNonEntity(UsersRestrictionStatus usersRestrictionStatus) {
+    public static List<Long> getUsersUnmetAccessRestrictionsForNonEntity(UsersRestrictionStatus usersRestrictionStatus) {
         ValidateArgument.required(usersRestrictionStatus, "usersRestrictionStatus");
         List<Long> unmetAccessRequirements = new ArrayList<>();
         for (UsersRequirementStatus requirementStatus : usersRestrictionStatus.getAccessRestrictions()) {

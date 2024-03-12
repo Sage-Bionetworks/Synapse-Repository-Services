@@ -23,7 +23,7 @@ public class UserAccessRestrictionUtilsTest {
                                 .withRequirementType(AccessRequirementType.MANAGED_ATC)
                                 .withIsUnmet(true).withIsExemptionEligible(true)));
         String message = assertThrows(IllegalArgumentException.class, () -> {
-            UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForEntity(null, usersRequirementStatus);
+            UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(null, usersRequirementStatus);
         }).getMessage();
         assertEquals("userEntityPermissionsState is required.", message);
 
@@ -34,7 +34,7 @@ public class UserAccessRestrictionUtilsTest {
         UserEntityPermissionsState userEntityPermissions = new UserEntityPermissionsState(1L).withHasUpdate(true)
                 .withHasDelete(true);
         String message = assertThrows(IllegalArgumentException.class, () -> {
-            UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForEntity(userEntityPermissions, null);
+            UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(userEntityPermissions, null);
         }).getMessage();
         assertEquals("usersRestrictionStatus is required.", message);
 
@@ -53,7 +53,7 @@ public class UserAccessRestrictionUtilsTest {
         List<Long> arIds = List.of(1L);
 
         //call under test
-        assertEquals(arIds, UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForEntity(userEntityPermissions,
+        assertEquals(arIds, UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(userEntityPermissions,
                 usersRequirementStatus));
 
     }
@@ -70,7 +70,7 @@ public class UserAccessRestrictionUtilsTest {
                                 .withIsUnmet(false).withIsExemptionEligible(true)));
 
         //call under test
-        assertEquals(Collections.emptyList(), UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForEntity(userEntityPermissions,
+        assertEquals(Collections.emptyList(), UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(userEntityPermissions,
                 usersRequirementStatus));
 
     }
@@ -87,7 +87,7 @@ public class UserAccessRestrictionUtilsTest {
                                 .withIsUnmet(true).withIsExemptionEligible(false)));
         List<Long> arIds = List.of(1L);
         //call under test
-        assertEquals(arIds, UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForEntity(userEntityPermissions,
+        assertEquals(arIds, UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(userEntityPermissions,
                 usersRequirementStatus));
 
     }
@@ -103,7 +103,7 @@ public class UserAccessRestrictionUtilsTest {
                                 .withRequirementType(AccessRequirementType.MANAGED_ATC)
                                 .withIsUnmet(true).withIsExemptionEligible(true)));
 
-        assertEquals(Collections.emptyList(), UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForEntity(userEntityPermissions,
+        assertEquals(Collections.emptyList(), UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(userEntityPermissions,
                 usersRequirementStatus));
 
     }
@@ -122,7 +122,7 @@ public class UserAccessRestrictionUtilsTest {
                                 .withRequirementType(AccessRequirementType.MANAGED_ATC)
                                 .withIsUnmet(false).withIsExemptionEligible(false)));
         List<Long> arIds = List.of(1L);
-        assertEquals(arIds, UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForEntity(userEntityPermissions,
+        assertEquals(arIds, UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(userEntityPermissions,
                 usersRequirementStatus));
 
     }
@@ -141,7 +141,7 @@ public class UserAccessRestrictionUtilsTest {
                                 .withRequirementType(AccessRequirementType.MANAGED_ATC)
                                 .withIsUnmet(false).withIsExemptionEligible(false)));
 
-        assertEquals(Collections.emptyList(), UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForEntity(userEntityPermissions,
+        assertEquals(Collections.emptyList(), UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(userEntityPermissions,
                 usersRequirementStatus));
 
     }
@@ -149,7 +149,7 @@ public class UserAccessRestrictionUtilsTest {
     @Test
     public void testDoesUserHaveUnmetAccessRestrictionsForNonEntityWithNullUserRestrictionStatus(){
         String message = assertThrows(IllegalArgumentException.class, () -> {
-            UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForNonEntity(null);
+            UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForNonEntity(null);
         }).getMessage();
         assertEquals("usersRestrictionStatus is required.", message);
     }
@@ -166,7 +166,7 @@ public class UserAccessRestrictionUtilsTest {
                                 .withRequirementType(AccessRequirementType.MANAGED_ATC)
                                 .withIsUnmet(true).withIsExemptionEligible(false)));
         List<Long> arIds = List.of(2L);
-        assertEquals(arIds, UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForNonEntity(usersRequirementStatus));
+        assertEquals(arIds, UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForNonEntity(usersRequirementStatus));
     }
 
     @Test
@@ -180,6 +180,6 @@ public class UserAccessRestrictionUtilsTest {
                         new UsersRequirementStatus().withRequirementId(2L)
                                 .withRequirementType(AccessRequirementType.MANAGED_ATC)
                                 .withIsUnmet(false).withIsExemptionEligible(false)));
-        assertEquals(Collections.emptyList(), UserAccessRestrictionUtils.usersUnmetAccessRestrictionsForNonEntity(usersRequirementStatus));
+        assertEquals(Collections.emptyList(), UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForNonEntity(usersRequirementStatus));
     }
 }
