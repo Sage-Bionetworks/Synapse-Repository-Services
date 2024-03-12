@@ -40,6 +40,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunction;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
@@ -128,6 +129,8 @@ public class SQLTranslatorUtilsTest {
 	ColumnModel columnDouble;
 	ColumnModel columnDate;
 	ColumnModel columnQuoted;
+	ColumnModel columnStringList;
+	ColumnModel columnAnotherStringList;
 	
 	List<ColumnModel> schema;
 	@Mock
@@ -156,8 +159,11 @@ public class SQLTranslatorUtilsTest {
 		columnDouble = TableModelTestUtils.createColumn(777L, "aDouble", ColumnType.DOUBLE);
 		columnDate = TableModelTestUtils.createColumn(888L, "aDate", ColumnType.DATE);
 		columnQuoted = TableModelTestUtils.createColumn(999L, "colWith\"Quotes\"InIt", ColumnType.STRING);
+		columnStringList = TableModelTestUtils.createColumn(123L, "stringList", ColumnType.STRING_LIST);
+		columnAnotherStringList = TableModelTestUtils.createColumn(456L, "anotherStringList", ColumnType.STRING_LIST);
 
-		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial, columnDouble, columnDate, columnQuoted);
+		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial, columnDouble, 
+				columnDate, columnQuoted, columnStringList, columnAnotherStringList);
 		
 		columnNameMap = schema.stream()
 			      .collect(Collectors.toMap(ColumnModel::getName, Function.identity()));
@@ -3839,14 +3845,6 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translateCastToDouble(spec);
 		assertEquals("SELECT * FROM syn1", spec.toSql());
 	}
-
-	@Test
-	public void testAddLongWithNull() {
-		assertEquals(null, SQLTranslatorUtils.addLongsWithNull(null, null));
-		assertEquals(123L, SQLTranslatorUtils.addLongsWithNull(null, 123L));
-		assertEquals(123L, SQLTranslatorUtils.addLongsWithNull(123L, null));
-		assertEquals(4L, SQLTranslatorUtils.addLongsWithNull(3L, 1L));
-	}
 	
 	@Test
 	public void testGetSchemaOfDerivedColumnWithSimpleString() throws ParseException {
@@ -3855,7 +3853,7 @@ public class SQLTranslatorUtilsTest {
 		
 		ColumnModel foo = columnNameMap.get("foo");
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
-				.thenReturn(List.of(foo, columnNameMap.get("has space")));
+				.thenReturn(List.of(foo));
 		
 		when(mockSchemaProvider.getColumnModel(foo.getId())).thenReturn(foo);
 		
@@ -3945,6 +3943,55 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testGetSchemaOfDerivedColumnWithStringListWithGroupConcat() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser("select stringList, group_concat(distinct anotherStringList order by anotherStringList desc separator '#') from syn123 group by stringList").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+		
+		ColumnModel stringList = columnNameMap.get("stringList");
+		ColumnModel anotherStringList = columnNameMap.get("anotherStringList");
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(stringList, anotherStringList));
+		
+		when(mockSchemaProvider.getColumnModel(stringList.getId())).thenReturn(stringList);
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		ColumnModel expected = new ColumnModel();
+		expected.setName("stringList");
+		expected.setColumnType(ColumnType.STRING_LIST);
+		expected.setMaximumSize(columnNameMap.get("stringList").getMaximumSize());
+		expected.setMaximumListLength(columnNameMap.get("stringList").getMaximumListLength());
+		expected.setId(null);
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithStringListWithHasFilter() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser("select stringList from syn123  where stringList has('someValue')").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+		
+		ColumnModel stringList = columnNameMap.get("stringList");
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(stringList));
+		
+		when(mockSchemaProvider.getColumnModel(stringList.getId())).thenReturn(stringList);
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		ColumnModel expected = new ColumnModel();
+		expected.setName("stringList");
+		expected.setColumnType(ColumnType.STRING_LIST);
+		expected.setMaximumSize(columnNameMap.get("stringList").getMaximumSize());
+		expected.setMaximumListLength(columnNameMap.get("stringList").getMaximumListLength());
+		expected.setId(null);
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
 	public void testGetSchemaOfDerivedColumnWithDerivedAddition() throws ParseException {
 		QueryExpression rootModel = new TableQueryParser("select foo + bar from syn123").queryExpression();
 		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
@@ -3958,7 +4005,7 @@ public class SQLTranslatorUtilsTest {
 		ColumnModel expected = new ColumnModel();
 		expected.setName("foo+bar");
 		expected.setColumnType(ColumnType.STRING);
-		expected.setMaximumSize(columnNameMap.get("foo").getMaximumSize() + columnNameMap.get("bar").getMaximumSize());
+		expected.setMaximumSize(Long.valueOf(ColumnConstants.MAX_DOUBLE_CHARACTERS_AS_STRING));
 		expected.setId(null);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
@@ -4005,21 +4052,84 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testGetSchemaOfDerivedColumnWithAliasThatExists() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser("select foo as bar from syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+	
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+		.thenReturn(List.of(columnNameMap.get("foo"), columnNameMap.get("bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		ColumnModel exp = new ColumnModel()
+				.setName("bar")
+				.setColumnType(ColumnType.STRING)
+				.setMaximumSize(50L)
+				.setId(null);
+		
+		assertEquals(exp, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
 	public void testGetSchemaOfDerivedColumnWithDerivedWithConcat() throws ParseException {
-		QueryExpression rootModel = new TableQueryParser("select concat(foo,\"-\", bar) AS \"concat\" from syn123").queryExpression();
+		QueryExpression rootModel = new TableQueryParser("SELECT CONCAT(foo, '-', bar) AS concatenated FROM syn123").queryExpression();
 		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
 	
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
 				.thenReturn(List.of(columnNameMap.get("foo"), columnNameMap.get("bar")));
 		
 		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
-		
 		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
-		ColumnModel expected = new ColumnModel();
-		expected.setName("concat");
-		expected.setColumnType(ColumnType.STRING);
-		expected.setMaximumSize(columnNameMap.get("foo").getMaximumSize() + columnNameMap.get("bar").getMaximumSize());
-		expected.setId(null);
+		
+		ColumnModel expected = new ColumnModel()
+				.setName("concatenated")
+				.setColumnType(ColumnType.STRING)
+				.setMaximumSize(columnNameMap.get("foo").getMaximumSize() + 1 + columnNameMap.get("bar").getMaximumSize())
+				.setId(null);
+		
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithDerivedWithConcatWithMultipleStrings() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser("SELECT CONCAT(foo, '123', '456789') AS concatenated FROM syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+	
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("foo")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		
+		ColumnModel expected = new ColumnModel()
+				.setName("concatenated")
+				.setColumnType(ColumnType.STRING)
+				.setMaximumSize(columnNameMap.get("foo").getMaximumSize() + 9)
+				.setId(null);
+		
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithDerivedWithConcatWithString() throws ParseException {
+		QueryExpression rootModel = new TableQueryParser("SELECT CONCAT(foo, '123') AS concatenated FROM syn123").queryExpression();
+		QuerySpecification model = rootModel.getFirstElementOfType(QuerySpecification.class);
+	
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(columnNameMap.get("foo"), columnNameMap.get("bar")));
+		
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, mockSchemaProvider);
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		
+		ColumnModel expected = new ColumnModel()
+				.setName("concatenated")
+				.setColumnType(ColumnType.STRING)
+				.setMaximumSize(columnNameMap.get("foo").getMaximumSize() + 3)
+				.setId(null);
+		
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
 	}
@@ -4264,7 +4374,7 @@ public class SQLTranslatorUtilsTest {
 
 		assertEquals(
 				"T123 ("
-				+ "_C111_, _C222_, _C333_, _C444_, _C555_, _DBL_C555_, _C777_, _DBL_C777_, _C888_, _C999_"
+				+ "_C111_, _C222_, _C333_, _C444_, _C555_, _DBL_C555_, _C777_, _DBL_C777_, _C888_, _C999_, _C123_, _C456_"
 				+ ") AS (SELECT * FROM syn456)",
 				element.toSql());
 		verify(mockSchemaProvider).getTableSchema(IdAndVersion.parse("syn123"));

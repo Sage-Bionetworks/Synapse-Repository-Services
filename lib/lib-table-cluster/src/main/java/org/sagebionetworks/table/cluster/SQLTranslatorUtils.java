@@ -19,13 +19,12 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.FacetType;
-import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -39,6 +38,8 @@ import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslati
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.ColumnToAdd;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.stats.StatGenerator;
+import org.sagebionetworks.table.cluster.stats.ElementStats;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -119,6 +120,7 @@ import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.model.WithListElement;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
+import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.collect.Lists;
@@ -1358,67 +1360,27 @@ public class SQLTranslatorUtils {
 	 */
 	public static ColumnModel getSchemaOfDerivedColumn(DerivedColumn derivedColumn,
 			TableAndColumnMapper tableAndColumnMapper) {
-		// the SelectColumn provides a starting name and type.
+		// The SelectColumn provides a starting name and type.
 		SelectColumn selectColumn = getSelectColumns(derivedColumn, tableAndColumnMapper);
-		Long maximumSize = null;
-		Long maxListLength = null;
-		List<String> enumValues = null;
 		// The data type is correctly inferred by the #getSelectColumns call
 		ColumnType columnType = selectColumn.getColumnType();
-		String defaultValue = null;
-		FacetType facetType = null;
-		List<JsonSubColumnModel> jsonSubColumns = null;
+				
+		ColumnModel result = new ColumnModel();
+				
 		if(selectColumn.getId() != null) {
 			ColumnModel cm = tableAndColumnMapper.getColumnModel(selectColumn.getId());
-			maximumSize = cm.getMaximumSize();
-			maxListLength = cm.getMaximumListLength();
-			defaultValue = cm.getDefaultValue();
-			facetType = cm.getFacetType();
-			enumValues = cm.getEnumValues();
-			jsonSubColumns = cm.getJsonSubColumns();
-		}else {
-			for (ColumnReference cr : derivedColumn.createIterable(ColumnReference.class)) {
-				ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
-				if (ctr != null) {
-					maximumSize = addLongsWithNull(maximumSize, ctr.getMaximumSize());
-					maxListLength = addLongsWithNull(maxListLength, ctr.getMaximumListLength());
-					defaultValue = ctr.getDefaultValues();
-					facetType = ctr.getFacetType();
-					jsonSubColumns = ctr.getJsonSubColumns();
-				}
-			}
+			result = SerializationUtils.cloneJSONEntity(cm);
+		} else {
+			ElementStats elementStats = new StatGenerator().generate(derivedColumn.getValueExpression(), tableAndColumnMapper)
+					.orElse(ElementStats.builder().setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE).build());
+			
+			result.setMaximumSize(ColumnType.STRING.equals(columnType) ? elementStats.getMaximumSize() : null);
 		}
-
-
-		ColumnModel result = new ColumnModel();
-		result.setColumnType(columnType);
-		result.setMaximumSize(maximumSize);
-		result.setMaximumListLength(maxListLength);
-		result.setName(selectColumn.getName());
-		result.setFacetType(facetType);
-		result.setDefaultValue(defaultValue);
-		result.setEnumValues(enumValues);
-		result.setJsonSubColumns(jsonSubColumns);
-		result.setId(null);
-		return result;
-	}
-	
-	
-	/**
-	 * Addition for Longs that can be null.
-	 * 
-	 * @param currentValue
-	 * @param newValue
-	 * @return
-	 */
-	public static Long addLongsWithNull(Long currentValue, Long newValue) {
-		if(currentValue == null) {
-			return newValue;
-		}
-		if(newValue == null) {
-			return currentValue;
-		}
-		return currentValue + newValue;
+				
+		return result
+				.setColumnType(columnType)
+				.setName(selectColumn.getName())
+				.setId(null);
 	}
 
 	/**
