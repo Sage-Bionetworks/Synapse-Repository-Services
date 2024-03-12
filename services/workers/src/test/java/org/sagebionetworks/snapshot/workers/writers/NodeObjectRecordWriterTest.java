@@ -2,6 +2,7 @@ package org.sagebionetworks.snapshot.workers.writers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -38,9 +39,14 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.audit.DeletedNode;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -53,6 +59,8 @@ public class NodeObjectRecordWriterTest {
 
 	@Mock
 	private NodeDAO mockNodeDAO;
+	@Mock
+	private DerivedAnnotationDao mockDerivedAnnotaionsDao;
 	@Mock
 	private UserManager mockUserManager;
 	@Mock
@@ -151,6 +159,57 @@ public class NodeObjectRecordWriterTest {
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		
 		verify(mockNodeDAO).getNode(eq("123"));
+		
+		KinesisObjectSnapshotRecord<NodeRecord> expectedRecord = KinesisObjectSnapshotRecord.map(changeMessage, node);
+		
+		verify(mockKinesisLogger).logBatch(eq("nodeSnapshots"), recordCaptor.capture());
+		
+		expectedRecord.withSnapshotTimestamp(recordCaptor.getValue().get(0).getSnapshotTimestamp());
+		
+		assertEquals(recordCaptor.getValue(), List.of(expectedRecord));
+	}
+	
+	@Test
+	public void testBuildAndWriteRecordsWithAnnotations() throws IOException {
+		when(mockNodeDAO.getNode(any())).thenReturn(node);
+		when(mockNodeDAO.getProjectId(any())).thenReturn(Optional.of("1"));
+		when(mockUserManager.getUserInfo(any())).thenReturn(mockUserInfo);
+		when(mockEntityAuthorizationManager.getUserPermissionsForEntity(any(), any())).thenReturn(mockPermissions);
+		when(mockAccessRequirementDao.getAccessRequirementStats(any(), any())).thenReturn(stats);
+		
+		Annotations baseAnnotations = AnnotationsV2Utils.emptyAnnotations();
+		
+		baseAnnotations.getAnnotations().put(
+			"baseAnnotation", new AnnotationsValue().setType(AnnotationsValueType.LONG).setValue(List.of("1"))
+		);
+		
+		Annotations derivedAnnotations = AnnotationsV2Utils.emptyAnnotations();
+		
+		derivedAnnotations.getAnnotations().put(
+			"derivedAnnotations", new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(List.of("value"))
+		);
+		
+		when(mockDerivedAnnotaionsDao.getDerivedAnnotations(any())).thenReturn(Optional.of(baseAnnotations));
+				
+		when(mockNodeDAO.getUserAnnotations(any())).thenReturn(baseAnnotations);
+		when(mockDerivedAnnotaionsDao.getDerivedAnnotations(any())).thenReturn(Optional.of(derivedAnnotations));
+		
+		Long timestamp = System.currentTimeMillis();
+		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ENTITY, "etag", timestamp);
+		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
+		
+		node.setIsPublic(false);
+		node.setIsControlled(true);
+		node.setIsRestricted(false);
+		node.setEffectiveArs(List.of(1L, 2L, 3L));
+		node.setAnnotations(baseAnnotations);
+		node.setDerivedAnnotations(derivedAnnotations);
+		
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		
+		verify(mockNodeDAO).getNode(eq("123"));
+		verify(mockNodeDAO).getUserAnnotations("123");
+		verify(mockDerivedAnnotaionsDao).getDerivedAnnotations("123");
 		
 		KinesisObjectSnapshotRecord<NodeRecord> expectedRecord = KinesisObjectSnapshotRecord.map(changeMessage, node);
 		

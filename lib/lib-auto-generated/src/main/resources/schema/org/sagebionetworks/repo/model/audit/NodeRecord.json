@@ -24,6 +24,12 @@
         	"items": {
         		"type": "integer"
         	}
+        },
+        "annotations": {
+        	"$ref": "org.sagebionetworks.repo.model.annotation.v2.Annotations"
+        },
+        "derivedAnnotations": {
+        	"$ref": "org.sagebionetworks.repo.model.annotation.v2.Annotations"
         }
 	}
 }

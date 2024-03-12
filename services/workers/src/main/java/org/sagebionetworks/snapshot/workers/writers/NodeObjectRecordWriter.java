@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -38,15 +39,17 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 
 	private NodeDAO nodeDAO;
 	private UserManager userManager;
+	private DerivedAnnotationDao derivedAnnotationsDao;
 	private AccessRequirementDAO accessRequirementDao;
 	private EntityAuthorizationManager entityAuthorizationManager;
 	private AwsKinesisFirehoseLogger kinesisLogger;
 	
 	@Autowired
-	public NodeObjectRecordWriter(NodeDAO nodeDAO, UserManager userManager, AccessRequirementDAO accessRequirementDao,
+	public NodeObjectRecordWriter(NodeDAO nodeDAO, UserManager userManager, DerivedAnnotationDao derivedAnnotationsDao, AccessRequirementDAO accessRequirementDao,
 			EntityAuthorizationManager entityAuthorizationManager, AwsKinesisFirehoseLogger kinesisLogger) {
 		this.nodeDAO = nodeDAO;
 		this.userManager = userManager;
+		this.derivedAnnotationsDao = derivedAnnotationsDao;
 		this.accessRequirementDao = accessRequirementDao;
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.kinesisLogger = kinesisLogger;
@@ -91,7 +94,7 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 		
 		return record;
 	}
-
+	
 	/**
 	 * Build a NodeRecord that wrap around Node object
 	 * 
@@ -133,7 +136,12 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 					String benefactorId = nodeDAO.getBenefactor(message.getObjectId());
 					String projectId = nodeDAO.getProjectId(message.getObjectId()).orElseThrow(() -> new NotFoundException("Project id does not exists."));
 					NodeRecord record = buildNodeRecord(node, benefactorId, projectId);
+					
 					record = setAccessProperties(record, userManager, accessRequirementDao, entityAuthorizationManager, nodeDAO);
+					
+					record.setAnnotations(nodeDAO.getUserAnnotations(record.getId()));
+					derivedAnnotationsDao.getDerivedAnnotations(record.getId()).ifPresent(record::setDerivedAnnotations);
+					
 					kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, record));
 					
 				} catch (EntityInTrashCanException e) {
