@@ -5,7 +5,7 @@ import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunct
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_DOES_NOT_EXIST;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE;
-import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_HAS_UNMET_ACCESS_RESTRICTIONS;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_IN_TRASH;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_NOT_CERTIFIED;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_NOT_PROJECT_AND_NOT_CERTIFIED;
@@ -225,7 +225,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 			DENY_IF_DOES_NOT_EXIST,
 			DENY_IF_IN_TRASH,
 			GRANT_IF_ADMIN,
-			DENY_IF_HAS_UNMET_ACCESS_RESTRICTIONS,
+			DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS,
 			DENY_IF_TWO_FA_REQUIREMENT_NOT_MET,
 			GRANT_IF_OPEN_DATA_WITH_READ,
 			DENY_IF_ANONYMOUS,
@@ -369,29 +369,27 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	public List<FileActionRequired> getActionsRequiredForDownload(UserInfo userInfo, List<Long> entityIds) {
 		ValidateArgument.required(userInfo, "The userInfo");
 		ValidateArgument.required(entityIds, "The entityIds");
-		
+
 		List<UsersEntityAccessInfo> batchInfo = batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
 
 		List<FileActionRequired> actions = new ArrayList<>(batchInfo.size());
-		
+
 		boolean hasTwoFactorAuthEnabled = userInfo.hasTwoFactorAuthEnabled();
-		
+
 		for (UsersEntityAccessInfo info : batchInfo) {
 			ValidateArgument.required(info.getAuthorizationStatus(), "info.authroizationStatus");
 			ValidateArgument.required(info.getAccessRestrictions(), "info.accessRestrictions()");
 			if (!info.getAuthorizationStatus().isAuthorized() && info.doesEntityExist()) {
 				// First check if the user has any unapproved AR
-				if (info.getAccessRestrictions().hasUnmet()) {
-					for (UsersRequirementStatus status : info.getAccessRestrictions().getAccessRestrictions()) {
-						if (status.isUnmet()) {
+				if (!info.getUnmetAccessRequirements().isEmpty()) {
+					for (long arId : info.getUnmetAccessRequirements()) {
 							actions.add(new FileActionRequired().withFileId(info.getEntityId()).withAction(
-									new MeetAccessRequirement().setAccessRequirementId(status.getRequirementId())
+									new MeetAccessRequirement().setAccessRequirementId(arId)
 								)
 							);
-						}			
 					}
 				}
-				
+
 				// The user might need to enable 2FA in order to download data
 				Optional<UsersRequirementStatus> twoFaRequirement = info.getAccessRestrictions().getAccessRestrictions().stream().filter(UsersRequirementStatus::isTwoFaRequired).findFirst();
 				if (!hasTwoFactorAuthEnabled && twoFaRequirement.isPresent()) {
@@ -399,14 +397,14 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 							new EnableTwoFa().setAccessRequirementId(twoFaRequirement.get().getRequirementId())
 						)
 					);
-				} else if (!info.getAccessRestrictions().hasUnmet()) {
+				} else if (info.getUnmetAccessRequirements().isEmpty()) {
 					// The last check is on the ACL
 					actions.add(new FileActionRequired().withFileId(info.getEntityId())
 						.withAction(new RequestDownload().setBenefactorId(info.getBenefactorId())));
 				}
 			}
 		}
-		
+
 		return actions;
 	}
 

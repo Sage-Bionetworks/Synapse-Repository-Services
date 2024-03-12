@@ -40,7 +40,7 @@ public class AccessContext {
 	public UsersRestrictionStatus getRestrictionStatus() {
 		return restrictionStatus;
 	}
-	
+
 	/**
 	 * @param user the user to set
 	 */
@@ -64,7 +64,7 @@ public class AccessContext {
 		this.restrictionStatus = restrictionStatus;
 		return this;
 	}
-		
+
 	/**
 	 * @return the accessType
 	 */
@@ -120,5 +120,5 @@ public class AccessContext {
 				+ ", accessType=" + accessType + ", entityCreateType=" + entityCreateType
 				+ "]";
 	}
-	
+
 }

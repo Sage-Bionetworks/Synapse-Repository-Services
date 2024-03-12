@@ -20,7 +20,8 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.web.NotFoundException;;
+import org.sagebionetworks.repo.manager.util.UserAccessRestrictionUtils;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * The set of functions that can be used in making entity access decisions.
@@ -65,8 +66,8 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	/**
 	 * Denies access if the user has unmet access restrictions on this entity.
 	 */
-	DENY_IF_HAS_UNMET_ACCESS_RESTRICTIONS((c) -> {
-		if (c.getRestrictionStatus().hasUnmet()) {
+	DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS((c) -> {
+		if (!UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(c.getPermissionsState(), c.getRestrictionStatus()).isEmpty()) {
 			return Optional.of(new UsersEntityAccessInfo(c,
 					AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS)));
 		} else {

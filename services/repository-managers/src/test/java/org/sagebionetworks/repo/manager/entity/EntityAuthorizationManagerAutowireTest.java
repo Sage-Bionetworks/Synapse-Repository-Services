@@ -15,7 +15,9 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
@@ -34,12 +36,17 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -85,14 +92,19 @@ public class EntityAuthorizationManagerAutowireTest {
 	@Autowired
 	private DaoObjectHelper<AccessApproval> accessApprovalHelper;
 	@Autowired
+	private DaoObjectHelper<UserGroup> userGroupHelper;
+	@Autowired
 	private EntityAuthorizationManager entityAuthManager;
 	@Autowired
 	private AuthenticationDAO authDao;
+	@Autowired
+	private GroupMembersDAO groupMembersDAO;
 	
 	private UserInfo adminUserInfo;
 	private UserInfo anonymousUser;
 	private UserInfo userOne;
 	private UserInfo userTwo;
+	private Long teamOneId;
 
 	@BeforeEach
 	public void before() {		
@@ -114,6 +126,10 @@ public class EntityAuthorizationManagerAutowireTest {
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
 		userTwo = userManager.createOrGetTestUser(adminUserInfo, nu, cred, tou);
+
+		teamOneId = Long.parseLong(userGroupHelper.create(u -> {
+			u.setIsIndividual(false);
+		}).getId());
 	}
 
 	@AfterEach
@@ -128,6 +144,9 @@ public class EntityAuthorizationManagerAutowireTest {
 		}
 		if (userTwo != null) {
 			userManager.deletePrincipal(adminUserInfo, userTwo.getId());
+		}
+		if (teamOneId != null) {
+			userManager.deletePrincipal(adminUserInfo, teamOneId);
 		}
 	}
 
@@ -323,7 +342,7 @@ public class EntityAuthorizationManagerAutowireTest {
 	}
 
 	@Test
-	public void testHasAccessDownloadWithMetAccessRestrictions() {
+	public void testHasAccessDownloadWithMetAccessRestrictionsAndWithoutExemptionEligible() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");
 			n.setCreatedByPrincipalId(userOne.getId());
@@ -356,7 +375,75 @@ public class EntityAuthorizationManagerAutowireTest {
 	}
 
 	@Test
-	public void testHasAccessDownloadWithUnmetAccessRestrictions() {
+	public void testHasAccessDownloadWithUnMetAccessRestrictionsAndWithExemptionEligible() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.setResourceAccess(Collections.singleton(
+					new ResourceAccess().setPrincipalId(userTwo.getId())
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))));
+		});
+
+		Long arId = managedHelper.create(a -> {
+			a.setAccessType(ACCESS_TYPE.DOWNLOAD);
+			a.setSubjectIds(Collections.singletonList(
+					new RestrictableObjectDescriptor().setId(project.getId())
+							.setType(RestrictableObjectType.ENTITY)));
+		}).getId();
+
+		aclHelper.create((a) -> {
+			a.setId(arId.toString());
+			a.setResourceAccess(Set.of(
+					new ResourceAccess().setPrincipalId(Long.valueOf(userTwo.getId()))
+							.setAccessType(Collections.singleton(ACCESS_TYPE.EXEMPTION_ELIGIBLE))));
+		} , ObjectType.ACCESS_REQUIREMENT);
+
+		// call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(userTwo, project.getId(), ACCESS_TYPE.DOWNLOAD);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+
+	@Test
+	public void testHasAccessDownloadWithMetAccessRestrictionsAndWithExemptionEligible() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userTwo.getId());
+		});
+
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.setResourceAccess(Collections.singleton(
+					new ResourceAccess().setPrincipalId(userTwo.getId())
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))));
+		});
+
+		Long arId = managedHelper.create(a -> {
+			a.setAccessType(ACCESS_TYPE.DOWNLOAD);
+			a.setSubjectIds(Collections.singletonList(
+					new RestrictableObjectDescriptor().setId(project.getId())
+							.setType(RestrictableObjectType.ENTITY)));
+		}).getId();
+
+		aclHelper.create((a) -> {
+			a.setId(arId.toString());
+			a.setResourceAccess(Set.of(
+					new ResourceAccess().setPrincipalId(Long.valueOf(userTwo.getId()))
+							.setAccessType(Collections.singleton(ACCESS_TYPE.EXEMPTION_ELIGIBLE))));
+		} , ObjectType.ACCESS_REQUIREMENT);
+
+		// call under test
+		AuthorizationStatus newStatus = entityAuthManager.hasAccess(userTwo, project.getId(), ACCESS_TYPE.DOWNLOAD);
+		assertNotNull(newStatus);
+		assertTrue(newStatus.isAuthorized());
+	}
+
+	@Test
+	public void testHasAccessDownloadWithUnmetAccessRestrictionsAndWithoutExemptionEligible() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");
 			n.setCreatedByPrincipalId(userOne.getId());
@@ -370,17 +457,464 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.getSubjectIds().get(0).setId(project.getId());
 		});
 
-		String entityId = project.getId();
-		UserInfo user = userTwo;
-		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-
-		// new call under test
+		// call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+			entityAuthManager.hasAccess(userTwo, project.getId(), ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS, newMessage);
 	}
-	
+
+	/**
+	 * A Data Contributor’s AR “exemption” must be limited to data within the scope of their contribution.
+	 */
+	@Test
+	public void testHasAccessDownloadWithExemptionEligibleOnSomeFilesOfOneProject() {
+		Node projectOne = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(adminUserInfo.getId());
+		});
+
+		Node fileOne = nodeDaoHelper.create(n -> {
+			n.setName("aFile");
+			n.setCreatedByPrincipalId(adminUserInfo.getId());
+			n.setParentId(projectOne.getId());
+			n.setNodeType(EntityType.file);
+		});
+
+		Node fileTwo = nodeDaoHelper.create(n -> {
+			n.setName("aFileTwo");
+			n.setCreatedByPrincipalId(adminUserInfo.getId());
+			n.setParentId(projectOne.getId());
+			n.setNodeType(EntityType.file);
+		});
+
+		Node projectTwo = nodeDaoHelper.create(n -> {
+			n.setName("anotherProject");
+			n.setCreatedByPrincipalId(adminUserInfo.getId());
+		});
+
+		Node fileThree = nodeDaoHelper.create(n -> {
+			n.setName("aFileThree");
+			n.setCreatedByPrincipalId(adminUserInfo.getId());
+			n.setParentId(projectTwo.getId());
+		});
+
+		// userTwo is contributor for fileOne and has download access
+		aclHelper.create((a) -> {
+			a.setId(fileOne.getId());
+			a.setResourceAccess(Collections.singleton(
+					new ResourceAccess().setPrincipalId(userTwo.getId())
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))));
+		});
+
+		// userTwo is contributor for fileTwo with no download access
+		aclHelper.create((a) -> {
+			a.setId(fileTwo.getId());
+			a.setResourceAccess(Collections.singleton(
+					new ResourceAccess().setPrincipalId(userTwo.getId())
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE))));
+		});
+
+		// userTwo is contributor for fileThree with no download access
+		aclHelper.create((a) -> {
+			a.setId(fileThree.getId());
+			a.setResourceAccess(Collections.singleton(
+					new ResourceAccess().setPrincipalId(userTwo.getId())
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE))));
+		});
+
+		//AR on fileOne and fileTwo
+		Long arId = managedHelper.create(a -> {
+			a.setAccessType(ACCESS_TYPE.DOWNLOAD);
+			a.setSubjectIds(List.of(
+					new RestrictableObjectDescriptor()
+							.setId(fileOne.getId())
+							.setType(RestrictableObjectType.ENTITY),
+					new RestrictableObjectDescriptor()
+							.setId(fileTwo.getId())
+							.setType(RestrictableObjectType.ENTITY)));
+		}).getId();
+
+		//Exemption ACL on arId
+		aclHelper.create((a) -> {
+			a.setId(arId.toString());
+			a.setResourceAccess(Set.of(
+					new ResourceAccess()
+							.setPrincipalId(Long.valueOf(userTwo.getId()))
+							.setAccessType(Collections.singleton(ACCESS_TYPE.EXEMPTION_ELIGIBLE))));
+		} , ObjectType.ACCESS_REQUIREMENT);
+
+		// There is no AR on file three and also no download access
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(userTwo, fileThree.getId(), ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals("You lack DOWNLOAD access to the requested entity.", newMessage);
+
+		// userTwo is exempted for file Two but not met access requirement and has no download access.
+		String newMessageTwo = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(userTwo, fileTwo.getId(), ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals("You lack DOWNLOAD access to the requested entity.", newMessageTwo);
+
+		//userTwo is contributor for file One and exempted
+		AuthorizationStatus status = entityAuthManager.hasAccess(userTwo, fileOne.getId(), ACCESS_TYPE.DOWNLOAD);
+		assertNotNull(status);
+		assertTrue(status.isAuthorized());
+
+		//userOne is neither exempted nor met access approval
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(userOne, fileOne.getId(), ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS, message);
+	}
+
+	@Test
+	public void testHasAccessDownloadWhenASingleARIsBoundToMultipleEntities() {
+		groupMembersDAO.addMembers(teamOneId.toString(),List.of(userTwo.getId().toString()));
+
+		userTwo = userManager.getUserInfo(userTwo.getId());
+
+		Node projectOne = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+
+		Node fileOne = nodeDaoHelper.create(n -> {
+			n.setName("fileOne");
+			n.setParentId(projectOne.getId());
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setNodeType(EntityType.file);
+		});
+
+		Node fileTwo = nodeDaoHelper.create(n -> {
+			n.setName("fileTwo");
+			n.setParentId(projectOne.getId());
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setNodeType(EntityType.file);
+		});
+
+		//teamOneId is contributor for fileOne
+		aclHelper.create((a) -> {
+			a.setId(fileOne.getId());
+			a.setResourceAccess(Collections.singleton(
+					new ResourceAccess().setPrincipalId(teamOneId)
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))));
+		});
+
+		// userOne is contributor for fileTwo
+		aclHelper.create((a) -> {
+			a.setId(fileTwo.getId());
+			a.setResourceAccess(Collections.singleton(
+					new ResourceAccess().setPrincipalId(userOne.getId())
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))));
+		});
+
+		//AR for file one and two
+		Long arId = managedHelper.create(a -> {
+			a.setAccessType(ACCESS_TYPE.DOWNLOAD);
+			a.setSubjectIds(List.of(
+					new RestrictableObjectDescriptor()
+							.setId(fileOne.getId())
+							.setType(RestrictableObjectType.ENTITY),
+					new RestrictableObjectDescriptor()
+							.setId(fileTwo.getId())
+							.setType(RestrictableObjectType.ENTITY)));
+		}).getId();
+
+		//Exemption ACL on AR
+		aclHelper.create((a) -> {
+			a.setId(arId.toString());
+			a.setResourceAccess(Set.of(
+					new ResourceAccess()
+							.setPrincipalId(Long.valueOf(teamOneId))
+							.setAccessType(Collections.singleton(ACCESS_TYPE.EXEMPTION_ELIGIBLE)),
+					new ResourceAccess()
+							.setPrincipalId(Long.valueOf(userOne.getId()))
+							.setAccessType(Collections.singleton(ACCESS_TYPE.EXEMPTION_ELIGIBLE))));
+		} , ObjectType.ACCESS_REQUIREMENT);
+
+		//userTwo is member teamOne. teamOne is eligible for exemption but not exempted as it is neither contributor nor met access
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(userTwo, fileTwo.getId(), ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS, newMessage);
+
+		//userTwo is member teamOne. TeamOne is contributor for fileOne and eligible for exemption
+		AuthorizationStatus statusOne = entityAuthManager.hasAccess(userTwo, fileOne.getId(), ACCESS_TYPE.DOWNLOAD);
+		assertNotNull(statusOne);
+		assertTrue(statusOne.isAuthorized());
+
+		//userOne is creator of fileTwo hence approved and has download access
+		AuthorizationStatus statusTwo =entityAuthManager.hasAccess(userOne, fileTwo.getId(), ACCESS_TYPE.DOWNLOAD);
+		assertNotNull(statusTwo);
+		assertTrue(statusTwo.isAuthorized());
+
+		//userOne creator of fileOne hence approved but has no download access
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(userOne, fileOne.getId(), ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals("You lack DOWNLOAD access to the requested entity.", message);
+	}
+
+	@Test
+	public void testHasAccessDownloadWithMultipleAROnEntityWithAndWithoutExemption() {
+		Node projectOne = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		Node fileOne = nodeDaoHelper.create(n -> {
+			n.setName("aFile");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setParentId(projectOne.getId());
+			n.setNodeType(EntityType.file);
+		});
+
+		//userTwo is contributor for fileOne
+		aclHelper.create((a) -> {
+			a.setId(fileOne.getId());
+			a.setResourceAccess(Collections.singleton(
+					new ResourceAccess().setPrincipalId(userTwo.getId())
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))));
+		});
+
+
+		//AR on fileOne
+		Long arId = managedHelper.create(a -> {
+			a.setAccessType(ACCESS_TYPE.DOWNLOAD);
+			a.setSubjectIds(List.of(
+					new RestrictableObjectDescriptor()
+							.setId(fileOne.getId())
+							.setType(RestrictableObjectType.ENTITY)));
+		}).getId();
+		;
+		//AR Two on fileOne
+		Long arIdTwo = managedHelper.create(a -> {
+			a.setAccessType(ACCESS_TYPE.DOWNLOAD);
+			a.setSubjectIds(List.of(
+					new RestrictableObjectDescriptor()
+							.setId(fileOne.getId())
+							.setType(RestrictableObjectType.ENTITY)));
+		}).getId();
+
+		//AR three on fileOne
+		Long arIdThree = managedHelper.create(a -> {
+			a.setAccessType(ACCESS_TYPE.DOWNLOAD);
+			a.setSubjectIds(List.of(
+					new RestrictableObjectDescriptor()
+							.setId(fileOne.getId())
+							.setType(RestrictableObjectType.ENTITY)));
+		}).getId();
+
+		//Exemption ACL on AR One
+		aclHelper.create((a) -> {
+			a.setId(arId.toString());
+			a.setResourceAccess(Set.of(
+					new ResourceAccess()
+							.setPrincipalId(Long.valueOf(userTwo.getId()))
+							.setAccessType(Collections.singleton(ACCESS_TYPE.EXEMPTION_ELIGIBLE))));
+		} , ObjectType.ACCESS_REQUIREMENT);
+
+		aclHelper.create((a) -> {
+			a.setId(arIdTwo.toString());
+			a.setResourceAccess(Set.of(
+					new ResourceAccess()
+							.setPrincipalId(Long.valueOf(userTwo.getId()))
+							.setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))));
+		} , ObjectType.ACCESS_REQUIREMENT);
+
+		aclHelper.create((a) -> {
+			a.setId(arIdThree.toString());
+			a.setResourceAccess(Set.of(
+					new ResourceAccess()
+							.setPrincipalId(Long.valueOf(userTwo.getId()))
+							.setAccessType(Collections.singleton(ACCESS_TYPE.DOWNLOAD))));
+		} , ObjectType.ENTITY);
+
+		//Multiple AR, one is eligible and the other is not on fileOne
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(userTwo, fileOne.getId(), ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals("There are unmet access requirements that must be met to read content in the requested container.", newMessage);
+
+		//userOne is creator of fileOne so user met access requirement without exemption and has no download access.
+		String newMessageTwo = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(userOne, fileOne.getId(), ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals("You lack DOWNLOAD access to the requested entity.", newMessageTwo);
+	}
+
+
+	@Test
+	public void testHasAccessDownloadWithTwoAROnEntityOneHasExemptionAndOneHasApproval() {
+		Node projectOne = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(userOne.getId());
+		});
+		Node fileOne = nodeDaoHelper.create(n -> {
+			n.setName("aFile");
+			n.setCreatedByPrincipalId(userOne.getId());
+			n.setParentId(projectOne.getId());
+			n.setNodeType(EntityType.file);
+		});
+
+		//userTwo is contributor for fileOne
+		aclHelper.create((a) -> {
+			a.setId(fileOne.getId());
+			a.setResourceAccess(Collections.singleton(
+					new ResourceAccess().setPrincipalId(userTwo.getId())
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))));
+		});
+
+
+		//AR on fileOne
+		Long arId = managedHelper.create(a -> {
+			a.setAccessType(ACCESS_TYPE.DOWNLOAD);
+			a.setSubjectIds(List.of(
+					new RestrictableObjectDescriptor()
+							.setId(fileOne.getId())
+							.setType(RestrictableObjectType.ENTITY)));
+		}).getId();
+		;
+		//AR two on fileOne
+		ManagedACTAccessRequirement arIdTwo = managedHelper.create(a -> {
+			a.setAccessType(ACCESS_TYPE.DOWNLOAD);
+			a.setSubjectIds(List.of(
+					new RestrictableObjectDescriptor()
+							.setId(fileOne.getId())
+							.setType(RestrictableObjectType.ENTITY)));
+		});
+
+		//Exemption ACL on AR one
+		aclHelper.create((a) -> {
+			a.setId(arId.toString());
+			a.setResourceAccess(Set.of(
+					new ResourceAccess()
+							.setPrincipalId(Long.valueOf(userTwo.getId()))
+							.setAccessType(Collections.singleton(ACCESS_TYPE.EXEMPTION_ELIGIBLE))));
+		} , ObjectType.ACCESS_REQUIREMENT);
+
+		// Approval for AR Two
+		accessApprovalHelper.create(a -> {
+			a.setCreatedBy(userOne.getId().toString());
+			a.setSubmitterId(userOne.getId().toString());
+			a.setRequirementId(arIdTwo.getId());
+			a.setRequirementVersion(arIdTwo.getVersionNumber());
+			a.setState(ApprovalState.APPROVED);
+			a.setAccessorId(userTwo.getId().toString());
+		});
+
+
+		//Two AR, one is exemption eligible and the other has approval
+		AuthorizationStatus status =entityAuthManager.hasAccess(userTwo, fileOne.getId(), ACCESS_TYPE.DOWNLOAD);
+		assertNotNull(status);
+		assertTrue(status.isAuthorized());
+
+		//userOne is creator of fileOne so user met access requirement without exemption and has no download access.
+		String newMessageTwo = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(userOne, fileOne.getId(), ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals("You lack DOWNLOAD access to the requested entity.", newMessageTwo);
+	}
+
+	@Test
+	public void testHasAccessDownloadWithMultipleAROnMultipleEntityWithAndWithoutExemption() {
+		Node projectOne = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(adminUserInfo.getId());
+		});
+		Node fileOne = nodeDaoHelper.create(n -> {
+			n.setName("aFile");
+			n.setCreatedByPrincipalId(adminUserInfo.getId());
+			n.setParentId(projectOne.getId());
+			n.setNodeType(EntityType.file);
+		});
+		Node fileTwo = nodeDaoHelper.create(n -> {
+			n.setName("aFileTwo");
+			n.setCreatedByPrincipalId(adminUserInfo.getId());
+			n.setParentId(projectOne.getId());
+			n.setNodeType(EntityType.file);
+		});
+
+
+		//userTwo is contributor for fileOne
+		aclHelper.create((a) -> {
+			a.setId(fileOne.getId());
+			a.setResourceAccess(Collections.singleton(
+					new ResourceAccess().setPrincipalId(userTwo.getId())
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))));
+		});
+
+		//userTwo is contributor for fileTwo
+		aclHelper.create((a) -> {
+			a.setId(fileTwo.getId());
+			a.setResourceAccess(Collections.singleton(
+					new ResourceAccess().setPrincipalId(userTwo.getId())
+							.setAccessType(Set.of(ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE, ACCESS_TYPE.DOWNLOAD))));
+		});
+
+
+		//AR on fileOne and file Two
+		Long arId = managedHelper.create(a -> {
+			a.setAccessType(ACCESS_TYPE.DOWNLOAD);
+			a.setSubjectIds(List.of(
+					new RestrictableObjectDescriptor()
+							.setId(fileOne.getId())
+							.setType(RestrictableObjectType.ENTITY),
+					new RestrictableObjectDescriptor()
+							.setId(fileTwo.getId())
+							.setType(RestrictableObjectType.ENTITY)));
+		}).getId();
+		;
+		//AR on fileOne and file Two
+		Long arIdTwo = managedHelper.create(a -> {
+			a.setAccessType(ACCESS_TYPE.DOWNLOAD);
+			a.setSubjectIds(List.of(
+					new RestrictableObjectDescriptor()
+							.setId(fileOne.getId())
+							.setType(RestrictableObjectType.ENTITY),
+					new RestrictableObjectDescriptor()
+							.setId(fileTwo.getId())
+							.setType(RestrictableObjectType.ENTITY)));
+		}).getId();
+
+		//AR three on fileOne
+		Long arIdThree = managedHelper.create(a -> {
+			a.setAccessType(ACCESS_TYPE.DOWNLOAD);
+			a.setSubjectIds(List.of(
+					new RestrictableObjectDescriptor()
+							.setId(fileOne.getId())
+							.setType(RestrictableObjectType.ENTITY)));
+		}).getId();
+
+		//Exemption ACL on AR One
+		aclHelper.create((a) -> {
+			a.setId(arId.toString());
+			a.setResourceAccess(Set.of(
+					new ResourceAccess()
+							.setPrincipalId(Long.valueOf(userTwo.getId()))
+							.setAccessType(Collections.singleton(ACCESS_TYPE.EXEMPTION_ELIGIBLE))));
+		} , ObjectType.ACCESS_REQUIREMENT);
+
+		//Exemption ACL on AR Two
+		aclHelper.create((a) -> {
+			a.setId(arIdTwo.toString());
+			a.setResourceAccess(Set.of(
+					new ResourceAccess()
+							.setPrincipalId(Long.valueOf(userTwo.getId()))
+							.setAccessType(Collections.singleton(ACCESS_TYPE.EXEMPTION_ELIGIBLE))));
+		} , ObjectType.ACCESS_REQUIREMENT);
+
+		//3 AR on fileOne and userTwo is exempted on 2 AR
+		String newMessage = assertThrows(UnauthorizedException.class, () -> {
+			entityAuthManager.hasAccess(userTwo, fileOne.getId(), ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
+		}).getMessage();
+		assertEquals(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS, newMessage);
+
+		//3 AR on fileTwp and userTwo is exempted on all 3 AR
+		AuthorizationStatus status =entityAuthManager.hasAccess(userTwo, fileTwo.getId(), ACCESS_TYPE.DOWNLOAD);
+		assertNotNull(status);
+		assertTrue(status.isAuthorized());
+	}
 	@Test
 	public void testHasAccessDownloadWithUnmetTwoFaRequirement() {
 		Node project = nodeDaoHelper.create(n -> {
@@ -1797,7 +2331,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		
 		String message = assertThrows(EntityInTrashCanException.class, () -> {
 			// call under test
-			entityAuthManager.canDeleteACL(user, entityId).checkAuthorizationOrElseThrow();;
+			entityAuthManager.canDeleteACL(user, entityId).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(String.format(ERR_MSG_ENTITY_IN_TRASH_TEMPLATE, project.getId()), message);
 	}
@@ -1825,7 +2359,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		
 		String message = assertThrows(UnauthorizedException.class, () -> {
 			// call under test
-			entityAuthManager.canDeleteACL(user, entityId).checkAuthorizationOrElseThrow();;
+			entityAuthManager.canDeleteACL(user, entityId).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, message);
 	}
@@ -1872,7 +2406,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		
 		// new call under test
 		String newMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityAuthManager.canCreateWiki(entityId, user).checkAuthorizationOrElseThrow();;
+			entityAuthManager.canCreateWiki(entityId, user).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(ERR_MSG_CERTIFIED_USER_CONTENT, newMessage);
 	}
