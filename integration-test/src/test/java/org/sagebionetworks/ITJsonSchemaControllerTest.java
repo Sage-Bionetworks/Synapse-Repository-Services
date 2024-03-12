@@ -624,8 +624,8 @@ public class ITJsonSchemaControllerTest {
 					+ " snapshot_date %s and"
 					+ " change_timestamp %s and"
 					+ " id = %s and"
-					+ " json_array_contains(json_extract(annotations, '$.annotations.testAnnotation.value'), 'testValue')"
-					+ " json_extract(derived_annotations, '$.annotations.hasDefault.value'), '12345')",
+					+ " json_array_contains(json_extract(annotations, '$.annotations.testAnnotation.value'), 'testValue') and"
+					+ " json_array_contains(json_extract(derived_annotations, '$.annotations.hasDefault.value'), '12345')",
 			warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(now),
 			warehouseHelper.toIsoTimestampStringBetweenPlusAndMinusThirtySeconds(now),
 			KeyFactory.stringToKey(folderId)
