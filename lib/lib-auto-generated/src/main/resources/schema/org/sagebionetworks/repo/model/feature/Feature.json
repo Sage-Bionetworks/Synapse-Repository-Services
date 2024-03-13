@@ -21,6 +21,10 @@
 	    {
 	     	"name": "UPLOAD_LOCK_NOWAIT",
 	        "description": "Enable row lock with nowait when adding a part or completing a multipart upload"
+	    },
+	    {
+	    	"name": "CHANGE_PASSWORD_2FA_CHECK_BYPASS",
+	    	"description": "Disable checking for two fa when changing the user password"
 	    }
     ]
 }
