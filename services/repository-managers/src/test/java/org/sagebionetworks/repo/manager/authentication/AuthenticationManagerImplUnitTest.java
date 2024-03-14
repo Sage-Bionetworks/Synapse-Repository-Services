@@ -16,6 +16,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
@@ -508,7 +509,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mock2FaManager).generate2FaToken(userInfo, Set.of(TwoFactorAuthOtpType.TOTP, TwoFactorAuthOtpType.RECOVERY_CODE));
+		verify(mock2FaManager).generate2FaToken(userInfo, Collections.emptySet());
 	}
 
 	/////////////////////////////////////////////////////////////

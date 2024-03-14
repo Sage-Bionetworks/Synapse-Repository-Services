@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.authentication;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.Set;
 
@@ -120,8 +121,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		//we can ignore the return value here because we are not generating a new authentication receipt on success
 		validateAuthReceiptAndCheckPassword(userId, changePasswordWithCurrentPassword.getCurrentPassword(), changePasswordWithCurrentPassword.getAuthenticationReceipt());
 
-		// Since this is an unauthenticated request, we need to check for the second factor if 2fa is enabled
-		validateTwoFactorDisabledForPasswordChange(userId);
+		// Since this is an unauthenticated request, we need to check for the second factor if 2fa is enabled. Since the password
+		// is a known factor, any other second factor is supported
+		validateTwoFactorRequirementForPasswordChange(userId, Collections.emptySet());
 		
 		return userId;
 	}
@@ -140,7 +142,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		
 		Long principalId = Long.parseLong(changePasswordWithToken.getPasswordChangeToken().getUserId());
 
-		validateTwoFactorDisabledForPasswordChange(principalId);
+		// The token is sent by email, make sure that the supported factors do not include recovery codes sent by emails
+		validateTwoFactorRequirementForPasswordChange(principalId, Set.of(TwoFactorAuthOtpType.TOTP, TwoFactorAuthOtpType.RECOVERY_CODE));
 
 		return principalId;
 	}
@@ -152,7 +155,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		return request.getUserId();
 	}
 	
-	void validateTwoFactorDisabledForPasswordChange(Long principalId) {
+	void validateTwoFactorRequirementForPasswordChange(Long principalId, Set<TwoFactorAuthOtpType> restrictedOtpTypes) {
 		if (featureManager.isFeatureEnabled(Feature.CHANGE_PASSWORD_2FA_CHECK_BYPASS)) {
 			return;
 		}
@@ -162,7 +165,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		// See https://sagebionetworks.jira.com/browse/PLFM-8273, when the user updates the user password we need to make sure that
 		// the 2nd factor is used to perform the operations if enabled.
 		if (user.hasTwoFactorAuthEnabled()) {
-			throw new TwoFactorAuthRequiredException(user.getId(), twoFaManager.generate2FaToken(user, Set.of(TwoFactorAuthOtpType.TOTP, TwoFactorAuthOtpType.RECOVERY_CODE)));
+			throw new TwoFactorAuthRequiredException(user.getId(), twoFaManager.generate2FaToken(user, restrictedOtpTypes));
 		}
 	}
 

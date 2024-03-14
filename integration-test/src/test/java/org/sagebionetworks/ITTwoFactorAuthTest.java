@@ -17,6 +17,8 @@ import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseTwoFactorAuthRequiredException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
+import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
+import org.sagebionetworks.repo.model.auth.ChangePasswordWithTwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
@@ -26,6 +28,8 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
+import org.sagebionetworks.repo.model.feature.Feature;
+import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -239,6 +243,65 @@ public class ITTwoFactorAuthTest {
 			
 			assertEquals("The provided code is invalid.", ex.getMessage());
 		}
+		
+		try {
+			adminClient.deleteUser(userId);
+		} catch (SynapseException e) {
+			
+		}
+	}
+	
+	@Test
+	public void testChangePasswordWith2Fa(SynapseAdminClient adminClient) throws SynapseException, JSONObjectAdapterException {
+		// Creates a new user so that we retain user/password
+		SynapseClient newSynapseClient = new SynapseClientImpl();
+		
+		String username = UUID.randomUUID().toString();
+		String password = UUID.randomUUID().toString();
+		
+		Long userId = SynapseClientHelper.createUser(adminClient, newSynapseClient, username, password, true, false);
+		
+		// First enabled 2FA
+		
+		TotpSecret secret = newSynapseClient.init2Fa();
+		
+		TwoFactorAuthStatus status = newSynapseClient.enable2Fa(new TotpSecretActivationRequest()
+			.setSecretId(secret.getSecretId())
+			.setTotp(generateTotpCode(secret.getSecret()))
+		);
+		
+		assertEquals(TwoFactorState.ENABLED, status.getStatus());
+		
+		ChangePasswordWithCurrentPassword changePasswordRequest = new ChangePasswordWithCurrentPassword()
+			.setUsername(username)
+			.setCurrentPassword(password)
+			.setNewPassword(UUID.randomUUID().toString());
+		
+		// This should work initially without 2fa since the feature is still disabled
+		newSynapseClient.changePassword(changePasswordRequest);
+		
+		// Now enable the 2fa check
+		adminClient.setFeatureStatus(Feature.CHANGE_PASSWORD_2FA_CHECK_BYPASS, new FeatureStatus().setEnabled(false));
+		
+		changePasswordRequest
+			.setCurrentPassword(changePasswordRequest.getNewPassword())
+			.setNewPassword(UUID.randomUUID().toString());
+		
+		SynapseTwoFactorAuthRequiredException twoFaResponse = assertThrows(SynapseTwoFactorAuthRequiredException.class, () -> {
+			newSynapseClient.changePassword(changePasswordRequest);
+		});
+		
+		// Now authenticate through 2fa and change the password
+		String totp = generateTotpCode(secret.getSecret());
+		
+		ChangePasswordWithTwoFactorAuthToken twoFaChangePasswordRequest = new ChangePasswordWithTwoFactorAuthToken()
+			.setUserId(twoFaResponse.getUserId())
+			.setTwoFaToken(twoFaResponse.getTwoFaToken())
+			.setOtpType(TwoFactorAuthOtpType.TOTP)
+			.setOtpCode(totp)
+			.setNewPassword(changePasswordRequest.getNewPassword());
+		
+		newSynapseClient.changePassword(twoFaChangePasswordRequest);
 		
 		try {
 			adminClient.deleteUser(userId);
