@@ -219,7 +219,10 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		Entity ebcEntity = ebc.getEntity();
 		AccessControlList ebcAcl = ebc.getAccessControlList();
 		Annotations ebcAnnos = ebc.getAnnotations();
-		if (ebcAnnos != null) ValidateArgument.required(ebcAnnos.getAnnotations(), "entityBundleCreate.annotations.annotations");
+		
+		if (ebcAnnos != null) {
+			ValidateArgument.required(ebcAnnos.getAnnotations(), "entityBundleCreate.annotations.annotations");
+		}
 		
 		EntityBundleRequest fetchRequest = new EntityBundleRequest();
 
