@@ -35,10 +35,10 @@ import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class EntityBundleServiceImpl implements EntityBundleService {
@@ -210,31 +210,35 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 
 	@WriteTransaction
 	@Override
-	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		if (ebc.getEntity() == null) {
-			throw new IllegalArgumentException("Invalid request: no entity to create");
-		}
-
+	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId) 
+			throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, 
+			NotFoundException, ACLInheritanceException, ParseException {
+		ValidateArgument.required(ebc, "entityBundleCreate");
+		ValidateArgument.required(ebc.getEntity(), "entityBundleCreate.entity");
+		
+		Entity ebcEntity = ebc.getEntity();
+		AccessControlList ebcAcl = ebc.getAccessControlList();
+		Annotations ebcAnnos = ebc.getAnnotations();
+		if (ebcAnnos != null) ValidateArgument.required(ebcAnnos.getAnnotations(), "entityBundleCreate.annotations.annotations");
+		
 		EntityBundleRequest fetchRequest = new EntityBundleRequest();
 
 		// Create the Entity
 		fetchRequest.setIncludeEntity(true);
-		Entity toCreate = ebc.getEntity();
-		Entity entity = serviceProvider.getEntityService().createEntity(userId, toCreate, activityId);
+		Entity entity = serviceProvider.getEntityService().createEntity(userId, ebcEntity, activityId);
 
 		// Create the ACL
-		if (ebc.getAccessControlList() != null) {
+		if (ebcAcl != null) {
 			fetchRequest.setIncludeAccessControlList(true);
-			AccessControlList acl = ebc.getAccessControlList();
-			acl.setId(entity.getId());
-			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl);
+			ebcAcl.setId(entity.getId());
+			serviceProvider.getEntityService().createOrUpdateEntityACL(userId, ebcAcl);
 		}
 
 		// Create the Annotations
-		if (ebc.getAnnotations() != null) {
+		if (ebcAnnos != null) {
 			fetchRequest.setIncludeAnnotations(true);
-			Annotations annos =serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId());
-			annos.getAnnotations().putAll(ebc.getAnnotations().getAnnotations());
+			Annotations annos = serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId());
+			annos.getAnnotations().putAll(ebcAnnos.getAnnotations());
 			serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos);
 		}
 
@@ -243,12 +247,10 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 
 	@WriteTransaction
 	@Override
-	public EntityBundle updateEntityBundle(Long userId, String entityId,
-										   EntityBundleCreate ebc, String activityId)
-			throws ConflictingUpdateException, DatastoreException,
-			InvalidModelException, UnauthorizedException, NotFoundException,
-			ACLInheritanceException, ParseException {
-
+	public EntityBundle updateEntityBundle(Long userId, String entityId, EntityBundleCreate ebc, String activityId) 
+			throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, 
+			NotFoundException, ACLInheritanceException, ParseException {
+		ValidateArgument.required(ebc, "entityBundleCreate");
 
 		Entity entity = ebc.getEntity();
 		AccessControlList acl = ebc.getAccessControlList();
@@ -257,7 +259,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		EntityBundleRequest fetchRequest = new EntityBundleRequest();
 
 		// Update the Entity
-		if (ebc.getEntity() != null) {
+		if (entity != null) {
 			if (!entityId.equals(ebc.getEntity().getId()))
 				throw new IllegalArgumentException("Entity does not match requested entity ID");
 			fetchRequest.setIncludeEntity(true);
@@ -265,7 +267,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}
 
 		// Update the ACL
-		if (ebc.getAccessControlList() != null) {
+		if (acl != null) {
 			Long entityKey = KeyFactory.stringToKey(entityId);
 			Long aclKey = KeyFactory.stringToKey(acl.getId());
 			if (!entityKey.equals(aclKey)) {
@@ -276,8 +278,8 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}
 
 		// Update the Annotations
-		if (ebc.getAnnotations() != null) {
-			if (!entityId.equals(ebc.getAnnotations().getId()))
+		if (annos != null) {
+			if (!entityId.equals(annos.getId()))
 				throw new IllegalArgumentException("Annotations do not match requested entity ID");
 			fetchRequest.setIncludeAnnotations(true);
 			Annotations toUpdate = serviceProvider.getEntityService().getEntityAnnotations(userId, entityId);
