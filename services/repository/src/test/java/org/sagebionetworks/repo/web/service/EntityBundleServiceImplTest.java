@@ -14,6 +14,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,19 +34,26 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
@@ -61,10 +69,12 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
 import org.sagebionetworks.repo.web.service.table.TableServices;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 @ExtendWith(MockitoExtension.class)
 public class EntityBundleServiceImplTest {
@@ -94,7 +104,7 @@ public class EntityBundleServiceImplTest {
 	private FileEntity file;
 	private TableEntity table;
 	private org.sagebionetworks.repo.model.Annotations annos;
-	private Annotations annotationsV2;
+	private Annotations annosV2;
 	private AccessControlList acl;
 	private EntityThreadCounts threadCounts;
 
@@ -122,29 +132,29 @@ public class EntityBundleServiceImplTest {
 		lenient().when(mockServiceProvider.getDataAccessService()).thenReturn(mockDataAccessService);
 		
 		// Entities
-		project = new Project();
-		project.setName(DUMMY_PROJECT);
+		project = new Project()
+				.setName(DUMMY_PROJECT);
 
-		study = new Folder();
-		study.setName(DUMMY_STUDY_1);
-		study.setParentId(project.getId());
+		study = new Folder()
+				.setName(DUMMY_STUDY_1)
+				.setParentId(project.getId());
 
-		studyWithId = new Folder();
-		studyWithId.setName(DUMMY_STUDY_1);
-		studyWithId.setParentId(project.getId());
-		studyWithId.setId(STUDY_ID);
+		studyWithId = new Folder()
+				.setName(DUMMY_STUDY_1)
+				.setParentId(project.getId())
+				.setId(STUDY_ID);
 
-		file = new FileEntity();
-		file.setName(DUMMY_FILE);
-		file.setParentId(studyWithId.getId());
-		file.setVersionNumber(FILE_VERSION);
-		file.setId(FILE_ID);
+		file = new FileEntity()
+				.setName(DUMMY_FILE)
+				.setParentId(studyWithId.getId())
+				.setVersionNumber(FILE_VERSION)
+				.setId(FILE_ID);
 
-		table = new TableEntity();
-		table.setName(DUMMY_FILE);
-		table.setParentId(project.getId());
-		table.setVersionNumber(TABLE_VERSION);
-		table.setId(TABLE_ID);
+		table = new TableEntity()
+				.setName(DUMMY_FILE)
+				.setParentId(project.getId())
+				.setVersionNumber(TABLE_VERSION)
+				.setId(TABLE_ID);
 
 
 		// Annotations
@@ -152,8 +162,13 @@ public class EntityBundleServiceImplTest {
 		annos.setId(STUDY_ID);
 		annos.addAnnotation("doubleAnno", new Double(45.0001));
 		annos.addAnnotation("string", "A string");
-		//TODO: init v2 with actual values
-		annotationsV2 = AnnotationsV2Translator.toAnnotationsV2(annos);
+		
+		annosV2 = AnnotationsV2Utils.emptyAnnotations()
+				.setId(STUDY_ID);
+		annosV2.getAnnotations().put("oneKey", new AnnotationsValue().setValue(List.of("oneValue")));
+		annosV2.getAnnotations().put("twoKey", new AnnotationsValue().setValue(List.of("twoValue")));
+		
+		
 
 		// ACL
 		acl = new AccessControlList();
@@ -562,4 +577,168 @@ public class EntityBundleServiceImplTest {
 		assertSame(entityBundleV2.getThreadCount(), v1Bundle.getThreadCount());
 		assertSame(entityBundleV2.getRestrictionInformation(), v1Bundle.getRestrictionInformation());
 	}
+	
+	@Test
+	public void testCreateEntityBundle() throws ConflictingUpdateException, DatastoreException, InvalidModelException, 
+			UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
+		EntityBundleCreate ebc = new EntityBundleCreate()
+				.setEntity(studyWithId)
+				.setAccessControlList(acl)
+				.setAnnotations(annosV2);
+		
+		Annotations existingAnnosV2 = AnnotationsV2Utils.emptyAnnotations()
+				.setId(STUDY_ID);
+		existingAnnosV2.getAnnotations().put("originalKey", new AnnotationsValue().setValue(List.of("originalValue")));
+		
+		Annotations expectedAnnosV2 = AnnotationsV2Utils.emptyAnnotations()
+				.setId(STUDY_ID);
+		expectedAnnosV2.getAnnotations().putAll(existingAnnosV2.getAnnotations());
+		expectedAnnosV2.getAnnotations().putAll(annosV2.getAnnotations());
+		
+		when(mockEntityService.createEntity(TEST_USER1, ebc.getEntity(), null)).thenReturn(studyWithId);
+		when(mockEntityService.getEntity(TEST_USER1, ebc.getEntity().getId())).thenReturn(studyWithId);
+		when(mockEntityService.getEntityACL(STUDY_ID, TEST_USER1)).thenReturn(acl);
+		when(mockEntityService.getEntityAnnotations(TEST_USER1, STUDY_ID))
+				.thenReturn(existingAnnosV2)
+				.thenReturn(expectedAnnosV2);
+		
+		// Call under test
+		EntityBundle entityBundle = entityBundleService.createEntityBundle(TEST_USER1, ebc, null);
+		
+		EntityBundle expected = new EntityBundle()
+				.setEntity(studyWithId)
+				.setAccessControlList(acl)
+				.setAnnotations(expectedAnnosV2)
+				.setEntityType(EntityType.folder);
+		
+		assertEquals(expected, entityBundle);
+		
+		verify(mockEntityService).createEntity(TEST_USER1, ebc.getEntity(), null);
+		verify(mockEntityService).getEntity(TEST_USER1, STUDY_ID);
+		verify(mockEntityService).createOrUpdateEntityACL(TEST_USER1, acl);
+		verify(mockEntityService).getEntityACL(STUDY_ID, TEST_USER1);
+		verify(mockEntityService).updateEntityAnnotations(TEST_USER1, STUDY_ID, expected.getAnnotations());
+		verify(mockEntityService, times(2)).getEntityAnnotations(TEST_USER1, STUDY_ID);
+	}
+	
+	@Test
+	public void testCreateEntityBundleWithNullEbc() {
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			entityBundleService.createEntityBundle(TEST_USER1, null, null);
+		}).getMessage();
+		
+		assertEquals("entityBundleCreate is required.", errorMessage);
+	}
+	
+	@Test
+	public void testCreateEntityBundleWithNullEbcEntity() {
+		EntityBundleCreate ebc = new EntityBundleCreate()
+				.setEntity(null);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			entityBundleService.createEntityBundle(TEST_USER1, ebc, null);
+		}).getMessage();
+		
+		assertEquals("entityBundleCreate.entity is required.", errorMessage);
+	}
+	
+	@Test
+	public void testCreateEntityBundleWithNullEbcAnnotationsAnnotations() throws ConflictingUpdateException, DatastoreException, InvalidModelException, 
+			UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
+		EntityBundleCreate ebc = new EntityBundleCreate()
+				.setAnnotations(new Annotations().setAnnotations(null))
+				.setEntity(studyWithId);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			entityBundleService.createEntityBundle(TEST_USER1, ebc, null);
+		}).getMessage();
+
+		assertEquals("entityBundleCreate.annotations.annotations is required.", errorMessage);
+	}
+	
+	@Test
+	public void testCreateEntityBundleWithoutAcl() throws ConflictingUpdateException, DatastoreException, InvalidModelException, 
+			UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
+		EntityBundleCreate ebc = new EntityBundleCreate()
+				.setEntity(studyWithId)
+				.setAccessControlList(null)
+				.setAnnotations(annosV2);
+		
+		Annotations existingAnnosV2 = AnnotationsV2Utils.emptyAnnotations()
+				.setId(STUDY_ID);
+		existingAnnosV2.getAnnotations().put("originalKey", new AnnotationsValue().setValue(List.of("originalValue")));
+		
+		Annotations expectedAnnosV2 = AnnotationsV2Utils.emptyAnnotations()
+				.setId(STUDY_ID);
+		expectedAnnosV2.getAnnotations().putAll(existingAnnosV2.getAnnotations());
+		expectedAnnosV2.getAnnotations().putAll(annosV2.getAnnotations());
+		
+		when(mockEntityService.createEntity(TEST_USER1, ebc.getEntity(), null)).thenReturn(studyWithId);
+		when(mockEntityService.getEntity(TEST_USER1, ebc.getEntity().getId())).thenReturn(studyWithId);
+		when(mockEntityService.getEntityAnnotations(TEST_USER1, STUDY_ID))
+				.thenReturn(existingAnnosV2)
+				.thenReturn(expectedAnnosV2);
+		
+		// Call under test
+		EntityBundle entityBundle = entityBundleService.createEntityBundle(TEST_USER1, ebc, null);
+		
+		EntityBundle expected = new EntityBundle()
+				.setAnnotations(expectedAnnosV2)
+				.setEntity(studyWithId)
+				.setEntityType(EntityType.folder);
+		
+		assertEquals(expected, entityBundle);
+		
+		verify(mockEntityService).createEntity(TEST_USER1, ebc.getEntity(), null);
+		verify(mockEntityService).getEntity(TEST_USER1, ebc.getEntity().getId());
+		verify(mockEntityService, never()).createOrUpdateEntityACL(any(), any());
+		verify(mockEntityService, never()).getEntityACL(any(), any());
+		verify(mockEntityService).updateEntityAnnotations(TEST_USER1, STUDY_ID, expected.getAnnotations());
+		verify(mockEntityService, times(2)).getEntityAnnotations(TEST_USER1, STUDY_ID);
+	}
+	
+	@Test
+	public void testCreateEntityBundleWithoutAnnotations() throws ConflictingUpdateException, DatastoreException, InvalidModelException, 
+			UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
+		EntityBundleCreate ebc = new EntityBundleCreate()
+				.setAnnotations(null)
+				.setAccessControlList(acl)
+				.setEntity(studyWithId);
+		
+		when(mockEntityService.createEntity(TEST_USER1, ebc.getEntity(), null)).thenReturn(studyWithId);
+		when(mockEntityService.getEntity(TEST_USER1, ebc.getEntity().getId())).thenReturn(studyWithId);
+		when(mockEntityService.getEntityACL(STUDY_ID, TEST_USER1)).thenReturn(acl);
+		
+		// Call under test
+		EntityBundle entityBundle = entityBundleService.createEntityBundle(TEST_USER1, ebc, null);
+		
+		EntityBundle expected = new EntityBundle()
+				.setAnnotations(null)
+				.setEntity(studyWithId)
+				.setAccessControlList(acl)
+				.setEntityType(EntityType.folder);
+		
+		assertEquals(expected, entityBundle);
+		
+		verify(mockEntityService).createEntity(TEST_USER1, ebc.getEntity(), null);
+		verify(mockEntityService).getEntity(TEST_USER1, ebc.getEntity().getId());
+		verify(mockEntityService).createOrUpdateEntityACL(TEST_USER1, acl);
+		verify(mockEntityService).getEntityACL(STUDY_ID, TEST_USER1);
+		verify(mockEntityService, never()).updateEntityAnnotations(any(), any(), any());
+		verify(mockEntityService, never()).getEntityAnnotations(any(), any());
+	}
+	
+	@Test
+	public void testUpdateEntityBundleWithNullEntityBundleCreate() {
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			entityBundleService.updateEntityBundle(TEST_USER1, STUDY_ID, null, null);
+		}).getMessage();
+		
+		assertEquals("entityBundleCreate is required.", errorMessage);
+	}
+	
 }
