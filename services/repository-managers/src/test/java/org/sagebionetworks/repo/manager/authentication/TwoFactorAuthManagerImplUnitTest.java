@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,6 +43,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthToken;
@@ -529,7 +531,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testGenerate2FaLoginToken() {
+	public void testGenerate2FaToken() {
 		doNothing().when(manager).assertValidUser(any());
 		when(mockClock.now()).thenReturn(new Date(12345));
 		doNothing().when(mockTokenGenerator).signToken(any());
@@ -540,7 +542,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 				
 		// Call under test
-		String result = manager.generate2FaLoginToken(user);
+		String result = manager.generate2FaToken(user);
 		
 		assertEquals(expected, decodeLoginToken(result));
 		
@@ -549,7 +551,28 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testValidate2FaLoginToken() {
+	public void testGenerate2FaTokenWithRestrictedType() {
+		doNothing().when(manager).assertValidUser(any());
+		when(mockClock.now()).thenReturn(new Date(12345));
+		doNothing().when(mockTokenGenerator).signToken(any());
+		
+		TwoFactorAuthToken expected = new TwoFactorAuthToken()
+			.setUserId(user.getId())
+			.setRestrictTypes(List.of(TwoFactorAuthOtpType.TOTP, TwoFactorAuthOtpType.RECOVERY_CODE))
+			.setCreatedOn(new Date(12345))
+			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
+				
+		// Call under test
+		String result = manager.generate2FaToken(user, Set.of(TwoFactorAuthOtpType.RECOVERY_CODE, TwoFactorAuthOtpType.TOTP));
+		
+		assertEquals(expected, decodeLoginToken(result));
+		
+		verify(mockClock).now();
+		verify(mockTokenGenerator).signToken(expected);
+	}
+	
+	@Test
+	public void testValidate2FaToken() {
 		doNothing().when(manager).assertValidUser(any());
 		doNothing().when(mockTokenGenerator).validateToken(any());
 		
@@ -559,7 +582,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 		
 		// Call under test
-		boolean result = manager.validate2FaLoginToken(user, encodeToken(token));
+		boolean result = manager.validate2FaToken(user, TwoFactorAuthOtpType.TOTP, encodeToken(token));
 		
 		assertTrue(result);
 		
@@ -567,7 +590,44 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testValidate2FaLoginTokenWithDifferentUser() {
+	public void testValidate2FaTokenWithRestrictedType() {
+		doNothing().when(manager).assertValidUser(any());
+		doNothing().when(mockTokenGenerator).validateToken(any());
+		
+		TwoFactorAuthToken token = new TwoFactorAuthToken()
+			.setUserId(user.getId())
+			.setCreatedOn(new Date(12345))
+			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000))
+			.setRestrictTypes(List.of(TwoFactorAuthOtpType.TOTP));
+		
+		// Call under test
+		boolean result = manager.validate2FaToken(user, TwoFactorAuthOtpType.TOTP, encodeToken(token));
+		
+		assertTrue(result);
+		
+		verify(mockTokenGenerator).validateToken(token);
+	}
+	
+	@Test
+	public void testValidate2FaTokenWithRestrictedTypeAndWrongType() {
+		doNothing().when(manager).assertValidUser(any());
+		
+		TwoFactorAuthToken token = new TwoFactorAuthToken()
+			.setUserId(user.getId())
+			.setCreatedOn(new Date(12345))
+			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000))
+			.setRestrictTypes(List.of(TwoFactorAuthOtpType.TOTP));
+		
+		// Call under test
+		boolean result = manager.validate2FaToken(user, TwoFactorAuthOtpType.RECOVERY_CODE, encodeToken(token));
+		
+		assertFalse(result);
+		
+		verifyZeroInteractions(mockTokenGenerator);
+	}
+	
+	@Test
+	public void testValidate2FaTokenWithDifferentUser() {
 		doNothing().when(manager).assertValidUser(any());
 		
 		TwoFactorAuthToken token = new TwoFactorAuthToken()
@@ -576,7 +636,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 		
 		// Call under test
-		boolean result = manager.validate2FaLoginToken(user, encodeToken(token));
+		boolean result = manager.validate2FaToken(user, TwoFactorAuthOtpType.TOTP, encodeToken(token));
 		
 		assertFalse(result);
 		
@@ -584,12 +644,12 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testValidate2FaLoginTokenWithNoToken() {
+	public void testValidate2FaTokenWithNoToken() {
 		doNothing().when(manager).assertValidUser(any());
 		
 		String result = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.validate2FaLoginToken(user, null);
+			manager.validate2FaToken(user, TwoFactorAuthOtpType.TOTP, null);
 		}).getMessage();
 
 		assertEquals("The token is required and must not be the empty string.", result);
@@ -598,7 +658,21 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testValidate2FaLoginTokenWithUnauthorizedException() {
+	public void testValidate2FaTokenWithNoOtpType() {
+		doNothing().when(manager).assertValidUser(any());
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.validate2FaToken(user, null, "encodedToken");
+		}).getMessage();
+
+		assertEquals("The otp type is required.", result);
+		
+		verifyZeroInteractions(mockTokenGenerator);
+	}
+	
+	@Test
+	public void testValidate2FaTokenWithUnauthorizedException() {
 		doNothing().when(manager).assertValidUser(any());
 		doThrow(UnauthorizedException.class).when(mockTokenGenerator).validateToken(any());
 		
@@ -608,7 +682,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 		
 		// Call under test
-		boolean result = manager.validate2FaLoginToken(user, encodeToken(token));
+		boolean result = manager.validate2FaToken(user, TwoFactorAuthOtpType.TOTP, encodeToken(token));
 		
 		assertFalse(result);
 		
@@ -616,7 +690,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 
 	@Test
-	public void testValidate2FaLoginTokenWithIllegalArgException() {
+	public void testValidate2FaTokenWithIllegalArgException() {
 		doNothing().when(manager).assertValidUser(any());
 		doThrow(IllegalArgumentException.class).when(mockTokenGenerator).validateToken(any());
 		
@@ -626,7 +700,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 		
 		// Call under test
-		boolean result = manager.validate2FaLoginToken(user, encodeToken(token));
+		boolean result = manager.validate2FaToken(user, TwoFactorAuthOtpType.TOTP, encodeToken(token));
 		
 		assertFalse(result);
 		

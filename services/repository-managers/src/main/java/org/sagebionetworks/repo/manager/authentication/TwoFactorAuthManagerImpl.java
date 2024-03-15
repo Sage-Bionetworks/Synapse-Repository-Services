@@ -3,10 +3,12 @@ package org.sagebionetworks.repo.manager.authentication;
 import java.nio.charset.StandardCharsets;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -19,6 +21,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthToken;
@@ -155,7 +158,12 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	}
 	
 	@Override
-	public String generate2FaLoginToken(UserInfo user) {
+	public String generate2FaToken(UserInfo user) {
+		return generate2FaToken(user, Collections.emptySet());
+	}
+	
+	@Override
+	public String generate2FaToken(UserInfo user, Set<TwoFactorAuthOtpType> restrictTypes) {
 		assertValidUser(user);
 		
 		Date now = clock.now();
@@ -165,6 +173,10 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 			.setUserId(user.getId())
 			.setCreatedOn(now)
 			.setExpiresOn(tokenExpiration);
+		
+		if (restrictTypes != null && !restrictTypes.isEmpty()) {
+			token.setRestrictTypes(restrictTypes.stream().sorted().collect(Collectors.toList()));
+		}
 		
 		tokenGenerator.signToken(token);
 		
@@ -177,9 +189,10 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	}
 	
 	@Override
-	public boolean validate2FaLoginToken(UserInfo user, String encodedToken) {
+	public boolean validate2FaToken(UserInfo user, TwoFactorAuthOtpType otpType, String encodedToken) {
 		assertValidUser(user);
 		
+		ValidateArgument.required(otpType, "The otp type");
 		ValidateArgument.requiredNotBlank(encodedToken, "The token");
 		
 		try {
@@ -187,6 +200,10 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 			TwoFactorAuthToken token = EntityFactory.createEntityFromJSONString(decodedToken, TwoFactorAuthToken.class);
 			
 			if(!user.getId().equals(token.getUserId())) {
+				return false;
+			}
+			
+			if (token.getRestrictTypes() != null && !token.getRestrictTypes().isEmpty() && !token.getRestrictTypes().contains(otpType)) {
 				return false;
 			}
 			

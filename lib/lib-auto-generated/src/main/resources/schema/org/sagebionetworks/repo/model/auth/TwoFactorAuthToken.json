@@ -9,6 +9,13 @@
 		"userId": {
 			"type": "integer",
 			"description": "The id of the user."
+		},
+		"restrictTypes": {
+			"type": "array",
+			"description": "If present the list of OTP type that are allowed.",
+			"items":{
+				"$ref":"org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType"
+			}
 		}
 	}
 }
