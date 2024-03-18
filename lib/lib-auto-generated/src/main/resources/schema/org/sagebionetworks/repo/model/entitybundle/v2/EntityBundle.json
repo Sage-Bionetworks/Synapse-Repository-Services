@@ -53,6 +53,9 @@
 		},
 		"restrictionInformation": {
 			"$ref": "org.sagebionetworks.repo.model.RestrictionInformationResponse"
+		},
+		"activity": {
+			"$ref": "org.sagebionetworks.repo.model.provenance.Activity"
 		}
 	}
 }

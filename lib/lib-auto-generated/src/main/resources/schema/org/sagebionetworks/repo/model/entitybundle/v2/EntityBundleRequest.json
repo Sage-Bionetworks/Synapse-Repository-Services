@@ -57,6 +57,10 @@
 		"includeRestrictionInformation":{
 			"type": "boolean",
 			"description": "Include the RestrictionLevel of this Entity"
+		},
+		"includeActivity":{
+			"type": "boolean",
+			"description": "Include the Activity of this Entity"
 		}
 	}
 }
