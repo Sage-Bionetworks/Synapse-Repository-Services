@@ -1283,4 +1283,14 @@ public class StackConfigurationImpl implements StackConfiguration {
 	public String getCloudFrontDomainName() {
 		return configuration.getProperty("org.sagebionetworks.cloudfront.domainname");
 	}
+
+	@Override
+	public String getGoogleCloudServiceIamKey() {
+		return configuration.getProperty("org.sagebionetworkds.google.cloud.iam.access.key");
+	}
+
+	@Override
+	public String getGoogleCloudServiceIamSecret() {
+		return configuration.getProperty("org.sagebionetworkds.google.cloud.iam.access.secret");
+	}
 }

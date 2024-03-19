@@ -191,6 +191,32 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	}
 	
 	@Override
+	public PresignedUrl createPartUploadPreSignedUrl(String bucket, CompositeMultipartUploadStatus status,
+			long partNumber, String contentType) {
+		long expiration = System.currentTimeMillis()+ PRE_SIGNED_URL_EXPIRATION_MS;
+		
+		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, status.getKey())
+				.withMethod(HttpMethod.PUT)
+				.withExpiration(new Date(expiration));
+		
+		request.addRequestParameter(S3_PARAM_PART_NUMBER, String.valueOf(partNumber));
+		request.addRequestParameter(S3_PARAM_UPLOAD_ID, status.getUploadToken());
+		
+		PresignedUrl presignedUrl = new PresignedUrl();
+		
+		if (StringUtils.isNotEmpty(contentType)) {
+			request.setContentType(contentType);
+			presignedUrl.withSignedHeader(HttpHeaders.CONTENT_TYPE, contentType);
+		}
+		
+		URL url = s3Client.generatePresignedUrl(request);
+
+		presignedUrl.withUrl(url);
+		
+		return presignedUrl;
+	}
+	
+	@Override
 	public PresignedUrl createPartUploadCopyPresignedUrl(CompositeMultipartUploadStatus status, long partNumber, String contentType) {
 		if (status.getSourceFileHandleId() == null) {
 			throw new IllegalStateException("Expected a source file, found none.");
@@ -264,23 +290,23 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	 */
 	@Override
 	public void validateAndAddPart(AddPartRequest request) {
-		CopyPartRequest cpr = new CopyPartRequest();
-		cpr.setSourceBucketName(request.getBucket());
-		cpr.setSourceKey(request.getPartKey());
-		cpr.setDestinationKey(request.getKey());
-		cpr.setDestinationBucketName(request.getBucket());
-		cpr.setUploadId(request.getUploadToken());
-		cpr.setPartNumber((int) request.getPartNumber());
-		// only add if the etag matches.
-		cpr.withMatchingETagConstraint(request.getPartMD5Hex());
-		
-		CopyPartResult result = s3Client.copyPart(cpr);
-		if (result == null) {
-			throw new IllegalArgumentException(
-					"The provided MD5 does not match the MD5 of the uploaded part.  Please re-upload the part.");
-		}
-		// After copying the part we can delete the old part file.
-		s3Client.deleteObject(request.getBucket(), request.getPartKey());
+//		CopyPartRequest cpr = new CopyPartRequest();
+//		cpr.setSourceBucketName(request.getBucket());
+//		cpr.setSourceKey(request.getPartKey());
+//		cpr.setDestinationKey(request.getKey());
+//		cpr.setDestinationBucketName(request.getBucket());
+//		cpr.setUploadId(request.getUploadToken());
+//		cpr.setPartNumber((int) request.getPartNumber());
+//		// only add if the etag matches.
+//		cpr.withMatchingETagConstraint(request.getPartMD5Hex());
+//		
+//		CopyPartResult result = s3Client.copyPart(cpr);
+//		if (result == null) {
+//			throw new IllegalArgumentException(
+//					"The provided MD5 does not match the MD5 of the uploaded part.  Please re-upload the part.");
+//		}
+//		// After copying the part we can delete the old part file.
+//		s3Client.deleteObject(request.getBucket(), request.getPartKey());
 	}
 
 	@Override
@@ -364,4 +390,6 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	public boolean doesObjectExist(String bucketName, String objectKey) {
 		return s3Client.doesObjectExist(bucketName, objectKey);
 	}
+
+
 }

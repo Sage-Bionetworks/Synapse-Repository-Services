@@ -188,4 +188,11 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 	public boolean doesObjectExist(String bucketName, String objectKey) {
 		return googleCloudStorageClient.doesObjectExist(bucketName, objectKey);
 	}
+
+	@Override
+	public PresignedUrl createPartUploadPreSignedUrl(String bucket, CompositeMultipartUploadStatus status,
+			long partNumber, String contentType) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

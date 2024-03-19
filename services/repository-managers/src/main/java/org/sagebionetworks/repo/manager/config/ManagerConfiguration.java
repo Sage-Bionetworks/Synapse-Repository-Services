@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.manager.oauth.OIDCConfig;
 import org.sagebionetworks.repo.manager.oauth.OrcidOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission;
@@ -48,6 +49,8 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAO;
+import org.sagebionetworks.upload.multipart.S3MultipartUploadDAOImpl;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphore;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreImpl;
 import org.springframework.context.annotation.Bean;
@@ -66,6 +69,7 @@ import dev.samstevens.totp.secret.DefaultSecretGenerator;
 import dev.samstevens.totp.secret.SecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
 import dev.samstevens.totp.time.TimeProvider;
+import org.sagebionetworks.aws.SynapseGoogleS3ClientImpl;
 
 @Configuration
 public class ManagerConfiguration {
@@ -248,6 +252,13 @@ public class ManagerConfiguration {
 	@Bean
 	public ExecutorService cachedThreadPool() {
 		return Executors.newCachedThreadPool();
+	}
+	
+	@Bean
+	public CloudServiceMultipartUploadDAO googleCloudMultipartUploadDao(StackConfiguration config, StorageLocationDAO storageLocationDao) {
+		SynapseGoogleS3ClientImpl client = new SynapseGoogleS3ClientImpl(config.getGoogleCloudServiceIamKey(),
+				config.getGoogleCloudServiceIamSecret());
+		return new S3MultipartUploadDAOImpl(client, storageLocationDao);
 	}
 	
 }
