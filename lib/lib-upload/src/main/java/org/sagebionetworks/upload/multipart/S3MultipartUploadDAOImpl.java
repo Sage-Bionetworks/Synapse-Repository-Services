@@ -195,9 +195,11 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 			long partNumber, String contentType) {
 		long expiration = System.currentTimeMillis()+ PRE_SIGNED_URL_EXPIRATION_MS;
 		
+		String md5 = "0/QXZGlR1W7hW56zmgVSBQ==";
 		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, status.getKey())
 				.withMethod(HttpMethod.PUT)
 				.withExpiration(new Date(expiration));
+		request.setContentMd5(md5);
 		
 		request.addRequestParameter(S3_PARAM_PART_NUMBER, String.valueOf(partNumber));
 		request.addRequestParameter(S3_PARAM_UPLOAD_ID, status.getUploadToken());
@@ -207,6 +209,7 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		if (StringUtils.isNotEmpty(contentType)) {
 			request.setContentType(contentType);
 			presignedUrl.withSignedHeader(HttpHeaders.CONTENT_TYPE, contentType);
+			presignedUrl.withSignedHeader(HttpHeaders.CONTENT_MD5, md5);
 		}
 		
 		URL url = s3Client.generatePresignedUrl(request);

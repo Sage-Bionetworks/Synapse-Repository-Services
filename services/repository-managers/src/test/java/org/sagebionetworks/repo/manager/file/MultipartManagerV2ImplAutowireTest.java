@@ -670,7 +670,9 @@ public class MultipartManagerV2ImplAutowireTest {
 			
 			byte[] partData = Arrays.copyOfRange(fileDataBytes, partStartBytePosition, partEndBytePosition);
 			
-			String partMd5 = BinaryUtils.toHex(Md5Utils.computeMD5Hash(partData));
+			byte[] md5Raw = Md5Utils.computeMD5Hash(partData);
+			String partMd5 = BinaryUtils.toHex(md5Raw);
+			String partMd5Base64 = BinaryUtils.toBase64(md5Raw);
 			
 			// step three put the part to the URL
 			putPartToURL(preSignedUrl.getUploadPresignedUrl(), partData, preSignedUrl.getSignedHeaders());
