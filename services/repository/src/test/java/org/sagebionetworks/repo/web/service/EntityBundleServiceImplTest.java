@@ -494,12 +494,14 @@ public class EntityBundleServiceImplTest {
 		Activity activity = new Activity().setName("test activity for syn123");
 		EntityBundleRequest request = new EntityBundleRequest().setIncludeActivity(true);
 		
-		when(mockEntityService.getActivityForEntity(TEST_USER1, entityId)).thenReturn(activity);
+		when(mockEntityService.getActivityForEntity(any(), any())).thenReturn(activity);
 		
 		// Call under test
 		EntityBundle response = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		
 		assertEquals(new EntityBundle().setActivity(activity), response);
+		
+		verify(mockEntityService).getActivityForEntity(TEST_USER1, entityId);
 	}
 	
 	@Test
