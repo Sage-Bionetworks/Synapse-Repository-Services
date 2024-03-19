@@ -1,13 +1,11 @@
 package org.sagebionetworks.repo.manager.authentication;
 
-import java.util.Set;
-
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
-import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
 
 public interface TwoFactorAuthManager {
 
@@ -49,26 +47,20 @@ public interface TwoFactorAuthManager {
 	boolean validate2FaTotpCode(UserInfo user, String totpCode);
 	
 	/**
-	 * @param user
-	 * @return Base64 encoded token that can be used to perform operations with 2FA, with no restriction on the OTP type
-	 */
-	String generate2FaToken(UserInfo user);
-	
-	/**
 	 * 
 	 * @param user
-	 * @param restrictTypes The set of OTP type to restrict the token to, if null or empty no restriction is imposed
+	 * @param context The context within which the token is generated
 	 * @return Base64 encoded token that can be used to perform operations with 2FA, restricted to the given set of OTP code types
 	 */
-	String generate2FaToken(UserInfo user, Set<TwoFactorAuthOtpType> restrictTypes);
+	String generate2FaToken(UserInfo user, TwoFactorAuthTokenContext context);
 	
 	/**
 	 * @param user
-	 * @param otpType The type of OTP used for validation
+	 * @param context The context against which the token is validated, must match the context that was used when the token was generated
 	 * @param encodedToken Base64 encoded token
 	 * @return True if the given token is a valid 2FA token for the user and otp type
 	 */
-	boolean validate2FaToken(UserInfo user, TwoFactorAuthOtpType otpType, String encodedToken);
+	boolean validate2FaToken(UserInfo user, TwoFactorAuthTokenContext context, String encodedToken);
 	
 	/**
 	 * Generates a new (replaces old ones) set of recovery codes for the given user if 2FA is enabled. 

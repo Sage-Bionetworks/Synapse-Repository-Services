@@ -23,11 +23,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -43,10 +44,10 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
-import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthToken;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.dbo.otp.DBOOtpSecret;
 import org.sagebionetworks.repo.model.dbo.otp.OtpSecretDao;
@@ -530,8 +531,9 @@ public class TwoFactorAuthManagerImplUnitTest {
 		verifyZeroInteractions(mockOtpSecretDao);
 	}
 	
-	@Test
-	public void testGenerate2FaToken() {
+	@ParameterizedTest
+	@EnumSource(TwoFactorAuthTokenContext.class)
+	public void testGenerate2FaToken(TwoFactorAuthTokenContext context) {
 		doNothing().when(manager).assertValidUser(any());
 		when(mockClock.now()).thenReturn(new Date(12345));
 		doNothing().when(mockTokenGenerator).signToken(any());
@@ -539,10 +541,11 @@ public class TwoFactorAuthManagerImplUnitTest {
 		TwoFactorAuthToken expected = new TwoFactorAuthToken()
 			.setUserId(user.getId())
 			.setCreatedOn(new Date(12345))
+			.setContext(context)
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 				
 		// Call under test
-		String result = manager.generate2FaToken(user);
+		String result = manager.generate2FaToken(user, context);
 		
 		assertEquals(expected, decodeLoginToken(result));
 		
@@ -550,39 +553,20 @@ public class TwoFactorAuthManagerImplUnitTest {
 		verify(mockTokenGenerator).signToken(expected);
 	}
 	
-	@Test
-	public void testGenerate2FaTokenWithRestrictedType() {
-		doNothing().when(manager).assertValidUser(any());
-		when(mockClock.now()).thenReturn(new Date(12345));
-		doNothing().when(mockTokenGenerator).signToken(any());
-		
-		TwoFactorAuthToken expected = new TwoFactorAuthToken()
-			.setUserId(user.getId())
-			.setRestrictTypes(List.of(TwoFactorAuthOtpType.TOTP, TwoFactorAuthOtpType.RECOVERY_CODE))
-			.setCreatedOn(new Date(12345))
-			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
-				
-		// Call under test
-		String result = manager.generate2FaToken(user, Set.of(TwoFactorAuthOtpType.RECOVERY_CODE, TwoFactorAuthOtpType.TOTP));
-		
-		assertEquals(expected, decodeLoginToken(result));
-		
-		verify(mockClock).now();
-		verify(mockTokenGenerator).signToken(expected);
-	}
-	
-	@Test
-	public void testValidate2FaToken() {
+	@ParameterizedTest
+	@EnumSource(TwoFactorAuthTokenContext.class)
+	public void testValidate2FaToken(TwoFactorAuthTokenContext context) {
 		doNothing().when(manager).assertValidUser(any());
 		doNothing().when(mockTokenGenerator).validateToken(any());
 		
 		TwoFactorAuthToken token = new TwoFactorAuthToken()
 			.setUserId(user.getId())
 			.setCreatedOn(new Date(12345))
+			.setContext(context)
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 		
 		// Call under test
-		boolean result = manager.validate2FaToken(user, TwoFactorAuthOtpType.TOTP, encodeToken(token));
+		boolean result = manager.validate2FaToken(user, context, encodeToken(token));
 		
 		assertTrue(result);
 		
@@ -590,36 +574,17 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testValidate2FaTokenWithRestrictedType() {
-		doNothing().when(manager).assertValidUser(any());
-		doNothing().when(mockTokenGenerator).validateToken(any());
-		
-		TwoFactorAuthToken token = new TwoFactorAuthToken()
-			.setUserId(user.getId())
-			.setCreatedOn(new Date(12345))
-			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000))
-			.setRestrictTypes(List.of(TwoFactorAuthOtpType.TOTP));
-		
-		// Call under test
-		boolean result = manager.validate2FaToken(user, TwoFactorAuthOtpType.TOTP, encodeToken(token));
-		
-		assertTrue(result);
-		
-		verify(mockTokenGenerator).validateToken(token);
-	}
-	
-	@Test
-	public void testValidate2FaTokenWithRestrictedTypeAndWrongType() {
+	public void testValidate2FaTokenWithDifferentContext() {
 		doNothing().when(manager).assertValidUser(any());
 		
 		TwoFactorAuthToken token = new TwoFactorAuthToken()
 			.setUserId(user.getId())
+			.setContext(TwoFactorAuthTokenContext.AUTHENTICATION)
 			.setCreatedOn(new Date(12345))
-			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000))
-			.setRestrictTypes(List.of(TwoFactorAuthOtpType.TOTP));
+			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 		
 		// Call under test
-		boolean result = manager.validate2FaToken(user, TwoFactorAuthOtpType.RECOVERY_CODE, encodeToken(token));
+		boolean result = manager.validate2FaToken(user, TwoFactorAuthTokenContext.PASSWORD_CHANGE, encodeToken(token));
 		
 		assertFalse(result);
 		
@@ -636,7 +601,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 		
 		// Call under test
-		boolean result = manager.validate2FaToken(user, TwoFactorAuthOtpType.TOTP, encodeToken(token));
+		boolean result = manager.validate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, encodeToken(token));
 		
 		assertFalse(result);
 		
@@ -649,7 +614,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		
 		String result = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.validate2FaToken(user, TwoFactorAuthOtpType.TOTP, null);
+			manager.validate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, null);
 		}).getMessage();
 
 		assertEquals("The token is required and must not be the empty string.", result);
@@ -658,7 +623,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testValidate2FaTokenWithNoOtpType() {
+	public void testValidate2FaTokenWithNoContext() {
 		doNothing().when(manager).assertValidUser(any());
 		
 		String result = assertThrows(IllegalArgumentException.class, () -> {
@@ -666,7 +631,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 			manager.validate2FaToken(user, null, "encodedToken");
 		}).getMessage();
 
-		assertEquals("The otp type is required.", result);
+		assertEquals("The context is required.", result);
 		
 		verifyZeroInteractions(mockTokenGenerator);
 	}
@@ -679,10 +644,11 @@ public class TwoFactorAuthManagerImplUnitTest {
 		TwoFactorAuthToken token = new TwoFactorAuthToken()
 			.setUserId(user.getId())
 			.setCreatedOn(new Date(12345))
+			.setContext(TwoFactorAuthTokenContext.AUTHENTICATION)
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 		
 		// Call under test
-		boolean result = manager.validate2FaToken(user, TwoFactorAuthOtpType.TOTP, encodeToken(token));
+		boolean result = manager.validate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, encodeToken(token));
 		
 		assertFalse(result);
 		
@@ -697,10 +663,11 @@ public class TwoFactorAuthManagerImplUnitTest {
 		TwoFactorAuthToken token = new TwoFactorAuthToken()
 			.setUserId(user.getId())
 			.setCreatedOn(new Date(12345))
+			.setContext(TwoFactorAuthTokenContext.AUTHENTICATION)
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 		
 		// Call under test
-		boolean result = manager.validate2FaToken(user, TwoFactorAuthOtpType.TOTP, encodeToken(token));
+		boolean result = manager.validate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, encodeToken(token));
 		
 		assertFalse(result);
 		

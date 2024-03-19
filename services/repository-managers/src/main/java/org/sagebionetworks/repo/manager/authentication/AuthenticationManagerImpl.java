@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager.authentication;
 
-import java.util.Collections;
 import java.util.Date;
-import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserCredentialValidator;
@@ -26,6 +24,7 @@ import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -121,9 +120,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		//we can ignore the return value here because we are not generating a new authentication receipt on success
 		validateAuthReceiptAndCheckPassword(userId, changePasswordWithCurrentPassword.getCurrentPassword(), changePasswordWithCurrentPassword.getAuthenticationReceipt());
 
-		// Since this is an unauthenticated request, we need to check for the second factor if 2fa is enabled. Since the password
-		// is a known factor, any other second factor is supported
-		validateTwoFactorRequirementForPasswordChange(userId, Collections.emptySet());
+		// Since this is an unauthenticated request, we need to check for the second factor if 2fa is enabled.
+		validateTwoFactorRequirementForPasswordChange(userId);
 		
 		return userId;
 	}
@@ -142,20 +140,19 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		
 		Long principalId = Long.parseLong(changePasswordWithToken.getPasswordChangeToken().getUserId());
 
-		// The token is sent by email, make sure that the supported factors do not include recovery codes sent by emails
-		validateTwoFactorRequirementForPasswordChange(principalId, Set.of(TwoFactorAuthOtpType.TOTP, TwoFactorAuthOtpType.RECOVERY_CODE));
+		validateTwoFactorRequirementForPasswordChange(principalId);
 
 		return principalId;
 	}
 	
 	long validateChangePassword(ChangePasswordWithTwoFactorAuthToken request) {
 		
-		validateTwoFactorAuthTokenRequest(request);
+		validateTwoFactorAuthTokenRequest(request, TwoFactorAuthTokenContext.PASSWORD_CHANGE);
 		
 		return request.getUserId();
 	}
 	
-	void validateTwoFactorRequirementForPasswordChange(Long principalId, Set<TwoFactorAuthOtpType> restrictedOtpTypes) {
+	void validateTwoFactorRequirementForPasswordChange(Long principalId) {
 		if (featureManager.isFeatureEnabled(Feature.CHANGE_PASSWORD_2FA_CHECK_BYPASS)) {
 			return;
 		}
@@ -165,7 +162,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		// See https://sagebionetworks.jira.com/browse/PLFM-8273, when the user updates the user password we need to make sure that
 		// the 2nd factor is used to perform the operations if enabled.
 		if (user.hasTwoFactorAuthEnabled()) {
-			throw new TwoFactorAuthRequiredException(user.getId(), twoFaManager.generate2FaToken(user, restrictedOtpTypes));
+			throw new TwoFactorAuthRequiredException(user.getId(), twoFaManager.generate2FaToken(user, TwoFactorAuthTokenContext.PASSWORD_CHANGE));
 		}
 	}
 
@@ -219,7 +216,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		UserInfo user = userManager.getUserInfo(principalId);
 		
 		if (user.hasTwoFactorAuthEnabled()) {
-			throw new TwoFactorAuthRequiredException(principalId, twoFaManager.generate2FaToken(user));
+			throw new TwoFactorAuthRequiredException(principalId, twoFaManager.generate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION));
 		}
 		
 		return getLoginResponseAfterSuccessfulAuthentication(principalId, issuer);
@@ -227,24 +224,25 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	public LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request, String issuer) {
-		validateTwoFactorAuthTokenRequest(request);
+		validateTwoFactorAuthTokenRequest(request, TwoFactorAuthTokenContext.AUTHENTICATION);
 				
 		return getLoginResponseAfterSuccessfulAuthentication(request.getUserId(), issuer);
 	}
 	
-	void validateTwoFactorAuthTokenRequest(HasTwoFactorAuthToken request) {
+	void validateTwoFactorAuthTokenRequest(HasTwoFactorAuthToken request, TwoFactorAuthTokenContext context) {
 		ValidateArgument.required(request, "The request");
 		ValidateArgument.required(request.getUserId(), "The userId");
 		ValidateArgument.required(request.getTwoFaToken(), "The twoFaToken");
 		ValidateArgument.required(request.getOtpCode(), "The otpCode");
+		ValidateArgument.required(context, "The context");
 		
 		UserInfo user = userManager.getUserInfo(request.getUserId());
 
 		TwoFactorAuthOtpType otpType = request.getOtpType() == null ? TwoFactorAuthOtpType.TOTP : request.getOtpType();
 		
-		if (!twoFaManager.validate2FaToken(user, otpType, request.getTwoFaToken())) {
+		if (!twoFaManager.validate2FaToken(user, context, request.getTwoFaToken())) {
 			throw new UnauthenticatedException("The provided 2fa token is invalid.");
-		}		
+		}
 		
 		boolean validCode = false;
 		
