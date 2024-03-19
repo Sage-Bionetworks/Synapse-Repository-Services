@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -203,6 +204,10 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			restrictionInfoRequest.setRestrictableObjectType(RestrictableObjectType.ENTITY);
 			RestrictionInformationResponse restrictionInfo = serviceProvider.getDataAccessService().getRestrictionInformation(userId, restrictionInfoRequest);
 			eb.setRestrictionInformation(restrictionInfo);
+		}
+		if (isTrue(request.getIncludeActivity())) {
+			Activity activity = serviceProvider.getEntityService().getActivityForEntity(userId, entityId);
+			eb.setActivity(activity);
 		}
 		return eb;
 	}

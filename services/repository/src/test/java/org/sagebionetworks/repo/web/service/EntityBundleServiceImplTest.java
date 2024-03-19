@@ -66,6 +66,7 @@ import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -485,6 +486,24 @@ public class EntityBundleServiceImplTest {
 		assertEquals(response, bundle.getRestrictionInformation());
 		verify(mockDataAccessService).getRestrictionInformation(TEST_USER1, request);
 	}
+	
+	@Test
+	public void testGetEntityBundleWithActivity() throws NotFoundException, DatastoreException, 
+			UnauthorizedException, ACLInheritanceException, ParseException {
+		String entityId = "syn123";
+		Activity activity = new Activity().setName("test activity for syn123");
+		EntityBundleRequest request = new EntityBundleRequest().setIncludeActivity(true);
+		
+		when(mockEntityService.getActivityForEntity(any(), any())).thenReturn(activity);
+		
+		// Call under test
+		EntityBundle response = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
+		
+		assertEquals(new EntityBundle().setActivity(activity), response);
+		
+		verify(mockEntityService).getActivityForEntity(TEST_USER1, entityId);
+	}
+	
 	@Test
 	public void testRequestFromMask_individualMasks() {
 		//assert individual requests
