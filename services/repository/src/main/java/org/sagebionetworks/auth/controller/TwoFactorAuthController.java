@@ -158,6 +158,8 @@ public class TwoFactorAuthController {
 	}
 	
 	/**
+	 * Initiates the reset of two factor authentication, sending a notification to the user with a signed token. The request can be performed using the twoFaToken received
+	 * from an authentication request that requires two factor authentication.
 	 * 
 	 * @param request
 	 */
@@ -169,6 +171,8 @@ public class TwoFactorAuthController {
 	}
 	
 	/**
+	 * Disables two factor authentication for the user encoded in the signed token received from the backend and that must be included in the request. Requires a twoFaToken recieved
+	 * from an authentication request that requires two factor authentication.
 	 * 
 	 * @param request
 	 */

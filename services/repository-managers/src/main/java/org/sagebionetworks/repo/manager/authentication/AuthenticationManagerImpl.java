@@ -233,6 +233,10 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	public void send2FaResetNotification(TwoFactorAuthResetRequest request) {
+		if (featureManager.isFeatureEnabled(Feature.CHANGE_PASSWORD_2FA_CHECK_BYPASS)) {
+			throw new UnsupportedOperationException("Operation not available");
+		}
+		
 		ValidateArgument.required(request, "The request");
 		ValidateArgument.required(request.getTwoFaResetEndpoint(), "The twoFaResetEndpoint");
 		ValidateArgument.required(request.getUserId(), "The userId");
@@ -251,13 +255,20 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Override
 	@WriteTransaction
 	public void disable2FaWithToken(TwoFactorAuthDisableRequest request) {
+		if (featureManager.isFeatureEnabled(Feature.CHANGE_PASSWORD_2FA_CHECK_BYPASS)) {
+			throw new UnsupportedOperationException("Operation not available");
+		}
+		
 		ValidateArgument.required(request, "The request");
-		ValidateArgument.required(request.getCurrentPassword(), "The currentPassword");
+		ValidateArgument.required(request.getTwoFaToken(), "The twoFaToken");
 		ValidateArgument.required(request.getTwoFaResetToken(), "The twoFaResetToken");
 		
 		UserInfo user = userManager.getUserInfo(request.getTwoFaResetToken().getUserId());
 		
-		validateAuthReceiptAndCheckPassword(user.getId(), request.getCurrentPassword(), null);
+		// We first validate the first factor (authentication credentials)
+		if (!twoFaManager.validate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, request.getTwoFaToken())) {
+			throw new UnauthenticatedException("The provided 2fa token is invalid.");
+		}
 		
 		if (!twoFaManager.validate2FaResetToken(user, request.getTwoFaResetToken())) {
 			throw new UnauthenticatedException("The provided 2fa reset token is invalid.");

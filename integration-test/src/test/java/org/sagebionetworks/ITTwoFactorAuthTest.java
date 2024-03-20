@@ -343,6 +343,9 @@ public class ITTwoFactorAuthTest {
 			newSynapseClient.loginForAccessToken(loginRequest);
 		});
 		
+		// Now enable the 2fa check
+		adminClient.setFeatureStatus(Feature.CHANGE_PASSWORD_2FA_CHECK_BYPASS, new FeatureStatus().setEnabled(false));
+		
 		String endpoint = "https://www.synapse.org?";
 		
 		// Now ask to reset the 2fa with a signed token		
@@ -358,8 +361,13 @@ public class ITTwoFactorAuthTest {
 		
 		TwoFactorAuthResetToken token = SerializationUtils.hexDecodeAndDeserialize(encodedToken, TwoFactorAuthResetToken.class);
 		
+		// Now authenticate again to receive a new twoFaToken to verify the first factor
+		twoFaResponse = assertThrows(SynapseTwoFactorAuthRequiredException.class, () -> {
+			newSynapseClient.loginForAccessToken(loginRequest);
+		});
+		
 		newSynapseClient.disable2FaWithToken(new TwoFactorAuthDisableRequest()
-			.setCurrentPassword(password)
+			.setTwoFaToken(twoFaResponse.getTwoFaToken())
 			.setTwoFaResetToken(token)
 		);
 		

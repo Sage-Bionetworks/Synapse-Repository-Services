@@ -1033,52 +1033,74 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testDisable2FaWithToken() {
 		
-		AuthenticationManagerImpl authManagerSpy = Mockito.spy(authManager);
-		
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
-		doNothing().when(authManagerSpy).validateAuthReceiptAndCheckPassword(anyLong(), any(), any());
+		when(mock2FaManager.validate2FaToken(any(), any(), any())).thenReturn(true);
 		when(mock2FaManager.validate2FaResetToken(any(), any())).thenReturn(true);
 		
 		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
 				.setUserId(userInfo.getId());
 		
 		TwoFactorAuthDisableRequest request = new TwoFactorAuthDisableRequest()
-			.setCurrentPassword(password)
+			.setTwoFaToken("twoFaToken")
 			.setTwoFaResetToken(resetToken);
 		
 		// Call under test
-		authManagerSpy.disable2FaWithToken(request);
+		authManager.disable2FaWithToken(request);
 		
-		verify(authManagerSpy).validateAuthReceiptAndCheckPassword(userInfo.getId(), password, null);
+		verify(mock2FaManager).validate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, "twoFaToken");
 		verify(mock2FaManager).validate2FaResetToken(userInfo, resetToken);
 		verify(mock2FaManager).disable2Fa(userInfo);
 		
 	}
 	
 	@Test
-	public void testDisable2FaWithTokenWithInvalidToken() {
-		
-		AuthenticationManagerImpl authManagerSpy = Mockito.spy(authManager);
-		
+	public void testDisable2FaWithTokenWithInvalidTwoFaToken() {
+				
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
-		doNothing().when(authManagerSpy).validateAuthReceiptAndCheckPassword(anyLong(), any(), any());
+		when(mock2FaManager.validate2FaToken(any(), any(), any())).thenReturn(false);
+		
+		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
+				.setUserId(userInfo.getId());
+		
+		TwoFactorAuthDisableRequest request = new TwoFactorAuthDisableRequest()
+			.setTwoFaToken("twoFaToken")
+			.setTwoFaResetToken(resetToken);
+		
+		String result = assertThrows(UnauthenticatedException.class, () -> {			
+			// Call under test
+			authManager.disable2FaWithToken(request);
+		}).getMessage();
+		
+		assertEquals("The provided 2fa token is invalid.", result);
+		
+		verify(mock2FaManager).validate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, "twoFaToken");
+		verifyNoMoreInteractions(mock2FaManager);
+		
+	}
+	
+	@Test
+	public void testDisable2FaWithTokenWithInvalidResetToken() {
+				
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mock2FaManager.validate2FaToken(any(), any(), any())).thenReturn(true);
 		when(mock2FaManager.validate2FaResetToken(any(), any())).thenReturn(false);
 		
 		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
 				.setUserId(userInfo.getId());
 		
 		TwoFactorAuthDisableRequest request = new TwoFactorAuthDisableRequest()
-			.setCurrentPassword(password)
+			.setTwoFaToken("twoFaToken")
 			.setTwoFaResetToken(resetToken);
 		
 		String result = assertThrows(UnauthenticatedException.class, () -> {			
 			// Call under test
-			authManagerSpy.disable2FaWithToken(request);
+			authManager.disable2FaWithToken(request);
 		}).getMessage();
 		
 		assertEquals("The provided 2fa reset token is invalid.", result);
 		
-		verify(authManagerSpy).validateAuthReceiptAndCheckPassword(userInfo.getId(), password, null);
+		verify(mock2FaManager).validate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, "twoFaToken");
+		verify(mock2FaManager).validate2FaResetToken(userInfo, resetToken);
 		verifyNoMoreInteractions(mock2FaManager);
 		
 	}
@@ -1106,7 +1128,7 @@ public class AuthenticationManagerImplUnitTest {
 				.setUserId(userInfo.getId());
 		
 		TwoFactorAuthDisableRequest request = new TwoFactorAuthDisableRequest()
-			.setCurrentPassword(null)
+			.setTwoFaToken(null)
 			.setTwoFaResetToken(resetToken);
 		
 		String result = assertThrows(IllegalArgumentException.class, () -> {			
@@ -1114,7 +1136,7 @@ public class AuthenticationManagerImplUnitTest {
 			authManager.disable2FaWithToken(request);
 		}).getMessage();
 		
-		assertEquals("The currentPassword is required.", result);
+		assertEquals("The twoFaToken is required.", result);
 		
 		verifyNoMoreInteractions(mock2FaManager);
 		
@@ -1124,7 +1146,7 @@ public class AuthenticationManagerImplUnitTest {
 	public void testDisable2FaWithTokenWithNoResetToken() {
 		
 		TwoFactorAuthDisableRequest request = new TwoFactorAuthDisableRequest()
-			.setCurrentPassword(password)
+			.setTwoFaToken("twoFaToken")
 			.setTwoFaResetToken(null);
 		
 		String result = assertThrows(IllegalArgumentException.class, () -> {			
