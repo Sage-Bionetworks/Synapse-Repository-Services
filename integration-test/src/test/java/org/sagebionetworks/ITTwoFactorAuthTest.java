@@ -3,6 +3,7 @@ package org.sagebionetworks;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.UUID;
@@ -357,6 +358,9 @@ public class ITTwoFactorAuthTest {
 		
 		// Extracts the serialized token from the email
 		String emailS3Key = EmailValidationUtil.getBucketKeyForEmail(email);
+		
+		assertTrue(EmailValidationUtil.doesFileExist(emailS3Key, 10_000L));
+		
 		String encodedToken = EmailValidationUtil.getTokenFromFile(emailS3Key, "href=\""+endpoint, "\">");
 		
 		TwoFactorAuthResetToken token = SerializationUtils.hexDecodeAndDeserialize(encodedToken, TwoFactorAuthResetToken.class);
