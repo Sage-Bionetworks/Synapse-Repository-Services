@@ -83,11 +83,13 @@ public class MultipartUploadRequestHandler implements MultipartRequestHandler<Mu
 	public PresignedUrl getPresignedUrl(CompositeMultipartUploadStatus status, long partNumber, String contentType) {
 		ValidateArgument.required(status, "The upload status");
 		
-		String partKey = MultipartUploadUtils.createPartKey(status.getKey(), partNumber);
-		
+//		String partKey = MultipartUploadUtils.createPartKey(status.getKey(), partNumber);
+//		
 		CloudServiceMultipartUploadDAO cloudDao = cloudServiceDaoProvider.getCloudServiceMultipartUploadDao(status.getUploadType());
+//		
+//		return cloudDao.createPartUploadPreSignedUrl(status.getBucket(), partKey, contentType);
 		
-		return cloudDao.createPartUploadPreSignedUrl(status.getBucket(), partKey, contentType);
+		return cloudDao.createPartUploadPreSignedUrl(status.getBucket(), status, partNumber, contentType);
 	}
 
 	@Override

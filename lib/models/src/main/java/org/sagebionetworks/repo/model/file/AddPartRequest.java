@@ -42,11 +42,16 @@ public class AddPartRequest {
 		this.totalNumberOfParts = totalNumberOfParts;
 	}
 
+	public AddPartRequest() {};
+	
 	public String getUploadId() {
 		return uploadId;
 	}
 
-	public void setUploadId(String uploadId) { this.uploadId = uploadId; }
+	public AddPartRequest setUploadId(String uploadId) {
+		this.uploadId = uploadId;
+		return this;
+	}
 
 	public String getUploadToken() {
 		return uploadToken;
@@ -56,52 +61,59 @@ public class AddPartRequest {
 		return partNumber;
 	}
 
-	public void setPartNumber(long partNumber) {
+	public AddPartRequest setPartNumber(long partNumber) {
 		this.partNumber = partNumber;
+		return this;
 	}
 
 	public long getTotalNumberOfParts() {
 		return totalNumberOfParts;
 	}
 
-	public void setTotalNumberOfParts(long totalNumberOfParts) {
+	public AddPartRequest setTotalNumberOfParts(long totalNumberOfParts) {
 		this.totalNumberOfParts = totalNumberOfParts;
+		return this;
 	}
 
-	public void setUploadToken(String uploadToken) {
+	public AddPartRequest setUploadToken(String uploadToken) {
 		this.uploadToken = uploadToken;
+		return this;
 	}
 
 	public String getBucket() {
 		return bucket;
 	}
 
-	public void setBucket(String bucket) {
+	public AddPartRequest setBucket(String bucket) {
 		this.bucket = bucket;
+		return this;
 	}
 
 	public String getKey() {
 		return key;
 	}
 
-	public void setKey(String key) {
+	public AddPartRequest setKey(String key) {
 		this.key = key;
+		return this;
 	}
 
 	public String getPartKey() {
 		return partKey;
 	}
 
-	public void setPartKey(String partKey) {
+	public AddPartRequest setPartKey(String partKey) {
 		this.partKey = partKey;
+		return this;
 	}
 
 	public String getPartMD5Hex() {
 		return partMD5Hex;
 	}
 
-	public void setPartMD5Hex(String partMD5Hex) {
+	public AddPartRequest setPartMD5Hex(String partMD5Hex) {
 		this.partMD5Hex = partMD5Hex;
+		return this;
 	}
 
 	@Override

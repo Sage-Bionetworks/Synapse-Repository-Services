@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.aws.AwsClientFactory;
+import org.sagebionetworks.aws.SynapseS3ClientImpl;
 
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.model.Region;
@@ -21,7 +22,7 @@ class AwsClientFactoryTest {
 	@Test
 	void testClientGeneration() throws Exception {
 		assertEquals(Region.US_Standard, 
-				AwsClientFactory.createAmazonS3Client().getUSStandardAmazonClient().getRegion());
+				((SynapseS3ClientImpl)AwsClientFactory.createAmazonS3Client()).getUSStandardAmazonClient().getRegion());
 	}
 
 }

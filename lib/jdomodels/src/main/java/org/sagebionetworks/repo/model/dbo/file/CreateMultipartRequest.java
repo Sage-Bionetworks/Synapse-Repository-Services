@@ -49,92 +49,107 @@ public class CreateMultipartRequest {
 		this.sourceFileEtag = sourceFileEtag;
 	}
 
+	public CreateMultipartRequest() {
+		
+	}
+	
 	public Long getUserId() {
 		return userId;
 	}
 
-	public void setUserId(Long userId) {
+	public CreateMultipartRequest setUserId(Long userId) {
 		this.userId = userId;
+		return this;
 	}
 
 	public String getHash() {
 		return hash;
 	}
 
-	public void setHash(String hash) {
+	public CreateMultipartRequest setHash(String hash) {
 		this.hash = hash;
+		return this;
 	}
 
 	public String getRequestBody() {
 		return requestBody;
 	}
 
-	public void setRequestBody(String requestBody) {
+	public CreateMultipartRequest setRequestBody(String requestBody) {
 		this.requestBody = requestBody;
+		return this;
 	}
 
 	public String getUploadToken() {
 		return uploadToken;
 	}
 
-	public void setUploadToken(String uploadToken) {
+	public CreateMultipartRequest setUploadToken(String uploadToken) {
 		this.uploadToken = uploadToken;
+		return this;
 	}
 
 	public UploadType getUploadType() {
 		return uploadType;
 	}
 
-	public void setUploadType(UploadType uploadType) {
+	public CreateMultipartRequest setUploadType(UploadType uploadType) {
 		this.uploadType = uploadType;
+		return this;
 	}
 
 	public String getBucket() {
 		return bucket;
 	}
 
-	public void setBucket(String bucket) {
+	public CreateMultipartRequest setBucket(String bucket) {
 		this.bucket = bucket;
+		return this;
 	}
 
 	public String getKey() {
 		return key;
 	}
 
-	public void setKey(String key) {
+	public CreateMultipartRequest setKey(String key) {
 		this.key = key;
+		return this;
 	}
 
 	public Integer getNumberOfParts() {
 		return numberOfParts;
 	}
 
-	public void setNumberOfParts(Integer numberOfParts) {
+	public CreateMultipartRequest setNumberOfParts(Integer numberOfParts) {
 		this.numberOfParts = numberOfParts;
+		return this;
 	}
 
 	public String getSourceFileHandleId() {
 		return sourceFileHandleId;
 	}
 	
-	public void setSourceFileHandleId(String sourceFileHandleId) {
+	public CreateMultipartRequest setSourceFileHandleId(String sourceFileHandleId) {
 		this.sourceFileHandleId = sourceFileHandleId;
+		return this;
 	}
 	
 	public String getSourceFileEtag() {
 		return sourceFileEtag;
 	}
 	
-	public void setSourceFileEtag(String sourceFileEtag) {
+	public CreateMultipartRequest setSourceFileEtag(String sourceFileEtag) {
 		this.sourceFileEtag = sourceFileEtag;
+		return this;
 	}
 
 	public Long getPartSize() {
 		return partSize;
 	}
 
-	public void setPartSize(Long partSize) {
+	public CreateMultipartRequest setPartSize(Long partSize) {
 		this.partSize = partSize;
+		return this;
 	}
 
 	@Override

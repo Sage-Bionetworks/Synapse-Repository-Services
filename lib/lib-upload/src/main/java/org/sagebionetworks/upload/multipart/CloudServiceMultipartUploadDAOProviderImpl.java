@@ -8,8 +8,11 @@ public class CloudServiceMultipartUploadDAOProviderImpl implements CloudServiceM
 	@Autowired
 	private S3MultipartUploadDAOImpl s3MultipartUploadDAO;
 
+//	@Autowired
+//	private GoogleCloudStorageMultipartUploadDAOImpl googleCloudStorageMultipartUploadDAO;
+	
 	@Autowired
-	private GoogleCloudStorageMultipartUploadDAOImpl googleCloudStorageMultipartUploadDAO;
+	private CloudServiceMultipartUploadDAO googleCloudMultipartUploadDao;
 
 	@Override
 	public CloudServiceMultipartUploadDAO getCloudServiceMultipartUploadDao(UploadType uploadType) {
@@ -17,7 +20,7 @@ public class CloudServiceMultipartUploadDAOProviderImpl implements CloudServiceM
 			case S3:
 				return s3MultipartUploadDAO;
 			case GOOGLECLOUDSTORAGE:
-				return googleCloudStorageMultipartUploadDAO;
+				return googleCloudMultipartUploadDao;
 			default:
 				throw new IllegalArgumentException("Multipart upload for upload type " + uploadType.toString() + " is not supported.");
 		}

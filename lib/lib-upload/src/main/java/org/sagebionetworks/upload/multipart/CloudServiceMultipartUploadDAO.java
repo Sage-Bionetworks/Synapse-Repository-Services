@@ -94,4 +94,7 @@ public interface CloudServiceMultipartUploadDAO {
 	 * @return whether or not the object exists
 	 */
 	boolean doesObjectExist(String bucketName, String objectKey);
+
+	PresignedUrl createPartUploadPreSignedUrl(String bucket, CompositeMultipartUploadStatus status, long partNumber,
+			String contentType);
 }

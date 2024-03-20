@@ -872,4 +872,8 @@ public interface StackConfiguration {
 	 * The domain name for the CloudFront distribution in front of the Synapse data S3 bucket
 	 */
 	public String getCloudFrontDomainName();
+
+	public String getGoogleCloudServiceIamKey();
+
+	public String getGoogleCloudServiceIamSecret();
 }
