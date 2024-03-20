@@ -3,16 +3,15 @@ package org.sagebionetworks.repo.manager.authentication;
 import java.nio.charset.StandardCharsets;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -21,10 +20,11 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
-import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthToken;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.dbo.otp.DBOOtpSecret;
 import org.sagebionetworks.repo.model.dbo.otp.OtpSecretDao;
@@ -34,6 +34,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.AESEncryptionUtils;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
@@ -41,10 +42,12 @@ import org.springframework.stereotype.Service;
 public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 
 	public static final long TWO_FA_TOKEN_DURATION_MINS = 10;
+	
 	private static final String NOTIFICATION_TEMPLATE_2FA_ENABLED = "message/TwoFaEnabledNotification.html.vtl";
 	private static final String NOTIFICATION_TEMPLATE_2FA_DISABLED = "message/TwoFaDisabledNotification.html.vtl";
 	private static final String NOTIFICATION_TEMPLATE_RECOVERY_CODES_GENERATED = "message/TwoFaRecoveryCodesGeneratedNotification.html.vtl";
 	private static final String NOTIFICATION_TEMPLATE_RECOVERY_CODE_USED = "message/TwoFaRecoveryCodeUsedNotification.html.vtl";
+	private static final String NOTIFICATION_TEMPLATE_2FA_RESET_REQUEST = "message/TwoFaResetRequestNotification.html.vtl";
 	
 	private TotpManager totpMananger;
 	private OtpSecretDao otpDao;
@@ -156,27 +159,20 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		return isTotpValid(user, secret, otpCode);
 		
 	}
-	
+		
 	@Override
-	public String generate2FaToken(UserInfo user) {
-		return generate2FaToken(user, Collections.emptySet());
-	}
-	
-	@Override
-	public String generate2FaToken(UserInfo user, Set<TwoFactorAuthOtpType> restrictTypes) {
+	public String generate2FaToken(UserInfo user, TwoFactorAuthTokenContext context) {
 		assertValidUser(user);
+		ValidateArgument.required(context, "The context");
 		
 		Date now = clock.now();
 		Date tokenExpiration = Date.from(now.toInstant().plus(TWO_FA_TOKEN_DURATION_MINS, ChronoUnit.MINUTES)); 
 		
 		TwoFactorAuthToken token = new TwoFactorAuthToken()
 			.setUserId(user.getId())
+			.setContext(context)
 			.setCreatedOn(now)
 			.setExpiresOn(tokenExpiration);
-		
-		if (restrictTypes != null && !restrictTypes.isEmpty()) {
-			token.setRestrictTypes(restrictTypes.stream().sorted().collect(Collectors.toList()));
-		}
 		
 		tokenGenerator.signToken(token);
 		
@@ -189,10 +185,10 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	}
 	
 	@Override
-	public boolean validate2FaToken(UserInfo user, TwoFactorAuthOtpType otpType, String encodedToken) {
+	public boolean validate2FaToken(UserInfo user, TwoFactorAuthTokenContext context, String encodedToken) {
 		assertValidUser(user);
 		
-		ValidateArgument.required(otpType, "The otp type");
+		ValidateArgument.required(context, "The context");
 		ValidateArgument.requiredNotBlank(encodedToken, "The token");
 		
 		try {
@@ -203,7 +199,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 				return false;
 			}
 			
-			if (token.getRestrictTypes() != null && !token.getRestrictTypes().isEmpty() && !token.getRestrictTypes().contains(otpType)) {
+			if (!context.equals(token.getContext())) {
 				return false;
 			}
 			
@@ -264,6 +260,56 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		}
 		
 		return false;
+	}
+	
+	@Override
+	public void send2FaResetNotification(UserInfo user, String twoFaResetEndpoint) {
+		assertValidUser(user);
+		ValidateArgument.required(twoFaResetEndpoint, "The twoFaResetEndpoint");
+		
+		EmailUtils.validateSynapsePortalHost(twoFaResetEndpoint);
+		
+		getActiveSecretOrThrow(user);
+		
+		Date now = clock.now();
+		Date tokenExpiration = Date.from(now.toInstant().plus(TWO_FA_TOKEN_DURATION_MINS, ChronoUnit.MINUTES));
+		
+		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
+			.setUserId(user.getId())
+			.setCreatedOn(now)
+			.setExpiresOn(tokenExpiration);
+		
+		tokenGenerator.signToken(resetToken);
+		
+		String resetUrl = twoFaResetEndpoint + SerializationUtils.serializeAndHexEncode(resetToken);
+		
+		String template = NOTIFICATION_TEMPLATE_2FA_RESET_REQUEST;
+		
+		Map<String, Object> context = new HashMap<>();
+		
+		context.put("resetUrl", resetUrl);
+		
+		notificationManager.sendTemplatedNotification(user, template, "Two-Factor Authentication Reset Request", context);
+	}
+	
+	
+	@Override
+	public boolean validate2FaResetToken(UserInfo user, TwoFactorAuthResetToken token) {
+		assertValidUser(user);
+		
+		ValidateArgument.required(token, "The token");
+		
+		if(!user.getId().equals(token.getUserId())) {
+			return false;
+		}
+		
+		try {
+			tokenGenerator.validateToken(token);
+		} catch (UnauthorizedException ex) {
+			return false;
+		}
+		
+		return true;
 	}
 	
 	void send2FaRecoveryCodesGeneratedNotification(UserInfo user) {

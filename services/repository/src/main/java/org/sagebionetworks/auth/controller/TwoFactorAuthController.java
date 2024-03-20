@@ -5,8 +5,10 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.web.RequiredScope;
@@ -153,6 +155,32 @@ public class TwoFactorAuthController {
 	@RequestMapping(value = UrlHelpers.TWO_FA_RECOVERY_CODES, method = RequestMethod.POST)
 	public @ResponseBody TwoFactorAuthRecoveryCodes generateRecoveryCodes(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
 		return service.generate2faRecoveryCodes(userId);
+	}
+	
+	/**
+	 * Initiates the reset of two factor authentication, sending a notification to the user with a signed token. The request can be performed using the twoFaToken received
+	 * from an authentication request that requires two factor authentication.
+	 * 
+	 * @param request
+	 */
+	@RequiredScope({OAuthScope.modify})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.TWO_FA_RESET, method = RequestMethod.POST)
+	public void sendResetNotification(@RequestBody TwoFactorAuthResetRequest request) {
+		service.send2FaResetNotification(request);
+	}
+	
+	/**
+	 * Disables two factor authentication for the user encoded in the signed token received from the backend and that must be included in the request. Requires a twoFaToken recieved
+	 * from an authentication request that requires two factor authentication.
+	 * 
+	 * @param request
+	 */
+	@RequiredScope({OAuthScope.modify})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.TWO_FA_DISABLE, method = RequestMethod.POST)
+	public void disableWithToken(@RequestBody TwoFactorAuthDisableRequest request) {
+		service.disable2FaWithToken(request);
 	}
 
 }

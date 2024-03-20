@@ -1,5 +1,6 @@
 package org.sagebionetworks.auth.services;
 
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
@@ -11,8 +12,10 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -180,5 +183,19 @@ public interface AuthenticationService {
 	 * @throws org.sagebionetworks.repo.model.UnauthenticatedException If the token and/or code are invalid
 	 */
 	LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request, String issuer);
+	
+	/**
+	 * Send a 2fa reset notification to the email account
+	 * 
+	 * @param request
+	 */
+	void send2FaResetNotification(TwoFactorAuthResetRequest request);
+	
+	/**
+	 * Disable 2fa using the current password and a resete token
+	 * 
+	 * @param request
+	 */
+	void disable2FaWithToken(TwoFactorAuthDisableRequest request);
 
 }

@@ -1,0 +1,14 @@
+{
+  "type": "string",
+  "description": "The context within which a twoFaToken for two factor authentication is generated.",
+  "enum": [
+  	{
+		"name": "AUTHENTICATION",
+		"description": "A token generated while the user is authenticating"
+	},
+	{
+		"name": "PASSWORD_CHANGE",
+		"description": "A token generated while the user is changing their password"
+	}
+  ]
+}

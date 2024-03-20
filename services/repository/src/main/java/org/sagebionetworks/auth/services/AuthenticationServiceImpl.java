@@ -29,8 +29,10 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
@@ -335,6 +337,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request, String issuer) {
 		return authManager.loginWith2Fa(request, issuer);
+	}
+	
+	@Override
+	public void send2FaResetNotification(TwoFactorAuthResetRequest request) {
+		authManager.send2FaResetNotification(request);
+	}
+	
+	@Override
+	public void disable2FaWithToken(TwoFactorAuthDisableRequest request) {
+		authManager.disable2FaWithToken(request);
 	}
 
 }

@@ -6,7 +6,9 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
 
@@ -84,5 +86,16 @@ public interface AuthenticationManager {
 	 * @return
 	 */
 	LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request, String issuer);
-	
+
+	/**
+	 * Sends a notification to reset 2fa for the user specified in the request
+	 * @param request
+	 */
+	void send2FaResetNotification(TwoFactorAuthResetRequest request);
+
+	/**
+	 * Uses the given reset request to disable 2fa for the user specified in the request
+	 * @param request
+	 */
+	void disable2FaWithToken(TwoFactorAuthDisableRequest request);
 }
