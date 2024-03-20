@@ -1,0 +1,14 @@
+{
+	"description": "Signed token containing the the information necessary to reset 2fa for a user.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.SignedTokenInterface"
+		}
+	],
+	"properties": {
+		"userId": {
+			"type": "integer",
+			"description": "The id of the user."
+		}
+	}
+}

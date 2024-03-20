@@ -22,8 +22,10 @@ import org.sagebionetworks.repo.model.auth.HasTwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -227,6 +229,41 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		validateTwoFactorAuthTokenRequest(request, TwoFactorAuthTokenContext.AUTHENTICATION);
 				
 		return getLoginResponseAfterSuccessfulAuthentication(request.getUserId(), issuer);
+	}
+	
+	@Override
+	public void send2FaResetNotification(TwoFactorAuthResetRequest request) {
+		ValidateArgument.required(request, "The request");
+		ValidateArgument.required(request.getTwoFaResetEndpoint(), "The twoFaResetEndpoint");
+		ValidateArgument.required(request.getUserId(), "The userId");
+		ValidateArgument.required(request.getTwoFaToken(), "The twoFaToken");
+		
+		UserInfo user = userManager.getUserInfo(request.getUserId());
+		
+		// Can only be used while the user is authenticating
+		if (!twoFaManager.validate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, request.getTwoFaToken())) {
+			throw new UnauthenticatedException("The provided 2fa token is invalid.");
+		}
+		
+		twoFaManager.send2FaResetNotification(user, request.getTwoFaResetEndpoint());
+	}
+	
+	@Override
+	@WriteTransaction
+	public void disable2FaWithToken(TwoFactorAuthDisableRequest request) {
+		ValidateArgument.required(request, "The request");
+		ValidateArgument.required(request.getCurrentPassword(), "The currentPassword");
+		ValidateArgument.required(request.getTwoFaResetToken(), "The twoFaResetToken");
+		
+		UserInfo user = userManager.getUserInfo(request.getTwoFaResetToken().getUserId());
+		
+		validateAuthReceiptAndCheckPassword(user.getId(), request.getCurrentPassword(), null);
+		
+		if (!twoFaManager.validate2FaResetToken(user, request.getTwoFaResetToken())) {
+			throw new UnauthenticatedException("The provided 2fa reset token is invalid.");
+		}
+		
+		twoFaManager.disable2Fa(user);
 	}
 	
 	void validateTwoFactorAuthTokenRequest(HasTwoFactorAuthToken request, TwoFactorAuthTokenContext context) {

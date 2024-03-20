@@ -51,8 +51,11 @@ import org.sagebionetworks.repo.model.auth.HasTwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -921,4 +924,218 @@ public class AuthenticationManagerImplUnitTest {
 		
 		verifyZeroInteractions(mockUserManager, mock2FaManager);
 	}
+	
+	@Test
+	public void testSend2FaResetNotification() {
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mock2FaManager.validate2FaToken(any(), any(), any())).thenReturn(true);
+		
+		TwoFactorAuthResetRequest request = new TwoFactorAuthResetRequest()
+				.setTwoFaToken("twoFaToken")
+				.setUserId(userId)
+				.setTwoFaResetEndpoint("http://synapse.org");
+		
+		// Call under test
+		authManager.send2FaResetNotification(request);
+		
+		verify(mockUserManager).getUserInfo(userId);
+		verify(mock2FaManager).validate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, "twoFaToken");
+		verify(mock2FaManager).send2FaResetNotification(userInfo, "http://synapse.org");
+	}
+	
+	@Test
+	public void testSend2FaResetNotificationWithInvalidToken() {
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mock2FaManager.validate2FaToken(any(), any(), any())).thenReturn(false);
+		
+		TwoFactorAuthResetRequest request = new TwoFactorAuthResetRequest()
+				.setTwoFaToken("twoFaToken")
+				.setUserId(userId)
+				.setTwoFaResetEndpoint("http://synapse.org");
+		
+		String result = assertThrows(UnauthenticatedException.class, () -> {			
+			// Call under test
+			authManager.send2FaResetNotification(request);
+		}).getMessage();
+		
+		assertEquals("The provided 2fa token is invalid.", result);
+		
+		verify(mockUserManager).getUserInfo(userId);
+		verify(mock2FaManager).validate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, "twoFaToken");
+		verifyNoMoreInteractions(mock2FaManager);
+	}
+	
+	@Test
+	public void testSend2FaResetNotificationWithNoRequest() {
+		TwoFactorAuthResetRequest request = null;
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			authManager.send2FaResetNotification(request);
+		}).getMessage();
+		
+		assertEquals("The request is required.", result);
+		
+		verifyZeroInteractions(mockUserManager, mock2FaManager);
+	}
+	
+	@Test
+	public void testSend2FaResetNotificationWithNoUser() {
+		TwoFactorAuthResetRequest request = new TwoFactorAuthResetRequest()
+				.setTwoFaToken("twoFaToken")
+				.setUserId(null)
+				.setTwoFaResetEndpoint("http://synapse.org");
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			authManager.send2FaResetNotification(request);
+		}).getMessage();
+		
+		assertEquals("The userId is required.", result);
+		
+		verifyZeroInteractions(mockUserManager, mock2FaManager);
+	}
+	
+	@Test
+	public void testSend2FaResetNotificationWithNoTwoFaToken() {
+		TwoFactorAuthResetRequest request = new TwoFactorAuthResetRequest()
+				.setTwoFaToken(null)
+				.setUserId(userId)
+				.setTwoFaResetEndpoint("http://synapse.org");
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			authManager.send2FaResetNotification(request);
+		}).getMessage();
+		
+		assertEquals("The twoFaToken is required.", result);
+		
+		verifyZeroInteractions(mockUserManager, mock2FaManager);
+	}
+	
+	@Test
+	public void testSend2FaResetNotificationWithNoResetEndpoint() {
+		TwoFactorAuthResetRequest request = new TwoFactorAuthResetRequest()
+				.setTwoFaToken("twoFaToken")
+				.setUserId(userId)
+				.setTwoFaResetEndpoint(null);
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			authManager.send2FaResetNotification(request);
+		}).getMessage();
+		
+		assertEquals("The twoFaResetEndpoint is required.", result);
+		
+		verifyZeroInteractions(mockUserManager, mock2FaManager);
+	}
+	
+	@Test
+	public void testDisable2FaWithToken() {
+		
+		AuthenticationManagerImpl authManagerSpy = Mockito.spy(authManager);
+		
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		doNothing().when(authManagerSpy).validateAuthReceiptAndCheckPassword(anyLong(), any(), any());
+		when(mock2FaManager.validate2FaResetToken(any(), any())).thenReturn(true);
+		
+		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
+				.setUserId(userInfo.getId());
+		
+		TwoFactorAuthDisableRequest request = new TwoFactorAuthDisableRequest()
+			.setCurrentPassword(password)
+			.setTwoFaResetToken(resetToken);
+		
+		// Call under test
+		authManagerSpy.disable2FaWithToken(request);
+		
+		verify(authManagerSpy).validateAuthReceiptAndCheckPassword(userInfo.getId(), password, null);
+		verify(mock2FaManager).validate2FaResetToken(userInfo, resetToken);
+		verify(mock2FaManager).disable2Fa(userInfo);
+		
+	}
+	
+	@Test
+	public void testDisable2FaWithTokenWithInvalidToken() {
+		
+		AuthenticationManagerImpl authManagerSpy = Mockito.spy(authManager);
+		
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		doNothing().when(authManagerSpy).validateAuthReceiptAndCheckPassword(anyLong(), any(), any());
+		when(mock2FaManager.validate2FaResetToken(any(), any())).thenReturn(false);
+		
+		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
+				.setUserId(userInfo.getId());
+		
+		TwoFactorAuthDisableRequest request = new TwoFactorAuthDisableRequest()
+			.setCurrentPassword(password)
+			.setTwoFaResetToken(resetToken);
+		
+		String result = assertThrows(UnauthenticatedException.class, () -> {			
+			// Call under test
+			authManagerSpy.disable2FaWithToken(request);
+		}).getMessage();
+		
+		assertEquals("The provided 2fa reset token is invalid.", result);
+		
+		verify(authManagerSpy).validateAuthReceiptAndCheckPassword(userInfo.getId(), password, null);
+		verifyNoMoreInteractions(mock2FaManager);
+		
+	}
+	
+	@Test
+	public void testDisable2FaWithTokenWithNoRequest() {
+		
+		TwoFactorAuthDisableRequest request = null;
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			authManager.disable2FaWithToken(request);
+		}).getMessage();
+		
+		assertEquals("The request is required.", result);
+		
+		verifyNoMoreInteractions(mock2FaManager);
+		
+	}
+	
+	@Test
+	public void testDisable2FaWithTokenWithNoPassword() {
+		
+		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
+				.setUserId(userInfo.getId());
+		
+		TwoFactorAuthDisableRequest request = new TwoFactorAuthDisableRequest()
+			.setCurrentPassword(null)
+			.setTwoFaResetToken(resetToken);
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			authManager.disable2FaWithToken(request);
+		}).getMessage();
+		
+		assertEquals("The currentPassword is required.", result);
+		
+		verifyNoMoreInteractions(mock2FaManager);
+		
+	}
+	
+	@Test
+	public void testDisable2FaWithTokenWithNoResetToken() {
+		
+		TwoFactorAuthDisableRequest request = new TwoFactorAuthDisableRequest()
+			.setCurrentPassword(password)
+			.setTwoFaResetToken(null);
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			authManager.disable2FaWithToken(request);
+		}).getMessage();
+		
+		assertEquals("The twoFaResetToken is required.", result);
+		
+		verifyNoMoreInteractions(mock2FaManager);
+		
+	}
+	
 }

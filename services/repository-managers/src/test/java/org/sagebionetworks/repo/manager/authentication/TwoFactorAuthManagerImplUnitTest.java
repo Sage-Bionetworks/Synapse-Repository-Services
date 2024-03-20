@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
@@ -56,6 +57,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.AESEncryptionUtils;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.SerializationUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class TwoFactorAuthManagerImplUnitTest {
@@ -835,6 +837,86 @@ public class TwoFactorAuthManagerImplUnitTest {
 		manager.send2FaRecoveryCodeUsedNotification(user, codesRemaining);
 		
 		verify(mockNotificationManager).sendTemplatedNotification(user, "message/TwoFaRecoveryCodeUsedNotification.html.vtl", "Two-Factor Authentication Recovery Code Used", Map.of("codesCount", codesRemaining));
+	}
+	
+	@Test
+	public void testSend2FaResetNotification() {
+		doNothing().when(manager).assertValidUser(any());
+		doReturn(dbSecret).when(manager).getActiveSecretOrThrow(any());
+		when(mockClock.now()).thenReturn(new Date(12345));
+		doNothing().when(mockTokenGenerator).signToken(any());
+		
+		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
+			.setUserId(user.getId())
+			.setCreatedOn(new Date(12345))
+			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
+		
+		String resetEndpoint = "http://synapse.org/#2faReset/";
+		
+		// Call under test
+		manager.send2FaResetNotification(user, resetEndpoint);
+		
+		String expectedResetUrl = resetEndpoint + SerializationUtils.serializeAndHexEncode(resetToken);
+		
+		verify(manager).assertValidUser(user);
+		verify(manager).getActiveSecretOrThrow(user);
+		verify(mockTokenGenerator).signToken(resetToken);
+		verify(mockNotificationManager).sendTemplatedNotification(user, "message/TwoFaResetRequestNotification.html.vtl", "Two-Factor Authentication Reset Request", Map.of("resetUrl", expectedResetUrl));
+	}
+	
+	@Test
+	public void testValidate2FaResetToken() {
+		doNothing().when(manager).assertValidUser(any());
+		
+		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
+			.setUserId(user.getId())
+			.setCreatedOn(new Date(12345))
+			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
+		
+		// Call under test
+		boolean result = manager.validate2FaResetToken(user, resetToken);
+		
+		assertTrue(result);
+		
+		verify(manager).assertValidUser(user);
+		verify(mockTokenGenerator).validateToken(resetToken);
+	}
+	
+	@Test
+	public void testValidate2FaResetTokenWithDifferentUser() {
+		doNothing().when(manager).assertValidUser(any());
+		
+		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
+			.setUserId(12345L)
+			.setCreatedOn(new Date(12345))
+			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
+		
+		// Call under test
+		boolean result = manager.validate2FaResetToken(user, resetToken);
+		
+		assertFalse(result);
+		
+		verify(manager).assertValidUser(user);
+		verifyZeroInteractions(mockTokenGenerator);
+	}
+	
+	@Test
+	public void testValidate2FaResetTokenWithInvalidToken() {
+		doNothing().when(manager).assertValidUser(any());
+		doThrow(UnauthorizedException.class).when(mockTokenGenerator).validateToken(any());
+		
+		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
+			.setUserId(user.getId())
+			.setCreatedOn(new Date(12345))
+			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
+		
+		// Call under test
+		boolean result = manager.validate2FaResetToken(user, resetToken);
+		
+		assertFalse(result);
+		
+		verify(manager).assertValidUser(user);
+		verify(mockTokenGenerator).validateToken(resetToken);
 	}
 	
 	private String encodeToken(TwoFactorAuthToken token) {

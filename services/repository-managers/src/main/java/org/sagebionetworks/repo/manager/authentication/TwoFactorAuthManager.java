@@ -4,6 +4,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
 
@@ -79,5 +80,21 @@ public interface TwoFactorAuthManager {
 	 * @return True if the code is valid, false otherwise
 	 */
 	boolean validate2FaRecoveryCode(UserInfo user, String recoveryCode);
-	
+
+	/**
+	 * Send a notification to the user with a link to reset their 2fa
+	 * 
+	 * @param user
+	 * @param twoFaResetEndpoint
+	 */
+	void send2FaResetNotification(UserInfo user, String twoFaResetEndpoint);
+
+	/**
+	 * Validates the given 2fa reset token
+	 * 
+	 * @param user
+	 * @param token
+	 * @return
+	 */
+	boolean validate2FaResetToken(UserInfo user, TwoFactorAuthResetToken token);
 }

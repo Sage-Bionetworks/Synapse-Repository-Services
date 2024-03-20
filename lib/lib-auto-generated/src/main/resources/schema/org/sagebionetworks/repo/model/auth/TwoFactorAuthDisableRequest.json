@@ -1,0 +1,12 @@
+{
+	"description": "Allows to disable two-factor authentication for the user account",
+	"properties": {
+		"currentPassword": {
+			"type": "string",
+			"description": "The current user password"
+		},
+		"twoFaResetToken": {
+			"$ref": "org.sagebionetworks.repo.model.auth.TwoFactorAuthResetToken"
+		}
+	}
+}
