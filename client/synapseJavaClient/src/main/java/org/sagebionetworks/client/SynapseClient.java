@@ -84,8 +84,10 @@ import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -4204,7 +4206,23 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request) throws SynapseException;
+	
+	/**
+	 * Sends a notification that allows to reset 2fa
+	 * 
+	 * @param request
+	 * @throws SynapseException
+	 */
+	void send2FaResetNotification(TwoFactorAuthResetRequest request) throws SynapseException;
 
+	/**
+	 * Allows to disable 2fa through a signed token
+	 * 
+	 * @param request
+	 * @throws SynapseException
+	 */
+	void disable2FaWithToken(TwoFactorAuthDisableRequest request) throws SynapseException;
+	
 	/** 
 	 * Validate the definingSQL of an Entity.
 	 */

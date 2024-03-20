@@ -23,15 +23,19 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.SerializationUtils;
 
 import dev.samstevens.totp.code.CodeGenerator;
 import dev.samstevens.totp.code.DefaultCodeGenerator;
@@ -302,6 +306,64 @@ public class ITTwoFactorAuthTest {
 			.setNewPassword(changePasswordRequest.getNewPassword());
 		
 		newSynapseClient.changePassword(twoFaChangePasswordRequest);
+		
+		try {
+			adminClient.deleteUser(userId);
+		} catch (SynapseException e) {
+			
+		}
+	}
+	
+	@Test
+	public void testReset2FaWithToken(SynapseAdminClient adminClient) throws Exception {
+		// Creates a new user so that we retain user/password
+		SynapseClient newSynapseClient = new SynapseClientImpl();
+		
+		String username = UUID.randomUUID().toString();
+		String password = UUID.randomUUID().toString();
+		String email = UUID.randomUUID().toString() + "@sagebase.org";
+		
+		Long userId = SynapseClientHelper.createUser(adminClient, newSynapseClient, username, password, email, true, false);
+		
+		// First enabled 2FA
+		
+		TotpSecret secret = newSynapseClient.init2Fa();
+		
+		TwoFactorAuthStatus status = newSynapseClient.enable2Fa(new TotpSecretActivationRequest()
+			.setSecretId(secret.getSecretId())
+			.setTotp(generateTotpCode(secret.getSecret()))
+		);
+		
+		assertEquals(TwoFactorState.ENABLED, status.getStatus());
+		
+		// Try the normal login
+		LoginRequest loginRequest = new LoginRequest().setUsername(username).setPassword(password);
+		
+		SynapseTwoFactorAuthRequiredException twoFaResponse = assertThrows(SynapseTwoFactorAuthRequiredException.class, () -> {
+			newSynapseClient.loginForAccessToken(loginRequest);
+		});
+		
+		String endpoint = "https://www.synapse.org?";
+		
+		// Now ask to reset the 2fa with a signed token		
+		newSynapseClient.send2FaResetNotification(new TwoFactorAuthResetRequest()
+			.setUserId(twoFaResponse.getUserId())
+			.setTwoFaToken(twoFaResponse.getTwoFaToken())
+			.setTwoFaResetEndpoint(endpoint)
+		);
+		
+		// Extracts the serialized token from the email
+		String emailS3Key = EmailValidationUtil.getBucketKeyForEmail(email);
+		String encodedToken = EmailValidationUtil.getTokenFromFile(emailS3Key, "href=\""+endpoint, "\">");
+		
+		TwoFactorAuthResetToken token = SerializationUtils.hexDecodeAndDeserialize(encodedToken, TwoFactorAuthResetToken.class);
+		
+		newSynapseClient.disable2FaWithToken(new TwoFactorAuthDisableRequest()
+			.setCurrentPassword(password)
+			.setTwoFaResetToken(token)
+		);
+		
+		assertEquals(TwoFactorState.DISABLED, newSynapseClient.get2FaStatus().getStatus());
 		
 		try {
 			adminClient.deleteUser(userId);
