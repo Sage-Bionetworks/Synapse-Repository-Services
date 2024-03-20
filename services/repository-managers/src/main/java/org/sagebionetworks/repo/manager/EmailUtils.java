@@ -5,8 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -194,15 +194,21 @@ public class EmailUtils {
 	}
 	
 	public static void validateSynapsePortalHost(String urlString) {
-		URI uri = null;
+		ValidateArgument.required(urlString, "urlString");
+		
+		URL url = null;
 		try {
-			uri = new URI(urlString);
-		} catch (URISyntaxException e) {
-			throw new IllegalArgumentException("The provided endpoint creates an invalid URL");
+			url = new URL(urlString);
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException("The provided endpoint creates an invalid URL. Potential causes are: no protocol is specified, an unknown protocol is found, the spec is null, the parsed URL fails to comply with the specific syntax of the associated protocol.");
+		} 
+		
+		if (url == null | url.getHost() == null) {
+			throw new IllegalArgumentException("A host cannot be properly parsed from the provided endpoint.");
 		}
-
-		//check for local build endpoints
-		final String portalHost = uri.getHost().toLowerCase().trim();
+		
+		// Check for local build endpoints
+		final String portalHost = url.getHost().toLowerCase().trim();
 		if (portalHost.equals("localhost") || portalHost.equals("127.0.0.1")) {
 			return;
 		}
@@ -211,13 +217,19 @@ public class EmailUtils {
 		// For example, the base domain for "staging.synapse.org" would be "synapse.org"
 		// It is VERY IMPORTANT to use strict equality (e.g NOT .endsWith())
 		// Otherwise a domain such as notsynapse.org would pass the validation
-		final String baseDomain = InternetDomainName.from(portalHost).topPrivateDomain().toString();
+		String baseDomain = null;
+		
+		try {
+			baseDomain = InternetDomainName.from(portalHost).topPrivateDomain().toString();
+		} catch (IllegalArgumentException | IllegalStateException e) {
+			throw new IllegalArgumentException("The provided endpoint does not contain a valid base domain.");
+		} 
 		
 		if (ALLOWED_PORTAL_DOMAINS.contains(baseDomain)) {
 			return;
+		} else {
+			throw new IllegalArgumentException("The provided parameter is not a valid Synapse endpoint.");	
 		}
-		
-		throw new IllegalArgumentException("The provided parameter is not a valid Synapse endpoint.");
 	}
 	
 	/*
