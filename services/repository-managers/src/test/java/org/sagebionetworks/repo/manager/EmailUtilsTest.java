@@ -148,7 +148,6 @@ public class EmailUtilsTest {
 		assertEquals("=?utf-8?Q?Some_=C3=BC_User?= <someuser@synapse.org>", EmailUtils.createSource("Some ü User", "someuser"));
 	}
 	
-	
 	@Test
 	public void testValidateSynapsePortalHostOK() throws Exception {
 		EmailUtils.validateSynapsePortalHost("https://www.synapse.org");
@@ -159,29 +158,84 @@ public class EmailUtilsTest {
 		EmailUtils.validateSynapsePortalHost("https://staging.accounts.sagebionetworks.org/register2?emailValidationSignedToken=");
 		EmailUtils.validateSynapsePortalHost("https://www.synapse.org/Portal.html#!PasswordReset:");
 	}
-
+	
 	@Test
-	public void testValidateSynapsePortalHostNotOk() throws Exception {
-		
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+	public void testValidateSynapsePortalHostWithAllowedDomainsWithoutProtocol() {
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			EmailUtils.validateSynapsePortalHost("www.synapse.org");	
+		}).getMessage();
+			
+		assertEquals("The provided endpoint creates an invalid URL with exception: java.net.MalformedURLException: no protocol: www.synapse.org", errorMessage);
+	}
+	
+	@Test
+	public void testValidateSynapsePortalHostWithNullUrlString() {
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			EmailUtils.validateSynapsePortalHost("https://www.spam.com");
-		});
+			EmailUtils.validateSynapsePortalHost(null);
+		}).getMessage();
 		
-		assertEquals("The provided parameter is not a valid Synapse endpoint.", e.getMessage());
-		
+		assertEquals("urlString is required.", errorMessage);
 	}
 
 	@Test
-	public void testValidateSynapsePortalHost_BaseDomainContainsSubstringSynapse() throws Exception {
+	public void testValidateSynapsePortalHostWithNotAllowedDomain() {
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			EmailUtils.validateSynapsePortalHost("https://www.spam.com");
+		}).getMessage();
 		
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+		assertEquals("The provided parameter is not a valid Synapse endpoint.", errorMessage);
+	}
+
+	@Test
+	public void testValidateSynapsePortalHostWithNotAllowedDomainContainedAllowedDomain() {
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			EmailUtils.validateSynapsePortalHost("https://www.notSynapse.org");
-		});
+		}).getMessage();
 		
-		assertEquals("The provided parameter is not a valid Synapse endpoint.", e.getMessage());
+		assertEquals("The provided parameter is not a valid Synapse endpoint.", errorMessage);
+	}
+	
+	@Test
+	public void testValidateSynapsePortalHostWithInvalidSyntax() {
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			EmailUtils.validateSynapsePortalHost("https//:www.synapse.org");
+		}).getMessage();
 		
+		assertEquals("The provided endpoint creates an invalid URL with exception: java.net.MalformedURLException: no protocol: https//:www.synapse.org", errorMessage);
+	}
+	
+	@Test
+	public void testValidateSynapsePortalHostWithInvalidBaseDomain() {
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			EmailUtils.validateSynapsePortalHost("https://www.syn://apse.org");
+		}).getMessage();
+		
+		assertEquals("The provided endpoint does not contain a valid base domain.", errorMessage);
+	}
+	
+	@Test
+	public void testValidateSynapsePortalHostWithFile() {
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			EmailUtils.validateSynapsePortalHost("file:///path/to/file");
+		}).getMessage();
+		
+		assertEquals("The provided endpoint does not contain a valid base domain.", errorMessage);
+	}
+	
+	@Test
+	public void testValidateSynapsePortalHostWithInvalidProtocol() {
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			EmailUtils.validateSynapsePortalHost("sptth://www.synapse.org");
+		}).getMessage();
+		
+		assertEquals("The provided endpoint creates an invalid URL with exception: java.net.MalformedURLException: unknown protocol: sptth", errorMessage);
 	}
 	
 	@Test
@@ -336,4 +390,5 @@ public class EmailUtilsTest {
 	public void testgetEmailAddressForPrincipalName() {
 		assertEquals("Foo Bar <foobar@synapse.org>", EmailUtils.getEmailAddressForPrincipalName("Foo Bar"));
 	}
+	
 }

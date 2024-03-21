@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -317,6 +318,16 @@ public class IT990AuthenticationController {
 		assertThrows(SynapseNotFoundException.class, () -> {			
 			synapseClient.unbindOAuthProvidersUserId(OAuthProvider.ORCID, "http://orcid.org/1234-5678-9876-5432");
 		});
+	}
+	
+	// Test to reproduce: https://sagebionetworks.jira.com/browse/PLFM-7248
+	@Test
+	public void testSendPasswordResetEmailWithMissingProtocol() throws SynapseException {
+		String errorMessage = assertThrows(SynapseBadRequestException.class, () -> {
+			synapseClient.sendNewPasswordResetEmail("www.synapse.org", email);
+		}).getMessage();
+		
+		assertTrue(errorMessage.contains("The provided endpoint creates an invalid URL with exception: java.net.MalformedURLException: no protocol:"));
 	}
 
 }
