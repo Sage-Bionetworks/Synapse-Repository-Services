@@ -1,6 +1,5 @@
 package org.sagebionetworks;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -328,7 +327,7 @@ public class IT990AuthenticationController {
 			synapseClient.sendNewPasswordResetEmail("www.synapse.org", email);
 		}).getMessage();
 		
-		assertEquals("The provided endpoint creates an invalid URL. Potential causes are: no protocol is specified, an unknown protocol is found, the spec is null, the parsed URL fails to comply with the specific syntax of the associated protocol.", errorMessage);
+		assertTrue(errorMessage.contains("The provided endpoint creates an invalid URL with exception: java.net.MalformedURLException: no protocol:"));
 	}
 
 }

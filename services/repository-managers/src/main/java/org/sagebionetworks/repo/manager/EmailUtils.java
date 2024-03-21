@@ -200,12 +200,8 @@ public class EmailUtils {
 		try {
 			url = new URL(urlString);
 		} catch (MalformedURLException e) {
-			throw new IllegalArgumentException("The provided endpoint creates an invalid URL. Potential causes are: no protocol is specified, an unknown protocol is found, the spec is null, the parsed URL fails to comply with the specific syntax of the associated protocol.");
+			throw new IllegalArgumentException(String.format("The provided endpoint creates an invalid URL with exception: %s", e.toString()));
 		} 
-		
-		if (url == null | url.getHost() == null) {
-			throw new IllegalArgumentException("A host cannot be properly parsed from the provided endpoint.");
-		}
 		
 		// Check for local build endpoints
 		final String portalHost = url.getHost().toLowerCase().trim();
@@ -227,9 +223,9 @@ public class EmailUtils {
 		
 		if (ALLOWED_PORTAL_DOMAINS.contains(baseDomain)) {
 			return;
-		} else {
-			throw new IllegalArgumentException("The provided parameter is not a valid Synapse endpoint.");	
 		}
+			
+		throw new IllegalArgumentException("The provided parameter is not a valid Synapse endpoint.");	
 	}
 	
 	/*

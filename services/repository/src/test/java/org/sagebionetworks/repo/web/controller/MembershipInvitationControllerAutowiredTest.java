@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.UUID;
@@ -120,4 +121,22 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 		
 		assertTrue(S3TestUtils.doesFileExist(StackConfigurationSingleton.singleton().getS3Bucket(), key, s3Client, 60000L));
 	}
+	
+	// Test to reproduce: https://sagebionetworks.jira.com/browse/PLFM-8323
+	@Test
+	public void testCreateInvitationWithMissingProtocol() {
+		String acceptInvitationEndpoint = "synapse.org/#acceptInvitationEndpoint:";
+		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
+		MembershipInvitation mis = new MembershipInvitation();
+		mis.setInviteeId(testInvitee.getId().toString());
+		mis.setTeamId(teamToDelete.getId());
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			servletTestHelper.createMembershipInvitation(dispatchServlet, adminUserId, mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
+		}).getMessage();
+		
+		assertTrue(errorMessage.contains("The provided endpoint creates an invalid URL with exception: java.net.MalformedURLException: no protocol:"));
+	}
+	
 }

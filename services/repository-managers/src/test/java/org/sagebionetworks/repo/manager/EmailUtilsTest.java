@@ -165,7 +165,7 @@ public class EmailUtilsTest {
 			EmailUtils.validateSynapsePortalHost("www.synapse.org");	
 		}).getMessage();
 			
-		assertEquals("The provided endpoint creates an invalid URL. Potential causes are: no protocol is specified, an unknown protocol is found, the spec is null, the parsed URL fails to comply with the specific syntax of the associated protocol.", errorMessage);
+		assertEquals("The provided endpoint creates an invalid URL with exception: java.net.MalformedURLException: no protocol: www.synapse.org", errorMessage);
 	}
 	
 	@Test
@@ -205,7 +205,7 @@ public class EmailUtilsTest {
 			EmailUtils.validateSynapsePortalHost("https//:www.synapse.org");
 		}).getMessage();
 		
-		assertEquals("The provided endpoint creates an invalid URL. Potential causes are: no protocol is specified, an unknown protocol is found, the spec is null, the parsed URL fails to comply with the specific syntax of the associated protocol.", errorMessage);
+		assertEquals("The provided endpoint creates an invalid URL with exception: java.net.MalformedURLException: no protocol: https//:www.synapse.org", errorMessage);
 	}
 	
 	@Test
@@ -235,7 +235,7 @@ public class EmailUtilsTest {
 			EmailUtils.validateSynapsePortalHost("sptth://www.synapse.org");
 		}).getMessage();
 		
-		assertEquals("The provided endpoint creates an invalid URL. Potential causes are: no protocol is specified, an unknown protocol is found, the spec is null, the parsed URL fails to comply with the specific syntax of the associated protocol.", errorMessage);
+		assertEquals("The provided endpoint creates an invalid URL with exception: java.net.MalformedURLException: unknown protocol: sptth", errorMessage);
 	}
 	
 	@Test
