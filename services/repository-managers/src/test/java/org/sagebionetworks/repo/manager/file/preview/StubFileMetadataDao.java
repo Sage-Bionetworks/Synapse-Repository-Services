@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.BucketAndKey;
@@ -66,9 +67,10 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 
 	@Override
-	public String getPreviewFileHandleId(String handleId)
-			throws NotFoundException {
- 		return ((CloudProviderFileHandleInterface)map.get(handleId)).getPreviewId();
+	public Optional<String> getPreviewFileHandleId(String handleId) throws NotFoundException {
+		String previewId = ((CloudProviderFileHandleInterface)map.get(handleId)).getPreviewId();
+		
+ 		return Optional.of(previewId);
 	}
 
 	@Override

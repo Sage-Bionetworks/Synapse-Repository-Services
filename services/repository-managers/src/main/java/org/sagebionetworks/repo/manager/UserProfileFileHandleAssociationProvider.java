@@ -36,13 +36,15 @@ public class UserProfileFileHandleAssociationProvider implements FileHandleAssoc
 		Set<String> result = new HashSet<String>();
 		try {
 			String handleId = userProfileDAO.getPictureFileHandleId(objectId);
-			String previewId = fileHandleDao.getPreviewFileHandleId(handleId);
+			
 			if (fileHandleIds.contains(handleId)) {
 				result.add(handleId);
 			}
-			if (fileHandleIds.contains(previewId)) {
-				result.add(previewId);
-			}
+
+			fileHandleDao.getPreviewFileHandleId(handleId)
+				.filter(previewId -> fileHandleIds.contains(previewId))
+				.ifPresent(result::add);
+			
 		} catch (NotFoundException e) {
 			// the user does not have a profile picture or the preview hasn't been generated yet
 			// just return what we've got.

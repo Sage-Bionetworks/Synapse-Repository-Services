@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -269,20 +270,20 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 	
 	@Override
-	public String getPreviewFileHandleId(String fileHandleId)
-			throws NotFoundException {
+	public Optional<String> getPreviewFileHandleId(String fileHandleId) throws NotFoundException {
 		if(fileHandleId == null) throw new IllegalArgumentException("fileHandleId cannot be null");
 		try{
 			// Lookup the creator.
-			long previewId = jdbcTemplate.queryForObject(SQL_SELECT_PREVIEW_ID, Long.class, fileHandleId);
-			if(previewId > 0){
-				return Long.toString(previewId);
-			}else{
-				throw new NotFoundException("A preview does not exist for: "+fileHandleId);
+			Long previewId = jdbcTemplate.queryForObject(SQL_SELECT_PREVIEW_ID, Long.class, fileHandleId);
+			
+			if (previewId == null) {
+				return Optional.empty();
 			}
-		}catch(EmptyResultDataAccessException | NullPointerException e){
+			
+			return Optional.of(previewId.toString());
+		} catch (EmptyResultDataAccessException e) {
 			// This occurs when the file handle does not exist
-			throw new NotFoundException("The FileHandle does not exist: "+fileHandleId);
+			throw new NotFoundException("The FileHandle does not exist: " + fileHandleId);
 		}
 	}
 

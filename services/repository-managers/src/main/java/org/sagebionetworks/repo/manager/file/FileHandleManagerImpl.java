@@ -537,9 +537,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public String getPreviewFileHandleId(String handleId)
-			throws DatastoreException, NotFoundException {
-		return fileHandleDao.getPreviewFileHandleId(handleId);
+	public String getPreviewFileHandleId(String handleId) throws DatastoreException, NotFoundException {
+		return fileHandleDao.getPreviewFileHandleId(handleId).orElseThrow(() -> new NotFoundException("A preview does not exist for file " + handleId));
 	}
 
 	@Override

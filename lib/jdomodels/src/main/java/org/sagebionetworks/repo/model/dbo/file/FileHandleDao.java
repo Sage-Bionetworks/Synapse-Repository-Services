@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.file;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.BucketAndKey;
@@ -108,12 +109,12 @@ public interface FileHandleDao {
 	Map<String, String> getFileHandlePreviewIds(List<String> fileHandlePreviewIds);
 	
 	/**
-	 * Get the preview associated with a given file handle.
+	 * Get the preview associated with a given file handle if any.
 	 * 
 	 * @param handleId
 	 * @return
 	 */
-	String getPreviewFileHandleId(String handleId) throws NotFoundException;
+	Optional<String> getPreviewFileHandleId(String handleId) throws NotFoundException;
 
 	/**
 	 * Get the number of file handles referencing this bucket and key
