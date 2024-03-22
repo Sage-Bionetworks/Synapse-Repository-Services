@@ -914,6 +914,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	@Override
 	public List<ColumnModel> resetTableIndex(IndexDescription index, List<ColumnModel> schema, boolean isSearchEnabled) {
+		
 		// Clear the table index
 		deleteTableIndex(index.getIdAndVersion());
 		

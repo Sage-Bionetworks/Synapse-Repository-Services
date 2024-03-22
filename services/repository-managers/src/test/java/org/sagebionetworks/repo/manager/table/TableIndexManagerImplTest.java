@@ -589,8 +589,8 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class))).thenReturn(startSchema, new LinkedList<DatabaseColumnInfo>());
 		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		// call under test
-		managerSpy.updateTableSchema(new ViewIndexDescription(tableId, TableType.entityview), changes);
-		verify(managerSpy).createTableIfDoesNotExist(new ViewIndexDescription(tableId, TableType.entityview));
+		managerSpy.updateTableSchema(new ViewIndexDescription(tableId, TableType.entityview, -1L), changes);
+		verify(managerSpy).createTableIfDoesNotExist(new ViewIndexDescription(tableId, TableType.entityview, -1L));
 		verify(mockIndexDao, times(2)).getDatabaseInfo(tableId, false);
 		// The new schema is empty so the table is truncated.
 		verify(mockIndexDao).truncateTable(tableId);
@@ -608,8 +608,8 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getDatabaseInfo(any(), any(Boolean.class))).thenReturn(Collections.emptyList());
 		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		// call under test
-		managerSpy.updateTableSchema(new ViewIndexDescription(tableId, TableType.entityview), changes);
-		verify(managerSpy).createTableIfDoesNotExist(new ViewIndexDescription(tableId, TableType.entityview));
+		managerSpy.updateTableSchema(new ViewIndexDescription(tableId, TableType.entityview, -1L), changes);
+		verify(managerSpy).createTableIfDoesNotExist(new ViewIndexDescription(tableId, TableType.entityview, -1L));
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		verify(mockIndexDao, times(2)).getDatabaseInfo(tableId, false);
 		verify(mockIndexDao).truncateTable(tableId);
@@ -1533,7 +1533,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.isSearchEnabled(any())).thenReturn(false);
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(3L);
 
-		IndexDescription indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+		IndexDescription indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		
 		// call under test
 		long newVersion = managerSpy.updateViewRowsInTransaction(indexDescription, scopeType, schema, mockFilter);
@@ -1562,7 +1562,7 @@ public class TableIndexManagerImplTest {
 		Iterator<TableRowData> mockedDataIterator = Mockito.mock(Iterator.class);
 		when(mockedData.iterator()).thenReturn(mockedDataIterator);
 		
-		IndexDescription indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+		IndexDescription indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		
 		// call under test
 		long newVersion = managerSpy.updateViewRowsInTransaction(indexDescription, scopeType, schema, mockFilter);
@@ -1596,7 +1596,7 @@ public class TableIndexManagerImplTest {
 		
 		Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[]::new);
 		
-		IndexDescription indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+		IndexDescription indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		
 		Exception thrown = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
@@ -1622,7 +1622,7 @@ public class TableIndexManagerImplTest {
 		scopeType = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.updateViewRowsInTransaction(new ViewIndexDescription(tableId, TableType.entityview), scopeType, schema, mockFilter);
+			manager.updateViewRowsInTransaction(new ViewIndexDescription(tableId, TableType.entityview, -1L), scopeType, schema, mockFilter);
 		});
 	}
 
@@ -1631,7 +1631,7 @@ public class TableIndexManagerImplTest {
 		schema = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.updateViewRowsInTransaction(new ViewIndexDescription(tableId, TableType.entityview), scopeType, schema, mockFilter);
+			manager.updateViewRowsInTransaction(new ViewIndexDescription(tableId, TableType.entityview, -1L), scopeType, schema, mockFilter);
 		});
 	}
 
@@ -1991,9 +1991,9 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testCreateTableIfDoesNotExistsForView() {
 		
-		manager.createTableIfDoesNotExist(new ViewIndexDescription(tableId, TableType.entityview));
+		manager.createTableIfDoesNotExist(new ViewIndexDescription(tableId, TableType.entityview, -1L));
 		
-		verify(mockIndexDao).createTableIfDoesNotExist(new ViewIndexDescription(tableId, TableType.entityview));
+		verify(mockIndexDao).createTableIfDoesNotExist(new ViewIndexDescription(tableId, TableType.entityview, -1L));
 		verify(mockIndexDao).createSecondaryTables(tableId);
 	}
 	
@@ -2520,7 +2520,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testBuildTableIndexIndicesWithView() {
-		ViewIndexDescription index = new ViewIndexDescription(tableId, TableType.entityview);
+		ViewIndexDescription index = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		
 		doNothing().when(managerSpy).optimizeTableIndices(any());
 		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
@@ -2783,7 +2783,7 @@ public class TableIndexManagerImplTest {
 	public void testGetVersionFromDependencies() {
 		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
 			new TableIndexDescription(IdAndVersion.parse("456")),
-			new ViewIndexDescription(IdAndVersion.parse("789"), TableType.entityview)
+			new ViewIndexDescription(IdAndVersion.parse("789"), TableType.entityview, -1L)
 		));
 		
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(10L, 12L);
@@ -2802,7 +2802,7 @@ public class TableIndexManagerImplTest {
 	public void testGetVersionFromDependenciesOutOfBound() {
 		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
 			new TableIndexDescription(IdAndVersion.parse("456")),
-			new ViewIndexDescription(IdAndVersion.parse("789"), TableType.entityview)
+			new ViewIndexDescription(IdAndVersion.parse("789"), TableType.entityview, -1L)
 		));
 		
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(Long.MAX_VALUE, 12L);
@@ -2837,7 +2837,7 @@ public class TableIndexManagerImplTest {
 		
 		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
 			new TableIndexDescription(IdAndVersion.parse("456")),
-			new ViewIndexDescription(IdAndVersion.parse("789"), TableType.entityview)
+			new ViewIndexDescription(IdAndVersion.parse("789"), TableType.entityview, -1L)
 		));
 		
 		when(mockManagerSupport.getTableSchema(any())).thenReturn(

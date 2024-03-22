@@ -397,13 +397,14 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public long getTableVersion(IdAndVersion idAndVersion) {
-		// Determine the type of able
-		ObjectType type = getTableObjectType(idAndVersion);
+		return getTableVersion(getTableObjectType(idAndVersion), idAndVersion);
+	}
+	
+	long getTableVersion(ObjectType type, IdAndVersion idAndVersion) {
 		switch (type) {
 		case TABLE:
 			// For TableEntity the version of the last change set is used.
-			Optional<Long> value = getLastTableChangeNumber(idAndVersion);
-			return value.orElse(-1L);
+			return getLastTableChangeNumber(idAndVersion).orElse(-1L);
 		case ENTITY_VIEW:
 		case MATERIALIZED_VIEW:
 			/*
@@ -649,16 +650,19 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		TableType type = getTableType(idAndVersion);
 		switch (type) {
 		case table:
-			return new TableIndexDescription(idAndVersion, getLastTableChangeNumber(idAndVersion).orElse(null));
+			return new TableIndexDescription(idAndVersion, getTableVersion(type.getObjectType(), idAndVersion));
 		case entityview:
 		case dataset:
 		case datasetcollection:
 		case submissionview:
-			return new ViewIndexDescription(idAndVersion, type);
+			return new ViewIndexDescription(idAndVersion, type, getTableVersion(type.getObjectType(), idAndVersion));
 		case materializedview:
-			return new MaterializedViewIndexDescription(idAndVersion,
-					materializedViewDao.getSourceTablesIds(idAndVersion).stream()
-							.map(childId -> getIndexDescription(childId)).collect(Collectors.toList()));
+			
+			List<IndexDescription> dependencies = materializedViewDao.getSourceTablesIds(idAndVersion).stream()
+				.map(this::getIndexDescription)
+				.collect(Collectors.toList());
+			
+			return new MaterializedViewIndexDescription(idAndVersion, dependencies);
 		case virtualtable:
 			return new VirtualTableIndexDescription(idAndVersion, nodeDao.getDefiningSql(idAndVersion).get(), this);
 		default:

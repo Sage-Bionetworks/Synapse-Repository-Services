@@ -967,7 +967,7 @@ public class TableEntityManagerTest {
 	@Test
 	public void testGetCellValuesNonTable() throws DatastoreException, NotFoundException, IOException {
 		// get cell values is only authorized for tables.
-		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
+		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		RowReferenceSet rows = new RowReferenceSet();
 		rows.setTableId(tableId);

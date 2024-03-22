@@ -249,7 +249,7 @@ public class TableViewManagerImplTest {
 		
 		scopeType = new ViewScopeType(ViewObjectType.ENTITY, ViewTypeMask.File.getMask());
 		
-		indexDescription =  new ViewIndexDescription(idAndVersion, TableType.entityview);
+		indexDescription =  new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
 		
 		managerSpy = Mockito.spy(manager);
 		
@@ -861,6 +861,7 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockIndexManager.getCurrentVersionOfIndex(idAndVersion)).thenReturn(1L);
 		when(mockIndexManager.resetTableIndex(any())).thenReturn(viewSchema);
 		doNothing().when(mockIndexManager).buildTableIndexIndices(any(), any());
 
@@ -876,6 +877,7 @@ public class TableViewManagerImplTest {
 		verify(mockConnectionFactory).connectToTableIndex(idAndVersion);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		verify(mockIndexManager).resetTableIndex(indexDescription);
+		verify(mockIndexManager).setIndexVersion(idAndVersion, 1L);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema);
 		verify(mockTableManagerSupport, never()).restoreTableIndexFromS3(any(), any(), any());
@@ -896,11 +898,12 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testCreateOrRebuildViewHoldingLockWorkeRequiredWithVersion() throws IOException, RecoverableMessageException {
 		idAndVersion = IdAndVersion.parse("syn123.45");
-		indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
+		indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
 		String token = "the token";
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockIndexManager.getCurrentVersionOfIndex(idAndVersion)).thenReturn(1L);
 		when(mockIndexManager.resetTableIndex(any())).thenReturn(viewSchema);
 		doNothing().when(mockIndexManager).buildTableIndexIndices(any(), any());
 		long snapshotId = 998L;
@@ -917,6 +920,8 @@ public class TableViewManagerImplTest {
 		verify(mockConnectionFactory).connectToTableIndex(idAndVersion);
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		verify(mockIndexManager).resetTableIndex(indexDescription);
+		verify(mockIndexManager).setIndexVersion(idAndVersion, 1L);
+		
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L,
 				1L);
 		verify(mockIndexManager, never()).populateViewFromEntityReplication(any(Long.class), any(), any());

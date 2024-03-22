@@ -183,6 +183,9 @@ public interface AsynchronousJobWorkerHelper {
 	 */
 	Dataset createDataset(UserInfo user, Dataset dataset);
 	
+
+	Dataset updateDataset(UserInfo user, Dataset dataset);
+	
 	/**
 	 * Creates a dataset collection
 	 * 

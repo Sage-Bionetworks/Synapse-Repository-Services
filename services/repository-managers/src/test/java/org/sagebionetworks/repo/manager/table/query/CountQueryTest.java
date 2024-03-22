@@ -66,7 +66,7 @@ public class CountQueryTest {
 		userId = 789L;
 		tableId = IdAndVersion.parse("syn123.4");
 
-		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 
 		// The starting sql will have an authorization filter applied.
 		startingSql = "select * from " + tableId + " where ROW_BENEFACTOR IN (11,22)";
@@ -110,7 +110,7 @@ public class CountQueryTest {
 		assertEquals(Optional.of(new BasicQuery(sql, expectedParmeters)), count.getCountQuery());
 		assertNull(count.getOriginalPagination());
 		assertEquals("syn123.4", count.getSingleTableId());
-		assertEquals("d41d8cd98f00b204e9800998ecf8427e", count.getTableHash());
+		assertEquals("28f357124582b207be1bbb3e5dbca0dd", count.getTableHash());
 	}
 
 	@Test
@@ -129,7 +129,7 @@ public class CountQueryTest {
 		assertNotNull(count.getOriginalPagination());
 		assertEquals("LIMIT 10 OFFSET 2", count.getOriginalPagination().toSql());
 		assertEquals("syn123.4", count.getSingleTableId());
-		assertEquals("d41d8cd98f00b204e9800998ecf8427e", count.getTableHash());
+		assertEquals("28f357124582b207be1bbb3e5dbca0dd", count.getTableHash());
 
 	}
 
@@ -149,7 +149,7 @@ public class CountQueryTest {
 
 		assertNull(count.getOriginalPagination());
 		assertEquals("syn123.4", count.getSingleTableId());
-		assertEquals("d41d8cd98f00b204e9800998ecf8427e", count.getTableHash());
+		assertEquals("28f357124582b207be1bbb3e5dbca0dd", count.getTableHash());
 
 	}
 
@@ -171,7 +171,7 @@ public class CountQueryTest {
 		
 		assertNull(count.getOriginalPagination());
 		assertEquals("syn123.4", count.getSingleTableId());
-		assertEquals("d41d8cd98f00b204e9800998ecf8427e", count.getTableHash());
+		assertEquals("28f357124582b207be1bbb3e5dbca0dd", count.getTableHash());
 
 	}
 

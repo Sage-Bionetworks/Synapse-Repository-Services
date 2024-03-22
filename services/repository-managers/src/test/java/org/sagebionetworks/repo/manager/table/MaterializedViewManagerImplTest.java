@@ -1204,7 +1204,7 @@ public class MaterializedViewManagerImplTest {
 		idAndVersion = IdAndVersion.parse("syn123");
 		
 		QueryTranslator mockQuery = Mockito.mock(QueryTranslator.class);
-		IndexDescription index = new ViewIndexDescription(idAndVersion, TableType.entityview);
+		IndexDescription index = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
 		when(mockQuery.getIndexDescription()).thenReturn(index);
 		
 		when(mockTableManagerSupport.startTableProcessing(any())).thenReturn("token");
@@ -1233,7 +1233,7 @@ public class MaterializedViewManagerImplTest {
 		idAndVersion = IdAndVersion.parse("syn123");
 		
 		QueryTranslator mockQuery = Mockito.mock(QueryTranslator.class);
-		IndexDescription index = new ViewIndexDescription(idAndVersion, TableType.entityview);
+		IndexDescription index = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
 		when(mockQuery.getIndexDescription()).thenReturn(index);
 		
 		when(mockTableManagerSupport.startTableProcessing(any())).thenReturn("token");

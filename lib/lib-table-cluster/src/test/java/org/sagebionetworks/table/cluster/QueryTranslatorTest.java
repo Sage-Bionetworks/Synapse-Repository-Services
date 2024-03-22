@@ -1159,7 +1159,7 @@ public class QueryTranslatorTest {
 		setupGetColumns(schema);
 		
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
-				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).includeEntityEtag(null).build();
+				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview, -1L)).includeEntityEtag(null).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
 		assertFalse(query.getIncludeEntityEtag());
 	}
@@ -1171,7 +1171,7 @@ public class QueryTranslatorTest {
 		setupGetColumns(schema);
 		
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
-				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).build();
+				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview, -1L)).build();
 		// should default to false
 		assertFalse(query.getIncludeEntityEtag());
 	}
@@ -1184,7 +1184,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.includeEntityEtag(true)
-				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).build();
+				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview, -1L)).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123", query.getOutputSQL());
 		assertTrue(query.getIncludeEntityEtag());
 	}
@@ -1197,7 +1197,7 @@ public class QueryTranslatorTest {
 		
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.includeEntityEtag(false)
-				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).build();
+				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview, -1L)).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
 		assertFalse(query.getIncludeEntityEtag());
 	}
@@ -1221,7 +1221,7 @@ public class QueryTranslatorTest {
 		
 		sql = "select count(*) from syn123";
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
-				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).build();
+				.indexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview, -1L)).build();
 		assertEquals("SELECT COUNT(*) FROM T123", query.getOutputSQL());
 	}
 
@@ -1364,7 +1364,7 @@ public class QueryTranslatorTest {
 		.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has\"quote")));
 
 		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")),
-				new ViewIndexDescription(IdAndVersion.parse("syn2"), TableType.entityview));
+				new ViewIndexDescription(IdAndVersion.parse("syn2"), TableType.entityview, -1L));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select * from syn1 join syn2 on (syn1.foo = syn2.foo) WHERE syn1.bar = 'some text' order by syn1.bar";
@@ -1384,7 +1384,7 @@ public class QueryTranslatorTest {
 		setupGetColumns(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar"));
 
 		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")),
-				new ViewIndexDescription(IdAndVersion.parse("syn2"), TableType.entityview));
+				new ViewIndexDescription(IdAndVersion.parse("syn2"), TableType.entityview, -1L));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select * from syn123 WHERE bar = 'some text'";
@@ -1444,7 +1444,7 @@ public class QueryTranslatorTest {
 
 
 		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn1"), TableType.entityview));
+				new ViewIndexDescription(IdAndVersion.parse("syn1"), TableType.entityview, -1L));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select * from syn1 a join syn1 b on (a.foo = b.foo) WHERE a.bar = 'some text' order by b.bar";
@@ -1583,7 +1583,7 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("doubletype")));
 		setupGetColumns(columnNameToModelMap.get("doubletype"));
 
-		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.dataset));
+		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.dataset, -1L));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		// this query is used to build the materialized view.
@@ -1603,7 +1603,7 @@ public class QueryTranslatorTest {
 		setupGetColumns(columnNameToModelMap.get("doubletype"));
 		
 		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(viewId, TableType.dataset));
+				new ViewIndexDescription(viewId, TableType.dataset, -1L));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		
 		// this is a query against a materialized view.
@@ -1706,7 +1706,7 @@ public class QueryTranslatorTest {
 		// Note: The dependencies are in a different order. 
 		List<IndexDescription> dependencies = Arrays.asList(
 				new TableIndexDescription(tableId),
-				new ViewIndexDescription(viewId, TableType.entityview)
+				new ViewIndexDescription(viewId, TableType.entityview, -1L)
 		);
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
@@ -1732,7 +1732,7 @@ public class QueryTranslatorTest {
 		// Note: The dependencies are in a different order. 
 		List<IndexDescription> dependencies = Arrays.asList(
 				new TableIndexDescription(tableId),
-				new ViewIndexDescription(viewId, TableType.entityview)
+				new ViewIndexDescription(viewId, TableType.entityview, -1L)
 		);
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
@@ -1754,7 +1754,7 @@ public class QueryTranslatorTest {
 		setupGetColumns(columnNameToModelMap.get("foo"));
 
 		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(viewId, TableType.entityview)
+				new ViewIndexDescription(viewId, TableType.entityview, -1L)
 		);
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
@@ -1781,7 +1781,7 @@ public class QueryTranslatorTest {
 		// Note: The dependencies are in a different order. 
 		List<IndexDescription> dependencies = Arrays.asList(
 				new TableIndexDescription(tableId),
-				new ViewIndexDescription(viewId, TableType.entityview)
+				new ViewIndexDescription(viewId, TableType.entityview, -1L)
 		);
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
@@ -1807,7 +1807,7 @@ public class QueryTranslatorTest {
 		// Note: The dependencies are in a different order. 
 		List<IndexDescription> dependencies = Arrays.asList(
 				new TableIndexDescription(tableId),
-				new ViewIndexDescription(viewId, TableType.entityview)
+				new ViewIndexDescription(viewId, TableType.entityview, -1L)
 		);
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
@@ -1832,7 +1832,7 @@ public class QueryTranslatorTest {
 
 		// Note: The dependencies are in a different order.
 		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(tableId),
-				new ViewIndexDescription(viewId, TableType.entityview));
+				new ViewIndexDescription(viewId, TableType.entityview, -1L));
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
@@ -1861,7 +1861,7 @@ public class QueryTranslatorTest {
 
 		// Note: The dependencies are in a different order.
 		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(tableId),
-				new ViewIndexDescription(viewId, TableType.entityview));
+				new ViewIndexDescription(viewId, TableType.entityview, -1L));
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
@@ -1886,7 +1886,7 @@ public class QueryTranslatorTest {
 
 		// Note: The dependencies are in a different order.
 		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(tableId),
-				new ViewIndexDescription(viewId, TableType.entityview));
+				new ViewIndexDescription(viewId, TableType.entityview, -1L));
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
@@ -1916,8 +1916,8 @@ public class QueryTranslatorTest {
 		setupGetColumns(columnNameToModelMap.get("inttype"));
 
 		// Note: The dependencies are in a different order.
-		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(view2Id, TableType.entityview),
-				new ViewIndexDescription(viewId, TableType.entityview));
+		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(view2Id, TableType.entityview, -1L),
+				new ViewIndexDescription(viewId, TableType.entityview, -1L));
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
@@ -1945,7 +1945,7 @@ public class QueryTranslatorTest {
 		setupGetColumns(columnNameToModelMap.get("inttype"));
 
 		// Note: The dependencies are in a different order.
-		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.entityview));
+		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.entityview, -1L));
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
@@ -1978,9 +1978,9 @@ public class QueryTranslatorTest {
 		setupGetColumns(columnNameToModelMap.get("bar"));
 
 		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(viewId, TableType.entityview),
-				new ViewIndexDescription(view2Id, TableType.entityview),
-				new ViewIndexDescription(view3Id, TableType.entityview));
+				new ViewIndexDescription(viewId, TableType.entityview, -1L),
+				new ViewIndexDescription(view2Id, TableType.entityview, -1L),
+				new ViewIndexDescription(view3Id, TableType.entityview, -1L));
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn4");
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
@@ -2002,8 +2002,8 @@ public class QueryTranslatorTest {
 		IdAndVersion viewId = IdAndVersion.parse("syn1");
 		IdAndVersion view2Id = IdAndVersion.parse("syn2");
 
-		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.entityview),
-				new ViewIndexDescription(view2Id, TableType.entityview));
+		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.entityview, -1L),
+				new ViewIndexDescription(view2Id, TableType.entityview, -1L));
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
@@ -2254,7 +2254,7 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(cte)).thenReturn(List.of(foo, sumBar));
 		setupGetColumns(foo, sumBar);
 
-		when(mockIndexDescriptionLookup.getIndexDescription(viewId)).thenReturn(new ViewIndexDescription(viewId, TableType.entityview));
+		when(mockIndexDescriptionLookup.getIndexDescription(viewId)).thenReturn(new ViewIndexDescription(viewId, TableType.entityview, -1L));
 		
 		String definingSql = "select foo, sum(cast(bar as 33)) from syn1 group by foo";
 		IndexDescription indexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
@@ -2326,7 +2326,7 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(cte)).thenReturn(List.of(foo, sumBar));
 		setupGetColumns(foo, sumBar);
 
-		when(mockIndexDescriptionLookup.getIndexDescription(viewId)).thenReturn(new ViewIndexDescription(viewId, TableType.entityview));
+		when(mockIndexDescriptionLookup.getIndexDescription(viewId)).thenReturn(new ViewIndexDescription(viewId, TableType.entityview, -1L));
 		
 		String definingSql = "select foo, sum(cast(bar as 33)) from syn1 where bar > 1 group by foo";
 		IndexDescription indexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);
@@ -2357,7 +2357,7 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(List.of(foo));
 		setupGetColumns(foo);
 
-		when(mockIndexDescriptionLookup.getIndexDescription(viewId)).thenReturn(new ViewIndexDescription(viewId, TableType.entityview));
+		when(mockIndexDescriptionLookup.getIndexDescription(viewId)).thenReturn(new ViewIndexDescription(viewId, TableType.entityview, -1L));
 		
 		String definingSql = "select foo from syn1";
 		IndexDescription indexDescription = new VirtualTableIndexDescription(cte, definingSql,  mockIndexDescriptionLookup);

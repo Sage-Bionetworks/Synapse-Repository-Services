@@ -4216,7 +4216,7 @@ public class SQLTranslatorUtilsTest {
 		IdAndVersion viewId = IdAndVersion.parse("syn111");
 		List<ColumnModel> schemaOfSelect = Arrays.asList(columnFoo, columnBar);
 		String outputSQL = "select _C111_,_C333_, ROW_BENEFACTOR from T111"; 
-		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.entityview));
+		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, TableType.entityview, -1L));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
 		String result = SQLTranslatorUtils.createMaterializedViewInsertSql(schemaOfSelect, outputSQL, indexDescription);

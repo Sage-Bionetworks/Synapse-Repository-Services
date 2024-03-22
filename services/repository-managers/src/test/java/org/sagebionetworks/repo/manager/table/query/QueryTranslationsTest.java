@@ -58,7 +58,7 @@ public class QueryTranslationsTest {
 		userId = 789L;
 		tableId = IdAndVersion.parse("syn123.4");
 
-		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 
 		options = new QueryOptions()
 			.withRunQuery(true)

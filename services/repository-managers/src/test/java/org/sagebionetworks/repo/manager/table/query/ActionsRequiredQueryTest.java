@@ -50,7 +50,7 @@ public class ActionsRequiredQueryTest {
 		userId = 789L;
 		tableId = IdAndVersion.parse("syn123.4");
 
-		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 
 		// The starting sql will have an authorization filter applied.
 		startingSql = "select one, two from " + tableId + " where ROW_BENEFACTOR IN (11,22) AND one = 'abc' ORDER BY two DESC";

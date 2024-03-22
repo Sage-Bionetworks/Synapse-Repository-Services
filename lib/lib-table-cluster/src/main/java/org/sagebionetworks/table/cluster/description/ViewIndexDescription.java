@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -24,14 +25,14 @@ public class ViewIndexDescription implements IndexDescription {
 	private final IdAndVersion idAndVersion;
 	private final TableType viewType;
 	private final BenefactorDescription description;
+	private final Long indexVersion;
 
-	public ViewIndexDescription(IdAndVersion idAndVersion, TableType viewtype) {
+	public ViewIndexDescription(IdAndVersion idAndVersion, TableType viewtype, Long indexVersion) {
 		super();
 		this.idAndVersion = idAndVersion;
 		this.viewType = viewtype;
-		ObjectType benefactorType = TableType.submissionview.equals(viewtype) ? ObjectType.EVALUATION
-				: ObjectType.ENTITY;
-		this.description = new BenefactorDescription(ROW_BENEFACTOR, benefactorType);
+		this.description = new BenefactorDescription(ROW_BENEFACTOR, TableType.submissionview.equals(viewtype) ? ObjectType.EVALUATION : ObjectType.ENTITY);
+		this.indexVersion = indexVersion;
 	}
 
 	@Override
@@ -89,10 +90,15 @@ public class ViewIndexDescription implements IndexDescription {
 	public List<IndexDescription> getDependencies() {
 		return Collections.emptyList();
 	}
+	
+	@Override
+	public Optional<Long> getLastTableChangeNumber() {
+		return Optional.of(indexVersion);
+	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(description, idAndVersion, viewType);
+		return Objects.hash(description, idAndVersion, indexVersion, viewType);
 	}
 
 	@Override
@@ -105,7 +111,7 @@ public class ViewIndexDescription implements IndexDescription {
 		}
 		ViewIndexDescription other = (ViewIndexDescription) obj;
 		return Objects.equals(description, other.description) && Objects.equals(idAndVersion, other.idAndVersion)
-				&& viewType == other.viewType;
+				&& Objects.equals(indexVersion, other.indexVersion) && viewType == other.viewType;
 	}
 
 	@Override
@@ -116,8 +122,8 @@ public class ViewIndexDescription implements IndexDescription {
 
 	@Override
 	public String toString() {
-		return "ViewIndexDescription [idAndVersion=" + idAndVersion + ", viewType=" + viewType + ", description="
-				+ description + "]";
+		return "ViewIndexDescription [idAndVersion=" + idAndVersion + ", viewType=" + viewType + ", description=" + description
+				+ ", indexVersion=" + indexVersion + "]";
 	}
 
 }
