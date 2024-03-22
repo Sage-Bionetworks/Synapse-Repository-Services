@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -401,12 +402,8 @@ public class DBOFileHandleDaoImplTest {
 		assertNotNull(fileId);
 
 		// Currently there is no preview for this object
-		try{
-			fileHandleDao.getPreviewFileHandleId(fileId);
-			fail("A preview does not exist for this file so a NotFoundException should be thrown.");
-		}catch(NotFoundException e){
-			// expected
-		}
+		assertEquals(Optional.empty(), fileHandleDao.getPreviewFileHandleId(fileId));
+		
 		// Now create a preview for this file.
 		S3FileHandle preview = new S3FileHandle();
 		preview.setBucketName("bucketName");
@@ -435,8 +432,9 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(previewId, s3Clone.getPreviewId());
 		assertTrue(previewClone.getIsPreview());
 		// Lookup the preview id
-		String previewIdLookup = fileHandleDao.getPreviewFileHandleId(fileId);
-		assertEquals(previewId, previewIdLookup);
+		Optional<String> previewIdLookup = fileHandleDao.getPreviewFileHandleId(fileId);
+		
+		assertEquals(Optional.of(previewId), previewIdLookup);
 		
 		//now try clearing the preview
 		// Now set the preview for this file
