@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.VirtualTableManager;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileSummary;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -441,7 +442,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	
 	@Override
 	public Dataset createDataset(UserInfo user, Dataset dataset) {
-		if((dataset.getItems() !=null)){
+		if (dataset.getItems() !=null) {
 			FileSummary fileSummary = nodeDAO.getFileSummary(dataset.getItems());
 			dataset.setChecksum(fileSummary.getChecksum());
 			dataset.setSize(fileSummary.getSize());
@@ -462,6 +463,29 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		tableViewManager.setViewSchemaAndScope(user, dataset.getColumnIds(), viewScope, viewId);
 
 		return dataset;
+	}
+	
+	@Override
+	public Dataset updateDataset(UserInfo user, Dataset dataset) {
+		if (dataset.getItems() !=null) {
+			FileSummary fileSummary = nodeDAO.getFileSummary(dataset.getItems());
+			dataset.setChecksum(fileSummary.getChecksum());
+			dataset.setSize(fileSummary.getSize());
+			dataset.setCount(fileSummary.getCount());
+		}
+		
+		entityManager.updateEntity(user, dataset, false, null);
+
+		ViewScope scope = new ViewScope();
+		scope.setViewEntityType(ViewEntityType.dataset);
+		if (dataset.getItems() != null) {
+			scope.setScope(dataset.getItems().stream().map(EntityRef::getEntityId).collect(Collectors.toList()));
+		}
+		scope.setViewTypeMask(ViewTypeMask.File.getMask());
+		
+		tableViewManager.setViewSchemaAndScope(user, dataset.getColumnIds(), scope, dataset.getId());
+		
+		return entityManager.getEntity(user, dataset.getId(), Dataset.class);
 	}
 	
 	@Override

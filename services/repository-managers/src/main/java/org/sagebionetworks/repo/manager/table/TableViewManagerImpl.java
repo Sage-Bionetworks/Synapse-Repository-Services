@@ -517,7 +517,14 @@ public class TableViewManagerImpl implements TableViewManager {
 			
 			log.info(String.format("Resetting view index: '%s'...", idAndVersion.toString()));
 			
+			// Since a view can be rebuilt from scratch when the schema changes or the view is metadata is updated
+			// we retain the current version of the index as a baseline, so that any such update increases the version
+			// of the index instead of starting from scratch
+			Long currentIndexVersion = indexManager.getCurrentVersionOfIndex(idAndVersion);
+			
 			List<ColumnModel> viewSchema = indexManager.resetTableIndex(indexDescription);
+ 
+			indexManager.setIndexVersion(idAndVersion, currentIndexVersion);
 			
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 			

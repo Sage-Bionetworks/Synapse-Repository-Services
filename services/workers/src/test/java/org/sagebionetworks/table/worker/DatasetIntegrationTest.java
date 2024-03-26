@@ -145,20 +145,43 @@ public class DatasetIntegrationTest {
 
 
 		// call under test
-		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + dataset.getId() + " ORDER BY ROW_VERSION ASC",
-				(QueryResultBundle result) -> {
-					List<Row> rows = result.getQueryResult().getQueryResults().getRows();
-					assertEquals(3, rows.size());
-					// one
-					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileOne.getId())).setVersionNumber(1L).setEtag(fileOne.getEtag())
-							.setValues(Arrays.asList("v-1")), rows.get(0));
-					// two
-					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileTwo.getId())).setVersionNumber(2L).setEtag(fileTwo.getEtag())
-							.setValues(Arrays.asList("v-2")), rows.get(1));
-					// three
-					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileThree.getId())).setVersionNumber(3L).setEtag(fileThree.getEtag())
-							.setValues(Arrays.asList("v-3")), rows.get(2));
-				}, MAX_WAIT);
+		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + dataset.getId() + " ORDER BY ROW_VERSION ASC", (QueryResultBundle result) -> {
+			
+			assertEquals(3L, result.getQueryCount());
+			
+			List<Row> rows = result.getQueryResult().getQueryResults().getRows();
+			assertEquals(3, rows.size());
+			// one
+			assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileOne.getId())).setVersionNumber(1L).setEtag(fileOne.getEtag())
+					.setValues(Arrays.asList("v-1")), rows.get(0));
+			// two
+			assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileTwo.getId())).setVersionNumber(2L).setEtag(fileTwo.getEtag())
+					.setValues(Arrays.asList("v-2")), rows.get(1));
+			// three
+			assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileThree.getId())).setVersionNumber(3L).setEtag(fileThree.getEtag())
+					.setValues(Arrays.asList("v-3")), rows.get(2));
+		}, MAX_WAIT);
+		
+		dataset.setItems(items.subList(0, 2));
+		
+		asyncHelper.updateDataset(userInfo, dataset);
+		
+		// call under test
+		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + dataset.getId() + " ORDER BY ROW_VERSION ASC", (QueryResultBundle result) -> {
+			
+			// The count query cache should be invalidated (see https://sagebionetworks.jira.com/browse/PLFM-8326)
+			assertEquals(2L, result.getQueryCount());
+			
+			List<Row> rows = result.getQueryResult().getQueryResults().getRows();
+			assertEquals(2, rows.size());
+			// one
+			assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileOne.getId())).setVersionNumber(1L).setEtag(fileOne.getEtag())
+					.setValues(Arrays.asList("v-1")), rows.get(0));
+			// two
+			assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileTwo.getId())).setVersionNumber(2L).setEtag(fileTwo.getEtag())
+					.setValues(Arrays.asList("v-2")), rows.get(1));
+		}, MAX_WAIT);
+		
 	}
 	
 	// Reproduce PLFM-7025

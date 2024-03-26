@@ -600,7 +600,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		
-		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
+		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		
 		when(mockTableIndexDAO.getDistinctLongValues(any(), any())).thenReturn(benfactors);
@@ -628,7 +628,7 @@ public class TableQueryManagerImplTest {
 	
 		// view setup
 		IdAndVersion viewId = IdAndVersion.parse("syn1");
-		IndexDescription viewIndexDescription = new ViewIndexDescription(viewId, TableType.entityview);
+		IndexDescription viewIndexDescription = new ViewIndexDescription(viewId, TableType.entityview, -1L);
 		when(mockTableManagerSupport.getIndexDescription(viewId)).thenReturn(viewIndexDescription);
 		List<ColumnModel> viewSchema = List.of(new ColumnModel().setName("foo").setColumnType(ColumnType.INTEGER).setId("11"));
 		when(mockTableManagerSupport.getTableSchema(viewId)).thenReturn(viewSchema);
@@ -1563,7 +1563,7 @@ public class TableQueryManagerImplTest {
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
-		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
+		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select i0 from "+tableId);
@@ -2326,7 +2326,7 @@ public class TableQueryManagerImplTest {
 	public void testAddRowLevelFilterEmpty() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
-		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
+		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		//return empty benefactors
@@ -2355,7 +2355,7 @@ public class TableQueryManagerImplTest {
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		//return empty benefactors
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenThrow(BadSqlGrammarException.class);
-		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
+		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		
 		// call under test
@@ -2371,7 +2371,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.getDistinctLongValues(any(), any())).thenReturn(benfactors);
 		when(mockTableManagerSupport.getAccessibleBenefactors(any(), any(), any())).thenReturn(subSet);
-		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview);
+		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
@@ -2397,8 +2397,8 @@ public class TableQueryManagerImplTest {
 		IdAndVersion viewTwoId = IdAndVersion.parse("syn2");
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion,		
 				Arrays.asList(
-						new ViewIndexDescription(viewOneId, TableType.entityview),
-						new ViewIndexDescription(viewTwoId, TableType.entityview)));
+						new ViewIndexDescription(viewOneId, TableType.entityview, -1L),
+						new ViewIndexDescription(viewTwoId, TableType.entityview, -1L)));
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 
 		QuerySpecification query = new TableQueryParser("select * from "+tableId).querySpecification();
@@ -2527,7 +2527,7 @@ public class TableQueryManagerImplTest {
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		
 		SumFileSizesQuery query = new SumFileSizesQuery(queriesBuilder.setStartingSql("select i0 from " + tableId + " limit 1000")
-				.setIndexDescription((new ViewIndexDescription(idAndVersion, TableType.entityview))).build());
+				.setIndexDescription((new ViewIndexDescription(idAndVersion, TableType.entityview, -1L))).build());
 		
 		ArgumentCaptor<String> sqlCapture = ArgumentCaptor.forClass(String.class);
 
@@ -2557,7 +2557,7 @@ public class TableQueryManagerImplTest {
 		
 		// query against an dataset
 		SumFileSizesQuery query = new SumFileSizesQuery(queriesBuilder.setStartingSql("select i0 from " + tableId + " limit 1000")
-				.setIndexDescription(new ViewIndexDescription(idAndVersion, TableType.dataset)).build());
+				.setIndexDescription(new ViewIndexDescription(idAndVersion, TableType.dataset, -1L)).build());
 		
 		ArgumentCaptor<String> sqlCapture = ArgumentCaptor.forClass(String.class);
 
@@ -2588,7 +2588,7 @@ public class TableQueryManagerImplTest {
 		
 		// query against an entity view.
 		SumFileSizesQuery query = new SumFileSizesQuery(queriesBuilder.setStartingSql("select i0 from " + tableId)
-				.setIndexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).build());
+				.setIndexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview, -1L)).build());
 
 		// call under test
 		SumFileSizes sum = manager.runSumFileSize(query, mockTableIndexDAO);
@@ -2620,7 +2620,7 @@ public class TableQueryManagerImplTest {
 	public void testRunSumFileSizeAggregate() throws Exception {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		SumFileSizesQuery query = new SumFileSizesQuery(queriesBuilder.setStartingSql("select count(*) from " + tableId)
-				.setIndexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview)).build());
+				.setIndexDescription(new ViewIndexDescription(idAndVersion, TableType.entityview, -1L)).build());
 		// call under test
 		SumFileSizes sum = manager.runSumFileSize(query, mockTableIndexDAO);
 		assertNotNull(sum);

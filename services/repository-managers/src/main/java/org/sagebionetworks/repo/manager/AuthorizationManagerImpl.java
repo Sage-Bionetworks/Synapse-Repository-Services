@@ -356,7 +356,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 		return results;
 	}
-
+	
 	/**
 	 * Create an access denied status for a file handle not associated with the requested object.
 	 * @param fileHandleId

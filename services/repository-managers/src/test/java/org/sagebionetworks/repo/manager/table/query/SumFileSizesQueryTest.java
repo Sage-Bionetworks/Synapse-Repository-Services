@@ -58,7 +58,7 @@ public class SumFileSizesQueryTest {
 		userId = 789L;
 		tableId = IdAndVersion.parse("syn123.4");
 
-		indexDescription = new ViewIndexDescription(tableId, TableType.entityview);
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 
 		// The starting sql will have an authorization filter applied.
 		startingSql = "select * from " + tableId + " where ROW_BENEFACTOR IN (11,22)";
@@ -117,7 +117,7 @@ public class SumFileSizesQueryTest {
 	@Test
 	public void testBuildWithTypeDataset() {
 
-		builder.setIndexDescription(new ViewIndexDescription(tableId, TableType.dataset));
+		builder.setIndexDescription(new ViewIndexDescription(tableId, TableType.dataset, -1L));
 		builder.setAdditionalFilters(null);
 		builder.setSelectedFacets(null);
 
