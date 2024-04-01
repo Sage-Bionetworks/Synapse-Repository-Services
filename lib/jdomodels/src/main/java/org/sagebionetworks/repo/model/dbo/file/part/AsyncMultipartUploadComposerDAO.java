@@ -33,6 +33,13 @@ public interface AsyncMultipartUploadComposerDAO {
 	 *         one or more lock could not be acquired.
 	 */
 	boolean attemptToLockParts(String uploadId, Consumer<List<PartRange>> consumer, PartRange... parts);
+
+	/**
+	 * List all of the parts for a given upload ID.
+	 * @param uploadeId
+	 * @return
+	 */
+	List<PartRange> listAllPartsForUploadId(String uploadeId);
 	
 
 }

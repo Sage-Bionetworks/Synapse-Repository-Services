@@ -30,7 +30,7 @@ public class AsyncMultipartUploadComposerDAOImpl implements AsyncMultipartUpload
 		this.basicDao = basicDao;
 	}
 
-	@NewWriteTransaction
+	@WriteTransaction
 	@Override
 	public void addPart(String uploadId, PartRange part) {
 		ValidateArgument.required(uploadId, "UploadId");
@@ -114,4 +114,11 @@ public class AsyncMultipartUploadComposerDAOImpl implements AsyncMultipartUpload
 				.getObjectByPrimaryKeyIfExists(DBOMultipartUploadComposerPartState.class, toParams(uploadId, part))
 				.isPresent();
 	}
+
+	@Override
+	public List<PartRange> listAllPartsForUploadId(String uploadeId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
