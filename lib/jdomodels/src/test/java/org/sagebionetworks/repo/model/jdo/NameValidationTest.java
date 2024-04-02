@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.table.TableConstants;
 
 public class NameValidationTest {
 
@@ -45,6 +46,15 @@ public class NameValidationTest {
 			NameValidation.validateName("");
 		}).getMessage();
 		assertEquals("Name cannot be only whitespace or empty string", message);
+	}
+	
+	@Test
+	public void testInvalidNamesTooLong() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// These are all bad names
+			NameValidation.validateName("0".repeat(TableConstants.MAX_COLUMN_NAME_SIZE_CHARS + 1));
+		}).getMessage();
+		assertEquals(NameValidation.NAME_LENGTH_TOO_LONG, message);
 	}
 
 	@Test
