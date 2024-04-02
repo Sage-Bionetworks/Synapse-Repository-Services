@@ -505,6 +505,22 @@ public class EntityBundleServiceImplTest {
 	}
 	
 	@Test
+	public void testGetEntityBundleWithActivityForEntityWithoutActivity() throws NotFoundException, DatastoreException, 
+			UnauthorizedException, ACLInheritanceException, ParseException {
+		String entityId = "syn123";
+		EntityBundleRequest request = new EntityBundleRequest().setIncludeActivity(true);
+		
+		when(mockEntityService.getActivityForEntity(any(), any())).thenThrow(NotFoundException.class);
+		
+		// Call under test
+		EntityBundle response = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
+		
+		assertEquals(new EntityBundle().setActivity(null), response);
+		
+		verify(mockEntityService).getActivityForEntity(TEST_USER1, entityId);
+	}
+	
+	@Test
 	public void testRequestFromMask_individualMasks() {
 		//assert individual requests
 		assertTrue(EntityBundleServiceImpl.requestFromMask(org.sagebionetworks.repo.model.EntityBundle.ENTITY).getIncludeEntity());

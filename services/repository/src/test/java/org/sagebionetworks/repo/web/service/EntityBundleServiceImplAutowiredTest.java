@@ -10,12 +10,15 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +49,21 @@ public class EntityBundleServiceImplAutowiredTest {
 		
 		studyWithId = new Folder()
 				.setParentId(project.getId());
+	}
+	
+	// Added to reproduce comments in: https://sagebionetworks.jira.com/browse/PLFM-8272
+	@Test
+	public void testGetEntityBundleWithActivityWithEntityWithNullActivity() throws NotFoundException, DatastoreException, UnauthorizedException, 
+			ACLInheritanceException, ParseException {
+		EntityBundleRequest request = new EntityBundleRequest().setIncludeActivity(true).setIncludeEntity(true);
+		
+		EntityBundle eb = entityBundleService.getEntityBundle(adminUserId, project.getId(), request);
+		
+		EntityBundle expected = new EntityBundle()
+				.setEntity(project)
+				.setEntityType(EntityType.project)
+				.setActivity(null);
+		assertEquals(expected, eb);
 	}
 	
 	// Added to reproduce: https://sagebionetworks.jira.com/browse/PLFM-8235.
