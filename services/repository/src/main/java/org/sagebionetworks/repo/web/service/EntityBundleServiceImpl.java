@@ -206,8 +206,13 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			eb.setRestrictionInformation(restrictionInfo);
 		}
 		if (isTrue(request.getIncludeActivity())) {
-			Activity activity = serviceProvider.getEntityService().getActivityForEntity(userId, entityId);
-			eb.setActivity(activity);
+			try {
+				Activity activity = serviceProvider.getEntityService().getActivityForEntity(userId, entityId);
+				eb.setActivity(activity);
+			} catch (NotFoundException e) {
+				// does not exist
+				eb.setActivity(null);
+			}
 		}
 		return eb;
 	}
