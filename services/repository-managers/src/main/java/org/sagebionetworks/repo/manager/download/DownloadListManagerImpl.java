@@ -109,6 +109,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	public static final String YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST = "You must login to access your download list";
 	public static final String BATCH_SIZE_EXCEEDS_LIMIT_TEMPLATE = "Batch size of '%s' exceeds the maximum of '%s'";
 	public static final String ADDING_S_FILES_EXCEEDS_LIMIT_TEMPLATE = "Adding '%s' files to your download list would exceed the maximum number of '%s' files.  You currently have '%s' files on you download list.";
+	public static final String ADDING_Q_FILES_EXCEEDS_LIMIT_TEMPLATE = "Adding the files from the given query to your download list would exceed the maximum number of '%s' files.  You currently have '%s' files on you download list.";
 
 	public static boolean DEFAULT_USE_VERSION = true;
 
@@ -429,8 +430,8 @@ public class DownloadListManagerImpl implements DownloadListManager {
 				
 				totalFilesAdded += numberOfFilesAdded;
 				
-				if (totalFilesAdded >= usersDownloadListCapacity) {
-					break;
+				if (totalFilesAdded > usersDownloadListCapacity) {
+					throw new IllegalArgumentException(String.format(ADDING_Q_FILES_EXCEEDS_LIMIT_TEMPLATE, MAX_FILES_PER_USER, (MAX_FILES_PER_USER - usersDownloadListCapacity)));
 				}
 				
 				offset += limit;
