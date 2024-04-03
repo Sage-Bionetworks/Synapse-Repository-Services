@@ -1,0 +1,13 @@
+{
+	"description": "Allows to disable two-factor authentication for the user account",
+	"properties": {
+		"twoFaToken": {
+			"type": "string",
+			"description": "The token that was included in the error response when authenticating."
+		},
+		"twoFaResetToken": {
+			"$ref": "org.sagebionetworks.repo.model.auth.TwoFactorAuthResetToken",
+			"description": "The signed token received by the user."
+		}
+	}
+}

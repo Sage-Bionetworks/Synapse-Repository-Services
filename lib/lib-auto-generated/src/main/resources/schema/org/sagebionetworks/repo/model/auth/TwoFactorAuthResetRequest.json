@@ -1,0 +1,17 @@
+{
+	"description": "Used to request a two fa reset token to be sent by email, can be requested with a twoFaToken returned by an authentication attempt.",
+	"properties": {
+		"userId": {
+			"type": "integer",
+			"description": "The id of the user that attempted to authenticate."
+		},
+		"twoFaResetEndpoint": {
+			"type": "string",
+			"description": "The portal endpoint used as reset link prefix, must be a domain owned by sage."
+		},
+		"twoFaToken": {
+			"type": "string",
+			"description": "The token that was included in the error response when authenticating."
+		}
+	}
+}

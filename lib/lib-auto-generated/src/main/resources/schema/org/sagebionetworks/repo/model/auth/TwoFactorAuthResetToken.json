@@ -1,5 +1,5 @@
 {
-	"description": "A token returned to the client when two factor authentication is required.",
+	"description": "Signed token containing the the information necessary to reset 2fa for a user.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.SignedTokenInterface"
@@ -9,9 +9,6 @@
 		"userId": {
 			"type": "integer",
 			"description": "The id of the user."
-		},
-		"context": {
-			"$ref": "org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext"
 		}
 	}
 }

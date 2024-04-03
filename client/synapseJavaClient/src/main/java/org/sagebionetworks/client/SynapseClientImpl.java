@@ -118,8 +118,10 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -6192,6 +6194,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		setBearerAuthorizationToken(response.getAccessToken());
 		setAcceptsTermsOfUse(response.getAcceptsTermsOfUse());
 		return response;
+	}
+	
+	@Override
+	public void send2FaResetNotification(TwoFactorAuthResetRequest request) throws SynapseException {
+		voidPost(getAuthEndpoint(), "/2fa/reset", request, null);
+	}
+
+	@Override
+	public void disable2FaWithToken(TwoFactorAuthDisableRequest request) throws SynapseException {
+		voidPost(getAuthEndpoint(), "/2fa/disable", request, null);
 	}
 
 	@Override
