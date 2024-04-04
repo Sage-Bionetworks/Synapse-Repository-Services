@@ -1265,28 +1265,32 @@ public class DownloadListManagerImplTest {
 
 	@Test
 	public void testAddQueryResultsToDownloadListWithCapacityLessThanPageSize() throws Exception {
-		long filesAdded = 2L;
 		// @formatter:off
 		List<Row> rows = Arrays.asList(
 				new Row().setRowId(111L).setVersionNumber(1L),
-				new Row().setRowId(222L).setVersionNumber(2L)
+				new Row().setRowId(222L).setVersionNumber(2L),
+				new Row().setRowId(333L).setVersionNumber(2L)
 		);
 		// @formatter:on
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(List.of(createColumn(123L, "foo", ColumnType.STRING)));
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenReturn(
 				new QueryResultBundle().setQueryResult(new QueryResult().setQueryResults(new RowSet().setRows(rows))));
-		when(mockDownloadListDao.addBatchOfFilesToDownloadList(anyLong(), any())).thenReturn(filesAdded);
+		when(mockDownloadListDao.addBatchOfFilesToDownloadList(anyLong(), any())).thenReturn(3L);
 		when(mockDownloadListDao.filterUnsupportedTypes(any())).then(returnsFirstArg());
 
 		Query query = new Query().setSql("select * from syn123");
 		boolean userVersion = false;
 		long maxQueryPageSize = 10L;
 		long usersDownloadListCapacity = 2L;
-		// call under test
-		AddToDownloadListResponse result = manager.addQueryResultsToDownloadList(mockProgressCallback, userOne, query,
-				userVersion, maxQueryPageSize, usersDownloadListCapacity);
-		assertEquals(new AddToDownloadListResponse().setNumberOfFilesAdded(filesAdded), result);
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.addQueryResultsToDownloadList(mockProgressCallback, userOne, query, userVersion, maxQueryPageSize, usersDownloadListCapacity);
+		}).getMessage();
+		
+		assertEquals("Adding the files from the given query to your download list would exceed the maximum number of '100000' files."
+				+ "  You currently have '99998' files on you download list.", result);
 
 		verify(mockTableManagerSupport).getTableType(IdAndVersion.parse("syn123"));
 
@@ -1295,9 +1299,11 @@ public class DownloadListManagerImplTest {
 				new Query().setSql("SELECT \"ROW_ID\" FROM syn123 ORDER BY \"ROW_ID\"").setLimit(usersDownloadListCapacity).setOffset(0L),
 				new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false)
 						.withReturnLastUpdatedOn(false));
-		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(),
-				Arrays.asList(new DownloadListItem().setFileEntityId("111").setVersionNumber(null),
-						new DownloadListItem().setFileEntityId("222").setVersionNumber(null)));
+		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(), List.of(
+			new DownloadListItem().setFileEntityId("111").setVersionNumber(null),
+			new DownloadListItem().setFileEntityId("222").setVersionNumber(null),
+			new DownloadListItem().setFileEntityId("333").setVersionNumber(null)
+		));
 	}
 
 	@Test

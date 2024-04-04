@@ -7,7 +7,7 @@
 		},
 		"twoFaResetToken": {
 			"$ref": "org.sagebionetworks.repo.model.auth.TwoFactorAuthResetToken",
-			"description": "The signed token received by the user."
+			"description": "The signed token that was sent to the user email."
 		}
 	}
 }
