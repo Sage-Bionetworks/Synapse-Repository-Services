@@ -8,7 +8,6 @@ import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.table.TableConstants;
 
 public class NameValidationTest {
 

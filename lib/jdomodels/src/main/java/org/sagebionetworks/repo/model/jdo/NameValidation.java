@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.jdo;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 
 /**
@@ -12,14 +11,14 @@ import org.sagebionetworks.repo.model.util.ModelConstants;
  */
 public class NameValidation {
 
-	public static final String INVALID_NAME_TEMPLATE = "Invalid Name: '%s'. Names may only contain: letters, numbers, spaces, underscores, hyphens, periods, plus signs, apostrophes, and parentheses";
-	public static final String NAME_LENGTH_TOO_LONG = String.format("Name length cannot be longer than %s characters.", TableConstants.MAX_COLUMN_NAME_SIZE_CHARS);
-	
 	/**
 	 * This represents the maximum number of characters that Files.NAME, Evaluation.NAME, and Node.NAME can contain.
 	 * The ddls for these tables can be found in `Files-ddl.sql`, `Evaluation-ddl.sql`, and `Node-ddl.sql` respectively.
 	 */
 	public static final int MAX_NAME_CHARS = 256;
+	
+	public static final String INVALID_NAME_TEMPLATE = "Invalid Name: '%s'. Names may only contain: letters, numbers, spaces, underscores, hyphens, periods, plus signs, apostrophes, and parentheses";
+	public static final String NAME_LENGTH_TOO_LONG = String.format("Name length cannot be longer than %s characters.", MAX_NAME_CHARS);
 	
 	// match one or more whitespace characters
 	private static final Pattern ALLOWABLE_CHARS = Pattern
