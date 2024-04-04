@@ -78,7 +78,6 @@ public class DataSourcePoolMonitorTest {
 			.setValue(10.0)
 			.setUnit(StandardUnit.Count.name())
 			.setDimension(Map.of(
-				"vmId", vmId,
 				"dataSourceId", DataSourceId.main.name()
 			));
 		
@@ -88,7 +87,6 @@ public class DataSourcePoolMonitorTest {
 			.setValue(5.0)
 			.setUnit(StandardUnit.Count.name())
 			.setDimension(Map.of(
-				"vmId", vmId,
 				"dataSourceId", DataSourceId.main.name()
 			));
 		
