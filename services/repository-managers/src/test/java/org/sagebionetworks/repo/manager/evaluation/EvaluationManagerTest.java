@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -162,6 +163,47 @@ public class EvaluationManagerTest {
 		evalWithId.setCreatedOn(clone.getCreatedOn());
 		assertEquals(evalWithId, clone, "'create' returned unexpected Evaluation");
 		verify(mockEvaluationDAO).create(eq(eval), eq(OWNER_ID));
+	}
+	
+	@Test
+	public void testCreateEvaluationWithNameAtMaxLength() {
+		when(mockIdGenerator.generateNewId(IdType.EVALUATION_ID)).thenReturn(Long.parseLong(EVALUATION_ID));
+		when(mockEvaluationDAO.create(any(Evaluation.class), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
+		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
+
+		evaluations = Collections.singletonList(evalWithId);
+		when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_CONTENT_SOURCE), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE)))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(EntityType.project);
+
+		eval.setName("a".repeat(NameValidation.MAX_NAME_CHARS));
+		
+		// Call under test
+		Evaluation clone = evaluationManager.createEvaluation(ownerInfo, eval);
+		
+		assertNotNull(clone.getCreatedOn());
+		evalWithId.setCreatedOn(clone.getCreatedOn());
+		assertEquals(evalWithId, clone, "'create' returned unexpected Evaluation");
+		verify(mockEvaluationDAO).create(eq(eval), eq(OWNER_ID));
+	}
+	
+	@Test
+	public void testCreateEvaluationWithNameOverMaxLength() {
+		evaluations = Collections.singletonList(evalWithId);
+		when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_CONTENT_SOURCE), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE)))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(EntityType.project);
+
+		eval.setName("a".repeat(NameValidation.MAX_NAME_CHARS + 1));
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			evaluationManager.createEvaluation(ownerInfo, eval);
+		}).getMessage();
+		
+		assertEquals(NameValidation.NAME_LENGTH_TOO_LONG, errorMessage);
+		
+		verify(mockEvaluationDAO, never()).create(any(), any());
 	}
 
 	@Test

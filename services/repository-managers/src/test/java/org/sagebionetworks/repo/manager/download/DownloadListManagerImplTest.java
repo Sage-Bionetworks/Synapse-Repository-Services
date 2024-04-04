@@ -1779,10 +1779,42 @@ public class DownloadListManagerImplTest {
 	}
 	
 	@Test
+	public void testPackageFilesWithFileNameAtLimit() throws IOException {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		DownloadListPackageRequest request = new DownloadListPackageRequest()
+				.setZipFileName("a".repeat(NameValidation.MAX_NAME_CHARS));
+		
+		when(mockDownloadListDao.getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any(), any()))
+				.thenReturn(downloadListItems);
+		when(mockFileHandlePackageManager.buildZip(any(), any(), anyBoolean()))
+				.thenThrow(new IllegalArgumentException(NameValidation.NAME_LENGTH_TOO_LONG));
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			managerSpy.packageFiles(mockProgressCallback, userOne, request);
+		}).getMessage();
+		
+		assertEquals(NameValidation.NAME_LENGTH_TOO_LONG, errorMessage);
+		
+		BulkFileDownloadRequest expectedBulkFileDownloadRequest = new BulkFileDownloadRequest()
+				.setZipFileFormat(ZipFileFormat.Flat).setZipFileName(request.getZipFileName()).setRequestedFiles(
+						Arrays.asList(DownloadListManagerImpl.createAssociationForItem(downloadListItemResult)));
+		
+		verify(managerSpy).createAccessCallback(userOne);
+		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()),
+				eq(AvailableFilter.eligibleForPackaging),
+				eq(Arrays.asList(new Sort().setField(SortField.fileSize).setDirection(SortDirection.ASC))),
+				eq(DownloadListManagerImpl.MAX_QUERY_PAGE_SIZE), eq(0L));
+		verify(mockFileHandlePackageManager).buildZip(userOne, expectedBulkFileDownloadRequest, fileSizesChecked);
+		verify(mockDownloadListDao, never()).removeBatchOfFilesFromDownloadList(any(), any());
+		verify(managerSpy, never()).buildManifest(any(), any(), any());
+	}
+	
+	@Test
 	public void testPackageFilesWithFileNameOverLimit() throws IOException {
 		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
 		DownloadListPackageRequest request = new DownloadListPackageRequest()
-				.setZipFileName("0".repeat(TableConstants.MAX_COLUMN_NAME_SIZE_CHARS + 1));
+				.setZipFileName("a".repeat(NameValidation.MAX_NAME_CHARS + 1));
 		
 		when(mockDownloadListDao.getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any(), any()))
 				.thenReturn(downloadListItems);

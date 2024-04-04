@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -121,7 +120,7 @@ public class DownloadListManagerAutowiredTest {
 		
 		DownloadListPackageRequest request = new DownloadListPackageRequest()
 				.setIncludeManifest(true)
-				.setZipFileName("0".repeat(TableConstants.MAX_COLUMN_NAME_SIZE_CHARS + 1));
+				.setZipFileName("a".repeat(NameValidation.MAX_NAME_CHARS + 1));
 		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			downloadListManager.packageFiles(null, userInfo, request);

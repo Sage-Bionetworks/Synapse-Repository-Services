@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAO;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
@@ -124,6 +125,30 @@ public class MultipartUploadCopyRequestHandlerTest {
 
 		// Call under test
 		handler.validateRequest(mockUser, mockRequest);
+	}
+	
+	@Test
+	public void testValidateRequestWithNameAtMaxLength() {
+		when(mockRequest.getFileName()).thenReturn("a".repeat(NameValidation.MAX_NAME_CHARS));
+		when(mockRequest.getSourceFileHandleAssociation()).thenReturn(fileHandleAssociation);
+		when(mockRequest.getStorageLocationId()).thenReturn(123L);
+
+		// Call under test
+		handler.validateRequest(mockUser, mockRequest);
+	}
+	
+	@Test
+	public void testValidateRequestWithNameOverMaxLength() {
+		when(mockRequest.getFileName()).thenReturn("a".repeat(NameValidation.MAX_NAME_CHARS + 1));
+		when(mockRequest.getSourceFileHandleAssociation()).thenReturn(fileHandleAssociation);
+		when(mockRequest.getStorageLocationId()).thenReturn(123L);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			handler.validateRequest(mockUser, mockRequest);
+		}).getMessage();
+		
+		assertEquals(NameValidation.NAME_LENGTH_TOO_LONG, errorMessage);
 	}
 	
 	@Test

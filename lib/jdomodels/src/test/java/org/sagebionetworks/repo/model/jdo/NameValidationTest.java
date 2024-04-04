@@ -52,7 +52,7 @@ public class NameValidationTest {
 	public void testInvalidNamesTooLong() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// These are all bad names
-			NameValidation.validateName("0".repeat(TableConstants.MAX_COLUMN_NAME_SIZE_CHARS + 1));
+			NameValidation.validateName("a".repeat(NameValidation.MAX_NAME_CHARS + 1));
 		}).getMessage();
 		assertEquals(NameValidation.NAME_LENGTH_TOO_LONG, message);
 	}
@@ -83,6 +83,10 @@ public class NameValidationTest {
 		validNames.add("one(2)");
 		validNames.add("o,2");
 		validNames.add("o.2");
+		
+		// exactly the maximum number of characters
+		validNames.add("a".repeat(NameValidation.MAX_NAME_CHARS));
+		
 		for (int i = 0; i < validNames.size(); i++) {
 			// These are all bad names
 			NameValidation.validateName(validNames.get(i));
