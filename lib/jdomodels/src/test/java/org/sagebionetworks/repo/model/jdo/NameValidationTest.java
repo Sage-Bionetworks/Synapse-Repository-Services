@@ -46,6 +46,15 @@ public class NameValidationTest {
 		}).getMessage();
 		assertEquals("Name cannot be only whitespace or empty string", message);
 	}
+	
+	@Test
+	public void testInvalidNamesTooLong() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// These are all bad names
+			NameValidation.validateName("a".repeat(NameValidation.MAX_NAME_CHARS + 1));
+		}).getMessage();
+		assertEquals(NameValidation.NAME_LENGTH_TOO_LONG, message);
+	}
 
 	@Test
 	public void testValidNames() throws InvalidModelException {
@@ -73,6 +82,10 @@ public class NameValidationTest {
 		validNames.add("one(2)");
 		validNames.add("o,2");
 		validNames.add("o.2");
+		
+		// exactly the maximum number of characters
+		validNames.add("a".repeat(NameValidation.MAX_NAME_CHARS));
+		
 		for (int i = 0; i < validNames.size(); i++) {
 			// These are all bad names
 			NameValidation.validateName(validNames.get(i));

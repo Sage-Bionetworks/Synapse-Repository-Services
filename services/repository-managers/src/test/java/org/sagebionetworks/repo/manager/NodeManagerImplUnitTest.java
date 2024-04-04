@@ -61,6 +61,7 @@ import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.NameIdType;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -157,6 +158,27 @@ public class NodeManagerImplUnitTest {
 		when(mockNode.getNodeType()).thenReturn(type);
 		// Call under test
 		NodeManagerImpl.validateNode(mockNode);
+	}
+	
+	@Test
+	public void testValidateNodeWithNameAtMaxLength() {
+		when(mockNode.getName()).thenReturn("a".repeat(NameValidation.MAX_NAME_CHARS));
+		when(mockNode.getNodeType()).thenReturn(type);
+		// Call under test
+		NodeManagerImpl.validateNode(mockNode);
+	}
+	
+	@Test
+	public void testValidateNameWithNameOverMaxLength() {
+		when(mockNode.getName()).thenReturn("a".repeat(NameValidation.MAX_NAME_CHARS + 1));
+		when(mockNode.getNodeType()).thenReturn(type);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			NodeManagerImpl.validateNode(mockNode);
+		}).getMessage();
+		
+		assertEquals(NameValidation.NAME_LENGTH_TOO_LONG, errorMessage);
 	}
 	
 	@Test

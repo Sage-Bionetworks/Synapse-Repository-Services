@@ -11,8 +11,15 @@ import org.sagebionetworks.repo.model.util.ModelConstants;
  */
 public class NameValidation {
 
+	/**
+	 * This represents the maximum number of characters that Files.NAME, Evaluation.NAME, and Node.NAME can contain.
+	 * The ddls for these tables can be found in `Files-ddl.sql`, `Evaluation-ddl.sql`, and `Node-ddl.sql` respectively.
+	 */
+	public static final int MAX_NAME_CHARS = 256;
+	
 	public static final String INVALID_NAME_TEMPLATE = "Invalid Name: '%s'. Names may only contain: letters, numbers, spaces, underscores, hyphens, periods, plus signs, apostrophes, and parentheses";
-
+	public static final String NAME_LENGTH_TOO_LONG = String.format("Name length cannot be longer than %s characters.", MAX_NAME_CHARS);
+	
 	// match one or more whitespace characters
 	private static final Pattern ALLOWABLE_CHARS = Pattern
 			.compile(ModelConstants.VALID_ENTITY_NAME_REGEX);
@@ -33,6 +40,9 @@ public class NameValidation {
 		key = key.trim();
 		if ("".equals(key)) {
 			throw new IllegalArgumentException("Name cannot be only whitespace or empty string");
+		}
+		if (key.length() > MAX_NAME_CHARS) {
+			throw new IllegalArgumentException(NAME_LENGTH_TOO_LONG);
 		}
 		Matcher matcher = ALLOWABLE_CHARS.matcher(key);
 		if (!matcher.matches()) {
