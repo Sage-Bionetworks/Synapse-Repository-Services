@@ -171,8 +171,8 @@ public class TwoFactorAuthController {
 	}
 	
 	/**
-	 * Disables two factor authentication for the user encoded in the signed token received from the backend and that must be included in the request. Requires a twoFaToken recieved
-	 * from an authentication request that requires two factor authentication.
+	 * Disables two factor authentication for the user encoded in the signed token received by email following a call to the <a href="${POST.2fa.reset}">POST /2fa/reset</a> endpoint. 
+	 * The request should include the signed token and a twoFaToken received from an authentication request that requires two factor authentication.
 	 * 
 	 * @param request
 	 */
