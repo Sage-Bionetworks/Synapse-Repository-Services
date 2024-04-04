@@ -36,7 +36,9 @@ import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.SerializationUtils;
+import org.sagebionetworks.util.TimeUtils;
 
 import dev.samstevens.totp.code.CodeGenerator;
 import dev.samstevens.totp.code.DefaultCodeGenerator;
@@ -337,6 +339,11 @@ public class ITTwoFactorAuthTest {
 		
 		assertEquals(TwoFactorState.ENABLED, status.getStatus());
 		
+		// Wait for the email notification for enabling two fa
+		String emailS3Key = EmailValidationUtil.getBucketKeyForEmail(email);
+		
+		assertTrue(EmailValidationUtil.doesFileExist(emailS3Key, 10_000L));
+		
 		// Try the normal login
 		LoginRequest loginRequest = new LoginRequest().setUsername(username).setPassword(password);
 		
@@ -356,12 +363,15 @@ public class ITTwoFactorAuthTest {
 			.setTwoFaResetEndpoint(endpoint)
 		);
 		
-		// Extracts the serialized token from the email
-		String emailS3Key = EmailValidationUtil.getBucketKeyForEmail(email);
+		// Extracts the serialized token from the email, since various emails are sent to the user we wait until we get the email with the token
+		String encodedToken = TimeUtils.waitFor(10_000, 1000, () -> {
+			try {
+				return Pair.create(true, EmailValidationUtil.getTokenFromFile(emailS3Key, "href=\""+endpoint, "\">"));
+			} catch (AssertionError  e) {
+				return Pair.create(false, null);
+			}
+		});
 		
-		assertTrue(EmailValidationUtil.doesFileExist(emailS3Key, 10_000L));
-		
-		String encodedToken = EmailValidationUtil.getTokenFromFile(emailS3Key, "href=\""+endpoint, "\">");
 		
 		TwoFactorAuthResetToken token = SerializationUtils.hexDecodeAndDeserialize(encodedToken, TwoFactorAuthResetToken.class);
 		
