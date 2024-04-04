@@ -57,8 +57,6 @@ public class DataSourcePoolMonitor {
 	}
 	
 	public void collectMetrics() {
-				
-		String vmId = VirtualMachineIdProvider.getVMID();
 		
 		dataSources.forEach((id, dataSource) -> {
 			int idleConnectionsCount = dataSource.getNumIdle();
@@ -70,7 +68,7 @@ public class DataSourcePoolMonitor {
 					.setName("idleConnectionsCount")
 					.setValue(Double.valueOf(idleConnectionsCount))
 					.setUnit(StandardUnit.Count.name())
-					.setDimension(createDimensions(vmId, id))
+					.setDimension(createDimensions(id))
 			);
 			
 			consumer.addProfileData(
@@ -79,16 +77,15 @@ public class DataSourcePoolMonitor {
 						.setName("activeConnectionsCount")
 						.setValue(Double.valueOf(activeConnectionsCount))
 						.setUnit(StandardUnit.Count.name())
-						.setDimension(createDimensions(vmId, id))
+						.setDimension(createDimensions(id))
 				);
 		});
 		
 		
 	}
 	
-	private static Map<String, String> createDimensions(String vmId, DataSourceId id) {
+	private static Map<String, String> createDimensions(DataSourceId id) {
 		return Map.of(
-			"vmId", vmId,
 			"dataSourceId", id.name()
 		);
 	}
