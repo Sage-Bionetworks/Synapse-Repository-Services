@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartState;
-import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,7 +81,7 @@ public class AsyncMultipartUploadComposerDAOImpl implements AsyncMultipartUpload
 		}, uploadId, limit);
 	}
 
-	@NewWriteTransaction
+	@WriteTransaction
 	@Override
 	public boolean attemptToLockParts(String uploadId, Consumer<List<PartRange>> consumer, PartRange... toLock) {
 		ValidateArgument.required(uploadId, "UploadId");

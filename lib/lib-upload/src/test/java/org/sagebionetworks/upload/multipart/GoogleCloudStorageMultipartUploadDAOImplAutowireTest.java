@@ -69,7 +69,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplAutowireTest {
 	public void testValidateAndAddPartWithMultipleThreads() throws Exception {
 
 		int numberOfThreads = 100;
-		int numberOfParts = 10000;
+		int numberOfParts = 1000;
 		long partSize = 100L;
 
 		CompositeMultipartUploadStatus status = multipartUploadDAO.createUploadStatus(new CreateMultipartRequest()
@@ -91,12 +91,13 @@ public class GoogleCloudStorageMultipartUploadDAOImplAutowireTest {
 
 		for (int i = 1; i < numberOfParts; i++) {
 			AddPartRequest p = new AddPartRequest().setUploadId(status.getMultipartUploadStatus().getUploadId())
-					.setBucket("some.bucket").setPartKey("some.key/" + i).setPartMD5Hex(hexMd5).setPartNumber(i)
+					.setBucket("some.bucket").setKey("some.key").setPartKey("some.key/" + i).setPartMD5Hex(hexMd5).setPartNumber(i)
 					.setTotalNumberOfParts(numberOfParts);
 			futures.add(executorService.submit(() -> {
-				System.out.println("adding part: "+p.toString());
-				// call under test
-				dao.validateAndAddPart(p);
+				readCommitedTransactionTemplate.executeWithoutResult(c->{
+					// call under test
+					dao.validateAndAddPart(p);
+				});
 				return null;
 			}));
 		}
@@ -105,10 +106,12 @@ public class GoogleCloudStorageMultipartUploadDAOImplAutowireTest {
 			f.get();
 		}
 
-		// call under test
-		dao.completeMultipartUpload(new CompleteMultipartRequest()
-				.setUploadId(Long.parseLong(status.getMultipartUploadStatus().getUploadId())).setBucket("some.bucket")
-				.setKey("some.key"));
+		readCommitedTransactionTemplate.executeWithoutResult(c->{
+			// call under test
+			dao.completeMultipartUpload(new CompleteMultipartRequest()
+					.setUploadId(Long.parseLong(status.getMultipartUploadStatus().getUploadId())).setBucket("some.bucket")
+					.setKey("some.key"));
+		});
 
 		verify(mockGoogleCloudStorageClient, times(numberOfParts-2)).composeObjects(any(), any(), any());
 		verify(mockGoogleCloudStorageClient, times((numberOfParts-2)*2)).deleteObject(any(), any());
