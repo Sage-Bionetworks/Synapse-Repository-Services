@@ -533,6 +533,17 @@ public class AsyncGoogleMultipartUploadDAOTest {
 		assertEquals("request.uploadId is required.", message);
 		verifyZeroInteractions(mockAsyncComposerDAO, mockGoogleCloudStorageClient);
 	}
+	
+	@Test
+	public void testCompleteMultipartUploadWithNullNumberOfParts() {
+		completeRequest.setNumberOfParts(null);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			dao.completeMultipartUpload(completeRequest);
+		}).getMessage();
+		assertEquals("request.numberOfParts is required.", message);
+		verifyZeroInteractions(mockAsyncComposerDAO, mockGoogleCloudStorageClient);
+	}
 
 	@Test
 	public void testTryAbortMultipartRequest() {

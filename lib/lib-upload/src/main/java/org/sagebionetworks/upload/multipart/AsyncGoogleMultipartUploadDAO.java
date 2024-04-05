@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.transactions.TransactionNotSupported;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -64,7 +65,7 @@ public class AsyncGoogleMultipartUploadDAO implements CloudServiceMultipartUploa
 		throw new UnsupportedOperationException(GoogleUtils.UNSUPPORTED_COPY_MSG);
 	}
 
-	@TransactionNotSupported
+	@WriteTransaction
 	@Override
 	public void validateAndAddPart(AddPartRequest request) {
 		ValidateArgument.required(request, "request");
@@ -133,13 +134,14 @@ public class AsyncGoogleMultipartUploadDAO implements CloudServiceMultipartUploa
 		throw new UnsupportedOperationException(GoogleUtils.UNSUPPORTED_COPY_MSG);
 	}
 
-	@TransactionNotSupported
+	@WriteTransaction
 	@Override
 	public long completeMultipartUpload(CompleteMultipartRequest request) {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getBucket(), "request.bucket");
 		ValidateArgument.required(request.getKey(), "request.key");
 		ValidateArgument.required(request.getUploadId(), "request.uploadId");
+		ValidateArgument.required(request.getNumberOfParts(), "request.numberOfParts");
 		String uploadId = request.getUploadId().toString();
 		Optional<Compose> optional = null;
 		do {

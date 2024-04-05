@@ -110,7 +110,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplAutowireTest {
 			// call under test
 			dao.completeMultipartUpload(new CompleteMultipartRequest()
 					.setUploadId(Long.parseLong(status.getMultipartUploadStatus().getUploadId())).setBucket("some.bucket")
-					.setKey("some.key"));
+					.setKey("some.key").setNumberOfParts((long) numberOfParts));
 		});
 
 		verify(mockGoogleCloudStorageClient, times(numberOfParts-2)).composeObjects(any(), any(), any());

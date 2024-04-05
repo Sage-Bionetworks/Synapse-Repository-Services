@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
 
+@Deprecated
 public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO {
 	
 	@Autowired

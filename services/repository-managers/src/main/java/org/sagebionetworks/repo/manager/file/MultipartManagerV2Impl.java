@@ -320,9 +320,8 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		ValidateArgument.required(uploadId, "uploadId");
 		ValidateArgument.required(partNumber, "partNumber");
 		ValidateArgument.required(partMD5Hex, "partMD5Hex");
-		
-		boolean withLock = featureManager.isFeatureEnabled(Feature.UPLOAD_LOCK_NOWAIT);
-				
+
+		boolean withLock = false;
 		// lookup this upload.
 		CompositeMultipartUploadStatus composite = multipartUploadDAO.getUploadStatus(uploadId, withLock);
 		
@@ -362,8 +361,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(uploadId, "uploadId");
 		
-		boolean withLock = featureManager.isFeatureEnabled(Feature.UPLOAD_LOCK_NOWAIT);
-		
+		boolean withLock = false;
 		// lookup this upload.
 		CompositeMultipartUploadStatus composite = multipartUploadDAO.getUploadStatus(uploadId, withLock);
 		
