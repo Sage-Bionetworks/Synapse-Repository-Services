@@ -42,7 +42,7 @@ public class TableSnapshotDaoImplTest {
 	private TableTransactionDao tableTransactionDao;
 	
 	@Autowired
-	private TransactionTemplate txTemplate;
+	private TransactionTemplate readCommitedTransactionTemplate;
 	
 	@Autowired
 	private NodeDAO nodeDao;
@@ -449,7 +449,7 @@ public class TableSnapshotDaoImplTest {
 		final Node table = nodeDao.getNode(tableId);
 		
 		// We need to wrap all this in tx since linkTransactionToVersion needs a manadatory tx
-		txTemplate.executeWithoutResult( status -> {
+		readCommitedTransactionTemplate.executeWithoutResult( status -> {
 			long txId = tableTransactionDao.startTransaction(tableId, adminUserId);
 			
 			SparseChangeSetDto changeSet = new SparseChangeSetDto().setRows(Collections.emptyList());
