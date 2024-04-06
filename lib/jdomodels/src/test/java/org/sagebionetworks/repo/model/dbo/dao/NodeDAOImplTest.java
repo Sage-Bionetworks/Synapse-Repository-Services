@@ -182,7 +182,7 @@ public class NodeDAOImplTest {
 	private DerivedAnnotationDao derivedAnnotationsDao;
 	
 	@Autowired
-	private TransactionTemplate txTemplate;
+	private TransactionTemplate readCommitedTransactionTemplate;
 
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -5408,7 +5408,7 @@ public class NodeDAOImplTest {
 		List<String> md5List = new ArrayList<>(numOfFiles);
 		List<String> entityIds = new ArrayList<>(numOfFiles);
 		
-		txTemplate.executeWithoutResult( tx -> {
+		readCommitedTransactionTemplate.executeWithoutResult( tx -> {
 			for (int i=0; i<numOfFiles; i++) {
 				FileHandle fileHandle = createTestFileHandle("handle" + i, creatorUserGroupId.toString());
 				md5List.add(fileHandle.getContentMd5());
