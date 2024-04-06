@@ -69,7 +69,8 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 	@WriteTransaction
 	@Override
 	public void validateAndAddPart(AddPartRequest request) {
-		validateAndAddPart(request);
+		GoogleUtils.validatePartMd5(googleCloudStorageClient.getObject(request.getBucket(), request.getPartKey()),
+				request.getPartMD5Hex());
 		addPart(request.getUploadId(), request.getBucket(), request.getKey(), request.getPartNumber(), request.getPartNumber(), request.getTotalNumberOfParts());
 	}
 	
