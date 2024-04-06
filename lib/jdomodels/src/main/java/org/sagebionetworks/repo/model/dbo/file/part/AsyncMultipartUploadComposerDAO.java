@@ -8,7 +8,7 @@ public interface AsyncMultipartUploadComposerDAO {
 	void addPart(String uploadId, PartRange part);
 
 	void removePart(String uploadId, PartRange part);
-	
+
 	boolean doesExist(String uploadId, PartRange part);
 
 	/**
@@ -36,10 +36,10 @@ public interface AsyncMultipartUploadComposerDAO {
 
 	/**
 	 * List all of the parts for a given upload ID.
+	 * 
 	 * @param uploadeId
 	 * @return
 	 */
 	List<PartRange> listAllPartsForUploadId(String uploadeId);
-	
 
 }

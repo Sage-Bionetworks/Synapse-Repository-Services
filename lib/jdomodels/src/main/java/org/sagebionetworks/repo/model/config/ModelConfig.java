@@ -101,6 +101,18 @@ public class ModelConfig {
 	}
 	
 	@Bean
+	public TransactionTemplate readCommittedRequiresNew(PlatformTransactionManager txManager) {
+		DefaultTransactionDefinition txDefinition = new DefaultTransactionDefinition();
+
+		txDefinition.setIsolationLevel(Connection.TRANSACTION_READ_COMMITTED);
+		txDefinition.setReadOnly(false);
+		txDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+		txDefinition.setName("readCommittedRequiresNew");
+
+		return new TransactionTemplate(txManager, txDefinition);
+	}
+	
+	@Bean
 	public CountingSemaphore countingSemaphore(DataSource dataSourcePool) {
 		return new CountingSemaphoreImpl(dataSourcePool);
 	}

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.file.part;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -11,6 +12,7 @@ import org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartSta
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -89,8 +91,9 @@ public class AsyncMultipartUploadComposerDAOImpl implements AsyncMultipartUpload
 		if (toLock == null || toLock.length < 1) {
 			return false;
 		}
-		Arrays.stream(toLock).forEach(p->validatePartRange(p));
-		List<Long[]> pairs = Arrays.stream(toLock).map(p->new Long[] {p.getLowerBound(), p.getUpperBound()}).collect(Collectors.toList());
+		Arrays.stream(toLock).forEach(p -> validatePartRange(p));
+		List<Long[]> pairs = Arrays.stream(toLock).map(p -> new Long[] { p.getLowerBound(), p.getUpperBound() })
+				.collect(Collectors.toList());
 		SqlParameterSource params = new MapSqlParameterSource().addValue("uploadId", uploadId).addValue("pairs", pairs);
 		String sql = "SELECT PART_RANGE_LOWER_BOUND, PART_RANGE_UPPER_BOUND FROM"
 				+ " MULTIPART_UPLOAD_COMPOSER_PART_STATE WHERE UPLOAD_ID = :uploadId"
@@ -115,9 +118,16 @@ public class AsyncMultipartUploadComposerDAOImpl implements AsyncMultipartUpload
 	}
 
 	@Override
-	public List<PartRange> listAllPartsForUploadId(String uploadeId) {
-		// TODO Auto-generated method stub
-		return null;
+	public List<PartRange> listAllPartsForUploadId(String uploadId) {
+		ValidateArgument.required(uploadId, "UploadId");
+		return namedJdbcTemplate.query(
+				"SELECT PART_RANGE_LOWER_BOUND, PART_RANGE_UPPER_BOUND FROM"
+						+ " MULTIPART_UPLOAD_COMPOSER_PART_STATE WHERE UPLOAD_ID = :uploadId"
+						+ " ORDER BY PART_RANGE_LOWER_BOUND, PART_RANGE_UPPER_BOUND",
+				new MapSqlParameterSource().addValue("uploadId", uploadId), (ResultSet rs, int rowNum) -> {
+					return new PartRange().setLowerBound(rs.getLong("PART_RANGE_LOWER_BOUND"))
+							.setUpperBound(rs.getLong("PART_RANGE_UPPER_BOUND"));
+				});
 	}
 
 }

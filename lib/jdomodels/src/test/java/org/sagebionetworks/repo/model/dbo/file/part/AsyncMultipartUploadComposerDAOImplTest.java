@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.file.UploadType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -34,6 +35,9 @@ public class AsyncMultipartUploadComposerDAOImplTest {
 
 	@Autowired
 	private AsyncMultipartUploadComposerDAO asyncDAO;
+	
+	@Autowired
+	private TransactionTemplate readCommittedRequiresNew;
 
 	private Long userId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
@@ -53,87 +57,87 @@ public class AsyncMultipartUploadComposerDAOImplTest {
 
 	@Test
 	public void testAddAndRemovePart() throws Exception {
-		String uplaodIdOne = startNewUpload();
-		String uplaodIdTwo = startNewUpload();
+		String uploadIdOne = startNewUpload();
+		String uploadIdTwo = startNewUpload();
 		PartRange part = new PartRange().setLowerBound(1L).setUpperBound(2L);
 
 		// call under test
-		asyncDAO.addPart(uplaodIdOne, part);
+		asyncDAO.addPart(uploadIdOne, part);
 
-		assertTrue(asyncDAO.doesExist(uplaodIdOne, part));
-		assertFalse(asyncDAO.doesExist(uplaodIdTwo, part));
-
-		// call under test
-		asyncDAO.addPart(uplaodIdTwo, part);
-
-		assertTrue(asyncDAO.doesExist(uplaodIdOne, part));
-		assertTrue(asyncDAO.doesExist(uplaodIdTwo, part));
+		assertTrue(asyncDAO.doesExist(uploadIdOne, part));
+		assertFalse(asyncDAO.doesExist(uploadIdTwo, part));
 
 		// call under test
-		asyncDAO.removePart(uplaodIdTwo, part);
+		asyncDAO.addPart(uploadIdTwo, part);
 
-		assertTrue(asyncDAO.doesExist(uplaodIdOne, part));
-		assertFalse(asyncDAO.doesExist(uplaodIdTwo, part));
+		assertTrue(asyncDAO.doesExist(uploadIdOne, part));
+		assertTrue(asyncDAO.doesExist(uploadIdTwo, part));
 
 		// call under test
-		asyncDAO.removePart(uplaodIdOne, part);
+		asyncDAO.removePart(uploadIdTwo, part);
 
-		assertFalse(asyncDAO.doesExist(uplaodIdOne, part));
-		assertFalse(asyncDAO.doesExist(uplaodIdTwo, part));
+		assertTrue(asyncDAO.doesExist(uploadIdOne, part));
+		assertFalse(asyncDAO.doesExist(uploadIdTwo, part));
+
+		// call under test
+		asyncDAO.removePart(uploadIdOne, part);
+
+		assertFalse(asyncDAO.doesExist(uploadIdOne, part));
+		assertFalse(asyncDAO.doesExist(uploadIdTwo, part));
 	}
 
 	@Test
 	public void testAddPartWithDuplicate() throws Exception {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 		PartRange part = new PartRange().setLowerBound(1L).setUpperBound(2L);
 
 		// call under test
-		asyncDAO.addPart(uplaodIdOne, part);
-		asyncDAO.addPart(uplaodIdOne, part);
+		asyncDAO.addPart(uploadIdOne, part);
+		asyncDAO.addPart(uploadIdOne, part);
 
-		assertTrue(asyncDAO.doesExist(uplaodIdOne, part));
+		assertTrue(asyncDAO.doesExist(uploadIdOne, part));
 	}
 
 	@Test
 	public void testAddPartWithNullUploadId() throws Exception {
-		String uplaodIdOne = null;
+		String uploadIdOne = null;
 		PartRange part = new PartRange().setLowerBound(1L).setUpperBound(2L);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			asyncDAO.addPart(uplaodIdOne, part);
+			asyncDAO.addPart(uploadIdOne, part);
 		}).getMessage();
 		assertEquals("UploadId is required.", message);
 	}
 
 	@Test
 	public void testAddPartWithNullPart() throws Exception {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 		PartRange part = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			asyncDAO.addPart(uplaodIdOne, part);
+			asyncDAO.addPart(uploadIdOne, part);
 		}).getMessage();
 		assertEquals("PartRange is required.", message);
 	}
 
 	@Test
 	public void testAddPartWithNullLower() throws Exception {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 		PartRange part = new PartRange().setLowerBound(null).setUpperBound(2L);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			asyncDAO.addPart(uplaodIdOne, part);
+			asyncDAO.addPart(uploadIdOne, part);
 		}).getMessage();
 		assertEquals("PartRange.lowerBound is required.", message);
 	}
 
 	@Test
 	public void testAddPartWithNullUpper() throws Exception {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 		PartRange part = new PartRange().setLowerBound(1L).setUpperBound(null);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			asyncDAO.addPart(uplaodIdOne, part);
+			asyncDAO.addPart(uploadIdOne, part);
 		}).getMessage();
 		assertEquals("PartRange.upperBound is required.", message);
 	}
@@ -141,67 +145,67 @@ public class AsyncMultipartUploadComposerDAOImplTest {
 	//
 	@Test
 	public void testRemovePartWithNullUploadId() throws Exception {
-		String uplaodIdOne = null;
+		String uploadIdOne = null;
 		PartRange part = new PartRange().setLowerBound(1L).setUpperBound(2L);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			asyncDAO.removePart(uplaodIdOne, part);
+			asyncDAO.removePart(uploadIdOne, part);
 		}).getMessage();
 		assertEquals("UploadId is required.", message);
 	}
 
 	@Test
 	public void testRemovePartWithNullPart() throws Exception {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 		PartRange part = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			asyncDAO.removePart(uplaodIdOne, part);
+			asyncDAO.removePart(uploadIdOne, part);
 		}).getMessage();
 		assertEquals("PartRange is required.", message);
 	}
 
 	@Test
 	public void testRemovePartWithNullLower() throws Exception {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 		PartRange part = new PartRange().setLowerBound(null).setUpperBound(2L);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			asyncDAO.removePart(uplaodIdOne, part);
+			asyncDAO.removePart(uploadIdOne, part);
 		}).getMessage();
 		assertEquals("PartRange.lowerBound is required.", message);
 	}
 
 	@Test
 	public void testRemovePartWithNullUpper() throws Exception {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 		PartRange part = new PartRange().setLowerBound(1L).setUpperBound(null);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			asyncDAO.removePart(uplaodIdOne, part);
+			asyncDAO.removePart(uploadIdOne, part);
 		}).getMessage();
 		assertEquals("PartRange.upperBound is required.", message);
 	}
 
 	@Test
 	public void testFindContiguousParts() {
-		String uplaodIdOne = startNewUpload();
-		String uplaodIdTwo = startNewUpload();
+		String uploadIdOne = startNewUpload();
+		String uploadIdTwo = startNewUpload();
 
-		addParts(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
+		addParts(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
 				new PartRange().setLowerBound(2L).setUpperBound(2L),
 				new PartRange().setLowerBound(4L).setUpperBound(6L),
 				new PartRange().setLowerBound(7L).setUpperBound(9L),
 				new PartRange().setLowerBound(11L).setUpperBound(11L));
 
-		addParts(uplaodIdTwo, new PartRange().setLowerBound(1L).setUpperBound(1L),
+		addParts(uploadIdTwo, new PartRange().setLowerBound(1L).setUpperBound(1L),
 				new PartRange().setLowerBound(3L).setUpperBound(4L),
 				new PartRange().setLowerBound(5L).setUpperBound(6L),
 				new PartRange().setLowerBound(10L).setUpperBound(11L),
 				new PartRange().setLowerBound(12L).setUpperBound(13L));
 
 		// call under test
-		List<Compose> results = asyncDAO.findContiguousParts(uplaodIdOne, OrderBy.asc, 10);
+		List<Compose> results = asyncDAO.findContiguousParts(uploadIdOne, OrderBy.asc, 10);
 		List<Compose> expected = List.of(
 				new Compose().setLeft(new PartRange().setLowerBound(1L).setUpperBound(1L))
 						.setRight(new PartRange().setLowerBound(2L).setUpperBound(2L)),
@@ -210,7 +214,7 @@ public class AsyncMultipartUploadComposerDAOImplTest {
 		assertEquals(expected, results);
 
 		// call under test
-		results = asyncDAO.findContiguousParts(uplaodIdTwo, OrderBy.asc, 10);
+		results = asyncDAO.findContiguousParts(uploadIdTwo, OrderBy.asc, 10);
 		expected = List.of(
 				new Compose().setLeft(new PartRange().setLowerBound(3L).setUpperBound(4L))
 						.setRight(new PartRange().setLowerBound(5L).setUpperBound(6L)),
@@ -222,15 +226,15 @@ public class AsyncMultipartUploadComposerDAOImplTest {
 
 	@Test
 	public void testFindContiguousPartsWithLeftAndRight() {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 
-		addParts(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
+		addParts(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
 				new PartRange().setLowerBound(2L).setUpperBound(2L),
 				new PartRange().setLowerBound(3L).setUpperBound(3L),
 				new PartRange().setLowerBound(4L).setUpperBound(4L));
 
 		// 2-2 and 3-3 are both on the left and right
-		List<Compose> results = asyncDAO.findContiguousParts(uplaodIdOne, OrderBy.asc, 10);
+		List<Compose> results = asyncDAO.findContiguousParts(uploadIdOne, OrderBy.asc, 10);
 		List<Compose> expected = List.of(
 				new Compose().setLeft(new PartRange().setLowerBound(1L).setUpperBound(1L))
 						.setRight(new PartRange().setLowerBound(2L).setUpperBound(2L)),
@@ -244,16 +248,16 @@ public class AsyncMultipartUploadComposerDAOImplTest {
 
 	@Test
 	public void testFindContiguousPartsWithLimit() {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 
-		addParts(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
+		addParts(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
 				new PartRange().setLowerBound(2L).setUpperBound(2L),
 				new PartRange().setLowerBound(4L).setUpperBound(6L),
 				new PartRange().setLowerBound(7L).setUpperBound(9L),
 				new PartRange().setLowerBound(11L).setUpperBound(11L));
 
 		// call under test
-		List<Compose> results = asyncDAO.findContiguousParts(uplaodIdOne, OrderBy.asc, 1);
+		List<Compose> results = asyncDAO.findContiguousParts(uploadIdOne, OrderBy.asc, 1);
 		List<Compose> expected = List.of(new Compose().setLeft(new PartRange().setLowerBound(1L).setUpperBound(1L))
 				.setRight(new PartRange().setLowerBound(2L).setUpperBound(2L)));
 		assertEquals(expected, results);
@@ -262,15 +266,15 @@ public class AsyncMultipartUploadComposerDAOImplTest {
 
 	@Test
 	public void testFindContiguousPartsWithRandom() {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 
-		addParts(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
+		addParts(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
 				new PartRange().setLowerBound(2L).setUpperBound(2L),
 				new PartRange().setLowerBound(3L).setUpperBound(3L),
 				new PartRange().setLowerBound(4L).setUpperBound(4L));
 
 		// call under test
-		List<Compose> results = asyncDAO.findContiguousParts(uplaodIdOne, OrderBy.random, 10);
+		List<Compose> results = asyncDAO.findContiguousParts(uploadIdOne, OrderBy.random, 10);
 		assertEquals(3, results.size());
 		assertTrue(results.contains(new Compose().setLeft(new PartRange().setLowerBound(1L).setUpperBound(1L))
 				.setRight(new PartRange().setLowerBound(2L).setUpperBound(2L))));
@@ -282,15 +286,15 @@ public class AsyncMultipartUploadComposerDAOImplTest {
 
 	@Test
 	public void testFindContiguousPartsWithRandomAndLimit() {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 
-		addParts(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
+		addParts(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
 				new PartRange().setLowerBound(2L).setUpperBound(2L),
 				new PartRange().setLowerBound(3L).setUpperBound(3L),
 				new PartRange().setLowerBound(4L).setUpperBound(4L));
 
 		// call under test
-		List<Compose> results = asyncDAO.findContiguousParts(uplaodIdOne, OrderBy.random, 1);
+		List<Compose> results = asyncDAO.findContiguousParts(uploadIdOne, OrderBy.random, 1);
 		assertEquals(1, results.size());
 
 		boolean containsOneToTwo = results
@@ -308,138 +312,140 @@ public class AsyncMultipartUploadComposerDAOImplTest {
 
 	@Test
 	public void testFindContiguousPartsWithNullUploadId() {
-		String uplaodIdOne = null;
+		String uploadIdOne = null;
 		OrderBy orderBy = OrderBy.asc;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			asyncDAO.findContiguousParts(uplaodIdOne, orderBy, 1);
+			asyncDAO.findContiguousParts(uploadIdOne, orderBy, 1);
 		}).getMessage();
 		assertEquals("UploadId is required.", message);
 	}
 
 	@Test
 	public void testFindContiguousPartsWithOrderBy() {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 		OrderBy orderBy = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			asyncDAO.findContiguousParts(uplaodIdOne, orderBy, 1);
+			asyncDAO.findContiguousParts(uploadIdOne, orderBy, 1);
 		}).getMessage();
 		assertEquals("OrderBy is required.", message);
 	}
 
 	@Test
 	public void testAttemptToLockParts() {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 
-		addParts(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
+		addParts(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
 				new PartRange().setLowerBound(2L).setUpperBound(2L),
 				new PartRange().setLowerBound(3L).setUpperBound(3L),
 				new PartRange().setLowerBound(4L).setUpperBound(4L));
 
 		// call under test
-		assertTrue(asyncDAO.attemptToLockParts(uplaodIdOne, (p) -> {
+		assertTrue(asyncDAO.attemptToLockParts(uploadIdOne, (p) -> {
 			// If here then the locks are held on both 1-1 and 2-2
 			assertEquals(List.of(new PartRange().setLowerBound(1L).setUpperBound(1L),
 					new PartRange().setLowerBound(2L).setUpperBound(2L)), p);
+			
+			readCommittedRequiresNew.executeWithoutResult(c->{
+				Consumer<List<PartRange>> mockConsumer = (Consumer<List<PartRange>>) Mockito.mock(Consumer.class);
 
-			Consumer<List<PartRange>> mockConsumer = (Consumer<List<PartRange>>) Mockito.mock(Consumer.class);
-
-			// since 2-2 is already held, we should not be able to acquire it in a new transaction.
-			assertFalse(asyncDAO.attemptToLockParts(uplaodIdOne, mockConsumer,
-					new PartRange().setLowerBound(2L).setUpperBound(2L),
-					new PartRange().setLowerBound(3L).setUpperBound(3L)));
-			verify(mockConsumer, never()).accept(any());
+				// since 2-2 is already held, we should not be able to acquire it in a new transaction.
+				assertFalse(asyncDAO.attemptToLockParts(uploadIdOne, mockConsumer,
+						new PartRange().setLowerBound(2L).setUpperBound(2L),
+						new PartRange().setLowerBound(3L).setUpperBound(3L)));
+				verify(mockConsumer, never()).accept(any());
+			});
 			
 			// call under test
-			assertTrue(asyncDAO.attemptToLockParts(uplaodIdOne, (p2) -> {
+			assertTrue(asyncDAO.attemptToLockParts(uploadIdOne, (p2) -> {
 				// If here then the locks are held on both 3-3 and 4-4
 				assertEquals(List.of(new PartRange().setLowerBound(3L).setUpperBound(3L),
 						new PartRange().setLowerBound(4L).setUpperBound(4L)), p2);
 				
-				asyncDAO.removePart(uplaodIdOne, new PartRange().setLowerBound(3L).setUpperBound(3L));
-				asyncDAO.removePart(uplaodIdOne, new PartRange().setLowerBound(4L).setUpperBound(4L));
-				asyncDAO.addPart(uplaodIdOne, new PartRange().setLowerBound(3L).setUpperBound(4L));
+				asyncDAO.removePart(uploadIdOne, new PartRange().setLowerBound(3L).setUpperBound(3L));
+				asyncDAO.removePart(uploadIdOne, new PartRange().setLowerBound(4L).setUpperBound(4L));
+				asyncDAO.addPart(uploadIdOne, new PartRange().setLowerBound(3L).setUpperBound(4L));
 
 			}, new PartRange().setLowerBound(3L).setUpperBound(3L), new PartRange().setLowerBound(4L).setUpperBound(4L)));
 			
 			// still holding both 1-1 and 2-2
-			asyncDAO.removePart(uplaodIdOne, new PartRange().setLowerBound(2L).setUpperBound(2L));
-			asyncDAO.removePart(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L));
-			asyncDAO.addPart(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(2L));
+			asyncDAO.removePart(uploadIdOne, new PartRange().setLowerBound(2L).setUpperBound(2L));
+			asyncDAO.removePart(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L));
+			asyncDAO.addPart(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(2L));
 
 		}, new PartRange().setLowerBound(1L).setUpperBound(1L), new PartRange().setLowerBound(2L).setUpperBound(2L)));
 		
 		// these rows should have been removed
-		assertFalse(asyncDAO.doesExist(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L)));
-		assertFalse(asyncDAO.doesExist(uplaodIdOne, new PartRange().setLowerBound(2L).setUpperBound(2L)));
-		assertFalse(asyncDAO.doesExist(uplaodIdOne, new PartRange().setLowerBound(3L).setUpperBound(3L)));
-		assertFalse(asyncDAO.doesExist(uplaodIdOne, new PartRange().setLowerBound(4L).setUpperBound(4L)));
+		assertFalse(asyncDAO.doesExist(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L)));
+		assertFalse(asyncDAO.doesExist(uploadIdOne, new PartRange().setLowerBound(2L).setUpperBound(2L)));
+		assertFalse(asyncDAO.doesExist(uploadIdOne, new PartRange().setLowerBound(3L).setUpperBound(3L)));
+		assertFalse(asyncDAO.doesExist(uploadIdOne, new PartRange().setLowerBound(4L).setUpperBound(4L)));
 		// these should have been added.
-		assertTrue(asyncDAO.doesExist(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(2L)));
-		assertTrue(asyncDAO.doesExist(uplaodIdOne, new PartRange().setLowerBound(3L).setUpperBound(4L)));
+		assertTrue(asyncDAO.doesExist(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(2L)));
+		assertTrue(asyncDAO.doesExist(uploadIdOne, new PartRange().setLowerBound(3L).setUpperBound(4L)));
 	}
 	
 	@Test
 	public void testAttemptToLockPartsWithMultipleUploads() {
-		String uplaodIdOne = startNewUpload();
-		String uplaodIdTwo = startNewUpload();
+		String uploadIdOne = startNewUpload();
+		String uploadIdTwo = startNewUpload();
 
-		addParts(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
+		addParts(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
 				new PartRange().setLowerBound(2L).setUpperBound(2L),
 				new PartRange().setLowerBound(3L).setUpperBound(3L));
 		
-		addParts(uplaodIdTwo, new PartRange().setLowerBound(2L).setUpperBound(2L),
+		addParts(uploadIdTwo, new PartRange().setLowerBound(2L).setUpperBound(2L),
 				new PartRange().setLowerBound(3L).setUpperBound(3L),
 				new PartRange().setLowerBound(4L).setUpperBound(4L));
 
 
 		// call under test
-		assertTrue(asyncDAO.attemptToLockParts(uplaodIdOne, (p) -> {
+		assertTrue(asyncDAO.attemptToLockParts(uploadIdOne, (p) -> {
 			// if here then holding the lock on uploadOne's 1-1 and 2-2
 			assertEquals(List.of(new PartRange().setLowerBound(1L).setUpperBound(1L),
 					new PartRange().setLowerBound(2L).setUpperBound(2L)), p);
 
 			// call under test
-			assertTrue(asyncDAO.attemptToLockParts(uplaodIdTwo, (p2) -> {
+			assertTrue(asyncDAO.attemptToLockParts(uploadIdTwo, (p2) -> {
 				// if here then holding the lock on uploadTwo's 2-2 and 3-3
 				assertEquals(List.of(new PartRange().setLowerBound(2L).setUpperBound(2L),
 						new PartRange().setLowerBound(3L).setUpperBound(3L)), p2);
 				
-				asyncDAO.removePart(uplaodIdTwo, new PartRange().setLowerBound(2L).setUpperBound(2L));
-				asyncDAO.removePart(uplaodIdTwo, new PartRange().setLowerBound(3L).setUpperBound(3L));
-				asyncDAO.addPart(uplaodIdTwo, new PartRange().setLowerBound(2L).setUpperBound(3L));
+				asyncDAO.removePart(uploadIdTwo, new PartRange().setLowerBound(2L).setUpperBound(2L));
+				asyncDAO.removePart(uploadIdTwo, new PartRange().setLowerBound(3L).setUpperBound(3L));
+				asyncDAO.addPart(uploadIdTwo, new PartRange().setLowerBound(2L).setUpperBound(3L));
 
 			}, new PartRange().setLowerBound(2L).setUpperBound(2L), new PartRange().setLowerBound(3L).setUpperBound(3L)));
 			
 			// still holding both 1-1 and 2-2
-			asyncDAO.removePart(uplaodIdOne, new PartRange().setLowerBound(2L).setUpperBound(2L));
-			asyncDAO.removePart(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L));
-			asyncDAO.addPart(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(2L));
+			asyncDAO.removePart(uploadIdOne, new PartRange().setLowerBound(2L).setUpperBound(2L));
+			asyncDAO.removePart(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L));
+			asyncDAO.addPart(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(2L));
 
 		}, new PartRange().setLowerBound(1L).setUpperBound(1L), new PartRange().setLowerBound(2L).setUpperBound(2L)));
 		
 		// these rows should have been removed
-		assertFalse(asyncDAO.doesExist(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L)));
-		assertFalse(asyncDAO.doesExist(uplaodIdOne, new PartRange().setLowerBound(2L).setUpperBound(2L)));
-		assertFalse(asyncDAO.doesExist(uplaodIdTwo, new PartRange().setLowerBound(2L).setUpperBound(2L)));
-		assertFalse(asyncDAO.doesExist(uplaodIdTwo, new PartRange().setLowerBound(3L).setUpperBound(3L)));
+		assertFalse(asyncDAO.doesExist(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L)));
+		assertFalse(asyncDAO.doesExist(uploadIdOne, new PartRange().setLowerBound(2L).setUpperBound(2L)));
+		assertFalse(asyncDAO.doesExist(uploadIdTwo, new PartRange().setLowerBound(2L).setUpperBound(2L)));
+		assertFalse(asyncDAO.doesExist(uploadIdTwo, new PartRange().setLowerBound(3L).setUpperBound(3L)));
 		// these should have been added.
-		assertTrue(asyncDAO.doesExist(uplaodIdOne, new PartRange().setLowerBound(1L).setUpperBound(2L)));
-		assertTrue(asyncDAO.doesExist(uplaodIdOne, new PartRange().setLowerBound(3L).setUpperBound(3L)));
-		assertTrue(asyncDAO.doesExist(uplaodIdTwo, new PartRange().setLowerBound(2L).setUpperBound(3L)));
-		assertTrue(asyncDAO.doesExist(uplaodIdTwo, new PartRange().setLowerBound(4L).setUpperBound(4L)));
+		assertTrue(asyncDAO.doesExist(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(2L)));
+		assertTrue(asyncDAO.doesExist(uploadIdOne, new PartRange().setLowerBound(3L).setUpperBound(3L)));
+		assertTrue(asyncDAO.doesExist(uploadIdTwo, new PartRange().setLowerBound(2L).setUpperBound(3L)));
+		assertTrue(asyncDAO.doesExist(uploadIdTwo, new PartRange().setLowerBound(4L).setUpperBound(4L)));
 	}
 	
 	@Test
 	public void testAttemptToLockPartsWithNullUploadId() {
-		String uplaodIdOne = null;
+		String uploadIdOne = null;
 		PartRange part = new PartRange().setLowerBound(1L).setUpperBound(2L);
 		Consumer<List<PartRange>> mockConsumer = (Consumer<List<PartRange>>) Mockito.mock(Consumer.class);
 		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			asyncDAO.attemptToLockParts(uplaodIdOne, mockConsumer, part);
+			asyncDAO.attemptToLockParts(uploadIdOne, mockConsumer, part);
 			
 		}).getMessage();
 		assertEquals("UploadId is required.", message);
@@ -447,13 +453,13 @@ public class AsyncMultipartUploadComposerDAOImplTest {
 	
 	@Test
 	public void testAttemptToLockPartsWithNullConsumer() {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 		PartRange part = new PartRange().setLowerBound(1L).setUpperBound(2L);
 		Consumer<List<PartRange>> mockConsumer = null;
 		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			asyncDAO.attemptToLockParts(uplaodIdOne, mockConsumer, part);
+			asyncDAO.attemptToLockParts(uploadIdOne, mockConsumer, part);
 			
 		}).getMessage();
 		assertEquals("consumer is required.", message);
@@ -461,13 +467,13 @@ public class AsyncMultipartUploadComposerDAOImplTest {
 	
 	@Test
 	public void testAttemptToLockPartsWithNullLowerBounds() {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 		PartRange part = new PartRange().setLowerBound(null).setUpperBound(2L);
 		Consumer<List<PartRange>> mockConsumer = (Consumer<List<PartRange>>) Mockito.mock(Consumer.class);
 		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			asyncDAO.attemptToLockParts(uplaodIdOne, mockConsumer, part);
+			asyncDAO.attemptToLockParts(uploadIdOne, mockConsumer, part);
 			
 		}).getMessage();
 		assertEquals("PartRange.lowerBound is required.", message);
@@ -475,13 +481,13 @@ public class AsyncMultipartUploadComposerDAOImplTest {
 	
 	@Test
 	public void testAttemptToLockPartsWithNullUpper() {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 		PartRange part = new PartRange().setLowerBound(1L).setUpperBound(null);
 		Consumer<List<PartRange>> mockConsumer = (Consumer<List<PartRange>>) Mockito.mock(Consumer.class);
 		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			asyncDAO.attemptToLockParts(uplaodIdOne, mockConsumer, part);
+			asyncDAO.attemptToLockParts(uploadIdOne, mockConsumer, part);
 			
 		}).getMessage();
 		assertEquals("PartRange.upperBound is required.", message);
@@ -489,13 +495,13 @@ public class AsyncMultipartUploadComposerDAOImplTest {
 	
 	@Test
 	public void testAttemptToLockPartsWithNullParts() {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 		PartRange part = null;
 		Consumer<List<PartRange>> mockConsumer = (Consumer<List<PartRange>>) Mockito.mock(Consumer.class);
 		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			asyncDAO.attemptToLockParts(uplaodIdOne, mockConsumer, part);
+			asyncDAO.attemptToLockParts(uploadIdOne, mockConsumer, part);
 			
 		}).getMessage();
 		assertEquals("PartRange is required.", message);
@@ -503,22 +509,62 @@ public class AsyncMultipartUploadComposerDAOImplTest {
 
 	@Test
 	public void testAttemptToLockPartsWithEmptyParts() {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 		PartRange[] part = new PartRange[] {};
 		Consumer<List<PartRange>> mockConsumer = (Consumer<List<PartRange>>) Mockito.mock(Consumer.class);
 		// call under test
-		assertFalse(asyncDAO.attemptToLockParts(uplaodIdOne, mockConsumer, part));
+		assertFalse(asyncDAO.attemptToLockParts(uploadIdOne, mockConsumer, part));
 		verify(mockConsumer, never()).accept(any());
 	}
 	
 	@Test
 	public void testAttemptToLockPartsWithNullArrayParts() {
-		String uplaodIdOne = startNewUpload();
+		String uploadIdOne = startNewUpload();
 		PartRange[] part = null;
 		Consumer<List<PartRange>> mockConsumer = (Consumer<List<PartRange>>) Mockito.mock(Consumer.class);
 		// call under test
-		assertFalse(asyncDAO.attemptToLockParts(uplaodIdOne, mockConsumer, part));
+		assertFalse(asyncDAO.attemptToLockParts(uploadIdOne, mockConsumer, part));
 		verify(mockConsumer, never()).accept(any());
+	}
+	
+	@Test
+	public void testListAllPartsForUploadId() {
+		String uploadIdOne = startNewUpload();
+		String uploadIdTwo = startNewUpload();
+
+		addParts(uploadIdOne, new PartRange().setLowerBound(1L).setUpperBound(1L),
+				new PartRange().setLowerBound(2L).setUpperBound(2L),
+				new PartRange().setLowerBound(4L).setUpperBound(6L));
+		
+		addParts(uploadIdTwo, new PartRange().setLowerBound(1L).setUpperBound(1L),
+				new PartRange().setLowerBound(3L).setUpperBound(4L),
+				new PartRange().setLowerBound(5L).setUpperBound(6L));
+
+		// call under test
+		List<PartRange> results = asyncDAO.listAllPartsForUploadId(uploadIdOne);
+		List<PartRange> expected = List.of(new PartRange().setLowerBound(1L).setUpperBound(1L),
+				new PartRange().setLowerBound(2L).setUpperBound(2L),
+				new PartRange().setLowerBound(4L).setUpperBound(6L));
+		assertEquals(expected, results);
+		
+		// call under test
+		results = asyncDAO.listAllPartsForUploadId(uploadIdTwo);
+		expected = List.of(new PartRange().setLowerBound(1L).setUpperBound(1L),
+				new PartRange().setLowerBound(3L).setUpperBound(4L),
+				new PartRange().setLowerBound(5L).setUpperBound(6L));
+		assertEquals(expected, results);
+
+	}
+	
+	@Test
+	public void testListAllPartsForUploadIdWithNullUploadId() {
+		String uploadIdOne = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			asyncDAO.listAllPartsForUploadId(uploadIdOne);
+		}).getMessage();
+		assertEquals("UploadId is required.", message);
+
 	}
 
 	/**
