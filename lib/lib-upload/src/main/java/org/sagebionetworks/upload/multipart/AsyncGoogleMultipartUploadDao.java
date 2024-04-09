@@ -87,8 +87,7 @@ public class AsyncGoogleMultipartUploadDao implements CloudServiceMultipartUploa
 		 * contiguous parts, where each pair consists of a left and right part. If a
 		 * lock can be acquired on both the left and right, then they will be composed
 		 * into a new single file in a separate transaction. Since each compose is
-		 * independent of this add request, compose failures are logged but not thrown,
-		 * so this request is not impacted by the compose work.
+		 * independent of this add request, compose failures are logged but not thrown.
 		 */
 		asyncDAO.findContiguousPartRanges(request.getUploadId(), OrderBy.random, NUM_COMPOSE_PER_ADD).forEach(c -> {
 			asyncDAO.attemptToLockPartRanges(request.getUploadId(), () -> {
