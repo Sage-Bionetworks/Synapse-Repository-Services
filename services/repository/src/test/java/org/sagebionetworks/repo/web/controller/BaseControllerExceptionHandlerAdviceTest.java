@@ -17,6 +17,7 @@ import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -24,6 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.sql.BatchUpdateException;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,10 +51,19 @@ public class BaseControllerExceptionHandlerAdviceTest {
 	}
 
 	@Test
-	public void testDeadlockError(){
-		ErrorResponse response = (ErrorResponse) controller.handleTransientDataAccessExceptions(new DeadlockLoserDataAccessException("Message",
-				new BatchUpdateException()), request);
-		assertEquals(BaseControllerExceptionHandlerAdvice.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
+	public void testDeadlockError() {
+		ErrorResponse response = (ErrorResponse) controller.handleTransientDataAccessExceptions(
+				new DeadlockLoserDataAccessException("Message", new BatchUpdateException()), request);
+		assertEquals(BaseControllerExceptionHandlerAdvice.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER,
+				response.getReason());
+	}
+	
+	@Test
+	public void testConnectionPoolExhaustion() {
+		ErrorResponse response = (ErrorResponse) controller.handleCannotCreateTransactionException(
+				new CannotCreateTransactionException("Message", new SQLNonTransientConnectionException()), request);
+		assertEquals(BaseControllerExceptionHandlerAdvice.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER,
+				response.getReason());
 	}
 
 	@Test

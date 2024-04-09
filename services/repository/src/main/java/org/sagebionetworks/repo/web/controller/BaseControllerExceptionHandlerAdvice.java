@@ -60,6 +60,8 @@ import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.transaction.CannotCreateTransactionException;
+import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -698,6 +700,20 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
 	public @ResponseBody
 	BaseError handleTransientDataAccessExceptions(TransientDataAccessException ex,
+			HttpServletRequest request) {
+		return handleException(ex, request, SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, true, null);
+	}
+	
+	/**
+	 * If we cannot create a new transaction, we ask the caller to back-off.
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(CannotCreateTransactionException.class)
+	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+	public @ResponseBody
+	BaseError handleCannotCreateTransactionException(CannotCreateTransactionException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, true, null);
 	}
