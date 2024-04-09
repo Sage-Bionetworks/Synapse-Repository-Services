@@ -17,6 +17,8 @@ public class AbortMultipartRequest {
 		this.bucket = bucket;
 		this.key = key;
 	}
+	
+	public AbortMultipartRequest() {}
 
 	public String getUploadId() {
 		return uploadId;
@@ -39,6 +41,31 @@ public class AbortMultipartRequest {
 	}
 	
 	public AbortMultipartRequest withPartKeys(List<String> partKeys) {
+		this.partKeys = partKeys;
+		return this;
+	}
+
+	public AbortMultipartRequest setUploadId(String uploadId) {
+		this.uploadId = uploadId;
+		return this;
+	}
+
+	public AbortMultipartRequest setUploadToken(String uploadToken) {
+		this.uploadToken = uploadToken;
+		return this;
+	}
+
+	public AbortMultipartRequest setBucket(String bucket) {
+		this.bucket = bucket;
+		return this;
+	}
+
+	public AbortMultipartRequest setKey(String key) {
+		this.key = key;
+		return this;
+	}
+
+	public AbortMultipartRequest setPartKeys(List<String> partKeys) {
 		this.partKeys = partKeys;
 		return this;
 	}
@@ -66,8 +93,8 @@ public class AbortMultipartRequest {
 
 	@Override
 	public String toString() {
-		return "AbortMultipartRequest [uploadId=" + uploadId + ", uploadToken=" + uploadToken + ", bucket=" + bucket + ", key=" + key
-				+ ", partKeys=" + partKeys + "]";
+		return "AbortMultipartRequest [uploadId=" + uploadId + ", uploadToken=" + uploadToken + ", bucket=" + bucket
+				+ ", key=" + key + ", partKeys=" + partKeys + "]";
 	}
 
 }

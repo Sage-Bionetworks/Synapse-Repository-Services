@@ -31,6 +31,11 @@
 			<tx:method name="*" propagation="MANDATORY" rollback-for="Throwable" isolation="READ_COMMITTED" />
 		</tx:attributes>
 	</tx:advice>
+	<tx:advice id="defaultNotSupportedAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="*" propagation="NOT_SUPPORTED" rollback-for="Throwable" isolation="READ_COMMITTED" />
+		</tx:attributes>
+	</tx:advice>
 	<tx:advice id="migrationWriteTxRollbackAdvice" transaction-manager="migrationTxManager">
 		<tx:attributes>
 			<tx:method name="*" propagation="REQUIRED" rollback-for="Throwable" isolation="READ_COMMITTED" />
@@ -54,6 +59,11 @@
 		<aop:pointcut id="defaultMandatoryWrites"
 					  expression="@annotation(org.sagebionetworks.repo.transactions.MandatoryWriteTransaction)" />
 		<aop:advisor pointcut-ref="defaultMandatoryWrites" advice-ref="defaultMandatoryWriteTxRollbackAdvice" />
+	</aop:config>
+	<aop:config>
+		<aop:pointcut id="defaultNotSupported"
+					  expression="@annotation(org.sagebionetworks.repo.transactions.TransactionNotSupported)" />
+		<aop:advisor pointcut-ref="defaultNotSupported" advice-ref="defaultNotSupportedAdvice" />
 	</aop:config>
 	<aop:config>
 		<aop:pointcut id="migrationWrites"

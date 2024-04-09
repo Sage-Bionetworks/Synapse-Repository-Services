@@ -18,38 +18,44 @@ public class CompleteMultipartRequest {
 	public Long getUploadId() {
 		return uploadId;
 	}
-	public void setUploadId(Long uploadId) {
+	public CompleteMultipartRequest setUploadId(Long uploadId) {
 		this.uploadId = uploadId;
+		return this;
 	}
 	public String getUploadToken() {
 		return uploadToken;
 	}
-	public void setUploadToken(String uploadToken) {
+	public CompleteMultipartRequest setUploadToken(String uploadToken) {
 		this.uploadToken = uploadToken;
+		return this;
 	}
 	public Long getNumberOfParts() {
 		return numberOfParts;
 	}
-	public void setNumberOfParts(Long numberOfParts) {
+	public CompleteMultipartRequest setNumberOfParts(Long numberOfParts) {
 		this.numberOfParts = numberOfParts;
+		return this;
 	}
 	public List<PartMD5> getAddedParts() {
 		return addedParts;
 	}
-	public void setAddedParts(List<PartMD5> addedParts) {
+	public CompleteMultipartRequest setAddedParts(List<PartMD5> addedParts) {
 		this.addedParts = addedParts;
+		return this;
 	}
 	public String getBucket() {
 		return bucket;
 	}
-	public void setBucket(String bucket) {
+	public CompleteMultipartRequest setBucket(String bucket) {
 		this.bucket = bucket;
+		return this;
 	}
 	public String getKey() {
 		return key;
 	}
-	public void setKey(String key) {
+	public CompleteMultipartRequest setKey(String key) {
 		this.key = key;
+		return this;
 	}
 	@Override
 	public int hashCode() {

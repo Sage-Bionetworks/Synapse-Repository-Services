@@ -34,7 +34,7 @@ class MultipartUploadComposerDAOImplTest {
 	private MultipartUploadDAO multipartUploadDAO;
 
 	@Autowired
-	TransactionTemplate testTransactionTemplate;
+	TransactionTemplate readCommitedTransactionTemplate;
 
 	private Long userId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 	private String uploadId;
@@ -177,7 +177,7 @@ class MultipartUploadComposerDAOImplTest {
 		expected.add(createDbo(Long.valueOf(uploadId), 10, 20));
 
 		// Call under test
-		List<DBOMultipartUploadComposerPartState> actual = testTransactionTemplate.execute(status ->
+		List<DBOMultipartUploadComposerPartState> actual = readCommitedTransactionTemplate.execute(status ->
 				multipartUploadComposerDAO.getAddedPartRanges(Long.valueOf(uploadId), 8L, 20L));
 
 		assertEquals(expected, actual);

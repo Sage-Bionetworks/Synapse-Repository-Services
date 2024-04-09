@@ -54,7 +54,7 @@ public class DBORequestDAOImplTest {
 	private RequestDAO requestDao;
 
 	@Autowired
-	private TransactionTemplate transactionTemplate;
+	private TransactionTemplate readCommitedTransactionTemplate;
 
 	private UserGroup individualGroup = null;
 	private Node node = null;
@@ -156,7 +156,7 @@ public class DBORequestDAOImplTest {
 		});
 
 		// test get for update
-		Request locked = transactionTemplate.execute(new TransactionCallback<Request>() {
+		Request locked = readCommitedTransactionTemplate.execute(new TransactionCallback<Request>() {
 			@Override
 			public Request doInTransaction(TransactionStatus status) {
 				return (Request) requestDao.getForUpdate(updated.getId());

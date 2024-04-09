@@ -4,8 +4,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
@@ -25,13 +23,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
 
+@Deprecated
 public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO {
 	
-	private static final String UNSUPPORTED_COPY_MSG = "Copying from a Google Cloud Bucket is not supported yet.";
-
-	// 15 minutes
-	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 15 * 1000 * 60;
-
 	@Autowired
 	private SynapseGoogleCloudStorageClient googleCloudStorageClient;
 
@@ -53,14 +47,14 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 	
 	@Override
 	public String initiateMultipartUploadCopy(String bucket, String key, MultipartUploadCopyRequest request, FileHandle fileHandle) {
-		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
+		throw new UnsupportedOperationException(GoogleUtils.UNSUPPORTED_COPY_MSG);
 	}
 
 	@Override
 	public PresignedUrl createPartUploadPreSignedUrl(String bucket, String partKey, String contentType) {		
 		PresignedUrl presignedUrl = new PresignedUrl();
 		
-		URL url = googleCloudStorageClient.createSignedUrl(bucket, partKey, PRE_SIGNED_URL_EXPIRATION_MS, HttpMethod.PUT);
+		URL url = googleCloudStorageClient.createSignedUrl(bucket, partKey, GoogleUtils.PRE_SIGNED_URL_EXPIRATION_MS, HttpMethod.PUT);
 	
 		presignedUrl.withUrl(url);
 		
@@ -69,31 +63,27 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 	
 	@Override
 	public PresignedUrl createPartUploadCopyPresignedUrl(CompositeMultipartUploadStatus status, long partNumber, String contentType) {
-		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
+		throw new UnsupportedOperationException(GoogleUtils.UNSUPPORTED_COPY_MSG);
 	}
 
 	@WriteTransaction
 	@Override
 	public void validateAndAddPart(AddPartRequest request) {
-		validatePartMd5(request);
+		GoogleUtils.validatePartMd5(googleCloudStorageClient.getObject(request.getBucket(), request.getPartKey()),
+				request.getPartMD5Hex());
 		addPart(request.getUploadId(), request.getBucket(), request.getKey(), request.getPartNumber(), request.getPartNumber(), request.getTotalNumberOfParts());
+	}
+	
+	public void validatePartMd5(AddPartRequest request) {
+		GoogleUtils.validatePartMd5(googleCloudStorageClient.getObject(request.getBucket(), request.getPartKey()), request.getPartMD5Hex());
 	}
 	
 	@Override
 	public void validatePartCopy(CompositeMultipartUploadStatus status, long partNumber, String partMD5Hex) {
-		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
+		throw new UnsupportedOperationException(GoogleUtils.UNSUPPORTED_COPY_MSG);
 	}
 
-	void validatePartMd5(AddPartRequest request) {
-		Blob uploadedPart = googleCloudStorageClient.getObject(request.getBucket(), request.getPartKey());
-		if (uploadedPart == null) {
-			throw new IllegalArgumentException("The uploaded part could not be found");
-		}
-		if (!Hex.encodeHexString(Base64.decodeBase64(uploadedPart.getMd5())).equals(request.getPartMD5Hex())) {
-			throw new IllegalArgumentException("The provided MD5 does not match the MD5 of the uploaded part.  Please re-upload the part.");
-		}
-		// The part was uploaded successfully
-	}
+
 
 	void addPart(String uploadId, String bucket, String key, Long lowerBound, Long upperBound, Long totalNumberOfParts) {
 		multipartUploadComposerDAO.addPartToUpload(uploadId, lowerBound, upperBound);
@@ -181,11 +171,13 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 	
 	@Override
 	public String getObjectEtag(String bucket, String key) {
-		throw new UnsupportedOperationException(UNSUPPORTED_COPY_MSG);
+		throw new UnsupportedOperationException(GoogleUtils.UNSUPPORTED_COPY_MSG);
 	}
 
 	@Override
 	public boolean doesObjectExist(String bucketName, String objectKey) {
 		return googleCloudStorageClient.doesObjectExist(bucketName, objectKey);
 	}
+
+
 }

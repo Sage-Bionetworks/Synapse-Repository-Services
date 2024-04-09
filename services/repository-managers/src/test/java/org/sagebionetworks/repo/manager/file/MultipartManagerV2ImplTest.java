@@ -31,8 +31,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -54,7 +52,6 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.MultiPartRequestType;
 import org.sagebionetworks.repo.model.dbo.file.MultipartRequestUtils;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
-import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
@@ -698,9 +695,8 @@ public class MultipartManagerV2ImplTest {
 
 	}
 
-	@ParameterizedTest
-	@ValueSource(strings = { "true", "false" })
-	public void testAddMultipartPart(boolean lockNoWaitEnabled) {
+	@Test
+	public void testAddMultipartPart() {
 		String uploadId = "upload";
 		Integer partNumber = 2;
 		String partMD5Hex = "8356accbaa8bfc6ddc6c612224c6c9b3";
@@ -710,7 +706,6 @@ public class MultipartManagerV2ImplTest {
 		when(mockStatus.getState()).thenReturn(MultipartUploadState.UPLOADING);
 		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
-		when(mockFeatureManager.isFeatureEnabled(Feature.UPLOAD_LOCK_NOWAIT)).thenReturn(lockNoWaitEnabled);
 		when(mockMultipartUploadDAO.getUploadStatus(any(), anyBoolean())).thenReturn(mockCompositeStatus);
 
 		doReturn(mockHandler).when(mockHandlerProvider).getHandlerForType(any());
@@ -726,7 +721,7 @@ public class MultipartManagerV2ImplTest {
 
 		assertEquals(expected, result);
 
-		verify(mockMultipartUploadDAO).getUploadStatus(uploadId, lockNoWaitEnabled);
+		verify(mockMultipartUploadDAO).getUploadStatus(uploadId, false);
 		verify(mockHandler).validateAddedPart(mockCompositeStatus, partNumber, partMD5Hex);
 		verify(mockMultipartUploadDAO).addPartToUpload(uploadId, partNumber, partMD5Hex);
 
@@ -857,9 +852,8 @@ public class MultipartManagerV2ImplTest {
 		assertEquals("Part numbers cannot be less than one.", errorMessage);
 	}
 
-	@ParameterizedTest
-	@ValueSource(strings = { "true", "false" })
-	public void testCompleteMultipartUpload(boolean lockNoWaitEnabled) {
+	@Test
+	public void testCompleteMultipartUpload() {
 		String uploadId = "1234";
 		String token = "token";
 		Integer numberOfParts = 2;
@@ -883,7 +877,6 @@ public class MultipartManagerV2ImplTest {
 		when(mockCompositeStatus.getNumberOfParts()).thenReturn(numberOfParts);
 		when(mockCompositeStatus.getMultipartUploadStatus()).thenReturn(mockStatus);
 		when(mockCompositeStatus.getUploadType()).thenReturn(UploadType.S3);
-		when(mockFeatureManager.isFeatureEnabled(Feature.UPLOAD_LOCK_NOWAIT)).thenReturn(lockNoWaitEnabled);
 		when(mockMultipartUploadDAO.getUploadStatus(any(), anyBoolean())).thenReturn(mockCompositeStatus);
 		when(mockMultipartUploadDAO.getAddedPartMD5s(any())).thenReturn(addedParts);
 		when(mockMultipartUploadDAO.getUploadRequest(any())).thenReturn(originalRequest);
@@ -914,7 +907,7 @@ public class MultipartManagerV2ImplTest {
 
 		assertEquals(mockStatus, result);
 
-		verify(mockMultipartUploadDAO).getUploadStatus(uploadId, lockNoWaitEnabled);
+		verify(mockMultipartUploadDAO).getUploadStatus(uploadId, false);
 		verify(mockStatus).setPartsState("11");
 		verify(mockCloudDao).completeMultipartUpload(completeRequest);
 		verify(mockHandler).getFileHandleCreateRequest(mockCompositeStatus, originalRequest);

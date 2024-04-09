@@ -85,7 +85,7 @@ public class DBOSubmissionDAOImplTest {
 	private SubmissionDAO submissionDao;
 
 	@Autowired
-	private TransactionTemplate transactionTemplate;
+	private TransactionTemplate readCommitedTransactionTemplate;
 	
 	@Autowired
 	private AccessControlListDAO aclDao;
@@ -242,7 +242,7 @@ public class DBOSubmissionDAOImplTest {
 		assertFalse(submissionDao.isAccessor(status.getSubmissionId(), user2.getId()));
 
 		assertEquals(dto, submissionDao.getSubmission(dto.getId()));
-		Submission locked = transactionTemplate.execute(new TransactionCallback<Submission>() {
+		Submission locked = readCommitedTransactionTemplate.execute(new TransactionCallback<Submission>() {
 			@Override
 			public Submission doInTransaction(TransactionStatus status) {
 				return submissionDao.getForUpdate(dto.getId());

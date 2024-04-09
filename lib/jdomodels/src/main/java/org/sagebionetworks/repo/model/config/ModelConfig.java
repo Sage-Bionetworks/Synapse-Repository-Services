@@ -28,7 +28,8 @@ public class ModelConfig {
 		dataSource.setPassword(stackConfiguration.getRepositoryDatabasePassword());
 		dataSource.setUrl(stackConfiguration.getRepositoryDatabaseConnectionUrl());
 		dataSource.setMinIdle(Integer.parseInt(stackConfiguration.getDatabaseConnectionPoolMinNumberConnections()));
-		dataSource.setMaxTotal(Integer.parseInt(stackConfiguration.getDatabaseConnectionPoolMaxNumberConnections()));
+		// See: https://sagebionetworks.jira.com/browse/PLFM-8344
+		dataSource.setMaxTotal(-1);
 		dataSource.setMaxIdle(Integer.parseInt(stackConfiguration.getDatabaseConnectionPoolMaxNumberConnections()));
 		dataSource.setTestOnBorrow(Boolean.valueOf(stackConfiguration.getDatabaseConnectionPoolShouldValidate()));
 		dataSource.setValidationQuery(stackConfiguration.getDatabaseConnectionPoolValidateSql());
@@ -96,6 +97,18 @@ public class ModelConfig {
 		txDefinition.setReadOnly(false);
 		txDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
 		txDefinition.setName("readCommitedTransactionTemplate");
+
+		return new TransactionTemplate(txManager, txDefinition);
+	}
+	
+	@Bean
+	public TransactionTemplate readCommittedRequiresNew(PlatformTransactionManager txManager) {
+		DefaultTransactionDefinition txDefinition = new DefaultTransactionDefinition();
+
+		txDefinition.setIsolationLevel(Connection.TRANSACTION_READ_COMMITTED);
+		txDefinition.setReadOnly(false);
+		txDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+		txDefinition.setName("readCommittedRequiresNew");
 
 		return new TransactionTemplate(txManager, txDefinition);
 	}

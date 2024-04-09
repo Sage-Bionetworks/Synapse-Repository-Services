@@ -19,12 +19,12 @@
 	        "description": "Route downloads of Synapse Data through AWS CloudFront"
 	    },
 	    {
-	     	"name": "UPLOAD_LOCK_NOWAIT",
-	        "description": "Enable row lock with nowait when adding a part or completing a multipart upload"
-	    },
-	    {
 	    	"name": "CHANGE_PASSWORD_2FA_CHECK_BYPASS",
 	    	"description": "Disable checking for two fa when changing the user password"
+	    },
+	    {
+	    	"name": "USE_NEW_ASYNC_GOOGLE_MULTIPART_UPLOAD",
+	    	"description": "Set to false to use the old Google multi-part upload dao."
 	    }
     ]
 }

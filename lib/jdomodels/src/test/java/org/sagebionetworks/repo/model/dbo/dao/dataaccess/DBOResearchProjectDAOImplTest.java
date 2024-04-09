@@ -51,7 +51,7 @@ public class DBOResearchProjectDAOImplTest {
 
 	@Autowired
 	private PlatformTransactionManager txManager;
-	private TransactionTemplate transactionTemplate;
+	private TransactionTemplate readCommitedTransactionTemplate;
 
 	private UserGroup individualGroup = null;
 	private Node node = null;
@@ -82,7 +82,7 @@ public class DBOResearchProjectDAOImplTest {
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod}));
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 
-		transactionTemplate = new TransactionTemplate(txManager);
+		readCommitedTransactionTemplate = new TransactionTemplate(txManager);
 	}
 
 	@AfterEach
@@ -138,7 +138,7 @@ public class DBOResearchProjectDAOImplTest {
 		});
 
 		// test get for update
-		ResearchProject locked = transactionTemplate.execute(new TransactionCallback<ResearchProject>() {
+		ResearchProject locked = readCommitedTransactionTemplate.execute(new TransactionCallback<ResearchProject>() {
 			@Override
 			public ResearchProject doInTransaction(TransactionStatus status) {
 				// Try to lock both nodes out of order
