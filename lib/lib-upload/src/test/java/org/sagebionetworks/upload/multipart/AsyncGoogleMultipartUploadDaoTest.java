@@ -391,6 +391,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 
 	@Test
 	public void testValidateAndAddPartWithWrongMD5() {
+		when(mockAsyncPartRangeDao.findContiguousPartRanges(any(), any(), anyInt())).thenReturn(Collections.emptyList());
 		when(mockGoogleCloudStorageClient.getObject(any(), any())).thenReturn(mockBlob);
 		when(mockBlob.getMd5()).thenReturn("wrong");
 		
@@ -398,6 +399,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			// call under test
 			dao.validateAndAddPart(addPartRequest);
 		}).getMessage();
+		verify(mockAsyncPartRangeDao).findContiguousPartRanges(uploadId, OrderBy.random, 4);
 		assertEquals("The provided MD5 does not match the MD5 of the uploaded part.  Please re-upload the part.", message);
 		verifyZeroInteractions(mockAsyncPartRangeDao);
 		verify(mockGoogleCloudStorageClient).getObject(bucket, key+"/8-8");
