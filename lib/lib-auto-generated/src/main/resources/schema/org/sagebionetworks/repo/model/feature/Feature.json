@@ -23,8 +23,8 @@
 	    	"description": "Disable checking for two fa when changing the user password"
 	    },
 	    {
-	    	"name": "DISABLE_ASYNC_GOOGLE_MULTIPART_UPLOAD",
-	    	"description": "Set to true to disable the use of the new asynchronous Google multi-part upload dao."
+	    	"name": "USE_NEW_ASYNC_GOOGLE_MULTIPART_UPLOAD",
+	    	"description": "Set to false to use the old Google multi-part upload dao."
 	    }
     ]
 }

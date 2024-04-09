@@ -1,31 +1,29 @@
-package org.sagebionetworks.repo.model.dbo.file.part;
+package org.sagebionetworks.repo.model.dbo.file.google;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartState;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class AsyncMultipartUploadComposerDAOImpl implements AsyncMultipartUploadComposerDAO {
+public class AsyncGooglePartRangeDaoImpl implements AsyncGooglePartRangeDao {
 
 	private final NamedParameterJdbcTemplate namedJdbcTemplate;
 	private final DBOBasicDao basicDao;
 
 	@Autowired
-	public AsyncMultipartUploadComposerDAOImpl(NamedParameterJdbcTemplate namedJdbcTemplate, DBOBasicDao basicDao) {
+	public AsyncGooglePartRangeDaoImpl(NamedParameterJdbcTemplate namedJdbcTemplate, DBOBasicDao basicDao) {
 		super();
 		this.namedJdbcTemplate = namedJdbcTemplate;
 		this.basicDao = basicDao;
@@ -33,7 +31,7 @@ public class AsyncMultipartUploadComposerDAOImpl implements AsyncMultipartUpload
 
 	@WriteTransaction
 	@Override
-	public void addPart(String uploadId, PartRange part) {
+	public void addPartRange(String uploadId, PartRange part) {
 		ValidateArgument.required(uploadId, "UploadId");
 		validatePartRange(part);
 
@@ -46,7 +44,7 @@ public class AsyncMultipartUploadComposerDAOImpl implements AsyncMultipartUpload
 
 	@WriteTransaction
 	@Override
-	public void removePart(String uploadId, PartRange part) {
+	public void removePartRange(String uploadId, PartRange part) {
 		ValidateArgument.required(uploadId, "UploadId");
 		validatePartRange(part);
 		basicDao.deleteObjectByPrimaryKey(DBOMultipartUploadComposerPartState.class, toParams(uploadId, part));
@@ -67,7 +65,7 @@ public class AsyncMultipartUploadComposerDAOImpl implements AsyncMultipartUpload
 	}
 
 	@Override
-	public List<Compose> findContiguousParts(String uploadId, OrderBy order, int limit) {
+	public List<Compose> findContiguousPartRanges(String uploadId, OrderBy order, int limit) {
 		ValidateArgument.required(uploadId, "UploadId");
 		ValidateArgument.required(order, "OrderBy");
 		String sql = String.format(
@@ -83,9 +81,9 @@ public class AsyncMultipartUploadComposerDAOImpl implements AsyncMultipartUpload
 		}, uploadId, limit);
 	}
 
-	@WriteTransaction
+	@NewWriteTransaction
 	@Override
-	public boolean attemptToLockParts(String uploadId, Consumer<List<PartRange>> consumer, PartRange... toLock) {
+	public boolean attemptToLockPartRanges(String uploadId, Runnable consumer, PartRange... toLock) {
 		ValidateArgument.required(uploadId, "UploadId");
 		ValidateArgument.required(consumer, "consumer");
 		if (toLock == null || toLock.length < 1) {
@@ -102,14 +100,14 @@ public class AsyncMultipartUploadComposerDAOImpl implements AsyncMultipartUpload
 			return new PartRange().setLowerBound(rs.getLong(1)).setUpperBound(rs.getLong(2));
 		});
 		if (lockedRanges.size() == toLock.length) {
-			consumer.accept(lockedRanges);
+			consumer.run();
 			return true;
 		}
 		return false;
 	}
 
 	@Override
-	public boolean doesExist(String uploadId, PartRange part) {
+	public boolean doesPartRangeExist(String uploadId, PartRange part) {
 		ValidateArgument.required(uploadId, "UploadId");
 		validatePartRange(part);
 		return basicDao
@@ -118,7 +116,7 @@ public class AsyncMultipartUploadComposerDAOImpl implements AsyncMultipartUpload
 	}
 
 	@Override
-	public List<PartRange> listAllPartsForUploadId(String uploadId) {
+	public List<PartRange> listAllPartRangesForUploadId(String uploadId) {
 		ValidateArgument.required(uploadId, "UploadId");
 		return namedJdbcTemplate.query(
 				"SELECT PART_RANGE_LOWER_BOUND, PART_RANGE_UPPER_BOUND FROM"

@@ -1,7 +1,5 @@
 package org.sagebionetworks.upload.multipart;
 
-import java.util.Optional;
-
 import org.sagebionetworks.repo.model.dbo.feature.FeatureStatusDao;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.file.UploadType;
@@ -16,7 +14,7 @@ public class CloudServiceMultipartUploadDAOProviderImpl implements CloudServiceM
 	private GoogleCloudStorageMultipartUploadDAOImpl googleCloudStorageMultipartUploadDAO;
 
 	@Autowired
-	private AsyncGoogleMultipartUploadDAO asyncGoogleMultipartUploadDAO;
+	private AsyncGoogleMultipartUploadDao asyncGoogleMultipartUploadDAO;
 
 	@Autowired
 	private FeatureStatusDao featureStatusDao;
@@ -27,11 +25,10 @@ public class CloudServiceMultipartUploadDAOProviderImpl implements CloudServiceM
 		case S3:
 			return s3MultipartUploadDAO;
 		case GOOGLECLOUDSTORAGE:
-			Optional<Boolean> optional = featureStatusDao.isFeatureEnabled(Feature.DISABLE_ASYNC_GOOGLE_MULTIPART_UPLOAD);
-			if (optional.isPresent() && optional.get()) {
-				return googleCloudStorageMultipartUploadDAO;
-			} else {
+			if (featureStatusDao.isFeatureEnabled(Feature.USE_NEW_ASYNC_GOOGLE_MULTIPART_UPLOAD).orElse(true)) {
 				return asyncGoogleMultipartUploadDAO;
+			} else {
+				return googleCloudStorageMultipartUploadDAO;
 			}
 		default:
 			throw new IllegalArgumentException(

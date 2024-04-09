@@ -28,7 +28,8 @@ public class ModelConfig {
 		dataSource.setPassword(stackConfiguration.getRepositoryDatabasePassword());
 		dataSource.setUrl(stackConfiguration.getRepositoryDatabaseConnectionUrl());
 		dataSource.setMinIdle(Integer.parseInt(stackConfiguration.getDatabaseConnectionPoolMinNumberConnections()));
-		dataSource.setMaxTotal(Integer.parseInt(stackConfiguration.getDatabaseConnectionPoolMaxNumberConnections()));
+		// See: https://sagebionetworks.jira.com/browse/PLFM-8344
+		dataSource.setMaxTotal(-1);
 		dataSource.setMaxIdle(Integer.parseInt(stackConfiguration.getDatabaseConnectionPoolMaxNumberConnections()));
 		dataSource.setTestOnBorrow(Boolean.valueOf(stackConfiguration.getDatabaseConnectionPoolShouldValidate()));
 		dataSource.setValidationQuery(stackConfiguration.getDatabaseConnectionPoolValidateSql());

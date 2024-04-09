@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.file.part;
+package org.sagebionetworks.repo.model.dbo.file.google;
 
 public enum OrderBy {
 	random("RAND()"), asc("L.PART_RANGE_LOWER_BOUND ASC");

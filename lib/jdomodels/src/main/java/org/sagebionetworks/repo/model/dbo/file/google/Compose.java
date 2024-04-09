@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.file.part;
+package org.sagebionetworks.repo.model.dbo.file.google;
 
 import java.util.Objects;
 

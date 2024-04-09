@@ -271,6 +271,20 @@ public class MultipartManagerV2ImplAutowireTest {
 	}
 	
 	@Test
+	@Disabled("This is an expensive test to run.")
+	public void testMultipartUploadGoogleCloudLarge() throws Exception {
+		Assume.assumeTrue(stackConfiguration.getGoogleCloudEnabled());
+		
+		String fileName = "foo.txt";
+		String contentType = "application/octet-stream";
+		String fileContent = "This is the content of the file".repeat(5_000_000);
+		Long storageLocationId = googleCloudStorageLocationSetting.getStorageLocationId();
+		boolean useContentTypeForParts = true;
+		
+		doMultipartUpload(fileName, contentType, fileContent, storageLocationId, useContentTypeForParts);
+	}
+	
+	@Test
 	public void testGCMultipartUploadCompletedClear() throws Exception {
 		Assume.assumeTrue(stackConfiguration.getGoogleCloudEnabled());
 		

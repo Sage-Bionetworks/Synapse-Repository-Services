@@ -3,12 +3,14 @@ package org.sagebionetworks.upload.multipart;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
-import org.sagebionetworks.repo.model.dbo.file.part.AsyncMultipartUploadComposerDAO;
-import org.sagebionetworks.repo.model.dbo.file.part.Compose;
-import org.sagebionetworks.repo.model.dbo.file.part.OrderBy;
-import org.sagebionetworks.repo.model.dbo.file.part.PartRange;
+import org.sagebionetworks.repo.model.dbo.file.google.AsyncGooglePartRangeDao;
+import org.sagebionetworks.repo.model.dbo.file.google.Compose;
+import org.sagebionetworks.repo.model.dbo.file.google.OrderBy;
+import org.sagebionetworks.repo.model.dbo.file.google.PartRange;
 import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
@@ -25,19 +27,21 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
 
 @Service
-public class AsyncGoogleMultipartUploadDAO implements CloudServiceMultipartUploadDAO {
+public class AsyncGoogleMultipartUploadDao implements CloudServiceMultipartUploadDAO {
 
 	private static final String LOCK_FAILED_MESSAGE = "Cannot perform this action while parts are still being added to this multipart upload.";
 	private static final int NUM_COMPOSE_PER_ADD = 4;
 	private final SynapseGoogleCloudStorageClient googleCloudStorageClient;
-	private final AsyncMultipartUploadComposerDAO asyncDAO;
+	private final AsyncGooglePartRangeDao asyncDAO;
+	private final Logger log;
 
 	@Autowired
-	public AsyncGoogleMultipartUploadDAO(SynapseGoogleCloudStorageClient googleCloudStorageClient,
-			AsyncMultipartUploadComposerDAO asyncDAO) {
+	public AsyncGoogleMultipartUploadDao(SynapseGoogleCloudStorageClient googleCloudStorageClient,
+			AsyncGooglePartRangeDao asyncDAO, LoggerProvider logProvider) {
 		super();
 		this.googleCloudStorageClient = googleCloudStorageClient;
 		this.asyncDAO = asyncDAO;
+		this.log = logProvider.getLogger(AsyncGoogleMultipartUploadDao.class.getName());
 	}
 
 	@Override
@@ -74,18 +78,33 @@ public class AsyncGoogleMultipartUploadDAO implements CloudServiceMultipartUploa
 		ValidateArgument.required(request.getPartKey(), "request.partKey");
 		ValidateArgument.required(request.getPartMD5Hex(), "request.partMD5Hex");
 
+		/*
+		 * With Google multi-part upload we need to compose each part into larger parts
+		 * until all parts are composed into a single file. By composing parts with each
+		 * add request, we can distribute the work of composing parts across the entire
+		 * upload. This ensures that the amount compose work needed to complete the
+		 * upload is kept to a minimum. The following will find four random pairs of
+		 * contiguous parts, where each pair consists of a left and right part. If a
+		 * lock can be acquired on both the left and right, then they will be composed
+		 * into a new single file in a separate transaction. Since each compose is
+		 * independent of this add request, compose failures are logged but not thrown,
+		 * so this request is not impacted by the compose work.
+		 */
+		asyncDAO.findContiguousPartRanges(request.getUploadId(), OrderBy.random, NUM_COMPOSE_PER_ADD).forEach(c -> {
+			asyncDAO.attemptToLockPartRanges(request.getUploadId(), () -> {
+				try {
+					composeLockedParts(request.getUploadId(), request.getBucket(), request.getKey(), c);
+				} catch (Exception e) {
+					log.error("Failed to compose parts:", e);
+				}
+			}, c.getLeft(), c.getRight());
+		});
+
 		GoogleUtils.validatePartMd5(googleCloudStorageClient.getObject(request.getBucket(), request.getPartKey()),
 				request.getPartMD5Hex());
 		// save this part to the DB.
-		asyncDAO.addPart(request.getUploadId(),
+		asyncDAO.addPartRange(request.getUploadId(),
 				new PartRange().setLowerBound(request.getPartNumber()).setUpperBound(request.getPartNumber()));
-
-		// find existing parts that are ready to be merged and merge them.
-		asyncDAO.findContiguousParts(request.getUploadId(), OrderBy.random, NUM_COMPOSE_PER_ADD).forEach(c -> {
-			asyncDAO.attemptToLockParts(request.getUploadId(), con -> {
-				composeLockedParts(request.getUploadId(), request.getBucket(), request.getKey(), c);
-			}, c.getLeft(), c.getRight());
-		});
 
 	}
 
@@ -108,9 +127,9 @@ public class AsyncGoogleMultipartUploadDAO implements CloudServiceMultipartUploa
 				newPart.getUpperBound());
 
 		googleCloudStorageClient.composeObjects(bucket, newPartKey, startingPartKeys);
-		asyncDAO.addPart(uploadId, newPart);
-		asyncDAO.removePart(uploadId, toCompose.getLeft());
-		asyncDAO.removePart(uploadId, toCompose.getRight());
+		asyncDAO.addPartRange(uploadId, newPart);
+		asyncDAO.removePartRange(uploadId, toCompose.getLeft());
+		asyncDAO.removePartRange(uploadId, toCompose.getRight());
 
 		startingPartKeys.forEach(k -> {
 			googleCloudStorageClient.deleteObject(bucket, k);
@@ -144,16 +163,21 @@ public class AsyncGoogleMultipartUploadDAO implements CloudServiceMultipartUploa
 		ValidateArgument.required(request.getNumberOfParts(), "request.numberOfParts");
 		String uploadId = request.getUploadId().toString();
 		Optional<Compose> optional = null;
+		int count = 0;
 		do {
 			// merge any remaining parts
-			optional = asyncDAO.findContiguousParts(uploadId, OrderBy.asc, 1).stream().findFirst();
+			optional = asyncDAO.findContiguousPartRanges(uploadId, OrderBy.asc, 1).stream().findFirst();
 			optional.ifPresent(toMerge -> {
-				if (!asyncDAO.attemptToLockParts(uploadId, con -> {
+				if (!asyncDAO.attemptToLockPartRanges(uploadId, () -> {
 					composeLockedParts(uploadId, request.getBucket(), request.getKey(), toMerge);
 				}, toMerge.getLeft(), toMerge.getRight())) {
 					throw new IllegalArgumentException(LOCK_FAILED_MESSAGE);
 				}
 			});
+			count++;
+			if (count > request.getNumberOfParts()) {
+				throw new IllegalStateException("Failed to merge all parts for: " + request.toString());
+			}
 		} while (optional.isPresent());
 
 		googleCloudStorageClient.rename(request.getBucket(),
@@ -170,17 +194,22 @@ public class AsyncGoogleMultipartUploadDAO implements CloudServiceMultipartUploa
 		ValidateArgument.required(request.getBucket(), "request.bucket");
 		ValidateArgument.required(request.getKey(), "request.key");
 
-		asyncDAO.listAllPartsForUploadId(request.getUploadId()).forEach(p -> {
-			if (!asyncDAO.attemptToLockParts(request.getUploadId(), c -> {
-				asyncDAO.removePart(request.getUploadId(), p);
+		asyncDAO.listAllPartRangesForUploadId(request.getUploadId()).forEach(p -> {
+			if (!asyncDAO.attemptToLockPartRanges(request.getUploadId(), () -> {
+				asyncDAO.removePartRange(request.getUploadId(), p);
+				deleteObjectIfExists(request.getBucket(), MultipartUploadUtils.createPartKeyFromRange(request.getKey(),
+						p.getLowerBound(), p.getUpperBound()));
 			}, p)) {
 				throw new IllegalArgumentException(LOCK_FAILED_MESSAGE);
 			}
 		});
-		// delete any existing parts in Google
-		googleCloudStorageClient.getObjects(request.getBucket(), request.getKey() + "/").forEach(Blob::delete);
-		if (doesObjectExist(request.getBucket(), request.getKey())) {
-			googleCloudStorageClient.deleteObject(request.getBucket(), request.getKey());
+		deleteObjectIfExists(request.getBucket(), request.getKey());
+	}
+
+	void deleteObjectIfExists(String bucket, String key) {
+		Blob partBlob = googleCloudStorageClient.getObject(bucket, key);
+		if (partBlob != null) {
+			partBlob.delete();
 		}
 	}
 

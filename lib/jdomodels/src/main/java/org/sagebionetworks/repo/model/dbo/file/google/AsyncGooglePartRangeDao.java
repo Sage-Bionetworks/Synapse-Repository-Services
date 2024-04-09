@@ -1,15 +1,14 @@
-package org.sagebionetworks.repo.model.dbo.file.part;
+package org.sagebionetworks.repo.model.dbo.file.google;
 
 import java.util.List;
-import java.util.function.Consumer;
 
-public interface AsyncMultipartUploadComposerDAO {
+public interface AsyncGooglePartRangeDao {
 
-	void addPart(String uploadId, PartRange part);
+	void addPartRange(String uploadId, PartRange part);
 
-	void removePart(String uploadId, PartRange part);
+	void removePartRange(String uploadId, PartRange part);
 
-	boolean doesExist(String uploadId, PartRange part);
+	boolean doesPartRangeExist(String uploadId, PartRange part);
 
 	/**
 	 * Find contiguous parts that are ready to be merged with each other.
@@ -19,7 +18,7 @@ public interface AsyncMultipartUploadComposerDAO {
 	 * @param limit
 	 * @return
 	 */
-	List<Compose> findContiguousParts(String uploadId, OrderBy order, int limit);
+	List<Compose> findContiguousPartRanges(String uploadId, OrderBy order, int limit);
 
 	/**
 	 * Attempt to acquire a lock on all of the provided parts in a new transaction.
@@ -32,7 +31,7 @@ public interface AsyncMultipartUploadComposerDAO {
 	 * @return True if all locks were acquired and the consumer was called. False if
 	 *         one or more lock could not be acquired.
 	 */
-	boolean attemptToLockParts(String uploadId, Consumer<List<PartRange>> consumer, PartRange... parts);
+	boolean attemptToLockPartRanges(String uploadId, Runnable runner, PartRange... parts);
 
 	/**
 	 * List all of the parts for a given upload ID.
@@ -40,6 +39,6 @@ public interface AsyncMultipartUploadComposerDAO {
 	 * @param uploadeId
 	 * @return
 	 */
-	List<PartRange> listAllPartsForUploadId(String uploadeId);
+	List<PartRange> listAllPartRangesForUploadId(String uploadeId);
 
 }

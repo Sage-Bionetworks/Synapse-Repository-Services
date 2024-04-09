@@ -17,12 +17,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
-import org.sagebionetworks.repo.model.dbo.file.part.AsyncMultipartUploadComposerDAO;
+import org.sagebionetworks.repo.model.dbo.file.google.AsyncGooglePartRangeDao;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.UploadType;
@@ -45,12 +46,15 @@ public class GoogleCloudStorageMultipartUploadDAOImplAutowireTest {
 	private GoogleCloudStorageMultipartUploadDAOImpl googleCloudStorageMultipartUploadDAO;
 
 	@Autowired
-	private AsyncMultipartUploadComposerDAO asyncDAO;
+	private AsyncGooglePartRangeDao asyncDAO;
 	
 	@Autowired
 	private TransactionTemplate readCommitedTransactionTemplate;
+	
+	@Autowired
+	private LoggerProvider loggerProvider;
 
-	private AsyncGoogleMultipartUploadDAO asyncGoogleMultipartUploadDAO;
+	private AsyncGoogleMultipartUploadDao asyncGoogleMultipartUploadDAO;
 
 	private SynapseGoogleCloudStorageClient mockGoogleCloudStorageClient = Mockito
 			.mock(SynapseGoogleCloudStorageClient.class);
@@ -62,14 +66,14 @@ public class GoogleCloudStorageMultipartUploadDAOImplAutowireTest {
 		ReflectionTestUtils.setField(googleCloudStorageMultipartUploadDAO, "googleCloudStorageClient",
 				mockGoogleCloudStorageClient);
 		multipartUploadDAO.truncateAll();
-		asyncGoogleMultipartUploadDAO = new AsyncGoogleMultipartUploadDAO(mockGoogleCloudStorageClient, asyncDAO);
+		asyncGoogleMultipartUploadDAO = new AsyncGoogleMultipartUploadDao(mockGoogleCloudStorageClient, asyncDAO, loggerProvider);
 	}
 
 	@Test
 	public void testValidateAndAddPartWithMultipleThreads() throws Exception {
 
-		int numberOfThreads = 100;
-		int numberOfParts = 1000;
+		int numberOfThreads = 50;
+		int numberOfParts = 10000;
 		long partSize = 100L;
 
 		CompositeMultipartUploadStatus status = multipartUploadDAO.createUploadStatus(new CreateMultipartRequest()
