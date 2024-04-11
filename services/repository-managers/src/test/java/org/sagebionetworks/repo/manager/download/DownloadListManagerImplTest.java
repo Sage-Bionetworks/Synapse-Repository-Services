@@ -1094,6 +1094,24 @@ public class DownloadListManagerImplTest {
 	}
 	
 	@Test
+	public void testCreateDownloadsListItemFromRowWithValues() {
+		boolean userVersion = false;
+		Row row = new Row().setRowId(8L).setVersionNumber(4L).setValues(List.of("123", "456"));
+		// call under test
+		DownloadListItem result = manager.createDownloadsListItemFromRow(userVersion, row);
+		assertEquals(new DownloadListItem().setFileEntityId("123").setVersionNumber(null), result);
+	}
+	
+	@Test
+	public void testCreateDownloadsListItemFromRowWithValuesAndUseVersion() {
+		boolean userVersion = true;
+		Row row = new Row().setRowId(8L).setVersionNumber(4L).setValues(List.of("123", "456"));
+		// call under test
+		DownloadListItem result = manager.createDownloadsListItemFromRow(userVersion, row);
+		assertEquals(new DownloadListItem().setFileEntityId("123").setVersionNumber(456L), result);
+	}
+	
+	@Test
 	public void testCreateDownloadsListItemFromRowWithMissingRowIdAndNoValues() {
 		boolean userVersion = false;
 		Row row = new Row().setRowId(null).setVersionNumber(4L);
@@ -1152,7 +1170,7 @@ public class DownloadListManagerImplTest {
 
 		verify(mockTableQueryManager, times(1)).querySinglePage(any(), any(), any(), any());
 		verify(mockTableQueryManager).querySinglePage(mockProgressCallback, userOne,
-				new Query().setSql("SELECT \"ROW_ID\" FROM syn123 ORDER BY \"ROW_ID\"").setLimit(10L).setOffset(0L), new QueryOptions()
+				new Query().setSql("SELECT \"ROW_ID\", \"ROW_VERSION\" FROM syn123 ORDER BY \"ROW_ID\", \"ROW_VERSION\"").setLimit(10L).setOffset(0L), new QueryOptions()
 						.withRunQuery(true).withRunCount(false).withReturnFacets(false).withReturnLastUpdatedOn(false));
 		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(),
 				Arrays.asList(new DownloadListItem().setFileEntityId("111").setVersionNumber(1L),
@@ -1204,7 +1222,7 @@ public class DownloadListManagerImplTest {
 				new Row().setRowId(222L).setVersionNumber(2L)
 		);
 		// @formatter:on
-		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
+		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.dataset);
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(List.of(createColumn(123L, "foo", ColumnType.STRING)));
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenReturn(
 				new QueryResultBundle().setQueryResult(new QueryResult().setQueryResults(new RowSet().setRows(rows))));
@@ -1224,7 +1242,7 @@ public class DownloadListManagerImplTest {
 
 		verify(mockTableQueryManager, times(1)).querySinglePage(any(), any(), any(), any());
 		verify(mockTableQueryManager).querySinglePage(mockProgressCallback, userOne,
-				new Query().setSql("SELECT \"ROW_ID\" FROM syn123 ORDER BY \"ROW_ID\"").setLimit(10L).setOffset(0L), new QueryOptions()
+				new Query().setSql("SELECT \"ROW_ID\", \"ROW_VERSION\" FROM syn123 ORDER BY \"ROW_ID\", \"ROW_VERSION\"").setLimit(10L).setOffset(0L), new QueryOptions()
 						.withRunQuery(true).withRunCount(false).withReturnFacets(false).withReturnLastUpdatedOn(false));
 		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(),
 				Arrays.asList(new DownloadListItem().setFileEntityId("111").setVersionNumber(1L),
@@ -1236,10 +1254,45 @@ public class DownloadListManagerImplTest {
 		long filesAdded = 2L;
 		// @formatter:off
 		List<Row> rows = Arrays.asList(
+				new Row().setRowId(111L),
+				new Row().setRowId(222L)
+		);
+		// @formatter:on
+		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
+		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(List.of(createColumn(123L, "foo", ColumnType.ENTITYID)));
+		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenReturn(
+				new QueryResultBundle().setQueryResult(new QueryResult().setQueryResults(new RowSet().setRows(rows))));
+		when(mockDownloadListDao.addBatchOfFilesToDownloadList(anyLong(), any())).thenReturn(filesAdded);
+		when(mockDownloadListDao.filterUnsupportedTypes(any())).then(returnsFirstArg());
+
+		Query query = new Query().setSql("select * from syn123").setSelectFileColumn(123L);
+		boolean userVersion = false;
+		long maxQueryPageSize = 10L;
+		long usersDownloadListCapacity = 100L;
+		// call under test
+		AddToDownloadListResponse result = manager.addQueryResultsToDownloadList(mockProgressCallback, userOne, query,
+				userVersion, maxQueryPageSize, usersDownloadListCapacity);
+		assertEquals(new AddToDownloadListResponse().setNumberOfFilesAdded(filesAdded), result);
+
+		verify(mockTableQueryManager, times(1)).querySinglePage(any(), any(), any(), any());
+		verify(mockTableQueryManager).querySinglePage(mockProgressCallback, userOne,
+				new Query().setSql("SELECT \"foo\" FROM syn123 ORDER BY \"foo\"").setSelectFileColumn(123L).setLimit(10L).setOffset(0L), new QueryOptions()
+						.withRunQuery(true).withRunCount(false).withReturnFacets(false).withReturnLastUpdatedOn(false));
+		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(),
+				Arrays.asList(new DownloadListItem().setFileEntityId("111"),
+						new DownloadListItem().setFileEntityId("222")));
+	}
+	
+	@Test
+	public void testAddQueryResultsToDownloadListWithSelectFileColumnAndUSeVersion() throws Exception {
+		long filesAdded = 2L;
+		// @formatter:off
+		List<Row> rows = Arrays.asList(
 				new Row().setRowId(111L).setVersionNumber(1L),
 				new Row().setRowId(222L).setVersionNumber(2L)
 		);
 		// @formatter:on
+		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(List.of(createColumn(123L, "foo", ColumnType.ENTITYID)));
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenReturn(
 				new QueryResultBundle().setQueryResult(new QueryResult().setQueryResults(new RowSet().setRows(rows))));
@@ -1257,8 +1310,60 @@ public class DownloadListManagerImplTest {
 
 		verify(mockTableQueryManager, times(1)).querySinglePage(any(), any(), any(), any());
 		verify(mockTableQueryManager).querySinglePage(mockProgressCallback, userOne,
-				new Query().setSql("SELECT \"foo\" FROM syn123 ORDER BY \"foo\"").setSelectFileColumn(123L).setLimit(10L).setOffset(0L), new QueryOptions()
+				new Query().setSql("SELECT \"foo\", \"ROW_VERSION\" FROM syn123 ORDER BY \"foo\", \"ROW_VERSION\"").setSelectFileColumn(123L).setLimit(10L).setOffset(0L), new QueryOptions()
 						.withRunQuery(true).withRunCount(false).withReturnFacets(false).withReturnLastUpdatedOn(false));
+		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(),
+				Arrays.asList(new DownloadListItem().setFileEntityId("111").setVersionNumber(1L),
+						new DownloadListItem().setFileEntityId("222").setVersionNumber(2L)));
+	}
+	
+	@Test
+	public void testAddQueryResultsToDownloadListWithSelectFileColumnAndFileVersionColumn() throws Exception {
+		long filesAdded = 2L;
+		// @formatter:off
+		List<Row> rows = Arrays.asList(
+				new Row().setRowId(1111L).setValues(List.of("111", "1")),
+				new Row().setRowId(2222L).setValues(List.of("222", "2"))
+		);
+		// @formatter:on
+		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
+		
+		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(List.of(
+			createColumn(123L, "foo", ColumnType.ENTITYID), 
+			createColumn(456L, "bar", ColumnType.INTEGER))
+		);
+		
+		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenReturn(
+			new QueryResultBundle().setQueryResult(new QueryResult().setQueryResults(new RowSet().setRows(rows)))
+		);
+		
+		when(mockDownloadListDao.addBatchOfFilesToDownloadList(anyLong(), any())).thenReturn(filesAdded);
+		when(mockDownloadListDao.filterUnsupportedTypes(any())).then(returnsFirstArg());
+
+		Query query = new Query().setSql("select * from syn123")
+			.setSelectFileColumn(123L)
+			.setSelectFileVersionColumn(456L);
+		
+		boolean userVersion = true;
+		long maxQueryPageSize = 10L;
+		long usersDownloadListCapacity = 100L;
+		// call under test
+		AddToDownloadListResponse result = manager.addQueryResultsToDownloadList(mockProgressCallback, userOne, query, userVersion, maxQueryPageSize, usersDownloadListCapacity);
+		assertEquals(new AddToDownloadListResponse().setNumberOfFilesAdded(filesAdded), result);
+
+		verify(mockTableQueryManager, times(1)).querySinglePage(any(), any(), any(), any());
+		verify(mockTableQueryManager).querySinglePage(mockProgressCallback, userOne,
+			new Query().setSql("SELECT \"foo\", \"bar\" FROM syn123 ORDER BY \"foo\", \"bar\"")
+				.setSelectFileColumn(123L)
+				.setSelectFileVersionColumn(456L)
+				.setLimit(10L)
+				.setOffset(0L), 
+			new QueryOptions()
+				.withRunQuery(true)
+				.withRunCount(false)
+				.withReturnFacets(false)
+				.withReturnLastUpdatedOn(false)
+		);
 		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(),
 				Arrays.asList(new DownloadListItem().setFileEntityId("111").setVersionNumber(1L),
 						new DownloadListItem().setFileEntityId("222").setVersionNumber(2L)));
@@ -1384,15 +1489,15 @@ public class DownloadListManagerImplTest {
 
 		verify(mockTableQueryManager, times(3)).querySinglePage(any(), any(), any(), any());
 		verify(mockTableQueryManager).querySinglePage(mockProgressCallback, userOne,
-				new Query().setSql("SELECT \"ROW_ID\" FROM syn123 ORDER BY \"ROW_ID\"").setLimit(maxQueryPageSize).setOffset(0L),
+				new Query().setSql("SELECT \"ROW_ID\", \"ROW_VERSION\" FROM syn123 ORDER BY \"ROW_ID\", \"ROW_VERSION\"").setLimit(maxQueryPageSize).setOffset(0L),
 				new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false)
 						.withReturnLastUpdatedOn(false));
 		verify(mockTableQueryManager).querySinglePage(mockProgressCallback, userOne,
-				new Query().setSql("SELECT \"ROW_ID\" FROM syn123 ORDER BY \"ROW_ID\"").setLimit(maxQueryPageSize).setOffset(2L),
+				new Query().setSql("SELECT \"ROW_ID\", \"ROW_VERSION\" FROM syn123 ORDER BY \"ROW_ID\", \"ROW_VERSION\"").setLimit(maxQueryPageSize).setOffset(2L),
 				new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false)
 						.withReturnLastUpdatedOn(false));
 		verify(mockTableQueryManager).querySinglePage(mockProgressCallback, userOne,
-				new Query().setSql("SELECT \"ROW_ID\" FROM syn123 ORDER BY \"ROW_ID\"").setLimit(maxQueryPageSize).setOffset(4L),
+				new Query().setSql("SELECT \"ROW_ID\", \"ROW_VERSION\" FROM syn123 ORDER BY \"ROW_ID\", \"ROW_VERSION\"").setLimit(maxQueryPageSize).setOffset(4L),
 				new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false)
 						.withReturnLastUpdatedOn(false));
 		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(),
@@ -1474,7 +1579,7 @@ public class DownloadListManagerImplTest {
 
 		verify(mockTableManagerSupport).getTableType(IdAndVersion.parse("syn123"));
 		verify(mockTableQueryManager).querySinglePage(mockProgressCallback, userOne,
-				new Query().setSql("SELECT \"ROW_ID\" FROM syn123 ORDER BY \"ROW_ID\"").setLimit(10L).setOffset(0L), new QueryOptions()
+				new Query().setSql("SELECT \"ROW_ID\", \"ROW_VERSION\" FROM syn123 ORDER BY \"ROW_ID\", \"ROW_VERSION\"").setLimit(10L).setOffset(0L), new QueryOptions()
 						.withRunQuery(true).withRunCount(false).withReturnFacets(false).withReturnLastUpdatedOn(false));
 		verifyNoMoreInteractions(mockDownloadListDao);
 	}
@@ -1499,7 +1604,7 @@ public class DownloadListManagerImplTest {
 
 		verify(mockTableManagerSupport).getTableType(IdAndVersion.parse("syn123"));
 		verify(mockTableQueryManager).querySinglePage(mockProgressCallback, userOne,
-				new Query().setSql("SELECT \"ROW_ID\" FROM syn123 ORDER BY \"ROW_ID\"").setLimit(10L).setOffset(0L), new QueryOptions()
+				new Query().setSql("SELECT \"ROW_ID\", \"ROW_VERSION\" FROM syn123 ORDER BY \"ROW_ID\", \"ROW_VERSION\"").setLimit(10L).setOffset(0L), new QueryOptions()
 						.withRunQuery(true).withRunCount(false).withReturnFacets(false).withReturnLastUpdatedOn(false));
 		verifyNoMoreInteractions(mockDownloadListDao);
 	}
@@ -1526,7 +1631,7 @@ public class DownloadListManagerImplTest {
 
 		verify(mockTableManagerSupport).getTableType(IdAndVersion.parse("syn123"));
 		verify(mockTableQueryManager).querySinglePage(mockProgressCallback, userOne,
-				new Query().setSql("SELECT \"ROW_ID\" FROM syn123 ORDER BY \"ROW_ID\"").setLimit(10L).setOffset(0L), new QueryOptions()
+				new Query().setSql("SELECT \"ROW_ID\", \"ROW_VERSION\" FROM syn123 ORDER BY \"ROW_ID\", \"ROW_VERSION\"").setLimit(10L).setOffset(0L), new QueryOptions()
 						.withRunQuery(true).withRunCount(false).withReturnFacets(false).withReturnLastUpdatedOn(false));
 		verifyNoMoreInteractions(mockDownloadListDao);
 	}
@@ -1551,7 +1656,7 @@ public class DownloadListManagerImplTest {
 
 		verify(mockTableManagerSupport).getTableType(IdAndVersion.parse("syn123"));
 		verify(mockTableQueryManager).querySinglePage(mockProgressCallback, userOne,
-				new Query().setSql("SELECT \"ROW_ID\" FROM syn123 ORDER BY \"ROW_ID\"").setLimit(10L).setOffset(0L), new QueryOptions()
+				new Query().setSql("SELECT \"ROW_ID\", \"ROW_VERSION\" FROM syn123 ORDER BY \"ROW_ID\", \"ROW_VERSION\"").setLimit(10L).setOffset(0L), new QueryOptions()
 						.withRunQuery(true).withRunCount(false).withReturnFacets(false).withReturnLastUpdatedOn(false));
 		verifyNoMoreInteractions(mockDownloadListDao);
 	}
@@ -1565,6 +1670,7 @@ public class DownloadListManagerImplTest {
 				new Row().setRowId(222L).setVersionNumber(2L)
 		);
 		// @formatter:on
+		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(List.of(createColumn(123L, "foo", ColumnType.ENTITYID)));
 		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenReturn(
 				new QueryResultBundle().setQueryResult(new QueryResult().setQueryResults(new RowSet().setRows(rows))));
@@ -1584,7 +1690,7 @@ public class DownloadListManagerImplTest {
 
 		verify(mockTableQueryManager, times(1)).querySinglePage(any(), any(), any(), any());
 		verify(mockTableQueryManager).querySinglePage(mockProgressCallback, userOne,
-				new Query().setSql("SELECT \"foo\" FROM syn123 ORDER BY \"foo\"").setSelectFileColumn(123L).setLimit(10L).setOffset(0L), new QueryOptions()
+				new Query().setSql("SELECT \"foo\", \"ROW_VERSION\" FROM syn123 ORDER BY \"foo\", \"ROW_VERSION\"").setSelectFileColumn(123L).setLimit(10L).setOffset(0L), new QueryOptions()
 						.withRunQuery(true).withRunCount(false).withReturnFacets(false).withReturnLastUpdatedOn(false));
 		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(),
 			Arrays.asList(new DownloadListItem().setFileEntityId("111").setVersionNumber(1L))

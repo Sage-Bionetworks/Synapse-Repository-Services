@@ -398,7 +398,13 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			
 			TableAndColumnMapper tableAndColumnMapper = new TableAndColumnMapper(model, tableManagerSupport);
 			
-			Pair<SelectList, OrderByClause> selectFile = tableAndColumnMapper.buildSelectAndOrderByFileColumn(query.getSelectFileColumn());
+			Pair<SelectList, OrderByClause> selectFile;
+			
+			if (useVersion) {
+				selectFile = tableAndColumnMapper.buildSelectAndOrderByFileAndVersionColumn(query.getSelectFileColumn(), query.getSelectFileVersionColumn());
+			} else {
+				selectFile = tableAndColumnMapper.buildSelectAndOrderByFileColumn(query.getSelectFileColumn());
+			}
 			
 			model.replaceSelectList(selectFile.getFirst(), null);
 			model.getTableExpression().replaceOrderBy(selectFile.getSecond());
@@ -460,16 +466,21 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 */
 	DownloadListItem createDownloadsListItemFromRow(final boolean useVersion, Row row) {
 		DownloadListItem item = new DownloadListItem();
+		
 		if (row.getValues() != null && !row.getValues().isEmpty()) {
 			item.setFileEntityId(row.getValues().get(0));
-		} else if(row.getRowId() != null) {
+		} else if (row.getRowId() != null) {
 			item.setFileEntityId(row.getRowId().toString());
 		} else {
 			throw new IllegalStateException("Expected a row id or a value but got none.");
 		}
 		
 		if (useVersion) {
-			item.setVersionNumber(row.getVersionNumber());
+			if (row.getValues() != null && row.getValues().size() > 1) {
+				item.setVersionNumber(Long.valueOf(row.getValues().get(1)));
+			} else {
+				item.setVersionNumber(row.getVersionNumber());
+			}
 		} else {
 			item.setVersionNumber(null);
 		}
