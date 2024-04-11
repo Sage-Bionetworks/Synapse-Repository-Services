@@ -56,7 +56,30 @@ public class TeamUtils {
 		} else {
 			dto.setIcon(String.valueOf(dbo.getIcon()));
 		}
+		setMembershipStatus(dbo.getState(), dto);
 		return dto;
+	}
+
+	public static void setMembershipStatus(String state, Team team) throws DatastoreException{
+		if(team.getCanPublicJoin() == null || team.getCanRequestMembership() == null){
+
+			switch (TeamState.valueOf(state)){
+				case PUBLIC:
+					team.setCanPublicJoin(true);
+					team.setCanRequestMembership(false);
+					break;
+				case OPEN:
+					team.setCanPublicJoin(false);
+					team.setCanRequestMembership(true);
+					break;
+				case CLOSED:
+					team.setCanPublicJoin(false);
+					team.setCanRequestMembership(false);
+					break;
+				default:
+					throw new DatastoreException("Valid state for team are PUBLIC, OPEN and CLOSED");
+			}
+		}
 	}
 
 	public static void copyToSerializedField(Team dto, DBOTeam dbo) throws DatastoreException {

@@ -158,6 +158,8 @@ public class DBOTeamDAOImplTest {
 		team.setCreatedBy("101");
 		team.setModifiedOn(new Date());
 		team.setModifiedBy("102");
+		team.setCanPublicJoin(false);
+		team.setCanRequestMembership(true);
 		Team createdTeam = teamDAO.create(team);
 		assertNotNull(createdTeam.getEtag());
 		team.setEtag(createdTeam.getEtag()); // Fill in the missing eTag on the object we created

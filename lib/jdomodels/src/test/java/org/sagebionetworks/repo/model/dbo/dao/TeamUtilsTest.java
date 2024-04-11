@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Date;
 
@@ -53,5 +55,92 @@ public class TeamUtilsTest {
 		TeamUtils.copyDtoToDbo(dto, dbo);
 
 		assertEquals(dbo.getState(), TeamState.OPEN.name());
+	}
+
+	@Test
+	public void testCopyDboToDtoWithNoMembershipStatusInDbo() {
+		Team dto = new Team();
+		dto.setId("123");
+		dto.setEtag("etag");
+		dto.setCreatedOn(new Date());
+
+		DBOTeam dbo = new DBOTeam();
+		TeamUtils.copyDtoToDbo(dto, dbo);
+		assertEquals(dbo.getState(), TeamState.OPEN.name());
+
+		//call under test
+		Team result = TeamUtils.copyDboToDto(dbo);
+		assertFalse(result.getCanPublicJoin());
+		assertTrue(result.getCanRequestMembership());
+	}
+
+	@Test
+	public void testCopyDboToDtoWithMembershipStatusInDbo() {
+		Team dto = new Team();
+		dto.setId("123");
+		dto.setEtag("etag");
+		dto.setCreatedOn(new Date());
+		dto.setCanPublicJoin(true);
+		dto.setCanRequestMembership(false);
+
+		DBOTeam dbo = new DBOTeam();
+		TeamUtils.copyDtoToDbo(dto, dbo);
+		assertEquals(dbo.getState(), TeamState.PUBLIC.name());
+
+		//call under test
+		Team result = TeamUtils.copyDboToDto(dbo);
+		assertTrue(result.getCanPublicJoin());
+		assertFalse(result.getCanRequestMembership());
+	}
+
+	@Test
+	public void testSetMembershipStatusForPUBLICState() {
+		Team team = new Team();
+		team.setId("123");
+		team.setEtag("etag");
+
+		DBOTeam dbo = new DBOTeam();
+		dbo.setId(123L);
+		dbo.setEtag("etag");
+		dbo.setState(TeamState.PUBLIC.name());
+
+		//call under test
+		TeamUtils.setMembershipStatus(dbo.getState(), team);
+		assertTrue(team.getCanPublicJoin());
+		assertFalse(team.getCanRequestMembership());
+	}
+
+	@Test
+	public void testSetMembershipStatusForOPENState() {
+		Team team = new Team();
+		team.setId("123");
+		team.setEtag("etag");
+
+		DBOTeam dbo = new DBOTeam();
+		dbo.setId(123L);
+		dbo.setEtag("etag");
+		dbo.setState(TeamState.OPEN.name());
+
+		//call under test
+		TeamUtils.setMembershipStatus(dbo.getState(), team);
+		assertFalse(team.getCanPublicJoin());
+		assertTrue(team.getCanRequestMembership());
+	}
+
+	@Test
+	public void testSetMembershipStatusForCLOSEDState() {
+		Team team = new Team();
+		team.setId("123");
+		team.setEtag("etag");
+
+		DBOTeam dbo = new DBOTeam();
+		dbo.setId(123L);
+		dbo.setEtag("etag");
+		dbo.setState(TeamState.CLOSED.name());
+
+		//call under test
+		TeamUtils.setMembershipStatus(dbo.getState(), team);
+		assertFalse(team.getCanPublicJoin());
+		assertFalse(team.getCanRequestMembership());
 	}
 }
