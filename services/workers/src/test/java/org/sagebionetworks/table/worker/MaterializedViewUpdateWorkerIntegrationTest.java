@@ -237,8 +237,52 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter().setColumnName("id")
 				.setOperator(ColumnSingleValueFilterOperator.IN).setValues(fileIds.subList(0, 2));		
 		
-		AddToDownloadListRequest addToDownloadListrequest = new AddToDownloadListRequest()
-				.setQuery(new Query().setSql(finalSql).setAdditionalFilters(List.of(filter)).setSelectFileColumn(idColumnId));
+		AddToDownloadListRequest addToDownloadListrequest = new AddToDownloadListRequest().setQuery(new Query()
+			.setSql(finalSql)
+			.setAdditionalFilters(List.of(filter))
+			.setSelectFileColumn(idColumnId)
+		).setUseVersionNumber(false);
+		
+		asyncHelper.assertJobResponse(adminUserInfo, addToDownloadListrequest, (AddToDownloadListResponse response) -> {
+			assertEquals(2L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS);
+	}
+	
+	@Test
+	public void testAddToDownloadListFromMaterializedViewWithVersion() throws Exception {
+		int numberOfFiles = 5;
+		
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		
+		EntityView view = createEntityView(entites);
+
+		List<String> fileIds = entites.stream()
+				.filter((e) -> e instanceof FileEntity)
+				.map(e -> e.getId()).collect(Collectors.toList());
+		
+		assertEquals(5, fileIds.size());
+
+		String definingSql = "select id, ROW_VERSION as version, stringKey from " + view.getId();
+
+		IdAndVersion matViewId = createMaterializedView(view.getParentId(), definingSql);
+		
+		Long idColumnId = columnModelManager.getTableSchema(matViewId).stream().filter((c -> "id".equals(c.getName())))
+				.map(c -> Long.parseLong(c.getId())).findFirst().get();
+		
+		Long versionColumnId = columnModelManager.getTableSchema(matViewId).stream().filter((c -> "version".equals(c.getName())))
+				.map(c -> Long.parseLong(c.getId())).findFirst().get();
+
+		String finalSql = "select * from " + matViewId;
+		
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter().setColumnName("id")
+				.setOperator(ColumnSingleValueFilterOperator.IN).setValues(fileIds.subList(0, 2));		
+		
+		AddToDownloadListRequest addToDownloadListrequest = new AddToDownloadListRequest().setQuery(new Query()
+			.setSql(finalSql)
+			.setAdditionalFilters(List.of(filter))
+			.setSelectFileColumn(idColumnId)
+			.setSelectFileVersionColumn(versionColumnId)
+		).setUseVersionNumber(true);
 		
 		asyncHelper.assertJobResponse(adminUserInfo, addToDownloadListrequest, (AddToDownloadListResponse response) -> {
 			assertEquals(2L, response.getNumberOfFilesAdded());
