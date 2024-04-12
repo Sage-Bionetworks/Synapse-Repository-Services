@@ -68,6 +68,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -494,7 +495,10 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	@Override
 	public DownloadListPackageResponse packageFiles(ProgressCallback progressCallback, UserInfo userInfo,
 			DownloadListPackageRequest requestBody) throws IOException {
+		ValidateArgument.required(requestBody, "requestBody");
+		NameValidation.validateName(requestBody.getZipFileName());
 		validateUser(userInfo);
+		
 		AvailableFilter filter = AvailableFilter.eligibleForPackaging;
 		// smallest files are added first
 		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.fileSize).setDirection(SortDirection.ASC));
