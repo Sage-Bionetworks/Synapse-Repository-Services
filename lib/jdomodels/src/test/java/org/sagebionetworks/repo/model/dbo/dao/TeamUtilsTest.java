@@ -22,6 +22,7 @@ public class TeamUtilsTest {
 		dto.setIcon("456");
 		dto.setCreatedOn(new Date());
 		dto.setCanPublicJoin(false);
+		dto.setCanRequestMembership(true);
 		dto.setCreatedBy("123");
 		dto.setModifiedBy("123");
 		dto.setModifiedOn(new Date());
