@@ -424,7 +424,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 				QueryResultBundle result = tableQueryManager.querySinglePage(progressCallback, userInfo, cloneQuery(query).setLimit(limit).setOffset(offset), queryOptions);
 				
 				batchToAdd = result.getQueryResult().getQueryResults().getRows().stream()
-					.map((Row row) -> createDownloadsListItemFromRow(useVersion, row))
+					.map((Row row) -> createDownloadsListItemFromRowValues(row.getValues(), useVersion))
 					.collect(Collectors.toList());
 				
 				batchSize = (long) batchToAdd.size();
@@ -456,34 +456,26 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	}
 
 	/**
-	 * Helper to create a DownloadListItem from a query result row.
+	 * Helper to create a DownloadListItem from a query result row values list.
+	 * @param rowValues
+	 * @param includeVersion When true, the versionNumber for the download list item will be extracted from the given list of values and expected to be a Long.
 	 * 
-	 * @param useVersion When true, the version number of the row will be used. When
-	 *                   false the version number will be null (indicating the
-	 *                   current version).
-	 * @param row
 	 * @return
 	 */
-	DownloadListItem createDownloadsListItemFromRow(final boolean useVersion, Row row) {
+	DownloadListItem createDownloadsListItemFromRowValues(List<String> rowValues, final boolean includeVersion) {
+		ValidateArgument.requiredNotEmpty(rowValues, "rowValues");
+		
 		DownloadListItem item = new DownloadListItem();
 		
-		if (row.getValues() != null && !row.getValues().isEmpty()) {
-			item.setFileEntityId(row.getValues().get(0));
-		} else if (row.getRowId() != null) {
-			item.setFileEntityId(row.getRowId().toString());
-		} else {
-			throw new IllegalStateException("Expected a row id or a value but got none.");
-		}
+		item.setFileEntityId(rowValues.get(0));
 		
-		if (useVersion) {
-			if (row.getValues() != null && row.getValues().size() > 1) {
-				item.setVersionNumber(Long.valueOf(row.getValues().get(1)));
-			} else {
-				item.setVersionNumber(row.getVersionNumber());
-			}
+		if (includeVersion) {
+			ValidateArgument.requirement(rowValues.size() > 1, "Expected at least two elements in row values.");
+			item.setVersionNumber(Long.valueOf(rowValues.get(1)));
 		} else {
 			item.setVersionNumber(null);
 		}
+		
 		return item;
 	}
 

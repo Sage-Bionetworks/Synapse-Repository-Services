@@ -1076,69 +1076,69 @@ public class DownloadListManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateDownloadsListItemFromRowWithMissingRowId() {
-		boolean userVersion = false;
-		Row row = new Row().setRowId(null).setVersionNumber(4L).setValues(List.of("123"));
+	public void testCreateDownloadsListItemFromRowValues() {
+		boolean includeVersion = false;
+		
+		List<String> rowValues = List.of("123");
+		
 		// call under test
-		DownloadListItem result = manager.createDownloadsListItemFromRow(userVersion, row);
+		DownloadListItem result = manager.createDownloadsListItemFromRowValues(rowValues, includeVersion);
+		
 		assertEquals(new DownloadListItem().setFileEntityId("123").setVersionNumber(null), result);
 	}
 	
 	@Test
-	public void testCreateDownloadsListItemFromRowWithRowIdAndValues() {
-		boolean userVersion = false;
-		Row row = new Row().setRowId(8L).setVersionNumber(4L).setValues(List.of("123"));
+	public void testCreateDownloadsListItemFromRowValuesWithIncludeVersion() {
+		boolean includeVersion = true;
+		
+		List<String> rowValues = List.of("123", "456");
+		
 		// call under test
-		DownloadListItem result = manager.createDownloadsListItemFromRow(userVersion, row);
-		assertEquals(new DownloadListItem().setFileEntityId("123").setVersionNumber(null), result);
-	}
-	
-	@Test
-	public void testCreateDownloadsListItemFromRowWithValues() {
-		boolean userVersion = false;
-		Row row = new Row().setRowId(8L).setVersionNumber(4L).setValues(List.of("123", "456"));
-		// call under test
-		DownloadListItem result = manager.createDownloadsListItemFromRow(userVersion, row);
-		assertEquals(new DownloadListItem().setFileEntityId("123").setVersionNumber(null), result);
-	}
-	
-	@Test
-	public void testCreateDownloadsListItemFromRowWithValuesAndUseVersion() {
-		boolean userVersion = true;
-		Row row = new Row().setRowId(8L).setVersionNumber(4L).setValues(List.of("123", "456"));
-		// call under test
-		DownloadListItem result = manager.createDownloadsListItemFromRow(userVersion, row);
+		DownloadListItem result = manager.createDownloadsListItemFromRowValues(rowValues, includeVersion);
+		
 		assertEquals(new DownloadListItem().setFileEntityId("123").setVersionNumber(456L), result);
 	}
 	
 	@Test
-	public void testCreateDownloadsListItemFromRowWithMissingRowIdAndNoValues() {
-		boolean userVersion = false;
-		Row row = new Row().setRowId(null).setVersionNumber(4L);
-		// call under test
-		String result = assertThrows(IllegalStateException.class, () -> {			
-			manager.createDownloadsListItemFromRow(userVersion, row);
+	public void testCreateDownloadsListItemFromRowValuesWithIncludeVersionAndWrongSize() {
+		boolean includeVersion = true;
+		
+		List<String> rowValues = List.of("123");
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			manager.createDownloadsListItemFromRowValues(rowValues, includeVersion);
 		}).getMessage();
 		
-		assertEquals("Expected a row id or a value but got none.", result);
+		assertEquals("Expected at least two elements in row values.", message);
 	}
-
+	
 	@Test
-	public void testCreateDownloadsListItemFromRowWithVersionFalse() {
-		boolean userVersion = false;
-		Row row = new Row().setRowId(123L).setVersionNumber(4L);
-		// call under test
-		DownloadListItem result = manager.createDownloadsListItemFromRow(userVersion, row);
-		assertEquals(new DownloadListItem().setFileEntityId("123").setVersionNumber(null), result);
+	public void testCreateDownloadsListItemFromRowValuesWithEmptyList() {
+		boolean includeVersion = true;
+		
+		List<String> rowValues = Collections.emptyList();
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			manager.createDownloadsListItemFromRowValues(rowValues, includeVersion);
+		}).getMessage();
+		
+		assertEquals("rowValues is required and must not be empty.", message);
 	}
-
+	
 	@Test
-	public void testCreateDownloadsListItemFromRowWithVersionTrue() {
-		boolean userVersion = true;
-		Row row = new Row().setRowId(123L).setVersionNumber(4L);
-		// call under test
-		DownloadListItem result = manager.createDownloadsListItemFromRow(userVersion, row);
-		assertEquals(new DownloadListItem().setFileEntityId("123").setVersionNumber(4L), result);
+	public void testCreateDownloadsListItemFromRowValuesWithNullList() {
+		boolean includeVersion = true;
+		
+		List<String> rowValues = null;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			manager.createDownloadsListItemFromRowValues(rowValues, includeVersion);
+		}).getMessage();
+		
+		assertEquals("rowValues is required and must not be empty.", message);
 	}
 
 	@Test
@@ -1146,8 +1146,8 @@ public class DownloadListManagerImplTest {
 		long filesAdded = 2L;
 		// @formatter:off
 		List<Row> rows = Arrays.asList(
-				new Row().setRowId(111L).setVersionNumber(1L),
-				new Row().setRowId(222L).setVersionNumber(2L)
+				new Row().setValues(List.of("111", "1")),
+				new Row().setValues(List.of("222", "2"))
 		);
 		// @formatter:on
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
@@ -1182,8 +1182,8 @@ public class DownloadListManagerImplTest {
 		long filesAdded = 2L;
 		// @formatter:off
 		List<Row> rows = Arrays.asList(
-				new Row().setRowId(111L).setVersionNumber(1L),
-				new Row().setRowId(222L).setVersionNumber(2L)
+				new Row().setValues(List.of("111")),
+				new Row().setValues(List.of("222"))
 		);
 		// @formatter:on
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
@@ -1218,8 +1218,8 @@ public class DownloadListManagerImplTest {
 		long filesAdded = 2L;
 		// @formatter:off
 		List<Row> rows = Arrays.asList(
-				new Row().setRowId(111L).setVersionNumber(1L),
-				new Row().setRowId(222L).setVersionNumber(2L)
+				new Row().setValues(List.of("111", "1")),
+				new Row().setValues(List.of("222", "2"))
 		);
 		// @formatter:on
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.dataset);
@@ -1254,8 +1254,8 @@ public class DownloadListManagerImplTest {
 		long filesAdded = 2L;
 		// @formatter:off
 		List<Row> rows = Arrays.asList(
-				new Row().setRowId(111L),
-				new Row().setRowId(222L)
+				new Row().setValues(List.of("111")),
+				new Row().setValues(List.of("222"))
 		);
 		// @formatter:on
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
@@ -1288,8 +1288,8 @@ public class DownloadListManagerImplTest {
 		long filesAdded = 2L;
 		// @formatter:off
 		List<Row> rows = Arrays.asList(
-				new Row().setRowId(111L).setVersionNumber(1L),
-				new Row().setRowId(222L).setVersionNumber(2L)
+				new Row().setValues(List.of("111", "1")),
+				new Row().setValues(List.of("222", "2"))
 		);
 		// @formatter:on
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
@@ -1373,9 +1373,9 @@ public class DownloadListManagerImplTest {
 	public void testAddQueryResultsToDownloadListWithCapacityLessThanPageSize() throws Exception {
 		// @formatter:off
 		List<Row> rows = Arrays.asList(
-				new Row().setRowId(111L).setVersionNumber(1L),
-				new Row().setRowId(222L).setVersionNumber(2L),
-				new Row().setRowId(333L).setVersionNumber(2L)
+				new Row().setValues(List.of("111")),
+				new Row().setValues(List.of("222")),
+				new Row().setValues(List.of("333"))
 		);
 		// @formatter:on
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
@@ -1417,8 +1417,8 @@ public class DownloadListManagerImplTest {
 		long filesAdded = 2L;
 		// @formatter:off
 		List<Row> rows = Arrays.asList(
-				new Row().setRowId(111L).setVersionNumber(1L),
-				new Row().setRowId(222L).setVersionNumber(2L)
+				new Row().setValues(List.of("111")),
+				new Row().setValues(List.of("222"))
 		);
 		// @formatter:on
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
@@ -1453,15 +1453,15 @@ public class DownloadListManagerImplTest {
 	public void testAddQueryResultsToDownloadListWithMultiplePages() throws Exception {
 		// @formatter:off
 		List<Row> pageOne = Arrays.asList(
-				new Row().setRowId(111L).setVersionNumber(1L),
-				new Row().setRowId(222L).setVersionNumber(2L)
+				new Row().setValues(List.of("111", "1")),
+				new Row().setValues(List.of("222", "2"))
 		);
 		List<Row> pageTwo = Arrays.asList(
-				new Row().setRowId(333L).setVersionNumber(3L),
-				new Row().setRowId(444L).setVersionNumber(4L)
+				new Row().setValues(List.of("333", "3")),
+				new Row().setValues(List.of("444", "4"))
 		);
 		List<Row> pageThree = Arrays.asList(
-				new Row().setRowId(555L).setVersionNumber(5L)
+				new Row().setValues(List.of("555", "5"))
 		);
 		// @formatter:on
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
@@ -1666,8 +1666,8 @@ public class DownloadListManagerImplTest {
 		long filesAdded = 1L;
 		// @formatter:off
 		List<Row> rows = Arrays.asList(
-				new Row().setRowId(111L).setVersionNumber(1L),
-				new Row().setRowId(222L).setVersionNumber(2L)
+				new Row().setValues(List.of("111", "1")),
+				new Row().setValues(List.of("222", "2"))
 		);
 		// @formatter:on
 		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
