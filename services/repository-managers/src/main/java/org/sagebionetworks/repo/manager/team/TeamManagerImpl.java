@@ -58,6 +58,7 @@ import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TeamSortOrder;
+import org.sagebionetworks.repo.model.TeamState;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -536,10 +537,10 @@ public class TeamManagerImpl implements TeamManager {
 	private AuthorizationStatus checkCanAddSelf(String teamId, boolean amTeamAdmin, String principalId, long now) {
 		// trying to add myself to Team.
 		if (amTeamAdmin) return AUTHORIZED_ADD_TEAM_MEMBER;
-		// if the team is open, I can join
-		Team team = teamDAO.get(teamId);
-		if (BooleanUtils.isTrue(team.getCanPublicJoin())) return AUTHORIZED_ADD_TEAM_MEMBER;
-		// if I'm not a team admin and the team is not open, then I need to have an open invitation
+		// if the team is public, I can join
+		TeamState teamState = teamDAO.getState(teamId);
+		if (teamState.isCanPublicJoin()) return AUTHORIZED_ADD_TEAM_MEMBER;
+		// if I'm not a team admin and the team is not public, then I need to have an open invitation
 		long openInvitationCount = membershipInvitationDAO.getOpenByTeamAndUserCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 		return openInvitationCount>0L ? AUTHORIZED_ADD_TEAM_MEMBER : UNAUTHORIZED_ADD_TEAM_MEMBER_MUST_HAVE_INVITATION;
 	}
@@ -799,9 +800,8 @@ public class TeamManagerImpl implements TeamManager {
 		if (userIsSynapseAdmin) return false;
 		boolean userIsTeamAdmin = authorizationManager.canAccess(principalUserInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).isAuthorized();
 		if (userIsTeamAdmin) return false;
-		Team team = teamDAO.get(teamId);
-		boolean publicCanJoinTeam = team.getCanPublicJoin()!=null && team.getCanPublicJoin()==true;
-		return !publicCanJoinTeam;
+		TeamState teamState = teamDAO.getState(teamId);
+		return !teamState.isCanPublicJoin();
 	}
 
 	@Override
