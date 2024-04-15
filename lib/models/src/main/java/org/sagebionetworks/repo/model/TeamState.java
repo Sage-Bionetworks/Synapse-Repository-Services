@@ -2,11 +2,27 @@ package org.sagebionetworks.repo.model;
 
 public enum TeamState {
     // A team is open when a user can create a membership request for the team
-    OPEN,
+    OPEN(false, true),
     // A team is public when a user can join without creating a membership request
-    PUBLIC,
+    PUBLIC(true, false),
     // A team is closed when a user cannot create a membership request
-    CLOSED;
+    CLOSED(false, false);
+
+    private TeamState(boolean canPublicJoin, boolean canRequestMembership){
+        this.canPublicJoin= canPublicJoin;
+        this.canRequestMembership = canRequestMembership;
+    }
+
+    private boolean canPublicJoin;
+    private boolean canRequestMembership;
+
+    public boolean isCanPublicJoin() {
+        return canPublicJoin;
+    }
+
+    public boolean isCanRequestMembership() {
+        return canRequestMembership;
+    }
 
     public static TeamState from(Team team) {
         boolean canPublicJoin = Boolean.TRUE.equals(team.getCanPublicJoin());

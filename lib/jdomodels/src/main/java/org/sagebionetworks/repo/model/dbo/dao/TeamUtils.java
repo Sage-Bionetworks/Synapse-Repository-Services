@@ -56,7 +56,14 @@ public class TeamUtils {
 		} else {
 			dto.setIcon(String.valueOf(dbo.getIcon()));
 		}
+		setMembershipStatus(dbo.getState(), dto);
 		return dto;
+	}
+
+	public static void setMembershipStatus(String state, Team team) throws DatastoreException {
+		TeamState teamState = TeamState.valueOf(state);
+		team.setCanPublicJoin(teamState.isCanPublicJoin());
+		team.setCanRequestMembership(teamState.isCanRequestMembership());
 	}
 
 	public static void copyToSerializedField(Team dto, DBOTeam dbo) throws DatastoreException {

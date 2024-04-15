@@ -236,6 +236,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			}
 			team.setId(rs.getString(COL_TEAM_ID));
 			team.setEtag(rs.getString(COL_TEAM_ETAG));
+			TeamUtils.setMembershipStatus(rs.getString(COL_TEAM_STATE), team);
 			tmp.setTeam(team);
 			String userName = rs.getString(COL_PRINCIPAL_ALIAS_DISPLAY);
 			{
