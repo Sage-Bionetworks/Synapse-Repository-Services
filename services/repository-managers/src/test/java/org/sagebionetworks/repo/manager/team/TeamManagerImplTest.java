@@ -69,6 +69,7 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TeamState;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -614,8 +615,7 @@ public class TeamManagerImplTest {
 				getRestrictionInformation(userInfo, restrictionInfoRqst)).
 					thenReturn(noUnmetAccessRqmtResponse);
 		// let the team be a non-Open team (which it is by default)
-		Team team = createTeam(TEAM_ID, "name", "description", null, "101", null, null, null, null);
-		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		when(mockTeamDAO.getState(TEAM_ID)).thenReturn(TeamState.CLOSED);
 		
 		// I can add myself if I'm an admin on the Team
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.authorized());
@@ -629,11 +629,11 @@ public class TeamManagerImplTest {
 		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, true), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 		
 		// ...or if the team is Open
-		team.setCanPublicJoin(true);
+		when(mockTeamDAO.getState(TEAM_ID)).thenReturn(TeamState.PUBLIC);
 		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
-		team.setCanPublicJoin(false);
-		
+
 		// I can add myself if I'm not an admin on the team if I've been invited
+		when(mockTeamDAO.getState(TEAM_ID)).thenReturn(TeamState.CLOSED);
 		when(mockMembershipInvitationDAO.getOpenByTeamAndUserCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(1L);
 		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), TeamManagerImpl.AUTHORIZED_ADD_TEAM_MEMBER);
 		
@@ -662,7 +662,7 @@ public class TeamManagerImplTest {
 					thenReturn(hasUnmetAccessRqmtResponse);
 		// I can no longer join
 		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR_SELF);
-		verify(mockTeamDAO, times(7)).get(TEAM_ID);
+		verify(mockTeamDAO, times(7)).getState(TEAM_ID);
 	}
 	
 	@Test
@@ -1243,8 +1243,7 @@ public class TeamManagerImplTest {
 		assertFalse(teamManagerImpl.isMembershipApprovalRequired(adminInfo, TEAM_ID));
 
 		// let the team be a non-Open team (which it is by default)
-		Team team = createTeam(TEAM_ID, "name", "description", null, "101", null, null, null, null);
-		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		when(mockTeamDAO.getState(TEAM_ID)).thenReturn(TeamState.CLOSED);
 			
 		// a team-admin doesn't require approval
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.authorized());
@@ -1255,16 +1254,15 @@ public class TeamManagerImplTest {
 		assertTrue(teamManagerImpl.isMembershipApprovalRequired(userInfo, TEAM_ID));
 		
 		// unless it's an open team
-		team.setCanPublicJoin(true);
+		when(mockTeamDAO.getState(TEAM_ID)).thenReturn(TeamState.PUBLIC);
 		assertFalse(teamManagerImpl.isMembershipApprovalRequired(userInfo, TEAM_ID));
-		verify(mockTeamDAO, times(2)).get(TEAM_ID);
+		verify(mockTeamDAO, times(2)).getState(TEAM_ID);
 	}
 	
 	@Test
 	public void testGetTeamMembershipStatus() {
 		// let the team be a non-Open team (which it is by default)
-		Team team = createTeam(TEAM_ID, "name", "description", null, "101", null, null, null, null);
-		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		when(mockTeamDAO.getState(TEAM_ID)).thenReturn(TeamState.CLOSED);
 		
 		String principalId = MEMBER_PRINCIPAL_ID;
 		UserInfo principalUserInfo = createUserInfo(false, principalId);
@@ -1318,7 +1316,7 @@ public class TeamManagerImplTest {
 		assertTrue(tms.getCanSendEmail());
 		
 		// if the team is open the user 'can join' even if they have no invitation
-		team.setCanPublicJoin(true);
+		when(mockTeamDAO.getState(TEAM_ID)).thenReturn(TeamState.PUBLIC);
 		tms = teamManagerImpl.getTeamMembershipStatus(userInfo, TEAM_ID, principalUserInfo);
 		assertEquals(TEAM_ID, tms.getTeamId());
 		assertEquals(principalId, tms.getUserId());
