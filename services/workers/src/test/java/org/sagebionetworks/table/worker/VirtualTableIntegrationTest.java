@@ -591,10 +591,15 @@ public class VirtualTableIntegrationTest {
 					results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 
-		// Also check actions required
-		ColumnModel idColumn = tableManagerSupport.getTableSchema(KeyFactory.idAndVersion(virtualTable.getId(), null)).stream().filter(c -> c.getName().equals("id")).findFirst().orElseThrow();
+		List<ColumnModel> schema = tableManagerSupport.getTableSchema(KeyFactory.idAndVersion(virtualTable.getId(), null));
 		
-		Query query = new Query().setSql("select * from "+virtualTable.getId()).setSelectFileColumn(Long.valueOf(idColumn.getId()));
+		ColumnModel idColumn = schema.stream().filter(c -> c.getName().equals("id")).findFirst().orElseThrow();
+		ColumnModel versionColumn = schema.stream().filter(c -> c.getName().equals("currentVersion")).findFirst().orElseThrow();
+		
+		// Also check actions required
+		Query query = new Query().setSql("select * from "+virtualTable.getId())
+				.setSelectFileColumn(Long.valueOf(idColumn.getId()))
+				.setSelectFileVersionColumn(Long.valueOf(versionColumn.getId()));
 		
 		QueryOptions options = new QueryOptions().withReturnActionsRequired(true);
 		
@@ -621,8 +626,7 @@ public class VirtualTableIntegrationTest {
 		}, MAX_WAIT_MS);
 		
 		// Try adding the files to the download list
-		AddToDownloadListRequest addToDownloadListrequest = new AddToDownloadListRequest()
-				.setQuery(query);
+		AddToDownloadListRequest addToDownloadListrequest = new AddToDownloadListRequest().setQuery(query);
 		
 		asyncHelper.assertJobResponse(userInfo, addToDownloadListrequest, (AddToDownloadListResponse response) -> {
 			assertEquals(10L, response.getNumberOfFilesAdded());

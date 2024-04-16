@@ -28,6 +28,10 @@
 			"type":"integer",
 			"description": "The id of the column used to select file entities (e.g. to fetch the action required for download). The column needs to be an ENTITYID type column and be part of the schema of the underlying table/view."
 		},
+		"selectFileVersionColumn": {
+			"type":"integer",
+			"description": "The id of the column used as the version for selecting file entities when required (e.g. to add a materialized view query to the download cart with version enabled). The column needs to be an INTEGER type column and be part of the schema of the underlying table/view."
+		},
 		"offset":{
             "type":"integer",
             "description":"The optional offset into the results"

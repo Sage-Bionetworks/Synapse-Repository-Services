@@ -122,15 +122,58 @@ public class TableAndColumnMapper implements ColumnLookup {
 	 * @throws ParseException
 	 */
 	public Pair<SelectList, OrderByClause> buildSelectAndOrderByFileColumn(Long fileColumnId) throws ParseException {
-		IdAndVersion idAndVersion = getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
+		IdAndVersion idAndVersion = getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);		
+		TableType tableType = schemaProvider.getTableType(idAndVersion);
 		
+		String selectFileColumnName = getSelectFileColumnName(tableType, fileColumnId);
+		
+		SelectList selectList = new TableQueryParser(selectFileColumnName).selectList();
+		OrderByClause orderBy = new OrderByClause(new TableQueryParser(selectFileColumnName).sortSpecificationList());
+		
+		return new Pair<>(selectList, orderBy);
+	}	
+	
+	public Pair<SelectList, OrderByClause> buildSelectAndOrderByFileAndVersionColumn(Long fileColumnId, Long fileVersionColumnId) throws ParseException {
+		IdAndVersion idAndVersion = getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
+		TableType tableType = schemaProvider.getTableType(idAndVersion);
+		
+		String selectFileColumnName = getSelectFileColumnName(tableType, fileColumnId);
+		
+		String selectFileVersionColumnName;
+		
+		if (fileVersionColumnId == null) {
+			// If the column id is not supplied we can infer the file column version only for a view or dataset
+			if (!TableType.entityview.equals(tableType) && !TableType.dataset.equals(tableType)) {
+				throw new IllegalArgumentException(String.format("'%s' is not a file view or a dataset, the query.selectFileVersionColumn must be specified", idAndVersion.toString()));
+			}
+			
+			selectFileVersionColumnName = TableConstants.ROW_VERSION;
+		} else {
+			selectFileVersionColumnName = getUnionOfAllTableSchemas().stream()
+					.filter(selectColumn -> selectColumn.getId().equals(fileVersionColumnId.toString()) && ColumnType.INTEGER == selectColumn.getColumnType())
+					.findFirst()
+					.map(ColumnModel::getName)
+					.orElseThrow(() -> new IllegalArgumentException("The query.selectFileVersionColumn must be an INTEGER column that is part of the schema of the underlying table/view"));
+		}
+		
+		selectFileVersionColumnName = SqlElementUtils.wrapInDoubleQuotes(selectFileVersionColumnName);
+		
+		String selectedColumns = String.join(",", selectFileColumnName, selectFileVersionColumnName);
+		
+		SelectList selectList = new TableQueryParser(selectedColumns).selectList();
+		OrderByClause orderBy = new OrderByClause(new TableQueryParser(selectedColumns).sortSpecificationList());
+		
+		return new Pair<>(selectList, orderBy);
+	}
+
+	String getSelectFileColumnName(TableType tableType, Long fileColumnId) {
+				
 		String selectFileColumnName;
 		
 		if (fileColumnId == null) {
-			TableType tableType = schemaProvider.getTableType(idAndVersion);
-			
 			// If the column id is not supplied we can infer the file column only for a view or dataset
 			if (!TableType.entityview.equals(tableType) && !TableType.dataset.equals(tableType)) {
+				IdAndVersion idAndVersion = getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 				throw new IllegalArgumentException(String.format("'%s' is not a file view or a dataset, the query.selectFileColumn must be specified", idAndVersion.toString()));
 			}
 			
@@ -144,12 +187,7 @@ public class TableAndColumnMapper implements ColumnLookup {
 		
 		}
 		
-		selectFileColumnName = SqlElementUtils.wrapInDoubleQuotes(selectFileColumnName);
-		
-		SelectList selectList = new TableQueryParser(selectFileColumnName).selectList();
-		OrderByClause orderBy = new OrderByClause(new TableQueryParser(selectFileColumnName).sortSpecificationList());
-		
-		return new Pair<>(selectList, orderBy);
+		return SqlElementUtils.wrapInDoubleQuotes(selectFileColumnName);
 	}
 	
 	/**

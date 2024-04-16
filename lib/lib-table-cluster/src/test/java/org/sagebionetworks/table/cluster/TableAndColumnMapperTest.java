@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -18,7 +19,10 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -300,6 +304,112 @@ public class TableAndColumnMapperTest {
 		}).getMessage();
 		
 		assertEquals("The JOIN keyword is not supported in this context", result);
+	}
+	
+	@ParameterizedTest
+	@EnumSource(TableType.class)
+	public void testBuildSelectAndOrderByFileAndVersionColumnsWithFileAndVersionColumnId(TableType tableType) throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		
+		when(mockSchemaProvider.getTableType(any())).thenReturn(tableType);
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+			.thenReturn(List.of(columnMap.get("file entity"), columnMap.get("foo"), columnMap.get("bar")));
+		
+		TableAndColumnMapper mapper = Mockito.spy(new TableAndColumnMapper(model, mockSchemaProvider));
+		
+		doReturn("\"file entity\"").when(mapper).getSelectFileColumnName(any(), any());
+
+		Long fileColumnId = 1111L;
+		Long versionColumnId = 333L;
+		
+		// call under test
+		Pair<SelectList, OrderByClause> result = mapper.buildSelectAndOrderByFileAndVersionColumn(fileColumnId, versionColumnId);
+		
+		assertEquals("\"file entity\", \"bar\"", result.getFirst().toSql());
+		assertEquals("ORDER BY \"file entity\", \"bar\"", result.getSecond().toSql());
+		
+	}
+	
+	@ParameterizedTest
+	@EnumSource(TableType.class)
+	public void testBuildSelectAndOrderByFileAndVersionColumnsWithFileAndVersionColumnIdAndWrongVersionType(TableType tableType) throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		
+		when(mockSchemaProvider.getTableType(any())).thenReturn(tableType);
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+			.thenReturn(List.of(columnMap.get("file entity"), columnMap.get("foo"), columnMap.get("bar")));
+		
+		TableAndColumnMapper mapper = Mockito.spy(new TableAndColumnMapper(model, mockSchemaProvider));
+		
+		doReturn("\"file entity\"").when(mapper).getSelectFileColumnName(any(), any());
+
+		Long fileColumnId = 1111L;
+		Long versionColumnId = 222L;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			mapper.buildSelectAndOrderByFileAndVersionColumn(fileColumnId, versionColumnId);
+		}).getMessage();
+		
+		assertEquals("The query.selectFileVersionColumn must be an INTEGER column that is part of the schema of the underlying table/view", message);
+		
+	}
+	
+	@ParameterizedTest
+	@EnumSource(TableType.class)
+	public void testBuildSelectAndOrderByFileAndVersionColumnsWithFileAndVersionColumnIdAndWrongVersionColumn(TableType tableType) throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		
+		when(mockSchemaProvider.getTableType(any())).thenReturn(tableType);
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+			.thenReturn(List.of(columnMap.get("file entity"), columnMap.get("foo"), columnMap.get("bar")));
+		
+		TableAndColumnMapper mapper = Mockito.spy(new TableAndColumnMapper(model, mockSchemaProvider));
+		
+		doReturn("\"file entity\"").when(mapper).getSelectFileColumnName(any(), any());
+		
+		Long fileColumnId = 1111L;
+		Long versionColumnId = -22222L;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			mapper.buildSelectAndOrderByFileAndVersionColumn(fileColumnId, versionColumnId);
+		}).getMessage();
+		
+		assertEquals("The query.selectFileVersionColumn must be an INTEGER column that is part of the schema of the underlying table/view", message);
+		
+	}
+	
+	@ParameterizedTest
+	@EnumSource(TableType.class)
+	public void testBuildSelectAndOrderByFileAndVersionColumnsWithNoVersionColumnId(TableType tableType) throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		
+		when(mockSchemaProvider.getTableType(any())).thenReturn(tableType);
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn123")))
+			.thenReturn(List.of(columnMap.get("file entity"), columnMap.get("foo"), columnMap.get("bar")));
+		
+		TableAndColumnMapper mapper = Mockito.spy(new TableAndColumnMapper(model, mockSchemaProvider));
+		
+		doReturn("\"file entity\"").when(mapper).getSelectFileColumnName(any(), any());
+
+		Long fileColumnId = 1111L;
+		Long versionColumnId = null;
+		
+		if (tableType == TableType.entityview || tableType == TableType.dataset) {
+			// call under test
+			Pair<SelectList, OrderByClause> result = mapper.buildSelectAndOrderByFileAndVersionColumn(fileColumnId, versionColumnId);
+			
+			assertEquals("\"file entity\", \"ROW_VERSION\"", result.getFirst().toSql());
+			assertEquals("ORDER BY \"file entity\", \"ROW_VERSION\"", result.getSecond().toSql());
+		} else {
+			String message = assertThrows(IllegalArgumentException.class, () -> {
+				mapper.buildSelectAndOrderByFileAndVersionColumn(fileColumnId, versionColumnId);
+			}).getMessage();
+			
+			assertEquals("'syn123' is not a file view or a dataset, the query.selectFileVersionColumn must be specified", message);
+		}
+		
 	}
 
 	@Test
