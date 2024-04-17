@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -251,7 +252,9 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 				.sqlContext(SqlContext.build)
 				.indexDescription(indexDescription)
 			.build();
-	
+
+			compareDefiningSqlAndDependency(sqlQuery.getTableIds(), indexDescription);
+
 			// schema of the current version is dynamic, while the schema of a snapshot is static.
 			if (!idAndVersion.getVersion().isPresent()) {
 				bindSchemaToView(idAndVersion, sqlQuery);
@@ -276,6 +279,17 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			LOG.error("Failed to build materialized view " + idAndVersion, e);
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
 			throw e;
+		}
+	}
+
+	static void compareDefiningSqlAndDependency(List<IdAndVersion> tableIds, IndexDescription indexDescription){
+		List<IdAndVersion> dep = new ArrayList<>();
+		for(IndexDescription indexDescription1 : indexDescription.getDependencies()){
+			dep.addAll(indexDescription1.getDependencies().stream().map(IndexDescription::getIdAndVersion).collect(Collectors.toList()));
+		}
+
+		if(!tableIds.equals(dep)){
+			throw new IllegalArgumentException("MaterializedView's defining sql and dependency hierarchy does not match.");
 		}
 	}
 
@@ -355,7 +369,6 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	
 	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(QueryTranslator definingSql, List<ColumnModel> schema, boolean isSearchEnabled) {
 		IdAndVersion idAndVersion = definingSql.getIndexDescription().getIdAndVersion();
-		
 		TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
 		
 		// Start the worker
