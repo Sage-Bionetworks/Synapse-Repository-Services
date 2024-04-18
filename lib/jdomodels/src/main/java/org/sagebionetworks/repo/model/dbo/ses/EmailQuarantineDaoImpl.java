@@ -107,8 +107,10 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 				String reasonDetails = dto.getReasonDetails();
 				String messageId = dto.getSesMessageId();
 
-				Timestamp updatedOn = Timestamp.from(Instant.now());
-				Timestamp expiresOn = batch.getExpiration().map(Timestamp::from).orElse(null);
+				Instant now = Instant.now();
+				
+				Timestamp updatedOn = Timestamp.from(now);
+				Timestamp expiresOn = batch.getExpirationTimeout() == null ? null : Timestamp.from(now.plusMillis(batch.getExpirationTimeout()));
 
 				int index = 1;
 

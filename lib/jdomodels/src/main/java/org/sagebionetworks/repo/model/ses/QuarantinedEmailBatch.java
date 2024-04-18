@@ -1,16 +1,14 @@
 package org.sagebionetworks.repo.model.ses;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
- * Containter for a batch of {@link QuarantinedEmail}s that all share the same expiration timeout
+ * Container for a batch of {@link QuarantinedEmail}s that all share the same expiration timeout
  * 
  * @author Marco
  *
@@ -38,13 +36,6 @@ public class QuarantinedEmailBatch {
 		return expirationTimeout;
 	}
 	
-	public Optional<Instant> getExpiration() {
-		if (expirationTimeout == null) {
-			return Optional.empty();
-		}
-		return Optional.of(Instant.now().plusMillis(expirationTimeout));
-	}
-
 	public QuarantinedEmailBatch withExpirationTimeout(Long expirationTimeout) {
 		ValidateArgument.requirement(expirationTimeout == null || expirationTimeout > 0, "The expiration timeout must be greater than zero");
 		this.expirationTimeout = expirationTimeout;
