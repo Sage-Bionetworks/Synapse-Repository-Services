@@ -225,6 +225,14 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		asyncHelper.assertQueryResult(userInfo, finalSql, (results) -> {
 			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
+
+		//add the  dependency row
+		materializedViewDao.addSourceTablesIds(viewId, Set.of(id));
+
+		// dependency should not affect view rebuilding
+		asyncHelper.assertQueryResult(userInfo, finalSql, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
 	}
 	@Test
 	public void testMaterializedViewOfFileViewWithReadOnlyMode() throws Exception {
