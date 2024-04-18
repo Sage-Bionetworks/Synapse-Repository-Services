@@ -59,7 +59,7 @@ public class MaterializedViewMetadataProviderTest {
 		// Call under test
 		provider.entityCreated(mockUser, mockView);
 	
-		verify(mockManager).registerSourceTables(idAndVersion, sql);
+		verify(mockManager).bindSchemaToView(idAndVersion, sql);
 	}
 	
 	@Test
@@ -75,7 +75,7 @@ public class MaterializedViewMetadataProviderTest {
 		// Call under test
 		provider.entityUpdated(mockUser, mockView, false);
 		
-		verify(mockManager).registerSourceTables(idAndVersion, sql);
+		verify(mockManager).bindSchemaToView(idAndVersion, sql);
 	}
 	
 	@Test

@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.sagebionetworks.repo.manager.util.MaterializedViewUtils.getDependencies;
 import static org.sagebionetworks.repo.manager.util.MaterializedViewUtils.getQuerySpecification;
 import static org.sagebionetworks.repo.manager.util.MaterializedViewUtils.getSourceTableIds;
 
@@ -100,6 +101,16 @@ public class MaterializedViewUtilsTest {
         Set<IdAndVersion> expected = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn123.1"),
                 IdAndVersion.parse("456"));
         Set<IdAndVersion> result = getSourceTableIds(query);
+
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testGetDependencies() {
+        String sql = "SELECT * FROM syn123";
+
+        Set<IdAndVersion> expected = ImmutableSet.of(IdAndVersion.parse("syn123"));
+        Set<IdAndVersion> result = getDependencies(sql);
 
         assertEquals(expected, result);
     }

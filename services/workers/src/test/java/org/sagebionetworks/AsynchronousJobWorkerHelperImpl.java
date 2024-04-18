@@ -558,7 +558,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		String materializedViewId = entityManager.createEntity(user, materializedView, null);
 		
 		// Bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
-		materializedViewManager.registerSourceTables(KeyFactory.idAndVersion(materializedViewId, null), sql);
+		materializedViewManager.bindSchemaToView(KeyFactory.idAndVersion(materializedViewId, null), sql);
 		
 		return entityManager.getEntity(user, materializedViewId, MaterializedView.class);
 	}

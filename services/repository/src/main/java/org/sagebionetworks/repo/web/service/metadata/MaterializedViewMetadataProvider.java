@@ -35,7 +35,7 @@ public class MaterializedViewMetadataProvider implements
 
 	@Override
 	public void entityCreated(UserInfo userInfo, MaterializedView entity) {
-		manager.registerSourceTables(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
+		manager.bindSchemaToView(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
 	}
 
 	@Override
@@ -43,7 +43,7 @@ public class MaterializedViewMetadataProvider implements
 		if (wasNewVersionCreated) {
 			throw new IllegalStateException("A materialized view version can only be created by creating a snapshot.");
 		}
-		manager.registerSourceTables(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
+		manager.bindSchemaToView(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
 	}
 
 	@Override
