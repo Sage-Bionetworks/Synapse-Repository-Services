@@ -840,5 +840,63 @@ public class ITDataAccessTest {
 		assertFalse(userBundle.getIsARReviewer());
 	}
 	
+	// Test for https://sagebionetworks.jira.com/browse/PLFM-8322
+	@Test
+	public void testResearchProjectIduWithSpecialChars() throws SynapseException {
+		
+		managedAR = new ManagedACTAccessRequirement()
+				.setIsIDUPublic(true)
+				.setAccessType(ACCESS_TYPE.DOWNLOAD)
+				.setSubjectIds(Collections.singletonList(new RestrictableObjectDescriptor().setId(project.getId()).setType(RestrictableObjectType.ENTITY)));
+			
+		managedAR = adminSynapse.createAccessRequirement(managedAR);
+		
+		String idu = "Straight quotes are the two generic vertical quotation marks located near the return key: "
+				+ "the straight single quote (') and the straight double quote (\").\n\n"
+				+ "Curly quotes are the quotation marks used in good typography. "
+				+ "There are four curly quote characters: "
+				+ "the opening single quote (‘), the closing single quote (’), the opening double quote (“), and the closing double quote (”).";
+		
+		ResearchProject rp = synapse.getResearchProjectForUpdate(managedAR.getId().toString());
+		
+		rp.setInstitution("Sage");
+		rp.setProjectLead("Lead");
+		rp.setIntendedDataUseStatement(idu);
+		rp.setAccessRequirementId(managedAR.getId().toString());
+		
+		rp = synapse.createOrUpdateResearchProject(rp);
+		
+		// Is the reserch project IDU stored as intended?
+		assertEquals(idu, rp.getIntendedDataUseStatement());
+		
+		RequestInterface request = synapse.createOrUpdateRequest(new Request()
+				.setResearchProjectId(rp.getId())
+				.setAccessRequirementId(managedAR.getId().toString())
+				.setAccessorChanges(Arrays.asList(
+					new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(adminSynapse.getMyProfile().getOwnerId()),
+					new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(synapse.getMyProfile().getOwnerId())
+				)));
+			
+		SubmissionStatus submissionStatus = synapse.submitRequest(new CreateSubmissionRequest()
+				.setRequestId(request.getId())
+				.setRequestEtag(request.getEtag())
+				.setSubjectId(project.getId())
+				.setSubjectType(RestrictableObjectType.ENTITY));
+		
+		Submission submission = adminSynapse.getDataAccessSubmission(submissionStatus.getSubmissionId());
+		
+		// The submission stores a "snapshot" or copy of the research project object in a serialized field, is that stored correctly?
+		assertEquals(idu, submission.getResearchProjectSnapshot().getIntendedDataUseStatement());
+		
+		submission = adminSynapse.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
+		
+		assertEquals(idu, submission.getResearchProjectSnapshot().getIntendedDataUseStatement());
+		
+		List<SubmissionInfo> submissions = adminSynapse.listApprovedSubmissionInfo(managedAR.getId().toString(), null).getResults();
+		
+		assertEquals(idu, submissions.get(0).getIntendedDataUseStatement());
+		
+	}
+	
 
 }
