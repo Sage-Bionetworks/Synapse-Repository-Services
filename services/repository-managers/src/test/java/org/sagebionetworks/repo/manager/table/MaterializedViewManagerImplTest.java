@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -60,6 +61,8 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+
+import com.google.common.collect.ImmutableSet;
 
 @ExtendWith(MockitoExtension.class)
 public class MaterializedViewManagerImplTest {
@@ -259,13 +262,92 @@ public class MaterializedViewManagerImplTest {
 
 	@Test
 	public void testRegisterSourceTables() {
+
+		Set<IdAndVersion> currentSourceTables = Collections.emptySet();
 		String sql = "SELECT * FROM syn123";
 
+		Set<IdAndVersion> expectedDeletes = Collections.emptySet();
+		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"));
+
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
 
 		// Call under test
-		managerSpy.bindSchemaToView(idAndVersion, sql);
+		managerSpy.registerSourceTables(idAndVersion, sql);
 
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verify(mockMaterializedViewDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockMaterializedViewDao).addSourceTablesIds(idAndVersion, expectedSources);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryExpression.class));
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+
+	}
+
+	@Test
+	public void testRegisterSourceTablesWithNonOverlappingAssociations() {
+
+		Set<IdAndVersion> currentSourceTables = ImmutableSet.of(IdAndVersion.parse("syn456"));
+
+		String sql = "SELECT * FROM syn123";
+
+		Set<IdAndVersion> expectedDeletes = currentSourceTables;
+		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"));
+
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
+
+		// Call under test
+		managerSpy.registerSourceTables(idAndVersion, sql);
+
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verify(mockMaterializedViewDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockMaterializedViewDao).addSourceTablesIds(idAndVersion, expectedSources);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryExpression.class));
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		
+	}
+
+	@Test
+	public void testRegisterSourceTablesWithOverlappingAssociations() {
+
+		Set<IdAndVersion> currentSourceTables = ImmutableSet.of(IdAndVersion.parse("syn123"),
+				IdAndVersion.parse("syn456"));
+
+		String sql = "SELECT * FROM syn123";
+
+		Set<IdAndVersion> expectedDeletes = ImmutableSet.of(IdAndVersion.parse("syn456"));
+		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"));
+
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
+
+		// Call under test
+		managerSpy.registerSourceTables(idAndVersion, sql);
+
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verify(mockMaterializedViewDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockMaterializedViewDao).addSourceTablesIds(idAndVersion, expectedSources);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryExpression.class));
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+
+	}
+
+	@Test
+	public void testRegisterSourceTablesWithNoChanges() {
+
+		Set<IdAndVersion> currentSourceTables = ImmutableSet.of(IdAndVersion.parse("syn123"));
+
+		String sql = "SELECT * FROM syn123";
+
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
+
+		// Call under test
+		managerSpy.registerSourceTables(idAndVersion, sql);
+
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verifyNoMoreInteractions(mockMaterializedViewDao);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryExpression.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
@@ -273,13 +355,92 @@ public class MaterializedViewManagerImplTest {
 
 	@Test
 	public void testRegisterSourceTablesWithMultipleTables() {
+
+		Set<IdAndVersion> currentSourceTables = Collections.emptySet();
 		String sql = "SELECT * FROM syn123 JOIN syn456";
 
+		Set<IdAndVersion> expectedDeletes = Collections.emptySet();
+		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456"));
+
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
 
 		// Call under test
-		managerSpy.bindSchemaToView(idAndVersion, sql);
+		managerSpy.registerSourceTables(idAndVersion, sql);
 
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verify(mockMaterializedViewDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockMaterializedViewDao).addSourceTablesIds(idAndVersion, expectedSources);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryExpression.class));
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+
+	}
+
+	@Test
+	public void testRegisterSourceTablesWithMultipleTablesWithNonOverlappingAssociations() {
+
+		Set<IdAndVersion> currentSourceTables = ImmutableSet.of(IdAndVersion.parse("syn789"),
+				IdAndVersion.parse("syn101112"));
+		String sql = "SELECT * FROM syn123 JOIN syn456";
+
+		Set<IdAndVersion> expectedDeletes = currentSourceTables;
+		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456"));
+
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
+
+		// Call under test
+		managerSpy.registerSourceTables(idAndVersion, sql);
+
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verify(mockMaterializedViewDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockMaterializedViewDao).addSourceTablesIds(idAndVersion, expectedSources);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryExpression.class));
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		
+	}
+
+	@Test
+	public void testRegisterSourceTablesWithMultipleTablesWithOverlappingAssociations() {
+
+		Set<IdAndVersion> currentSourceTables = ImmutableSet.of(IdAndVersion.parse("syn456"),
+				IdAndVersion.parse("syn789"), IdAndVersion.parse("syn101112"));
+		String sql = "SELECT * FROM syn123 JOIN syn456";
+
+		Set<IdAndVersion> expectedDeletes = ImmutableSet.of(IdAndVersion.parse("syn789"),
+				IdAndVersion.parse("syn101112"));
+		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456"));
+
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
+
+		// Call under test
+		managerSpy.registerSourceTables(idAndVersion, sql);
+
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verify(mockMaterializedViewDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockMaterializedViewDao).addSourceTablesIds(idAndVersion, expectedSources);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryExpression.class));
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+
+	}
+
+	@Test
+	public void testRegisterSourceTablesWithMultipleTablesAndNoChanges() {
+
+		Set<IdAndVersion> currentSourceTables = ImmutableSet.of(IdAndVersion.parse("syn456"),
+				IdAndVersion.parse("syn123"));
+
+		String sql = "SELECT * FROM syn123 JOIN syn456";
+
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
+
+		// Call under test
+		managerSpy.registerSourceTables(idAndVersion, sql);
+
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verifyNoMoreInteractions(mockMaterializedViewDao);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryExpression.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
@@ -287,13 +448,26 @@ public class MaterializedViewManagerImplTest {
 
 	@Test
 	public void testRegisterSourceTablesWithVersions() {
+
+		Set<IdAndVersion> currentSourceTables = ImmutableSet.of(IdAndVersion.parse("syn456"),
+				IdAndVersion.parse("syn123.2"));
+
 		String sql = "SELECT * FROM syn123.3 JOIN syn456";
 
+		Set<IdAndVersion> expectedDeletes = ImmutableSet.of(IdAndVersion.parse("syn123.2"));
+
+		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123.3"),
+				IdAndVersion.parse("syn456"));
+
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
 
 		// Call under test
-		managerSpy.bindSchemaToView(idAndVersion, sql);
+		managerSpy.registerSourceTables(idAndVersion, sql);
 
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verify(mockMaterializedViewDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockMaterializedViewDao).addSourceTablesIds(idAndVersion, expectedSources);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryExpression.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
@@ -301,12 +475,13 @@ public class MaterializedViewManagerImplTest {
 
 	@Test
 	public void testRegisterSourceTablesWithNoIdAndVersion() {
+
 		idAndVersion = null;
 		String sql = "SELECT * FROM syn123";
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.bindSchemaToView(idAndVersion, sql);
+			manager.registerSourceTables(idAndVersion, sql);
 		}).getMessage();
 
 		assertEquals("The id of the materialized view is required.", message);
@@ -322,7 +497,7 @@ public class MaterializedViewManagerImplTest {
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.bindSchemaToView(idAndVersion, sql);
+			manager.registerSourceTables(idAndVersion, sql);
 		}).getMessage();
 
 		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
@@ -338,7 +513,7 @@ public class MaterializedViewManagerImplTest {
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.bindSchemaToView(idAndVersion, sql);
+			manager.registerSourceTables(idAndVersion, sql);
 		}).getMessage();
 
 		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
@@ -354,7 +529,7 @@ public class MaterializedViewManagerImplTest {
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.bindSchemaToView(idAndVersion, sql);
+			manager.registerSourceTables(idAndVersion, sql);
 		}).getMessage();
 
 		assertEquals("The definingSQL of the materialized view is required and must not be a blank string.", message);

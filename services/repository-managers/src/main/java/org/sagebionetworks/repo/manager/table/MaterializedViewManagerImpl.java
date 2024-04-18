@@ -95,11 +95,22 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	
 	@Override
 	@WriteTransaction
-	public void bindSchemaToView(IdAndVersion idAndVersion, String definingSql) {
+	public void registerSourceTables(IdAndVersion idAndVersion, String definingSql) {
 		ValidateArgument.required(idAndVersion, "The id of the materialized view");
 
 		QueryExpression query = getQuerySpecification(definingSql);
-
+		Set<IdAndVersion> newSourceTables = getSourceTableIds(query);
+		Set<IdAndVersion> currentSourceTables = materializedViewDao.getSourceTablesIds(idAndVersion);
+		
+		if (!newSourceTables.equals(currentSourceTables)) {
+			Set<IdAndVersion> toDelete = new HashSet<>(currentSourceTables);
+			
+			toDelete.removeAll(newSourceTables);
+			
+			materializedViewDao.deleteSourceTablesIds(idAndVersion, toDelete);
+			materializedViewDao.addSourceTablesIds(idAndVersion, newSourceTables);
+		}
+		
 		bindSchemaToView(idAndVersion, query);
 		
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
