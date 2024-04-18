@@ -17,6 +17,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.util.MaterializedViewUtils.getQuerySpecification;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -538,95 +539,6 @@ public class MaterializedViewManagerImplTest {
 
 	}
 
-	@Test
-	public void testGetQuerySpecification() {
-		String sql = "SELECT * FROM syn123";
-
-		QueryExpression result = MaterializedViewManagerImpl.getQuerySpecification(sql);
-
-		assertNotNull(result);
-
-	}
-
-	@Test
-	public void testGetQuerySpecificationWithParingException() {
-		String sql = "invalid query";
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			MaterializedViewManagerImpl.getQuerySpecification(sql);
-		}).getMessage();
-
-		assertTrue(message.startsWith("Encountered \" <regular_identifier>"));
-	}
-
-	@Test
-	public void testGetQuerySpecificationWithNullQuery() {
-		String sql = null;
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			MaterializedViewManagerImpl.getQuerySpecification(sql);
-		}).getMessage();
-
-		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
-	}
-
-	@Test
-	public void testGetQuerySpecificationWithEmptyQuery() {
-		String sql = "";
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			MaterializedViewManagerImpl.getQuerySpecification(sql);
-		}).getMessage();
-
-		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
-	}
-
-	@Test
-	public void testGetQuerySpecificationWithBlankQuery() {
-		String sql = "   ";
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			MaterializedViewManagerImpl.getQuerySpecification(sql);
-		}).getMessage();
-
-		assertEquals("The definingSQL of the materialized view is required and must not be a blank string.", message);
-	}
-
-	@Test
-	public void testGetSourceTableIds() {
-
-		QueryExpression query = MaterializedViewManagerImpl.getQuerySpecification("SELECT * FROM syn123");
-
-		Set<IdAndVersion> expected = ImmutableSet.of(IdAndVersion.parse("syn123"));
-		Set<IdAndVersion> result = MaterializedViewManagerImpl.getSourceTableIds(query);
-
-		assertEquals(expected, result);
-	}
-
-	@Test
-	public void testGetSourceTableIdsWithVersion() {
-
-		QueryExpression query = MaterializedViewManagerImpl.getQuerySpecification("SELECT * FROM syn123.1");
-
-		Set<IdAndVersion> expected = ImmutableSet.of(IdAndVersion.parse("syn123.1"));
-		Set<IdAndVersion> result = MaterializedViewManagerImpl.getSourceTableIds(query);
-
-		assertEquals(expected, result);
-	}
-
-	@Test
-	public void testGetSourceTableIdsWithMultiple() {
-
-		QueryExpression query = MaterializedViewManagerImpl
-				.getQuerySpecification("SELECT * FROM syn123.1 JOIN syn456 JOIN syn123");
-
-		Set<IdAndVersion> expected = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn123.1"),
-				IdAndVersion.parse("456"));
-		Set<IdAndVersion> result = MaterializedViewManagerImpl.getSourceTableIds(query);
-
-		assertEquals(expected, result);
-	}
-
 	void setupGetColumns(List<ColumnModel> schema){
 		for(ColumnModel cm: schema) {
 			when(mockTableManagerSupport.getColumnModel(cm.getId())).thenReturn(cm);
@@ -642,7 +554,7 @@ public class MaterializedViewManagerImplTest {
 		setupGetColumns(syn123Schema);
 		
 		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
-		QueryExpression query = MaterializedViewManagerImpl.getQuerySpecification("SELECT * FROM syn123");
+		QueryExpression query = getQuerySpecification("SELECT * FROM syn123");
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new MaterializedViewIndexDescription(
 				idAndVersion, Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
 		// call under test
