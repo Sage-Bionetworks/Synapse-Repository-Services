@@ -1,9 +1,8 @@
 package org.sagebionetworks.cloudwatch;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -11,19 +10,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.model.Datapoint;
 import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:cloudwatch-spb.xml" })
 public class ConsumerIntegrationTest {
 	
@@ -53,8 +53,12 @@ public class ConsumerIntegrationTest {
 		Double value = 1.0;
 		profileData.setValue(value);
 		Map<String,String> map = new HashMap<String,String>();
+		
 		map.put("foo", "bar");
+		map.put("bar", "");
+		
 		profileData.setDimension(map);
+		
 		consumer.addProfileData(profileData);
 		consumer.executeCloudWatchPut();
 		
@@ -69,27 +73,13 @@ public class ConsumerIntegrationTest {
 		metricStatisticsRequest.setUnit(unit);
 		metricStatisticsRequest.setStatistics(Collections.singletonList("Average"));
 		metricStatisticsRequest.setPeriod(60);
-		List<Dimension> queryDimensions = new ArrayList<Dimension>();
-		for (String key : map.keySet()) {
-			Dimension d = new Dimension();
-			d.setName(key);
-			d.setValue(map.get(key));
-			queryDimensions.add(d);
-		}
-		metricStatisticsRequest.setDimensions(queryDimensions);
 		
-		List<Datapoint> datapoints = null;
-		long start = System.currentTimeMillis();
-		do {
+		metricStatisticsRequest.setDimensions(List.of(new Dimension().withName("foo").withValue("bar")));
+				
+		TimeUtils.waitFor(MAX_CLOUD_WATCH_WAIT_TIME_MILLIS, 1000, () -> {
 			GetMetricStatisticsResult result = client.getMetricStatistics(metricStatisticsRequest);
-			result.getLabel();
-			datapoints = result.getDatapoints();
-			assertTrue("Timed out after "+MAX_CLOUD_WATCH_WAIT_TIME_MILLIS+
-					" millisec, waiting for CloudWatch metric to be published.", System.currentTimeMillis()-start<MAX_CLOUD_WATCH_WAIT_TIME_MILLIS);
-			Thread.sleep(5000L);
-		} while (datapoints.isEmpty());
-		
-		// if we reach this point the test is successful
+			return Pair.create(!result.getDatapoints().isEmpty(), null);
+		});
 	}
 
 }

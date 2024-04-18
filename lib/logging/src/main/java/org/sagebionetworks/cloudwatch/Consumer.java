@@ -5,10 +5,14 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
@@ -186,29 +190,42 @@ public class Consumer {
 	 *         is null
 	 */
 	public static MetricDatum makeMetricDatum(ProfileData pd) {
-		//AmazonWebServices requires the MetricDatum have a namespace
-		//and unit can't be smaller than zero as it represents latency
-		if (pd == null) throw new IllegalArgumentException("ProfileData cannot be null");
-		if(pd.getName() == null) throw new IllegalArgumentException("ProfileData.name cannot be null");
+		// AmazonWebServices requires the MetricDatum have a namespace
+		// and unit can't be smaller than zero as it represents latency
+		
+		ValidateArgument.required(pd, "profileData");
+		ValidateArgument.required(pd.getName(), "profileData.name");
+		
 		MetricDatum toReturn = new MetricDatum();
+		
 		toReturn.setMetricName(pd.getName());
 		toReturn.setValue(pd.getValue());
 		toReturn.setUnit(StandardUnit.valueOf(pd.getUnit()));
 		toReturn.setTimestamp(pd.getTimestamp());
-		List<Dimension> dimensions = new ArrayList<Dimension>();
-		if (pd.getDimension()!=null) {
-			for (String key : pd.getDimension().keySet()) {
-				Dimension dimension = new Dimension();
-				String value = pd.getDimension().get(key);
-				key = scrubDimensionString(key);
-				value = scrubDimensionString(value);
-				dimension.setName(key);
-				dimension.setValue(value);
-				dimensions.add(dimension);
+
+		if (pd.getDimension() != null) {
+			List<Dimension> dimensions = pd.getDimension().entrySet().stream().map( entry -> {
+				String key = scrubDimensionString(entry.getKey());
+				String value = scrubDimensionString(entry.getValue());
+			
+				if (StringUtils.isBlank(value)) {
+					// See https://sagebionetworks.jira.com/browse/PLFM-7215, dimension values cannot be empty
+					log.warn("Skipping empty dimension value: {}.dimensions.{}", pd.getName(), key);
+					return null;
+				}
+				
+				return new Dimension()
+						.withName(key)
+						.withValue(value);
+				
+			}).filter(Objects::nonNull).collect(Collectors.toList());
+			
+			if (!dimensions.isEmpty()) {
+				toReturn.setDimensions(dimensions);
 			}
-			toReturn.setDimensions(dimensions);
 		}
-		if (pd.getMetricStats()!=null) {
+		
+		if (pd.getMetricStats() != null) {
 			StatisticSet statisticValues = new StatisticSet();
 			statisticValues.setMaximum(pd.getMetricStats().getMaximum());
 			statisticValues.setMinimum(pd.getMetricStats().getMinimum());
@@ -230,12 +247,10 @@ public class Consumer {
 	protected void sendMetrics(PutMetricDataRequest listForCW,
 			AmazonCloudWatch cloudWatchClient) {
 		try {
-			//System.out.println("hereiswhatthePut " + listForCW.toString());
-			// below is the line that sends to CloudWatch
 			cloudWatchClient.putMetricData(listForCW);
-		} catch (Exception e1) {
-			log.error("failed to send data to CloudWatch ", e1);
-			throw new RuntimeException(e1);
+		} catch (Exception e) {
+			log.error("Failed to send data to CloudWatch: {}", listForCW, e);
+			throw new RuntimeException(e);
 		}
 	}
 

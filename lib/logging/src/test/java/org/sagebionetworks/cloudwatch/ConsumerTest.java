@@ -1,10 +1,13 @@
 package org.sagebionetworks.cloudwatch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -13,9 +16,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.Dimension;
@@ -28,16 +33,14 @@ import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
  * @author John
  *
  */
+@ExtendWith(MockitoExtension.class)
 public class ConsumerTest {
 	
+	@Mock
 	private AmazonCloudWatch mockClient;
-	private Consumer consumer; 
 	
-	@Before
-	public void before(){
-		mockClient = Mockito.mock(AmazonCloudWatch.class);
-		consumer = new Consumer(mockClient);
-	}
+	@InjectMocks
+	private Consumer consumer; 
 	
 	@Test
 	public void testScrubDimensionString() {
@@ -54,8 +57,9 @@ public class ConsumerTest {
 		pd.setTimestamp(new Date());
 		pd.setUnit("Count");
 		Map<String,String> dimensionMap=new TreeMap<String,String>();
-		dimensionMap.put("baz", null);
 		dimensionMap.put("foo", "bar");
+		dimensionMap.put("bar", null);
+		dimensionMap.put("baz", "  ");
 		pd.setDimension(dimensionMap);
 		// Conver to a put metric.
 		MetricDatum expectedDatum = new MetricDatum();
@@ -64,7 +68,6 @@ public class ConsumerTest {
 		expectedDatum.setUnit(pd.getUnit());
 		expectedDatum.setTimestamp(pd.getTimestamp());
 		Collection<Dimension> dimensions=new ArrayList<Dimension>();
-		dimensions.add(new Dimension().withName("baz"));
 		dimensions.add(new Dimension().withName("foo").withValue("bar"));
 		expectedDatum.setDimensions(dimensions);
 		
@@ -153,6 +156,23 @@ public class ConsumerTest {
 		// Verify each batch was sent as expected
 		verify(mockClient, times(1)).putMetricData(batch0);
 		verify(mockClient, times(1)).putMetricData(batch1);
+	}
+	
+	@Test
+	public void testSendMetricsWithException() {
+		IllegalStateException ex = new IllegalStateException("nope");
+		
+		when(mockClient.putMetricData(any())).thenThrow(ex);
+		
+		PutMetricDataRequest request = new PutMetricDataRequest()
+			.withNamespace("namespace")
+			.withMetricData(List.of(new MetricDatum().withMetricName("name").withValue(1.0)));
+		
+		RuntimeException result = assertThrows(RuntimeException.class, () -> {			
+			consumer.sendMetrics(request, mockClient);
+		});
+		
+		assertEquals(ex, result.getCause());
 	}
 	
 	/**
