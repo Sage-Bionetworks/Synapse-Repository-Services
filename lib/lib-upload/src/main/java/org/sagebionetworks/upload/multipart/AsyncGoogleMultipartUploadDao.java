@@ -69,7 +69,7 @@ public class AsyncGoogleMultipartUploadDao implements CloudServiceMultipartUploa
 		throw new UnsupportedOperationException(GoogleUtils.UNSUPPORTED_COPY_MSG);
 	}
 
-	@WriteTransaction
+	@TransactionNotSupported
 	@Override
 	public void validateAndAddPart(AddPartRequest request) {
 		ValidateArgument.required(request, "request");

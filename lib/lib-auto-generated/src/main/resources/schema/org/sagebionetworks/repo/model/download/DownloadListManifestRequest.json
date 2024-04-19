@@ -1,5 +1,5 @@
 {
-	"description": "Start an asynchronous job to generate a metadata manifest CSV of the available files on the use’s download list.",
+	"description": "Start an asynchronous job to generate a metadata manifest CSV of the available files on the user's download list.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
