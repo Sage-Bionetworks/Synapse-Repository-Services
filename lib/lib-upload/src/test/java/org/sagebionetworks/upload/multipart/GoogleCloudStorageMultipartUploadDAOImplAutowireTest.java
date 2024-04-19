@@ -69,7 +69,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplAutowireTest {
 	public void testValidateAndAddPartWithMultipleThreads() throws Exception {
 
 		int numberOfThreads = 50;
-		int numberOfParts = 100;
+		int numberOfParts = 1000;
 		long partSize = 100L;
 
 		CompositeMultipartUploadStatus status = multipartUploadDAO.createUploadStatus(new CreateMultipartRequest()

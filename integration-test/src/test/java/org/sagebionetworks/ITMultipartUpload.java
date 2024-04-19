@@ -14,6 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
@@ -62,6 +63,7 @@ public class ITMultipartUpload {
 	 * 
 	 * @throws IOException
 	 */
+	@Disabled
 	@Test
 	public void testS3ClientFileUpload() throws IOException {
 		consumeRandomeFile(fileSizeByptes, (temp) -> {

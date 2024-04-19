@@ -56,7 +56,6 @@ public class PartUploadCallable implements Callable<AddPartResponse> {
 							response.getStatusLine().getStatusCode(), response.getStatusLine().getReasonPhrase()));
 				}
 			}
-
 			return new String(Hex.encodeHex(digest.digest()));
 		}
 	}
