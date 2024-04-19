@@ -111,7 +111,7 @@ public class MultithreadMultipartUpload {
 		});
 		status = client.completeMultipartUpload(status.getUploadId());
 
-		return (CloudProviderFileHandleInterface) client.getRawFileHandle(status.getUploadId());
+		return (CloudProviderFileHandleInterface) client.getRawFileHandle(status.getResultFileHandleId());
 	}
 
 }
