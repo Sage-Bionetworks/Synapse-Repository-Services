@@ -59,6 +59,9 @@ public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
 		ValidateArgument.required(userInfo, "The user");
 		ValidateArgument.required(storageLocation, "The storage location");
 		ValidateArgument.required(storageLocation.getBucket(), "The bucket");
+		if(userInfo.isAdmin()) {
+			return;
+		}
 
 		BucketObjectReader reader = getObjectReader(storageLocation);
 

@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.sagebionetworks.repo.transactions.TransactionNotSupported;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAO;
@@ -313,7 +314,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		}
 	}
 
-	@WriteTransaction
+	@TransactionNotSupported
 	@Override
 	public AddPartResponse addMultipartPart(UserInfo user, String uploadId, Integer partNumber, String partMD5Hex) {
 		ValidateArgument.required(user, "UserInfo");

@@ -36,7 +36,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import com.google.cloud.storage.Blob;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
+@ContextConfiguration(locations = { "classpath:test-context-mock-google.xml" })
 public class GoogleCloudStorageMultipartUploadDAOImplAutowireTest {
 
 	@Autowired
@@ -51,22 +51,18 @@ public class GoogleCloudStorageMultipartUploadDAOImplAutowireTest {
 	@Autowired
 	private TransactionTemplate readCommitedTransactionTemplate;
 	
+	// Note: This will be injected with a mock version of this client.
 	@Autowired
-	private LoggerProvider loggerProvider;
+	private SynapseGoogleCloudStorageClient googleCloudStorageClient;
 
+	@Autowired
 	private AsyncGoogleMultipartUploadDao asyncGoogleMultipartUploadDAO;
 
-	private SynapseGoogleCloudStorageClient mockGoogleCloudStorageClient = Mockito
-			.mock(SynapseGoogleCloudStorageClient.class);
 	private Blob mockBlob = Mockito.mock(Blob.class);
 
 	@BeforeEach
 	public void before() {
-		mockGoogleCloudStorageClient = Mockito.mock(SynapseGoogleCloudStorageClient.class);
-		ReflectionTestUtils.setField(googleCloudStorageMultipartUploadDAO, "googleCloudStorageClient",
-				mockGoogleCloudStorageClient);
 		multipartUploadDAO.truncateAll();
-		asyncGoogleMultipartUploadDAO = new AsyncGoogleMultipartUploadDao(mockGoogleCloudStorageClient, asyncDAO, loggerProvider);
 	}
 
 	@Test
@@ -87,8 +83,8 @@ public class GoogleCloudStorageMultipartUploadDAOImplAutowireTest {
 		String md5Base64 = Base64.encodeBase64String(md5.getBytes("UTF-8"));
 		String hexMd5 = Hex.encodeHexString(md5.getBytes("UTF-8"));
 		when(mockBlob.getMd5()).thenReturn(md5Base64);
-		when(mockGoogleCloudStorageClient.getObject(any(), any())).thenReturn(mockBlob);
-		when(mockGoogleCloudStorageClient.composeObjects(any(), any(), any())).thenReturn(mockBlob);
+		when(googleCloudStorageClient.getObject(any(), any())).thenReturn(mockBlob);
+		when(googleCloudStorageClient.composeObjects(any(), any(), any())).thenReturn(mockBlob);
 
 		ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
 		List<Future<Void>> futures = new ArrayList<>();
@@ -101,6 +97,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplAutowireTest {
 				readCommitedTransactionTemplate.executeWithoutResult(c->{
 					// call under test
 					dao.validateAndAddPart(p);
+					multipartUploadDAO.addPartToUpload(p.getUploadId(),(int) p.getPartNumber() , p.getPartMD5Hex());
 				});
 				return null;
 			}));
@@ -117,7 +114,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplAutowireTest {
 					.setKey("some.key").setNumberOfParts((long) numberOfParts));
 		});
 
-		verify(mockGoogleCloudStorageClient, times(numberOfParts-2)).composeObjects(any(), any(), any());
-		verify(mockGoogleCloudStorageClient, times((numberOfParts-2)*2)).deleteObject(any(), any());
+		verify(googleCloudStorageClient, times(numberOfParts-2)).composeObjects(any(), any(), any());
+		verify(googleCloudStorageClient, times((numberOfParts-2)*2)).deleteObject(any(), any());
 	}
 }

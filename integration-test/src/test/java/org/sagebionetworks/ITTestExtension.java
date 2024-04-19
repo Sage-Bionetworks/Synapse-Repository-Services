@@ -77,6 +77,7 @@ public class ITTestExtension implements BeforeAllCallback, AfterAllCallback, Par
 	private Long userToDelete;
 	// The stack configuration
 	private StackConfiguration config;
+	private AmazonS3 s3Client;
 	private WarehouseTestHelper warehouseHelper;
 
 	@Override
@@ -84,7 +85,7 @@ public class ITTestExtension implements BeforeAllCallback, AfterAllCallback, Par
 			throws ParameterResolutionException {
 		Class<?> paramType = parameterContext.getParameter().getType();
 		return paramType == SynapseClient.class || paramType == SynapseAdminClient.class || paramType == StackConfiguration.class
-				|| paramType == WarehouseTestHelper.class;
+				|| paramType == WarehouseTestHelper.class || paramType == AmazonS3.class;
 	}
 
 	@Override
@@ -108,6 +109,8 @@ public class ITTestExtension implements BeforeAllCallback, AfterAllCallback, Par
 			return config;
 		} else if (paramType == WarehouseTestHelper.class) {
 			return warehouseHelper;
+		} else if (paramType == AmazonS3.class) {
+			return s3Client;
 		}
 		throw new ParameterResolutionException("Unsupported parameter " + parameterContext);
 	}
@@ -135,7 +138,7 @@ public class ITTestExtension implements BeforeAllCallback, AfterAllCallback, Par
 		adminSynapse.removeAuthorizationHeader();
 		adminSynapse.setBearerAuthorizationToken(response.getAccessToken());
 		
-		AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_1)
+		s3Client = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_1)
 				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance()).build();
 		AmazonAthena athenaClient = AmazonAthenaClientBuilder.standard().withRegion(Regions.US_EAST_1)
 				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance()).build();
