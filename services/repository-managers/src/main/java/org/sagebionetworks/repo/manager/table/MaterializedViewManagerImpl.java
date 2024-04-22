@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.util.PaginationIterator;
@@ -33,9 +34,6 @@ import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import static org.sagebionetworks.repo.manager.util.MaterializedViewUtils.getDependencies;
-import static org.sagebionetworks.repo.manager.util.MaterializedViewUtils.getQuerySpecification;
-import static org.sagebionetworks.repo.manager.util.MaterializedViewUtils.getSourceTableIds;
 
 @Service
 public class MaterializedViewManagerImpl implements MaterializedViewManager {
@@ -74,7 +72,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	public void validateDefiningSql(String definingSql) {
 		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the materialized view");
 
-		List<IndexDescription> indexDescriptions = getDependencies(definingSql)
+		List<IndexDescription> indexDescriptions = TableModelUtils.getSourceTableIds(definingSql)
 				.stream()
 				// getIndexDescription is validating each column we are trying to reference
 				.map(sourceTableId -> tableManagerSupport.getIndexDescription(sourceTableId))
@@ -98,8 +96,8 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	public void registerSourceTables(IdAndVersion idAndVersion, String definingSql) {
 		ValidateArgument.required(idAndVersion, "The id of the materialized view");
 
-		QueryExpression query = getQuerySpecification(definingSql);
-		Set<IdAndVersion> newSourceTables = getSourceTableIds(query);
+		QueryExpression query = TableModelUtils.getQuerySpecification(definingSql);
+		Set<IdAndVersion> newSourceTables = new HashSet<>(TableModelUtils.getSourceTableIds(query));
 		Set<IdAndVersion> currentSourceTables = materializedViewDao.getSourceTablesIds(idAndVersion);
 		
 		if (!newSourceTables.equals(currentSourceTables)) {

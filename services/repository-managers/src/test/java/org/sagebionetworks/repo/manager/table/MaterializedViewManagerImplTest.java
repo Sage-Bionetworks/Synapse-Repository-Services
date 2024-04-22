@@ -16,7 +16,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.util.MaterializedViewUtils.getQuerySpecification;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -57,6 +56,7 @@ import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -553,7 +553,7 @@ public class MaterializedViewManagerImplTest {
 		setupGetColumns(syn123Schema);
 		
 		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
-		QueryExpression query = getQuerySpecification("SELECT * FROM syn123");
+		QueryExpression query = TableModelUtils.getQuerySpecification("SELECT * FROM syn123");
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new MaterializedViewIndexDescription(
 				idAndVersion, Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
 		// call under test

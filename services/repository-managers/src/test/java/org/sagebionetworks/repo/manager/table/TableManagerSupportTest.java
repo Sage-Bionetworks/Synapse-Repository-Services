@@ -1115,6 +1115,7 @@ public class TableManagerSupportTest {
 		verify(mockNodeDao).getNodeTypeById(fileViewId.getId().toString());
 		verify(mockNodeDao).getNodeTypeById(submissionViewId.getId().toString());
 		verify(mockNodeDao, times(4)).getNodeTypeById(any());
+		verify(mockNodeDao).getDefiningSql(idAndVersion);
 		verify(managerSpy).getLastTableChangeNumber(tableId);
 	}
 	

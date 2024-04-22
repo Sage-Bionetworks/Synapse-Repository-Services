@@ -185,8 +185,15 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 
 	}
 
+	/**
+	 * Note: This test was added for https://sagebionetworks.jira.com/browse/PLFM-8375
+	 * Earlier we were building dependency from MATERIALIZED_VIEW_SOURCE_TABLES which caused the discrepancy
+	 * issue in defining sql and dependency fetched from MATERIALIZED_VIEW_SOURCE_TABLES.
+	 * The fix is to use defining sql of materialized to find the dependency instead of MATERIALIZED_VIEW_SOURCE_TABLES.
+	 * @throws Exception
+	 */
 	@Test
-	public void testPLFM_8375() throws Exception {
+	public void tesBuildMaterializedViewIndependentOfDependencySourceTable() throws Exception {
 		int numberOfFiles = 5;
 		List<Entity> entites = createProjectHierachy(numberOfFiles);
 		EntityView view = createEntityView(entites);
@@ -217,16 +224,16 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 						Arrays.asList(fileIdsUserCanSee.get(2), "a string: 7", "12", "10.14", "1008", "false")));
 		IdAndVersion id = IdAndVersion.parse(view.getId());
 
-		// delete the dependency row
+		// delete the dependency from MATERIALIZED_VIEW_SOURCE_TABLES
 		materializedViewDao.deleteSourceTablesIds(viewId, Set.of(id));
 
 		// Call under test. Wait for the query against the materialized view to have the expected results.
-		// Dependencies are now gathered from defining sql not from MATERIALIZED_VIEW_SOURCE_TABLES.
+		// Dependencies are now gathered from defining sql and not from MATERIALIZED_VIEW_SOURCE_TABLES.
 		asyncHelper.assertQueryResult(userInfo, finalSql, (results) -> {
 			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 
-		//add the  dependency row
+		//Add the dependency in MATERIALIZED_VIEW_SOURCE_TABLES
 		materializedViewDao.addSourceTablesIds(viewId, Set.of(id));
 
 		// dependency should not affect view rebuilding
@@ -234,6 +241,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 	}
+
 	@Test
 	public void testMaterializedViewOfFileViewWithReadOnlyMode() throws Exception {
 		asyncHelper.runInReadOnlyMode(() -> {
