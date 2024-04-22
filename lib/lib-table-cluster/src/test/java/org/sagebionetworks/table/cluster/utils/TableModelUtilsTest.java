@@ -2201,7 +2201,7 @@ public class TableModelUtilsTest {
 	}
 
 	@Test
-	public void testGetSourceTableIdsWithMultiple() {
+	public void testGetSourceTableIdsFromQueryExpression() {
 
 		QueryExpression query = TableModelUtils.getQuerySpecification("SELECT * FROM syn123.1 JOIN syn456 JOIN syn123");
 
