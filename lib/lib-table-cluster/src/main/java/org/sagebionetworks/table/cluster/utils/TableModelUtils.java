@@ -15,6 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -1547,13 +1548,8 @@ public class TableModelUtils {
 	}
 
 	public static List<IdAndVersion> getSourceTableIds(QueryExpression query) {
-		List<IdAndVersion> sourceTableIds = new ArrayList<>();
-
-		for (TableNameCorrelation table : query.createIterable(TableNameCorrelation.class)) {
-			sourceTableIds.add(IdAndVersion.parse(table.getTableName().toSql()));
-		}
-
-		return sourceTableIds;
+		 return query.stream(TableNameCorrelation.class).map((tnc) -> IdAndVersion.parse(tnc.toSql()))
+				.collect(Collectors.toList());
 	}
 
 	public static List<IdAndVersion> getSourceTableIds(String definingSql) {

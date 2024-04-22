@@ -25,7 +25,7 @@ public class VirtualTableIndexDescription implements IndexDescription {
 		this.idAndVersion = idAndVersion;
 		this.definingSql = definingSql;
 
-		List<IdAndVersion> sourceIds = new ArrayList<>(TableModelUtils.getSourceTableIds(definingSql));
+		List<IdAndVersion> sourceIds = TableModelUtils.getSourceTableIds(definingSql);
 		if (sourceIds.size() != 1) {
 			throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
 		}

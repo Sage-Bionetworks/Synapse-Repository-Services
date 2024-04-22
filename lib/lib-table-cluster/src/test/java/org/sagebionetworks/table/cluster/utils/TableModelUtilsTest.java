@@ -2213,7 +2213,7 @@ public class TableModelUtilsTest {
 	}
 
 	@Test
-	public void testGetDependencies() {
+	public void testGetSourceTableIdsFromDefiningSql() {
 		String sql = "SELECT * FROM syn123";
 
 		List<IdAndVersion> expected = ImmutableList.of(IdAndVersion.parse("syn123"));
