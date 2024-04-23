@@ -87,6 +87,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
 
+
 @Service
 public class TableManagerSupportImpl implements TableManagerSupport {
 
@@ -657,10 +658,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		case submissionview:
 			return new ViewIndexDescription(idAndVersion, type, getTableVersion(type.getObjectType(), idAndVersion));
 		case materializedview:
-			
-			List<IndexDescription> dependencies = materializedViewDao.getSourceTablesIds(idAndVersion).stream()
-				.map(this::getIndexDescription)
-				.collect(Collectors.toList());
+
+			List<IndexDescription> dependencies = TableModelUtils.getSourceTableIds(nodeDao.getDefiningSql(idAndVersion).get())
+					.stream()
+					.map(this::getIndexDescription)
+					.collect(Collectors.toList());
 			
 			return new MaterializedViewIndexDescription(idAndVersion, dependencies);
 		case virtualtable:

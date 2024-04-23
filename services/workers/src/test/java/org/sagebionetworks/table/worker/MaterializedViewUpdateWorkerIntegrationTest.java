@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -45,6 +46,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
@@ -119,6 +121,9 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	@Autowired
 	private TrashManager trashManager;
 
+	@Autowired
+	private MaterializedViewDao materializedViewDao;
+
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
 
@@ -178,6 +183,63 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 
+	}
+
+	/**
+	 * Note: This test was added for https://sagebionetworks.jira.com/browse/PLFM-8375
+	 * Earlier we were building dependency from MATERIALIZED_VIEW_SOURCE_TABLES which caused the discrepancy
+	 * issue in defining sql and dependency fetched from MATERIALIZED_VIEW_SOURCE_TABLES.
+	 * The fix is to use defining sql of materialized to find the dependency instead of MATERIALIZED_VIEW_SOURCE_TABLES.
+	 * @throws Exception
+	 */
+	@Test
+	public void tesBuildMaterializedViewIndependentOfDependencySourceTable() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		EntityView view = createEntityView(entites);
+
+		Project project = entites.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+		Long projectId = KeyFactory.stringToKey(project.getId());
+		// the user can only see files with the project as their benefactor.
+		List<String> fileIdsUserCanSee = entites.stream()
+				.filter((e) -> e instanceof FileEntity
+						&& projectId.equals(entityManager.getEntityHeader(adminUserInfo, e.getId()).getBenefactorId()))
+				.map(e -> e.getId()).collect(Collectors.toList());
+		assertEquals(3, fileIdsUserCanSee.size());
+
+		// Currently do not support doubles so the double key is excluded.
+		String definingSql = "select id, stringKey, longKey, doubleKey, dateKey, booleanKey from " + view.getId();
+
+		IdAndVersion viewId = createMaterializedView(view.getParentId(), definingSql);
+
+		String finalSql = "select * from " + viewId + " order by id asc";
+
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L)
+						.setValues(Arrays.asList(fileIdsUserCanSee.get(0), "a string: 3", "8", "6.140000000000001",
+								"1004", "false")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(
+						Arrays.asList(fileIdsUserCanSee.get(1), "a string: 5", "10", "8.14", "1006", "false")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(
+						Arrays.asList(fileIdsUserCanSee.get(2), "a string: 7", "12", "10.14", "1008", "false")));
+		IdAndVersion id = IdAndVersion.parse(view.getId());
+
+		// delete the dependency from MATERIALIZED_VIEW_SOURCE_TABLES
+		materializedViewDao.deleteSourceTablesIds(viewId, Set.of(id));
+
+		// Call under test. Wait for the query against the materialized view to have the expected results.
+		// Dependencies are now gathered from defining sql and not from MATERIALIZED_VIEW_SOURCE_TABLES.
+		asyncHelper.assertQueryResult(userInfo, finalSql, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+
+		//Add the dependency in MATERIALIZED_VIEW_SOURCE_TABLES
+		materializedViewDao.addSourceTablesIds(viewId, Set.of(id));
+
+		// dependency should not affect view rebuilding
+		asyncHelper.assertQueryResult(userInfo, finalSql, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
 	}
 
 	@Test
