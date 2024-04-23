@@ -103,4 +103,13 @@ public class FilePartRequest {
 				&& Objects.equals(uploadId, other.uploadId);
 	}
 
+	@Override
+	public String toString() {
+		return "FilePartRequest [synapseClient=" + synapseClient + ", uploadId=" + uploadId + ", partNumber="
+				+ partNumber + ", file=" + file + ", partLength=" + partLength + ", partOffset=" + partOffset
+				+ ", httpClient=" + httpClient + "]";
+	}
+	
+	
+
 }
