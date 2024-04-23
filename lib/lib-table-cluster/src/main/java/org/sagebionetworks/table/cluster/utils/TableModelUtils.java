@@ -1548,7 +1548,7 @@ public class TableModelUtils {
 	}
 
 	public static List<IdAndVersion> getSourceTableIds(QueryExpression query) {
-		 return query.stream(TableNameCorrelation.class).map((tnc) -> IdAndVersion.parse(tnc.toSql()))
+		 return query.stream(TableNameCorrelation.class).map((tnc) -> IdAndVersion.parse(tnc.getTableName().toSql()))
 				.collect(Collectors.toList());
 	}
 
