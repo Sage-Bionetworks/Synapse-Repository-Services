@@ -2,6 +2,7 @@ package org.sagebionetworks.client.upload;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.times;
@@ -278,7 +279,7 @@ public class MultithreadMultipartUploadTest {
 			MultithreadMultipartUpload.doUpload(mockPartCallableFactory, mockHttpClient, mockThreadPool,
 					mockSynapseClient, doesNotExist, new MultipartUploadRequest(), forceRestart);
 		}).getMessage();
-		assertEquals("The provided file does not exist: C:\\DoesNotExist.txt", message);
+		assertTrue(message.startsWith("The provided file does not exist:"));
 	}
 	
 	@Test
