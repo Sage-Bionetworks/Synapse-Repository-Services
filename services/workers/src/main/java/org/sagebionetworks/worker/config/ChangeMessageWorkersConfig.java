@@ -14,12 +14,12 @@ import org.sagebionetworks.file.worker.FileHandleStreamWorker;
 import org.sagebionetworks.replication.workers.ObjectReplicationReconciliationWorker;
 import org.sagebionetworks.replication.workers.ObjectReplicationWorker;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.search.workers.sqs.search.SearchQueueWorker;
 import org.sagebionetworks.snapshot.workers.ObjectSnapshotWorker;
 import org.sagebionetworks.snapshot.workers.writers.ObjectRecordWriter;
 import org.sagebionetworks.table.worker.MaterializedViewUpdateWorker;
 import org.sagebionetworks.table.worker.TableIndexWorker;
 import org.sagebionetworks.table.worker.TableViewWorker;
-import org.sagebionetworks.worker.utils.AlwaysOpen;
 import org.sagebionetworks.worker.utils.StackStatusGate;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack;
@@ -194,26 +194,49 @@ public class ChangeMessageWorkersConfig {
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean objectSnapshotWorkerTrigger(StackStatusGate stackStatusGate, ObjectSnapshotWorker objectSnapshotWorker) {
+	public SimpleTriggerFactoryBean objectSnapshotWorkerTrigger(ObjectSnapshotWorker objectSnapshotWorker) {
 		
 		String queueName = stackConfig.getQueueName("OBJECT");
 		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, objectSnapshotWorker);
 		
-		MessageDrivenWorkerStackConfiguration config = new MessageDrivenWorkerStackConfiguration();
-		
-		config.setGate(new AlwaysOpen());
-		config.setQueueName(queueName);
-		config.setRunner(worker);
-		config.setSemaphoreLockAndMessageVisibilityTimeoutSec(120);
-		config.setSemaphoreMaxLockCount(4);
-		config.setSemaphoreLockKey("objectSnapshotWorker");
-		
-		MessageDrivenWorkerStack stack = new MessageDrivenWorkerStack(countingSemaphore, amazonSQSClient, config);
-				
 		return new WorkerTriggerBuilder()
-			.withStack(stack)
+			.withStack(ConcurrentWorkerStack.builder()
+				.withSemaphoreLockKey("objectSnapshotWorker")
+				.withSemaphoreMaxLockCount(8)
+				.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
+				.withMaxThreadsPerMachine(2)
+				.withSingleton(concurrentStackManager)
+				.withCanRunInReadOnly(true)
+				.withQueueName(queueName)
+				.withWorker(worker)
+				.build()
+			)
 			.withRepeatInterval(1979)
 			.withStartDelay(39)
+			.build();
+		
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean searchQueueMessageReveiverTrigger(SearchQueueWorker searchQueueWorker) {
+		
+		String queueName = stackConfig.getQueueName("SEARCH_UPDATE");
+		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, searchQueueWorker);
+		
+		return new WorkerTriggerBuilder()
+			.withStack(ConcurrentWorkerStack.builder()
+				.withSemaphoreLockKey("searchIndexWorker")
+				.withSemaphoreMaxLockCount(8)
+				.withSemaphoreLockAndMessageVisibilityTimeoutSec(600)
+				.withMaxThreadsPerMachine(2)
+				.withSingleton(concurrentStackManager)
+				.withCanRunInReadOnly(true)
+				.withQueueName(queueName)
+				.withWorker(worker)
+				.build()
+			)
+			.withRepeatInterval(2007)
+			.withStartDelay(256)
 			.build();
 	}
 
