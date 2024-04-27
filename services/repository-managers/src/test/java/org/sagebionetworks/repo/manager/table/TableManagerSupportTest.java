@@ -1098,8 +1098,9 @@ public class TableManagerSupportTest {
 		
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.materializedview, EntityType.table,
 				EntityType.entityview, EntityType.submissionview);
-		when(mockMaterializedViewDao.getSourceTablesIds(any()))
-				.thenReturn(Sets.newHashSet(tableId, fileViewId, submissionViewId));
+
+		String definingSql = "select * from  syn111 JOIN syn222 JOIN syn333";
+		when(mockNodeDao.getDefiningSql(any())).thenReturn(Optional.of(definingSql));
 		doReturn(Optional.of(11L)).when(managerSpy).getLastTableChangeNumber(any());
 		
 		// call under test
@@ -1114,8 +1115,8 @@ public class TableManagerSupportTest {
 		verify(mockNodeDao).getNodeTypeById(fileViewId.getId().toString());
 		verify(mockNodeDao).getNodeTypeById(submissionViewId.getId().toString());
 		verify(mockNodeDao, times(4)).getNodeTypeById(any());
+		verify(mockNodeDao).getDefiningSql(idAndVersion);
 		verify(managerSpy).getLastTableChangeNumber(tableId);
-		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
 	}
 	
 	@Test

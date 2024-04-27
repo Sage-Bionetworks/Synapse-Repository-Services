@@ -3,15 +3,10 @@ package org.sagebionetworks;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
@@ -25,6 +20,7 @@ import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
+import org.sagebionetworks.util.RandomTempFileUtil;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3;
@@ -66,7 +62,7 @@ public class ITMultipartUpload {
 	@Disabled
 	@Test
 	public void testS3ClientFileUpload() throws IOException {
-		consumeRandomeFile(fileSizeByptes, (temp) -> {
+		RandomTempFileUtil.consumeRandomTempFile(fileSizeByptes, "random", ".bin", (temp) -> {
 			TransferManager transferManager = TransferManagerBuilder.standard().withS3Client(s3Client)
 					.withExecutorFactory(() -> {
 						return threadPool;
@@ -92,7 +88,7 @@ public class ITMultipartUpload {
 
 	@Test
 	public void testLargeFileUpoadToS3() {
-		consumeRandomeFile(fileSizeByptes, (temp) -> {
+		RandomTempFileUtil.consumeRandomTempFile(fileSizeByptes, "random", ".bin", (temp) -> {
 			boolean forceRestart = false;
 			try {
 				long start = System.currentTimeMillis();
@@ -128,7 +124,7 @@ public class ITMultipartUpload {
 		storageLocationSetting = adminSynapse.createStorageLocationSetting(storageLocationSetting);
 		Long storageLocationId = storageLocationSetting.getStorageLocationId();
 
-		consumeRandomeFile(fileSizeByptes, (temp) -> {
+		RandomTempFileUtil.consumeRandomTempFile(fileSizeByptes, "random", ".bin", (temp) -> {
 			boolean forceRestart = false;
 			try {
 				long start = System.currentTimeMillis();
@@ -148,43 +144,4 @@ public class ITMultipartUpload {
 		});
 	}
 
-	/**
-	 * Helper to create a new randomly generated file with the provided number of
-	 * bytes.
-	 * 
-	 * @param sizeBytes
-	 * @return
-	 * @throws IOException
-	 */
-	public static File createRandomFile(int sizeBytes) throws IOException {
-		Random rand = new Random();
-		File temp = File.createTempFile("random", ".bin");
-		try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(temp))) {
-			for (int i = 0; i < sizeBytes; i++) {
-				out.write(rand.nextInt());
-			}
-		}
-		return temp;
-	}
-
-	/**
-	 * Create a new random temporary file to be consumed by the provided consumer.
-	 * The resulting temporary file will be unconditionally deleted after the
-	 * {@link Consumer#accept(Object)} call
-	 * 
-	 * @param sizeBytes
-	 * @param consumer
-	 */
-	public void consumeRandomeFile(int sizeBytes, Consumer<File> consumer) {
-		try {
-			File temp = createRandomFile(sizeBytes);
-			try {
-				consumer.accept(temp);
-			} finally {
-				temp.delete();
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
 }

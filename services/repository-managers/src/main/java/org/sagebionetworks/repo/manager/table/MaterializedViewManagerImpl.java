@@ -24,17 +24,16 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
-import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.SqlContext;
-import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 
 @Service
 public class MaterializedViewManagerImpl implements MaterializedViewManager {
@@ -72,10 +71,9 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	@Override
 	public void validateDefiningSql(String definingSql) {
 		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the materialized view");
-		
-		QueryExpression query = getQuerySpecification(definingSql);
-		
-		List<IndexDescription> indexDescriptions = getSourceTableIds(query).stream()
+
+		List<IndexDescription> indexDescriptions = TableModelUtils.getSourceTableIds(definingSql)
+				.stream()
 				// getIndexDescription is validating each column we are trying to reference
 				.map(sourceTableId -> tableManagerSupport.getIndexDescription(sourceTableId))
 				.collect(Collectors.toList());
@@ -97,10 +95,9 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	@WriteTransaction
 	public void registerSourceTables(IdAndVersion idAndVersion, String definingSql) {
 		ValidateArgument.required(idAndVersion, "The id of the materialized view");
-		
-		QueryExpression query = getQuerySpecification(definingSql);
-		
-		Set<IdAndVersion> newSourceTables = getSourceTableIds(query);
+
+		QueryExpression query = TableModelUtils.getQuerySpecification(definingSql);
+		Set<IdAndVersion> newSourceTables = new HashSet<>(TableModelUtils.getSourceTableIds(query));
 		Set<IdAndVersion> currentSourceTables = materializedViewDao.getSourceTablesIds(idAndVersion);
 		
 		if (!newSourceTables.equals(currentSourceTables)) {
@@ -157,25 +154,6 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			.collect(Collectors.toList());
 		
 		columModelManager.bindColumnsToVersionOfObject(schemaIds, idAndVersion);
-	}
-	
-	static QueryExpression getQuerySpecification(String definingSql) {
-		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the materialized view");
-		try {
-			return new TableQueryParser(definingSql).queryExpression();
-		} catch (ParseException e) {
-			throw new IllegalArgumentException(e.getMessage(), e);
-		}
-	}
-		
-	static Set<IdAndVersion> getSourceTableIds(QueryExpression query) {
-		Set<IdAndVersion> sourceTableIds = new HashSet<>();
-		
-		for (TableNameCorrelation table : query.createIterable(TableNameCorrelation.class)) {
-			sourceTableIds.add(IdAndVersion.parse(table.getTableName().toSql()));
-		}
-		
-		return sourceTableIds;
 	}
 
 	@Override
@@ -251,7 +229,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 				.sqlContext(SqlContext.build)
 				.indexDescription(indexDescription)
 			.build();
-	
+
 			// schema of the current version is dynamic, while the schema of a snapshot is static.
 			if (!idAndVersion.getVersion().isPresent()) {
 				bindSchemaToView(idAndVersion, sqlQuery);
@@ -355,7 +333,6 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	
 	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(QueryTranslator definingSql, List<ColumnModel> schema, boolean isSearchEnabled) {
 		IdAndVersion idAndVersion = definingSql.getIndexDescription().getIdAndVersion();
-		
 		TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
 		
 		// Start the worker

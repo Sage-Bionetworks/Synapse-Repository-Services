@@ -2,8 +2,6 @@ package org.sagebionetworks.search.workers.sqs.search;
 
 import java.util.List;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -12,6 +10,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainException;
 
@@ -21,17 +20,14 @@ import com.amazonaws.services.cloudsearchdomain.model.AmazonCloudSearchDomainExc
  * @author John
  * 
  */
+@Service
 public class SearchQueueWorker implements BatchChangeMessageDrivenRunner {
-
-	static private Logger log = LogManager.getLogger(SearchQueueWorker.class);
-
 
 	@Autowired
 	private WorkerLogger workerLogger;
 
 	@Autowired
 	private SearchManager searchManager;
-
 
 	@Override
 	public void run(ProgressCallback progressCallback, List<ChangeMessage> changes)

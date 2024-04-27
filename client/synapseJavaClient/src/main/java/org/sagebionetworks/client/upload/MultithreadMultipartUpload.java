@@ -57,21 +57,24 @@ public class MultithreadMultipartUpload {
 			throws SynapseException, FileNotFoundException, IOException {
 		return doUpload((r) -> {
 			return new PartUploadCallable(r);
-		}, threadPool, client, toUpload, request, forceRestart);
+		}, httpClient, threadPool, client, toUpload, request, forceRestart);
 	}
 
-	public static CloudProviderFileHandleInterface doUpload(PartCallableFactory callableFactory,
-			ExecutorService threadPool, SynapseClient client, File toUpload, MultipartUploadRequest request,
-			boolean forceRestart) throws SynapseException, FileNotFoundException, IOException {
+	static CloudProviderFileHandleInterface doUpload(PartCallableFactory callableFactory,
+			CloseableHttpClient httpClient, ExecutorService threadPool, SynapseClient client, File toUpload,
+			MultipartUploadRequest request, boolean forceRestart)
+			throws SynapseException, FileNotFoundException, IOException {
+		ValidateArgument.required(callableFactory, "callableFactory");
+		ValidateArgument.required(httpClient, "httpClient");
 		ValidateArgument.required(threadPool, "threadPool");
-		ValidateArgument.required(client, "SynapseClient");
+		ValidateArgument.required(client, "synapseClient");
+		ValidateArgument.required(toUpload, "file");
 		if (request == null) {
 			request = new MultipartUploadRequest();
 		}
 		if (!toUpload.exists()) {
 			throw new IllegalArgumentException("The provided file does not exist: " + toUpload.getAbsolutePath());
 		}
-		ValidateArgument.required(request, "request");
 		if (request.getFileName() == null) {
 			request.setFileName(toUpload.getName());
 		}
@@ -95,8 +98,8 @@ public class MultithreadMultipartUpload {
 				long partOffset = request.getPartSizeBytes() * (partNumber - 1);
 				long partLength = partNumber < numberOfParts ? request.getPartSizeBytes()
 						: toUpload.length() - partOffset;
-				addPartFutures.add(threadPool.submit(
-						callableFactory.createCallable(new FilePartRequest().setSynapseClient(client).setFile(toUpload)
+				addPartFutures.add(
+						threadPool.submit(callableFactory.createCallable(new FilePartRequest().setSynapseClient(client)
 								.setPartLength(partLength).setPartNumber((long) partNumber).setPartOffset(partOffset)
 								.setUploadId(status.getUploadId()).setFile(toUpload).setHttpClient(httpClient))));
 			}

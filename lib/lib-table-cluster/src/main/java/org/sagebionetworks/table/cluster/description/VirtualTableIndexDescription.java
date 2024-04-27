@@ -1,16 +1,14 @@
 package org.sagebionetworks.table.cluster.description;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.model.SqlContext;
-import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class VirtualTableIndexDescription implements IndexDescription {
@@ -26,20 +24,15 @@ public class VirtualTableIndexDescription implements IndexDescription {
 
 		this.idAndVersion = idAndVersion;
 		this.definingSql = definingSql;
-		try {
-			List<IdAndVersion> sourceIds = new TableQueryParser(definingSql).queryExpression()
-					.stream(TableNameCorrelation.class).map((tnc) -> IdAndVersion.parse(tnc.toSql()))
-					.collect(Collectors.toList());
-			if(sourceIds.size() != 1) {
-				throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
-			}
-			sourceIds.stream().filter(s -> s.equals(idAndVersion)).findFirst().ifPresent(s -> {
-				throw new IllegalArgumentException("Defining SQL cannot reference itself");
-			});
-			source =  lookup.getIndexDescription(sourceIds.get(0));
-		} catch (ParseException e) {
-			throw new IllegalArgumentException(e);
+
+		List<IdAndVersion> sourceIds = TableModelUtils.getSourceTableIds(definingSql);
+		if (sourceIds.size() != 1) {
+			throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
 		}
+		sourceIds.stream().filter(s -> s.equals(idAndVersion)).findFirst().ifPresent(s -> {
+			throw new IllegalArgumentException("Defining SQL cannot reference itself");
+		});
+		source = lookup.getIndexDescription(sourceIds.get(0));
 	}
 
 	@Override

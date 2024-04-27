@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -56,6 +57,7 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ColumnTypeInfo;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 
 import com.google.common.collect.ImmutableMap;
@@ -2120,5 +2122,103 @@ public class TableModelUtilsTest {
 		assertEquals(cm.getName(), selectColumn.getName());
 		assertEquals(cm.getColumnType(), selectColumn.getColumnType());
 		assertEquals(cm.getId(), selectColumn.getId());
+	}
+
+
+	@Test
+	public void testGetQuerySpecification() {
+		String sql = "SELECT * FROM syn123";
+
+		QueryExpression result = TableModelUtils.getQuerySpecification(sql);
+
+		assertNotNull(result);
+	}
+
+	@Test
+	public void testGetQuerySpecificationWithParingException() {
+		String sql = "invalid query";
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			TableModelUtils.getQuerySpecification(sql);
+		}).getMessage();
+
+		assertTrue(message.startsWith("Encountered \" <regular_identifier>"));
+	}
+
+	@Test
+	public void testGetQuerySpecificationWithNullQuery() {
+		String sql = null;
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			TableModelUtils.getQuerySpecification(sql);
+		}).getMessage();
+
+		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
+	}
+
+	@Test
+	public void testGetQuerySpecificationWithEmptyQuery() {
+		String sql = "";
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			TableModelUtils.getQuerySpecification(sql);
+		}).getMessage();
+
+		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
+	}
+
+	@Test
+	public void testGetQuerySpecificationWithBlankQuery() {
+		String sql = "   ";
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			TableModelUtils.getQuerySpecification(sql);
+		}).getMessage();
+
+		assertEquals("The definingSQL of the materialized view is required and must not be a blank string.", message);
+	}
+
+	@Test
+	public void testGetSourceTableIds() {
+
+		QueryExpression query = TableModelUtils.getQuerySpecification("SELECT * FROM syn123");
+
+		List<IdAndVersion> expected = ImmutableList.of(IdAndVersion.parse("syn123"));
+		List<IdAndVersion> result = TableModelUtils.getSourceTableIds(query);
+
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testGetSourceTableIdsWithVersion() {
+
+		QueryExpression query = TableModelUtils.getQuerySpecification("SELECT * FROM syn123.1");
+
+		List<IdAndVersion> expected = ImmutableList.of(IdAndVersion.parse("syn123.1"));
+		List<IdAndVersion> result = TableModelUtils.getSourceTableIds(query);
+
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testGetSourceTableIdsFromQueryExpression() {
+
+		QueryExpression query = TableModelUtils.getQuerySpecification("SELECT * FROM syn123.1 JOIN syn456 JOIN syn123");
+
+		List<IdAndVersion> expected = ImmutableList.of(IdAndVersion.parse("syn123.1"), IdAndVersion.parse("syn456"),
+				IdAndVersion.parse("123"));
+		List<IdAndVersion> result = TableModelUtils.getSourceTableIds(query);
+
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testGetSourceTableIdsFromDefiningSql() {
+		String sql = "SELECT * FROM syn123";
+
+		List<IdAndVersion> expected = ImmutableList.of(IdAndVersion.parse("syn123"));
+		List<IdAndVersion> result = TableModelUtils.getSourceTableIds(sql);
+
+		assertEquals(expected, result);
 	}
 }
