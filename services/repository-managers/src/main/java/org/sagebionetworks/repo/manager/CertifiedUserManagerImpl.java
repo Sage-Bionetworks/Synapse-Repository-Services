@@ -330,6 +330,9 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		PassingRecord passingRecord = new PassingRecord();
 		passingRecord.setCorrections(corrections);
 		passingRecord.setPassed(pass);
+		passingRecord.setCertified(pass);
+		passingRecord.setRevoked(false);
+		passingRecord.setRevokedOn(null);
 		passingRecord.setPassedOn(quizResponse.getCreatedOn());
 		passingRecord.setQuizId(quizResponse.getQuizId());
 		passingRecord.setResponseId(quizResponse.getId());

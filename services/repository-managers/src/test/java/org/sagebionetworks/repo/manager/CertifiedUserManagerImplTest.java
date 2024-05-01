@@ -647,6 +647,9 @@ public class CertifiedUserManagerImplTest {
 		verify(quizResponseDao).create(eq(quizResponse), captor.capture());
 		verify(groupMembersDao).addMembers(anyString(), (List<String>)any());
 		assertEquals(passingRecord.getPassed(), pr.getPassed());
+		assertTrue(passingRecord.getCertified());
+		assertFalse(passingRecord.getRevoked());
+		assertNull(passingRecord.getRevokedOn());
 		assertNotNull(pr.getPassedOn());
 		assertEquals(created.getQuizId(), pr.getQuizId());
 		assertEquals(created.getId(), pr.getResponseId());
@@ -684,6 +687,9 @@ public class CertifiedUserManagerImplTest {
 		assertNotNull(quizResponse.getCreatedOn());
 		verify(groupMembersDao, never()).addMembers(anyString(), (List<String>)any());
 		assertEquals(passingRecord.getPassed(), pr.getPassed());
+		assertFalse(passingRecord.getCertified());
+		assertFalse(passingRecord.getRevoked());
+		assertNull(passingRecord.getRevokedOn());
 		assertNotNull(pr.getPassedOn());
 		assertEquals(created.getQuizId(), pr.getQuizId());
 		assertEquals(created.getId(), pr.getResponseId());
