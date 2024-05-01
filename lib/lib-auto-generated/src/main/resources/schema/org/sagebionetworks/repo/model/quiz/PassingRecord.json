@@ -36,6 +36,10 @@
 			"type": "boolean",
 			"description": "True if the record is revoked, false otherwise"
 		},
+		"certified": {
+			"type": "boolean",
+			"description": "True if the record is not revoked and passed is true, false otherwise"
+		},
 		"corrections": {
 			"description":"For each response, whether it was correct",
 			"type": "array",

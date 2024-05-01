@@ -65,6 +65,12 @@ public class QuizResponseUtils {
 			passingRecord.setRevoked(false);
 		}
 		
+		if (passingRecord.getPassed() && !passingRecord.getRevoked()) {
+			passingRecord.setCertified(true);
+		} else {
+			passingRecord.setCertified(false);
+		}
+		
 		return passingRecord;
 	}
 	

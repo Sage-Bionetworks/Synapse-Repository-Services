@@ -205,6 +205,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 	}
 	
 	@Override
+	@WriteTransaction
 	public boolean revokeQuizResponse(Long responseId) {
 		String sql = "UPDATE " + TABLE_QUIZ_RESPONSE + " SET " 
 			+ COL_QUIZ_RESPONSE_REVOKED_ON + " = ?,"

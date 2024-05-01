@@ -802,6 +802,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(new Long(0L), pr.getScore());
 		assertFalse(pr.getPassed());
 		assertFalse(pr.getRevoked());
+		assertFalse(pr.getCertified());
 		assertEquals(quiz.getId(), pr.getQuizId());
 		assertNotNull(pr.getResponseId());
 		Instant now = Instant.now();

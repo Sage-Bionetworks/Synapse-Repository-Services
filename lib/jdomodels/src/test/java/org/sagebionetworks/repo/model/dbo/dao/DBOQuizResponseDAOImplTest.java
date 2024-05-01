@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -24,7 +23,6 @@ import org.sagebionetworks.repo.model.quiz.MultichoiceResponse;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -178,6 +176,7 @@ public class DBOQuizResponseDAOImplTest {
 				.setCorrections(pr.getCorrections())
 				.setPassed(false)
 				.setRevoked(false)
+				.setCertified(false)
 				.setPassedOn(pr.getPassedOn())
 				.setQuizId(quizId)
 				.setResponseId(failedQuiz.getId())
@@ -198,6 +197,7 @@ public class DBOQuizResponseDAOImplTest {
 				.setCorrections(pr.getCorrections())
 				.setPassed(true)
 				.setRevoked(false)
+				.setCertified(true)
 				.setPassedOn(pr.getPassedOn())
 				.setQuizId(quizId)
 				.setResponseId(passedQuiz.getId())
@@ -215,6 +215,7 @@ public class DBOQuizResponseDAOImplTest {
 				.setCorrections(pr.getCorrections())
 				.setPassed(true)
 				.setRevoked(false)
+				.setCertified(true)
 				.setPassedOn(pr.getPassedOn())
 				.setQuizId(quizId)
 				.setResponseId(evenBetterPassedQuiz.getId())
@@ -235,6 +236,7 @@ public class DBOQuizResponseDAOImplTest {
 				.setCorrections(pr.getCorrections())
 				.setPassed(true)
 				.setRevoked(true)
+				.setCertified(false)
 				.setPassedOn(pr.getPassedOn())
 				.setRevokedOn(pr.getRevokedOn())
 				.setQuizId(quizId)
