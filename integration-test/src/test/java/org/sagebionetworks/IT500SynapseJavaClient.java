@@ -801,6 +801,7 @@ public class IT500SynapseJavaClient {
 		PassingRecord pr = synapse.submitCertifiedUserTestResponse(response);
 		assertEquals(new Long(0L), pr.getScore());
 		assertFalse(pr.getPassed());
+		assertFalse(pr.getRevoked());
 		assertEquals(quiz.getId(), pr.getQuizId());
 		assertNotNull(pr.getResponseId());
 		Instant now = Instant.now();
@@ -838,7 +839,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, qrs.getResults().size());
 		assertEquals(pr.getResponseId(), qrs.getResults().iterator().next().getId());
 
-		PaginatedResults<PassingRecord> prs = adminSynapse.getCertifiedUserPassingRecords(0L, 2L, myId);
+		PaginatedResults<PassingRecord> prs = synapse.getCertifiedUserPassingRecords(0L, 2L, myId);
 		assertEquals(1, prs.getResults().size());
 		assertEquals(pr, prs.getResults().iterator().next());
 	}

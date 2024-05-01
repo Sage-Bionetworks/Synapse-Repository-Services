@@ -63,9 +63,9 @@ public class CertifiedUserServiceImpl implements CertifiedUserService {
 	}
 
 	@Override
-	public PassingRecord revokeCertification(Long userId, Long targetUserId) {
+	public PassingRecord revokeCertification(Long userId, Long principalId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return certifiedUserManager.revokeCertification(userInfo, targetUserId);
+		return certifiedUserManager.revokeCertification(userInfo, principalId);
 	}
 
 }

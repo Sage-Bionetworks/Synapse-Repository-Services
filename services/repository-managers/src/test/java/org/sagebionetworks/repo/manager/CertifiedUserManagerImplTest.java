@@ -814,10 +814,18 @@ public class CertifiedUserManagerImplTest {
 		
 		verify(quizResponseDao).getLatestPassingRecord(anyLong(), eq(101L));
 	}
+	
+	@Test
+	public void testGetPassingRecords() throws Exception {
+		UserInfo userInfo = new UserInfo(false, 101L);
+		certifiedUserManager.getPassingRecords(userInfo, 101L, 10L, 0L);
+		verify(quizResponseDao).getAllPassingRecords(anyLong(), eq(101L), eq(10L), eq(0L));
+		verify(quizResponseDao).getAllPassingRecordsCount(anyLong(), eq(101L));
+	}
 
 	@Test
-	public void testGetPassingRecordsNonAdmin() throws Exception {
-		UserInfo userInfo = new UserInfo(false);
+	public void testGetPassingRecordsNonAdminForDifferentUser() throws Exception {
+		UserInfo userInfo = new UserInfo(false, 1L);
 		
 		assertThrows(ForbiddenException.class, () -> {
 			certifiedUserManager.getPassingRecords(userInfo, 101L, 10L, 0L);
@@ -826,7 +834,7 @@ public class CertifiedUserManagerImplTest {
 
 	@Test
 	public void testGetPassingRecordsAdmin() throws Exception {
-		UserInfo userInfo = new UserInfo(true);
+		UserInfo userInfo = new UserInfo(true, 1L);
 		certifiedUserManager.getPassingRecords(userInfo, 101L, 10L, 0L);
 		verify(quizResponseDao).getAllPassingRecords(anyLong(), eq(101L), eq(10L), eq(0L));
 		verify(quizResponseDao).getAllPassingRecordsCount(anyLong(), eq(101L));

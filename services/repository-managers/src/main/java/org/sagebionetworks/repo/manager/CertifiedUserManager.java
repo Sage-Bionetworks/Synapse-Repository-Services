@@ -83,13 +83,13 @@ public interface CertifiedUserManager {
 	void setUserCertificationStatus(UserInfo userInfo, Long principalId, boolean isCertified) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Revokes the user certification for the user with the given targetUserId, setting the last passing record as revoked
+	 * Revokes the user certification for the user with the given principalId, setting the last passing record as revoked
 	 * 
 	 * @param userInfo
-	 * @param targetUserId
+	 * @param principalId
 	 * @return
 	 */
-	PassingRecord revokeCertification(UserInfo userInfo, Long targetUserId);
+	PassingRecord revokeCertification(UserInfo userInfo, Long principalId);
 
 
 }

@@ -134,7 +134,7 @@ public class CertifiedUserController {
 	 */
 	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID, method = RequestMethod.GET)
 	public  @ResponseBody PaginatedResults<PassingRecord> getPassingRecords(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = ID_PATH_VARIABLE) Long id,
@@ -171,8 +171,8 @@ public class CertifiedUserController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_REVOKE, method = RequestMethod.PUT)
 	public @ResponseBody PassingRecord revokeUserCertification(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = ID_PATH_VARIABLE) Long targetUserId) {
-		return serviceProvider.getCertifiedUserService().revokeCertification(userId, targetUserId);
+			@PathVariable(value = ID_PATH_VARIABLE) Long principalId) {
+		return serviceProvider.getCertifiedUserService().revokeCertification(userId, principalId);
 	}
 
 }

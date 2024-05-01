@@ -74,11 +74,11 @@ public interface CertifiedUserService {
 	void setUserCertificationStatus(Long userId, Long principalId, boolean isCertified) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Revokes the certification for the user with the given targetUserId
+	 * Revokes the certification for the user with the given principalId
 	 * 
 	 * @param userId
-	 * @param targetUserId
+	 * @param principalId
 	 * @return
 	 */
-	PassingRecord revokeCertification(Long userId, Long targetUserId);
+	PassingRecord revokeCertification(Long userId, Long principalId);
 }
