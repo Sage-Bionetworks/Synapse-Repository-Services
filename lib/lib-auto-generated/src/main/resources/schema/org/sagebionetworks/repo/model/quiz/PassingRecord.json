@@ -26,8 +26,17 @@
 			"type": "string",
 			"format":"date-time",
 			"description":"Date/time when the user passed the test (omitted if the user has not passed)"
+		},		
+		"revokedOn": {
+			"type": "string",
+			"format":"date-time",
+			"description":"Date/time when the passing record was revoked (omitted if the record was not revoked)"
 		},
-		"corrections":{
+		"revoked": {
+			"type": "boolean",
+			"description": "True if the record is revoked, false otherwise"
+		},
+		"corrections": {
 			"description":"For each response, whether it was correct",
 			"type": "array",
 			"items": {

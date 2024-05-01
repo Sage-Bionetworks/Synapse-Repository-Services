@@ -19,7 +19,7 @@ public interface CertifiedUserManager {
 	 * Get the Certified Users Quiz
 	 * @return
 	 */
-	public Quiz getCertificationQuiz(UserInfo userInfo);
+	Quiz getCertificationQuiz(UserInfo userInfo);
 	
 	/**
 	 * Store the response and score it. If the user passes they are added to the 
@@ -30,7 +30,7 @@ public interface CertifiedUserManager {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public PassingRecord submitCertificationQuizResponse(UserInfo userInfo, QuizResponse response) throws NotFoundException;
+	PassingRecord submitCertificationQuizResponse(UserInfo userInfo, QuizResponse response) throws NotFoundException;
 
 	/**
 	 * Retrieve the questionnaire responses in the system, optionally filtering by user Id.
@@ -42,7 +42,7 @@ public interface CertifiedUserManager {
 	 * @param offset
 	 * @return
 	 */
-	public PaginatedResults<QuizResponse> getQuizResponses(UserInfo userInfo, Long principalId, long limit, long offset);
+	PaginatedResults<QuizResponse> getQuizResponses(UserInfo userInfo, Long principalId, long limit, long offset);
 	
 	/**
 	 * Delete a Quiz Response
@@ -50,7 +50,7 @@ public interface CertifiedUserManager {
 	 * @param responseId
 	 * @throws NotFoundException 
 	 */
-	public void deleteQuizResponse(UserInfo userInfo, Long responseId) throws NotFoundException;
+	void deleteQuizResponse(UserInfo userInfo, Long responseId) throws NotFoundException;
 	
 	
 	/**
@@ -61,13 +61,13 @@ public interface CertifiedUserManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public PassingRecord getPassingRecord(Long principalId) throws DatastoreException, NotFoundException;
+	PassingRecord getLatestPassingRecord(Long principalId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get all Passing Records for a given user.
 	 * Must be a Synapse admin to make this call.
 	 */
-	public PaginatedResults<PassingRecord> getPassingRecords(UserInfo userInfo, Long principalId, long limit, long offset) throws DatastoreException, NotFoundException;
+	PaginatedResults<PassingRecord> getPassingRecords(UserInfo userInfo, Long principalId, long limit, long offset) throws DatastoreException, NotFoundException;
 
 
 	/**
@@ -80,7 +80,16 @@ public interface CertifiedUserManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void setUserCertificationStatus(UserInfo userInfo, Long principalId, boolean isCertified) throws DatastoreException, NotFoundException;
+	void setUserCertificationStatus(UserInfo userInfo, Long principalId, boolean isCertified) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Revokes the user certification for the user with the given targetUserId, setting the last passing record as revoked
+	 * 
+	 * @param userInfo
+	 * @param targetUserId
+	 * @return
+	 */
+	PassingRecord revokeCertification(UserInfo userInfo, Long targetUserId);
 
 
 }

@@ -24,7 +24,7 @@ public interface CertifiedUserService {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public PassingRecord submitCertificationQuizResponse(Long userId, QuizResponse response) throws NotFoundException;
+	PassingRecord submitCertificationQuizResponse(Long userId, QuizResponse response) throws NotFoundException;
 
 	/**
 	 * Retrieve the questionnaire responses in the system, optionally filtering by user Id.
@@ -37,7 +37,7 @@ public interface CertifiedUserService {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public PaginatedResults<QuizResponse> getQuizResponses(Long userId, Long principalId, long limit, long offset) throws NotFoundException;
+	PaginatedResults<QuizResponse> getQuizResponses(Long userId, Long principalId, long limit, long offset) throws NotFoundException;
 	
 	/**
 	 * Delete a Quiz Response
@@ -55,13 +55,13 @@ public interface CertifiedUserService {
 	 * @param principalId
 	 * @return
 	 */
-	public PassingRecord getPassingRecord(Long userId, Long principalId) throws NotFoundException;
+	PassingRecord getLatestPassingRecord(Long userId, Long principalId) throws NotFoundException;
 
 	/**
 	 * Get all Passing Records for a given user.
 	 * Must be a Synapse admin to make this call
 	 */
-	public PaginatedResults<PassingRecord> getPassingRecords(Long userId, Long principalId, long limit, long offset) throws NotFoundException;
+	PaginatedResults<PassingRecord> getPassingRecords(Long userId, Long principalId, long limit, long offset) throws NotFoundException;
 	
 	/**
 	 * For integration testing only.  'userId' must be a Synapse administrator
@@ -71,7 +71,14 @@ public interface CertifiedUserService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void setUserCertificationStatus(Long userId, Long principalId, boolean isCertified) throws DatastoreException, NotFoundException;
+	void setUserCertificationStatus(Long userId, Long principalId, boolean isCertified) throws DatastoreException, NotFoundException;
 
-
+	/**
+	 * Revokes the certification for the user with the given targetUserId
+	 * 
+	 * @param userId
+	 * @param targetUserId
+	 * @return
+	 */
+	PassingRecord revokeCertification(Long userId, Long targetUserId);
 }

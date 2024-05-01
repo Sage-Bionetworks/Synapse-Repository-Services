@@ -14,10 +14,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class CertifiedUserServiceImpl implements CertifiedUserService {
 	@Autowired
 	private UserManager userManager;
-	
+
 	@Autowired
 	private CertifiedUserManager certifiedUserManager;
-	
+
 	@Override
 	public Quiz getCertificationQuiz(Long userId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -25,16 +25,14 @@ public class CertifiedUserServiceImpl implements CertifiedUserService {
 	}
 
 	@Override
-	public PassingRecord submitCertificationQuizResponse(
-			Long userId, QuizResponse response) throws NotFoundException {
+	public PassingRecord submitCertificationQuizResponse(Long userId, QuizResponse response) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return certifiedUserManager.submitCertificationQuizResponse(userInfo, response);
 	}
 
 	@Override
-	public PaginatedResults<QuizResponse> getQuizResponses(
-			Long userId, Long principalId, long limit, long offset) throws NotFoundException {
-
+	public PaginatedResults<QuizResponse> getQuizResponses(Long userId, Long principalId, long limit, long offset)
+			throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return certifiedUserManager.getQuizResponses(userInfo, principalId, limit, offset);
 	}
@@ -46,24 +44,28 @@ public class CertifiedUserServiceImpl implements CertifiedUserService {
 	}
 
 	@Override
-	public PassingRecord getPassingRecord(Long userId, Long principalId) throws NotFoundException {
-		return certifiedUserManager.getPassingRecord(principalId);
+	public PassingRecord getLatestPassingRecord(Long userId, Long principalId) throws NotFoundException {
+		return certifiedUserManager.getLatestPassingRecord(principalId);
 	}
 
 	@Override
-	public PaginatedResults<PassingRecord> getPassingRecords(
-			Long userId, Long principalId, long limit, long offset) throws NotFoundException {
-
+	public PaginatedResults<PassingRecord> getPassingRecords(Long userId, Long principalId, long limit, long offset)
+			throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return certifiedUserManager.getPassingRecords(userInfo, principalId, limit, offset);
 	}
-	
-	@Override
-	public void setUserCertificationStatus(Long userId, Long principalId, boolean isCertified) 
-			throws DatastoreException, NotFoundException {
 
-				UserInfo userInfo = userManager.getUserInfo(userId);
-				certifiedUserManager.setUserCertificationStatus(userInfo, principalId, isCertified);
+	@Override
+	public void setUserCertificationStatus(Long userId, Long principalId, boolean isCertified)
+			throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		certifiedUserManager.setUserCertificationStatus(userInfo, principalId, isCertified);
+	}
+
+	@Override
+	public PassingRecord revokeCertification(Long userId, Long targetUserId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return certifiedUserManager.revokeCertification(userInfo, targetUserId);
 	}
 
 }

@@ -873,8 +873,10 @@ public class SqlConstants {
 	// QuizResponse data set
 	public static final String TABLE_QUIZ_RESPONSE = "QUIZ_RESPONSE";
 	public static final String COL_QUIZ_RESPONSE_ID = "ID";
+	public static final String COL_QUIZ_RESPONSE_ETAG = "ETAG";
 	public static final String COL_QUIZ_RESPONSE_CREATED_BY = "CREATED_BY";
 	public static final String COL_QUIZ_RESPONSE_CREATED_ON = "CREATED_ON";
+	public static final String COL_QUIZ_RESPONSE_REVOKED_ON = "REVOKED_ON";
 	public static final String COL_QUIZ_RESPONSE_QUIZ_ID = "QUIZ_ID";
 	public static final String COL_QUIZ_RESPONSE_SCORE = "SCORE";
 	public static final String COL_QUIZ_RESPONSE_PASSED = "PASSED";

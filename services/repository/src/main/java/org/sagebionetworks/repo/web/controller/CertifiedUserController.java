@@ -69,16 +69,7 @@ public class CertifiedUserController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody QuizResponse response
 			) throws NotFoundException {
-		return serviceProvider.getCertifiedUserService().
-				submitCertificationQuizResponse(userId, response);
-	}
-
-	@RequiredScope({view})
-	@Deprecated
-	@ResponseStatus(HttpStatus.GONE)
-	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST_RESPONSE, method = RequestMethod.GET)
-	public @ResponseBody String getQuizResponses() throws NotFoundException {
-		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_TEST_RESPONSE + " and is only accessible to Synapse administrators";
+		return serviceProvider.getCertifiedUserService().submitCertificationQuizResponse(userId, response);
 	}
 
 	/**
@@ -102,14 +93,6 @@ public class CertifiedUserController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
 			) throws NotFoundException {
 		return serviceProvider.getCertifiedUserService().getQuizResponses(userId, principalId, limit, offset);
-	}
-
-	@Deprecated
-	@RequiredScope({modify})
-	@ResponseStatus(HttpStatus.GONE)
-	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST_RESPONSE_WITH_ID, method = RequestMethod.DELETE)
-	public @ResponseBody String deleteQuizResponse() throws NotFoundException {
-		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_TEST_RESPONSE_WITH_ID + " and is only accessible to Synapse administrators";
 	}
 
 	/**
@@ -142,15 +125,7 @@ public class CertifiedUserController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = ID_PATH_VARIABLE) Long id
 			) throws NotFoundException {
-		return serviceProvider.getCertifiedUserService().getPassingRecord(userId, id);
-	}
-
-	@RequiredScope({view})
-	@Deprecated
-	@ResponseStatus(HttpStatus.GONE)
-	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID, method = RequestMethod.GET)
-	public @ResponseBody String getPassingRecords() throws NotFoundException {
-		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID + " and is only accessible to Synapse administrators";
+		return serviceProvider.getCertifiedUserService().getLatestPassingRecord(userId, id);
 	}
 
 	/**
@@ -169,14 +144,6 @@ public class CertifiedUserController {
 		return serviceProvider.getCertifiedUserService().getPassingRecords(userId, id, limit, offset);
 	}
 
-	@Deprecated // added Deprecated tag to remove from API doc's
-	@RequiredScope({view,modify})
-	@ResponseStatus(HttpStatus.GONE)
-	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_STATUS, method = RequestMethod.PUT)
-	public @ResponseBody String setUserCertificationStatus()  {
-		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_STATUS + " and is only accessible to Synapse administrators";
-	}
-
 	/**
 	 * Set a user's certification status.  For Synapse administrators only.
 	 * @param userId
@@ -193,6 +160,19 @@ public class CertifiedUserController {
 			@RequestParam(value = AuthorizationConstants.IS_CERTIFIED) Boolean isCertified
 	) throws NotFoundException {
 		serviceProvider.getCertifiedUserService().setUserCertificationStatus(userId, principalId, isCertified);
+	}
+	
+	/**
+	 * Revokes the certification for the user.  Only an ACT member can perform this operation.
+	 * 
+	 * @param targetUserId the ID of the user whose certification should be revoked.
+	 */
+	@RequiredScope({modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_REVOKE, method = RequestMethod.PUT)
+	public @ResponseBody PassingRecord revokeUserCertification(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = ID_PATH_VARIABLE) Long targetUserId) {
+		return serviceProvider.getCertifiedUserService().revokeCertification(userId, targetUserId);
 	}
 
 }
