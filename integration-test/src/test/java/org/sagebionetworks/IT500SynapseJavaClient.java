@@ -64,6 +64,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
@@ -843,6 +844,23 @@ public class IT500SynapseJavaClient {
 		PaginatedResults<PassingRecord> prs = synapse.getCertifiedUserPassingRecords(0L, 2L, myId);
 		assertEquals(1, prs.getResults().size());
 		assertEquals(pr, prs.getResults().iterator().next());
+				
+		// We manually add the user to the certified user group so we can test revocation
+		adminSynapse.setCertifiedUserStatus(myId, true);
+		
+		UserBundle userBundle = synapse.getMyOwnUserBundle(0x8);
+		
+		assertTrue(userBundle.getIsCertified());
+		
+		// Even though there is not a PassingRecord that actually certified the user we should still be able to remove them from
+		// the certified user group
+		pr2 = adminSynapse.revokeUserCertification(myId);
+		
+		assertEquals(pr, pr2);
+		
+		userBundle = synapse.getMyOwnUserBundle(0x8);
+		
+		assertFalse(userBundle.getIsCertified());
 	}
 
 	private void cleanupPassingQuizRecords(String userId) throws SynapseException {

@@ -955,7 +955,7 @@ public class CertifiedUserManagerImplTest {
 	}
 	
 	@Test
-	public void testRevokeCertificationWithNotAndActMember() {
+	public void testRevokeCertificationWithNotActMember() {
 		UserInfo userInfo = new UserInfo(false);
 				
 		String result = assertThrows(ForbiddenException.class, () -> {			
