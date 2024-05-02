@@ -108,6 +108,9 @@ public class JsonSchemaManagerImplTest {
 	@Captor
 	ArgumentCaptor<AccessControlList> aclCaptor;
 
+	@Captor
+	ArgumentCaptor<Long> nodeIdCaptor;
+
 	@InjectMocks
 	JsonSchemaManagerImpl manager;
 
@@ -1630,8 +1633,10 @@ public class JsonSchemaManagerImplTest {
 		Long fileId = 1L;
 		Long folderId = 2L;
 		Long projectId = 3L;
-		Iterator<Long> objectIds = Arrays.asList(fileId, folderId, projectId).iterator();
+		List<Long> nodeIds = Arrays.asList(fileId, folderId, projectId);
+		Iterator<Long> objectIds = nodeIds.iterator();
 		when(mockSchemaDao.getObjectIdsBoundToSchemaIterator(schemaId)).thenReturn(objectIds);
+		when(mockNodeDao.isNodeAvailable(anyLong())).thenReturn(true);
 		when(mockNodeDao.getNodeTypeById(KeyFactory.keyToString(fileId))).thenReturn(EntityType.file);
 		when(mockNodeDao.getNodeTypeById(KeyFactory.keyToString(folderId))).thenReturn(EntityType.folder);
 		when(mockNodeDao.getNodeTypeById(KeyFactory.keyToString(projectId))).thenReturn(EntityType.project);
@@ -1639,6 +1644,8 @@ public class JsonSchemaManagerImplTest {
 		CreateSchemaResponse response = managerSpy.createJsonSchema(user, createSchemaRequest);
 		assertNotNull(response);
 		assertEquals(versionInfo, response.getNewVersionInfo());
+		verify(mockNodeDao, times(3)).isNodeAvailable(nodeIdCaptor.capture());
+		assertEquals(nodeIds, nodeIdCaptor.getAllValues());
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(fileId.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
 		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(fileId.toString(), ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
@@ -1677,16 +1684,20 @@ public class JsonSchemaManagerImplTest {
 	public void testCreateOrUpdateValidationSchemaIndex() {
 		Long obj1 = 1L;
 		Long obj2 = 2L;
-		Iterator<Long> objectIds = Arrays.asList(obj1, obj2).iterator();
+		List<Long> nodeIds = Arrays.asList(obj1, obj2);
+		Iterator<Long> objectIds = nodeIds.iterator();
 		String semanticVersion = null;
 		versionInfo.setSemanticVersion(semanticVersion);
 		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionId);
 		doReturn(validationSchema).when(managerSpy).buildValidationSchema(versionInfo.get$id());
 		doReturn(objectIds).when(mockSchemaDao).getObjectIdsBoundToSchemaIterator(versionInfo.getSchemaId());
+		doReturn(true).when(mockNodeDao).isNodeAvailable(anyLong());
 		doReturn(EntityType.file).when(mockNodeDao).getNodeTypeById(any());
 		// call under test
 		JsonSchema result = managerSpy.createOrUpdateValidationSchemaIndex(versionId);
 		verify(mockValidationIndexDao).createOrUpdate(versionId, validationSchema);
+		verify(mockNodeDao, times(2)).isNodeAvailable(nodeIdCaptor.capture());
+		assertEquals(nodeIds, nodeIdCaptor.getAllValues());
 		verify(mockSchemaDao).getObjectIdsBoundToSchemaIterator(versionInfo.getSchemaId());
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(obj1.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(obj2.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
@@ -1780,7 +1791,32 @@ public class JsonSchemaManagerImplTest {
 		assertEquals(page, result);
 		verify(mockSchemaDao).getNextPageForVersionIdsOfDependants(schemaId, 10000, 0);
 	}
-	
+
+	@Test
+	public void testObjectBindingUpdateNotificationsIsNotSentIfNodeIsNotAvailable() {
+		Long obj1 = 1L;
+		Long obj2 = 2L;
+		List<Long> nodeIds = Arrays.asList(obj1, obj2);
+		Iterator<Long> objectIds = nodeIds.iterator();
+		String semanticVersion = null;
+		versionInfo.setSemanticVersion(semanticVersion);
+		when(mockSchemaDao.getVersionInfo(versionId)).thenReturn(versionInfo);
+		doReturn(validationSchema).when(managerSpy).buildValidationSchema(versionInfo.get$id());
+		when(mockSchemaDao.getObjectIdsBoundToSchemaIterator(versionInfo.getSchemaId())).thenReturn(objectIds);
+		when(mockNodeDao.isNodeAvailable(anyLong())).thenReturn(false);
+
+		// call under test
+		managerSpy.createOrUpdateValidationSchemaIndex(versionId);
+		verify(mockValidationIndexDao).createOrUpdate(versionId, validationSchema);
+		verify(mockNodeDao, times(2)).isNodeAvailable(nodeIdCaptor.capture());
+		assertEquals(nodeIds, nodeIdCaptor.getAllValues());
+		verify(mockSchemaDao).getObjectIdsBoundToSchemaIterator(versionInfo.getSchemaId());
+		verify(mockNodeDao, never()).getNodeTypeById(any());
+		verifyZeroInteractions(mockTransactionalMessenger);
+
+	}
+
+
 	/**
 	 * Helper to create a schema with the given $id.
 	 * 

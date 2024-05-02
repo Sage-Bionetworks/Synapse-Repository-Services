@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.manager.schema.JsonSchemaValidationManager;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
@@ -38,6 +39,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
 import org.sagebionetworks.repo.model.helper.TermsOfUseAccessRequirementObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
@@ -129,6 +131,9 @@ public class JsonSchemaWorkerIntegrationTest {
 	
 	@Autowired
 	private ColumnModelManager columnModleManager;
+	@Autowired
+	private TrashManager trashManager;
+
 	
 
 	UserInfo adminUserInfo;
@@ -838,7 +843,42 @@ public class JsonSchemaWorkerIntegrationTest {
 		entityManager.clearBoundSchema(adminUserInfo, projectId);
 		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
 	}
-	
+
+	/**
+	 * PLFM- 8331 Json Schema update should not throw an exception if an entity has been
+	 * deleted which was bounded to json schema
+	 **/
+
+	@Test
+	public void testCreateJsonSchemaWhenBindingObjectIsDeleted() throws Exception {;
+		JsonSchema parent = new JsonSchema();
+		parent.set$id(organizationName + JsonSchemaConstants.PATH_DELIMITER + "parent");
+
+		// create project
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+
+		// create file
+		FileEntity file = new FileEntity();
+		file.setName("some kind of test project");
+		file.setParentId(projectId);
+		String fileId = entityManager.createEntity(adminUserInfo, file, null);
+		file = entityManager.getEntity(adminUserInfo, fileId, FileEntity.class);
+		// create schema named parent
+		CreateSchemaResponse createResponse = registerSchema(parent);
+		// bind parent schema to the file
+		String parentSchema$id = createResponse.getNewVersionInfo().get$id();
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(fileId);
+		bindRequest.setSchema$id(parentSchema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest, false);
+
+		// delete the bounded file object
+		entityManager.deleteEntity(adminUserInfo, file.getId());
+
+		// call under test. parent schema update should not throw exception.
+		registerSchema(parent);
+	}
+
 	@Test
 	public void testDerivedAnnotationsAndReplication() throws Exception {
 		bootstrapAndCreateOrganization();
