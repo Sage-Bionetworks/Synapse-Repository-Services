@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,23 +11,23 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
 import org.sagebionetworks.repo.model.quiz.MultichoiceResponse;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOQuizResponseDAOImplTest {
 	
@@ -76,13 +76,13 @@ public class DBOQuizResponseDAOImplTest {
 	
 	private String userId;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		toDelete = new ArrayList<Long>();
     	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		for (Long id : toDelete) {
 			quizResponseDao.delete(id);
@@ -152,51 +152,104 @@ public class DBOQuizResponseDAOImplTest {
 		count = quizResponseDao.getAllPassingRecordsCount(quizId, principalId);
 		assertEquals(3L, count);
 	}
-	
-	private static void checkPassingRecord(
-			PassingRecord pr, Long quizId, String userId, Long responseId, boolean passed, Long score) {
-		assertEquals(passed, pr.getPassed());
-		assertNotNull(pr.getPassedOn());
-		assertEquals(quizId, pr.getQuizId());
-		assertEquals(responseId, pr.getResponseId());
-		assertEquals(score, pr.getScore());
-		assertEquals(userId, pr.getUserId());
-	}
-	
+		
 	@Test
 	public void testPassingRecord() throws Exception {
 		Long quizId = 1L;
 		Long principalId = Long.parseLong(userId);
-		try {
-			quizResponseDao.getPassingRecord(quizId, principalId);
-			fail("Exception expected.");
-		} catch (NotFoundException e) {
-			// as expected
-		}
+
+		assertEquals(Optional.empty(), quizResponseDao.getLatestPassingRecord(quizId, principalId));
+		
 		// now add some records and try retrieving
 		long score = 10L;
-		{
-			QuizResponse failedQuiz = createDTOAndStore(principalId.toString(), quizId, false, score);
-			String someOtherUserId=BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
-			createDTOAndStore(someOtherUserId, quizId, false, score+1);
-			createDTOAndStore(principalId.toString(), quizId+1, false, score+2);
-			PassingRecord pr = quizResponseDao.getPassingRecord(quizId, principalId);
-			checkPassingRecord(pr, quizId, principalId.toString(), failedQuiz.getId(), false, score);
-		}
 		
+		QuizResponse failedQuiz = createDTOAndStore(principalId.toString(), quizId, false, score);
+		
+		String someOtherUserId=BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
+		createDTOAndStore(someOtherUserId, quizId, false, score+1);
+		createDTOAndStore(principalId.toString(), quizId+1, false, score+2);
+		
+		PassingRecord pr = quizResponseDao.getLatestPassingRecord(quizId, principalId).get();
+		
+		assertEquals(
+			new PassingRecord()
+				.setCorrections(pr.getCorrections())
+				.setPassed(false)
+				.setRevoked(false)
+				.setCertified(false)
+				.setPassedOn(pr.getPassedOn())
+				.setQuizId(quizId)
+				.setResponseId(failedQuiz.getId())
+				.setUserId(userId)
+				.setScore(score), 
+		pr);
+		
+		// Does not revoke a failed quiz
+		assertFalse(quizResponseDao.revokeQuizResponse(failedQuiz.getId()));		
+				
 		// now add a passing quiz result and retrieve it
-		{
-			QuizResponse passedQuiz = createDTOAndStore(principalId.toString(), quizId, true, score+5L);
-			PassingRecord pr = quizResponseDao.getPassingRecord(quizId, principalId);
-			checkPassingRecord(pr, quizId, principalId.toString(), passedQuiz.getId(), true, score+5L);
-		}
+		QuizResponse passedQuiz = createDTOAndStore(principalId.toString(), quizId, true, score+5L);
+		
+		pr = quizResponseDao.getLatestPassingRecord(quizId, principalId).get();
+		
+		assertEquals(
+			new PassingRecord()
+				.setCorrections(pr.getCorrections())
+				.setPassed(true)
+				.setRevoked(false)
+				.setCertified(true)
+				.setPassedOn(pr.getPassedOn())
+				.setQuizId(quizId)
+				.setResponseId(passedQuiz.getId())
+				.setUserId(userId)
+				.setScore(score + 5), 
+		pr);
 		
 		// now add a better passing quiz result and retrieve it
-		{
-			QuizResponse evenBetterPassedQuiz = createDTOAndStore(principalId.toString(), quizId, true, score+10L);
-			PassingRecord pr = quizResponseDao.getPassingRecord(quizId, principalId);
-			checkPassingRecord(pr, quizId, principalId.toString(), evenBetterPassedQuiz.getId(), true, score+10L);
-		}
+		QuizResponse evenBetterPassedQuiz = createDTOAndStore(principalId.toString(), quizId, true, score+10L);
+		
+		pr = quizResponseDao.getLatestPassingRecord(quizId, principalId).get();		
+
+		assertEquals(
+			new PassingRecord()
+				.setCorrections(pr.getCorrections())
+				.setPassed(true)
+				.setRevoked(false)
+				.setCertified(true)
+				.setPassedOn(pr.getPassedOn())
+				.setQuizId(quizId)
+				.setResponseId(evenBetterPassedQuiz.getId())
+				.setUserId(userId)
+				.setScore(score + 10),
+		pr);
+		
+		// Now revoke the latest response
+		
+		assertTrue(quizResponseDao.revokeQuizResponse(evenBetterPassedQuiz.getId()));
+		
+		pr = quizResponseDao.getLatestPassingRecord(quizId, principalId).get();		
+
+		assertNotNull(pr.getRevokedOn());
+		
+		assertEquals(
+			new PassingRecord()
+				.setCorrections(pr.getCorrections())
+				.setPassed(true)
+				.setRevoked(true)
+				.setCertified(false)
+				.setPassedOn(pr.getPassedOn())
+				.setRevokedOn(pr.getRevokedOn())
+				.setQuizId(quizId)
+				.setResponseId(evenBetterPassedQuiz.getId())
+				.setUserId(userId)
+				.setScore(score + 10),
+		pr);
+		
+		// Revoking a second time does not work
+		assertFalse(quizResponseDao.revokeQuizResponse(evenBetterPassedQuiz.getId()));
+		
+		assertEquals(pr, quizResponseDao.getLatestPassingRecord(quizId, principalId).get());
+		
 	}
 	
 

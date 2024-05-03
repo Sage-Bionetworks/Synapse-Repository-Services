@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -33,15 +32,13 @@ public class CertifiedUserPassingRecordWriter implements ObjectRecordWriter {
 	private CertifiedUserManager certifiedUserManager;
 	private UserManager userManager;
 	private AwsKinesisFirehoseLogger kinesisLogger;
-	private StackConfiguration stackConfiguration;
 	
 	
 	@Autowired
-	public CertifiedUserPassingRecordWriter(CertifiedUserManager certifiedUserManager, UserManager userManager, AwsKinesisFirehoseLogger kinesisLogger, StackConfiguration stackConfiguration) {
+	public CertifiedUserPassingRecordWriter(CertifiedUserManager certifiedUserManager, UserManager userManager, AwsKinesisFirehoseLogger kinesisLogger) {
 		this.certifiedUserManager = certifiedUserManager;
 		this.userManager = userManager;
 		this.kinesisLogger = kinesisLogger;
-		this.stackConfiguration = stackConfiguration;
 	}
 
 	@Override
@@ -57,8 +54,6 @@ public class CertifiedUserPassingRecordWriter implements ObjectRecordWriter {
 				continue;
 			}
 			Long userId = Long.parseLong(message.getObjectId());
-			String stack = stackConfiguration.getStack();
-			String instance = stackConfiguration.getStackInstance();
 			try {
 				long offset = 0L;
 				PaginatedResults<PassingRecord> records = null;

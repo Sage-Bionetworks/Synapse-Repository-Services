@@ -64,6 +64,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
@@ -801,6 +802,8 @@ public class IT500SynapseJavaClient {
 		PassingRecord pr = synapse.submitCertifiedUserTestResponse(response);
 		assertEquals(new Long(0L), pr.getScore());
 		assertFalse(pr.getPassed());
+		assertFalse(pr.getRevoked());
+		assertFalse(pr.getCertified());
 		assertEquals(quiz.getId(), pr.getQuizId());
 		assertNotNull(pr.getResponseId());
 		Instant now = Instant.now();
@@ -838,9 +841,27 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, qrs.getResults().size());
 		assertEquals(pr.getResponseId(), qrs.getResults().iterator().next().getId());
 
-		PaginatedResults<PassingRecord> prs = adminSynapse.getCertifiedUserPassingRecords(0L, 2L, myId);
+		PaginatedResults<PassingRecord> prs = synapse.getCertifiedUserPassingRecords(0L, 2L, myId);
 		assertEquals(1, prs.getResults().size());
 		assertEquals(pr, prs.getResults().iterator().next());
+		
+		// Note that the testing user is automatically already certified when the test starts
+		UserBundle userBundle = synapse.getMyOwnUserBundle(0x8);
+		
+		assertTrue(userBundle.getIsCertified());
+		
+		// Even though there is not a PassingRecord that actually certified the user we should still be able to remove them from
+		// the certified user group
+		pr2 = adminSynapse.revokeUserCertification(myId);
+		
+		assertEquals(pr, pr2);
+		
+		userBundle = synapse.getMyOwnUserBundle(0x8);
+		
+		assertFalse(userBundle.getIsCertified());
+		
+		// Restore the certification status for other tests
+		adminSynapse.setCertifiedUserStatus(myId, true);
 	}
 
 	private void cleanupPassingQuizRecords(String userId) throws SynapseException {

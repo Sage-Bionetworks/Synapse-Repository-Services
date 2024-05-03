@@ -1,4 +1,5 @@
 package org.sagebionetworks.snapshot.workers.writers;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
@@ -19,7 +20,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
@@ -36,11 +36,9 @@ import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
 
 import com.amazonaws.services.sqs.model.Message;
 
-
 @ExtendWith(MockitoExtension.class)
 public class CertifiedUserPassingRecordWriterTest {
-	private static final String STACK = "stack";
-	private static final String INSTANCE = "instance";
+
 	@Mock
 	private CertifiedUserManager mockCertifiedUserManager;
 	@Mock
@@ -49,25 +47,24 @@ public class CertifiedUserPassingRecordWriterTest {
 	private ProgressCallback mockCallback;
 	@Mock
 	private AwsKinesisFirehoseLogger logger;
-	@Mock
-	private StackConfiguration stackConfiguration;
 
 	@InjectMocks
 	private CertifiedUserPassingRecordWriter writer;
 	@Captor
 	private ArgumentCaptor<List<KinesisObjectSnapshotRecord>> recordCaptor;
-	
+
 	private UserInfo admin = new UserInfo(true);
 	private Long userId = 123L;
 
 	@BeforeEach
 	public void before() {
-		Mockito.when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())).thenReturn(admin );
+		Mockito.when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())).thenReturn(admin);
 	}
 
 	@Test
 	public void deleteChangeMessage() throws IOException {
-		Message message = MessageUtils.buildMessage(ChangeType.DELETE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", System.currentTimeMillis());
+		Message message = MessageUtils.buildMessage(ChangeType.DELETE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag",
+				System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 	}
@@ -76,8 +73,8 @@ public class CertifiedUserPassingRecordWriterTest {
 	public void invalidObjectType() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ENTITY, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		
-		assertThrows(IllegalArgumentException.class, () -> {			
+
+		assertThrows(IllegalArgumentException.class, () -> {
 			writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		});
 	}
@@ -87,10 +84,9 @@ public class CertifiedUserPassingRecordWriterTest {
 		PaginatedResults<PassingRecord> results = new PaginatedResults<PassingRecord>();
 		results.setTotalNumberOfResults(0);
 		results.setResults(new ArrayList<PassingRecord>());
-		Mockito.when(mockCertifiedUserManager.getPassingRecords(admin, userId, LIMIT , 0L)).thenReturn(results );
-		Mockito.when(stackConfiguration.getStack()).thenReturn(STACK);
-		Mockito.when(stackConfiguration.getStackInstance()).thenReturn(INSTANCE);
-		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", System.currentTimeMillis());
+		Mockito.when(mockCertifiedUserManager.getPassingRecords(admin, userId, LIMIT, 0L)).thenReturn(results);
+		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag",
+				System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 	}
@@ -102,10 +98,8 @@ public class CertifiedUserPassingRecordWriterTest {
 		PaginatedResults<PassingRecord> pageOne = new PaginatedResults<PassingRecord>();
 		pageOne.setTotalNumberOfResults(1);
 		pageOne.setResults(Arrays.asList(passingRecord));
-		Mockito.when(mockCertifiedUserManager.getPassingRecords(admin, userId, LIMIT , 0L)).thenReturn(pageOne);
 		Mockito.when(mockCertifiedUserManager.getPassingRecords(admin, userId, LIMIT, 0L)).thenReturn(pageOne);
-		Mockito.when(stackConfiguration.getStack()).thenReturn(STACK);
-		Mockito.when(stackConfiguration.getStackInstance()).thenReturn(INSTANCE);
+		Mockito.when(mockCertifiedUserManager.getPassingRecords(admin, userId, LIMIT, 0L)).thenReturn(pageOne);
 
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
@@ -124,10 +118,8 @@ public class CertifiedUserPassingRecordWriterTest {
 		PaginatedResults<PassingRecord> pageOne = new PaginatedResults<PassingRecord>();
 		pageOne.setTotalNumberOfResults(11);
 		pageOne.setResults(Arrays.asList(passingRecord));
-		Mockito.when(mockCertifiedUserManager.getPassingRecords(admin, userId, LIMIT , 0L)).thenReturn(pageOne);
-		Mockito.when(mockCertifiedUserManager.getPassingRecords(admin, userId, LIMIT , LIMIT)).thenReturn(pageOne);
-		Mockito.when(stackConfiguration.getStack()).thenReturn(STACK);
-		Mockito.when(stackConfiguration.getStackInstance()).thenReturn(INSTANCE);
+		Mockito.when(mockCertifiedUserManager.getPassingRecords(admin, userId, LIMIT, 0L)).thenReturn(pageOne);
+		Mockito.when(mockCertifiedUserManager.getPassingRecords(admin, userId, LIMIT, LIMIT)).thenReturn(pageOne);
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		KinesisObjectSnapshotRecord expectedSnapshotOne = KinesisObjectSnapshotRecord.map(changeMessage, passingRecord);
