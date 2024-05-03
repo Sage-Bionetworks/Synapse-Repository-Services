@@ -50,7 +50,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String MIGRATION_COUNTS = MIGRATION + "/counts";
 	private static final String MIGRATION_COUNT = MIGRATION + "/count";
 	private static final String MIGRATION_DELETE = MIGRATION + "/delete";
-	private static final String MIGRATION_STATUS = MIGRATION + "/status";
 	private static final String MIGRATION_PRIMARY = MIGRATION + "/primarytypes";
 	private static final String MIGRATION_PRIMARY_NAMES = MIGRATION_PRIMARY + "/names";
 	private static final String MIGRATION_TYPES = MIGRATION + "/types";
@@ -63,9 +62,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String ADMIN_USER = ADMIN + "/user";
 	private static final String ADMIN_CLEAR_LOCKS = ADMIN+"/locks";
 	private static final String ADMIN_CREATE_OR_UPDATE_CHANGE_MESSAGES = ADMIN+"/messages/createOrUpdate";
-	
-	private static final String DAYS_IN_TRASH_PARAM = "daysInTrash";
-	
+		
 	private static final String ADMIN_ASYNCHRONOUS_JOB = "/admin/asynchronous/job";
 	public static final String ADMIN_ID_GEN_EXPORT = ADMIN + "/id/generator/export";
 
@@ -75,7 +72,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 	private static final String CERTIFIED_USER_STATUS = "/certificationStatus";
-	private static final String CERTIFIED_USER_PASSING_RECORDS = "/certifiedUserPassingRecords";
 	private static final String OAUTH_CLIENT = "/oauth2/client";
 
 	private static final String VERIFIED = "/verified";
@@ -366,16 +362,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		} catch (NumberFormatException e) {
 			throw new SynapseClientException("Expected integer but found "+s, e);
 		}
-	}
-
-	@Override
-	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(
-			long offset, long limit, String principalId)
-			throws SynapseException {
-		ValidateArgument.required(principalId, "principalId");
-		String uri = ADMIN + USER + "/" + principalId + CERTIFIED_USER_PASSING_RECORDS
-				+ "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
-		return getPaginatedResults(getRepoEndpoint(), uri, PassingRecord.class);
 	}
 	
 	@Override

@@ -1,17 +1,20 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -22,13 +25,16 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -56,27 +62,19 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
+@ExtendWith(MockitoExtension.class)
 public class CertifiedUserManagerImplTest {
 	
+	@InjectMocks
 	private CertifiedUserManagerImpl certifiedUserManager;
+	@Mock
 	private AmazonS3Utility s3Utility;
+	@Mock
 	private GroupMembersDAO groupMembersDao;
+	@Mock
 	private QuizResponseDAO quizResponseDao;
+	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
-	
-	@Before
-	public void setUp() throws Exception {
-		s3Utility = Mockito.mock(AmazonS3Utility.class);
-		groupMembersDao = Mockito.mock(GroupMembersDAO.class);
-		quizResponseDao = Mockito.mock(QuizResponseDAO.class);
-		mockTransactionalMessenger = Mockito.mock(TransactionalMessenger.class);
-		certifiedUserManager = new CertifiedUserManagerImpl(
-				 s3Utility,
-				 groupMembersDao,
-				 quizResponseDao,
-				 mockTransactionalMessenger);
-		
-	}
 	
 	private static String getDefaultQuizGeneratorAsString() throws IOException {
 		InputStream is = CertifiedUserManagerImplTest.class.getClassLoader().getResourceAsStream(CertifiedUserManagerImpl.QUESTIONNAIRE_PROPERTIES_FILE);
@@ -101,7 +99,7 @@ public class CertifiedUserManagerImplTest {
 		QuizGenerator quizGenerator = getDefaultQuizGenerator();
 		// do additional validation
 		List<String> errors = CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator);
-		assertTrue(errors.toString(), errors.isEmpty());
+		assertTrue(errors.isEmpty(), errors.toString());
 	}
 
 	@Test
@@ -149,7 +147,7 @@ public class CertifiedUserManagerImplTest {
 			mq.setAnswers(mas);
 			mas.add(createMultichoiceAnswer(true, 10L));
 			mq.setQuestionIndex(99L);
-			assertTrue(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).toString(), CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+			assertTrue(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty(), CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).toString());
 			mq.setQuestionIndex(null);
 			assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 		}
@@ -296,8 +294,7 @@ public class CertifiedUserManagerImplTest {
 					break;
 				}
 			}
-			assertTrue("None of "+quiz.getQuestions().size()+
-					" questions came from this variety of size "+vs.getQuestionOptions().size(), foundOne);
+			assertTrue(foundOne, "None of "+quiz.getQuestions().size() + " questions came from this variety of size "+vs.getQuestionOptions().size());
 		}
 		// test that the quiz answers have been scrubbed
 		for (Question q : quiz.getQuestions()) {
@@ -316,11 +313,14 @@ public class CertifiedUserManagerImplTest {
 	/*
 	 * PLFM-3478
 	 */
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testGetCertificationQuizUnauthorized() throws Exception {
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		assertNotNull(certifiedUserManager.getCertificationQuiz(userInfo).getId());
+		
+		assertThrows(UnauthorizedException.class, () -> {
+			assertNotNull(certifiedUserManager.getCertificationQuiz(userInfo).getId());
+		});
 	}
 
 	@Test
@@ -514,7 +514,7 @@ public class CertifiedUserManagerImplTest {
 		CertifiedUserManagerImpl.selectQuiz(quizGenerator);
 		// this should return no errors
 		List<String> errorMessages = CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator);
-		assertTrue(errorMessages.toString(), errorMessages.isEmpty());
+		assertTrue(errorMessages.isEmpty(), errorMessages.toString());
 	}
 
 	private static QuizResponse createFailingQuizResponse(long quizId) {
@@ -591,29 +591,35 @@ public class CertifiedUserManagerImplTest {
 		return resp;
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testScoreQuizResponseWrongQuestions() throws Exception {
 		QuizGenerator gen = createQuizGenerator();
 		// can't answer two questions from one variety.  
 		// this will throw an IllegalArgumentException
 		QuizResponse resp = createIllegalQuizResponse(gen.getId());
-		CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
+		
+		assertThrows(IllegalArgumentException.class, () -> {			
+			CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
+		});
 	}
 
 	/*
 	 * PLFM-3478
 	 */
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testSubmitCertificationQuizUnauthorized() throws Exception {
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		QuizGenerator quizGenerator = createQuizGenerator();
 		QuizResponse quizResponse = createPassingQuizResponse(quizGenerator.getId());
-		certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
+		
+		assertThrows(UnauthorizedException.class, () -> {			
+			certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
+		});
 	}
 
 	@Test
-	public void testSubmitCertificationQuizPASSINGResponse() throws Exception {
+	public void testSubmitCertificationQuizWithPassingResponse() throws Exception {
 		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
 		QuizGenerator quizGenerator = createQuizGenerator();
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
@@ -629,7 +635,7 @@ public class CertifiedUserManagerImplTest {
 		created.setId(10101L);
 		ArgumentCaptor<PassingRecord> captor = ArgumentCaptor.forClass(PassingRecord.class);
 		when(quizResponseDao.create(eq(quizResponse), captor.capture())).thenReturn(created);
-		when(quizResponseDao.getPassingRecord(quizGenerator.getId(), 666L)).thenThrow(new NotFoundException(""));
+		when(quizResponseDao.getLatestPassingRecord(quizGenerator.getId(), 666L)).thenReturn(Optional.empty());
 		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 		// check that 5 fields are filled in quizResponse
 		assertEquals(userInfo.getId().toString(), quizResponse.getCreatedBy());
@@ -641,6 +647,9 @@ public class CertifiedUserManagerImplTest {
 		verify(quizResponseDao).create(eq(quizResponse), captor.capture());
 		verify(groupMembersDao).addMembers(anyString(), (List<String>)any());
 		assertEquals(passingRecord.getPassed(), pr.getPassed());
+		assertTrue(passingRecord.getCertified());
+		assertFalse(passingRecord.getRevoked());
+		assertNull(passingRecord.getRevokedOn());
 		assertNotNull(pr.getPassedOn());
 		assertEquals(created.getQuizId(), pr.getQuizId());
 		assertEquals(created.getId(), pr.getResponseId());
@@ -650,7 +659,7 @@ public class CertifiedUserManagerImplTest {
 	}
 	
 	@Test
-	public void testSubmitCertificationQuizFAILINGResponse() throws Exception {
+	public void testSubmitCertificationQuizWithFailingResponse() throws Exception {
 		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
 		QuizGenerator quizGenerator = createQuizGenerator();
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
@@ -666,7 +675,7 @@ public class CertifiedUserManagerImplTest {
 		created.setId(10101L);
 		ArgumentCaptor<PassingRecord> captor = ArgumentCaptor.forClass(PassingRecord.class);
 		when(quizResponseDao.create(eq(quizResponse), captor.capture())).thenReturn(created);
-		when(quizResponseDao.getPassingRecord(quizGenerator.getId(), 666L)).thenThrow(new NotFoundException(""));
+		when(quizResponseDao.getLatestPassingRecord(quizGenerator.getId(), 666L)).thenReturn(Optional.empty());
 		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 		verify(quizResponseDao).create(eq(quizResponse), captor.capture());
 		PassingRecord passingRecord = captor.getValue();
@@ -678,6 +687,9 @@ public class CertifiedUserManagerImplTest {
 		assertNotNull(quizResponse.getCreatedOn());
 		verify(groupMembersDao, never()).addMembers(anyString(), (List<String>)any());
 		assertEquals(passingRecord.getPassed(), pr.getPassed());
+		assertFalse(passingRecord.getCertified());
+		assertFalse(passingRecord.getRevoked());
+		assertNull(passingRecord.getRevokedOn());
 		assertNotNull(pr.getPassedOn());
 		assertEquals(created.getQuizId(), pr.getQuizId());
 		assertEquals(created.getId(), pr.getResponseId());
@@ -686,8 +698,33 @@ public class CertifiedUserManagerImplTest {
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.CREATE);
 	}
 	
-	@Test(expected=UnauthorizedException.class)
-	public void testSubmitCertificationQuizAlreadyPassed() throws Exception {
+	@Test
+	public void testSubmitCertificationQuizWithAlreadyPassed() throws Exception {
+		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
+		QuizGenerator quizGenerator = createQuizGenerator();
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		quizGenerator.writeToJSONObject(adapter);
+		String quizGeneratorAsString = adapter.toJSONString();
+		when(s3Utility.downloadFromS3ToString(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(quizGeneratorAsString);
+		QuizResponse quizResponse = createPassingQuizResponse(quizGenerator.getId());
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(666L);
+		QuizResponse created = createPassingQuizResponse(quizGenerator.getId());
+		created.setCreatedBy(userInfo.getId().toString());
+		created.setCreatedOn(new Date());
+		created.setId(10101L);
+		PassingRecord previousPR = new PassingRecord();
+		previousPR.setPassed(true);
+		previousPR.setRevoked(false);
+		when(quizResponseDao.getLatestPassingRecord(quizGenerator.getId(), 666L)).thenReturn(Optional.of(previousPR));
+		
+		assertThrows(UnauthorizedException.class, () -> {			
+			certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
+		});
+	}
+	
+	@Test
+	public void testSubmitCertificationQuizWithRevoked() throws Exception {
 		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
 		QuizGenerator quizGenerator = createQuizGenerator();
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
@@ -703,10 +740,18 @@ public class CertifiedUserManagerImplTest {
 		created.setId(10101L);
 		ArgumentCaptor<PassingRecord> captor = ArgumentCaptor.forClass(PassingRecord.class);
 		when(quizResponseDao.create(eq(quizResponse), captor.capture())).thenReturn(created);
+		
 		PassingRecord previousPR = new PassingRecord();
 		previousPR.setPassed(true);
-		when(quizResponseDao.getPassingRecord(quizGenerator.getId(), 666L)).thenReturn(previousPR);
-		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
+		previousPR.setRevoked(true);
+		
+		when(quizResponseDao.getLatestPassingRecord(quizGenerator.getId(), 666L)).thenReturn(Optional.of(previousPR));
+		
+		certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);		
+		
+		verify(quizResponseDao).create(eq(quizResponse), captor.capture());
+		verify(groupMembersDao).addMembers(anyString(), (List<String>)any());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.CREATE);
 	}
 	
 	@Test
@@ -728,10 +773,14 @@ public class CertifiedUserManagerImplTest {
 		verify(quizResponseDao).getUserResponsesForQuizCount(quizId, userId);
 	}
 
-	@Test(expected=ForbiddenException.class)
+	@Test
 	public void testGetQuizResponsesNonAdmin() throws Exception {
 		UserInfo userInfo = new UserInfo(false);
-		certifiedUserManager.getQuizResponses(userInfo, 101L, 3L, 10L);
+		
+		assertThrows(ForbiddenException.class, () -> {
+			certifiedUserManager.getQuizResponses(userInfo, 101L, 3L, 10L);
+		});
+		
 	}
 
 	@Test
@@ -741,29 +790,218 @@ public class CertifiedUserManagerImplTest {
 		verify(quizResponseDao).delete(101L);
 	}
 	
-	@Test(expected=ForbiddenException.class)
+	@Test
 	public void testDeleteQuizResponseNonAdmin() throws Exception {
 		UserInfo userInfo = new UserInfo(false);
-		certifiedUserManager.deleteQuizResponse(userInfo, 101L);
+		
+		assertThrows(ForbiddenException.class, () -> {
+			certifiedUserManager.deleteQuizResponse(userInfo, 101L);
+		});
 	}
 	
 	@Test
 	public void testGetPassingRecord() throws Exception {
-		certifiedUserManager.getPassingRecord(101L);
-		verify(quizResponseDao).getPassingRecord(anyLong(), eq(101L));
+		PassingRecord expected = new PassingRecord().setQuizId(1L).setUserId("101");
+		when(quizResponseDao.getLatestPassingRecord(any(), any())).thenReturn(Optional.of(expected));
+		
+		assertEquals(expected, certifiedUserManager.getLatestPassingRecord(101L));
+		
+		verify(quizResponseDao).getLatestPassingRecord(anyLong(), eq(101L));
+	}
+	
+	@Test
+	public void testGetPassingRecordWithNotFound() throws Exception {
+		
+		when(quizResponseDao.getLatestPassingRecord(any(), any())).thenReturn(Optional.empty());
+		
+		assertThrows(NotFoundException.class, () -> {			
+			certifiedUserManager.getLatestPassingRecord(101L);
+		});
+		
+		verify(quizResponseDao).getLatestPassingRecord(anyLong(), eq(101L));
+	}
+	
+	@Test
+	public void testGetPassingRecords() throws Exception {
+		UserInfo userInfo = new UserInfo(false, 101L);
+		certifiedUserManager.getPassingRecords(userInfo, 101L, 10L, 0L);
+		verify(quizResponseDao).getAllPassingRecords(anyLong(), eq(101L), eq(10L), eq(0L));
+		verify(quizResponseDao).getAllPassingRecordsCount(anyLong(), eq(101L));
 	}
 
-	@Test(expected=ForbiddenException.class)
-	public void testGetPassingRecordsNonAdmin() throws Exception {
-		UserInfo userInfo = new UserInfo(false);
-		certifiedUserManager.getPassingRecords(userInfo, 101L, 10L, 0L);
+	@Test
+	public void testGetPassingRecordsNonAdminForDifferentUser() throws Exception {
+		UserInfo userInfo = new UserInfo(false, 1L);
+		
+		assertThrows(ForbiddenException.class, () -> {
+			certifiedUserManager.getPassingRecords(userInfo, 101L, 10L, 0L);
+		});
 	}
 
 	@Test
 	public void testGetPassingRecordsAdmin() throws Exception {
-		UserInfo userInfo = new UserInfo(true);
+		UserInfo userInfo = new UserInfo(true, 1L);
 		certifiedUserManager.getPassingRecords(userInfo, 101L, 10L, 0L);
 		verify(quizResponseDao).getAllPassingRecords(anyLong(), eq(101L), eq(10L), eq(0L));
 		verify(quizResponseDao).getAllPassingRecordsCount(anyLong(), eq(101L));
+	}
+	
+	@Test
+	public void testRevokeCertification() {
+		UserInfo userInfo = new UserInfo(true);
+		
+		when(groupMembersDao.areMemberOf(any(), any())).thenReturn(true);
+		
+		PassingRecord expected = new PassingRecord().setResponseId(123L).setPassed(true).setRevoked(false);
+		
+		when(quizResponseDao.getLatestPassingRecord(any(), any())).thenReturn(Optional.of(expected));
+		
+		// Call under test
+		PassingRecord result = certifiedUserManager.revokeCertification(userInfo, 111L);
+		
+		assertEquals(expected, result);
+		
+		verify(groupMembersDao).areMemberOf(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), Set.of("111"));
+		verify(quizResponseDao, times(2)).getLatestPassingRecord(1L, 111L);
+		verify(quizResponseDao).revokeQuizResponse(123L);
+		verify(groupMembersDao).removeMembers(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), List.of("111"));
+		verify(mockTransactionalMessenger).sendMessageAfterCommit("111", ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.UPDATE);
+		
+	}
+	
+	@Test
+	public void testRevokeCertificationWithNotCertified() {
+		UserInfo userInfo = new UserInfo(true);
+		
+		when(groupMembersDao.areMemberOf(any(), any())).thenReturn(false);
+				
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			certifiedUserManager.revokeCertification(userInfo, 111L);
+		}).getMessage();
+		
+		assertEquals("The user 111 is not certified yet.", result);
+		
+		verify(groupMembersDao).areMemberOf(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), Set.of("111"));
+		verifyNoMoreInteractions(quizResponseDao);
+		verifyNoMoreInteractions(groupMembersDao);
+		verifyNoMoreInteractions(mockTransactionalMessenger);
+		
+	}
+	
+	@Test
+	public void testRevokeCertificationWithNoPassingRecord() {
+		UserInfo userInfo = new UserInfo(true);
+		
+		when(groupMembersDao.areMemberOf(any(), any())).thenReturn(true);
+		when(quizResponseDao.getLatestPassingRecord(any(), any())).thenReturn(Optional.empty());
+		
+		// Call under test
+		PassingRecord result = certifiedUserManager.revokeCertification(userInfo, 111L);
+		
+		assertEquals(null, result);
+		
+		verify(groupMembersDao).areMemberOf(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), Set.of("111"));
+		verify(quizResponseDao, times(2)).getLatestPassingRecord(1L, 111L);
+		verifyNoMoreInteractions(quizResponseDao);
+		verify(groupMembersDao).removeMembers(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), List.of("111"));
+		verify(mockTransactionalMessenger).sendMessageAfterCommit("111", ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.UPDATE);
+		
+	}
+	
+	@Test
+	public void testRevokeCertificationWithFailedRecord() {
+		UserInfo userInfo = new UserInfo(true);
+		
+		when(groupMembersDao.areMemberOf(any(), any())).thenReturn(true);
+		
+		PassingRecord expected = new PassingRecord().setResponseId(123L).setPassed(false).setRevoked(false);
+		
+		when(quizResponseDao.getLatestPassingRecord(any(), any())).thenReturn(Optional.of(expected));
+		
+		// Call under test
+		PassingRecord result = certifiedUserManager.revokeCertification(userInfo, 111L);
+		
+		assertEquals(expected, result);
+		
+		verify(groupMembersDao).areMemberOf(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), Set.of("111"));
+		verify(quizResponseDao, times(2)).getLatestPassingRecord(1L, 111L);
+		verifyNoMoreInteractions(quizResponseDao);
+		verify(groupMembersDao).removeMembers(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), List.of("111"));
+		verify(mockTransactionalMessenger).sendMessageAfterCommit("111", ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.UPDATE);
+		
+	}
+	
+	@Test
+	public void testRevokeCertificationWithAlreadyRevokedRecord() {
+		UserInfo userInfo = new UserInfo(true);
+		
+		when(groupMembersDao.areMemberOf(any(), any())).thenReturn(true);
+		
+		PassingRecord expected = new PassingRecord().setResponseId(123L).setPassed(true).setRevoked(true);
+		
+		when(quizResponseDao.getLatestPassingRecord(any(), any())).thenReturn(Optional.of(expected));
+		
+		// Call under test
+		PassingRecord result = certifiedUserManager.revokeCertification(userInfo, 111L);
+		
+		assertEquals(expected, result);
+		
+		verify(groupMembersDao).areMemberOf(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), Set.of("111"));
+		verify(quizResponseDao, times(2)).getLatestPassingRecord(1L, 111L);
+		verifyNoMoreInteractions(quizResponseDao);
+		verify(groupMembersDao).removeMembers(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), List.of("111"));
+		verify(mockTransactionalMessenger).sendMessageAfterCommit("111", ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.UPDATE);	
+	}
+	
+	@Test
+	public void testRevokeCertificationWithNotActMember() {
+		UserInfo userInfo = new UserInfo(false);
+				
+		String result = assertThrows(ForbiddenException.class, () -> {			
+			// Call under test
+			certifiedUserManager.revokeCertification(userInfo, 111L);
+		}).getMessage();
+		
+		assertEquals("Only an ACT member can perform this operation.", result);
+				
+		verifyNoMoreInteractions(quizResponseDao);
+		verifyNoMoreInteractions(groupMembersDao);
+		verifyNoMoreInteractions(mockTransactionalMessenger);
+		
+	}
+	
+	@Test
+	public void testRevokeCertificationWithNoUser() {
+		UserInfo userInfo = null;
+				
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			certifiedUserManager.revokeCertification(userInfo, 111L);
+		}).getMessage();
+		
+		assertEquals("The userInfo is required.", result);
+				
+		verifyNoMoreInteractions(quizResponseDao);
+		verifyNoMoreInteractions(groupMembersDao);
+		verifyNoMoreInteractions(mockTransactionalMessenger);
+		
+	}
+	
+	@Test
+	public void testRevokeCertificationWithNoPrincipalId() {
+		UserInfo userInfo = new UserInfo(true);
+				
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			certifiedUserManager.revokeCertification(userInfo, null);
+		}).getMessage();
+		
+		assertEquals("The principalId is required.", result);
+				
+		verifyNoMoreInteractions(quizResponseDao);
+		verifyNoMoreInteractions(groupMembersDao);
+		verifyNoMoreInteractions(mockTransactionalMessenger);
+		
 	}
 }

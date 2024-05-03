@@ -2250,7 +2250,18 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public PassingRecord getCertifiedUserPassingRecord(String principalId) throws SynapseException;
+	
+	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(long offset, long limit, String principalId) throws SynapseException;
 
+	/**
+	 * Revoke the certification for the given user, only an ACT member can perform this operation
+	 * 
+	 * @param id
+	 * @return
+	 * @throws SynapseException
+	 */
+	PassingRecord revokeUserCertification(String principalId) throws SynapseException;
+	
 	/**
 	 * Start a new Asynchronous Job
 	 * @param jobBody

@@ -18,6 +18,7 @@ import java.util.Set;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -45,6 +46,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -53,6 +55,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	
+	private static final String CERTIFIED_USERS_GROUP_ID = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString();
 	private static final String UTF_8 = "UTF-8";
 	public static final String QUESTIONNAIRE_PROPERTIES_FILE = "certifiedUsersTestDefault.json";
 	public static final String S3_QUESTIONNAIRE_KEY = "repository-managers.certifiedUsersTest_v5.json";
@@ -327,6 +330,9 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		PassingRecord passingRecord = new PassingRecord();
 		passingRecord.setCorrections(corrections);
 		passingRecord.setPassed(pass);
+		passingRecord.setCertified(pass);
+		passingRecord.setRevoked(false);
+		passingRecord.setRevokedOn(null);
 		passingRecord.setPassedOn(quizResponse.getCreatedOn());
 		passingRecord.setQuizId(quizResponse.getQuizId());
 		passingRecord.setResponseId(quizResponse.getId());
@@ -356,17 +362,15 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		}
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
 		
-		// don't let someone take the test twice
-		try {
-			PassingRecord passingRecord = quizResponseDao.getPassingRecord(quizGenerator.getId(), userInfo.getId());
-			if(passingRecord.getPassed()) {
+		// don't let someone take the test twice, unless it has been revoked
+		quizResponseDao.getLatestPassingRecord(quizGenerator.getId(), userInfo.getId())
+			.filter(pr -> pr.getPassed() && !pr.getRevoked())
+			.ifPresent( pr -> {
 				throw new UnauthorizedException("You have already passed the certification test.");
-			}
-		} catch (NotFoundException e) {
-			// OK
-		}
+			});
 		
 		Date now = new Date();
+		
 		fillInResponseValues(response, userInfo.getId(), now, quizGenerator.getId());
 		// grade the submission:  pass or fail?
 		PassingRecord passingRecord = scoreQuizResponse(quizGenerator, response);
@@ -376,7 +380,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		// if pass, add to Certified group
 		if (passingRecord.getPassed()) {
 			groupMembersDao.addMembers(
-					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
+					CERTIFIED_USERS_GROUP_ID, 
 					Collections.singletonList(userInfo.getId().toString()));
 		}
 		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.CREATE);
@@ -388,11 +392,11 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		if (!userInfo.isAdmin()) throw new UnauthorizedException("You are not a Synapse Administrator.");
 		if (isCertified) {
 			groupMembersDao.addMembers(
-					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
+					CERTIFIED_USERS_GROUP_ID, 
 					Collections.singletonList(principalId.toString()));
 		} else {
 			groupMembersDao.removeMembers(
-					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
+					CERTIFIED_USERS_GROUP_ID, 
 					Collections.singletonList(principalId.toString()));
 		}
 	}
@@ -429,21 +433,61 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	}
 
 	@Override
-	public PassingRecord getPassingRecord(Long principalId) throws DatastoreException, NotFoundException {
+	public PassingRecord getLatestPassingRecord(Long principalId) throws DatastoreException, NotFoundException {
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
+		
 		long quizId = quizGenerator.getId();
-		return quizResponseDao.getPassingRecord(quizId, principalId);
+		
+		return quizResponseDao.getLatestPassingRecord(quizId, principalId)
+			.orElseThrow(() -> new NotFoundException("No quiz results for quiz " + quizId + " and user " + principalId));
 	}
 
 	@Override
 	public PaginatedResults<PassingRecord> getPassingRecords(UserInfo userInfo, Long principalId, long limit, long offset) throws DatastoreException, NotFoundException {
-		if (!userInfo.isAdmin()) 
+		
+		if (!userInfo.getId().equals(principalId) && !userInfo.isAdmin()) { 
 			throw new ForbiddenException("Only Synapse administrators may make this request.");
+		}
+		
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
 		long quizId = quizGenerator.getId();
 		PaginatedResults<PassingRecord> result = new PaginatedResults<PassingRecord>();
 		result.setResults(quizResponseDao.getAllPassingRecords(quizId, principalId, limit, offset));
 		result.setTotalNumberOfResults(quizResponseDao.getAllPassingRecordsCount(quizId, principalId));
 		return result;
+	}
+	
+	@Override
+	@WriteTransaction
+	public PassingRecord revokeCertification(UserInfo userInfo, Long principalId) {
+		ValidateArgument.required(userInfo, "The userInfo");
+		ValidateArgument.required(principalId, "The principalId");
+		
+		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new ForbiddenException("Only an ACT member can perform this operation.");
+		}
+		
+		if (!groupMembersDao.areMemberOf(CERTIFIED_USERS_GROUP_ID, Set.of(principalId.toString()))) {
+			throw new IllegalArgumentException("The user " + principalId + " is not certified yet.");
+		}
+		
+		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
+		
+		long quizId = quizGenerator.getId();
+		
+		// We cover our bases with potential edge cases when the user is in the certified group (which is our source of truth for checking certification)
+		// but records are not present or are in a bad state in the database
+		quizResponseDao.getLatestPassingRecord(quizId, principalId)
+			.filter( pr -> pr.getPassed() && !pr.getRevoked())
+			.map(PassingRecord::getResponseId)
+			.ifPresent(quizResponseDao::revokeQuizResponse);
+		
+		groupMembersDao.removeMembers(
+				CERTIFIED_USERS_GROUP_ID, 
+				Collections.singletonList(principalId.toString()));
+		
+		transactionalMessenger.sendMessageAfterCommit(principalId.toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.UPDATE);
+		
+		return quizResponseDao.getLatestPassingRecord(quizId, principalId).orElse(null);
 	}
 }

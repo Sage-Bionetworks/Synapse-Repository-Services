@@ -636,6 +636,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
 	private static final String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
+	private static final String CERTIFIED_USER_PASSING_RECORDS = "/certifiedUserPassingRecords";
+	private static final String CERTIFIED_USER_REVOKE = "/revokeCertification";
 
 	private static final String PROJECT = "/project";
 	private static final String FORUM = "/forum";
@@ -4770,6 +4772,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getJSONEntity(getRepoEndpoint(), url, PassingRecord.class);
 	}
 
+	@Override
+	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(
+			long offset, long limit, String principalId)
+			throws SynapseException {
+		ValidateArgument.required(principalId, "principalId");
+		String uri = USER + "/" + principalId + CERTIFIED_USER_PASSING_RECORDS
+				+ "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
+		return getPaginatedResults(getRepoEndpoint(), uri, PassingRecord.class);
+	}
+	
+	@Override
+	public PassingRecord revokeUserCertification(String principalId) throws SynapseException {
+		return putJSONEntity(getRepoEndpoint(), USER + "/" + principalId + CERTIFIED_USER_REVOKE, null, PassingRecord.class);
+	}
 
 	@Override
 	public Challenge createChallenge(Challenge challenge) throws SynapseException {
