@@ -844,10 +844,8 @@ public class IT500SynapseJavaClient {
 		PaginatedResults<PassingRecord> prs = synapse.getCertifiedUserPassingRecords(0L, 2L, myId);
 		assertEquals(1, prs.getResults().size());
 		assertEquals(pr, prs.getResults().iterator().next());
-				
-		// We manually add the user to the certified user group so we can test revocation
-		adminSynapse.setCertifiedUserStatus(myId, true);
 		
+		// Note that the testing user is automatically already certified when the test starts
 		UserBundle userBundle = synapse.getMyOwnUserBundle(0x8);
 		
 		assertTrue(userBundle.getIsCertified());
@@ -861,6 +859,9 @@ public class IT500SynapseJavaClient {
 		userBundle = synapse.getMyOwnUserBundle(0x8);
 		
 		assertFalse(userBundle.getIsCertified());
+		
+		// Restore the certification status for other tests
+		adminSynapse.setCertifiedUserStatus(myId, true);
 	}
 
 	private void cleanupPassingQuizRecords(String userId) throws SynapseException {
