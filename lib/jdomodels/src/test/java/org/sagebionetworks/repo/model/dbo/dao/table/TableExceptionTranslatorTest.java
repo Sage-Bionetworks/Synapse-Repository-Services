@@ -208,6 +208,12 @@ public class TableExceptionTranslatorTest {
 	}
 	
 	@Test
+	public void testFindSQLExceptionWithNullMessage() {
+		SQLException sqlException = TableExceptionTranslatorImpl.findSQLException(new IllegalArgumentException((String)null));
+		assertEquals(null, sqlException);
+	}
+	
+	@Test
 	public void testGetConstraintViolationName() {
 		String message = "Check constraint 'tempt9602648_chk_1' is violated.";
 		// call under test
