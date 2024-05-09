@@ -165,6 +165,14 @@
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-cloudfront</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk-appconfigdata</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk-ssm</artifactId>
+		</dependency>
 	</dependencies>
 
 	<properties>
