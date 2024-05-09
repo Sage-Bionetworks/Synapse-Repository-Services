@@ -5,6 +5,10 @@ import java.util.Map;
 
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.appconfigdata.AWSAppConfigData;
+import com.amazonaws.services.appconfigdata.AWSAppConfigDataClientBuilder;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
 import com.amazonaws.services.athena.AmazonAthena;
 import com.amazonaws.services.athena.AmazonAthenaClientBuilder;
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
@@ -86,6 +90,30 @@ public class AwsClientFactory {
 	 */
 	public static TransferManager createTransferManager() {
 		return new TransferManager(SynapseAWSCredentialsProviderChain.getInstance());
+	}
+
+	/**
+	 * Create an instance of the AmazonAppConfigData using a credential chain.
+	 *
+	 * @return
+	 */
+	public static AWSAppConfigData createAppConfigClient() {
+		AWSAppConfigDataClientBuilder builder = AWSAppConfigDataClientBuilder.standard();
+		builder.withRegion(Regions.US_EAST_1);
+		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
+		return builder.build();
+	}
+
+	/**
+	 * Create an instance of the AmazonSimpleSystemsManagement using a credential chain.
+	 *
+	 * @return
+	 */
+	public static AWSSimpleSystemsManagement createParameterStoreClient() {
+		AWSSimpleSystemsManagementClientBuilder builder = AWSSimpleSystemsManagementClientBuilder.standard();
+		builder.withRegion(Regions.US_EAST_1);
+		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
+		return builder.build();
 	}
 
 	/**
