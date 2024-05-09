@@ -60,7 +60,7 @@ public class NodeTranslationUtils {
 	public static Set<String> ignoredEntityFields;
 	
 
-	private static final Predicate<? super Field> NON_STATIC_FIELD_PREDICATE = field -> (field.getModifiers() & Modifier.STATIC) == 0;
+	private static final Predicate<Field> NON_STATIC_FIELD_PREDICATE = field -> (field.getModifiers() & Modifier.STATIC) == 0;
 
 	static {
 		Set<String> temp = new HashSet<>();
