@@ -30,6 +30,9 @@
         },
         "derivedAnnotations": {
         	"$ref": "org.sagebionetworks.repo.model.annotation.v2.Annotations"
-        }
+        },
+        "internalAnnotations": {
+			"$ref": "org.sagebionetworks.repo.model.annotation.v2.Annotations"
+		}
 	}
 }

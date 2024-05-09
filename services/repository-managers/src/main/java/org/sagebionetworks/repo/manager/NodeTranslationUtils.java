@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,8 +39,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 public class NodeTranslationUtils {
 
-	private static final Logger log = Logger
-			.getLogger(NodeTranslationUtils.class.getName());
+	private static final Logger log = Logger.getLogger(NodeTranslationUtils.class.getName());
 
 	/**
 	 * Keep track of the known fields of a node.
@@ -47,6 +47,7 @@ public class NodeTranslationUtils {
 	private static Map<String, Field> nodeFieldNames = new HashMap<String, Field>();
 	private static Map<String, String> nameConvertion = new HashMap<String, String>();
 	private static Map<Class<? extends Entity>, Field[]> translatableEntityFieldsCache = new HashMap<>();
+	
 	// fields in Node that should be ignored while translating between node and entity
 	public static Set<String> ignoredNodeFields;
 
@@ -57,6 +58,9 @@ public class NodeTranslationUtils {
 
 	// fields in Entity that should be ignored while translating between node and entity
 	public static Set<String> ignoredEntityFields;
+	
+
+	private static final Predicate<? super Field> NON_STATIC_FIELD_PREDICATE = field -> (field.getModifiers() & Modifier.STATIC) == 0;
 
 	static {
 		Set<String> temp = new HashSet<>();
@@ -398,6 +402,33 @@ public class NodeTranslationUtils {
 							+ ". Can only convert Strings, JSONEntity objects to byte[]");
 		}
 	}
+	
+	/**
+	 * Make a copy of all the standard properties in the source to the target
+	 * 
+	 * @param <T>
+	 * @param source
+	 * @param target
+	 */
+	public static <T extends Node> void copyNodeProperties(Node source, T target) {
+		nodeFieldNames.values().stream()
+			// Skip static fields
+			.filter(NON_STATIC_FIELD_PREDICATE)
+			.forEach( sourceField -> {
+				try {
+					sourceField.setAccessible(true);
+					
+					Object value = sourceField.get(source);
+					
+					if (value != null) {
+						sourceField.set(target, value);
+					}
+					
+				} catch (IllegalArgumentException | IllegalAccessException e) {
+					log.log(Level.WARNING, e.getMessage(), e);
+				}
+			});
+	}
 
 	/**
 	 * Update an object using the a node
@@ -433,7 +464,7 @@ public class NodeTranslationUtils {
 				Object value;
 				try {
 					// only set non-static fields
-					if((field.getModifiers() & Modifier.STATIC)==0) {
+					if (NON_STATIC_FIELD_PREDICATE.test(field)) {
 						value = nodeField.get(node);
 						if (value != null) {
 							field.set(base, value);
@@ -538,5 +569,5 @@ public class NodeTranslationUtils {
 			}
 		}
 	}
-
+	
 }
