@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
+import org.sagebionetworks.repo.manager.NodeTranslationUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
@@ -20,6 +21,8 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
@@ -66,18 +69,14 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 	 * addition information about whether the node is public, restricted, and
 	 * controlled.
 	 */
-	private NodeRecord setAccessProperties(NodeRecord record,
-			UserManager userManager,
-			AccessRequirementDAO accessRequirementDao,
-			EntityAuthorizationManager entityAuthorizationManager,
-			NodeDAO nodeDao) {
+	private NodeRecord setAccessProperties(NodeRecord record) {
 
 		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		UserEntityPermissions permissions = entityAuthorizationManager.getUserPermissionsForEntity(adminUserInfo, record.getId());
 
 		record.setIsPublic(permissions.getCanPublicRead());
 
-		List<Long> subjectIds = nodeDao.getEntityPathIds(record.getId());
+		List<Long> subjectIds = nodeDAO.getEntityPathIds(record.getId());
 		
 		AccessRequirementStats stats = accessRequirementDao.getAccessRequirementStats(subjectIds, RestrictableObjectType.ENTITY);
 
@@ -92,29 +91,6 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 		
 		record.setEffectiveArs(effectiveArs);
 		
-		return record;
-	}
-	
-	/**
-	 * Build a NodeRecord that wrap around Node object
-	 * 
-	 * @param node
-	 * @return
-	 */
-	public static NodeRecord buildNodeRecord(Node node, String benefactorId, String projectId) {
-		NodeRecord record = new NodeRecord();
-		record.setId(node.getId());
-		record.setBenefactorId(benefactorId);
-		record.setProjectId(projectId);
-		record.setParentId(node.getParentId());
-		record.setNodeType(node.getNodeType());
-		record.setCreatedOn(node.getCreatedOn());
-		record.setCreatedByPrincipalId(node.getCreatedByPrincipalId());
-		record.setModifiedOn(node.getModifiedOn());
-		record.setModifiedByPrincipalId(node.getModifiedByPrincipalId());
-		record.setVersionNumber(node.getVersionNumber());
-		record.setFileHandleId(node.getFileHandleId());
-		record.setName(node.getName());
 		return record;
 	}
 
@@ -133,14 +109,30 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 			} else {
 				try {
 					Node node = nodeDAO.getNode(message.getObjectId());
-					String benefactorId = nodeDAO.getBenefactor(message.getObjectId());
-					String projectId = nodeDAO.getProjectId(message.getObjectId()).orElseThrow(() -> new NotFoundException("Project id does not exists."));
-					NodeRecord record = buildNodeRecord(node, benefactorId, projectId);
 					
-					record = setAccessProperties(record, userManager, accessRequirementDao, entityAuthorizationManager, nodeDAO);
+					NodeRecord record = new NodeRecord();
 					
+					// First copy all the standard node properties
+					NodeTranslationUtils.copyNodeProperties(node, record);
+					
+					// Include derived properties
+					record.setBenefactorId(nodeDAO.getBenefactor(message.getObjectId()));
+					
+					nodeDAO.getProjectId(message.getObjectId()).ifPresent(record::setProjectId);
+
+					// Include user assigned annotations
 					record.setAnnotations(nodeDAO.getUserAnnotations(record.getId()));
+
+					// Include derived annotations
 					derivedAnnotationsDao.getDerivedAnnotations(record.getId()).ifPresent(record::setDerivedAnnotations);
+					
+					// Include internal entity properties that are stored as annotations, note that we translate to Annotations V2
+					// since they are easier to deal with in JSON
+					Annotations internalAnnotations = AnnotationsV2Translator.toAnnotationsV2(nodeDAO.getEntityPropertyAnnotations(record.getId())); 
+					record.setInternalAnnotations(internalAnnotations);
+
+					// Include derived access properties
+					setAccessProperties(record);
 					
 					kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, record));
 					

@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -33,8 +34,6 @@ import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -119,7 +118,7 @@ public class NodeObjectRecordWriterTest {
 		
 		expectedRecord.withSnapshotTimestamp(recordCaptor.getValue().get(0).getSnapshotTimestamp());
 		
-		assertEquals(recordCaptor.getValue(), List.of(expectedRecord));
+		assertEquals(List.of(expectedRecord), recordCaptor.getValue());
 	}
 
 	@Test
@@ -166,7 +165,7 @@ public class NodeObjectRecordWriterTest {
 		
 		expectedRecord.withSnapshotTimestamp(recordCaptor.getValue().get(0).getSnapshotTimestamp());
 		
-		assertEquals(recordCaptor.getValue(), List.of(expectedRecord));
+		assertEquals(List.of(expectedRecord), recordCaptor.getValue());
 	}
 	
 	@Test
@@ -217,35 +216,58 @@ public class NodeObjectRecordWriterTest {
 		
 		expectedRecord.withSnapshotTimestamp(recordCaptor.getValue().get(0).getSnapshotTimestamp());
 		
-		assertEquals(recordCaptor.getValue(), List.of(expectedRecord));
+		assertEquals(List.of(expectedRecord), recordCaptor.getValue());
 	}
 	
 	@Test
-	public void buildNodeRecordTest() {
-		Node node = new Node();
-		node.setId("id");
-		node.setParentId("parentId");
-		node.setNodeType(EntityType.file);
-		node.setCreatedOn(new Date(0));
-		node.setCreatedByPrincipalId(1L);
-		node.setModifiedOn(new Date());
-		node.setModifiedByPrincipalId(2L);
-		node.setVersionNumber(3L);
-		node.setFileHandleId("fileHandleId");
-		node.setName("name");
-		NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node,"benefactorId", "projectId");
-		assertEquals(node.getId(), record.getId());
-		assertEquals("benefactorId", record.getBenefactorId());
-		assertEquals("projectId", record.getProjectId());
-		assertEquals(node.getParentId(), record.getParentId());
-		assertEquals(node.getNodeType(), record.getNodeType());
-		assertEquals(node.getCreatedOn(), record.getCreatedOn());
-		assertEquals(node.getCreatedByPrincipalId(), record.getCreatedByPrincipalId());
-		assertEquals(node.getModifiedOn(), record.getModifiedOn());
-		assertEquals(node.getModifiedByPrincipalId(), record.getModifiedByPrincipalId());
-		assertEquals(node.getVersionNumber(), record.getVersionNumber());
-		assertEquals(node.getFileHandleId(), record.getFileHandleId());
-		assertEquals(node.getName(), record.getName());
+	public void testBuildAndWriteRecordsWithEntityProperties() throws IOException {
+		when(mockNodeDAO.getNode(any())).thenReturn(node);
+		when(mockNodeDAO.getProjectId(any())).thenReturn(Optional.of("1"));
+		when(mockUserManager.getUserInfo(any())).thenReturn(mockUserInfo);
+		when(mockEntityAuthorizationManager.getUserPermissionsForEntity(any(), any())).thenReturn(mockPermissions);
+		when(mockAccessRequirementDao.getAccessRequirementStats(any(), any())).thenReturn(stats);
+		
+		org.sagebionetworks.repo.model.Annotations entityProperties = new org.sagebionetworks.repo.model.Annotations();
+		entityProperties.addAnnotation("testString", "value");
+		entityProperties.addAnnotation("testDate", new Date(123000L));
+		entityProperties.addAnnotation("testDouble", 2.0);
+		entityProperties.addAnnotation("testLong", 123L);
+		entityProperties.addAnnotation("testObject", Boolean.TRUE);
+		entityProperties.addAnnotation("testList", List.of("1", "2", "3"));
+		
+		when(mockNodeDAO.getEntityPropertyAnnotations(any())).thenReturn(entityProperties);
+		
+		Long timestamp = System.currentTimeMillis();
+		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ENTITY, "etag", timestamp);
+		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
+		
+		node.setIsPublic(false);
+		node.setIsControlled(true);
+		node.setIsRestricted(false);
+		node.setEffectiveArs(List.of(1L, 2L, 3L));
+		node.setInternalAnnotations(new Annotations().setAnnotations(Map.of(
+			"testString", new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(List.of("value")),
+			"testDate", new AnnotationsValue().setType(AnnotationsValueType.TIMESTAMP_MS).setValue(List.of("123000")),
+			"testDouble", new AnnotationsValue().setType(AnnotationsValueType.DOUBLE).setValue(List.of("2.0")),
+			"testLong", new AnnotationsValue().setType(AnnotationsValueType.LONG).setValue(List.of("123")),
+			"testObject", new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(List.of("true")),
+			"testList", new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(List.of("1", "2", "3"))
+		)));
+		
+		// Call under test
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		
+		verify(mockNodeDAO).getNode(eq("123"));
+		verify(mockNodeDAO).getUserAnnotations("123");
+		verify(mockDerivedAnnotaionsDao).getDerivedAnnotations("123");
+		
+		KinesisObjectSnapshotRecord<NodeRecord> expectedRecord = KinesisObjectSnapshotRecord.map(changeMessage, node);
+		
+		verify(mockKinesisLogger).logBatch(eq("nodeSnapshots"), recordCaptor.capture());
+		
+		expectedRecord.withSnapshotTimestamp(recordCaptor.getValue().get(0).getSnapshotTimestamp());
+		
+		assertEquals(List.of(expectedRecord), recordCaptor.getValue());
 	}
 
 	@Test
@@ -275,6 +297,6 @@ public class NodeObjectRecordWriterTest {
 		
 		expectedRecord.withSnapshotTimestamp(recordCaptor.getValue().get(0).getSnapshotTimestamp());
 		
-		assertEquals(recordCaptor.getValue(), List.of(expectedRecord));
+		assertEquals(List.of(expectedRecord), recordCaptor.getValue());
 	}
 }

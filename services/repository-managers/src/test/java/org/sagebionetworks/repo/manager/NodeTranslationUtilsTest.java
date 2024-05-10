@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,6 +28,7 @@ import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.repo.model.audit.NodeRecord;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -365,5 +367,27 @@ public class NodeTranslationUtilsTest {
 
 		assertTrue(Arrays.stream(translatableFields)
 				.noneMatch(field -> ObjectSchema.CONCRETE_TYPE.equals(field.getName())));
+	}
+	
+	@Test
+	public void testCopyNodeProperties() {
+		Node source = new Node()
+			.setId("123")
+			.setParentId("456")
+			.setCreatedOn(new Date())
+			.setNodeType(EntityType.dataset)
+			.setIsSearchEnabled(true)
+			.setItems(List.of(new EntityRef().setEntityId("789").setVersionNumber(2L)));
+		
+		Node target = new NodeRecord();
+		
+		NodeTranslationUtils.copyNodeProperties(source, target);
+		
+		assertEquals("123", target.getId());
+		assertEquals("456", target.getParentId());
+		assertEquals(source.getCreatedOn(), target.getCreatedOn());
+		assertEquals(EntityType.dataset, target.getNodeType());
+		assertEquals(true, target.getIsSearchEnabled());
+		assertEquals(source.getItems(), target.getItems());
 	}
 }
