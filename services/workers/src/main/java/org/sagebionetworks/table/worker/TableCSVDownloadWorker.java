@@ -48,6 +48,8 @@ public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableR
 	private Clock clock;
 	@Autowired
 	private TableExceptionTranslator tableExceptionTranslator;
+	@Autowired
+	private CSVWriterProvider csvWriterProvider;
 	
 	@Override
 	public Class<DownloadFromTableRequest> getRequestType() {
@@ -76,10 +78,9 @@ public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableR
 			long totalProgress = rowCount*2;
 			long currentProgress = 0;
 			// The CSV data will first be written to this file.
-			temp = File.createTempFile(
-					fileName,
-					"." + CSVUtils.guessExtension(request.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor().getSeparator()));
-			writer = CSVUtils.createCSVWriter(new FileWriter(temp), request.getCsvTableDescriptor());
+			temp = File.createTempFile(fileName, "." + CSVUtils.guessExtension(
+					request.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor().getSeparator()));
+			writer = csvWriterProvider.createWriter(new FileWriter(temp), request.getCsvTableDescriptor());
 			// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
 			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, jobProgressCallback, currentProgress, totalProgress, clock);
 			// Execute the actual query and stream the results to the file.
@@ -88,6 +89,16 @@ public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableR
 				result = tableQueryManager.runQueryDownloadAsStream(jobProgressCallback, user, request, stream);
 			}finally{
 				writer.close();
+			}
+			
+
+			/*
+			 * Calling writer.close() and/or writer.flush() will fail silently if there is an IOException.
+			 * We must call writer.checkError() to determine if there was an exception.
+			 */
+			if(writer.checkError()) {
+				log.info("Writer.checkError() returned true, will attempt retry");
+				throw new RecoverableMessageException();
 			}
 	
 			// At this point we have the entire CSV written to a local file.
@@ -108,7 +119,7 @@ public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableR
 			jobProgressCallback.updateProgress("Waiting for the table index to become available...", 0L, 100L);
 			// Throwing this will put the message back on the queue in 5 seconds.
 			throw new RecoverableMessageException();
-		} catch (TableFailedException e) {
+		} catch (TableFailedException | RecoverableMessageException e) {
 			throw e;
 		} catch(Throwable e){
 			log.error("Worker Failed", e);
