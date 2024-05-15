@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,7 +16,6 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
@@ -37,6 +37,8 @@ import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.amazonaws.services.sqs.model.Message;
 
+import au.com.bytecode.opencsv.CSVWriter;
+
 @ExtendWith(MockitoExtension.class)
 public class TableCSVDownloadWorkerTest {
 
@@ -52,6 +54,10 @@ public class TableCSVDownloadWorkerTest {
 	private AsyncJobProgressCallback mockJobProgressCallback;
 	@Captor
 	private ArgumentCaptor<LocalFileUploadRequest> fileUploadCaptor;
+	@Mock
+	private CSVWriterProvider mockCSVWriterProvider;
+	@Mock
+	private CSVWriter mockCSVWriter;
 
 	@InjectMocks
 	private TableCSVDownloadWorker worker;
@@ -92,6 +98,8 @@ public class TableCSVDownloadWorkerTest {
 	public void testBasicQuery() throws Exception {
 		when(mockTableQueryManager.runQueryDownloadAsStream(any(), any(), any(), any())).thenReturn(results);
 		when(mockFileHandleManager.uploadLocalFile(any())).thenReturn(new S3FileHandle().setId("8888"));
+		when(mockCSVWriterProvider.createWriter(any(), any())).thenReturn(mockCSVWriter);
+		when(mockCSVWriter.checkError()).thenReturn(false);
 		
 		// call under test
 		DownloadFromTableResult response = worker.run(jobId, userInfo, request, mockJobProgressCallback);
@@ -104,12 +112,32 @@ public class TableCSVDownloadWorkerTest {
 		assertEquals(userInfo.getId().toString(), request.getUserId());
 		assertEquals("text/csv", request.getContentType());
 		assertEquals(null, request.getFileName());
+		verify(mockCSVWriterProvider).createWriter(any(), any());
+		verify(mockCSVWriter, times(2)).close();
+		verify(mockCSVWriter).checkError();
+	}
+	
+	@Test
+	public void testBasicQueryWithError() throws Exception {
+		when(mockTableQueryManager.runQueryDownloadAsStream(any(), any(), any(), any())).thenReturn(results);
+		when(mockCSVWriterProvider.createWriter(any(), any())).thenReturn(mockCSVWriter);
+		when(mockCSVWriter.checkError()).thenReturn(true);
+		
+		assertThrows(RecoverableMessageException.class, ()->{
+			// call under test
+			worker.run(jobId, userInfo, request, mockJobProgressCallback);
+		});
+		
+		verify(mockCSVWriterProvider).createWriter(any(), any());
+		verify(mockCSVWriter, times(2)).close();
+		verify(mockCSVWriter).checkError();
 	}
 
 	@Test
 	public void testTableUnavailableException() throws Exception {
 		// table not available
 		when(mockTableQueryManager.runQueryDownloadAsStream(any(), any(),any(), any())).thenThrow(new TableUnavailableException(new TableStatus()));
+		when(mockCSVWriterProvider.createWriter(any(), any())).thenReturn(mockCSVWriter);
 		assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
 			worker.run(jobId, userInfo, request, mockJobProgressCallback);
@@ -120,6 +148,7 @@ public class TableCSVDownloadWorkerTest {
 	public void testLockUnavilableExceptionException() throws Exception {
 		// table not available
 		when(mockTableQueryManager.runQueryDownloadAsStream(any(), any(),any(), any())).thenThrow(new LockUnavilableException(LockType.Read, "key", "context"));
+		when(mockCSVWriterProvider.createWriter(any(), any())).thenReturn(mockCSVWriter);
 		assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
 			worker.run(jobId, userInfo, request, mockJobProgressCallback);
@@ -131,6 +160,7 @@ public class TableCSVDownloadWorkerTest {
 		TableFailedException exception = new TableFailedException(new TableStatus());
 		// table not available
 		when(mockTableQueryManager.runQueryDownloadAsStream(any(), any(),any(), any())).thenThrow(exception);
+		when(mockCSVWriterProvider.createWriter(any(), any())).thenReturn(mockCSVWriter);
 		
 		TableFailedException result = assertThrows(TableFailedException.class, () -> {			
 			// call under test
@@ -144,6 +174,8 @@ public class TableCSVDownloadWorkerTest {
 	public void testUnknownException() throws Exception {
 		RuntimeException translatedException = new RuntimeException("translated");
 		when(mockTableExceptionTranslator.translateException(any())).thenReturn(translatedException);
+		when(mockCSVWriterProvider.createWriter(any(), any())).thenReturn(mockCSVWriter);
+
 		RuntimeException error = new RuntimeException("Bad stuff happened");
 		// table not available
 		when(mockTableQueryManager.runQueryDownloadAsStream(any(), any(),any(), any())).thenThrow(error);
