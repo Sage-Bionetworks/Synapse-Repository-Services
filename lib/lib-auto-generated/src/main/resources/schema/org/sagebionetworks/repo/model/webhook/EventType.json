@@ -1,0 +1,18 @@
+{
+    "description": "The type of the WebhookEvent.",
+    "type": "string",
+    "enum": [
+        {
+            "name": "create",
+            "description": "A create has occurred."
+        },
+        {
+            "name": "update",
+            "description": "An update has occurred."
+        },
+        {
+            "name": "delete",
+            "description": "A delete has occurred."
+        }
+    ]
+}

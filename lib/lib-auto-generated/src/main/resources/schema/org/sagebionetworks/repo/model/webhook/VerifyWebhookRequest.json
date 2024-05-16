@@ -1,0 +1,9 @@
+{
+    "description": "The request body of VerifyWebhookRequest.",
+    "properties": {
+        "verificationCode": {
+            "type": "string",
+            "description": "The verification code received by invokeEndpoint to verify a Webhook."
+        }
+    }
+}

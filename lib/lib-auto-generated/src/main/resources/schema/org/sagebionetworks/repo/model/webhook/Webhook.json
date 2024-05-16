@@ -1,0 +1,59 @@
+{
+	"description": "An object that serves as registration for a Synapse user to receive events for the specified event.",
+	"properties": {
+		"webhookId": {
+			"type": "string",
+			"description": "The ID associated with the Webhook."
+		},
+		"objectId": {
+			"type": "string",
+			"description": "The ID of the Synapse object to receive events of."
+		},
+		"objectType": {
+			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookObjectType",
+			"description": "Which type is Synapse object is associated with the Webhook."
+		},
+		"userId": {
+			"type": "string",
+			"description": "The ID of the Synapse user who has registered to receive this webhook event."
+		},
+		"invokeEndpoint": {
+			"type": "string",
+			"description": "The endpoint the Synapse user would like the webhook events sent to on invocation. Must be 256 Characters or less."
+		},
+		"isVerified": {
+			"type": "boolean",
+			"description": "True if Synapse has confirmed the validity of the Webhook invokeEndpoint. False if Synapse has determined the invokeEndpoint is invalid."
+		},
+		"isWebhookEnabled": {
+			"type": "boolean",
+			"description": "True if the Synapse user has selected to receive events. If the user sets to false, events will be temporalily paused."
+		},
+		"isAuthenticationEnabled": {
+			"type": "boolean",
+			"description": "True if the Synapse user has opted in to require authorization to receive the webhook invocation POST request. In this case, a JWT token will be included in the invocation. False otherwise: no authorization will be required and no JWT token included in the invocation."
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an Webhook is updated it is used to detect when a client's current representation of an Webhook is out-of-date."
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this webhook was created."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this webhook was last modified."
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this webhook."
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description": "The ID of the user that last modified this webhook."
+		}
+	}
+}

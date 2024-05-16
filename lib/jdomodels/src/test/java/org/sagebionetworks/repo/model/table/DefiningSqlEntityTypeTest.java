@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.table;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.junit.Test;
