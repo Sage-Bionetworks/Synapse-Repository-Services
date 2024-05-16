@@ -7,7 +7,7 @@
         },
         "isValid": {
             "type": "boolean",
-            "description": "True if the state of the Webhook after verification is 'isValid=true', false if the state after verification is 'isValid=false."
+            "description": "True if the state of the Webhook after verification is 'isVerified=true', false if the state after verification is 'isVerified=false."
         },
         "invalidReason": {
         	"type": "string",

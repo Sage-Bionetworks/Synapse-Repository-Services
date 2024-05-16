@@ -66,7 +66,7 @@ public class WebhookManagerImpl implements WebhookManager {
 		}
 		
 		Webhook webhook = webhookDao.createWebhook(userInfo.getId(), request); 
-		generateAndSendVerificationCode(userInfo, webhook.getWebhookId());
+		generateAndSendVerificationCode(userInfo.getId(), webhook.getWebhookId());
 		return webhook;
 	}
 
@@ -101,7 +101,7 @@ public class WebhookManagerImpl implements WebhookManager {
 		Webhook updatedWebhook = webhookDao.updateWebhook(userInfo.getId(), webhookId, request);
 		
 		if (includesInvokeEndpoint) {
-			generateAndSendVerificationCode(userInfo, updatedWebhook.getWebhookId());
+			generateAndSendVerificationCode(Long.valueOf(updatedWebhook.getCreatedBy()), updatedWebhook.getWebhookId());
 		}
 		
 		return updatedWebhook;
@@ -117,11 +117,11 @@ public class WebhookManagerImpl implements WebhookManager {
 	}
 
 	@Override
-	public VerifyWebhookResponse validateWebhook(UserInfo userInfo, String webhookId, VerifyWebhookRequest request) {
+	public VerifyWebhookResponse verifyWebhook(UserInfo userInfo, String webhookId, VerifyWebhookRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(webhookId, "webhookId");
-		ValidateArgument.required(request, "validateWebhookRequest");
-		ValidateArgument.required(request.getVerificationCode(), "validateWebhookRequest.verificaionCode");
+		ValidateArgument.required(request, "verifyWebhookRequest");
+		ValidateArgument.required(request.getVerificationCode(), "verifyWebhookRequest.verificationCode");
 		
 		WebhookVerification webhookVerification = webhookVerificationDao.getWebhookVerification(webhookId);
 		VerifyWebhookResponse response = new VerifyWebhookResponse().setWebhookId(webhookId);
@@ -155,8 +155,8 @@ public class WebhookManagerImpl implements WebhookManager {
 	public List<Webhook> listSendableWebhooksForObjectId(String objectId) {
 		return webhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId).stream()
 				.filter(webhook -> {
-					UserInfo userInfo = userManager.getUserInfo(Long.parseLong(webhook.getCreatedBy()));
 					try {
+						UserInfo userInfo = userManager.getUserInfo(Long.parseLong(webhook.getUserId()));
 						validateUserCanReadObject(userInfo, webhook.getObjectId(), webhook.getObjectType());
                         return true; 
                     } catch (RuntimeException e) {
@@ -187,7 +187,7 @@ public class WebhookManagerImpl implements WebhookManager {
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(webhookObjectType, "webhookObjectType");
 		
-		ObjectType objectType = ObjectType.valueOf(webhookObjectType.name().toUpperCase());
+		ObjectType objectType = ObjectType.valueOf(webhookObjectType.name());
 		aclDao.canAccess(userInfo, objectId, objectType, ACCESS_TYPE.READ)
 				.checkAuthorizationOrElseThrow();;
 	}
@@ -202,11 +202,11 @@ public class WebhookManagerImpl implements WebhookManager {
 		throw new IllegalArgumentException(String.format(INVALID_INVOKE_ENDPOINT_MESSAGE, invokeEndpoint));
 	}
 	
-	private void generateAndSendVerificationCode(UserInfo userInfo, String webhookId) {
-		ValidateArgument.required(userInfo, "userInfo");
+	private void generateAndSendVerificationCode(Long userId, String webhookId) {
+		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(webhookId, "webhookId");
 		
-		WebhookVerification webhookVerification = webhookVerificationDao.createWebhookVerification(userInfo.getId(), webhookId);
+		WebhookVerification webhookVerification = webhookVerificationDao.createWebhookVerification(userId, webhookId);
 	}
 
 }

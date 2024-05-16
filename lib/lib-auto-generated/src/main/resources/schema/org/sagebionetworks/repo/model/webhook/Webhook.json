@@ -11,7 +11,7 @@
 		},
 		"objectType": {
 			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookObjectType",
-			"description": "Which type is Synapse object is associated with the Webhook."
+			"description": "Which type of Synapse object is associated with the Webhook."
 		},
 		"userId": {
 			"type": "string",

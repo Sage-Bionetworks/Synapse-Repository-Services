@@ -1,5 +1,5 @@
 {
-    "description": "A webhook event in Synapse containing information about a change that has occured. Upon the initial event, Synapse users will be sent the ID associated with this WebhookEvent and then will be tasked with retrieving the WebhookEvent by ID through a Synapse RESTful API request.",
+    "description": "A webhook event in Synapse containing information about a change that has occured.",
     "properties": {
         "eventId": {
             "type": "string",

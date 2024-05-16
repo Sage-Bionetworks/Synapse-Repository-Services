@@ -3,7 +3,7 @@
     "type": "string",
     "enum": [
         {
-            "name": "entity",
+            "name": "ENTITY",
             "description": "This is the base interface that all Entities implement."
         }
     ]

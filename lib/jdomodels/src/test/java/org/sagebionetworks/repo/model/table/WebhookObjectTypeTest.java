@@ -10,6 +10,6 @@ public class WebhookObjectTypeTest {
     @Test
     public void testWebhookObjectTypeIsSubsetOfObjectType() {
         // Attempt to get each corresponding object type, will throw an exception one doesn't exist
-        Arrays.stream(WebhookObjectType.values()).forEach(type -> ObjectType.valueOf(type.name().toUpperCase()));
+        Arrays.stream(WebhookObjectType.values()).forEach(type -> ObjectType.valueOf(type.name()));
     }
 }

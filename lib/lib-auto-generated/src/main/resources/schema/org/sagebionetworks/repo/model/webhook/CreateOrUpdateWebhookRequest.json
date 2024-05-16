@@ -7,11 +7,11 @@
         },
         "objectType": {
 			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookObjectType",
-			"description": "Which type is Synapse object is associated with the Webhook."
+			"description": "Which type of Synapse object is associated with the Webhook."
 		},
         "invokeEndpoint": {
             "type": "string",
-            "description": "The endpoint the Synapse user would like the webhook events sent to on invocation. We recommend this endpoint to be an AWS API Gateway. Must be 256 Characters or less."
+            "description": "The endpoint the Synapse user would like the webhook events sent to on invocation. Must be a valid whitelisted domain. Must be 256 Characters or less."
         },
         "isWebhookEnabled": {
             "type": "boolean",
