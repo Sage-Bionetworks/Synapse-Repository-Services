@@ -255,10 +255,10 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 
 	/**
 	 * Note: This test was added for https://sagebionetworks.jira.com/browse/PLFM-8375
-	 * Earlier we were calculating dependency version from max version of table available. which was not working because
+	 * Earlier we were calculating dependency version by adding ROW_VERSION of dependencies. which was not working because
 	 * new view table was always created with ROW_VERSION 0.
-	 * Materialized view rebuild was not able to find index is not upto date and need to rebuild.
-	 * Now the dependency index is calculated by adding table id, table version and max ROW_version od available table of tables database.
+	 * Materialized view rebuild was not able to find that index is not upto date and need to rebuild.
+	 * Now the dependency index is calculated by adding table id, table version and max ROW_VERSION of dependencies.
 	 * @throws Exception
 	 */
 	@Test
