@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -26,6 +27,7 @@ import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.AsynchronousJobWorkerHelperImpl.AsyncJobResponse;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
@@ -46,6 +48,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
@@ -55,6 +58,8 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
@@ -123,6 +128,12 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 
 	@Autowired
 	private MaterializedViewDao materializedViewDao;
+
+	@Autowired
+	private RepositoryMessagePublisher repositoryMessagePublisher;
+
+	@Autowired
+	private DBOChangeDAO changeDAO;
 
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
@@ -240,6 +251,88 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		asyncHelper.assertQueryResult(userInfo, finalSql, (results) -> {
 			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
+	}
+
+	/**
+	 * Note: This test was added for https://sagebionetworks.jira.com/browse/PLFM-8375
+	 * Earlier we were calculating dependency version from max version of table available. which was not working because
+	 * new view table was always created with ROW_VERSION 0.
+	 * Materialized view rebuild was not able to find index is not upto date and need to rebuild.
+	 * Now the dependency index is calculated by adding table id, table version and max ROW_version od available table of tables database.
+	 * @throws Exception
+	 */
+	@Test
+	public void tesMaterializedViewIsRebuildWhenDefiningSQLIsChanged() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		EntityView ev = createEntityView(entites);
+
+		Project project = entites.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+		Long projectId = KeyFactory.stringToKey(project.getId());
+		// the user can only see files with the project as their benefactor.
+		List<String> fileIdsUserCanSee = entites.stream()
+				.filter((e) -> e instanceof FileEntity
+						&& projectId.equals(entityManager.getEntityHeader(adminUserInfo, e.getId()).getBenefactorId()))
+				.map(e -> e.getId()).collect(Collectors.toList());
+		assertEquals(3, fileIdsUserCanSee.size());
+
+		// Currently do not support doubles so the double key is excluded.
+		String definingSql = "select id, stringKey, longKey, doubleKey, dateKey, booleanKey from " + ev.getId();
+
+		IdAndVersion mvId = createMaterializedView(ev.getParentId(), definingSql);
+
+		String finalSql = "select * from " + mvId + " order by id asc";
+
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L)
+						.setValues(Arrays.asList(fileIdsUserCanSee.get(0), "a string: 3", "8", "6.140000000000001",
+								"1004", "false")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(
+						Arrays.asList(fileIdsUserCanSee.get(1), "a string: 5", "10", "8.14", "1006", "false")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(
+						Arrays.asList(fileIdsUserCanSee.get(2), "a string: 7", "12", "10.14", "1008", "false")));
+		IdAndVersion evId = IdAndVersion.parse(ev.getId());
+
+
+		asyncHelper.assertQueryResult(userInfo, finalSql, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+
+
+		// create snapshot of underlying entity view for materialized view
+		IdAndVersion evSnapshotId = createSnapshot(evId);
+
+		// wait for table to be available.
+		asyncHelper.assertQueryResult(userInfo, "select * from " + evSnapshotId, (results) -> {
+			assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+		}, MAX_WAIT_MS);
+
+		//change the defining sql of MV
+		String updatedDefiningSql = "select id, stringKey, longKey, doubleKey, dateKey, booleanKey from " + evSnapshotId;
+		MaterializedView mv = (MaterializedView) entityManager.getEntity(adminUserInfo, mvId.getId().toString());
+		mv.setDefiningSQL(updatedDefiningSql);
+		entityManager.updateEntity( adminUserInfo, mv, false, null);
+
+		// send a message to rebuild the view with updated defining sql
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.UPDATE);
+		message.setObjectType(ObjectType.MATERIALIZED_VIEW);
+		message.setObjectId(mv.getId());
+		message = changeDAO.replaceChange(message);
+		repositoryMessagePublisher.publishToTopic(message);
+
+		//call under test
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+			try {
+				asyncHelper.assertQueryResult(userInfo, "select * from " + mvId, (results) -> {
+					assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+				}, MAX_WAIT_MS);
+				return new Pair<>(Boolean.TRUE, null);
+			} catch (Throwable e) {
+				System.out.println("Waiting for materialized view to rebuild" + e.getMessage());
+				return new Pair<>(Boolean.FALSE, null);
+			}
+		});
 	}
 
 	@Test
