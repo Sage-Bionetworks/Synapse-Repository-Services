@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.Webhook;
+import org.sagebionetworks.repo.model.webhook.WebhookObjectType;
 
 public class WebhookDaoImpl implements WebhookDao {
 
@@ -45,7 +46,7 @@ public class WebhookDaoImpl implements WebhookDao {
 	}
 
 	@Override
-	public List<Webhook> listVerifiedAndEnabledWebhooksForObjectId(String objectId) {
+	public List<Webhook> listVerifiedAndEnabledWebhooksForObjectId(String objectId, WebhookObjectType webhookObjectType) {
 		// TODO Auto-generated method stub
 		return null;
 	}

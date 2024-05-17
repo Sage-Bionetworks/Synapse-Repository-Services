@@ -2,8 +2,10 @@ package org.sagebionetworks.repo.manager;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -25,6 +27,8 @@ import org.sagebionetworks.repo.model.webhook.WebhookVerification;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.amazonaws.regions.Regions;
 
 public class WebhookManagerImpl implements WebhookManager {
 	
@@ -48,8 +52,14 @@ public class WebhookManagerImpl implements WebhookManager {
 	public static final String MISSING_OBJECT_UPDATE_PARAMS = "If you would like to update the object, both the ObjectId and the ObjectType are required.";
 	public static final String INVALID_INVOKE_ENDPOINT_MESSAGE = "The invokeEndpoint: %s is invalid.";
 	
-	private static final String AWS_API_GATEWAY_REGEX = "^https://[a-zA-Z0-9-]+\\.execute-api\\.[a-zA-Z0-9-]+\\.amazonaws\\.com(/.*)?$";
+	private static final String AWS_REGION_REGEX = Stream.of(Regions.values())
+            .map(Regions::getName)
+            .collect(Collectors.joining("|"));
+
+    private static final String AWS_API_GATEWAY_REGEX = "^https://[a-zA-Z0-9-]+\\.execute-api\\.(" + AWS_REGION_REGEX + ")\\.amazonaws\\.com(/.*)?$";
     private static final Pattern AWS_API_GATEWAY_PATTERN = Pattern.compile(AWS_API_GATEWAY_REGEX);
+    
+    public static final Set<Pattern> ALLOWED_INVOKE_DOMAINS = Set.of(AWS_API_GATEWAY_PATTERN);
 	
 	@WriteTransaction
 	@Override
@@ -58,7 +68,8 @@ public class WebhookManagerImpl implements WebhookManager {
 		ValidateArgument.required(request, "createOrUpdateWebhookRequest");
 		AuthorizationUtils.disallowAnonymous(userInfo);
 		
-		validateUserCanReadObject(userInfo, request.getObjectId(), request.getObjectType());
+		aclDao.canAccess(userInfo, request.getObjectId(), ObjectType.valueOf(request.getObjectType().name()), ACCESS_TYPE.READ)
+				.checkAuthorizationOrElseThrow();
 		validateInvokeEndpoint(request.getInvokeEndpoint());
 		
 		if (request.getIsWebhookEnabled() == null) {
@@ -91,7 +102,9 @@ public class WebhookManagerImpl implements WebhookManager {
 		// If updating the object, verify the user has read permission on the new object
 		if (includesObjectId || includesObjectType) {
 			ValidateArgument.requirement(includesObjectId && includesObjectType, MISSING_OBJECT_UPDATE_PARAMS);
-			validateUserCanReadObject(userInfo, request.getObjectId(), request.getObjectType());
+			
+			aclDao.canAccess(userInfo, request.getObjectId(), ObjectType.valueOf(request.getObjectType().name()), ACCESS_TYPE.READ)
+					.checkAuthorizationOrElseThrow();
 		}
 		
 		if (includesInvokeEndpoint) {
@@ -152,12 +165,13 @@ public class WebhookManagerImpl implements WebhookManager {
 	}
 	
 	@Override
-	public List<Webhook> listSendableWebhooksForObjectId(String objectId) {
-		return webhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId).stream()
+	public List<Webhook> listSendableWebhooksForObjectId(String objectId, WebhookObjectType webhookObjectType) {
+		return webhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, webhookObjectType).stream()
 				.filter(webhook -> {
 					try {
 						UserInfo userInfo = userManager.getUserInfo(Long.parseLong(webhook.getUserId()));
-						validateUserCanReadObject(userInfo, webhook.getObjectId(), webhook.getObjectType());
+						aclDao.canAccess(userInfo, webhook.getObjectId(), ObjectType.valueOf(webhook.getObjectType().name()), ACCESS_TYPE.READ)
+								.checkAuthorizationOrElseThrow();
                         return true; 
                     } catch (RuntimeException e) {
                         return false; 
@@ -165,44 +179,33 @@ public class WebhookManagerImpl implements WebhookManager {
 				}).collect(Collectors.toList());
 	}
 	
-	private void validateUserIsAdminOrWebhookOwner(UserInfo userInfo, String webhookId) {
+	public void validateUserIsAdminOrWebhookOwner(UserInfo userInfo, String webhookId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(webhookId, "webhookId");
-		
-		if (userInfo.isAdmin()) {
-			return;
-		}
-		
+	
 		String webhookOwner = webhookDao.getWebhookOwnerForUpdate(webhookId)
 				.orElseThrow(() -> new IllegalArgumentException(INVALID_WEBHOOK_ID));
 
-		if (userInfo.getId().toString().equals(webhookOwner)) {
+		if (userInfo.isAdmin() || userInfo.getId().toString().equals(webhookOwner)) {
 			return;
 		}
 		
 		throw new UnauthorizedException(UNAUTHORIZED_ACCESS_MESSAGE);
 	}
 	
-	private void validateUserCanReadObject(UserInfo userInfo, String objectId, WebhookObjectType webhookObjectType) {
-		ValidateArgument.required(objectId, "objectId");
-		ValidateArgument.required(webhookObjectType, "webhookObjectType");
-		
-		ObjectType objectType = ObjectType.valueOf(webhookObjectType.name());
-		aclDao.canAccess(userInfo, objectId, objectType, ACCESS_TYPE.READ)
-				.checkAuthorizationOrElseThrow();;
-	}
-	
-	private void validateInvokeEndpoint(String invokeEndpoint) {
+	public void validateInvokeEndpoint(String invokeEndpoint) {
 		ValidateArgument.required(invokeEndpoint, "invokeEndpoint");
 		
-		if (AWS_API_GATEWAY_PATTERN.matcher(invokeEndpoint).matches()) {
-			return;
+		for (Pattern pattern : ALLOWED_INVOKE_DOMAINS) {
+			if (pattern.matcher(invokeEndpoint).matches()) {
+				return;
+			}
 		}
 		
 		throw new IllegalArgumentException(String.format(INVALID_INVOKE_ENDPOINT_MESSAGE, invokeEndpoint));
 	}
 	
-	private void generateAndSendVerificationCode(Long userId, String webhookId) {
+	public void generateAndSendVerificationCode(Long userId, String webhookId) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(webhookId, "webhookId");
 		

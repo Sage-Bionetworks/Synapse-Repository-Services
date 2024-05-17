@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookResponse;
 import org.sagebionetworks.repo.model.webhook.Webhook;
+import org.sagebionetworks.repo.model.webhook.WebhookObjectType;
 
 
 /**
@@ -20,7 +21,7 @@ public interface WebhookManager {
 	
 	/**
 	 * Create a new Webhook object. This object serves as registration for a Synapse user to receive events for the specified objectId. 
-	 * The attribute isEnabled will default to true unless otherwise specified.
+	 * The combination of the objectId and invokeEndpoint must be unique for each Webhook. The attribute isEnabled will default to true unless otherwise specified.
 	 * 
 	 * @param userInfo
 	 * @param request
@@ -84,5 +85,5 @@ public interface WebhookManager {
 	 * @param objectId
 	 * @return
 	 */
-	List<Webhook> listSendableWebhooksForObjectId(String objectId);
+	List<Webhook> listSendableWebhooksForObjectId(String objectId, WebhookObjectType webhookObjectType);
 }

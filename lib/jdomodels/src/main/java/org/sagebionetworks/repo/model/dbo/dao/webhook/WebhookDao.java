@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.Webhook;
+import org.sagebionetworks.repo.model.webhook.WebhookObjectType;
 
 public interface WebhookDao {
 
@@ -58,7 +59,7 @@ public interface WebhookDao {
 	 * @param objectId
 	 * @return
 	 */
-	List<Webhook> listVerifiedAndEnabledWebhooksForObjectId(String objectId);
+	List<Webhook> listVerifiedAndEnabledWebhooksForObjectId(String objectId, WebhookObjectType webhookObjectType);
 	
 	/**
 	 * 

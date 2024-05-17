@@ -19,7 +19,7 @@
 		},
 		"invokeEndpoint": {
 			"type": "string",
-			"description": "The endpoint the Synapse user would like the webhook events sent to on invocation. Must be 256 Characters or less."
+			"description": "The endpoint the Synapse user would like the webhook events sent to on invocation. Must be 512 Characters or less."
 		},
 		"isVerified": {
 			"type": "boolean",
