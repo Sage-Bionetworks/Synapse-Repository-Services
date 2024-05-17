@@ -2790,9 +2790,10 @@ public class TableIndexManagerImplTest {
 				new ViewIndexDescription(idTwo, TableType.entityview, -1L)
 		));
 
-		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(maxCurrentCompleteVersionOne, maxCurrentCompleteVersionTwo);
-		long expected = idOne.getId() + idOne.getVersion().orElse(0L) + idTwo.getId() +
-				idTwo.getVersion().orElse(0L) + maxCurrentCompleteVersionOne + maxCurrentCompleteVersionTwo;
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idOne)).thenReturn(maxCurrentCompleteVersionOne);
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idTwo)).thenReturn(maxCurrentCompleteVersionTwo);
+
+		long expected = 456 + 789 + 10 + 12;
 
 		// Call under test
 		long result = manager.getVersionFromIndexDependencies(index);
@@ -2814,9 +2815,9 @@ public class TableIndexManagerImplTest {
 				new ViewIndexDescription(idTwo, TableType.entityview, -1L)
 		));
 
-		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(maxCurrentCompleteVersionOne, maxCurrentCompleteVersionTwo);
-		long expected = idOne.getId() + idOne.getVersion().orElse(0L) + idTwo.getId() +
-				idTwo.getVersion().orElse(0L) + maxCurrentCompleteVersionOne + maxCurrentCompleteVersionTwo;
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idOne)).thenReturn(maxCurrentCompleteVersionOne);
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idTwo)).thenReturn(maxCurrentCompleteVersionTwo);
+		long expected = 456 + 789 + 10 + 12 + 11 + 13;
 
 		// Call under test
 		long result = manager.getVersionFromIndexDependencies(index);
@@ -2838,14 +2839,13 @@ public class TableIndexManagerImplTest {
 				new ViewIndexDescription(idTwo, TableType.entityview, -1L)
 		));
 
-		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(maxCurrentCompleteVersionOne, maxCurrentCompleteVersionTwo);
-		long expected = idOne.getId() + idOne.getVersion().orElse(0L) + idTwo.getId() + idTwo.getVersion().orElse(0L)
-				+ maxCurrentCompleteVersionOne + maxCurrentCompleteVersionTwo;
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idOne)).thenReturn(maxCurrentCompleteVersionOne);
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idTwo)).thenReturn(maxCurrentCompleteVersionTwo);
 
 		// Call under test
 		long result = manager.getVersionFromIndexDependencies(index);
 
-		assertEquals(expected, result);
+		assertEquals(-9223372036854774552L, result);
 
 		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(idOne);
 		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(idTwo);
