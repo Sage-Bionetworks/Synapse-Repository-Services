@@ -1093,8 +1093,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public long getVersionFromIndexDependencies(IndexDescription index) {
 		return index.getDependencies().stream()
-			.map(IndexDescription::getIdAndVersion)
-			.collect(Collectors.summingLong(this::getCurrentVersionOfIndex));
+				.map(IndexDescription::getIdAndVersion)
+				.mapToLong(id ->
+						id.getId() + id.getVersion().orElse(0L) + getCurrentVersionOfIndex(id))
+				.sum();
 	}
 	
 	@Override
