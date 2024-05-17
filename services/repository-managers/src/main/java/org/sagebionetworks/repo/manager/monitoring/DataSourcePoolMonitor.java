@@ -9,15 +9,10 @@ import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.util.VirtualMachineIdProvider;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 
 public class DataSourcePoolMonitor {
-	
-	public enum ApplicationType {
-		repository, workers
-	}
 	
 	public enum DataSourceId {
 

@@ -4,12 +4,15 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.manager.audit.AccessRecorder;
 import org.sagebionetworks.repo.manager.config.SimpleTriggerBuilder;
+import org.sagebionetworks.repo.manager.monitoring.ApplicationType;
 import org.sagebionetworks.repo.manager.monitoring.DataSourcePoolMonitor;
-import org.sagebionetworks.repo.manager.monitoring.DataSourcePoolMonitor.ApplicationType;
+import org.sagebionetworks.repo.manager.monitoring.DiskMonitor;
+import org.sagebionetworks.repo.manager.monitoring.TempDiskProviderImpl;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -63,6 +66,16 @@ public class RepoWebConfiguration implements WebMvcConfigurer {
 				.withTargetMethod("timerFired")
 				.withRepeatInterval(957)
 				.withStartDelay(13)
+				.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean diskMonitorTrigger(LoggerProvider loggerProvider) {
+		return new SimpleTriggerBuilder()
+				.withTargetObject(new DiskMonitor(ApplicationType.repository, new TempDiskProviderImpl(), loggerProvider, consumer, config.getStackInstance()))
+				.withTargetMethod("collectMetrics")
+				.withRepeatInterval(30_000)
+				.withStartDelay(1313)
 				.build();
 	}
 	
