@@ -255,10 +255,15 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 
 	/**
 	 * Note: This test was added for https://sagebionetworks.jira.com/browse/PLFM-8375
-	 * Earlier we were calculating dependency version by adding ROW_VERSION of dependencies. which was not working because
-	 * new view table was always created with ROW_VERSION 0.
-	 * Materialized view rebuild was not able to find that index is not upto date and need to rebuild.
-	 * Now the dependency index is calculated by adding table id, table version and max ROW_VERSION of dependencies.
+	 * We are simulating the change of the defining sql that would occur during a migration event.
+	 * When the defining SQL changes while migration, the MV index status is not changed to processing
+	 * (unlike what happens when updateEntity is called).However, a change message will be sent to the MV worker after migration finishes.
+	 * The worker needs to correctly detect that it needs to rebuild the MV.
+	 * To determine the rebuild of MV, worker is calculating index by adding ROW_VERSION of dependencies. which is not working because
+	 * new view table TSynID_VersionS is always created with ROW_VERSION 0 and materialized view
+	 * is not able to find that index is not upto date and need to rebuild.
+	 * To fix the issue we changed index calculation by adding table id, table version and max ROW_VERSION of dependencies.
+	 * So that if underlying dependency get changed or the version of dependency get changed the MV will rebuild.
 	 * @throws Exception
 	 */
 	@Test
@@ -276,7 +281,6 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 				.map(e -> e.getId()).collect(Collectors.toList());
 		assertEquals(3, fileIdsUserCanSee.size());
 
-		// Currently do not support doubles so the double key is excluded.
 		String definingSql = "select id, stringKey, longKey, doubleKey, dateKey, booleanKey from " + ev.getId();
 
 		IdAndVersion mvId = createMaterializedView(ev.getParentId(), definingSql);
@@ -302,18 +306,21 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		// create snapshot of underlying entity view for materialized view
 		IdAndVersion evSnapshotId = createSnapshot(evId);
 
-		// wait for table to be available.
+		// wait for ev snapshot to be available.
 		asyncHelper.assertQueryResult(userInfo, "select * from " + evSnapshotId, (results) -> {
 			assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
 		}, MAX_WAIT_MS);
 
-		//change the defining sql of MV
+		//simulating the change of the defining sql that would occur during a migration event.
 		String updatedDefiningSql = "select id, stringKey, longKey, doubleKey, dateKey, booleanKey from " + evSnapshotId;
 		MaterializedView mv = (MaterializedView) entityManager.getEntity(adminUserInfo, mvId.getId().toString());
 		mv.setDefiningSQL(updatedDefiningSql);
 		entityManager.updateEntity( adminUserInfo, mv, false, null);
 
-		// send a message to rebuild the view with updated defining sql
+		// The status of index table is AVAILABLE after the defining SQL update.
+		assertEquals(TableState.AVAILABLE, tableManagerSupport.getTableStatusState(mvId).orElse(null));
+
+		//Sending a message here to simulates the message that gets sent after migration completes.
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(ChangeType.UPDATE);
 		message.setObjectType(ObjectType.MATERIALIZED_VIEW);
@@ -321,11 +328,12 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		message = changeDAO.replaceChange(message);
 		repositoryMessagePublisher.publishToTopic(message);
 
-		//call under test
+		// The first time the query runs it might fail if the MV has not been updated yet.
+		// However, after the MV worker updates the index, this query will eventually pass without error.
 		TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
 			try {
 				asyncHelper.assertQueryResult(userInfo, "select * from " + mvId, (results) -> {
-					assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+					assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
 				}, MAX_WAIT_MS);
 				return new Pair<>(Boolean.TRUE, null);
 			} catch (Throwable e) {
