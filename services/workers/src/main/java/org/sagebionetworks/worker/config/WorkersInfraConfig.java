@@ -3,13 +3,17 @@ package org.sagebionetworks.worker.config;
 import java.util.Map;
 
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManager;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManagerImpl;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
+import org.sagebionetworks.repo.manager.config.SimpleTriggerBuilder;
+import org.sagebionetworks.repo.manager.monitoring.ApplicationType;
 import org.sagebionetworks.repo.manager.monitoring.DataSourcePoolMonitor;
-import org.sagebionetworks.repo.manager.monitoring.DataSourcePoolMonitor.ApplicationType;
+import org.sagebionetworks.repo.manager.monitoring.DiskMonitor;
+import org.sagebionetworks.repo.manager.monitoring.TempDiskProviderImpl;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.worker.utils.StackStatusGate;
 import org.springframework.context.annotation.Bean;
@@ -48,6 +52,16 @@ public class WorkersInfraConfig {
 			.withRepeatInterval(DB_MONITOR_INTERVAL)
 			.withStartDelay(DB_MONITOR_INTERVAL)
 			.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean diskMonitorTrigger(LoggerProvider loggerProvider) {
+		return new SimpleTriggerBuilder()
+				.withTargetObject(new DiskMonitor(ApplicationType.workers, new TempDiskProviderImpl(), loggerProvider, consumer, config.getStackInstance()))
+				.withTargetMethod("collectMetrics")
+				.withRepeatInterval(30_000)
+				.withStartDelay(1313)
+				.build();
 	}
 
 }

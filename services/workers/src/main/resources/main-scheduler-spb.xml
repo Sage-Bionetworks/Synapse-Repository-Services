@@ -147,6 +147,7 @@
 		
 		<!-- Data source pool monitor trigger -->
 		<ref bean="dataSourceMonitorTrigger"/>
+		<ref bean="diskMonitorTrigger"/>
 		
 	</util:list>
 
