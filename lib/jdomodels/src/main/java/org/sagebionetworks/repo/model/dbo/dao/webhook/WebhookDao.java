@@ -58,10 +58,4 @@ public interface WebhookDao {
 	 */
 	List<Webhook> listVerifiedAndEnabledWebhooksForObjectId(String objectId, ObjectType objectType);
 	
-	/**
-	 * 
-	 * @param webhookId
-	 * @param verificationStatus
-	 */
-	void setWebhookVerificationStatus(String webhookId, boolean verificationStatus);
 }

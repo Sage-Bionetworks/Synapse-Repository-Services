@@ -1,6 +1,10 @@
 {
     "description": "The request body of VerifyWebhookRequest.",
     "properties": {
+    	"webhookId": {
+			"type": "string",
+			"description": "The ID associated with the Webhook. This field is issued by Synapse and cannot be changed by the user."
+		},
         "verificationCode": {
             "type": "string",
             "description": "The verification code received by invokeEndpoint to verify a Webhook."

@@ -21,10 +21,6 @@
    			"type": "string",
     		"format": "date-time",
     		"description": "The timestamp when the event occurred, in ISO 8601 format."
-		},
-		"concreteType": {
-            "type": "string",
-            "description": "Indicates which type of object in Synapse this event occurred on. The value is the fully qualified class name, e.g. org.sagebionetworks.repo.model.FileEntity."
-        }
+		}
     }
 }

@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -79,7 +80,7 @@ public class WebhookManagerUnitTest {
 	
 	@Spy
 	@InjectMocks
-	WebhookManagerImpl webhookManager;
+	WebhookManagerImpl webhookManagerSpy;
 	
 	
 	UserInfo userInfo;
@@ -92,6 +93,10 @@ public class WebhookManagerUnitTest {
 	long unauthorizedUserId = 789L;
 	String userIdAsString = String.valueOf(userId);
 	
+	Date currentDate;
+	Date pastDate;
+	Date futureDate;
+	
 	String webhookId = "101010";
 	Webhook webhook;
 	Webhook updatedWebhook;
@@ -102,8 +107,8 @@ public class WebhookManagerUnitTest {
 	String validApiGatewayEndpoint = "https://abcd1234.execute-api.us-east-1.amazonaws.com/prod";
 	String anotherValidApiGatewayEndpoint = "https://vxyz5678.execute-api.us-west-2.amazonaws.com/prod";
 	String invalidInvokeEndpoint = "https://invalidEndpoint.com";
-	Date currentDate;
-	String verificationCode = WebhookManagerImpl.VERIFICATION_CODE_CHARACTERS.substring(0, 1).repeat(WebhookManagerImpl.VERIFICATION_CODE_LENGTH);
+	String validVerificationCode = WebhookManagerImpl.VERIFICATION_CODE_CHARACTERS.substring(0, 1).repeat(WebhookManagerImpl.VERIFICATION_CODE_LENGTH);
+	String invalidVerificationCode = "invalid";
 	
 	
 	@BeforeEach
@@ -116,6 +121,8 @@ public class WebhookManagerUnitTest {
 		// mock the clock
 		when(mockClock.now()).thenReturn(new GregorianCalendar(2024, Calendar.MAY, 21).getTime());
 		currentDate = mockClock.now();
+		pastDate = new Date(currentDate.getTime() - 10^6);
+		futureDate = new Date(currentDate.getTime() + 10^6);
 		
 		webhook = new Webhook()
 				.setWebhookId(webhookId)
@@ -159,22 +166,22 @@ public class WebhookManagerUnitTest {
 				.setIsWebhookEnabled(true)
 				.setIsAuthenticationEnabled(true);
 		
-		doNothing().when(webhookManager).validateCreateOrUpdateArguments(any(), any());
+		doNothing().when(webhookManagerSpy).validateCreateOrUpdateArguments(any(), any());
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockIdGenerator.generateNewId(any())).thenReturn(Long.valueOf(webhookId));
 		when(mockWebhookDao.createWebhook(any())).thenReturn(webhook);
-		doNothing().when(webhookManager).generateAndSendWebhookVerification(any(), any());
+		doNothing().when(webhookManagerSpy).generateAndSendWebhookVerification(any());
 		
 		// Call under test
-		Webhook result = webhookManager.createWebhook(userInfo, toCreate);
+		Webhook result = webhookManagerSpy.createWebhook(userInfo, toCreate);
 		
 		assertEquals(webhook, result);
 		
-		verify(webhookManager).validateCreateOrUpdateArguments(userInfo, toCreate);
+		verify(webhookManagerSpy).validateCreateOrUpdateArguments(userInfo, toCreate);
 		verify(mockAclDao).canAccess(userInfo, objectId, objectType, ACCESS_TYPE.READ);
 		verify(mockIdGenerator).generateNewId(IdType.WEBHOOK_ID);
 		verify(mockWebhookDao).createWebhook(toCreate);
-		verify(webhookManager).generateAndSendWebhookVerification(userId, webhookId);
+		verify(webhookManagerSpy).generateAndSendWebhookVerification(webhook);
 	}
 	
 	@Test
@@ -191,16 +198,16 @@ public class WebhookManagerUnitTest {
 		
 		String errorMessage = assertThrows(UnauthorizedException.class, () -> {
 			// Call under test
-			webhookManager.createWebhook(userInfo, toCreate);
+			webhookManagerSpy.createWebhook(userInfo, toCreate);
 		}).getMessage();
 		
 		assertEquals(accessDeniedMessage, errorMessage);
 		
-		verify(webhookManager).validateCreateOrUpdateArguments(userInfo, toCreate);
+		verify(webhookManagerSpy).validateCreateOrUpdateArguments(userInfo, toCreate);
 		verify(mockAclDao).canAccess(userInfo, objectId, objectType, ACCESS_TYPE.READ);
 		verify(mockIdGenerator, never()).generateNewId(any());
 		verify(mockWebhookDao, never()).createWebhook(any());
-		verify(webhookManager, never()).generateAndSendWebhookVerification(any(), any());
+		verify(webhookManagerSpy, never()).generateAndSendWebhookVerification(any(), any());
 	}
 	
 	@Test
@@ -212,22 +219,22 @@ public class WebhookManagerUnitTest {
 				.setIsWebhookEnabled(null)
 				.setIsAuthenticationEnabled(null);
 		
-		doNothing().when(webhookManager).validateCreateOrUpdateArguments(any(), any());
+		doNothing().when(webhookManagerSpy).validateCreateOrUpdateArguments(any(), any());
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockIdGenerator.generateNewId(any())).thenReturn(Long.valueOf(webhookId));
 		when(mockWebhookDao.createWebhook(any())).thenReturn(webhook);
-		doNothing().when(webhookManager).generateAndSendWebhookVerification(any(), any());
+		doNothing().when(webhookManagerSpy).generateAndSendWebhookVerification(any());
 		
 		// Call under test
-		Webhook result = webhookManager.createWebhook(userInfo, toCreate);
+		Webhook result = webhookManagerSpy.createWebhook(userInfo, toCreate);
 		
 		assertEquals(webhook, result);
 		
-		verify(webhookManager).validateCreateOrUpdateArguments(userInfo, toCreate);
+		verify(webhookManagerSpy).validateCreateOrUpdateArguments(userInfo, toCreate);
 		verify(mockAclDao).canAccess(userInfo, objectId, objectType, ACCESS_TYPE.READ);
 		verify(mockIdGenerator).generateNewId(IdType.WEBHOOK_ID);
 		verify(mockWebhookDao).createWebhook(toCreate);
-		verify(webhookManager).generateAndSendWebhookVerification(userId, webhookId);
+		verify(webhookManagerSpy).generateAndSendWebhookVerification(webhook);
 	}
 	
 	@Test
@@ -240,43 +247,43 @@ public class WebhookManagerUnitTest {
 				.setIsWebhookEnabled(false)
 				.setIsAuthenticationEnabled(false);
 		
-		doNothing().when(webhookManager).validateCreateOrUpdateArguments(any(), any());
+		doNothing().when(webhookManagerSpy).validateCreateOrUpdateArguments(any(), any());
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockIdGenerator.generateNewId(any())).thenReturn(Long.valueOf(webhookId));
 		when(mockWebhookDao.createWebhook(any())).thenReturn(webhook);
-		doNothing().when(webhookManager).generateAndSendWebhookVerification(any(), any());
+		doNothing().when(webhookManagerSpy).generateAndSendWebhookVerification(any());
 		
 		// Call under test
-		Webhook result = webhookManager.createWebhook(userInfo, toCreate);
+		Webhook result = webhookManagerSpy.createWebhook(userInfo, toCreate);
 		
 		assertEquals(webhook, result);
 		
-		verify(webhookManager).validateCreateOrUpdateArguments(userInfo, toCreate);
+		verify(webhookManagerSpy).validateCreateOrUpdateArguments(userInfo, toCreate);
 		verify(mockAclDao).canAccess(userInfo, objectId, objectType, ACCESS_TYPE.READ);
 		verify(mockIdGenerator).generateNewId(IdType.WEBHOOK_ID);
 		verify(mockWebhookDao).createWebhook(toCreate);
-		verify(webhookManager).generateAndSendWebhookVerification(userId, webhookId);
+		verify(webhookManagerSpy).generateAndSendWebhookVerification(webhook);
 	}
 	
 	@Test
 	public void testGetWebhook() {
 		when(mockWebhookDao.getWebhook(any())).thenReturn(webhook);
-		doNothing().when(webhookManager).validateUserIsAdminOrWebhookOwner(any(), any());
+		doNothing().when(webhookManagerSpy).validateUserIsAdminOrWebhookOwner(any(), any());
 		
 		// Call under test
-		Webhook result = webhookManager.getWebhook(userInfo, webhookId);
+		Webhook result = webhookManagerSpy.getWebhook(userInfo, webhookId);
 		
 		assertEquals(webhook, result);
 		
 		verify(mockWebhookDao).getWebhook(webhookId);
-		verify(webhookManager).validateUserIsAdminOrWebhookOwner(userInfo, webhook);
+		verify(webhookManagerSpy).validateUserIsAdminOrWebhookOwner(userInfo, webhook);
 	}
 	
 	@Test
 	public void testGetWebhookWithNullUserInfo() {
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.getWebhook(null, webhookId);
+			webhookManagerSpy.getWebhook(null, webhookId);
 		}).getMessage();
 		
 		assertEquals("userInfo is required.", errorMessage);
@@ -286,7 +293,7 @@ public class WebhookManagerUnitTest {
 	public void testGetWebhookWithNullWebhookId() {
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.getWebhook(userInfo, null);
+			webhookManagerSpy.getWebhook(userInfo, null);
 		}).getMessage();
 		
 		assertEquals("webhookId is required.", errorMessage);
@@ -301,39 +308,39 @@ public class WebhookManagerUnitTest {
 				.setInvokeEndpoint(updatedWebhook.getInvokeEndpoint()) // update
 				.setEtag(webhook.getEtag());
 
-		doNothing().when(webhookManager).validateCreateOrUpdateArguments(any(), any());
+		doNothing().when(webhookManagerSpy).validateCreateOrUpdateArguments(any(), any());
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockWebhookDao.getWebhookForUpdate(any())).thenReturn(webhook);
-		doNothing().when(webhookManager).validateUserIsAdminOrWebhookOwner(any(), any());
+		doNothing().when(webhookManagerSpy).validateUserIsAdminOrWebhookOwner(any(), any());
 		when(mockWebhookDao.updateWebhook(any())).thenReturn(updatedWebhook);
-		doNothing().when(webhookManager).generateAndSendWebhookVerification(any(), any());
+		doNothing().when(webhookManagerSpy).generateAndSendWebhookVerification(any());
 		
 		// Call under test
-		Webhook response = webhookManager.updateWebhook(userInfo, updateWith);
+		Webhook response = webhookManagerSpy.updateWebhook(userInfo, updateWith);
 		
 		assertEquals(updatedWebhook, response);
 		
-		verify(webhookManager).validateCreateOrUpdateArguments(userInfo, updateWith);
+		verify(webhookManagerSpy).validateCreateOrUpdateArguments(userInfo, updateWith);
 		verify(mockAclDao).canAccess(userInfo, anotherObjectId, objectType, ACCESS_TYPE.READ);
 		verify(mockWebhookDao).getWebhookForUpdate(webhookId);
-		verify(webhookManager).validateUserIsAdminOrWebhookOwner(userInfo, webhook);
-		verify(webhookManager).generateAndSendWebhookVerification(userId, webhookId);
+		verify(webhookManagerSpy).validateUserIsAdminOrWebhookOwner(userInfo, webhook);
+		verify(webhookManagerSpy).generateAndSendWebhookVerification(updatedWebhook);
 	}
 	
 	@Test
 	public void testUpdateWebhookWithNullEtag() {
 		Webhook updateWith = new Webhook().setEtag(null);
 		
-		doNothing().when(webhookManager).validateCreateOrUpdateArguments(any(), any());
+		doNothing().when(webhookManagerSpy).validateCreateOrUpdateArguments(any(), any());
 		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.updateWebhook(userInfo, updateWith);
+			webhookManagerSpy.updateWebhook(userInfo, updateWith);
 		}).getMessage();
 		
 		assertEquals("updateWith.etag is required.", errorMessage);
 		
-		verify(webhookManager).validateCreateOrUpdateArguments(userInfo, updateWith);
+		verify(webhookManagerSpy).validateCreateOrUpdateArguments(userInfo, updateWith);
 	}
 	
 	@Test
@@ -346,22 +353,22 @@ public class WebhookManagerUnitTest {
 				.setInvokeEndpoint(updatedWebhook.getInvokeEndpoint()) // update
 				.setEtag(webhook.getEtag());
 
-		doNothing().when(webhookManager).validateCreateOrUpdateArguments(any(), any());
+		doNothing().when(webhookManagerSpy).validateCreateOrUpdateArguments(any(), any());
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied(accessDeniedMessage));
 		
 		String errorMessage = assertThrows(UnauthorizedException.class, () -> {
 			// Call under test
-			webhookManager.updateWebhook(userInfo, updateWith);
+			webhookManagerSpy.updateWebhook(userInfo, updateWith);
 		}).getMessage();
 		
 		assertEquals(accessDeniedMessage, errorMessage);
 		
-		verify(webhookManager).validateCreateOrUpdateArguments(userInfo, updateWith);
+		verify(webhookManagerSpy).validateCreateOrUpdateArguments(userInfo, updateWith);
 		verify(mockAclDao).canAccess(userInfo, anotherObjectId, objectType, ACCESS_TYPE.READ);
 		verify(mockWebhookDao, never()).getWebhookForUpdate(any());
-		verify(webhookManager, never()).validateUserIsAdminOrWebhookOwner(any(), any());
+		verify(webhookManagerSpy, never()).validateUserIsAdminOrWebhookOwner(any(), any());
 		verify(mockWebhookDao, never()).updateWebhook(any());
-		verify(webhookManager, never()).generateAndSendWebhookVerification(any(), any());
+		verify(webhookManagerSpy, never()).generateAndSendWebhookVerification(any(), any());
 	}
 	
 	@Test
@@ -373,24 +380,24 @@ public class WebhookManagerUnitTest {
 				.setInvokeEndpoint(updatedWebhook.getInvokeEndpoint()) // update
 				.setEtag(UUID.randomUUID().toString());
 
-		doNothing().when(webhookManager).validateCreateOrUpdateArguments(any(), any());
+		doNothing().when(webhookManagerSpy).validateCreateOrUpdateArguments(any(), any());
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockWebhookDao.getWebhookForUpdate(any())).thenReturn(webhook);
-		doNothing().when(webhookManager).validateUserIsAdminOrWebhookOwner(any(), any());
+		doNothing().when(webhookManagerSpy).validateUserIsAdminOrWebhookOwner(any(), any());
 		
 		String errorMessage = assertThrows(ConflictingUpdateException.class, () -> {
 			// Call under test
-			webhookManager.updateWebhook(userInfo, updateWith);
+			webhookManagerSpy.updateWebhook(userInfo, updateWith);
 		}).getMessage();
 		
 		assertEquals(String.format(WebhookManagerImpl.CONFLICTING_UPDATE_MESSAGE, webhook.getWebhookId()), errorMessage);
 		
-		verify(webhookManager).validateCreateOrUpdateArguments(userInfo, updateWith);
+		verify(webhookManagerSpy).validateCreateOrUpdateArguments(userInfo, updateWith);
 		verify(mockAclDao).canAccess(userInfo, anotherObjectId, objectType, ACCESS_TYPE.READ);
 		verify(mockWebhookDao).getWebhookForUpdate(webhookId);
-		verify(webhookManager).validateUserIsAdminOrWebhookOwner(userInfo, webhook);
+		verify(webhookManagerSpy).validateUserIsAdminOrWebhookOwner(userInfo, webhook);
 		verify(mockWebhookDao, never()).updateWebhook(any());
-		verify(webhookManager, never()).generateAndSendWebhookVerification(any(), any());
+		verify(webhookManagerSpy, never()).generateAndSendWebhookVerification(any(), any());
 	}
 	
 	@Test
@@ -405,202 +412,194 @@ public class WebhookManagerUnitTest {
 				.setIsAuthenticationEnabled(false) // update
 				.setEtag(webhook.getEtag());
 
-		doNothing().when(webhookManager).validateCreateOrUpdateArguments(any(), any());
+		doNothing().when(webhookManagerSpy).validateCreateOrUpdateArguments(any(), any());
 		when(mockWebhookDao.getWebhookForUpdate(any())).thenReturn(webhook);
-		doNothing().when(webhookManager).validateUserIsAdminOrWebhookOwner(any(), any());
+		doNothing().when(webhookManagerSpy).validateUserIsAdminOrWebhookOwner(any(), any());
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockWebhookDao.updateWebhook(any())).thenReturn(updatedWebhook);
-		doNothing().when(webhookManager).generateAndSendWebhookVerification(any(), any());
+		doNothing().when(webhookManagerSpy).generateAndSendWebhookVerification(any());
 		
 		// Call under test
-		Webhook response = webhookManager.updateWebhook(userInfo, updateWith);
+		Webhook response = webhookManagerSpy.updateWebhook(userInfo, updateWith);
 		
 		assertEquals(updatedWebhook, response);
 		
-		verify(webhookManager).validateCreateOrUpdateArguments(userInfo, updateWith);
+		verify(webhookManagerSpy).validateCreateOrUpdateArguments(userInfo, updateWith);
 		verify(mockAclDao).canAccess(userInfo, anotherObjectId, objectType, ACCESS_TYPE.READ);
 		verify(mockWebhookDao).getWebhookForUpdate(webhookId);
-		verify(webhookManager).validateUserIsAdminOrWebhookOwner(userInfo, webhook);
-		verify(webhookManager).generateAndSendWebhookVerification(userId, webhookId);
+		verify(webhookManagerSpy).validateUserIsAdminOrWebhookOwner(userInfo, webhook);
+		verify(webhookManagerSpy).generateAndSendWebhookVerification(updatedWebhook);
 	}
 	
 	@Test
 	public void testDeleteWebhook() {
-		when(mockWebhookDao.getWebhookForUpdate(any())).thenReturn(webhook);
-		doNothing().when(webhookManager).validateUserIsAdminOrWebhookOwner(any(), any());
+		doReturn(webhook).when(webhookManagerSpy).getWebhook(any(), any());
 		
 		// Call under test
-		webhookManager.deleteWebhook(userInfo, webhookId);
+		webhookManagerSpy.deleteWebhook(userInfo, webhookId);
 		
-		verify(mockWebhookDao).getWebhookForUpdate(webhookId);
-		verify(webhookManager).validateUserIsAdminOrWebhookOwner(userInfo, webhook);
+		verify(webhookManagerSpy).getWebhook(userInfo, webhookId);
 		verify(mockWebhookDao).deleteWebhook(webhookId);
-	}
-	
-	@Test
-	public void testDeleteWebhookWithNullUserInfo() {
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			webhookManager.deleteWebhook(null, webhookId);
-		}).getMessage();
-		
-		assertEquals("userInfo is required.", errorMessage);
-	}
-	
-	@Test
-	public void testDeleteWebhookWithNullWebhookId() {
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			webhookManager.deleteWebhook(userInfo, null);
-		}).getMessage();
-		
-		assertEquals("webhookId is required.", errorMessage);
 	}
 	
 	@Test
 	public void testDeleteWebhookAsAdmin() {
 		when(mockUserManager.getUserInfo(any())).thenReturn(adminUserInfo);
-		doNothing().when(webhookManager).deleteWebhook(any(), any());
+		doNothing().when(webhookManagerSpy).deleteWebhook(any(), any());
 		
 		// Call under test
-		webhookManager.deleteWebhookAsAdmin(webhookId);
+		webhookManagerSpy.deleteWebhookAsAdmin(webhookId);
 		
 		verify(mockUserManager).getUserInfo(adminUserId);
-		verify(webhookManager).deleteWebhook(adminUserInfo, webhookId);
+		verify(webhookManagerSpy).deleteWebhook(adminUserInfo, webhookId);
 	}
 	
 	@Test
 	public void testVerifyWebhookWithValidCode() {
-		String validCode = "someCode";
 		WebhookVerification verification = new WebhookVerification()
 				.setWebhookId(webhookId)
-				.setVerificationCode(validCode)
-				.setExpiresOn(new GregorianCalendar(5000, Calendar.JANUARY, 1).getTime())
+				.setVerificationCode(validVerificationCode)
+				.setExpiresOn(futureDate)
 				.setAttempts(0L);
 		
-		
 		VerifyWebhookRequest request = new VerifyWebhookRequest()
-				.setVerificationCode(validCode);
+				.setWebhookId(webhookId)
+				.setVerificationCode(validVerificationCode);
 		
+		doReturn(webhook).when(webhookManagerSpy).lockAndValidateOwner(any(), any());
 		when(mockWebhookVerificationDao.getWebhookVerification(any())).thenReturn(verification);
 		when(mockWebhookVerificationDao.incrementAttempts(any())).thenReturn(verification.getAttempts() + 1L);
+		doReturn(webhook.setIsVerified(true)).when(mockWebhookDao).updateWebhook(any());
 		
 		// Call under test
-		VerifyWebhookResponse response = webhookManager.verifyWebhook(userInfo, webhookId, request);
+		VerifyWebhookResponse response = webhookManagerSpy.verifyWebhook(userInfo, request);
 		
 		assertTrue(response.getIsValid());
 		assertNull(response.getInvalidReason());
 		
+		verify(webhookManagerSpy).lockAndValidateOwner(userInfo, webhookId);
 		verify(mockWebhookVerificationDao).getWebhookVerification(webhookId);
 		verify(mockWebhookVerificationDao).incrementAttempts(webhookId);
-		verify(mockWebhookDao).setWebhookVerificationStatus(webhookId, true);
+		verify(webhookManagerSpy, never()).deleteWebhookAsAdmin(any());
+		verify(mockWebhookDao).updateWebhook(webhook.setIsVerified(true));
 	}
 	
 	@Test
 	public void testVerifyWebhookWithExactlyOneLessThanMaxAttempts() {
-		String validCode = "someCode";
 		WebhookVerification verification = new WebhookVerification()
 				.setWebhookId(webhookId)
-				.setVerificationCode(validCode)
-				.setExpiresOn(new GregorianCalendar(5000, Calendar.JANUARY, 1).getTime())
+				.setVerificationCode(validVerificationCode)
+				.setExpiresOn(futureDate)
 				.setAttempts(WebhookManagerImpl.MAXIMUM_VERIFICATION_ATTEMPTS - 1L);
 		
-		
 		VerifyWebhookRequest request = new VerifyWebhookRequest()
-				.setVerificationCode(validCode);
+				.setWebhookId(webhookId)
+				.setVerificationCode(validVerificationCode);
 		
+		doReturn(webhook).when(webhookManagerSpy).lockAndValidateOwner(any(), any());
 		when(mockWebhookVerificationDao.getWebhookVerification(any())).thenReturn(verification);
 		when(mockWebhookVerificationDao.incrementAttempts(any())).thenReturn(verification.getAttempts() + 1L);
+		doReturn(webhook.setIsVerified(true)).when(mockWebhookDao).updateWebhook(any());
 		
 		// Call under test
-		VerifyWebhookResponse response = webhookManager.verifyWebhook(userInfo, webhookId, request);
+		VerifyWebhookResponse response = webhookManagerSpy.verifyWebhook(userInfo, request);
 		
 		assertTrue(response.getIsValid());
 		assertNull(response.getInvalidReason());
 		
+		verify(webhookManagerSpy).lockAndValidateOwner(userInfo, webhookId);
 		verify(mockWebhookVerificationDao).getWebhookVerification(webhookId);
 		verify(mockWebhookVerificationDao).incrementAttempts(webhookId);
-		verify(mockWebhookDao).setWebhookVerificationStatus(webhookId, true);
+		verify(webhookManagerSpy, never()).deleteWebhookAsAdmin(any());
+		verify(mockWebhookDao).updateWebhook(webhook.setIsVerified(true));
 	}
 	
 	@Test
 	public void testVerifyWebhookWithMoreThanMaxAttempts() {
-		String validCode = "someCode";
 		WebhookVerification verification = new WebhookVerification()
 				.setWebhookId(webhookId)
-				.setVerificationCode(validCode)
-				.setExpiresOn(new GregorianCalendar(1000, Calendar.JANUARY, 1).getTime())
+				.setVerificationCode(validVerificationCode)
+				.setExpiresOn(futureDate)
 				.setAttempts(WebhookManagerImpl.MAXIMUM_VERIFICATION_ATTEMPTS);
 
 		VerifyWebhookRequest request = new VerifyWebhookRequest()
-				.setVerificationCode(validCode);
+				.setWebhookId(webhookId)
+				.setVerificationCode(validVerificationCode);
 		
+		doReturn(webhook).when(webhookManagerSpy).lockAndValidateOwner(any(), any());
 		when(mockWebhookVerificationDao.getWebhookVerification(any())).thenReturn(verification);
 		when(mockWebhookVerificationDao.incrementAttempts(any())).thenReturn(verification.getAttempts() + 1L);
-		doNothing().when(webhookManager).deleteWebhookAsAdmin(any());
+		doNothing().when(webhookManagerSpy).deleteWebhookAsAdmin(any());
 		
 		// Call under test
-		VerifyWebhookResponse response = webhookManager.verifyWebhook(userInfo, webhookId, request);
+		VerifyWebhookResponse response = webhookManagerSpy.verifyWebhook(userInfo, request);
 		
 		assertFalse(response.getIsValid());
 		assertEquals(WebhookManagerImpl.EXCEEDED_MAXIMUM_ATTEMPTS, response.getInvalidReason());
 		
+		verify(webhookManagerSpy).lockAndValidateOwner(userInfo, webhookId);
 		verify(mockWebhookVerificationDao).getWebhookVerification(webhookId);
 		verify(mockWebhookVerificationDao).incrementAttempts(webhookId);
-		verify(webhookManager).deleteWebhookAsAdmin(webhookId);
-		verify(mockWebhookDao, never()).setWebhookVerificationStatus(webhookId, true);
+		verify(webhookManagerSpy).deleteWebhookAsAdmin(webhookId);
+		verify(mockWebhookDao, never()).updateWebhook(any());
 	}
 	
 	@Test
 	public void testVerifyWebhookWithInvalidCode() {
-		String validCode = "someCode";
 		WebhookVerification verification = new WebhookVerification()
 				.setWebhookId(webhookId)
-				.setVerificationCode(validCode)
-				.setExpiresOn(new GregorianCalendar(3000, Calendar.JANUARY, 1).getTime())
+				.setVerificationCode(validVerificationCode)
+				.setExpiresOn(futureDate)
 				.setAttempts(0L);
 		
 		VerifyWebhookRequest request = new VerifyWebhookRequest()
-				.setVerificationCode("thisIsNotTheValidCode");
+				.setWebhookId(webhookId)
+				.setVerificationCode(invalidVerificationCode);
 		
+		doReturn(webhook).when(webhookManagerSpy).lockAndValidateOwner(any(), any());
 		when(mockWebhookVerificationDao.getWebhookVerification(any())).thenReturn(verification);
 		when(mockWebhookVerificationDao.incrementAttempts(any())).thenReturn(verification.getAttempts() + 1L);
 		
 		// Call under test
-		VerifyWebhookResponse response = webhookManager.verifyWebhook(userInfo, webhookId, request);
+		VerifyWebhookResponse response = webhookManagerSpy.verifyWebhook(userInfo, request);
 		
 		assertFalse(response.getIsValid());
 		assertEquals(WebhookManagerImpl.INVALID_VERIFICATION_CODE_MESSAGE, response.getInvalidReason());
 		
+		verify(webhookManagerSpy).lockAndValidateOwner(userInfo, webhookId);
 		verify(mockWebhookVerificationDao).getWebhookVerification(webhookId);
 		verify(mockWebhookVerificationDao).incrementAttempts(webhookId);
-		verify(mockWebhookDao, never()).setWebhookVerificationStatus(webhookId, true);
+		verify(webhookManagerSpy, never()).deleteWebhookAsAdmin(any());
+		verify(mockWebhookDao, never()).updateWebhook(any());
 	}
 	
 	@Test
 	public void testVerifyWebhookWithExpiredCode() {
-		String validCode = "someCode";
 		WebhookVerification verification = new WebhookVerification()
 				.setWebhookId(webhookId)
-				.setVerificationCode(validCode)
-				.setExpiresOn(new GregorianCalendar(1000, Calendar.JANUARY, 1).getTime())
+				.setVerificationCode(validVerificationCode)
+				.setExpiresOn(pastDate)
 				.setAttempts(0L);
 		
 		VerifyWebhookRequest request = new VerifyWebhookRequest()
-				.setVerificationCode(validCode);
+				.setWebhookId(webhookId)
+				.setVerificationCode(validVerificationCode);
 		
+		doReturn(webhook).when(webhookManagerSpy).lockAndValidateOwner(any(), any());
 		when(mockWebhookVerificationDao.getWebhookVerification(any())).thenReturn(verification);
 		when(mockWebhookVerificationDao.incrementAttempts(any())).thenReturn(verification.getAttempts() + 1L);
 		
 		// Call under test
-		VerifyWebhookResponse response = webhookManager.verifyWebhook(userInfo, webhookId, request);
+		VerifyWebhookResponse response = webhookManagerSpy.verifyWebhook(userInfo, request);
 		
 		assertFalse(response.getIsValid());
 		assertEquals(WebhookManagerImpl.EXPIRED_VERIFICATION_CODE_MESSAGE, response.getInvalidReason());
 		
+		verify(webhookManagerSpy).lockAndValidateOwner(userInfo, webhookId);
 		verify(mockWebhookVerificationDao).getWebhookVerification(webhookId);
 		verify(mockWebhookVerificationDao).incrementAttempts(webhookId);
-		verify(mockWebhookDao, never()).setWebhookVerificationStatus(webhookId, true);
+		verify(webhookManagerSpy, never()).deleteWebhookAsAdmin(any());
+		verify(mockWebhookDao, never()).updateWebhook(any());
 	}
 	
 	@Test
@@ -613,60 +612,73 @@ public class WebhookManagerUnitTest {
 				.setAttempts(0L);
 		
 		VerifyWebhookRequest request = new VerifyWebhookRequest()
-				.setVerificationCode("thisIsNotTheValidCode");
+				.setWebhookId(webhookId)
+				.setVerificationCode(invalidVerificationCode);
 		
+		doReturn(webhook).when(webhookManagerSpy).lockAndValidateOwner(any(), any());
 		when(mockWebhookVerificationDao.getWebhookVerification(any())).thenReturn(verification);
 		when(mockWebhookVerificationDao.incrementAttempts(any())).thenReturn(verification.getAttempts() + 1L);
 		
 		// Call under test
-		VerifyWebhookResponse response = webhookManager.verifyWebhook(userInfo, webhookId, request);
+		VerifyWebhookResponse response = webhookManagerSpy.verifyWebhook(userInfo, request);
 		
 		assertFalse(response.getIsValid());
 		assertEquals(WebhookManagerImpl.INVALID_VERIFICATION_CODE_MESSAGE, response.getInvalidReason());
 		
+		verify(webhookManagerSpy).lockAndValidateOwner(userInfo, webhookId);
 		verify(mockWebhookVerificationDao).getWebhookVerification(webhookId);
 		verify(mockWebhookVerificationDao).incrementAttempts(webhookId);
-		verify(mockWebhookDao, never()).setWebhookVerificationStatus(webhookId, true);
+		verify(webhookManagerSpy, never()).deleteWebhookAsAdmin(any());
+		verify(mockWebhookDao, never()).updateWebhook(any());
 	}
 	
 	@Test
 	public void testVerifyWebhookWithNullUserInfo() {
+		VerifyWebhookRequest request = new VerifyWebhookRequest()
+				.setWebhookId(webhookId)
+				.setVerificationCode(invalidVerificationCode);
+		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.verifyWebhook(null, webhookId, 
-					new VerifyWebhookRequest().setVerificationCode("code"));
+			webhookManagerSpy.verifyWebhook(null, request);
 		}).getMessage();
 		
 		assertEquals("userInfo is required.", errorMessage);
 	}
 	
 	@Test
-	public void testVerifyWebhookWithNullWebhookId() {
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			webhookManager.verifyWebhook(userInfo, null, 
-					new VerifyWebhookRequest().setVerificationCode("code"));
-		}).getMessage();
-		
-		assertEquals("webhookId is required.", errorMessage);
-	}
-	
-	@Test
 	public void testVerifyWebhookWithNullRequest() {
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.verifyWebhook(userInfo, webhookId, null);
+			webhookManagerSpy.verifyWebhook(userInfo, null);
 		}).getMessage();
 		
 		assertEquals("verifyWebhookRequest is required.", errorMessage);
 	}
 	
 	@Test
-	public void testVerifyWebhookWithNullVerificationCode() {
+	public void testVerifyWebhookWithNullWebhookId() {
+		VerifyWebhookRequest request = new VerifyWebhookRequest()
+				.setWebhookId(null)
+				.setVerificationCode(validVerificationCode);
+		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.verifyWebhook(userInfo, webhookId, 
-					new VerifyWebhookRequest().setVerificationCode(null));
+			webhookManagerSpy.verifyWebhook(userInfo, request);
+		}).getMessage();
+		
+		assertEquals("verifyWebhookRequest.webhookId is required.", errorMessage);
+	}
+	
+	@Test
+	public void testVerifyWebhookWithNullVerificationCode() {
+		VerifyWebhookRequest request = new VerifyWebhookRequest()
+				.setWebhookId(webhookId)
+				.setVerificationCode(null);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			webhookManagerSpy.verifyWebhook(userInfo, request);
 		}).getMessage();
 		
 		assertEquals("verifyWebhookRequest.verificationCode is required.", errorMessage);
@@ -690,7 +702,7 @@ public class WebhookManagerUnitTest {
 		when(mockWebhookDao.listUserWebhooks(any(), anyLong(), anyLong())).thenReturn(page);
 		
 		// Call under test
-		ListUserWebhooksResponse response = webhookManager.listUserWebhooks(userInfo, request);
+		ListUserWebhooksResponse response = webhookManagerSpy.listUserWebhooks(userInfo, request);
 		
 		assertEquals(expectedResponse, response);
 		
@@ -701,7 +713,7 @@ public class WebhookManagerUnitTest {
 	public void testListUserWebhooksWithNullUserInfo() {
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.listUserWebhooks(null, new ListUserWebhooksRequest());
+			webhookManagerSpy.listUserWebhooks(null, new ListUserWebhooksRequest());
 		}).getMessage();
 		
 		assertEquals("userInfo is required.", errorMessage);
@@ -711,7 +723,7 @@ public class WebhookManagerUnitTest {
 	public void testListUserWebhooksWithNullRequest() {
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.listUserWebhooks(userInfo, null);
+			webhookManagerSpy.listUserWebhooks(userInfo, null);
 		}).getMessage();
 		
 		assertEquals("listUserWebhooksRequest is required.", errorMessage);
@@ -735,7 +747,7 @@ public class WebhookManagerUnitTest {
 		when(mockWebhookDao.listUserWebhooks(any(), anyLong(), anyLong())).thenReturn(page);
 		
 		// Call under test
-		ListUserWebhooksResponse response = webhookManager.listUserWebhooks(userInfo, request);
+		ListUserWebhooksResponse response = webhookManagerSpy.listUserWebhooks(userInfo, request);
 		
 		assertEquals(expectedResponse, response);
 		
@@ -757,7 +769,7 @@ public class WebhookManagerUnitTest {
 		when(mockWebhookDao.listUserWebhooks(any(), anyLong(), anyLong())).thenReturn(page);
 		
 		// Call under test
-		ListUserWebhooksResponse response = webhookManager.listUserWebhooks(userInfo, request);
+		ListUserWebhooksResponse response = webhookManagerSpy.listUserWebhooks(userInfo, request);
 		
 		assertEquals(expectedResponse, response);
 		
@@ -772,7 +784,7 @@ public class WebhookManagerUnitTest {
         when(mockUserManager.getUserInfo(anyLong())).thenReturn(userInfo);
         
         // Call under test
-        List<Webhook> result = webhookManager.listSendableWebhooksForObjectId(objectId, webhookObjectType);
+        List<Webhook> result = webhookManagerSpy.listSendableWebhooksForObjectId(objectId, webhookObjectType);
         
         assertEquals(webhooks, result);
         
@@ -787,7 +799,7 @@ public class WebhookManagerUnitTest {
 		when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType)).thenReturn(webhooks);
 		 
 		// Call under test
-	    List<Webhook> result = webhookManager.listSendableWebhooksForObjectId(objectId, webhookObjectType);
+	    List<Webhook> result = webhookManagerSpy.listSendableWebhooksForObjectId(objectId, webhookObjectType);
 	        
 	    assertEquals(webhooks, result);
 	        
@@ -806,7 +818,7 @@ public class WebhookManagerUnitTest {
         }
         
         // Call under test
-        List<Webhook> result = webhookManager.listSendableWebhooksForObjectId(objectId, webhookObjectType);
+        List<Webhook> result = webhookManagerSpy.listSendableWebhooksForObjectId(objectId, webhookObjectType);
         
         assertEquals(webhooks, result);
         
@@ -827,7 +839,7 @@ public class WebhookManagerUnitTest {
         when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType)).thenReturn(webhooks);
         
         // Call under test
-        List<Webhook> result = webhookManager.listSendableWebhooksForObjectId(objectId, webhookObjectType);
+        List<Webhook> result = webhookManagerSpy.listSendableWebhooksForObjectId(objectId, webhookObjectType);
         
         assertEquals(5, result.size());
         
@@ -844,7 +856,7 @@ public class WebhookManagerUnitTest {
         when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType)).thenReturn(webhooks);
         
         // Call under test
-        List<Webhook> result = webhookManager.listSendableWebhooksForObjectId(objectId, webhookObjectType);
+        List<Webhook> result = webhookManagerSpy.listSendableWebhooksForObjectId(objectId, webhookObjectType);
         
         assertEquals(0, result.size());
         
@@ -870,10 +882,10 @@ public class WebhookManagerUnitTest {
         webhooks.add(invalidWebhook); // 1 invalid userId
 
         when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType)).thenReturn(webhooks);
-        doNothing().when(webhookManager).deleteWebhookAsAdmin(any());
+        doNothing().when(webhookManagerSpy).deleteWebhookAsAdmin(any());
         
         // Call under test
-        List<Webhook> result = webhookManager.listSendableWebhooksForObjectId(objectId, webhookObjectType);
+        List<Webhook> result = webhookManagerSpy.listSendableWebhooksForObjectId(objectId, webhookObjectType);
         
         assertEquals(5, result.size());
         
@@ -881,7 +893,7 @@ public class WebhookManagerUnitTest {
         for (int i = 0; i < 10; i++) {
         	verify(mockUserManager, times(2)).getUserInfo(Long.parseLong(webhooks.get(i).getUserId()));
         }
-        verify(webhookManager).deleteWebhookAsAdmin(webhookId);
+        verify(webhookManagerSpy).deleteWebhookAsAdmin(webhookId);
 	}
 	
 	@Test
@@ -894,10 +906,10 @@ public class WebhookManagerUnitTest {
 
         when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType)).thenReturn(webhooks);
         when(mockUserManager.getUserInfo(userId)).thenThrow(new NotFoundException("User not found"));
-        doNothing().when(webhookManager).deleteWebhookAsAdmin(any());
+        doNothing().when(webhookManagerSpy).deleteWebhookAsAdmin(any());
         
         // Call under test
-        List<Webhook> result = webhookManager.listSendableWebhooksForObjectId(objectId, webhookObjectType);
+        List<Webhook> result = webhookManagerSpy.listSendableWebhooksForObjectId(objectId, webhookObjectType);
         
         assertEquals(5, result.size());
         
@@ -905,15 +917,27 @@ public class WebhookManagerUnitTest {
         for (int i = 0; i < 10; i++) {
         	verify(mockUserManager, times(2)).getUserInfo(Long.parseLong(webhooks.get(i).getUserId()));
         }
-        verify(webhookManager).deleteWebhookAsAdmin(webhookId);
+        verify(webhookManagerSpy).deleteWebhookAsAdmin(webhookId);
 	}
 	
 	@Test
-	public void testGenerateAndSendWebhookVerification() {
-		when(webhookManager.generateVerificationCode()).thenReturn(verificationCode);
+	public void testGenerateAndSendWebhookVerificationWithWebhookId() {
+		doReturn(webhook).when(webhookManagerSpy).getWebhook(any(), any());
+		doNothing().when(webhookManagerSpy).generateAndSendWebhookVerification(any());
+		
+		// Call under test
+		webhookManagerSpy.generateAndSendWebhookVerification(userInfo, webhookId);
+		
+		verify(webhookManagerSpy).getWebhook(userInfo, webhookId);
+		verify(webhookManagerSpy).generateAndSendWebhookVerification(webhook);
+	}
+	
+	@Test
+	public void testGenerateAndSendWebhookVerificationWithWebhook() {
+		when(webhookManagerSpy.generateVerificationCode()).thenReturn(validVerificationCode);
 		WebhookVerification toCreate = new WebhookVerification()
 				.setWebhookId(webhookId)
-				.setVerificationCode(webhookManager.generateVerificationCode())
+				.setVerificationCode(webhookManagerSpy.generateVerificationCode())
 				.setExpiresOn(new Date(currentDate.getTime() + WebhookManagerImpl.VERIFICATION_CODE_TTL))
 				.setAttempts(0L)
 				.setCreatedBy(userIdAsString)
@@ -922,48 +946,28 @@ public class WebhookManagerUnitTest {
 		when(mockWebhookVerificationDao.createWebhookVerification(any())).thenReturn(toCreate);
 		
 		// Call under test
-		webhookManager.generateAndSendWebhookVerification(userId, webhookId);
+		webhookManagerSpy.generateAndSendWebhookVerification(webhook);
 		
 		verify(mockWebhookVerificationDao).createWebhookVerification(toCreate);
 	}
 	
 	@Test
-	public void testGenerateAndSendWebhookVerificationWithNullUserId() {
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			webhookManager.generateAndSendWebhookVerification(null, webhookId);
-		}).getMessage();
-		
-		assertEquals("userId is required.", errorMessage);
-	}
-	
-	@Test
-	public void testGenerateAndSendWebhookVerificationWithNullWebhookId() {
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			webhookManager.generateAndSendWebhookVerification(userId, null);
-		}).getMessage();
-		
-		assertEquals("webhookId is required.", errorMessage);
-	}
-	
-	@Test
 	public void testValidateUserIsAdminOrWebhookOwnerWithOwner() {		
 		// Call under test
-		webhookManager.validateUserIsAdminOrWebhookOwner(userInfo, webhook);		
+		webhookManagerSpy.validateUserIsAdminOrWebhookOwner(userInfo, webhook);		
 	}
 	
 	@Test
 	public void testValidateUserIsAdminOrWebhookOwnerWithAdmin() {
 		// Call under test
-		webhookManager.validateUserIsAdminOrWebhookOwner(adminUserInfo, webhook);
+		webhookManagerSpy.validateUserIsAdminOrWebhookOwner(adminUserInfo, webhook);
 	}
 
 	@Test
 	public void testValidateUserIsAdminOrWebhookOwnerWithAnonymous() {
 		String errorMessage = assertThrows(UnauthorizedException.class, () -> {
 			// Call under test
-			webhookManager.validateUserIsAdminOrWebhookOwner(anonymousUserInfo, webhook);
+			webhookManagerSpy.validateUserIsAdminOrWebhookOwner(anonymousUserInfo, webhook);
 		}).getMessage();
 		
 		assertEquals(WebhookManagerImpl.UNAUTHORIZED_ACCESS_MESSAGE, errorMessage);
@@ -973,7 +977,7 @@ public class WebhookManagerUnitTest {
 	public void testValidateUserIsAdminOrWebhookOwnerWithUnauthorizedOwner() {
 		String errorMessage = assertThrows(UnauthorizedException.class, () -> {
 			// Call under test
-			webhookManager.validateUserIsAdminOrWebhookOwner(unauthorizedUserInfo, webhook);
+			webhookManagerSpy.validateUserIsAdminOrWebhookOwner(unauthorizedUserInfo, webhook);
 		}).getMessage();
 		
 		assertEquals(WebhookManagerImpl.UNAUTHORIZED_ACCESS_MESSAGE, errorMessage);
@@ -983,7 +987,7 @@ public class WebhookManagerUnitTest {
 	public void testValidateUserIsAdminOrWebhookOwnerWithNullUserInfo() {
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.validateUserIsAdminOrWebhookOwner(null, webhook);
+			webhookManagerSpy.validateUserIsAdminOrWebhookOwner(null, webhook);
 		}).getMessage();
 		
 		assertEquals("userInfo is required.", errorMessage);
@@ -993,7 +997,7 @@ public class WebhookManagerUnitTest {
 	public void testValidateUserIsAdminOrWebhookOwnerWithNullWebhook() {
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.validateUserIsAdminOrWebhookOwner(userInfo, null);
+			webhookManagerSpy.validateUserIsAdminOrWebhookOwner(userInfo, null);
 		}).getMessage();
 		
 		assertEquals("webhook is required.", errorMessage);
@@ -1007,9 +1011,9 @@ public class WebhookManagerUnitTest {
 				.setInvokeEndpoint(anotherValidApiGatewayEndpoint);
 		
 		// Call under test
-		webhookManager.validateCreateOrUpdateArguments(userInfo, request);
+		webhookManagerSpy.validateCreateOrUpdateArguments(userInfo, request);
 		
-		verify(webhookManager).validateInvokeEndpoint(anotherValidApiGatewayEndpoint);
+		verify(webhookManagerSpy).validateInvokeEndpoint(anotherValidApiGatewayEndpoint);
 	}
 	
 	@Test
@@ -1021,7 +1025,7 @@ public class WebhookManagerUnitTest {
 		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.validateCreateOrUpdateArguments(null, request);
+			webhookManagerSpy.validateCreateOrUpdateArguments(null, request);
 		}).getMessage();
 		
 		assertEquals("userInfo is required.", errorMessage);
@@ -1031,7 +1035,7 @@ public class WebhookManagerUnitTest {
 	public void testValidateCreateOrUpdateArgumentsWithNullRequest() {
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.validateCreateOrUpdateArguments(userInfo, null);
+			webhookManagerSpy.validateCreateOrUpdateArguments(userInfo, null);
 		}).getMessage();
 		
 		assertEquals("webhook is required.", errorMessage);
@@ -1046,7 +1050,7 @@ public class WebhookManagerUnitTest {
 		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.validateCreateOrUpdateArguments(userInfo, request);
+			webhookManagerSpy.validateCreateOrUpdateArguments(userInfo, request);
 		}).getMessage();
 		
 		assertEquals("webhook.objectId is required.", errorMessage);
@@ -1061,7 +1065,7 @@ public class WebhookManagerUnitTest {
 		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.validateCreateOrUpdateArguments(userInfo, request);
+			webhookManagerSpy.validateCreateOrUpdateArguments(userInfo, request);
 		}).getMessage();
 		
 		assertEquals("webhook.objectType is required.", errorMessage);
@@ -1076,7 +1080,7 @@ public class WebhookManagerUnitTest {
 		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			webhookManager.validateCreateOrUpdateArguments(userInfo, request);
+			webhookManagerSpy.validateCreateOrUpdateArguments(userInfo, request);
 		}).getMessage();
 		
 		assertEquals("webhook.invokeEndpoint is required.", errorMessage);
@@ -1091,7 +1095,7 @@ public class WebhookManagerUnitTest {
 		
 		String errorMessage = assertThrows(UnauthorizedException.class, () -> {
 			// Call under test
-			webhookManager.validateCreateOrUpdateArguments(anonymousUserInfo, request);
+			webhookManagerSpy.validateCreateOrUpdateArguments(anonymousUserInfo, request);
 		}).getMessage();
 		
 		assertEquals("Must login to perform this action", errorMessage);
@@ -1123,7 +1127,7 @@ public class WebhookManagerUnitTest {
 		
 		for (String validEndpoint : validEndpoints) {
 			// Call under test
-			webhookManager.validateInvokeEndpoint(validEndpoint);
+			webhookManagerSpy.validateInvokeEndpoint(validEndpoint);
 		}
 	}
 	
@@ -1149,7 +1153,7 @@ public class WebhookManagerUnitTest {
 		for (String invalidEndpoint : invalidEndpoints) {
 			String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 				// Call under test
-				webhookManager.validateInvokeEndpoint(invalidEndpoint);
+				webhookManagerSpy.validateInvokeEndpoint(invalidEndpoint);
 			}).getMessage();
 			
 			assertEquals(String.format(WebhookManagerImpl.INVALID_INVOKE_ENDPOINT_MESSAGE, invalidEndpoint), errorMessage);
@@ -1158,8 +1162,8 @@ public class WebhookManagerUnitTest {
 	
 	@Test
 	public void testGenerateVerificationCode() {
-		String one = webhookManager.generateVerificationCode();
-		String two = webhookManager.generateVerificationCode();
+		String one = webhookManagerSpy.generateVerificationCode();
+		String two = webhookManagerSpy.generateVerificationCode();
 		
 		// validate length
 		assertEquals(WebhookManagerImpl.VERIFICATION_CODE_LENGTH, one.length());

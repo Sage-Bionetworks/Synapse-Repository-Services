@@ -61,7 +61,7 @@ public interface WebhookManager {
 	 * @param request
 	 * @return
 	 */
-	VerifyWebhookResponse verifyWebhook(UserInfo userInfo, String webhookId, VerifyWebhookRequest request);
+	VerifyWebhookResponse verifyWebhook(UserInfo userInfo, VerifyWebhookRequest request);
 	
 	/**
 	 * List all webhookIds for a Synapse user. 
@@ -81,10 +81,13 @@ public interface WebhookManager {
 	List<Webhook> listSendableWebhooksForObjectId(String objectId, WebhookObjectType webhookObjectType);
 	
 	/**
-	 * Generate and send a new WebhookVerification for the Webhook of the provided webhookId. 
+	 * Generate and send a new WebhookVerification for the Webhook of the provided webhookId. A user must have permission to read the Webhook.
+	 * This will occur on every create/update and any new WebhookVerification object of a webhookId that already has an existing WebhookVerification will rewrite the existing WebhookVerification.
+	 * This rewriting will keep the WebhookVerification table size less than or equal to the size of the Webhook table and prevent the case of: 
+	 *     User creates a Webhook with their own endpoint -> User generates and sends a verification code -> User changes the endpoint to be malicious -> User provides the previously generated code which works
 	 * 
-	 * @param userId
+	 * @param userInfo
 	 * @param webhookId
 	 */
-	void generateAndSendWebhookVerification(Long userId, String webhookId);
+	void generateAndSendWebhookVerification(UserInfo userInfo, String webhookId);
 }

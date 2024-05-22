@@ -6,24 +6,24 @@
 			"description": "The ID associated with the Webhook."
 		},
 		"verificationCode": {
-            "type": "string",
-            "description": "The verification code received by invokeEndpoint to verify a Webhook."
-        },
-        "expiresOn": {
-        	"type": "string",
+			"type": "string",
+			"description": "The verification code received by invokeEndpoint to verify a Webhook."
+		},
+		"expiresOn": {
+			"type": "string",
 			"format": "date-time",
 			"description": "The date this WebhookVerification expires on."
-        },
-        "attempts": {
-        	"type": "integer",
-        	"description": "The number of attempts that have been made for the current Verification."
-        },
-        "createdOn": {
+		},
+		"attempts": {
+			"type": "integer",
+			"description": "The number of attempts that have been made for the current Verification."
+		},
+		"createdOn": {
 			"type": "string",
 			"format": "date-time",
 			"description": "The date this WebhookVerification was created."
 		},
-        "createdBy": {
+		"createdBy": {
 			"type": "string",
 			"description": "The ID of the user that this WebhookVerification was created for."
 		}

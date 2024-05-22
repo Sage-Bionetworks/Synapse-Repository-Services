@@ -29,7 +29,7 @@ public class WebhookDaoImpl implements WebhookDao {
 	public Webhook updateWebhook(Webhook webhook) {
 		// TODO Auto-generated method stub
 		return null;
-	}
+	}		
 
 	@Override
 	public void deleteWebhook(String webhookId) {
@@ -47,12 +47,6 @@ public class WebhookDaoImpl implements WebhookDao {
 	public List<Webhook> listVerifiedAndEnabledWebhooksForObjectId(String objectId, ObjectType objectType) {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-	@Override
-	public void setWebhookVerificationStatus(String webhookId, boolean verificationStatus) {
-		// TODO Auto-generated method stub
-		
 	}
 
 }

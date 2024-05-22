@@ -105,7 +105,7 @@ public class WebhookManagerImpl implements WebhookManager {
 				.setModifiedOn(currentDate);
 		
 		Webhook createdWebhook = webhookDao.createWebhook(toCreate); 
-		generateAndSendWebhookVerification(userInfo.getId(), createdWebhook.getWebhookId());
+		generateAndSendWebhookVerification(createdWebhook);
 		return createdWebhook;
 	}
 
@@ -128,8 +128,7 @@ public class WebhookManagerImpl implements WebhookManager {
 		aclDao.canAccess(userInfo, updateWith.getObjectId(), ObjectType.valueOf(updateWith.getObjectType().name()), ACCESS_TYPE.READ)
 				.checkAuthorizationOrElseThrow();
 		
-		Webhook originalWebhook = webhookDao.getWebhookForUpdate(updateWith.getWebhookId());
-		validateUserIsAdminOrWebhookOwner(userInfo, originalWebhook);
+		Webhook originalWebhook = lockAndValidateOwner(userInfo, updateWith.getWebhookId());
 		if (!updateWith.getEtag().equals(originalWebhook.getEtag())) {
 			throw new ConflictingUpdateException(String.format(CONFLICTING_UPDATE_MESSAGE, originalWebhook.getWebhookId()));
 		}
@@ -145,18 +144,14 @@ public class WebhookManagerImpl implements WebhookManager {
 				.setModifiedOn(clock.now());
 		
 		Webhook updatedWebhook = webhookDao.updateWebhook(originalWebhook);
-		generateAndSendWebhookVerification(Long.valueOf(updatedWebhook.getUserId()), updatedWebhook.getWebhookId());
+		generateAndSendWebhookVerification(updatedWebhook);
 		return updatedWebhook;
 	}
 
 	@WriteTransaction
 	@Override
 	public void deleteWebhook(UserInfo userInfo, String webhookId) {
-		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(webhookId, "webhookId");
-		
-		Webhook webhook = webhookDao.getWebhookForUpdate(webhookId);
-		validateUserIsAdminOrWebhookOwner(userInfo, webhook);
+		getWebhook(userInfo, webhookId); // performs validation
 		webhookDao.deleteWebhook(webhookId);
 	}
 	
@@ -166,23 +161,27 @@ public class WebhookManagerImpl implements WebhookManager {
 	}
 
 	@Override
-	public VerifyWebhookResponse verifyWebhook(UserInfo userInfo, String webhookId, VerifyWebhookRequest request) {
+	public VerifyWebhookResponse verifyWebhook(UserInfo userInfo, VerifyWebhookRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(webhookId, "webhookId");
 		ValidateArgument.required(request, "verifyWebhookRequest");
+		ValidateArgument.required(request.getWebhookId(), "verifyWebhookRequest.webhookId");
 		ValidateArgument.required(request.getVerificationCode(), "verifyWebhookRequest.verificationCode");
 		
-		WebhookVerification webhookVerification = webhookVerificationDao.getWebhookVerification(webhookId);
-		VerifyWebhookResponse response = new VerifyWebhookResponse().setWebhookId(webhookId);
-	
-		if (webhookVerificationDao.incrementAttempts(webhookId) > MAXIMUM_VERIFICATION_ATTEMPTS) {
-			deleteWebhookAsAdmin(webhookId);
+		// We need to lock the Webhook before getting the WebhookVerification to ensure the WebhookVerification is not stale
+		Webhook webhook = lockAndValidateOwner(userInfo, request.getWebhookId());
+		WebhookVerification webhookVerification = webhookVerificationDao.getWebhookVerification(webhook.getWebhookId());
+		
+		VerifyWebhookResponse response = new VerifyWebhookResponse().setWebhookId(webhook.getWebhookId());
+		
+		if (webhookVerificationDao.incrementAttempts(webhook.getWebhookId()) > MAXIMUM_VERIFICATION_ATTEMPTS) {
+			deleteWebhookAsAdmin(webhook.getWebhookId());
 			return response.setIsValid(false).setInvalidReason(EXCEEDED_MAXIMUM_ATTEMPTS);
 		}
 		
 		if (request.getVerificationCode().equals(webhookVerification.getVerificationCode())) {
 			if (webhookVerification.getExpiresOn().after(clock.now())) {
-				webhookDao.setWebhookVerificationStatus(webhookId, true);
+				webhook.setIsVerified(true);
+				webhookDao.updateWebhook(webhook);
 				return response.setIsValid(true);
 			} else {
 				return response.setIsValid(false).setInvalidReason(EXPIRED_VERIFICATION_CODE_MESSAGE);
@@ -220,22 +219,37 @@ public class WebhookManagerImpl implements WebhookManager {
 	}
 	
 	@Override
-	public void generateAndSendWebhookVerification(Long userId, String webhookId) {
-		ValidateArgument.required(userId, "userId");
-		ValidateArgument.required(webhookId, "webhookId");
+	public void generateAndSendWebhookVerification(UserInfo userInfo, String webhookId) {
+		Webhook webhook = getWebhook(userInfo, webhookId); // performs validation
+		generateAndSendWebhookVerification(webhook);
+	}
+	
+	void generateAndSendWebhookVerification(Webhook webhook) {
+		ValidateArgument.required(webhook, "webhook");
+		ValidateArgument.required(webhook.getWebhookId(), "webhook.webhookId");
+		ValidateArgument.required(webhook.getUserId(), "webhook.userId");
 		
 		Date currentDate = clock.now();
 		Date expirationDate = new Date(currentDate.getTime() + VERIFICATION_CODE_TTL);
 				
 		WebhookVerification toCreate = new WebhookVerification()
-				.setWebhookId(webhookId)
+				.setWebhookId(webhook.getWebhookId())
 				.setVerificationCode(generateVerificationCode())
 				.setExpiresOn(expirationDate)
 				.setAttempts(0L)
-				.setCreatedBy(String.valueOf(userId))
+				.setCreatedBy(webhook.getUserId())
 				.setCreatedOn(currentDate);
 		
 		webhookVerificationDao.createWebhookVerification(toCreate);
+		
+		// TODO
+		// re-using some of the distribution worker logic, send the newly created WebhookVerification to the user's invokeEndpoint
+	}
+	
+	Webhook lockAndValidateOwner(UserInfo userInfo, String webhookId) {
+		Webhook webhook = webhookDao.getWebhookForUpdate(webhookId);
+		validateUserIsAdminOrWebhookOwner(userInfo, webhook);
+		return webhook;
 	}
 	
 	void validateUserIsAdminOrWebhookOwner(UserInfo userInfo, Webhook webhook) {
