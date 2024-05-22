@@ -9,7 +9,7 @@ public interface WebhookVerificationDao {
 	 * @param webhookId
 	 * @return
 	 */
-	WebhookVerification createWebhookVerification(Long userId, String webhookId);
+	WebhookVerification createWebhookVerification(WebhookVerification webhookVerification);
 	
 	/**
 	 * 
@@ -17,6 +17,13 @@ public interface WebhookVerificationDao {
 	 * @return
 	 */
 	WebhookVerification getWebhookVerification(String webhookId);
+	
+	/**
+	 * 
+	 * @param webhookId
+	 * @return
+	 */
+	long incrementAttempts(String webhookId);
 	
 	/**
 	 * 

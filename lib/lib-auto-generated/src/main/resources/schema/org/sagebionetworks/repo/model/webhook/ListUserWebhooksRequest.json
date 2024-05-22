@@ -6,8 +6,8 @@
             "description": "The userId of the Synapse user to get the webhookIds for."
         },
         "nextPageToken": {
-			"type": "string",
-			"description": "Forward this token to get the next page of results."
-		}
+	    "type": "string",
+	    "description": "Forward this token to get the next page of results."
+	}
     }
 }

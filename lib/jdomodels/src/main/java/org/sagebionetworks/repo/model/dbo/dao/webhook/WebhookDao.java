@@ -1,21 +1,18 @@
 package org.sagebionetworks.repo.model.dbo.dao.webhook;
 
 import java.util.List;
-import java.util.Optional;
 
-import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.webhook.Webhook;
-import org.sagebionetworks.repo.model.webhook.WebhookObjectType;
 
 public interface WebhookDao {
 
 	/**
 	 * 
-	 * @param userId
-	 * @param request
+	 * @param webhook
 	 * @return
 	 */
-	Webhook createWebhook(Long userId, CreateOrUpdateWebhookRequest request);
+	Webhook createWebhook(Webhook webhook);
 	
 	/**
 	 * 
@@ -29,16 +26,14 @@ public interface WebhookDao {
 	 * @param webhookId
 	 * @return
 	 */
-	Optional<String> getWebhookOwnerForUpdate(String webhookId);
+	Webhook getWebhookForUpdate(String webhookId);
 	
 	/**
 	 * 
-	 * @param userId
-	 * @param webhookId
-	 * @param request
+	 * @param webhook
 	 * @return
 	 */
-	Webhook updateWebhook(Long userId, String webhookId, CreateOrUpdateWebhookRequest request);
+	Webhook updateWebhook(Webhook webhook);
 	
 	/**
 	 * 
@@ -48,6 +43,7 @@ public interface WebhookDao {
 	
 	/**
 	 * 
+	 * @param userId
 	 * @param limit
 	 * @param offset
 	 * @return
@@ -57,9 +53,10 @@ public interface WebhookDao {
 	/**
 	 * 
 	 * @param objectId
+	 * @param webhookObjectType
 	 * @return
 	 */
-	List<Webhook> listVerifiedAndEnabledWebhooksForObjectId(String objectId, WebhookObjectType webhookObjectType);
+	List<Webhook> listVerifiedAndEnabledWebhooksForObjectId(String objectId, ObjectType objectType);
 	
 	/**
 	 * 

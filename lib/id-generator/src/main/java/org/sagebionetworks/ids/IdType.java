@@ -70,7 +70,8 @@ public enum IdType {
 	FILES_SCANNER_STATUS_ID(null),
 	TABLE_CHANGE_ID(null),
 	PRINCIPAL_OIDC_BINDING_ID(null),
-	OTP_SECRET_ID(null)
+	OTP_SECRET_ID(null),
+	WEBHOOK_ID(null)
 	;
 	
 	Long startingId;

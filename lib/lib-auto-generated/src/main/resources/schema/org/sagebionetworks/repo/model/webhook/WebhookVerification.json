@@ -14,6 +14,10 @@
 			"format": "date-time",
 			"description": "The date this WebhookVerification expires on."
         },
+        "attempts": {
+        	"type": "integer",
+        	"description": "The number of attempts that have been made for the current Verification."
+        },
         "createdOn": {
 			"type": "string",
 			"format": "date-time",

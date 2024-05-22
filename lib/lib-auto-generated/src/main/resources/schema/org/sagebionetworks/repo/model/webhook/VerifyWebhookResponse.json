@@ -10,8 +10,8 @@
             "description": "True if the state of the Webhook after verification is 'isVerified=true', false if the state after verification is 'isVerified=false."
         },
         "invalidReason": {
-        	"type": "string",
-        	"description": "If the Webhook is invalid, this will contain a string describing why it is invalid. Otherwise, this will be null."
+            "type": "string",
+            "description": "If the Webhook is invalid, this will contain a string describing why it is invalid. Otherwise, this will be null."
         }
     }
 }

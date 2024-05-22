@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
@@ -20,14 +19,13 @@ import org.sagebionetworks.repo.model.webhook.WebhookObjectType;
 public interface WebhookManager {
 	
 	/**
-	 * Create a new Webhook object. This object serves as registration for a Synapse user to receive events for the specified objectId. 
-	 * The combination of the objectId and invokeEndpoint must be unique for each Webhook. The attribute isEnabled will default to true unless otherwise specified.
+	 * Create a new Webhook object.
 	 * 
 	 * @param userInfo
 	 * @param request
 	 * @return
 	 */
-	Webhook createWebhook(UserInfo userInfo, CreateOrUpdateWebhookRequest request);
+	Webhook createWebhook(UserInfo userInfo, Webhook webhook);
 	
 	/**
 	 * Get the Webhook corresponding to the provided webhookId.
@@ -39,18 +37,13 @@ public interface WebhookManager {
 	Webhook getWebhook(UserInfo userInfo, String webhookId);
 	
 	/**
-	 * Update the Webhook corresponding to the provided webhookId. 
-	 * 
-	 * Note: if the invokeEndpoint is changed upon update or the webhook is reenabled by the user, the user will be required to reverify the webhook. 
-	 * If Synapse disables the webhook due to an invalid endpoint, update the endpoint using this service, then reverify with PUT /webhook/{webhookId}/verify. 
-	 * The combination of the objectId and invokeEndpoint must be unique for each Webhook.
+	 * Update the corresponding Webhook with the provided Webhook. 
 	 * 
 	 * @param userInfo
-	 * @param webhookId
-	 * @param request
+	 * @param toUpdate
 	 * @return
 	 */
-	Webhook updateWebhook(UserInfo userInfo, String webhookId, CreateOrUpdateWebhookRequest request); 
+	Webhook updateWebhook(UserInfo userInfo, Webhook toUpdate); 
 	
 	/**
 	 * Delete the Webhook corresponding to the provided webhookId.
@@ -61,17 +54,17 @@ public interface WebhookManager {
 	void deleteWebhook(UserInfo userInfo, String webhookId);
 	
 	/**
-	 * Verify the Webhook of the corresponding ID by providing the verification code received by invokeEndpoint upon creation/updating. 
-	 * After successful verification, Synapse will set isVerified to true.
+	 * Verify the Webhook of the provided webhookId by the provided VerifyWebhookRequest. 
 	 * 
 	 * @param userInfo
+	 * @param webhookId
 	 * @param request
 	 * @return
 	 */
 	VerifyWebhookResponse verifyWebhook(UserInfo userInfo, String webhookId, VerifyWebhookRequest request);
 	
 	/**
-	 * List all webhookIds for a Synapse user. Each call will return a single page of WebhookRegistrations. Forward the provided nextPageToken to get the next page.
+	 * List all webhookIds for a Synapse user. 
 	 * 
 	 * @param userInfo
 	 * @param request
@@ -86,4 +79,12 @@ public interface WebhookManager {
 	 * @return
 	 */
 	List<Webhook> listSendableWebhooksForObjectId(String objectId, WebhookObjectType webhookObjectType);
+	
+	/**
+	 * Generate and send a new WebhookVerification for the Webhook of the provided webhookId. 
+	 * 
+	 * @param userId
+	 * @param webhookId
+	 */
+	void generateAndSendWebhookVerification(Long userId, String webhookId);
 }

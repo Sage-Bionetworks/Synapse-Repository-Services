@@ -1,22 +1,27 @@
 package org.sagebionetworks.repo.manager;
 
-import java.sql.Timestamp;
+import java.security.SecureRandom;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.dao.webhook.WebhookDao;
 import org.sagebionetworks.repo.model.dbo.dao.webhook.WebhookVerificationDao;
-import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
@@ -25,6 +30,8 @@ import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.repo.model.webhook.WebhookObjectType;
 import org.sagebionetworks.repo.model.webhook.WebhookVerification;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -44,79 +51,101 @@ public class WebhookManagerImpl implements WebhookManager {
 	@Autowired
 	private UserManager userManager;
 	
-
-	public static final String UNAUTHORIZED_ACCESS_MESSAGE = "You do not have permission to access the given webhook.";
-	public static final String EXPIRED_VERIFICATION_CODE_MESSAGE = "The verification code provided has expired.";
-	public static final String INVALID_VERIFICATION_CODE_MESSAGE = "The verificaiton code provided is invalid.";
-	public static final String INVALID_WEBHOOK_ID = "The provided webhookId is invalid.";
-	public static final String MISSING_OBJECT_UPDATE_PARAMS = "If you would like to update the object, both the ObjectId and the ObjectType are required.";
-	public static final String INVALID_INVOKE_ENDPOINT_MESSAGE = "The invokeEndpoint: %s is invalid.";
+	@Autowired
+	private IdGenerator idGenerator;
 	
+	@Autowired
+	private Clock clock;
+	
+
+	public static final String UNAUTHORIZED_ACCESS_MESSAGE = "You do not have permission to access the provided webhook.";
+	public static final String EXPIRED_VERIFICATION_CODE_MESSAGE = "The verification code provided has expired.";
+	public static final String INVALID_VERIFICATION_CODE_MESSAGE = "The verification code provided is invalid.";
+	public static final String INVALID_WEBHOOK_ID = "The provided webhookId is invalid.";
+	public static final String INVALID_INVOKE_ENDPOINT_MESSAGE = "The invokeEndpoint: %s is invalid.";
+	public static final String CONFLICTING_UPDATE_MESSAGE = "Webhook: %s was updated since you last fetched it, retrieve it again and re-apply the update";
+	public static final String EXCEEDED_MAXIMUM_ATTEMPTS = "You have exceeded the maximum number of attempts to verify your Webhook. Your Webhook has been deleted.";
+	
+	private static final SecureRandom secureRandom = new SecureRandom();
+    public static final String VERIFICATION_CODE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    public static final long VERIFICATION_CODE_TTL = 10 * 60 * 1000; // 10 minutes
+    public static final int VERIFICATION_CODE_LENGTH = 6;
+    public static final long MAXIMUM_VERIFICATION_ATTEMPTS = 10;
+    
 	private static final String AWS_REGION_REGEX = Stream.of(Regions.values())
             .map(Regions::getName)
             .collect(Collectors.joining("|"));
-
     private static final String AWS_API_GATEWAY_REGEX = "^https://[a-zA-Z0-9-]+\\.execute-api\\.(" + AWS_REGION_REGEX + ")\\.amazonaws\\.com(/.*)?$";
     private static final Pattern AWS_API_GATEWAY_PATTERN = Pattern.compile(AWS_API_GATEWAY_REGEX);
-    
     public static final Set<Pattern> ALLOWED_INVOKE_DOMAINS = Set.of(AWS_API_GATEWAY_PATTERN);
 	
 	@WriteTransaction
 	@Override
-	public Webhook createWebhook(UserInfo userInfo, CreateOrUpdateWebhookRequest request) {
-		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(request, "createOrUpdateWebhookRequest");
-		AuthorizationUtils.disallowAnonymous(userInfo);
+	public Webhook createWebhook(UserInfo userInfo, Webhook toCreate) {
+		validateCreateOrUpdateArguments(userInfo, toCreate);
 		
-		aclDao.canAccess(userInfo, request.getObjectId(), ObjectType.valueOf(request.getObjectType().name()), ACCESS_TYPE.READ)
+		aclDao.canAccess(userInfo, toCreate.getObjectId(), ObjectType.valueOf(toCreate.getObjectType().name()), ACCESS_TYPE.READ)
 				.checkAuthorizationOrElseThrow();
-		validateInvokeEndpoint(request.getInvokeEndpoint());
 		
-		if (request.getIsWebhookEnabled() == null) {
-			request.setIsWebhookEnabled(true);
-		}
+		String userIdAsString = userInfo.getId().toString();
+		Date currentDate = clock.now();
+		toCreate
+				.setWebhookId(idGenerator.generateNewId(IdType.WEBHOOK_ID).toString())
+				.setObjectId(toCreate.getObjectId())
+				.setObjectType(toCreate.getObjectType())
+				.setUserId(userIdAsString)
+				.setInvokeEndpoint(toCreate.getInvokeEndpoint())
+				.setIsVerified(false)
+				.setIsWebhookEnabled(toCreate.getIsWebhookEnabled() == null ? true : toCreate.getIsWebhookEnabled())
+				.setIsAuthenticationEnabled(toCreate.getIsAuthenticationEnabled() == null ? true : toCreate.getIsAuthenticationEnabled())
+				.setEtag(UUID.randomUUID().toString())
+				.setCreatedBy(userIdAsString)
+				.setModifiedBy(userIdAsString)
+				.setCreatedOn(currentDate)
+				.setModifiedOn(currentDate);
 		
-		Webhook webhook = webhookDao.createWebhook(userInfo.getId(), request); 
-		generateAndSendVerificationCode(userInfo.getId(), webhook.getWebhookId());
-		return webhook;
+		Webhook createdWebhook = webhookDao.createWebhook(toCreate); 
+		generateAndSendWebhookVerification(userInfo.getId(), createdWebhook.getWebhookId());
+		return createdWebhook;
 	}
 
 	@Override
 	public Webhook getWebhook(UserInfo userInfo, String webhookId) {
-		validateUserIsAdminOrWebhookOwner(userInfo, webhookId);
-		return webhookDao.getWebhook(webhookId);
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(webhookId, "webhookId");
+		
+		Webhook webhook = webhookDao.getWebhook(webhookId);
+		validateUserIsAdminOrWebhookOwner(userInfo, webhook);
+		return webhook;
 	}
 
 	@WriteTransaction
 	@Override
-	public Webhook updateWebhook(UserInfo userInfo, String webhookId, CreateOrUpdateWebhookRequest request) {
-		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(webhookId, "webhookId");
-		ValidateArgument.required(request, "createOrUpdateWebhookRequest");
-		validateUserIsAdminOrWebhookOwner(userInfo, webhookId);
+	public Webhook updateWebhook(UserInfo userInfo, Webhook updateWith) {
+		validateCreateOrUpdateArguments(userInfo, updateWith);
+		ValidateArgument.required(updateWith.getEtag(), "updateWith.etag");
 		
-		boolean includesObjectId = request.getObjectId() != null;
-		boolean includesObjectType = request.getObjectType() != null;
-		boolean includesInvokeEndpoint = request.getInvokeEndpoint() != null;
+		aclDao.canAccess(userInfo, updateWith.getObjectId(), ObjectType.valueOf(updateWith.getObjectType().name()), ACCESS_TYPE.READ)
+				.checkAuthorizationOrElseThrow();
 		
-		// If updating the object, verify the user has read permission on the new object
-		if (includesObjectId || includesObjectType) {
-			ValidateArgument.requirement(includesObjectId && includesObjectType, MISSING_OBJECT_UPDATE_PARAMS);
-			
-			aclDao.canAccess(userInfo, request.getObjectId(), ObjectType.valueOf(request.getObjectType().name()), ACCESS_TYPE.READ)
-					.checkAuthorizationOrElseThrow();
+		Webhook originalWebhook = webhookDao.getWebhookForUpdate(updateWith.getWebhookId());
+		validateUserIsAdminOrWebhookOwner(userInfo, originalWebhook);
+		if (!updateWith.getEtag().equals(originalWebhook.getEtag())) {
+			throw new ConflictingUpdateException(String.format(CONFLICTING_UPDATE_MESSAGE, originalWebhook.getWebhookId()));
 		}
 		
-		if (includesInvokeEndpoint) {
-			validateInvokeEndpoint(request.getInvokeEndpoint());
-		}
+		originalWebhook
+				.setObjectId(updateWith.getObjectId())
+				.setObjectType(updateWith.getObjectType())
+				.setInvokeEndpoint(updateWith.getInvokeEndpoint())
+				.setIsWebhookEnabled(updateWith.getIsWebhookEnabled() == null ? originalWebhook.getIsWebhookEnabled() : updateWith.getIsWebhookEnabled())
+				.setIsAuthenticationEnabled(updateWith.getIsAuthenticationEnabled() == null ? originalWebhook.getIsAuthenticationEnabled() : updateWith.getIsAuthenticationEnabled())
+				.setEtag(UUID.randomUUID().toString())
+				.setModifiedBy(userInfo.getId().toString())
+				.setModifiedOn(clock.now());
 		
-		Webhook updatedWebhook = webhookDao.updateWebhook(userInfo.getId(), webhookId, request);
-		
-		if (includesInvokeEndpoint) {
-			generateAndSendVerificationCode(Long.valueOf(updatedWebhook.getCreatedBy()), updatedWebhook.getWebhookId());
-		}
-		
+		Webhook updatedWebhook = webhookDao.updateWebhook(originalWebhook);
+		generateAndSendWebhookVerification(Long.valueOf(updatedWebhook.getUserId()), updatedWebhook.getWebhookId());
 		return updatedWebhook;
 	}
 
@@ -125,8 +154,15 @@ public class WebhookManagerImpl implements WebhookManager {
 	public void deleteWebhook(UserInfo userInfo, String webhookId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(webhookId, "webhookId");
-		validateUserIsAdminOrWebhookOwner(userInfo, webhookId);
+		
+		Webhook webhook = webhookDao.getWebhookForUpdate(webhookId);
+		validateUserIsAdminOrWebhookOwner(userInfo, webhook);
 		webhookDao.deleteWebhook(webhookId);
+	}
+	
+	void deleteWebhookAsAdmin(String webhookId) {
+		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		deleteWebhook(adminUserInfo, webhookId);
 	}
 
 	@Override
@@ -138,9 +174,14 @@ public class WebhookManagerImpl implements WebhookManager {
 		
 		WebhookVerification webhookVerification = webhookVerificationDao.getWebhookVerification(webhookId);
 		VerifyWebhookResponse response = new VerifyWebhookResponse().setWebhookId(webhookId);
+	
+		if (webhookVerificationDao.incrementAttempts(webhookId) > MAXIMUM_VERIFICATION_ATTEMPTS) {
+			deleteWebhookAsAdmin(webhookId);
+			return response.setIsValid(false).setInvalidReason(EXCEEDED_MAXIMUM_ATTEMPTS);
+		}
 		
 		if (request.getVerificationCode().equals(webhookVerification.getVerificationCode())) {
-			if (webhookVerification.getExpiresOn().after(new Timestamp(System.currentTimeMillis()))) {
+			if (webhookVerification.getExpiresOn().after(clock.now())) {
 				webhookDao.setWebhookVerificationStatus(webhookId, true);
 				return response.setIsValid(true);
 			} else {
@@ -166,34 +207,57 @@ public class WebhookManagerImpl implements WebhookManager {
 	
 	@Override
 	public List<Webhook> listSendableWebhooksForObjectId(String objectId, WebhookObjectType webhookObjectType) {
-		return webhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, webhookObjectType).stream()
+		return webhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, ObjectType.valueOf(webhookObjectType.name())).stream()
 				.filter(webhook -> {
 					try {
 						UserInfo userInfo = userManager.getUserInfo(Long.parseLong(webhook.getUserId()));
-						aclDao.canAccess(userInfo, webhook.getObjectId(), ObjectType.valueOf(webhook.getObjectType().name()), ACCESS_TYPE.READ)
-								.checkAuthorizationOrElseThrow();
-                        return true; 
-                    } catch (RuntimeException e) {
-                        return false; 
-                    }
+						return aclDao.canAccess(userInfo, webhook.getObjectId(), ObjectType.valueOf(webhook.getObjectType().name()), ACCESS_TYPE.READ).isAuthorized();
+					} catch (NumberFormatException | NotFoundException e) {
+						deleteWebhookAsAdmin(webhook.getWebhookId()); 
+						return false;
+					}
 				}).collect(Collectors.toList());
 	}
 	
-	public void validateUserIsAdminOrWebhookOwner(UserInfo userInfo, String webhookId) {
-		ValidateArgument.required(userInfo, "userInfo");
+	@Override
+	public void generateAndSendWebhookVerification(Long userId, String webhookId) {
+		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(webhookId, "webhookId");
-	
-		String webhookOwner = webhookDao.getWebhookOwnerForUpdate(webhookId)
-				.orElseThrow(() -> new IllegalArgumentException(INVALID_WEBHOOK_ID));
-
-		if (userInfo.isAdmin() || userInfo.getId().toString().equals(webhookOwner)) {
-			return;
-		}
 		
-		throw new UnauthorizedException(UNAUTHORIZED_ACCESS_MESSAGE);
+		Date currentDate = clock.now();
+		Date expirationDate = new Date(currentDate.getTime() + VERIFICATION_CODE_TTL);
+				
+		WebhookVerification toCreate = new WebhookVerification()
+				.setWebhookId(webhookId)
+				.setVerificationCode(generateVerificationCode())
+				.setExpiresOn(expirationDate)
+				.setAttempts(0L)
+				.setCreatedBy(String.valueOf(userId))
+				.setCreatedOn(currentDate);
+		
+		webhookVerificationDao.createWebhookVerification(toCreate);
 	}
 	
-	public void validateInvokeEndpoint(String invokeEndpoint) {
+	void validateUserIsAdminOrWebhookOwner(UserInfo userInfo, Webhook webhook) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(webhook, "webhook");
+		if (!userInfo.isAdmin() && !userInfo.getId().toString().equals(webhook.getUserId())) {
+			throw new UnauthorizedException(UNAUTHORIZED_ACCESS_MESSAGE);
+		}
+	}
+	
+	void validateCreateOrUpdateArguments(UserInfo userInfo, Webhook webhook) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(webhook, "webhook");
+		ValidateArgument.required(webhook.getObjectId(), "webhook.objectId");
+		ValidateArgument.required(webhook.getObjectType(), "webhook.objectType");
+		ValidateArgument.required(webhook.getInvokeEndpoint(), "webhook.invokeEndpoint");
+		
+		AuthorizationUtils.disallowAnonymous(userInfo);
+		validateInvokeEndpoint(webhook.getInvokeEndpoint());
+	}
+	
+	void validateInvokeEndpoint(String invokeEndpoint) {
 		ValidateArgument.required(invokeEndpoint, "invokeEndpoint");
 		
 		for (Pattern pattern : ALLOWED_INVOKE_DOMAINS) {
@@ -205,12 +269,12 @@ public class WebhookManagerImpl implements WebhookManager {
 		throw new IllegalArgumentException(String.format(INVALID_INVOKE_ENDPOINT_MESSAGE, invokeEndpoint));
 	}
 	
-	public void generateAndSendVerificationCode(Long userId, String webhookId) {
-		ValidateArgument.required(userId, "userId");
-		ValidateArgument.required(webhookId, "webhookId");
-		
-		WebhookVerification webhookVerification = webhookVerificationDao.createWebhookVerification(userId, webhookId);
-	}
-
+	String generateVerificationCode() {
+        StringBuilder sb = new StringBuilder(VERIFICATION_CODE_LENGTH);
+        for (int i = 0; i < VERIFICATION_CODE_LENGTH; i++) {
+            int randomIndex = secureRandom.nextInt(VERIFICATION_CODE_CHARACTERS.length());
+            sb.append(VERIFICATION_CODE_CHARACTERS.charAt(randomIndex));
+        }
+        return sb.toString();
+    }
 }
-
