@@ -9,13 +9,13 @@ public class WebhookVerificationDaoImpl implements WebhookVerificationDao {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	@Override
 	public WebhookVerification getWebhookVerification(String webhookId) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	@Override
 	public long incrementAttempts(String webhookId) {
 		// TODO Auto-generated method stub
@@ -25,7 +25,7 @@ public class WebhookVerificationDaoImpl implements WebhookVerificationDao {
 	@Override
 	public void pruneExpiredWebhookVerifications() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 }

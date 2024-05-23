@@ -1,13 +1,13 @@
 {
-    "description": "The request body of ListUserWebhooksRequest.",
-    "properties": {
-        "userId": {
-            "type": "string",
-            "description": "The userId of the Synapse user to get the webhookIds for."
-        },
-        "nextPageToken": {
-	    "type": "string",
-	    "description": "Forward this token to get the next page of results."
+	"description": "The request body of ListUserWebhooksRequest.",
+	"properties": {
+		"userId": {
+			"type": "string",
+			"description": "The userId of the Synapse user to get the webhookIds for."
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Forward this token to get the next page of results."
+		}
 	}
-    }
 }

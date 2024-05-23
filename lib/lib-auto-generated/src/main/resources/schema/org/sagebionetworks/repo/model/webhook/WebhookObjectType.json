@@ -1,10 +1,10 @@
 {
-    "description": "The type of the Synapse object for a Webhook.",
-    "type": "string",
-    "enum": [
-        {
-            "name": "ENTITY",
-            "description": "This is the base interface that all Entities implement."
-        }
-    ]
+	"description": "The type of the Synapse object for a Webhook.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "ENTITY",
+			"description": "This is the base interface that all Entities implement."
+		}
+	]
 }
