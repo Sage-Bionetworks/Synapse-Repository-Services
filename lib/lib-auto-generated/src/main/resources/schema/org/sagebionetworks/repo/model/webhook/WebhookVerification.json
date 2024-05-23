@@ -1,0 +1,31 @@
+{
+	"description": "A verification object for a Webhook. This contains the valid verification code along with the expiration date. New WebhookVerifications of the same webhookId will overwrite the existing WebhookVerification of the same webhookId.",
+	"properties": {
+		"webhookId": {
+			"type": "string",
+			"description": "The ID associated with the Webhook."
+		},
+		"verificationCode": {
+			"type": "string",
+			"description": "The verification code received by invokeEndpoint to verify a Webhook."
+		},
+		"expiresOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this WebhookVerification expires on."
+		},
+		"attempts": {
+			"type": "integer",
+			"description": "The number of attempts that have been made for the current Verification."
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this WebhookVerification was created."
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that this WebhookVerification was created for."
+		}
+	}
+}
