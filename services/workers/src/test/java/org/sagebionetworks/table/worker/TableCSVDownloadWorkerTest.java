@@ -4,9 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.io.IOException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -99,7 +102,6 @@ public class TableCSVDownloadWorkerTest {
 		when(mockTableQueryManager.runQueryDownloadAsStream(any(), any(), any(), any())).thenReturn(results);
 		when(mockFileHandleManager.uploadLocalFile(any())).thenReturn(new S3FileHandle().setId("8888"));
 		when(mockCSVWriterProvider.createWriter(any(), any())).thenReturn(mockCSVWriter);
-		when(mockCSVWriter.checkError()).thenReturn(false);
 		
 		// call under test
 		DownloadFromTableResult response = worker.run(jobId, userInfo, request, mockJobProgressCallback);
@@ -114,14 +116,13 @@ public class TableCSVDownloadWorkerTest {
 		assertEquals(null, request.getFileName());
 		verify(mockCSVWriterProvider).createWriter(any(), any());
 		verify(mockCSVWriter, times(2)).close();
-		verify(mockCSVWriter).checkError();
 	}
 	
 	@Test
 	public void testBasicQueryWithError() throws Exception {
 		when(mockTableQueryManager.runQueryDownloadAsStream(any(), any(), any(), any())).thenReturn(results);
 		when(mockCSVWriterProvider.createWriter(any(), any())).thenReturn(mockCSVWriter);
-		when(mockCSVWriter.checkError()).thenReturn(true);
+		doThrow(new IOException("fake out of disk space...")).when(mockCSVWriter).close();
 		
 		assertThrows(RecoverableMessageException.class, ()->{
 			// call under test
@@ -130,7 +131,6 @@ public class TableCSVDownloadWorkerTest {
 		
 		verify(mockCSVWriterProvider).createWriter(any(), any());
 		verify(mockCSVWriter, times(2)).close();
-		verify(mockCSVWriter).checkError();
 	}
 
 	@Test

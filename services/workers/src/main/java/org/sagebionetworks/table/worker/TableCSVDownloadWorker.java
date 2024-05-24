@@ -2,6 +2,7 @@ package org.sagebionetworks.table.worker;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -91,16 +92,6 @@ public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableR
 				writer.close();
 			}
 			
-
-			/*
-			 * Calling writer.close() and/or writer.flush() will fail silently if there is an IOException.
-			 * We must call writer.checkError() to determine if there was an exception.
-			 */
-			if(writer.checkError()) {
-				log.info("Writer.checkError() returned true, will attempt retry");
-				throw new RecoverableMessageException();
-			}
-	
 			// At this point we have the entire CSV written to a local file.
 			// Upload the file to S3 can create the filehandle.
 			long startProgress = totalProgress/2; // we are half done at this point
@@ -117,6 +108,10 @@ public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableR
 		} catch (TableUnavailableException | LockUnavilableException e){
 			// This just means we cannot do this right now.  We can try again later.
 			jobProgressCallback.updateProgress("Waiting for the table index to become available...", 0L, 100L);
+			// Throwing this will put the message back on the queue in 5 seconds.
+			throw new RecoverableMessageException();
+		} catch (IOException e){
+			log.error("Worker Failed. Will retry", e);
 			// Throwing this will put the message back on the queue in 5 seconds.
 			throw new RecoverableMessageException();
 		} catch (TableFailedException | RecoverableMessageException e) {

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dao.table;
 
+import java.io.IOException;
+
 import org.sagebionetworks.repo.model.table.Row;
 
 /**
@@ -13,6 +15,7 @@ public interface RowHandler {
 	/**
 	 * Called for each row of the set.
 	 * @param row
+	 * @throws IOException 
 	 */
-	public void nextRow(Row row);
+	public void nextRow(Row row) throws IOException;
 }

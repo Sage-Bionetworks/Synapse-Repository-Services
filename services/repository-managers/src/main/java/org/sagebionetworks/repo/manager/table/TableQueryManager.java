@@ -1,13 +1,11 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.table.TableType;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -96,9 +94,10 @@ public interface TableQueryManager {
 	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 * @throws TableFailedException
+	 * @throws IOException 
 	 * @throws TableLockUnavailableException 
 	 */
-	DownloadFromTableResult runQueryDownloadAsStream(ProgressCallback progressCallback, UserInfo user, DownloadFromTableRequest request, CSVWriterStream writer) throws TableUnavailableException, NotFoundException, TableFailedException, LockUnavilableException;
+	DownloadFromTableResult runQueryDownloadAsStream(ProgressCallback progressCallback, UserInfo user, DownloadFromTableRequest request, CSVWriterStream writer) throws TableUnavailableException, NotFoundException, TableFailedException, LockUnavilableException, IOException;
 
 
 	/**

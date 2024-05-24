@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -56,7 +57,7 @@ public class CSVWriterRowHandlerTest {
 	}
 
 	@Test
-	public void testHandler(){
+	public void testHandler() throws IOException{
 		// write the header.
 		handler.writeHeader();
 		//  add a row
@@ -71,7 +72,7 @@ public class CSVWriterRowHandlerTest {
 	}
 	
 	@Test 
-	public void testHandlerWithEtag(){
+	public void testHandlerWithEtag() throws IOException{
 		includeRowEtag = true;
 		handler = new CSVWriterRowHandler(writer, selectColumns, includeRowIdAndVersion, includeRowEtag);
 		// write the header.

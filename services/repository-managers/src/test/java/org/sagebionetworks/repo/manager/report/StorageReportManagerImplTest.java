@@ -4,6 +4,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -61,7 +63,7 @@ public class StorageReportManagerImplTest {
 	}
 
 	@Test
-	public void writeStorageReportAllProjects() {
+	public void writeStorageReportAllProjects() throws IOException {
 		request.setReportType(StorageReportType.ALL_PROJECTS);
 		doAnswer(invocation -> {
 			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(1);
@@ -79,7 +81,7 @@ public class StorageReportManagerImplTest {
 	}
 
 	@Test
-	public void writeStorageReportNullReportType() {
+	public void writeStorageReportNullReportType() throws IOException {
 		request.setReportType(null);
 		doAnswer(invocation -> {
 			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(1);
@@ -98,7 +100,7 @@ public class StorageReportManagerImplTest {
 
 
 	@Test(expected = UnauthorizedException.class)
-	public void writeStorageReportUnauthorized() {
+	public void writeStorageReportUnauthorized() throws IOException {
 		when(mockAuthorizationManager.isReportTeamMemberOrAdmin(adminUser)).thenReturn(false);
 		// Call under test
 		storageReportManager.writeStorageReport(adminUser, request, mockCsvWriter);
