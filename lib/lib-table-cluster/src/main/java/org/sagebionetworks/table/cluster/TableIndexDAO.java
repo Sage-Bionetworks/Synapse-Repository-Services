@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -537,8 +538,9 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @param stream
 	 * @return The column model ids from the table index
+	 * @throws IOException 
 	 */
-	List<String> streamTableIndexData(IdAndVersion tableId, CSVWriterStream stream);
+	List<String> streamTableIndexData(IdAndVersion tableId, CSVWriterStream stream) throws IOException;
 
 	/**
 	 * Restore the table index using the data from the given iterator

@@ -4,6 +4,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,10 +21,12 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
 import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StorageReportManagerImplTest {
@@ -61,7 +65,7 @@ public class StorageReportManagerImplTest {
 	}
 
 	@Test
-	public void writeStorageReportAllProjects() {
+	public void writeStorageReportAllProjects() throws NotFoundException, LockUnavilableException, IOException {
 		request.setReportType(StorageReportType.ALL_PROJECTS);
 		doAnswer(invocation -> {
 			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(1);
@@ -79,7 +83,7 @@ public class StorageReportManagerImplTest {
 	}
 
 	@Test
-	public void writeStorageReportNullReportType() {
+	public void writeStorageReportNullReportType() throws NotFoundException, LockUnavilableException, IOException {
 		request.setReportType(null);
 		doAnswer(invocation -> {
 			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(1);
@@ -98,7 +102,7 @@ public class StorageReportManagerImplTest {
 
 
 	@Test(expected = UnauthorizedException.class)
-	public void writeStorageReportUnauthorized() {
+	public void writeStorageReportUnauthorized() throws NotFoundException, LockUnavilableException, IOException {
 		when(mockAuthorizationManager.isReportTeamMemberOrAdmin(adminUser)).thenReturn(false);
 		// Call under test
 		storageReportManager.writeStorageReport(adminUser, request, mockCsvWriter);

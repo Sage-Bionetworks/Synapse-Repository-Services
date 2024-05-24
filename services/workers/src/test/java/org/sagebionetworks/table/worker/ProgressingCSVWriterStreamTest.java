@@ -6,6 +6,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,7 +41,7 @@ public class ProgressingCSVWriterStreamTest {
 	}
 	
 	@Test
-	public void testWriteNext() throws InterruptedException{
+	public void testWriteNext() throws InterruptedException, IOException{
 		when(mockClock.currentTimeMillis()).thenReturn(1000L, 2001L, 3000L);
 		// write one row.
 		String[] one = new String[]{"1"};

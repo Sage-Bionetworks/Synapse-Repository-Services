@@ -65,8 +65,6 @@ public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableR
 	public DownloadFromTableResult run(String jobId, UserInfo user, DownloadFromTableRequest request, AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
 		String fileName = "Job-"+jobId;
 		File temp = null;
-		CSVWriter writer = null;
-		
 		try {
 			// only run the count
 			QueryOptions queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
@@ -80,27 +78,13 @@ public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableR
 			// The CSV data will first be written to this file.
 			temp = File.createTempFile(fileName, "." + CSVUtils.guessExtension(
 					request.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor().getSeparator()));
-			writer = csvWriterProvider.createWriter(new FileWriter(temp), request.getCsvTableDescriptor());
-			// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
-			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, jobProgressCallback, currentProgress, totalProgress, clock);
-			// Execute the actual query and stream the results to the file.
 			DownloadFromTableResult result = null;
-			try{
-				result = tableQueryManager.runQueryDownloadAsStream(jobProgressCallback, user, request, stream);
-			}finally{
-				writer.close();
+			try(CSVWriter writer = csvWriterProvider.createWriter(new FileWriter(temp), request.getCsvTableDescriptor());){
+				// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
+				ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, jobProgressCallback, currentProgress, totalProgress, clock);
+				result =  tableQueryManager.runQueryDownloadAsStream(jobProgressCallback, user, request, stream);
 			}
-			
 
-			/*
-			 * Calling writer.close() and/or writer.flush() will fail silently if there is an IOException.
-			 * We must call writer.checkError() to determine if there was an exception.
-			 */
-			if(writer.checkError()) {
-				log.info("Writer.checkError() returned true, will attempt retry");
-				throw new RecoverableMessageException();
-			}
-	
 			// At this point we have the entire CSV written to a local file.
 			// Upload the file to S3 can create the filehandle.
 			long startProgress = totalProgress/2; // we are half done at this point
@@ -128,11 +112,6 @@ public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableR
 
 			throw translatedException;
 		} finally {
-			if(writer != null){
-				try {
-					writer.close();
-				} catch (Exception e2) {}
-			}
 			if(temp != null){
 				temp.delete();
 			}

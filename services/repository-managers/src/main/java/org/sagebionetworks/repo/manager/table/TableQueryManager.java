@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -96,9 +97,10 @@ public interface TableQueryManager {
 	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 * @throws TableFailedException
+	 * @throws IOException 
 	 * @throws TableLockUnavailableException 
 	 */
-	DownloadFromTableResult runQueryDownloadAsStream(ProgressCallback progressCallback, UserInfo user, DownloadFromTableRequest request, CSVWriterStream writer) throws TableUnavailableException, NotFoundException, TableFailedException, LockUnavilableException;
+	DownloadFromTableResult runQueryDownloadAsStream(ProgressCallback progressCallback, UserInfo user, DownloadFromTableRequest request, CSVWriterStream writer) throws TableUnavailableException, NotFoundException, TableFailedException, LockUnavilableException, IOException;
 
 
 	/**

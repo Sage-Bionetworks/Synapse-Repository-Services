@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -31,8 +32,9 @@ public class CSVWriterRowHandler implements RowHandler {
 
 	/**
 	 * Write the header to the passed CSV writer.
+	 * @throws IOException 
 	 */
-	public void writeHeader(){
+	public void writeHeader() throws IOException{
 		// create the header row.
 		String[] csvHeaders = TableModelUtils.createColumnNameHeader(
 				selectColumns,
@@ -47,7 +49,11 @@ public class CSVWriterRowHandler implements RowHandler {
 		String[] array = TableModelUtils.writeRowToStringArray(row,
 				includeRowIdAndVersion, includeRowEtag);
 		// write it to the stream.
-		writer.writeNext(array);
+		try {
+			writer.writeNext(array);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 
