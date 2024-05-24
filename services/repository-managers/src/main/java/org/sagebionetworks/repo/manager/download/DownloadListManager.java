@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.download;
 
 import java.io.IOException;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
@@ -16,6 +15,7 @@ import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 public interface DownloadListManager {
 

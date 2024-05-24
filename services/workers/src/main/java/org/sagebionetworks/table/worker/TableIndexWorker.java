@@ -3,7 +3,6 @@ package org.sagebionetworks.table.worker;
 import java.util.Iterator;
 
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableException;
@@ -14,6 +13,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

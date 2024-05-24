@@ -18,7 +18,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
@@ -26,6 +25,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.google.common.collect.ImmutableList;

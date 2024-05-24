@@ -19,10 +19,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StackStatusDao;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 import com.google.common.collect.ImmutableList;
 

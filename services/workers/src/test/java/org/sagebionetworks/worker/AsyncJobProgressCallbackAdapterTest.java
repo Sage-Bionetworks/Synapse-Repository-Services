@@ -10,9 +10,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressListener;
 
 @ExtendWith(MockitoExtension.class)
 public class AsyncJobProgressCallbackAdapterTest {

@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager.table;
 import java.util.Optional;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.sagebionetworks.common.util.Clock;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.table.QueryCacheHitEvent;

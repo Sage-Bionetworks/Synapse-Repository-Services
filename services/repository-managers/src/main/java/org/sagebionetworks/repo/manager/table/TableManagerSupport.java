@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -27,6 +25,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescriptionLookup;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressingCallable;
 
 /**
  * Low-level support for all of the table managers. Contains low-level business

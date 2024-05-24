@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdRange;
@@ -29,6 +28,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 

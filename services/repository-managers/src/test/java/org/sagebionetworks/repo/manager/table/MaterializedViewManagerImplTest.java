@@ -36,8 +36,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
@@ -59,6 +57,8 @@ import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.QueryExpression;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressingCallable;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 

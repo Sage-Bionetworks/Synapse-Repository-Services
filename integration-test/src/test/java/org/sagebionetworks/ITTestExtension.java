@@ -12,7 +12,7 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.common.util.ClockImpl;
+import org.sagebionetworks.util.DefaultClock;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.warehouse.WarehouseTestHelper;
@@ -142,7 +142,7 @@ public class ITTestExtension implements BeforeAllCallback, AfterAllCallback, Par
 				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance()).build();
 		AmazonAthena athenaClient = AmazonAthenaClientBuilder.standard().withRegion(Regions.US_EAST_1)
 				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance()).build();
-		warehouseHelper = new WarehouseTestHelperImpl(s3Client, athenaClient, new ClockImpl(), config);
+		warehouseHelper = new WarehouseTestHelperImpl(s3Client, athenaClient, new DefaultClock(), config);
 	}
 
 	@Override

@@ -10,9 +10,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.athena.RecurrentAthenaQueryManager;
 import org.sagebionetworks.repo.model.athena.RecurrentAthenaQueryResult;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;

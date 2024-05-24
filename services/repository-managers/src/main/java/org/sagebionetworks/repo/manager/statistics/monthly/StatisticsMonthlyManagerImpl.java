@@ -9,8 +9,6 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.repo.manager.statistics.StatisticsProcessingException;
 import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyStatusDAO;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
@@ -19,6 +17,8 @@ import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyStatus
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

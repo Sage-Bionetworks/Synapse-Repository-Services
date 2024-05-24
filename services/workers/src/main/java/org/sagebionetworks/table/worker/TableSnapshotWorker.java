@@ -2,7 +2,6 @@ package org.sagebionetworks.table.worker;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -10,6 +9,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatusChangeEvent;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;

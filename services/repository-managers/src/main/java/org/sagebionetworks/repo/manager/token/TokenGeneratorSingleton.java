@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.token;
 
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.common.util.ClockImpl;
+import org.sagebionetworks.util.DefaultClock;
 
 /**
  * This is a temporary class used to bridge static access to
@@ -18,7 +18,7 @@ public class TokenGeneratorSingleton {
 	 */
 	private static final TokenGenerator tokenGenerator;
 	static {
-		tokenGenerator = new TokenGeneratorImpl(StackConfigurationSingleton.singleton(), new ClockImpl());
+		tokenGenerator = new TokenGeneratorImpl(StackConfigurationSingleton.singleton(), new DefaultClock());
 	}
 
 	/**

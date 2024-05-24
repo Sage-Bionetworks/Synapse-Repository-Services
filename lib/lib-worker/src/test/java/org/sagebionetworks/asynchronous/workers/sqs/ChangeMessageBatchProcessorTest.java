@@ -21,11 +21,11 @@ import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDriven
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageBatchProcessor;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageRunner;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.amazonaws.services.sqs.AmazonSQS;

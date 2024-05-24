@@ -1,9 +1,9 @@
 package org.sagebionetworks.worker;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressListener;
 
 /**
  * Adapter for an {@link AsyncJobProgressCallback} that wraps the original {@link ProgressCallback} passed by the worker framework

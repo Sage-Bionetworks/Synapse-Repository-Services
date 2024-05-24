@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dao.asynch;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 /**
  * Callback for {@link AsyncJobRunner}s that update the job progress

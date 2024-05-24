@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -11,6 +10,7 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 /**
  * Business logic for materialized table views.

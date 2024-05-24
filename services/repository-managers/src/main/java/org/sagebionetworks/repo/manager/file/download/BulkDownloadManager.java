@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.file.download;
 
 import java.util.List;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.DownloadList;
@@ -13,6 +12,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 public interface BulkDownloadManager {

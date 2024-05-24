@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -15,6 +14,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.springframework.stereotype.Service;
 
 @Service

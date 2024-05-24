@@ -1,13 +1,14 @@
 package org.sagebionetworks.file.worker;
 
 import com.amazonaws.services.sqs.model.Message;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
+
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.audit.KinesisJsonEntityRecord;
 import org.sagebionetworks.repo.manager.statistics.ProjectResolver;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.FileEvent;
 import org.sagebionetworks.repo.model.file.FileEventRecord;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

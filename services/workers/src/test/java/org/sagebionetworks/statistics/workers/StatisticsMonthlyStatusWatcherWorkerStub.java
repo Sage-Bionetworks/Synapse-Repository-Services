@@ -2,8 +2,8 @@ package org.sagebionetworks.statistics.workers;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingRunner;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressingRunner;
 
 /**
  * This is used in place to the real worker during integration tests so that we do not waste resources

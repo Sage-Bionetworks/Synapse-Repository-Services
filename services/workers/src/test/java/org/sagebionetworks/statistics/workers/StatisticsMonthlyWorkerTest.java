@@ -11,11 +11,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.statistics.StatisticsProcessingException;
 import org.sagebionetworks.repo.manager.statistics.monthly.StatisticsMonthlyManager;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyProcessNotification;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.amazonaws.services.sqs.model.Message;

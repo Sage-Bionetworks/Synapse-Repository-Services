@@ -12,11 +12,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.sagebionetworks.common.util.PathNormalizer;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphore;
 import org.sagebionetworks.repo.model.throttle.ThrottleLimit;
 import org.sagebionetworks.repo.web.HttpRequestIdentifier;
+import org.sagebionetworks.util.PathNormalizer;
 import org.springframework.test.util.ReflectionTestUtils;
 
 

@@ -4,11 +4,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

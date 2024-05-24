@@ -8,11 +8,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.QueryCacheManager;
 import org.sagebionetworks.repo.model.table.QueryCacheHitEvent;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 import com.amazonaws.services.sqs.model.Message;
 

@@ -7,7 +7,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
@@ -19,6 +18,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.util.FileProvider;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;

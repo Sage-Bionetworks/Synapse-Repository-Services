@@ -5,14 +5,14 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingRunner;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.IdVersionTableType;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.LocalStackChangeMesssage;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressingRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**

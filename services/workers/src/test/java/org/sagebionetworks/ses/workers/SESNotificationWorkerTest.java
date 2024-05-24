@@ -14,9 +14,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.ses.SESNotificationManager;
 import org.sagebionetworks.repo.model.ses.SESJsonNotification;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 import com.amazonaws.services.sqs.model.Message;
 

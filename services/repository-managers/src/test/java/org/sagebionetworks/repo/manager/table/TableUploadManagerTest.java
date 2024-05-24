@@ -30,7 +30,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -46,6 +45,7 @@ import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.FileProvider;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.StringInputStream;

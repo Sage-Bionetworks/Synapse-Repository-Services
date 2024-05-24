@@ -19,13 +19,13 @@ import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.util.TestClock;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class ChangeSentMessageSynchWorkerUnitTest {

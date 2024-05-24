@@ -10,7 +10,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -29,6 +28,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;

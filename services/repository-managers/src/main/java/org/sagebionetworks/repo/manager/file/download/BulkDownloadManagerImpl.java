@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
@@ -45,6 +44,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;

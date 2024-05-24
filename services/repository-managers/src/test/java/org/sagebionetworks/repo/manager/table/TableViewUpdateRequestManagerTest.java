@@ -31,7 +31,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -63,6 +62,7 @@ import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.google.common.collect.Lists;

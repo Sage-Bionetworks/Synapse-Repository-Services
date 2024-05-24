@@ -2,10 +2,10 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 public interface TableUploadManager {
 

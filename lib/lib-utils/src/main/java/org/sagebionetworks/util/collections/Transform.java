@@ -1,4 +1,4 @@
-package org.sagebionetworks.collections;
+package org.sagebionetworks.util.collections;
 
 import java.util.Collection;
 import java.util.Iterator;

@@ -15,12 +15,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 @ExtendWith(MockitoExtension.class)

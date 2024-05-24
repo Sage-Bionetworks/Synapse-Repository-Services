@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.manager.table;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
@@ -17,6 +15,8 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressingCallable;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

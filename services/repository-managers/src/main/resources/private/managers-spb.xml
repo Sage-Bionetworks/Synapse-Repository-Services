@@ -36,7 +36,7 @@
 		
 	<bean name="userThrottleMemoryCountingSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphoreImpl" scope="singleton">
 		<constructor-arg index="0">
-		<bean class="org.sagebionetworks.common.util.ClockImpl"/>
+		<bean class="org.sagebionetworks.util.DefaultClock"/>
 		</constructor-arg>
 	</bean>
 	

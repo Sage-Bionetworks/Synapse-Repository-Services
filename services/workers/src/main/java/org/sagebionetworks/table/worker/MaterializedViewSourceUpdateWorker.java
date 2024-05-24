@@ -1,12 +1,12 @@
 package org.sagebionetworks.table.worker;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.MaterializedViewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatusChangeEvent;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;

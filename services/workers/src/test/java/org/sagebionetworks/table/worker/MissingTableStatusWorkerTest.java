@@ -16,7 +16,6 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.IdVersionTableType;
@@ -25,6 +24,7 @@ import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.LocalStackChangeMesssage;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 @ExtendWith(MockitoExtension.class)
 public class MissingTableStatusWorkerTest {

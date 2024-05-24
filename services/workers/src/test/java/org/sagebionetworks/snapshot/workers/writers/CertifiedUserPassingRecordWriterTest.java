@@ -21,7 +21,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.CertifiedUserManager;
@@ -33,6 +32,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.snapshot.workers.KinesisObjectSnapshotRecord;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 import com.amazonaws.services.sqs.model.Message;
 

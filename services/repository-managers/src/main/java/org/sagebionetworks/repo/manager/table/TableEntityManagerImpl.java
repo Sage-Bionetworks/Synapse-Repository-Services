@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.manager.table;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -78,6 +76,8 @@ import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.model.TableChange;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 

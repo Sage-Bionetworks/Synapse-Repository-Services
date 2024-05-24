@@ -18,7 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.Clock;
+import org.sagebionetworks.util.Clock;
 
 @ExtendWith(MockitoExtension.class)
 public class CountingSemaphoreThrottleUnitTest {

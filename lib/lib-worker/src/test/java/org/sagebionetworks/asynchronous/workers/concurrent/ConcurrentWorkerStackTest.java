@@ -31,7 +31,7 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentWorkerStack.StackState;
-import org.sagebionetworks.common.util.progress.ProgressListener;
+import org.sagebionetworks.util.progress.ProgressListener;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 
 @ExtendWith(MockitoExtension.class)

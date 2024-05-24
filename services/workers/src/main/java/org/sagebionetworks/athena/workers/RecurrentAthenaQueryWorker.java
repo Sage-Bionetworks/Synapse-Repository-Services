@@ -2,9 +2,9 @@ package org.sagebionetworks.athena.workers;
 
 import javax.annotation.PostConstruct;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.athena.RecurrentAthenaQueryManager;
 import org.sagebionetworks.repo.model.athena.RecurrentAthenaQueryResult;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;

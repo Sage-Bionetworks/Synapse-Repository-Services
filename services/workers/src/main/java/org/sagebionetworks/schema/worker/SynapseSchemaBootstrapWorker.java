@@ -1,8 +1,8 @@
 package org.sagebionetworks.schema.worker;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingRunner;
 import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressingRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**

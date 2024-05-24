@@ -5,10 +5,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.snapshot.workers.writers.ObjectRecordWriter;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
