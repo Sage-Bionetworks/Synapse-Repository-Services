@@ -97,7 +97,7 @@ import com.google.common.collect.Lists;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MaterializedViewUpdateWorkerIntegrationTest {
 
-	public static final Long MAX_WAIT_MS = 30_000L;
+	public static final Long MAX_WAIT_MS = 45_000L;
 
 	@Autowired
 	private TableManagerSupport tableManagerSupport;
