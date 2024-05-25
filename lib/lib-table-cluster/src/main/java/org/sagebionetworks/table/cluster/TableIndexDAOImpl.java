@@ -49,6 +49,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_ANNOT
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -1441,7 +1442,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}	
 
 	@Override
-	public List<String> streamTableIndexData(IdAndVersion tableId, CSVWriterStream stream) {
+	public List<String> streamTableIndexData(IdAndVersion tableId, CSVWriterStream stream) throws IOException {
 		boolean isTemporaryTable = false;
 		List<DatabaseColumnInfo> columnList = getDatabaseInfo(tableId, isTemporaryTable);
 		
@@ -1465,7 +1466,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			for (int i = 0; i < headers.size(); i++) {
 				row[i] = rs.getString(i + 1);
 			}
-			stream.writeNext(row);
+			try {
+				stream.writeNext(row);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		});
 		
 		return schema.stream().map(ColumnModel::getId).collect(Collectors.toList());

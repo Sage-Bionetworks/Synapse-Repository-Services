@@ -18,6 +18,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_SEARCH_CONTENT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -4674,7 +4675,7 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testStreamTableIndexData() {
+	public void testStreamTableIndexData() throws IOException {
 		tableId = IdAndVersion.parse("syn123");
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		// delete all data
@@ -4741,7 +4742,7 @@ public class TableIndexDAOImplTest {
 	
 	// Test to reproduce https://sagebionetworks.jira.com/browse/PLFM-7622
 	@Test
-	public void testStreamTableIndexDataWithDoubleAndSchemaChange() {
+	public void testStreamTableIndexDataWithDoubleAndSchemaChange() throws IOException {
 		tableId = IdAndVersion.parse("syn123");
 		indexDescription = new TableIndexDescription(tableId);
 		// delete all data

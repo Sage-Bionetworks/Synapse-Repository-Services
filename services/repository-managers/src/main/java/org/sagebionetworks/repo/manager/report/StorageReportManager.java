@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.report;
 
+import java.io.IOException;
+
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -23,6 +25,7 @@ public interface StorageReportManager {
 	 * @return
 	 * @throws NotFoundException
 	 * @throws LockUnavilableException
+	 * @throws IOException 
 	 */
-	void writeStorageReport(UserInfo user, DownloadStorageReportRequest request, CSVWriterStream writer) throws NotFoundException, LockUnavilableException;
+	void writeStorageReport(UserInfo user, DownloadStorageReportRequest request, CSVWriterStream writer) throws NotFoundException, LockUnavilableException, IOException;
 }

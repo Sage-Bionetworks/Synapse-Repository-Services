@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.report;
 
+import java.io.IOException;
+
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -24,7 +26,7 @@ public class StorageReportManagerImpl implements StorageReportManager {
 
 	@Override
 	public void writeStorageReport(UserInfo user, DownloadStorageReportRequest request, CSVWriterStream writer)
-			throws NotFoundException, LockUnavilableException {
+			throws NotFoundException, LockUnavilableException, IOException {
 		// Verify that the user is in the authorized group.
 		UserInfo.validateUserInfo(user);
 		if (!authorizationManager.isReportTeamMemberOrAdmin(user)) {
@@ -47,7 +49,11 @@ public class StorageReportManagerImpl implements StorageReportManager {
 					row[0] = "syn" + value.getId();
 					row[1] = value.getProjectName();
 					row[2] = value.getSizeInBytes().toString();
-					writer.writeNext(row);
+					try {
+						writer.writeNext(row);
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
 				};
 
 				tableIndexDAO.streamSynapseStorageStats(ViewObjectType.ENTITY.getMainType(), callback);

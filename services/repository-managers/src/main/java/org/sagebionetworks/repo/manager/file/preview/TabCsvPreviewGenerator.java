@@ -101,9 +101,7 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 				CSVWriter writer = new CSVWriter(new OutputStreamWriter(to, "UTF-8"), COMMA)) {
 			// generate the preview from the input.
 			List<String[]> previewRows = generatePreviewRows(reader);
-			writer.writeAll(previewRows);
-			writer.flush();
-			writer.close();
+			writer.writeAll(previewRows);;
 		}
 	}
 	
