@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.worker;
 
+import java.io.IOException;
+
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -56,7 +58,7 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 
 
 	@Override
-	public void writeNext(String[] nextLine) {
+	public void writeNext(String[] nextLine) throws IOException {
 		// We do not want to spam the listeners, so we only update progress every few seconds.
 		if(clock.currentTimeMillis() - lastUpdateTimeMS > UPDATE_FEQUENCY_MS){
 			// It is time to update the progress

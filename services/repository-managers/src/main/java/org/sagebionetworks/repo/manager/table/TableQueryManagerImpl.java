@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -514,12 +515,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 * @throws TableFailedException
+	 * @throws IOException 
 	 * @throws TableLockUnavailableException
 	 */
 	@Override
 	public DownloadFromTableResult runQueryDownloadAsStream(ProgressCallback progressCallback, UserInfo user,
 			DownloadFromTableRequest request, final CSVWriterStream writer)
-			throws TableUnavailableException, NotFoundException, TableFailedException, LockUnavilableException {
+			throws TableUnavailableException, NotFoundException, TableFailedException, LockUnavilableException, IOException {
 		// Convert to a query.
 		try {
 			// run the query.
