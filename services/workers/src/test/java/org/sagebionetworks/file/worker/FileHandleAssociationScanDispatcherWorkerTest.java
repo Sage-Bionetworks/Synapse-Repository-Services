@@ -12,8 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerJobManager;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 @ExtendWith(MockitoExtension.class)
 public class FileHandleAssociationScanDispatcherWorkerTest {

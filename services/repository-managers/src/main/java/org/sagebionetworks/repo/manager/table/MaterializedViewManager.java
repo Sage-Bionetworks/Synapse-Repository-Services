@@ -2,10 +2,10 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 /**
  * Manager for operations on {@link MaterializedView}s

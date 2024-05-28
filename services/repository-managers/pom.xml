@@ -70,7 +70,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>worker-utilities</artifactId>
+			<artifactId>lib-worker-common</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
@@ -80,10 +80,6 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-upload</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>url-signer</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>

@@ -3,7 +3,7 @@ package org.sagebionetworks.asynchronous.workers.concurrent;
 import java.util.Objects;
 import java.util.concurrent.Future;
 
-import org.sagebionetworks.common.util.progress.ProgressListener;
+import org.sagebionetworks.util.progress.ProgressListener;
 
 /**
  * Simple wrapper to track a work's {@link Future} and {@link ProgressListener}.

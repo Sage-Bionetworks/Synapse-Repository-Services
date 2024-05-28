@@ -28,7 +28,7 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.common.util.Clock;
+import org.sagebionetworks.util.Clock;
 
 import com.amazonaws.services.athena.AmazonAthena;
 import com.amazonaws.services.athena.model.ColumnInfo;

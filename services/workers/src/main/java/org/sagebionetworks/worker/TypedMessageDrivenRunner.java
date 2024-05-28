@@ -1,6 +1,6 @@
 package org.sagebionetworks.worker;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.amazonaws.services.sqs.model.Message;

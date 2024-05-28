@@ -4,13 +4,11 @@ import java.util.Date;
 
 public interface Clock {
 
-	public abstract long currentTimeMillis();
+	long currentTimeMillis();
 
-	public abstract void sleep(long millis) throws InterruptedException;
+	void sleep(long millis) throws InterruptedException;
 
-	public abstract void sleepNoInterrupt(long millis);
+	void sleepNoInterrupt(long millis);
 
-
-
-	public abstract Date now();
+	Date now();
 }

@@ -10,7 +10,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.sagebionetworks.simpleHttpClient.*;
-import org.sagebionetworks.url.HttpMethod;
+import org.sagebionetworks.util.url.HttpMethod;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;

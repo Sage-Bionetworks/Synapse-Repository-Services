@@ -5,7 +5,7 @@ import java.nio.charset.Charset;
 import java.util.Date;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.common.util.Clock;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.repo.model.SignedTokenInterface;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;

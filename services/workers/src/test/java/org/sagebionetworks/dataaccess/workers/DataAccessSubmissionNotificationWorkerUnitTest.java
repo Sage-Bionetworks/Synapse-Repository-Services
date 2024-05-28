@@ -13,10 +13,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.dataaccess.DataAccessSubmissionNotificationManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionEvent;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 @ExtendWith(MockitoExtension.class)
 public class DataAccessSubmissionNotificationWorkerUnitTest {

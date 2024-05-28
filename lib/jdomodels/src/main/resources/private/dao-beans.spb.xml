@@ -295,7 +295,7 @@
 
 	<!-- Misc beans -->
 		
-	<bean id="clockImpl" class="org.sagebionetworks.common.util.ClockImpl"/>
+	<bean id="clockImpl" class="org.sagebionetworks.util.DefaultClock"/>
 	
 	<!-- Aspect used to throttle calls to counting semaphore as part of the fix for PLFM-5465 -->
 	<bean id="countingSemaphoreThrottleAspect"

@@ -4,8 +4,8 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressListener;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressListener;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;

@@ -4,13 +4,13 @@ import java.util.List;
 
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.LoggerProvider;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingRunner;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.file.MultipartManagerV2;
 import org.sagebionetworks.repo.manager.stack.StackStatusManager;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressingRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class MultipartCleanupWorker implements ProgressingRunner {

@@ -6,12 +6,12 @@ import java.util.stream.Stream;
 
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.LoggerProvider;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingRunner;
 import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalNotificationManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
 import org.sagebionetworks.repo.model.feature.Feature;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressingRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**

@@ -6,9 +6,9 @@ import java.util.Date;
 
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
-import org.sagebionetworks.url.HttpMethod;
-import org.sagebionetworks.url.UrlData;
-import org.sagebionetworks.url.UrlSignerUtils;
+import org.sagebionetworks.util.url.HttpMethod;
+import org.sagebionetworks.util.url.UrlData;
+import org.sagebionetworks.util.url.UrlSignerUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class ProxyUrlSignerUtils {

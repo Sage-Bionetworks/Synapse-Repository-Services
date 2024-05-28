@@ -7,10 +7,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.common.util.PathNormalizer;
 import org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphore;
 import org.sagebionetworks.repo.model.throttle.ThrottleLimit;
 import org.sagebionetworks.repo.web.HttpRequestIdentifier;
+import org.sagebionetworks.util.PathNormalizer;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class UserApiFrequencyThrottler implements RequestThrottler {

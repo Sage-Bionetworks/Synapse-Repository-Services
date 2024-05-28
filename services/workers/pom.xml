@@ -23,7 +23,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>worker-utilities</artifactId>
+			<artifactId>lib-worker-common</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>

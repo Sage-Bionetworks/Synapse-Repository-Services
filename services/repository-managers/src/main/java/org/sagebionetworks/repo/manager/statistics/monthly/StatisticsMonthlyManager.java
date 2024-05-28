@@ -3,10 +3,10 @@ package org.sagebionetworks.repo.manager.statistics.monthly;
 import java.time.YearMonth;
 import java.util.List;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.statistics.StatisticsProcessingException;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 public interface StatisticsMonthlyManager {
 

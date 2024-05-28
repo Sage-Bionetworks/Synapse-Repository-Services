@@ -23,7 +23,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.common.util.Clock;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.AuthenticationReceiptToken;
 import org.sagebionetworks.repo.model.auth.NewUserSignedToken;

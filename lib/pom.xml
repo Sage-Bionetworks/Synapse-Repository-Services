@@ -36,6 +36,7 @@
 		<module>lib-markdown</module>
 		<module>lib-schema-id</module>
         <module>lib-dbuserhelper</module>
+		<module>lib-worker-common</module>
     </modules>
 
 </project>

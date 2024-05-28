@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.table;
 import java.io.IOException;
 import java.util.List;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -24,6 +23,7 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 /**

@@ -6,9 +6,9 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressListener;
-import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.ProgressListener;
+import org.sagebionetworks.util.progress.SynchronizedProgressCallback;
 
 /**
  * A thread-safe implementation of ProgressCallback. All calls that access the

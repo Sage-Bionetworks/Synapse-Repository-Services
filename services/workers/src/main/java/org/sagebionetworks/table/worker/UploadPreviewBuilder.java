@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
@@ -21,6 +20,7 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.table.cluster.utils.CSVUtils;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 
 import au.com.bytecode.opencsv.CSVReader;

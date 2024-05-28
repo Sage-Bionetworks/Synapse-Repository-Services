@@ -3,9 +3,9 @@ package org.sagebionetworks.snapshot.workers.writers;
 import java.io.IOException;
 import java.util.List;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.util.progress.ProgressCallback;
 
 public interface ObjectRecordWriter {
 	

@@ -5,7 +5,7 @@ import java.util.Optional;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.sagebionetworks.common.util.Clock;
+import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**

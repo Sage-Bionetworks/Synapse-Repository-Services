@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.function.Executable;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.common.util.Clock;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 
