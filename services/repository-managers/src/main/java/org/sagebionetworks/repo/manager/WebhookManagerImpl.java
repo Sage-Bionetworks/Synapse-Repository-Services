@@ -214,7 +214,6 @@ public class WebhookManagerImpl implements WebhookManager {
 		generateAndSendWebhookVerification(webhook);
 	}
 
-	@WriteTransaction
 	void generateAndSendWebhookVerification(Webhook webhook) {
 		ValidateArgument.required(webhook, "webhook");
 		ValidateArgument.required(webhook.getWebhookId(), "webhook.webhookId");
@@ -229,7 +228,6 @@ public class WebhookManagerImpl implements WebhookManager {
 						.setCreatedBy(webhook.getUserId()).setCreatedOn(currentDate)));
 	}
 
-	@WriteTransaction
 	Webhook lockWebhookAndValidateOwner(UserInfo userInfo, String webhookId) {
 		Webhook webhook = webhookDao.getWebhookForUpdate(webhookId);
 		validateUserIsAdminOrWebhookOwner(userInfo, webhook);
