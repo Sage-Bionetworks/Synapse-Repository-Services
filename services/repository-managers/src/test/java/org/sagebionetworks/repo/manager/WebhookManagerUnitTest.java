@@ -31,8 +31,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -44,6 +42,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.webhook.WebhookDao;
 import org.sagebionetworks.repo.model.dbo.dao.webhook.WebhookVerificationDao;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
@@ -51,7 +50,6 @@ import org.sagebionetworks.repo.model.webhook.VerifyWebhookResponse;
 import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.repo.model.webhook.WebhookObjectType;
 import org.sagebionetworks.repo.model.webhook.WebhookVerification;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 
 import com.amazonaws.regions.Regions;
@@ -60,54 +58,53 @@ import com.amazonaws.regions.Regions;
 public class WebhookManagerUnitTest {
 
 	@Mock
-	WebhookDao mockWebhookDao;
+	private WebhookDao mockWebhookDao;
 
 	@Mock
-	WebhookVerificationDao mockWebhookVerificationDao;
+	private WebhookVerificationDao mockWebhookVerificationDao;
 
 	@Mock
-	AccessControlListDAO mockAclDao;
+	private AccessControlListDAO mockAclDao;
 
 	@Mock
-	UserManager mockUserManager;
+	private UserManager mockUserManager;
 
 	@Mock
-	Clock mockClock;
+	private Clock mockClock;
 
 	@Mock
-	IdGenerator mockIdGenerator;
+	private TransactionalMessenger mockTransactionalMessenger;
 
 	@Spy
 	@InjectMocks
-	WebhookManagerImpl webhookManagerSpy;
+	private WebhookManagerImpl webhookManagerSpy;
 
-	UserInfo userInfo;
-	UserInfo adminUserInfo;
-	UserInfo anonymousUserInfo;
-	UserInfo unauthorizedUserInfo;
-	long userId = 123L;
-	long adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-	long anonymousUserId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-	long unauthorizedUserId = 789L;
-	String userIdAsString = String.valueOf(userId);
+	private UserInfo userInfo;
+	private UserInfo adminUserInfo;
+	private UserInfo anonymousUserInfo;
+	private UserInfo unauthorizedUserInfo;
+	private long userId = 123L;
+	private long adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+	private long anonymousUserId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+	private long unauthorizedUserId = 789L;
+	private String userIdAsString = String.valueOf(userId);
 
-	Date currentDate;
-	Date pastDate;
-	Date futureDate;
+	private Date currentDate;
+	private Date pastDate;
+	private Date futureDate;
 
-	String webhookId = "101010";
-	Webhook webhook;
-	Webhook updatedWebhook;
-	String objectId = "syn2024";
-	String anotherObjectId = "syn2009";
-	WebhookObjectType webhookObjectType = WebhookObjectType.ENTITY;
-	ObjectType objectType = ObjectType.valueOf(webhookObjectType.name());
-	String validApiGatewayEndpoint = "https://abcd1234.execute-api.us-east-1.amazonaws.com/prod";
-	String anotherValidApiGatewayEndpoint = "https://vxyz5678.execute-api.us-west-2.amazonaws.com/prod";
-	String invalidInvokeEndpoint = "https://invalidEndpoint.com";
-	String validVerificationCode = WebhookManagerImpl.VERIFICATION_CODE_CHARACTERS.substring(0, 1)
+	private String webhookId = "101010";
+	private Webhook webhook;
+	private Webhook updatedWebhook;
+	private String objectId = "syn2024";
+	private String anotherObjectId = "syn2009";
+	private WebhookObjectType webhookObjectType = WebhookObjectType.ENTITY;
+	private ObjectType objectType = ObjectType.valueOf(webhookObjectType.name());
+	private String validApiGatewayEndpoint = "https://abcd1234.execute-api.us-east-1.amazonaws.com/prod";
+	private String anotherValidApiGatewayEndpoint = "https://vxyz5678.execute-api.us-west-2.amazonaws.com/prod";
+	private String validVerificationCode = WebhookManagerImpl.VERIFICATION_CODE_CHARACTERS.substring(0, 1)
 			.repeat(WebhookManagerImpl.VERIFICATION_CODE_LENGTH);
-	String invalidVerificationCode = "invalid";
+	private String invalidVerificationCode = "invalid";
 
 	@BeforeEach
 	public void before() {
@@ -125,16 +122,14 @@ public class WebhookManagerUnitTest {
 		webhook = new Webhook().setWebhookId(webhookId).setObjectId(objectId).setObjectType(webhookObjectType)
 				.setUserId(userIdAsString).setInvokeEndpoint(validApiGatewayEndpoint).setIsVerified(false)
 				.setIsAuthenticationEnabled(true).setIsWebhookEnabled(true).setEtag(UUID.randomUUID().toString())
-				.setCreatedBy(userIdAsString).setModifiedBy(userIdAsString).setCreatedOn(currentDate)
-				.setModifiedOn(currentDate);
+				.setCreatedBy(userIdAsString).setModifiedBy(userIdAsString);
 
 		updatedWebhook = new Webhook().setWebhookId(webhookId).setObjectId(anotherObjectId) // updated
 				.setObjectType(webhookObjectType).setUserId(userIdAsString)
 				.setInvokeEndpoint(anotherValidApiGatewayEndpoint) // updated
 				.setIsVerified(false).setIsAuthenticationEnabled(true).setIsWebhookEnabled(true)
 				.setEtag(UUID.randomUUID().toString()) // updated
-				.setCreatedBy(userIdAsString).setModifiedBy(userIdAsString).setCreatedOn(currentDate)
-				.setModifiedOn(currentDate);
+				.setCreatedBy(userIdAsString).setModifiedBy(userIdAsString);
 	}
 
 	@Test
@@ -145,7 +140,6 @@ public class WebhookManagerUnitTest {
 		doNothing().when(webhookManagerSpy).validateCreateOrUpdateArguments(any(), any());
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
-		when(mockIdGenerator.generateNewId(any())).thenReturn(Long.valueOf(webhookId));
 		when(mockWebhookDao.createWebhook(any())).thenReturn(webhook);
 		doNothing().when(webhookManagerSpy).generateAndSendWebhookVerification(any());
 
@@ -156,7 +150,6 @@ public class WebhookManagerUnitTest {
 
 		verify(webhookManagerSpy).validateCreateOrUpdateArguments(userInfo, toCreate);
 		verify(mockAclDao).canAccess(userInfo, objectId, objectType, ACCESS_TYPE.READ);
-		verify(mockIdGenerator).generateNewId(IdType.WEBHOOK_ID);
 		verify(mockWebhookDao).createWebhook(toCreate);
 		verify(webhookManagerSpy).generateAndSendWebhookVerification(webhook);
 	}
@@ -168,6 +161,7 @@ public class WebhookManagerUnitTest {
 		Webhook toCreate = new Webhook().setObjectId(objectId).setObjectType(webhookObjectType)
 				.setInvokeEndpoint(validApiGatewayEndpoint).setIsWebhookEnabled(true).setIsAuthenticationEnabled(true);
 
+		doNothing().when(webhookManagerSpy).validateCreateOrUpdateArguments(any(), any());
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.accessDenied(accessDeniedMessage));
 
@@ -180,7 +174,6 @@ public class WebhookManagerUnitTest {
 
 		verify(webhookManagerSpy).validateCreateOrUpdateArguments(userInfo, toCreate);
 		verify(mockAclDao).canAccess(userInfo, objectId, objectType, ACCESS_TYPE.READ);
-		verify(mockIdGenerator, never()).generateNewId(any());
 		verify(mockWebhookDao, never()).createWebhook(any());
 		verify(webhookManagerSpy, never()).generateAndSendWebhookVerification(any(), any());
 	}
@@ -193,7 +186,6 @@ public class WebhookManagerUnitTest {
 		doNothing().when(webhookManagerSpy).validateCreateOrUpdateArguments(any(), any());
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
-		when(mockIdGenerator.generateNewId(any())).thenReturn(Long.valueOf(webhookId));
 		when(mockWebhookDao.createWebhook(any())).thenReturn(webhook);
 		doNothing().when(webhookManagerSpy).generateAndSendWebhookVerification(any());
 
@@ -204,7 +196,6 @@ public class WebhookManagerUnitTest {
 
 		verify(webhookManagerSpy).validateCreateOrUpdateArguments(userInfo, toCreate);
 		verify(mockAclDao).canAccess(userInfo, objectId, objectType, ACCESS_TYPE.READ);
-		verify(mockIdGenerator).generateNewId(IdType.WEBHOOK_ID);
 		verify(mockWebhookDao).createWebhook(toCreate);
 		verify(webhookManagerSpy).generateAndSendWebhookVerification(webhook);
 	}
@@ -219,7 +210,6 @@ public class WebhookManagerUnitTest {
 		doNothing().when(webhookManagerSpy).validateCreateOrUpdateArguments(any(), any());
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
-		when(mockIdGenerator.generateNewId(any())).thenReturn(Long.valueOf(webhookId));
 		when(mockWebhookDao.createWebhook(any())).thenReturn(webhook);
 		doNothing().when(webhookManagerSpy).generateAndSendWebhookVerification(any());
 
@@ -230,7 +220,6 @@ public class WebhookManagerUnitTest {
 
 		verify(webhookManagerSpy).validateCreateOrUpdateArguments(userInfo, toCreate);
 		verify(mockAclDao).canAccess(userInfo, objectId, objectType, ACCESS_TYPE.READ);
-		verify(mockIdGenerator).generateNewId(IdType.WEBHOOK_ID);
 		verify(mockWebhookDao).createWebhook(toCreate);
 		verify(webhookManagerSpy).generateAndSendWebhookVerification(webhook);
 	}
@@ -370,6 +359,33 @@ public class WebhookManagerUnitTest {
 	}
 
 	@Test
+	public void testUpdateWebhookWithoutNewInvokeEndpoint() {
+		updatedWebhook.setInvokeEndpoint(webhook.getInvokeEndpoint()); // keep original invokeEndpoint
+		Webhook updateWith = new Webhook().setWebhookId(webhookId).setObjectId(updatedWebhook.getObjectId()) // update
+				.setObjectType(updatedWebhook.getObjectType()) // update
+				.setInvokeEndpoint(updatedWebhook.getInvokeEndpoint()) // update
+				.setEtag(webhook.getEtag());
+
+		doNothing().when(webhookManagerSpy).validateCreateOrUpdateArguments(any(), any());
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockWebhookDao.getWebhookForUpdate(any())).thenReturn(webhook);
+		doNothing().when(webhookManagerSpy).validateUserIsAdminOrWebhookOwner(any(), any());
+		when(mockWebhookDao.updateWebhook(any())).thenReturn(updatedWebhook);
+
+		// Call under test
+		Webhook response = webhookManagerSpy.updateWebhook(userInfo, updateWith);
+
+		assertEquals(updatedWebhook, response);
+
+		verify(webhookManagerSpy).validateCreateOrUpdateArguments(userInfo, updateWith);
+		verify(mockAclDao).canAccess(userInfo, anotherObjectId, objectType, ACCESS_TYPE.READ);
+		verify(mockWebhookDao).getWebhookForUpdate(webhookId);
+		verify(webhookManagerSpy).validateUserIsAdminOrWebhookOwner(userInfo, webhook);
+		verify(webhookManagerSpy, never()).generateAndSendWebhookVerification(any());
+	}
+
+	@Test
 	public void testUpdateWebhookWithEnableds() {
 		updatedWebhook.setIsWebhookEnabled(false).setIsAuthenticationEnabled(false);
 		Webhook updateWith = new Webhook().setWebhookId(webhookId).setObjectId(updatedWebhook.getObjectId()) // update
@@ -411,18 +427,6 @@ public class WebhookManagerUnitTest {
 	}
 
 	@Test
-	public void testDeleteWebhookAsAdmin() {
-		when(mockUserManager.getUserInfo(any())).thenReturn(adminUserInfo);
-		doNothing().when(webhookManagerSpy).deleteWebhook(any(), any());
-
-		// Call under test
-		webhookManagerSpy.deleteWebhookAsAdmin(webhookId);
-
-		verify(mockUserManager).getUserInfo(adminUserId);
-		verify(webhookManagerSpy).deleteWebhook(adminUserInfo, webhookId);
-	}
-
-	@Test
 	public void testVerifyWebhookWithValidCode() {
 		WebhookVerification verification = new WebhookVerification().setWebhookId(webhookId)
 				.setVerificationCode(validVerificationCode).setExpiresOn(futureDate).setAttempts(0L);
@@ -430,7 +434,7 @@ public class WebhookManagerUnitTest {
 		VerifyWebhookRequest request = new VerifyWebhookRequest().setWebhookId(webhookId)
 				.setVerificationCode(validVerificationCode);
 
-		doReturn(webhook).when(webhookManagerSpy).lockAndValidateOwner(any(), any());
+		doReturn(webhook).when(webhookManagerSpy).lockWebhookAndValidateOwner(any(), any());
 		when(mockWebhookVerificationDao.getWebhookVerification(any())).thenReturn(verification);
 		when(mockWebhookVerificationDao.incrementAttempts(any())).thenReturn(verification.getAttempts() + 1L);
 		doReturn(webhook.setIsVerified(true)).when(mockWebhookDao).updateWebhook(any());
@@ -441,10 +445,9 @@ public class WebhookManagerUnitTest {
 		assertTrue(response.getIsValid());
 		assertNull(response.getInvalidReason());
 
-		verify(webhookManagerSpy).lockAndValidateOwner(userInfo, webhookId);
+		verify(webhookManagerSpy).lockWebhookAndValidateOwner(userInfo, webhookId);
 		verify(mockWebhookVerificationDao).getWebhookVerification(webhookId);
 		verify(mockWebhookVerificationDao).incrementAttempts(webhookId);
-		verify(webhookManagerSpy, never()).deleteWebhookAsAdmin(any());
 		verify(mockWebhookDao).updateWebhook(webhook.setIsVerified(true));
 	}
 
@@ -457,7 +460,7 @@ public class WebhookManagerUnitTest {
 		VerifyWebhookRequest request = new VerifyWebhookRequest().setWebhookId(webhookId)
 				.setVerificationCode(validVerificationCode);
 
-		doReturn(webhook).when(webhookManagerSpy).lockAndValidateOwner(any(), any());
+		doReturn(webhook).when(webhookManagerSpy).lockWebhookAndValidateOwner(any(), any());
 		when(mockWebhookVerificationDao.getWebhookVerification(any())).thenReturn(verification);
 		when(mockWebhookVerificationDao.incrementAttempts(any())).thenReturn(verification.getAttempts() + 1L);
 		doReturn(webhook.setIsVerified(true)).when(mockWebhookDao).updateWebhook(any());
@@ -468,10 +471,9 @@ public class WebhookManagerUnitTest {
 		assertTrue(response.getIsValid());
 		assertNull(response.getInvalidReason());
 
-		verify(webhookManagerSpy).lockAndValidateOwner(userInfo, webhookId);
+		verify(webhookManagerSpy).lockWebhookAndValidateOwner(userInfo, webhookId);
 		verify(mockWebhookVerificationDao).getWebhookVerification(webhookId);
 		verify(mockWebhookVerificationDao).incrementAttempts(webhookId);
-		verify(webhookManagerSpy, never()).deleteWebhookAsAdmin(any());
 		verify(mockWebhookDao).updateWebhook(webhook.setIsVerified(true));
 	}
 
@@ -484,21 +486,19 @@ public class WebhookManagerUnitTest {
 		VerifyWebhookRequest request = new VerifyWebhookRequest().setWebhookId(webhookId)
 				.setVerificationCode(validVerificationCode);
 
-		doReturn(webhook).when(webhookManagerSpy).lockAndValidateOwner(any(), any());
+		doReturn(webhook).when(webhookManagerSpy).lockWebhookAndValidateOwner(any(), any());
 		when(mockWebhookVerificationDao.getWebhookVerification(any())).thenReturn(verification);
 		when(mockWebhookVerificationDao.incrementAttempts(any())).thenReturn(verification.getAttempts() + 1L);
-		doNothing().when(webhookManagerSpy).deleteWebhookAsAdmin(any());
 
 		// Call under test
 		VerifyWebhookResponse response = webhookManagerSpy.verifyWebhook(userInfo, request);
 
 		assertFalse(response.getIsValid());
-		assertEquals(WebhookManagerImpl.EXCEEDED_MAXIMUM_ATTEMPTS, response.getInvalidReason());
+		assertEquals(WebhookManagerImpl.EXCEEDED_MAXIMUM_ATTEMPTS_MESSAGE, response.getInvalidReason());
 
-		verify(webhookManagerSpy).lockAndValidateOwner(userInfo, webhookId);
+		verify(webhookManagerSpy).lockWebhookAndValidateOwner(userInfo, webhookId);
 		verify(mockWebhookVerificationDao).getWebhookVerification(webhookId);
 		verify(mockWebhookVerificationDao).incrementAttempts(webhookId);
-		verify(webhookManagerSpy).deleteWebhookAsAdmin(webhookId);
 		verify(mockWebhookDao, never()).updateWebhook(any());
 	}
 
@@ -510,7 +510,7 @@ public class WebhookManagerUnitTest {
 		VerifyWebhookRequest request = new VerifyWebhookRequest().setWebhookId(webhookId)
 				.setVerificationCode(invalidVerificationCode);
 
-		doReturn(webhook).when(webhookManagerSpy).lockAndValidateOwner(any(), any());
+		doReturn(webhook).when(webhookManagerSpy).lockWebhookAndValidateOwner(any(), any());
 		when(mockWebhookVerificationDao.getWebhookVerification(any())).thenReturn(verification);
 		when(mockWebhookVerificationDao.incrementAttempts(any())).thenReturn(verification.getAttempts() + 1L);
 
@@ -520,10 +520,9 @@ public class WebhookManagerUnitTest {
 		assertFalse(response.getIsValid());
 		assertEquals(WebhookManagerImpl.INVALID_VERIFICATION_CODE_MESSAGE, response.getInvalidReason());
 
-		verify(webhookManagerSpy).lockAndValidateOwner(userInfo, webhookId);
+		verify(webhookManagerSpy).lockWebhookAndValidateOwner(userInfo, webhookId);
 		verify(mockWebhookVerificationDao).getWebhookVerification(webhookId);
 		verify(mockWebhookVerificationDao).incrementAttempts(webhookId);
-		verify(webhookManagerSpy, never()).deleteWebhookAsAdmin(any());
 		verify(mockWebhookDao, never()).updateWebhook(any());
 	}
 
@@ -535,7 +534,7 @@ public class WebhookManagerUnitTest {
 		VerifyWebhookRequest request = new VerifyWebhookRequest().setWebhookId(webhookId)
 				.setVerificationCode(validVerificationCode);
 
-		doReturn(webhook).when(webhookManagerSpy).lockAndValidateOwner(any(), any());
+		doReturn(webhook).when(webhookManagerSpy).lockWebhookAndValidateOwner(any(), any());
 		when(mockWebhookVerificationDao.getWebhookVerification(any())).thenReturn(verification);
 		when(mockWebhookVerificationDao.incrementAttempts(any())).thenReturn(verification.getAttempts() + 1L);
 
@@ -545,10 +544,9 @@ public class WebhookManagerUnitTest {
 		assertFalse(response.getIsValid());
 		assertEquals(WebhookManagerImpl.EXPIRED_VERIFICATION_CODE_MESSAGE, response.getInvalidReason());
 
-		verify(webhookManagerSpy).lockAndValidateOwner(userInfo, webhookId);
+		verify(webhookManagerSpy).lockWebhookAndValidateOwner(userInfo, webhookId);
 		verify(mockWebhookVerificationDao).getWebhookVerification(webhookId);
 		verify(mockWebhookVerificationDao).incrementAttempts(webhookId);
-		verify(webhookManagerSpy, never()).deleteWebhookAsAdmin(any());
 		verify(mockWebhookDao, never()).updateWebhook(any());
 	}
 
@@ -562,7 +560,7 @@ public class WebhookManagerUnitTest {
 		VerifyWebhookRequest request = new VerifyWebhookRequest().setWebhookId(webhookId)
 				.setVerificationCode(invalidVerificationCode);
 
-		doReturn(webhook).when(webhookManagerSpy).lockAndValidateOwner(any(), any());
+		doReturn(webhook).when(webhookManagerSpy).lockWebhookAndValidateOwner(any(), any());
 		when(mockWebhookVerificationDao.getWebhookVerification(any())).thenReturn(verification);
 		when(mockWebhookVerificationDao.incrementAttempts(any())).thenReturn(verification.getAttempts() + 1L);
 
@@ -572,10 +570,9 @@ public class WebhookManagerUnitTest {
 		assertFalse(response.getIsValid());
 		assertEquals(WebhookManagerImpl.INVALID_VERIFICATION_CODE_MESSAGE, response.getInvalidReason());
 
-		verify(webhookManagerSpy).lockAndValidateOwner(userInfo, webhookId);
+		verify(webhookManagerSpy).lockWebhookAndValidateOwner(userInfo, webhookId);
 		verify(mockWebhookVerificationDao).getWebhookVerification(webhookId);
 		verify(mockWebhookVerificationDao).incrementAttempts(webhookId);
-		verify(webhookManagerSpy, never()).deleteWebhookAsAdmin(any());
 		verify(mockWebhookDao, never()).updateWebhook(any());
 	}
 
@@ -802,56 +799,6 @@ public class WebhookManagerUnitTest {
 	}
 
 	@Test
-	public void testListSendableWebhooksForObjectIdWithWebhookWithInvalidUserId() {
-		String invalidUserId = "invalidUserId";
-		Webhook invalidWebhook = new Webhook().setWebhookId(webhookId).setObjectId(objectId)
-				.setObjectType(webhookObjectType).setUserId(invalidUserId).setInvokeEndpoint(validApiGatewayEndpoint);
-		List<UserInfo> users = createUsers(5);
-		List<Webhook> webhooks = new ArrayList<>();
-		webhooks.addAll(createDefaultWebhooksForUsers(users, 1)); // 5 sendable
-		webhooks.addAll(createWebhooksForUsers(users, 1, anotherObjectId, objectType, false)); // 5 unauthorized
-		webhooks.add(invalidWebhook); // 1 invalid userId
-
-		when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType)).thenReturn(webhooks);
-		doNothing().when(webhookManagerSpy).deleteWebhookAsAdmin(any());
-
-		// Call under test
-		List<Webhook> result = webhookManagerSpy.listSendableWebhooksForObjectId(objectId, webhookObjectType);
-
-		assertEquals(5, result.size());
-
-		verify(mockWebhookDao).listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType);
-		for (int i = 0; i < 10; i++) {
-			verify(mockUserManager, times(2)).getUserInfo(Long.parseLong(webhooks.get(i).getUserId()));
-		}
-		verify(webhookManagerSpy).deleteWebhookAsAdmin(webhookId);
-	}
-
-	@Test
-	public void testListSendableWebhooksForObjectIdWithWebhookWithUserNotFound() {
-		List<UserInfo> users = createUsers(5);
-		List<Webhook> webhooks = new ArrayList<>();
-		webhooks.addAll(createDefaultWebhooksForUsers(users, 1)); // 5 sendable
-		webhooks.addAll(createWebhooksForUsers(users, 1, anotherObjectId, objectType, false)); // 5 unauthorized
-		webhooks.add(webhook); // 1 user not found
-
-		when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType)).thenReturn(webhooks);
-		when(mockUserManager.getUserInfo(userId)).thenThrow(new NotFoundException("User not found"));
-		doNothing().when(webhookManagerSpy).deleteWebhookAsAdmin(any());
-
-		// Call under test
-		List<Webhook> result = webhookManagerSpy.listSendableWebhooksForObjectId(objectId, webhookObjectType);
-
-		assertEquals(5, result.size());
-
-		verify(mockWebhookDao).listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType);
-		for (int i = 0; i < 10; i++) {
-			verify(mockUserManager, times(2)).getUserInfo(Long.parseLong(webhooks.get(i).getUserId()));
-		}
-		verify(webhookManagerSpy).deleteWebhookAsAdmin(webhookId);
-	}
-
-	@Test
 	public void testGenerateAndSendWebhookVerificationWithWebhookId() {
 		doReturn(webhook).when(webhookManagerSpy).getWebhook(any(), any());
 		doNothing().when(webhookManagerSpy).generateAndSendWebhookVerification(any());
@@ -866,17 +813,19 @@ public class WebhookManagerUnitTest {
 	@Test
 	public void testGenerateAndSendWebhookVerificationWithWebhook() {
 		when(webhookManagerSpy.generateVerificationCode()).thenReturn(validVerificationCode);
-		WebhookVerification toCreate = new WebhookVerification().setWebhookId(webhookId)
+		WebhookVerification verification = new WebhookVerification().setWebhookId(webhookId)
 				.setVerificationCode(webhookManagerSpy.generateVerificationCode())
 				.setExpiresOn(new Date(currentDate.getTime() + WebhookManagerImpl.VERIFICATION_CODE_TTL))
 				.setAttempts(0L).setCreatedBy(userIdAsString).setCreatedOn(currentDate);
 
-		when(mockWebhookVerificationDao.createWebhookVerification(any())).thenReturn(toCreate);
+		when(mockWebhookVerificationDao.createWebhookVerification(any())).thenReturn(verification);
+		doNothing().when(mockTransactionalMessenger).publishMessageAfterCommit(any());
 
 		// Call under test
 		webhookManagerSpy.generateAndSendWebhookVerification(webhook);
 
-		verify(mockWebhookVerificationDao).createWebhookVerification(toCreate);
+		verify(mockWebhookVerificationDao).createWebhookVerification(verification);
+		verify(mockTransactionalMessenger).publishMessageAfterCommit(verification);
 	}
 
 	@Test
@@ -935,6 +884,8 @@ public class WebhookManagerUnitTest {
 	public void testValidateCreateOrUpdateArguments() {
 		Webhook request = new Webhook().setObjectId(anotherObjectId).setObjectType(webhookObjectType)
 				.setInvokeEndpoint(anotherValidApiGatewayEndpoint);
+
+		doNothing().when(webhookManagerSpy).validateInvokeEndpoint(any());
 
 		// Call under test
 		webhookManagerSpy.validateCreateOrUpdateArguments(userInfo, request);
@@ -1019,19 +970,26 @@ public class WebhookManagerUnitTest {
 
 	@Test
 	public void testValidateInvokeEndpointWithValidDomain() {
-		List<String> validAwsApiGatewayEndpoints = List.of("https://abcd1234.execute-api.us-east-1.amazonaws.com",
-				"https://my-api.execute-api.eu-west-1.amazonaws.com/path/to/resource",
-				"https://service.execute-api.ap-southeast-2.amazonaws.com/dev",
-				"https://test123.execute-api.us-west-2.amazonaws.com/prod",
-				"https://api.execute-api.ca-central-1.amazonaws.com/v1/resource",
-				"https://endpoint.execute-api.sa-east-1.amazonaws.com/stage",
-				"https://webhook.execute-api.eu-north-1.amazonaws.com/api",
-				"https://service123.execute-api.af-south-1.amazonaws.com",
-				"https://test-service.execute-api.ap-northeast-1.amazonaws.com/path/to/resource",
-				"https://api-service.execute-api.me-south-1.amazonaws.com");
+		List<String> validAwsApiGatewayEndpoints = List.of("https://abcd1234.execute-api.us-east-1.amazonaws.com", // default
+																													// stage
+																													// name
+				"https://abcd1234.execute-api.us-east-1.amazonaws.com/pets/pet123", // default stage name with resource
+				"https://abcd1234.execute-api.us-east-1.amazonaws.com/prod", // no resource name
+				"https://abcd1234.execute-api.us-east-1.amazonaws.com/prod/pets/pet123", // resource name
+				"HTTPS://ABCD1234.EXECUTE-API.US-EAST-1.AMAZONAWS.COM/PROD", // upper case
+				"https://abcd1234.execute-api.us-east-1.amazonaws.com/differentstage", // different stage name
+				"https://abcd1234.execute-api.us-east-1.amazonaws.com/differentstage/animals/animal123", // different
+																											// stage
+																											// name with
+																											// different
+																											// resource
+				"https://abcd.execute-api.us-east-1.amazonaws.com/prod", // only letters in api-id
+				"https://1234.execute-api.us-east-1.amazonaws.com/prod", // only numbers in api-id
+				"https://a.execute-api.us-east-1.amazonaws.com/prod"); // one char api-id
 
 		List<String> testAllValidAwsRegions = Stream.of(Regions.values()).map(Regions::getName)
-				.map(region -> String.format("https://abcd1234.execute-api.%s.amazonaws.com/prod", region))
+				.map(region -> String.format("https://abcd1234.execute-api.%s.amazonaws.com/prod", region)) // all
+																											// regions
 				.collect(Collectors.toList());
 
 		List<String> validEndpoints = new ArrayList<String>();
@@ -1046,17 +1004,13 @@ public class WebhookManagerUnitTest {
 
 	@Test
 	public void testValidateInvokeEndpointWithInvalidDomain() {
-		List<String> invalidAwsApiGatewayEndpoints = List.of("https://synapse.org",
-				"http://abcd1234.execute-api.us-east-1.amazonaws.com",
-				"https://my-api.execute-api.invalid-region.amazonaws.com/path/to/resource",
-				"https://service.execute-api.eu-west-1.fakeaws.com/dev",
-				"https://service.execute-api-.us-west-2.amazonaws.com/prod",
-				"https://api.execute.ap.ca-central-1.amazonaws.com/v1/resource",
-				"https://webhook.execute-api.us-west-1.amazon.com/api",
-				"https://service123.execute-api.eu-central-1.amazonaws.net",
-				"https://test-service.execute-api.us-iso-west-1.amazonaws.com:8080/path",
-				"https://api-service.execute-api.amazonaws.com/path/to/resource",
-				"https://api-service.us-east-1.amazonaws.com/execute-api/path");
+		List<String> invalidAwsApiGatewayEndpoints = List.of("http://abcd1234.execute-api.us-east-1.amazonaws.com/prod", // http
+				"https://execute-api.us-east-1.amazonaws.com/prod", // no api-id
+				"https://abcd$1234.execute-api.us-east-1.amazonaws.com/prod", // invalid char in api-id
+				"https://abcd1234.bad-execute-api.us-east-1.amazonaws.com/prod", // bad execute-api
+				"https://abcd1234.execute-api.invalid-region.amazonaws.com/prod", // invalid region
+				"https://abcd1234.execute-api.us-east-1.badamazonaws.com/prod", // bad amazonaws
+				"https://abcd1234.execute-api.us-east-1.amazonaws.net/prod"); // bad .com
 
 		List<String> invalidEndpoints = new ArrayList<String>();
 		invalidEndpoints.addAll(invalidAwsApiGatewayEndpoints);
