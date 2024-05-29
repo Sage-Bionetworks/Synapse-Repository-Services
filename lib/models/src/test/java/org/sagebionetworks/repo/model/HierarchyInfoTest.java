@@ -17,18 +17,16 @@ public class HierarchyInfoTest {
 		start.put("projectId", 444L);
 		String json = start.toString();
 		// call under test
-		Optional<HierarchyInfo> info = HierarchyInfo.parseHierachyInfoJson(json);
-		assertEquals(
-				Optional.of(new HierarchyInfo().setPath("foo/bar").setBenefactorId("syn123").setProjectId("syn444")),
-				info);
+		HierarchyInfo info = HierarchyInfo.parseHierachyInfoJson(json).get();
+		assertEquals(new HierarchyInfo().setPath("foo/bar").setBenefactorId(123L).setProjectId(444L), info);
+
 	}
 
 	@Test
 	public void testParseHierachyInfoJsonWithNullJSON() {
 		String json = null;
 		// call under test
-		Optional<HierarchyInfo> info = HierarchyInfo.parseHierachyInfoJson(json);
-		assertEquals(Optional.empty(), info);
+		assertEquals(Optional.empty(), HierarchyInfo.parseHierachyInfoJson(json));
 	}
 
 	@Test
@@ -38,9 +36,10 @@ public class HierarchyInfoTest {
 		start.put("benefactorId", 123L);
 		String json = start.toString();
 		// call under test
-		Optional<HierarchyInfo> info = HierarchyInfo.parseHierachyInfoJson(json);
-		assertEquals(Optional.of(new HierarchyInfo().setPath("foo/bar").setBenefactorId("syn123").setProjectId(null)),
-				info);
+		HierarchyInfo info = HierarchyInfo.parseHierachyInfoJson(json).get();
+		assertEquals(new HierarchyInfo().setPath("foo/bar").setBenefactorId(123L).setProjectId(null), info);
+		assertEquals(Optional.empty(), info.getProjectId());
+		assertEquals(Optional.of(123L), info.getBenefactorId());
 	}
 
 	@Test
@@ -50,8 +49,9 @@ public class HierarchyInfoTest {
 		start.put("projectId", 444L);
 		String json = start.toString();
 		// call under test
-		Optional<HierarchyInfo> info = HierarchyInfo.parseHierachyInfoJson(json);
-		assertEquals(Optional.of(new HierarchyInfo().setPath("foo/bar").setBenefactorId(null).setProjectId("syn444")),
-				info);
+		HierarchyInfo info = HierarchyInfo.parseHierachyInfoJson(json).get();
+		assertEquals(new HierarchyInfo().setPath("foo/bar").setBenefactorId(null).setProjectId(444L), info);
+		assertEquals(Optional.of(444L), info.getProjectId());
+		assertEquals(Optional.empty(), info.getBenefactorId());
 	}
 }

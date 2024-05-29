@@ -4,13 +4,12 @@ import java.util.Objects;
 import java.util.Optional;
 
 import org.json.JSONObject;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class HierarchyInfo {
 
 	private String path;
-	private String benefactorId;
-	private String projectId;
+	private Long benefactorId;
+	private Long projectId;
 
 	public String getPath() {
 		return path;
@@ -21,20 +20,20 @@ public class HierarchyInfo {
 		return this;
 	}
 
-	public String getBenefactorId() {
-		return benefactorId;
+	public Optional<Long> getBenefactorId() {
+		return Optional.ofNullable(benefactorId);
 	}
 
-	public HierarchyInfo setBenefactorId(String benefactorId) {
+	public HierarchyInfo setBenefactorId(Long benefactorId) {
 		this.benefactorId = benefactorId;
 		return this;
 	}
 
-	public String getProjectId() {
-		return projectId;
+	public Optional<Long> getProjectId() {
+		return Optional.ofNullable(projectId);
 	}
 
-	public HierarchyInfo setProjectId(String projectId) {
+	public HierarchyInfo setProjectId(Long projectId) {
 		this.projectId = projectId;
 		return this;
 	}
@@ -52,10 +51,10 @@ public class HierarchyInfo {
 		JSONObject object = new JSONObject(json);
 		HierarchyInfo info = new HierarchyInfo().setPath(object.getString("path"));
 		if (!object.isNull("benefactorId")) {
-			info.setBenefactorId(KeyFactory.keyToString(object.getLong("benefactorId")));
+			info.setBenefactorId(object.getLong("benefactorId"));
 		}
 		if (!object.isNull("projectId")) {
-			info.setProjectId(KeyFactory.keyToString(object.getLong("projectId")));
+			info.setProjectId(object.getLong("projectId"));
 		}
 		return Optional.of(info);
 	}

@@ -72,7 +72,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.NotImplementedException;
-import org.json.JSONObject;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -1830,12 +1829,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					dto.setParentId(null);
 				}
 				HierarchyInfo.parseHierachyInfoJson(rs.getString("hierarchy")).ifPresent(h->{
-					if(h.getBenefactorId() != null) {
-						dto.setBenefactorId(KeyFactory.stringToKey(h.getBenefactorId()));
-					}
-					if(h.getProjectId() != null) {
-						dto.setProjectId(KeyFactory.stringToKey(h.getProjectId()));
-					}
+					dto.setBenefactorId(h.getBenefactorId().orElse(null));
+					dto.setProjectId(h.getProjectId().orElse(null));
 					dto.setPath(h.getPath());
 				});
 

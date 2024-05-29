@@ -2863,9 +2863,10 @@ public class NodeDAOImplTest {
 		assertEquals(project.getId(), nodeDao.getProjectId(parent.getId()).orElseThrow());
 		assertEquals(project.getId(), nodeDao.getProjectId(child.getId()).orElseThrow());
 		
-		assertEquals(project.getId(), nodeDao.getEntityHierarchy(project.getId()).orElseThrow().getProjectId());
-		assertEquals(project.getId(), nodeDao.getEntityHierarchy(parent.getId()).orElseThrow().getProjectId());
-		assertEquals(project.getId(), nodeDao.getEntityHierarchy(child.getId()).orElseThrow().getProjectId());
+		long projectIdLong = KeyFactory.stringToKey(project.getId());
+		assertEquals(Optional.of(projectIdLong), nodeDao.getEntityHierarchy(project.getId()).orElseThrow().getProjectId());
+		assertEquals(Optional.of(projectIdLong), nodeDao.getEntityHierarchy(parent.getId()).orElseThrow().getProjectId());
+		assertEquals(Optional.of(projectIdLong), nodeDao.getEntityHierarchy(child.getId()).orElseThrow().getProjectId());
 	}
 	
 	/**
@@ -2882,7 +2883,7 @@ public class NodeDAOImplTest {
 		Optional<String> projectId = nodeDao.getProjectId(child.getId());
 		assertEquals(Optional.empty(), projectId);
 		// ensure the new getEntityHierarchy() method has the same behavior
-		assertEquals(null, nodeDao.getEntityHierarchy(child.getId()).orElseThrow().getProjectId());
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(child.getId()).orElseThrow().getProjectId());
 	}
 	
 	/**
@@ -2900,7 +2901,7 @@ public class NodeDAOImplTest {
 			nodeDao.getBenefactor(child.getId());
 		});
 		// ensure the new getEntityHierarchy() method works for this case
-		assertEquals(null, nodeDao.getEntityHierarchy(child.getId()).orElseThrow().getBenefactorId());
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(child.getId()).orElseThrow().getBenefactorId());
 	}
 	
 	/**
@@ -2918,7 +2919,7 @@ public class NodeDAOImplTest {
 		});
 		
 		// ensure the new getEntityHierarchy() method works for this case
-		assertEquals(null, nodeDao.getEntityHierarchy(id).orElseThrow().getProjectId());
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(id).orElseThrow().getProjectId());
 	}
 	
 	/**
@@ -2935,7 +2936,7 @@ public class NodeDAOImplTest {
 			nodeDao.getBenefactor(id);
 		});
 		// ensure the new getEntityHierarchy() method works for this case
-		assertEquals(null, nodeDao.getEntityHierarchy(id).orElseThrow().getBenefactorId());
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(id).orElseThrow().getBenefactorId());
 	}
 	
 	/**
@@ -3020,7 +3021,7 @@ public class NodeDAOImplTest {
 		assertEquals(Optional.empty(), projectId);
 		
 		// ensure the new getEntityHierarchy() method works for this case
-		assertEquals(null, nodeDao.getEntityHierarchy(nodeId).orElseThrow().getProjectId());
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(nodeId).orElseThrow().getProjectId());
 	}
 
 	@Test
@@ -3740,7 +3741,7 @@ public class NodeDAOImplTest {
 		assertEquals(benefactorLong, header.getBenefactorId());
 		
 		// ensure the new getEntityHierarchy() method works for this case
-		assertEquals(KeyFactory.keyToString(benefactorLong), nodeDao.getEntityHierarchy(header.getId()).orElseThrow().getBenefactorId());
+		assertEquals(Optional.of(benefactorLong), nodeDao.getEntityHierarchy(header.getId()).orElseThrow().getBenefactorId());
 	}
 
 	/**
@@ -4138,7 +4139,7 @@ public class NodeDAOImplTest {
 			nodeDao.getBenefactor(grandParentId);
 		});
 		// ensure the new getEntityHierarchy() method works for this case
-		assertEquals(null, nodeDao.getEntityHierarchy(grandparent.getId()).orElseThrow().getBenefactorId());
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(grandparent.getId()).orElseThrow().getBenefactorId());
 
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(grandparent.getId(), adminUser, new Date());
 		// create an ACL with the same ID but wrong type.
@@ -4147,7 +4148,7 @@ public class NodeDAOImplTest {
 			nodeDao.getBenefactor(grandParentId);
 		});
 		// ensure the new getEntityHierarchy() method works for this case
-		assertEquals(null, nodeDao.getEntityHierarchy(grandparent.getId()).orElseThrow().getBenefactorId());
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(grandparent.getId()).orElseThrow().getBenefactorId());
 		
 		// Create an ACL with the correct type
 		accessControlListDAO.create(acl, ObjectType.ENTITY);
@@ -4156,7 +4157,7 @@ public class NodeDAOImplTest {
 		assertEquals(grandparent.getId(), benefactor, "Entity should be its own benefactor");
 		
 		// ensure the new getEntityHierarchy() method works for this case
-		assertEquals(grandparent.getId(), nodeDao.getEntityHierarchy(grandparent.getId()).orElseThrow().getBenefactorId());
+		assertEquals(Optional.of(KeyFactory.stringToKey(grandparent.getId())), nodeDao.getEntityHierarchy(grandparent.getId()).orElseThrow().getBenefactorId());
 	}
 	
 	@Test
@@ -4182,7 +4183,7 @@ public class NodeDAOImplTest {
 			nodeDao.getBenefactor(childId);
 		});
 		// ensure the new getEntityHierarchy() method works for this case
-		assertEquals(null, nodeDao.getEntityHierarchy(childId).orElseThrow().getBenefactorId());
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(childId).orElseThrow().getBenefactorId());
 
 		// add an ACL on the grandparent.
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(grandparent.getId(), adminUser, new Date());
@@ -4193,9 +4194,9 @@ public class NodeDAOImplTest {
 		assertEquals(grandparent.getId(), nodeDao.getBenefactor(grandparent.getId()));
 		
 		// ensure the new getEntityHierarchy() method works for this case
-		assertEquals(grandparent.getId(), nodeDao.getEntityHierarchy(child.getId()).orElseThrow().getBenefactorId());
-		assertEquals(grandparent.getId(), nodeDao.getEntityHierarchy(parent.getId()).orElseThrow().getBenefactorId());
-		assertEquals(grandparent.getId(), nodeDao.getEntityHierarchy(grandparent.getId()).orElseThrow().getBenefactorId());
+		assertEquals(Optional.of(KeyFactory.stringToKey(grandparent.getId())), nodeDao.getEntityHierarchy(child.getId()).orElseThrow().getBenefactorId());
+		assertEquals(Optional.of(KeyFactory.stringToKey(grandparent.getId())), nodeDao.getEntityHierarchy(parent.getId()).orElseThrow().getBenefactorId());
+		assertEquals(Optional.of(KeyFactory.stringToKey(grandparent.getId())), nodeDao.getEntityHierarchy(grandparent.getId()).orElseThrow().getBenefactorId());
 	}
 	
 	@Test
@@ -5673,6 +5674,7 @@ public class NodeDAOImplTest {
 		
 		Node project = nodes.get(0);
 		String projectId = project.getId();
+		long projectIdLong = KeyFactory.stringToKey(projectId);
 		// add an ACL at the project
 		accessControlListDAO.create(
 				AccessControlListUtil.createACLToGrantEntityAdminAccess(project.getId(), adminUser, new Date()),
@@ -5685,13 +5687,14 @@ public class NodeDAOImplTest {
 			return nodeDao.getEntityHierarchy(n.getId()).orElseThrow();
 		}).collect(Collectors.toList());
 		List<HierarchyInfo> expected = List.of(
-				new HierarchyInfo().setPath("hierarchy").setProjectId(projectId).setBenefactorId(projectId),
-				new HierarchyInfo().setPath("hierarchy/folder0").setProjectId(projectId).setBenefactorId(projectId),
-				new HierarchyInfo().setPath("hierarchy/folder1").setProjectId(projectId).setBenefactorId(projectId),
-				new HierarchyInfo().setPath("hierarchy/file0").setProjectId(projectId).setBenefactorId(projectId),
-				new HierarchyInfo().setPath("hierarchy/folder1/folder2").setProjectId(projectId).setBenefactorId(projectId),
-				new HierarchyInfo().setPath("hierarchy/folder1/file1").setProjectId(projectId).setBenefactorId(projectId),
-				new HierarchyInfo().setPath("hierarchy/folder1/folder2/file2").setProjectId(projectId).setBenefactorId(last.getId())
+				new HierarchyInfo().setPath("hierarchy").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder0").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder1").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/file0").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder1/folder2").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder1/file1").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder1/folder2/file2").setProjectId(projectIdLong)
+				.setBenefactorId(KeyFactory.stringToKey(last.getId()))
 		);
 		assertEquals(expected, results);
 	}
@@ -5701,6 +5704,7 @@ public class NodeDAOImplTest {
 		Node project = NodeTestUtils.createNew("the_project", creatorUserGroupId).setParentId(rootID)
 				.setNodeType(EntityType.project);
 		String projectId = nodeDao.createNew(project);
+		long projectIdLong = KeyFactory.stringToKey(projectId);
 		toDelete.add(projectId);
 
 		accessControlListDAO.create(
@@ -5710,6 +5714,7 @@ public class NodeDAOImplTest {
 		Node folder = NodeTestUtils.createNew("the_folder", creatorUserGroupId).setNodeType(EntityType.folder)
 				.setParentId(projectId);
 		String folderId = nodeDao.createNew(folder);
+		long folderIdLong = KeyFactory.stringToKey(folderId);
 
 		accessControlListDAO.create(
 				AccessControlListUtil.createACLToGrantEntityAdminAccess(folderId, adminUser, new Date()),
@@ -5718,11 +5723,11 @@ public class NodeDAOImplTest {
 		// call under test
 		assertEquals(
 				Optional.of(
-						new HierarchyInfo().setBenefactorId(projectId).setPath("the_project").setProjectId(projectId)),
+						new HierarchyInfo().setBenefactorId(projectIdLong).setPath("the_project").setProjectId(projectIdLong)),
 				nodeDao.getEntityHierarchy(projectId));
 		// call under test
-		assertEquals(Optional.of(new HierarchyInfo().setBenefactorId(folderId).setPath("the_project/the_folder")
-				.setProjectId(projectId)), nodeDao.getEntityHierarchy(folderId));
+		assertEquals(Optional.of(new HierarchyInfo().setBenefactorId(folderIdLong).setPath("the_project/the_folder")
+				.setProjectId(projectIdLong)), nodeDao.getEntityHierarchy(folderId));
 	}
 	
 	@Test
