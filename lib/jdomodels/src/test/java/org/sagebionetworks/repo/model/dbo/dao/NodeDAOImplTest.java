@@ -112,6 +112,7 @@ import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SubType;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -5752,7 +5753,7 @@ public class NodeDAOImplTest {
 		// call under test
 		HierarchyInfo result = nodeDao.getEntityHierarchy(lastId).orElseThrow();
 		assertNotNull(result.getPath());
-		assertEquals(4096, result.getPath().length());
+		assertEquals(TableConstants.MAX_PATH_LENGTH, result.getPath().length());
 	}
 	
 	@Test

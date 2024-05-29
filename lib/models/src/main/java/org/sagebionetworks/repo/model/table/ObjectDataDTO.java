@@ -308,13 +308,14 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 
 	@Override
 	public String toString() {
-		return "ObjectDataDTO [id=" + id + ", currentVersion=" + currentVersion + ", version=" + version + ", createdBy=" + createdBy
-				+ ", createdOn=" + createdOn + ", etag=" + etag + ", name=" + name + ", description=" + description + ", subType=" + subType
-				+ ", parentId=" + parentId + ", benefactorId=" + benefactorId + ", projectId=" + projectId + ", modifiedBy=" + modifiedBy
-				+ ", modifiedOn=" + modifiedOn + ", fileHandleId=" + fileHandleId + ", fileConcreteType=" + fileConcreteType
-				+ ", fileBucket=" + fileBucket + ", fileKey=" + fileKey + ", fileName=" + fileName + ", fileSizeBytes=" + fileSizeBytes
-				+ ", isInSynapseStorage=" + isInSynapseStorage + ", fileMD5=" + fileMD5 + ", itemCount=" + itemCount + ", annotations="
-				+ annotations + "]";
+		return "ObjectDataDTO [id=" + id + ", currentVersion=" + currentVersion + ", version=" + version
+				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", etag=" + etag + ", name=" + name
+				+ ", description=" + description + ", subType=" + subType + ", parentId=" + parentId + ", benefactorId="
+				+ benefactorId + ", projectId=" + projectId + ", modifiedBy=" + modifiedBy + ", modifiedOn="
+				+ modifiedOn + ", fileHandleId=" + fileHandleId + ", fileConcreteType=" + fileConcreteType
+				+ ", fileBucket=" + fileBucket + ", fileKey=" + fileKey + ", fileName=" + fileName + ", fileSizeBytes="
+				+ fileSizeBytes + ", isInSynapseStorage=" + isInSynapseStorage + ", fileMD5=" + fileMD5 + ", itemCount="
+				+ itemCount + ", path=" + path + ", annotations=" + annotations + "]";
 	}
 
 	@Override

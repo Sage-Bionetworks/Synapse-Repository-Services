@@ -93,6 +93,7 @@ import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -3512,6 +3513,7 @@ public class TableIndexDAOImplTest {
 			objectDataDTO.setFileKey("key");
 			objectDataDTO.setFileName("fileName");
 			objectDataDTO.setFileConcreteType(S3FileHandle.class.getName());
+			objectDataDTO.setPath("parentName/fileName");
 		}
 		if(EntityType.dataset.equals(type)){
 			objectDataDTO.setFileSizeBytes(999L);
@@ -5163,6 +5165,34 @@ public class TableIndexDAOImplTest {
 			tableIndexDAO.saveCachedQuery(requestHash, requestJson, resultJson, runtimeMS, expiresInSec);
 		}).getMessage();
 		assertEquals("resultJson is required.", message);
+	}
+	
+	@Test
+	public void testEntityReplicationWithMaxPath(){
+		
+		ObjectDataDTO objectData = createObjectDataDTO(2L, EntityType.file, 2);
+		objectData.setPath("a".repeat(TableConstants.MAX_PATH_LENGTH));
+		
+		// call under test
+		tableIndexDAO.addObjectData(mainType, Collections.singletonList(objectData));
+		
+		ObjectDataDTO result = tableIndexDAO.getObjectData(mainType, objectData.getId(), objectData.getVersion());
+	
+		assertEquals(objectData, result);
+	}
+	
+	@Test
+	public void testEntityReplicationWithOverMaxPath(){
+		
+		ObjectDataDTO objectData = createObjectDataDTO(2L, EntityType.file, 2);
+		objectData.setPath("a".repeat(TableConstants.MAX_PATH_LENGTH+1));
+
+		String message = assertThrows(DataIntegrityViolationException.class, ()->{
+			// call under test
+			tableIndexDAO.addObjectData(mainType, Collections.singletonList(objectData));
+		}).getMessage();
+		
+		assertTrue(message.contains("Data too long for column 'PATH'"));
 	}
 	
 }
