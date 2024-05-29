@@ -714,4 +714,11 @@ public interface NodeDAO {
 	 */
 	Optional<String> getDefiningSql(IdAndVersion idAndVersion);
 
+	/**
+	 * Get the optional hierarchy information for an entity.
+	 * @param nodeId
+	 * @return {@link Optional#empty()} if the node does not exist
+	 */
+	Optional<HierarchyInfo> getEntityHierarchy(String nodeId);
+
 }

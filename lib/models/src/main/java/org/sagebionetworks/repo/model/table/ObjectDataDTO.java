@@ -37,6 +37,7 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 	private Boolean isInSynapseStorage;
 	private String fileMD5;
 	private Long itemCount;
+	private String path;
 
 	private List<ObjectAnnotationDTO> annotations;
 
@@ -262,33 +263,46 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 		return this;
 	}
 
+	public String getPath() {
+		return path;
+	}
+
+	public ObjectDataDTO setPath(String path) {
+		this.path = path;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(annotations, benefactorId, createdBy, createdOn, currentVersion, description, etag, fileBucket,
-				fileConcreteType, fileHandleId, fileKey, fileMD5, fileName, fileSizeBytes, id, isInSynapseStorage, itemCount, modifiedBy,
-				modifiedOn, name, parentId, projectId, subType, version);
+		return Objects.hash(annotations, benefactorId, createdBy, createdOn, currentVersion, description, etag,
+				fileBucket, fileConcreteType, fileHandleId, fileKey, fileMD5, fileName, fileSizeBytes, id,
+				isInSynapseStorage, itemCount, modifiedBy, modifiedOn, name, parentId, path, projectId, subType,
+				version);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (!(obj instanceof ObjectDataDTO)) {
+		if (obj == null)
 			return false;
-		}
+		if (getClass() != obj.getClass())
+			return false;
 		ObjectDataDTO other = (ObjectDataDTO) obj;
 		return Objects.equals(annotations, other.annotations) && Objects.equals(benefactorId, other.benefactorId)
 				&& Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
-				&& Objects.equals(currentVersion, other.currentVersion) && Objects.equals(description, other.description)
-				&& Objects.equals(etag, other.etag) && Objects.equals(fileBucket, other.fileBucket)
-				&& Objects.equals(fileConcreteType, other.fileConcreteType) && Objects.equals(fileHandleId, other.fileHandleId)
-				&& Objects.equals(fileKey, other.fileKey) && Objects.equals(fileMD5, other.fileMD5)
-				&& Objects.equals(fileName, other.fileName) && Objects.equals(fileSizeBytes, other.fileSizeBytes)
-				&& Objects.equals(id, other.id) && Objects.equals(isInSynapseStorage, other.isInSynapseStorage)
+				&& Objects.equals(currentVersion, other.currentVersion)
+				&& Objects.equals(description, other.description) && Objects.equals(etag, other.etag)
+				&& Objects.equals(fileBucket, other.fileBucket)
+				&& Objects.equals(fileConcreteType, other.fileConcreteType)
+				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(fileKey, other.fileKey)
+				&& Objects.equals(fileMD5, other.fileMD5) && Objects.equals(fileName, other.fileName)
+				&& Objects.equals(fileSizeBytes, other.fileSizeBytes) && Objects.equals(id, other.id)
+				&& Objects.equals(isInSynapseStorage, other.isInSynapseStorage)
 				&& Objects.equals(itemCount, other.itemCount) && Objects.equals(modifiedBy, other.modifiedBy)
 				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(name, other.name)
-				&& Objects.equals(parentId, other.parentId) && Objects.equals(projectId, other.projectId) && subType == other.subType
+				&& Objects.equals(parentId, other.parentId) && Objects.equals(path, other.path)
+				&& Objects.equals(projectId, other.projectId) && subType == other.subType
 				&& Objects.equals(version, other.version);
 	}
 

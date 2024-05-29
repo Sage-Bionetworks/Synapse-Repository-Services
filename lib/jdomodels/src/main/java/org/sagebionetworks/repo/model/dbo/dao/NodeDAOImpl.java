@@ -72,6 +72,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.json.JSONObject;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -81,6 +82,7 @@ import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.FileSummary;
+import org.sagebionetworks.repo.model.HierarchyInfo;
 import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -377,9 +379,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + " AND N." + COL_NODE_CURRENT_REV + " = R."
 			+ COL_REVISION_NUMBER + ") WHERE N." + COL_NODE_TYPE + " = '" + EntityType.file + "' AND N." + COL_NODE_ID
 			+ " IN (:" + NODE_IDS_LIST_PARAM_NAME + ")";
-	
-	public static final String BENEFACTOR_FUNCTION_ALIAS = FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(N."+COL_NODE_ID+")";
-	public static final String PROJECT_FUNCTION_ALIAS = FUNCTION_GET_ENTITY_PROJECT_ID+"(N."+COL_NODE_ID+")";
 	
 	private static final String SQL_GET_CURRENT_VERSIONS = "SELECT "+COL_NODE_ID+","+COL_NODE_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN ( :"+NODE_IDS_LIST_PARAM_NAME + " )";
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
@@ -1743,6 +1742,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			}
 		});
 	}
+	
+	@Override
+	public Optional<HierarchyInfo> getEntityHierarchy(String nodeId) {
+		ValidateArgument.required(nodeId, "nodeId");
+		return HierarchyInfo.parseHierachyInfoJson(jdbcTemplate.queryForObject("SELECT getEntityHierarchy(?)",
+				String.class, KeyFactory.stringToKey(nodeId)));
+	}
 
 	@Override
 	public Optional<String> getProjectId(String nodeId) {
@@ -1777,6 +1783,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		return KeyFactory.keyToString(benefactorId);
 	}
+	
 
 	@Override
 	public Set<Long> getFileHandleIdsAssociatedWithFileEntity(List<Long> fileHandleIds, long entityId) {
@@ -1822,14 +1829,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(rs.wasNull()){
 					dto.setParentId(null);
 				}
-				dto.setBenefactorId(rs.getLong(BENEFACTOR_FUNCTION_ALIAS));
-				if(rs.wasNull()){
-					dto.setBenefactorId(null);
-				}
-				dto.setProjectId(rs.getLong(PROJECT_FUNCTION_ALIAS));
-				if(rs.wasNull()){
-					dto.setProjectId(null);
-				}
+				HierarchyInfo.parseHierachyInfoJson(rs.getString("hierarchy")).ifPresent(h->{
+					if(h.getBenefactorId() != null) {
+						dto.setBenefactorId(KeyFactory.stringToKey(h.getBenefactorId()));
+					}
+					if(h.getProjectId() != null) {
+						dto.setProjectId(KeyFactory.stringToKey(h.getProjectId()));
+					}
+					dto.setPath(h.getPath());
+				});
+
 				dto.setModifiedBy(rs.getLong(COL_REVISION_MODIFIED_BY));
 				dto.setModifiedOn(new Date(rs.getLong(COL_REVISION_MODIFIED_ON)));
 				dto.setFileHandleId(rs.getLong(COL_REVISION_FILE_HANDLE_ID));
