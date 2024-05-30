@@ -141,14 +141,25 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 			URI uri=getUri(sectorIdentifierUriString);
 			ValidateArgument.requirement(uri.getScheme().equalsIgnoreCase("https"), 
 					sectorIdentifierUriString+" must use the https scheme.");
-			// read file, parse json, and make sure it contains all of redirectUris values
-			List<String> siList = readSectorIdentifierFile(uri);
-			ValidateArgument.requirement(siList.containsAll(redirectUris), 
-					"Not all of the submitted redirect URIs are found in the list hosted at "+uri);
 			// As per https://openid.net/specs/openid-connect-registration-1_0.html#SectorIdentifierValidation,
 			// the sector ID is the host of the sectorIdentifierUri
 			return uri.getHost();
 		}
+	}
+	
+	// read the JSON file at the location given by sectorIdentifierUriString
+	// and make sure it contains all the values listed in redirectUris
+	public void validateSectorIdentifierFile(String sectorIdentifierUriString, List<String> redirectUris) {
+		ValidateArgument.requirement(StringUtils.isNotEmpty(sectorIdentifierUriString), "Sector Identifier URI expected");
+		ValidateArgument.requiredNotEmpty(redirectUris, "Redirect URIs expected");
+		URI uri=getUri(sectorIdentifierUriString);
+		ValidateArgument.requirement(uri.getScheme().equalsIgnoreCase("https"), 
+				sectorIdentifierUriString+" must use the https scheme.");
+		// read file, parse json, and make sure it contains all of redirectUris values
+		List<String> siList = readSectorIdentifierFile(uri);
+		ValidateArgument.requirement(siList.containsAll(redirectUris), 
+				"Not all of the submitted redirect URIs are found in the list hosted at "+uri);
+		
 	}
 
 	private void ensureSectorIdentifierExists(String sectorIdentiferHostName, Long createdBy) {
@@ -319,6 +330,11 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 			client = oauthClientDao.updateOAuthClient(client);
 			
 			if (client.getVerified()) {
+				// if the client uses a sector identifier JSON file, then check its contents now
+				if (StringUtils.isNotEmpty(client.getSector_identifier_uri())) {
+					validateSectorIdentifierFile(client.getSector_identifier_uri(), client.getRedirect_uris());
+				}
+				
 				Map<String, Object> notificationContext = new HashMap<>();
 				
 				notificationContext.put("clientName", client.getClient_name());
