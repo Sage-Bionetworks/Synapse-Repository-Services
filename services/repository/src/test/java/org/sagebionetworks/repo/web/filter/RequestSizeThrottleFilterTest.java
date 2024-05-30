@@ -1,13 +1,13 @@
 package org.sagebionetworks.repo.web.filter;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -17,16 +17,16 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.springframework.test.util.ReflectionTestUtils;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class RequestSizeThrottleFilterTest {
 	
 	@Mock
@@ -37,10 +37,9 @@ public class RequestSizeThrottleFilterTest {
 	FilterChain mockChain;
 	@Mock
 	ServletInputStream mockInputStream;
-	@Mock
-	PrintWriter mockPrintWriter;
 	
 	byte[] dataToRead;
+	
 	
 	RequestSizeThrottleFilter filter;
 	
@@ -49,14 +48,13 @@ public class RequestSizeThrottleFilterTest {
 	long maxBytes;
 	int arrayIndex;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		maxBytes = 101L;
 		filter = new RequestSizeThrottleFilter();
 
 		
 		when(mockRequest.getInputStream()).thenReturn(mockInputStream);
-		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		
 		// This is the data that the input stream will read.
 		dataToRead = "some data".getBytes("UTF-8");
@@ -111,13 +109,16 @@ public class RequestSizeThrottleFilterTest {
 		assertEquals("some data", readFromStream);
 	}
 	
-	@Test (expected=ByteLimitExceededException.class)
+	@Test
 	public void testReadOverLimit() throws IOException, ServletException {
 		// Set limit smaller than the data size
 		maxBytes = dataToRead.length-1;
 		ReflectionTestUtils.setField(filter, "maximumInputStreamBytes", maxBytes);
-		// call under test
-		filter.doFilter(mockRequest, mockResponse, mockChain);
+		
+		assertThrows(ByteLimitExceededException.class, () -> {			
+			// call under test
+			filter.doFilter(mockRequest, mockResponse, mockChain);
+		});
 	}
 	
 }

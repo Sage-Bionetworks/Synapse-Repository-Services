@@ -1,28 +1,34 @@
 package org.sagebionetworks.repo.web;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+
+@ExtendWith(MockitoExtension.class)
 public class IpAddressUtilTest {
 	
 	@Mock
-	HttpServletRequest request;
+	private HttpServletRequest request;
 	
 	/////////////////////
 	//getIpAddress Tests
 	/////////////////////
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetIpAddressNullRequest() {
-		IpAddressUtil.getIpAddress(null);
+		assertThrows(IllegalArgumentException.class, () -> {			
+			IpAddressUtil.getIpAddress(null);
+		});
 	}
 	
 	@Test
@@ -37,7 +43,7 @@ public class IpAddressUtilTest {
 	public void testGetIpAddressHasXForwardedFor(){
 		String xForwardedFor = "222.222.222.222, 123.123.123.123";
 		when(request.getHeader(IpAddressUtil.X_FORWARDED_FOR)).thenReturn(xForwardedFor);
-		when(request.getRemoteAddr()).thenReturn("should not be returned");
 		assertEquals(xForwardedFor, IpAddressUtil.getIpAddress(request));
+		verify(request, never()).getRemoteAddr();
 	}
 }
