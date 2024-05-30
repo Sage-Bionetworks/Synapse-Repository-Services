@@ -1,7 +1,5 @@
 package org.sagebionetworks.search;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +11,6 @@ import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
  * and providing a configured CloudSearch client once setup has completed.
  */
 public class CloudSearchClientProvider {
-	static private Logger log = LogManager.getLogger(CloudSearchClientProvider.class);
-
 	//stateful fields that determine whether or not a CloudsSearchDomainClientAdapter can be provided
 	AmazonCloudSearchDomain awsCloudSearchDomainClient;
 	private boolean isSearchEnabled;

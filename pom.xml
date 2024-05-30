@@ -645,7 +645,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>database-semaphore</artifactId>
-				<version>4.0.7</version>
+				<version>${project.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -1065,9 +1065,9 @@
 		<log4j.version>2.23.1</log4j.version>
 		<commonslogging.version>1.2</commonslogging.version>
 		<commonscollections4.version>4.1</commonscollections4.version>
-		<junit.jupiter.version>5.4.1</junit.jupiter.version>
-		<junit.vintage.version>5.4.1</junit.vintage.version>
-		<junit.platform.version>1.4.1</junit.platform.version>
+		<junit.jupiter.version>5.10.2</junit.jupiter.version>
+		<junit.vintage.version>5.10.2</junit.vintage.version>
+		<junit.platform.version>1.10.2</junit.platform.version>
 		<mockito.version>2.27.0</mockito.version>
 		<com.google.cloud.version>1.77.0</com.google.cloud.version>
 		<jsoup.version>1.14.2</jsoup.version>

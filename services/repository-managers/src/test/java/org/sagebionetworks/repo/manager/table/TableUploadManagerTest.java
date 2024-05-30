@@ -120,7 +120,6 @@ public class TableUploadManagerTest {
 		when(mockFileProvider.createFileInputStream(any(File.class))).thenReturn(csvStream);
 
 		when(mockFileHandleManger.getRawFileHandle(user, uploadRequest.getUploadFileHandleId())).thenReturn(fileHandle);
-		when(mockS3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(fileMetadata);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(tableSchema);
 		rowsRead = new LinkedList<SparseRowDto>();
 		doAnswer(new Answer<TableUpdateResponse>(){
@@ -222,7 +221,6 @@ public class TableUploadManagerTest {
 		uploadRequest.setLinesToSkip(1L);
 		
 		when(mockFileHandleManger.getRawFileHandle(user, uploadRequest.getUploadFileHandleId())).thenReturn(fileHandle);
-		when(mockS3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(fileMetadata);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(tableSchema);
 		
 		// call under test;

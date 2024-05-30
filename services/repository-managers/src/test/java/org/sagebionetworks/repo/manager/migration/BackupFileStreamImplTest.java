@@ -435,8 +435,6 @@ public class BackupFileStreamImplTest {
 		InputStream mockInput = Mockito.mock(InputStream.class);
 		Exception exception = new IOException("something");
 		doThrow(exception).when(mockInput).read(any(byte[].class), any(int.class), any(int.class));
-		doThrow(exception).when(mockInput).read(any(byte[].class));
-		doThrow(exception).when(mockInput).read();
 		try {
 			Iterable<MigratableDatabaseObject<?,?>> iterable = backupFileStream.readBackupFile(mockInput, backupAliasType);
 			// start the read

@@ -77,7 +77,6 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 		when(mockSearchDocumentDriver.formulateSearchDocument(synapseId)).thenReturn(docOne);
 		
 		when(mockSearchDocumentDriver.doesEntityExistInRepository(synapseId)).thenReturn(true);
-		when(mockSearchDao.doesDocumentExistInSearchIndex(synapseId, etag)).thenReturn(false);
 		
 		wikiId = "987";
 		wikiKey = WikiPageKeyHelper.createWikiPageKey(synapseId, ObjectType.ENTITY, wikiId);
@@ -110,9 +109,6 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 	
 	@Test
 	public void testWikiChange() {
-		//when a wiki is updated, the entity to which it is associated may still have the same etag
-		when(mockSearchDao.doesDocumentExistInSearchIndex(synapseId, etag)).thenReturn(true);
-
 		String wikiId = "987";
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(synapseId, ObjectType.ENTITY, wikiId);
 		when(mockWikiPageDao.lookupWikiKey(wikiId)).thenReturn(key);
