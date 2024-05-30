@@ -201,7 +201,6 @@ public class ProfilerFrameStackManagerTest {
 
 	@Test
 	public void testEndProfiling_methodNameMatchesTopOfStack_FrameStackNotEmpty(){
-		doNothing().when(spyProfilerFrameStackManager).doFireProfile(mockFrame);
 		when(mockFrameStack.isEmpty()).thenReturn(false);
 
 		spyProfilerFrameStackManager.endProfiling(methodName, elapsedTime);
