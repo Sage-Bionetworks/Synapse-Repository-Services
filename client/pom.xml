@@ -13,6 +13,7 @@
   <name>Platform Clients</name>
 
   <modules>
+    <module>simpleHttpClient</module>
     <module>synapseJavaClient</module>
     <module>sample-code</module>
   </modules>
