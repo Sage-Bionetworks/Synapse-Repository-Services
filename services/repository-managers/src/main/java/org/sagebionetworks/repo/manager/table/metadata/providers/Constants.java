@@ -12,7 +12,8 @@ public class Constants {
 					ObjectField.createdBy,
 					ObjectField.etag, 
 					ObjectField.modifiedOn, 
-					ObjectField.modifiedBy
+					ObjectField.modifiedBy,
+					ObjectField._path
 	};
 
 	static final ObjectField[] FILE_SPECIFIC_COLUMNS = new ObjectField[] {
