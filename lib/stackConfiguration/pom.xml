@@ -176,6 +176,7 @@
 	</dependencies>
 
 	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!-- Build time-determined default property values -->
 		<org.sagebionetworks.base.endpoint>http://localhost:8080/services-repository-${project.version}</org.sagebionetworks.base.endpoint>
 
