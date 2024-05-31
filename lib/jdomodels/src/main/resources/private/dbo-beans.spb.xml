@@ -176,6 +176,9 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.otp.DBOOtpSecret"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.otp.DBOOtpRecoveryCode"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOUserTwoFaStatus"/>		
+				<!-- Webhook table -->
+				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhook"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookVerification"/>
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -304,6 +307,10 @@
 				
 				<!-- 2FA tables -->
 				<bean class="org.sagebionetworks.repo.model.dbo.otp.DBOOtpSecret"/>
+				
+				<!-- Webhook table -->
+				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhook"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookVerification"/>
 						
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>

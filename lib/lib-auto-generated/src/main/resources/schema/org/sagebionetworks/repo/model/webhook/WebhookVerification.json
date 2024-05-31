@@ -1,10 +1,5 @@
 {
 	"description": "A verification object for a Webhook. This contains the valid verification code along with the expiration date. New WebhookVerifications of the same webhookId will overwrite the existing WebhookVerification of the same webhookId.",
-	"implements": [
-		{
-			"$ref": "org.sagebionetworks.repo.model.message.LocalStackMessage"
-		}
-	],
 	"properties": {
 		"webhookId": {
 			"type": "string",
@@ -26,11 +21,20 @@
 		"createdOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date this WebhookVerification was created."
+			"description": "The date this webhook was created."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this webhook was last modified."
 		},
 		"createdBy": {
 			"type": "string",
-			"description": "The ID of the user that this WebhookVerification was created for."
+			"description": "The ID of the user that created this webhook."
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description": "The ID of the user that last modified this webhook."
 		}
 	}
 }

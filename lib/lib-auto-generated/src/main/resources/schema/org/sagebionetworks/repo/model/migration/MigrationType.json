@@ -443,6 +443,14 @@
 			"description": "Table to keep track of the 2FA status for the users"
 		},
 		{
+			"name": "WEBHOOK",
+			"description": "Table that stores Webhooks for users"
+		},
+		{
+			"name": "WEBHOOK_VERIFICATION",
+			"description": "Table that stores WebhookVerifications for Webhooks."
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}

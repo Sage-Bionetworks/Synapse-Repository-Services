@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao.webhook;
+package org.sagebionetworks.repo.model.dbo.webhook;
 
 import java.util.List;
 
@@ -56,6 +56,11 @@ public interface WebhookDao {
 	 * @param webhookObjectType
 	 * @return
 	 */
-	List<Webhook> listVerifiedAndEnabledWebhooksForObjectId(String objectId, ObjectType objectType);
+	List<Webhook> listVerifiedAndEnabledWebhooksForObject(String objectId, ObjectType objectType);
+
+	/**
+	 * Truncate all Webhook data.
+	 */
+	void truncateAll();
 
 }
