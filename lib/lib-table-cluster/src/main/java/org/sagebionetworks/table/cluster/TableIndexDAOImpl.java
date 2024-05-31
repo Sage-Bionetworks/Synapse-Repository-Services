@@ -35,6 +35,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PATH;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PROJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_SUBTYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
@@ -189,6 +190,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		dto.setFileBucket(rs.getString(OBJECT_REPLICATION_COL_FILE_BUCKET));
 		dto.setFileKey(rs.getString(OBJECT_REPLICATION_COL_FILE_KEY));
 		dto.setFileName(rs.getString(OBJECT_REPLICATION_COL_FILE_NAME));
+		dto.setPath(rs.getString(OBJECT_REPLICATION_COL_PATH));
 		return dto;
 	};
 	
@@ -784,7 +786,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					throws SQLException {
 				ObjectDataDTO dto = sorted.get(i);
 				int parameterIndex = 1;
-				int updateOffset = 21;
+				int updateOffset = 22;
 				
 				ps.setString(parameterIndex++, mainType.name());
 				ps.setLong(parameterIndex++, dto.getId());
@@ -910,6 +912,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				int hashCode = dto.hashCode();
 				ps.setLong(parameterIndex++, hashCode);
 				ps.setLong(parameterIndex + updateOffset, hashCode);
+				
+				ps.setString(parameterIndex++, dto.getPath());
+				ps.setString(parameterIndex + updateOffset, dto.getPath());
 				
 			}
 

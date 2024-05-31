@@ -56,6 +56,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.FileSummary;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.HierarchyInfo;
 import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -111,6 +112,7 @@ import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SubType;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -2861,6 +2863,11 @@ public class NodeDAOImplTest {
 		assertEquals(project.getId(), nodeDao.getProjectId(project.getId()).orElseThrow());
 		assertEquals(project.getId(), nodeDao.getProjectId(parent.getId()).orElseThrow());
 		assertEquals(project.getId(), nodeDao.getProjectId(child.getId()).orElseThrow());
+		
+		long projectIdLong = KeyFactory.stringToKey(project.getId());
+		assertEquals(Optional.of(projectIdLong), nodeDao.getEntityHierarchy(project.getId()).orElseThrow().getProjectId());
+		assertEquals(Optional.of(projectIdLong), nodeDao.getEntityHierarchy(parent.getId()).orElseThrow().getProjectId());
+		assertEquals(Optional.of(projectIdLong), nodeDao.getEntityHierarchy(child.getId()).orElseThrow().getProjectId());
 	}
 	
 	/**
@@ -2876,6 +2883,8 @@ public class NodeDAOImplTest {
 		// Before the fix, this call would hang with 100% CPU.
 		Optional<String> projectId = nodeDao.getProjectId(child.getId());
 		assertEquals(Optional.empty(), projectId);
+		// ensure the new getEntityHierarchy() method has the same behavior
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(child.getId()).orElseThrow().getProjectId());
 	}
 	
 	/**
@@ -2892,6 +2901,8 @@ public class NodeDAOImplTest {
 			// Before the fix, this call call would hang with 100% CPU.
 			nodeDao.getBenefactor(child.getId());
 		});
+		// ensure the new getEntityHierarchy() method works for this case
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(child.getId()).orElseThrow().getBenefactorId());
 	}
 	
 	/**
@@ -2907,6 +2918,9 @@ public class NodeDAOImplTest {
 			// Before the fix, this call call would hang with 100% CPU.
 			nodeDao.getProjectId(id);
 		});
+		
+		// ensure the new getEntityHierarchy() method works for this case
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(id).orElseThrow().getProjectId());
 	}
 	
 	/**
@@ -2922,6 +2936,8 @@ public class NodeDAOImplTest {
 			// Before the fix, this call call would hang with 100% CPU.
 			nodeDao.getBenefactor(id);
 		});
+		// ensure the new getEntityHierarchy() method works for this case
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(id).orElseThrow().getBenefactorId());
 	}
 	
 	/**
@@ -2988,6 +3004,9 @@ public class NodeDAOImplTest {
 		// call under test
 		Optional<String> projectId = nodeDao.getProjectId(doesNotExist);
 		assertEquals(Optional.empty(), projectId);
+		
+		// ensure the new getEntityHierarchy() method works for this case
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(doesNotExist));
 	}
 	
 	@Test
@@ -3001,6 +3020,9 @@ public class NodeDAOImplTest {
 		// call under test
 		Optional<String> projectId = nodeDao.getProjectId(nodeId);
 		assertEquals(Optional.empty(), projectId);
+		
+		// ensure the new getEntityHierarchy() method works for this case
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(nodeId).orElseThrow().getProjectId());
 	}
 
 	@Test
@@ -3164,6 +3186,7 @@ public class NodeDAOImplTest {
 		assertEquals(NodeUtils.isBucketSynapseStorage(fileHandle.getBucketName()), fileDto.getIsInSynapseStorage());
 		assertEquals(fileHandle.getContentMd5(), fileDto.getFileMD5());
 		assertNull(fileDto.getDescription());
+		assertEquals("project/file",fileDto.getPath());
 
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(4, fileDto.getAnnotations().size());
@@ -3187,6 +3210,65 @@ public class NodeDAOImplTest {
 		assertEquals(null, projectDto.getFileHandleId());
 		assertEquals(Collections.emptyList(), projectDto.getAnnotations());
 		assertEquals(null, projectDto.getFileHandleId());
+	}
+	
+	@Test
+	public void testGetEntityDTOsWithNullProjectId(){
+		Node file = NodeTestUtils.createNew("file", creatorUserGroupId);
+		file.setNodeType(EntityType.file);
+		file.setParentId(null);
+		file.setFileHandleId(fileHandle.getId());
+		file = nodeDao.createNewNode(file);
+		long fileIdLong = KeyFactory.stringToKey(file.getId());
+		toDelete.add(file.getId());
+		accessControlListDAO.create(AccessControlListUtil.createACLToGrantEntityAdminAccess(file.getId(), adminUser, new Date()), ObjectType.ENTITY);
+
+		int maxAnnotationChars = 10;
+		
+		List<Long> ids = KeyFactory.stringToKey(ImmutableList.of(file.getId()));
+		long limit = 100;
+		long offset = 0;
+		// call under test
+		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars, limit, offset);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		ObjectDataDTO fileDto = results.get(0);
+		assertEquals(null, fileDto.getParentId());
+		assertEquals(fileIdLong, fileDto.getBenefactorId());
+		assertEquals(null, fileDto.getProjectId());
+		assertEquals("file",fileDto.getPath());
+	}
+	
+	@Test
+	public void testGetEntityDTOsWithNullBenefactorId(){
+		Node project = NodeTestUtils.createNew("project", creatorUserGroupId);
+		project.setDescription("project description");
+		project.setNodeType(EntityType.project);
+		project = nodeDao.createNewNode(project);
+		long projectId = KeyFactory.stringToKey(project.getId());
+		toDelete.add(project.getId());
+		
+		Node file = NodeTestUtils.createNew("file", creatorUserGroupId);
+		file.setNodeType(EntityType.file);
+		file.setParentId(project.getId());
+		file.setFileHandleId(fileHandle.getId());
+		file = nodeDao.createNewNode(file);
+		long fileIdLong = KeyFactory.stringToKey(file.getId());
+		toDelete.add(file.getId());
+		
+		List<Long> ids = KeyFactory.stringToKey(ImmutableList.of(file.getId()));
+		long limit = 100;
+		long offset = 0;
+		int maxAnnotationChars = 10;
+		// call under test
+		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars, limit, offset);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		ObjectDataDTO fileDto = results.get(0);
+		assertEquals(projectId, fileDto.getParentId());
+		assertEquals(null, fileDto.getBenefactorId());
+		assertEquals(projectId, fileDto.getProjectId());
+		assertEquals("project/file",fileDto.getPath());
 	}
 
 	@Test
@@ -3658,6 +3740,9 @@ public class NodeDAOImplTest {
 		String benefactorId = nodeDao.getBenefactor(header.getId());
 		Long benefactorLong = KeyFactory.stringToKey(benefactorId);
 		assertEquals(benefactorLong, header.getBenefactorId());
+		
+		// ensure the new getEntityHierarchy() method works for this case
+		assertEquals(Optional.of(benefactorLong), nodeDao.getEntityHierarchy(header.getId()).orElseThrow().getBenefactorId());
 	}
 
 	/**
@@ -4050,26 +4135,30 @@ public class NodeDAOImplTest {
 		toDelete.add(grandparent.getId());
 		
 		// There is no ACL for this node
-		try{
-			nodeDao.getBenefactor(grandparent.getId());
-			fail("Does not have a benefactor");
-		}catch(NotFoundException expected){
-			// expected
-		}
+		String grandParentId = grandparent.getId();
+		assertThrows(NotFoundException.class, ()->{
+			nodeDao.getBenefactor(grandParentId);
+		});
+		// ensure the new getEntityHierarchy() method works for this case
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(grandparent.getId()).orElseThrow().getBenefactorId());
+
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(grandparent.getId(), adminUser, new Date());
 		// create an ACL with the same ID but wrong type.
 		accessControlListDAO.create(acl, ObjectType.EVALUATION);
-		try{
-			nodeDao.getBenefactor(grandparent.getId());
-			fail("Does not have a benefactor");
-		}catch(NotFoundException expected){
-			// expected
-		}
+		assertThrows(NotFoundException.class, ()->{
+			nodeDao.getBenefactor(grandParentId);
+		});
+		// ensure the new getEntityHierarchy() method works for this case
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(grandparent.getId()).orElseThrow().getBenefactorId());
+		
 		// Create an ACL with the correct type
 		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		
 		String benefactor = nodeDao.getBenefactor(grandparent.getId());
 		assertEquals(grandparent.getId(), benefactor, "Entity should be its own benefactor");
+		
+		// ensure the new getEntityHierarchy() method works for this case
+		assertEquals(Optional.of(KeyFactory.stringToKey(grandparent.getId())), nodeDao.getEntityHierarchy(grandparent.getId()).orElseThrow().getBenefactorId());
 	}
 	
 	@Test
@@ -4089,13 +4178,14 @@ public class NodeDAOImplTest {
 		child.setParentId(parent.getId());
 		child = nodeDao.createNewNode(child);
 		toDelete.add(child.getId());
-		// benefactor does not exist yet
-		try{
-			nodeDao.getBenefactor(child.getId());
-			fail("Does not have a benefactor");
-		}catch(NotFoundException expected){
-			// expected
-		}
+		
+		String childId = child.getId();
+		assertThrows(NotFoundException.class, ()->{
+			nodeDao.getBenefactor(childId);
+		});
+		// ensure the new getEntityHierarchy() method works for this case
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(childId).orElseThrow().getBenefactorId());
+
 		// add an ACL on the grandparent.
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(grandparent.getId(), adminUser, new Date());
 		accessControlListDAO.create(acl, ObjectType.ENTITY);
@@ -4103,6 +4193,11 @@ public class NodeDAOImplTest {
 		assertEquals(grandparent.getId(), nodeDao.getBenefactor(child.getId()));
 		assertEquals(grandparent.getId(), nodeDao.getBenefactor(parent.getId()));
 		assertEquals(grandparent.getId(), nodeDao.getBenefactor(grandparent.getId()));
+		
+		// ensure the new getEntityHierarchy() method works for this case
+		assertEquals(Optional.of(KeyFactory.stringToKey(grandparent.getId())), nodeDao.getEntityHierarchy(child.getId()).orElseThrow().getBenefactorId());
+		assertEquals(Optional.of(KeyFactory.stringToKey(grandparent.getId())), nodeDao.getEntityHierarchy(parent.getId()).orElseThrow().getBenefactorId());
+		assertEquals(Optional.of(KeyFactory.stringToKey(grandparent.getId())), nodeDao.getEntityHierarchy(grandparent.getId()).orElseThrow().getBenefactorId());
 	}
 	
 	@Test
@@ -5572,6 +5667,112 @@ public class NodeDAOImplTest {
 				materializedView.getVersionNumber());
 		// call under test
 		assertEquals(Optional.empty(), nodeDao.selectRevisionColumnValue(idAndVersion, SqlConstants.COL_REVISION_DEFINING_SQL, String.class));
+	}
+	
+	@Test
+	public void testGetEntityHierarchy() {
+		List<Node> nodes = createHierarchy();
+		
+		Node project = nodes.get(0);
+		String projectId = project.getId();
+		long projectIdLong = KeyFactory.stringToKey(projectId);
+		// add an ACL at the project
+		accessControlListDAO.create(
+				AccessControlListUtil.createACLToGrantEntityAdminAccess(project.getId(), adminUser, new Date()),
+				ObjectType.ENTITY);
+		
+		Node last = nodes.get(nodes.size()-1);
+
+		List<HierarchyInfo> results = nodes.stream().map(n->{
+			// call under test
+			return nodeDao.getEntityHierarchy(n.getId()).orElseThrow();
+		}).collect(Collectors.toList());
+		List<HierarchyInfo> expected = List.of(
+				new HierarchyInfo().setPath("hierarchy").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder0").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder1").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/file0").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder1/folder2").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder1/file1").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder1/folder2/file2").setProjectId(projectIdLong)
+				.setBenefactorId(KeyFactory.stringToKey(last.getId()))
+		);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetEntityHierarchyWithRoot() {
+		Node project = NodeTestUtils.createNew("the_project", creatorUserGroupId).setParentId(rootID)
+				.setNodeType(EntityType.project);
+		String projectId = nodeDao.createNew(project);
+		long projectIdLong = KeyFactory.stringToKey(projectId);
+		toDelete.add(projectId);
+
+		accessControlListDAO.create(
+				AccessControlListUtil.createACLToGrantEntityAdminAccess(project.getId(), adminUser, new Date()),
+				ObjectType.ENTITY);
+
+		Node folder = NodeTestUtils.createNew("the_folder", creatorUserGroupId).setNodeType(EntityType.folder)
+				.setParentId(projectId);
+		String folderId = nodeDao.createNew(folder);
+		long folderIdLong = KeyFactory.stringToKey(folderId);
+
+		accessControlListDAO.create(
+				AccessControlListUtil.createACLToGrantEntityAdminAccess(folderId, adminUser, new Date()),
+				ObjectType.ENTITY);
+
+		// call under test
+		assertEquals(
+				Optional.of(
+						new HierarchyInfo().setBenefactorId(projectIdLong).setPath("the_project").setProjectId(projectIdLong)),
+				nodeDao.getEntityHierarchy(projectId));
+		// call under test
+		assertEquals(Optional.of(new HierarchyInfo().setBenefactorId(folderIdLong).setPath("the_project/the_folder")
+				.setProjectId(projectIdLong)), nodeDao.getEntityHierarchy(folderId));
+	}
+	
+	@Test
+	public void testgetEntityHierachyWithDoesNotExist() {
+		String doesNotExist = "syn99999999";
+		assertEquals(Optional.empty(), nodeDao.getEntityHierarchy(doesNotExist));
+	}
+	
+	@Test
+	public void testGetEntityHierachyWithPathOverLimit() {
+		Node project = NodeTestUtils.createNew("the_project", creatorUserGroupId).setParentId(rootID)
+				.setNodeType(EntityType.project);
+		String projectId = nodeDao.createNew(project);
+		toDelete.add(projectId);
+		String lastId = project.getId();
+		for (int i = 0; i < 30; i++) {
+			lastId = nodeDao.createNew(
+					NodeTestUtils.createNew("i" + i+"-" + "0123456789".repeat(20), creatorUserGroupId)
+							.setParentId(lastId));
+		}
+		
+		// call under test
+		HierarchyInfo result = nodeDao.getEntityHierarchy(lastId).orElseThrow();
+		assertNotNull(result.getPath());
+		assertEquals(TableConstants.MAX_PATH_LENGTH, result.getPath().length());
+	}
+	
+	@Test
+	public void testGetEntityHierachyWithPathUnderimit() {
+		Node project = NodeTestUtils.createNew("the_project", creatorUserGroupId).setParentId(rootID)
+				.setNodeType(EntityType.project);
+		String projectId = nodeDao.createNew(project);
+		toDelete.add(projectId);
+		String lastId = project.getId();
+		for (int i = 0; i < 4; i++) {
+			lastId = nodeDao.createNew(
+					NodeTestUtils.createNew("i" + i+"-" + "0123456789".repeat(20), creatorUserGroupId)
+							.setParentId(lastId));
+		}
+		
+		// call under test
+		HierarchyInfo result = nodeDao.getEntityHierarchy(lastId).orElseThrow();
+		assertNotNull(result.getPath());
+		assertEquals(827, result.getPath().length());
 	}
 	
 }

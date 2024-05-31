@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -42,6 +43,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -1869,7 +1871,7 @@ public class TableViewIntegrationTest {
 				updateView(rowset,fileViewId)
 		).getMessage();
 		
-		assertEquals("Value at [0,21] was not a valid STRING_LIST. Exceeds the maximum number of list elements defined in the ColumnModel (3): \"[\"val1\",\"val2\",\"val3\",\"val4\"]\"", error);
+		assertEquals("Value at [0,22] was not a valid STRING_LIST. Exceeds the maximum number of list elements defined in the ColumnModel (3): \"[\"val1\",\"val2\",\"val3\",\"val4\"]\"", error);
 	}
 	
 	/**
@@ -2312,6 +2314,28 @@ public class TableViewIntegrationTest {
 		boolean searchEnabled = true;
 		String viewId = createView(ViewTypeMask.File.getMask(), List.of(project.getId()), searchEnabled);
 		asyncHelper.waitForTableOrViewToBeAvailable(IdAndVersion.parse(viewId), MAX_WAIT_MS);
+	}
+	
+	@Test
+	public void testFiewViewWithPath() throws Exception {
+		createFileView();
+		String fileZero = fileIds.get(0);
+		Entity zero = entityManager.getEntity(adminUserInfo, fileZero);
+		String parentName = entityManager.getEntity(adminUserInfo, zero.getParentId()).getName();
+		String expectedPath = new StringJoiner("/").add(parentName).add(zero.getName()).toString();
+		waitForEntityReplication(fileZero);
+		String sql = "select " + ObjectField.path + " from " + fileViewId + " where " + ObjectField.id + " = '"
+				+ fileZero + "'";
+		
+		List<Row> expectedRows = List.of(new Row()
+			.setRowId(KeyFactory.stringToKey(fileZero))
+			.setVersionNumber(1L)
+			.setValues(List.of(expectedPath))
+		);
+		
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {			
+			assertEquals(expectedRows, extractRows(results));
+		});
 	}
 
 	/**

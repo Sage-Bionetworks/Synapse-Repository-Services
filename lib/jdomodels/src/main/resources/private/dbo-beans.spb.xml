@@ -196,6 +196,12 @@
 					</key>
 					<value>schema/functions/GetEntityProjectId.ddl.sql</value>
 				</entry>
+				<entry>
+					<key>
+						<value>getEntityHierarchy</value>
+					</key>
+					<value>schema/functions/GetEntityHierarchy.ddl.sql</value>
+				</entry>
 			</map>
 		</property>
 	</bean>
