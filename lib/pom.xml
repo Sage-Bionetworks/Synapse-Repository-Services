@@ -20,6 +20,7 @@
 		<module>communicationUtilities</module>
 		<module>securityUtilities</module>
 		<module>models</module>
+		<module>csv-utilities</module>
 		<module>jdomodels</module>
 		<module>logging</module>
 		<module>lib-utils</module>

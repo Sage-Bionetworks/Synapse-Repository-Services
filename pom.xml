@@ -656,7 +656,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>csv-utilities</artifactId>
-				<version>1.0.10</version>
+				<version>${project.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.google.gwt</groupId>
