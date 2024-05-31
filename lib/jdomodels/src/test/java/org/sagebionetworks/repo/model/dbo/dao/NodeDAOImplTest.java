@@ -5763,7 +5763,7 @@ public class NodeDAOImplTest {
 		String projectId = nodeDao.createNew(project);
 		toDelete.add(projectId);
 		String lastId = project.getId();
-		for (int i = 0; i < 18; i++) {
+		for (int i = 0; i < 4; i++) {
 			lastId = nodeDao.createNew(
 					NodeTestUtils.createNew("i" + i+"-" + "0123456789".repeat(20), creatorUserGroupId)
 							.setParentId(lastId));
@@ -5772,7 +5772,7 @@ public class NodeDAOImplTest {
 		// call under test
 		HierarchyInfo result = nodeDao.getEntityHierarchy(lastId).orElseThrow();
 		assertNotNull(result.getPath());
-		assertEquals(3691, result.getPath().length());
+		assertEquals(827, result.getPath().length());
 	}
 	
 }

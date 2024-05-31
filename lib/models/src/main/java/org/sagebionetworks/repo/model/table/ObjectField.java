@@ -40,7 +40,7 @@ public enum ObjectField {
 	projectId				(OBJECT_REPLICATION_COL_PROJECT_ID, 		ColumnType.ENTITYID,		null,	FacetType.enumeration),
 	modifiedOn				(OBJECT_REPLICATION_COL_MODIFIED_ON,		ColumnType.DATE,			null,	FacetType.range),
 	modifiedBy				(OBJECT_REPLICATION_COL_MODIFIED_BY,		ColumnType.USERID,			null,	FacetType.enumeration),
-	_path					(OBJECT_REPLICATION_COL_PATH,				ColumnType.LARGETEXT,		null,	null),
+	path					(OBJECT_REPLICATION_COL_PATH,				ColumnType.STRING,			1000L,	null),
 	dataFileHandleId		(OBJECT_REPLICATION_COL_FILE_ID,			ColumnType.FILEHANDLEID,	null,	null),
 	dataFileSizeBytes		(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES,	ColumnType.INTEGER,			null,	null),
 	dataFileMD5Hex			(OBJECT_REPLICATION_COL_FILE_MD5,			ColumnType.STRING,			100L,	null),

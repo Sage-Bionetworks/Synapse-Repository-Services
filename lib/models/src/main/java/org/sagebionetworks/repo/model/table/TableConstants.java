@@ -80,7 +80,7 @@ public class TableConstants {
 	/**
 	 * The maximum number of characters for an entity's path.
 	 */
-	public static int MAX_PATH_LENGTH = 4096;
+	public static int MAX_PATH_LENGTH = 1000;
 
 	/**
 	 * The Map of reserved column names like ROW_ID and

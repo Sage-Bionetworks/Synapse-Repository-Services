@@ -2,7 +2,7 @@ CREATE FUNCTION `getEntityHierarchy`(inputEntityId BIGINT) RETURNS json
     READS SQL DATA
 BEGIN
  	DECLARE resultJSON JSON;
-	SET SESSION group_concat_max_len=4096;
+	SET SESSION group_concat_max_len=1000;
 	
 	WITH
 	HIER AS (

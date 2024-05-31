@@ -1871,7 +1871,7 @@ public class TableViewIntegrationTest {
 				updateView(rowset,fileViewId)
 		).getMessage();
 		
-		assertEquals("Value at [0,21] was not a valid STRING_LIST. Exceeds the maximum number of list elements defined in the ColumnModel (3): \"[\"val1\",\"val2\",\"val3\",\"val4\"]\"", error);
+		assertEquals("Value at [0,22] was not a valid STRING_LIST. Exceeds the maximum number of list elements defined in the ColumnModel (3): \"[\"val1\",\"val2\",\"val3\",\"val4\"]\"", error);
 	}
 	
 	/**
@@ -2324,7 +2324,7 @@ public class TableViewIntegrationTest {
 		String parentName = entityManager.getEntity(adminUserInfo, zero.getParentId()).getName();
 		String expectedPath = new StringJoiner("/").add(parentName).add(zero.getName()).toString();
 		waitForEntityReplication(fileZero);
-		String sql = "select " + ObjectField._path + " from " + fileViewId + " where " + ObjectField.id + " = '"
+		String sql = "select " + ObjectField.path + " from " + fileViewId + " where " + ObjectField.id + " = '"
 				+ fileZero + "'";
 		
 		List<Row> expectedRows = List.of(new Row()

@@ -42,7 +42,6 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.worker.TestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -95,7 +94,9 @@ public class DatasetCollectionIntegrationTest {
 		stringColumn = columnModelManager.createColumnModel(userInfo, stringColumn);
 
 		DefaultColumnModel defaultColumnModel = provider.getDefaultColumnModel(null);
-		List<ColumnModel> columnModels = defaultColumnMapper.map(defaultColumnModel);
+		List<ColumnModel> columnModels = defaultColumnMapper.map(defaultColumnModel).stream().filter(c->{
+			return !ObjectField.path.name().equals(c.getName());
+		}).collect(Collectors.toList());
 		defaultColumnIdList = columnModels.stream().map(ColumnModel::getId).collect(Collectors.toList());
 	}
 
