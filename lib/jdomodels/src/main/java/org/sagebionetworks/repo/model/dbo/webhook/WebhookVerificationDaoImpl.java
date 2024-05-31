@@ -53,10 +53,6 @@ public class WebhookVerificationDaoImpl implements WebhookVerificationDao {
 				.setModifiedBy(rs.getString(COL_WEBHOOK_VERIFICATION_MODIFIED_BY));
 	};
 
-	static final RowMapper<Long> ATTEMPTS_ROW_MAPPER = (ResultSet rs, int rowNum) -> {
-		return rs.getLong(COL_WEBHOOK_VERIFICATION_ATTEMPTS);
-	};
-
 	@Override
 	public WebhookVerification createWebhookVerification(WebhookVerification verification) {
 		DBOWebhookVerification dbo = WebhookUtils.translateWebhookVerificationToDBOWebhookVerification(verification);
@@ -92,14 +88,16 @@ public class WebhookVerificationDaoImpl implements WebhookVerificationDao {
 	@Override
 	public Long incrementAttempts(String webhookId) {
 		String updateSql = "UPDATE " + TABLE_WEBHOOK_VERIFICATION + " SET " + COL_WEBHOOK_VERIFICATION_ATTEMPTS + " = "
-				+ COL_WEBHOOK_VERIFICATION_ATTEMPTS + " 1" + " WHERE " + COL_WEBHOOK_VERIFICATION_WEBHOOK_ID + " = ?";
+				+ COL_WEBHOOK_VERIFICATION_ATTEMPTS + " + 1" + " WHERE " + COL_WEBHOOK_VERIFICATION_WEBHOOK_ID + " = ?";
 
 		String selectSql = "SELECT " + COL_WEBHOOK_VERIFICATION_ATTEMPTS + " FROM " + TABLE_WEBHOOK_VERIFICATION
 				+ " WHERE " + COL_WEBHOOK_VERIFICATION_WEBHOOK_ID + " = ?";
 
 		try {
 			jdbcTemplate.update(updateSql, webhookId);
-			return jdbcTemplate.query(selectSql, ATTEMPTS_ROW_MAPPER, webhookId).get(0);
+			return jdbcTemplate.query(selectSql, (ResultSet rs, int rowNum) -> {
+				return rs.getLong(COL_WEBHOOK_VERIFICATION_ATTEMPTS);
+			}, webhookId).get(0);
 		} catch (EmptyResultDataAccessException | NotFoundException e) {
 			throw new NotFoundException("WebhookVerification for Webhook of ID: " + webhookId + " not found.", e);
 		}

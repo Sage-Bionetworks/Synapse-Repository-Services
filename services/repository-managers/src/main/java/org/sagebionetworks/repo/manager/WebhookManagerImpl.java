@@ -174,7 +174,8 @@ public class WebhookManagerImpl implements WebhookManager {
 
 		if (request.getVerificationCode().equals(webhookVerification.getVerificationCode())) {
 			if (webhookVerification.getExpiresOn().after(clock.now())) {
-				webhook.setIsVerified(true);
+				// TODO rather than update the Webhook, we should be updating the WebhookVerification
+				webhook.setIsVerified(true); 
 				webhookDao.updateWebhook(webhook);
 				return response.setIsValid(true);
 			} else {

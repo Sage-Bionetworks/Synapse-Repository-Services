@@ -60,9 +60,7 @@ public class WebhookDaoImpl implements WebhookDao {
 				.setUserId(rs.getString(COL_WEBHOOK_USER_ID))
 				.setInvokeEndpoint(rs.getString(COL_WEBHOOK_INVOKE_ENDPOINT))
 				.setIsVerified(
-						WebhookVerificationState.VERIFIED.name().equals(rs.getString(COL_WEBHOOK_VERIFICATION_STATE))
-								? true
-								: false)
+						WebhookVerificationState.VERIFIED.name().equals(rs.getString(COL_WEBHOOK_VERIFICATION_STATE)))
 				.setIsWebhookEnabled(rs.getBoolean(COL_WEBHOOK_IS_WEBHOOK_ENABLED))
 				.setIsAuthenticationEnabled(rs.getBoolean(COL_WEBHOOK_IS_AUTHENTICATION_ENABLED))
 				.setEtag(rs.getString(COL_WEBHOOK_ETAG)).setCreatedBy(rs.getString(COL_WEBHOOK_CREATED_BY))
