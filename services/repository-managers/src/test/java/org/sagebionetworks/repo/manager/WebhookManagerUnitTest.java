@@ -40,14 +40,15 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.dbo.dao.webhook.WebhookDao;
-import org.sagebionetworks.repo.model.dbo.dao.webhook.WebhookVerificationDao;
+import org.sagebionetworks.repo.model.dbo.webhook.WebhookDao;
+import org.sagebionetworks.repo.model.dbo.webhook.WebhookVerificationDao;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookResponse;
 import org.sagebionetworks.repo.model.webhook.Webhook;
+import org.sagebionetworks.repo.model.webhook.WebhookLocalStackMessage;
 import org.sagebionetworks.repo.model.webhook.WebhookObjectType;
 import org.sagebionetworks.repo.model.webhook.WebhookVerification;
 import org.sagebionetworks.util.Clock;
@@ -712,7 +713,7 @@ public class WebhookManagerUnitTest {
 	public void testListSendableWebhooksForObjectId() {
 		List<Webhook> webhooks = createDefaultWebhooksForUsers(List.of(userInfo), 5);
 
-		when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType)).thenReturn(webhooks);
+		when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObject(objectId, objectType)).thenReturn(webhooks);
 		when(mockUserManager.getUserInfo(anyLong())).thenReturn(userInfo);
 
 		// Call under test
@@ -720,7 +721,7 @@ public class WebhookManagerUnitTest {
 
 		assertEquals(webhooks, result);
 
-		verify(mockWebhookDao).listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType);
+		verify(mockWebhookDao).listVerifiedAndEnabledWebhooksForObject(objectId, objectType);
 		verify(mockUserManager, times(5)).getUserInfo(userId);
 	}
 
@@ -728,14 +729,14 @@ public class WebhookManagerUnitTest {
 	public void testListSendableWebhooksForObjectIdWithZeroWebhooks() {
 		List<Webhook> webhooks = new ArrayList<>();
 
-		when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType)).thenReturn(webhooks);
+		when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObject(objectId, objectType)).thenReturn(webhooks);
 
 		// Call under test
 		List<Webhook> result = webhookManagerSpy.listSendableWebhooksForObjectId(objectId, webhookObjectType);
 
 		assertEquals(webhooks, result);
 
-		verify(mockWebhookDao).listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType);
+		verify(mockWebhookDao).listVerifiedAndEnabledWebhooksForObject(objectId, objectType);
 		verify(mockUserManager, never()).getUserInfo(any());
 	}
 
@@ -743,7 +744,7 @@ public class WebhookManagerUnitTest {
 	public void testListSendableWebhooksForObjectIdWithManyUsers() {
 		List<Webhook> webhooks = createDefaultWebhooksForUsers(createUsers(5), 1);
 
-		when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType)).thenReturn(webhooks);
+		when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObject(objectId, objectType)).thenReturn(webhooks);
 		for (Webhook webhook : webhooks) {
 			Long currUserId = Long.parseLong(webhook.getUserId());
 			when(mockUserManager.getUserInfo(currUserId)).thenReturn(new UserInfo(false, currUserId));
@@ -754,7 +755,7 @@ public class WebhookManagerUnitTest {
 
 		assertEquals(webhooks, result);
 
-		verify(mockWebhookDao).listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType);
+		verify(mockWebhookDao).listVerifiedAndEnabledWebhooksForObject(objectId, objectType);
 		for (Webhook webhook : webhooks) {
 			verify(mockUserManager).getUserInfo(Long.parseLong(webhook.getUserId()));
 		}
@@ -768,14 +769,14 @@ public class WebhookManagerUnitTest {
 						createWebhooksForUsers(users, 1, anotherObjectId, objectType, false).stream())
 				.collect(Collectors.toList());
 
-		when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType)).thenReturn(webhooks);
+		when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObject(objectId, objectType)).thenReturn(webhooks);
 
 		// Call under test
 		List<Webhook> result = webhookManagerSpy.listSendableWebhooksForObjectId(objectId, webhookObjectType);
 
 		assertEquals(5, result.size());
 
-		verify(mockWebhookDao).listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType);
+		verify(mockWebhookDao).listVerifiedAndEnabledWebhooksForObject(objectId, objectType);
 		for (Webhook webhook : webhooks) {
 			verify(mockUserManager, times(2)).getUserInfo(Long.parseLong(webhook.getUserId()));
 		}
@@ -785,14 +786,14 @@ public class WebhookManagerUnitTest {
 	public void testListSendableWebhooksForObjectIdWithZeroSendable() {
 		List<Webhook> webhooks = createWebhooksForUsers(createUsers(5), 1, anotherObjectId, objectType, false);
 
-		when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType)).thenReturn(webhooks);
+		when(mockWebhookDao.listVerifiedAndEnabledWebhooksForObject(objectId, objectType)).thenReturn(webhooks);
 
 		// Call under test
 		List<Webhook> result = webhookManagerSpy.listSendableWebhooksForObjectId(objectId, webhookObjectType);
 
 		assertEquals(0, result.size());
 
-		verify(mockWebhookDao).listVerifiedAndEnabledWebhooksForObjectId(objectId, objectType);
+		verify(mockWebhookDao).listVerifiedAndEnabledWebhooksForObject(objectId, objectType);
 		for (Webhook webhook : webhooks) {
 			verify(mockUserManager).getUserInfo(Long.parseLong(webhook.getUserId()));
 		}
@@ -816,7 +817,10 @@ public class WebhookManagerUnitTest {
 		WebhookVerification verification = new WebhookVerification().setWebhookId(webhookId)
 				.setVerificationCode(webhookManagerSpy.generateVerificationCode())
 				.setExpiresOn(new Date(currentDate.getTime() + WebhookManagerImpl.VERIFICATION_CODE_TTL))
-				.setAttempts(0L).setCreatedBy(userIdAsString).setCreatedOn(currentDate);
+				.setAttempts(0L).setCreatedBy(userIdAsString).setCreatedOn(currentDate).setModifiedBy(userIdAsString)
+				.setModifiedOn(currentDate);
+		WebhookLocalStackMessage webhookMessage = new WebhookLocalStackMessage().setWebhookId(webhookId)
+				.setObjectId(objectId).setObjectType(objectType).setTimestamp(currentDate);
 
 		when(mockWebhookVerificationDao.createWebhookVerification(any())).thenReturn(verification);
 		doNothing().when(mockTransactionalMessenger).publishMessageAfterCommit(any());
@@ -825,7 +829,7 @@ public class WebhookManagerUnitTest {
 		webhookManagerSpy.generateAndSendWebhookVerification(webhook);
 
 		verify(mockWebhookVerificationDao).createWebhookVerification(verification);
-		verify(mockTransactionalMessenger).publishMessageAfterCommit(verification);
+		verify(mockTransactionalMessenger).publishMessageAfterCommit(webhookMessage);
 	}
 
 	@Test

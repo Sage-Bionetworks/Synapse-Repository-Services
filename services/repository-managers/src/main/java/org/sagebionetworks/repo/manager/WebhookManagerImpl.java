@@ -15,14 +15,15 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.webhook.WebhookDao;
-import org.sagebionetworks.repo.model.dbo.dao.webhook.WebhookVerificationDao;
+import org.sagebionetworks.repo.model.dbo.webhook.WebhookDao;
+import org.sagebionetworks.repo.model.dbo.webhook.WebhookVerificationDao;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookResponse;
 import org.sagebionetworks.repo.model.webhook.Webhook;
+import org.sagebionetworks.repo.model.webhook.WebhookLocalStackMessage;
 import org.sagebionetworks.repo.model.webhook.WebhookObjectType;
 import org.sagebionetworks.repo.model.webhook.WebhookVerification;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -200,7 +201,7 @@ public class WebhookManagerImpl implements WebhookManager {
 	@Override
 	public List<Webhook> listSendableWebhooksForObjectId(String objectId, WebhookObjectType webhookObjectType) {
 		return webhookDao
-				.listVerifiedAndEnabledWebhooksForObjectId(objectId, ObjectType.valueOf(webhookObjectType.name()))
+				.listVerifiedAndEnabledWebhooksForObject(objectId, ObjectType.valueOf(webhookObjectType.name()))
 				.stream().filter(webhook -> {
 					return aclDao.canAccess(userManager.getUserInfo(Long.parseLong(webhook.getUserId())),
 							webhook.getObjectId(), ObjectType.valueOf(webhook.getObjectType().name()), ACCESS_TYPE.READ)
@@ -222,10 +223,14 @@ public class WebhookManagerImpl implements WebhookManager {
 		Date currentDate = clock.now();
 		Date expirationDate = new Date(currentDate.getTime() + VERIFICATION_CODE_TTL);
 
-		transactionalMessenger.publishMessageAfterCommit(webhookVerificationDao
-				.createWebhookVerification(new WebhookVerification().setWebhookId(webhook.getWebhookId())
-						.setVerificationCode(generateVerificationCode()).setExpiresOn(expirationDate).setAttempts(0L)
-						.setCreatedBy(webhook.getUserId()).setCreatedOn(currentDate)));
+		webhookVerificationDao.createWebhookVerification(new WebhookVerification().setWebhookId(webhook.getWebhookId())
+				.setVerificationCode(generateVerificationCode()).setExpiresOn(expirationDate).setAttempts(0L)
+				.setCreatedBy(webhook.getUserId()).setModifiedBy(webhook.getUserId()).setCreatedOn(currentDate)
+				.setModifiedOn(currentDate));
+
+		transactionalMessenger.publishMessageAfterCommit(
+				new WebhookLocalStackMessage().setWebhookId(webhook.getWebhookId()).setObjectId(webhook.getObjectId())
+						.setObjectType(ObjectType.valueOf(webhook.getObjectType().name())).setTimestamp(currentDate));
 	}
 
 	Webhook lockWebhookAndValidateOwner(UserInfo userInfo, String webhookId) {

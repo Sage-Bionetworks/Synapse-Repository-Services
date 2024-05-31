@@ -176,6 +176,9 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.otp.DBOOtpSecret"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.otp.DBOOtpRecoveryCode"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOUserTwoFaStatus"/>		
+				<!-- Webhook table -->
+				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhook"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookVerification"/>
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->

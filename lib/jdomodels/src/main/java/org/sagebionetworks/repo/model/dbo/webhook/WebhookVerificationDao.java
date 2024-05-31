@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao.webhook;
+package org.sagebionetworks.repo.model.dbo.webhook;
 
 import org.sagebionetworks.repo.model.webhook.WebhookVerification;
 
@@ -9,7 +9,7 @@ public interface WebhookVerificationDao {
 	 * @param webhookId
 	 * @return
 	 */
-	WebhookVerification createWebhookVerification(WebhookVerification webhookVerification);
+	WebhookVerification createWebhookVerification(WebhookVerification verification);
 
 	/**
 	 * 
@@ -23,10 +23,10 @@ public interface WebhookVerificationDao {
 	 * @param webhookId
 	 * @return
 	 */
-	long incrementAttempts(String webhookId);
-
+	Long incrementAttempts(String webhookId);
+	
 	/**
-	 * 
+	 * Truncate all WebhookVerificationData data.
 	 */
-	void pruneExpiredWebhookVerifications();
+	void truncateAll();
 }

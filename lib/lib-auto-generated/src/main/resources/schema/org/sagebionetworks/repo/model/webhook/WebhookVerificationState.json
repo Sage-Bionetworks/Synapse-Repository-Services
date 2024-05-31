@@ -1,0 +1,18 @@
+{
+    "description": "JSON enum for the state a WebhookVerification can be in.",
+    "type": "string",
+    "enum": [
+        {
+            "name": "PENDING_VERIFICATION",
+            "description": "The Webhook has been created, but no verification code has been sent."
+        },
+        {
+            "name": "VERIFICATION_CODE_SENT",
+            "description": "The Webhook has been created and a verification code has been sent."
+        },
+        {
+            "name": "VERIFIED",
+            "description": "The Webhook has been created and verified succesfully."
+        }
+    ]
+}
