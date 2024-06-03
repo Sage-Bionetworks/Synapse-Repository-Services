@@ -141,16 +141,12 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 			URI uri=getUri(sectorIdentifierUriString);
 			ValidateArgument.requirement(uri.getScheme().equalsIgnoreCase("https"), 
 					sectorIdentifierUriString+" must use the https scheme.");
-			// read file, parse json, and make sure it contains all of redirectUris values
-			List<String> siList = readSectorIdentifierFile(uri);
-			ValidateArgument.requirement(siList.containsAll(redirectUris), 
-					"Not all of the submitted redirect URIs are found in the list hosted at "+uri);
 			// As per https://openid.net/specs/openid-connect-registration-1_0.html#SectorIdentifierValidation,
 			// the sector ID is the host of the sectorIdentifierUri
 			return uri.getHost();
 		}
 	}
-
+	
 	private void ensureSectorIdentifierExists(String sectorIdentiferHostName, Long createdBy) {
 		if (oauthClientDao.doesSectorIdentifierExistForURI(sectorIdentiferHostName)) {
 			return;
@@ -313,6 +309,18 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		}
 		
 		if (verifiedStatus != BooleanUtils.isTrue(client.getVerified())) {
+			if (verifiedStatus) {
+				String sectorIdentifierUriString = client.getSector_identifier_uri();
+				// if the client uses a sector identifier JSON file, then check its contents now
+				if (StringUtils.isNotEmpty(sectorIdentifierUriString)) {
+					URI uri=getUri(sectorIdentifierUriString);
+					// read the JSON file at the location given by sectorIdentifierUriString
+					// and make sure it contains all the values listed in redirectUris
+					List<String> siList = readSectorIdentifierFile(uri);
+					ValidateArgument.requirement(siList.containsAll(client.getRedirect_uris()), 
+							"Not all of the submitted redirect URIs are found in the list hosted at "+uri);
+				}
+			}
 			client.setVerified(verifiedStatus);
 			client.setModifiedOn(new Date());
 			client.setEtag(UUID.randomUUID().toString());
