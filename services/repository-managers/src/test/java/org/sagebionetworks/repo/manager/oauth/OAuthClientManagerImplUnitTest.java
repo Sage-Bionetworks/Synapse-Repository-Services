@@ -336,21 +336,6 @@ public class OAuthClientManagerImplUnitTest {
 			oauthClientManagerImpl.resolveSectorIdentifier("http://insecure.com/file", REDIR_URI_LIST);
 		});
 	}
-	
-	@Test
-	public void testResolveSectorIdentifier_WithSIURI_RedirMismatch() throws Exception {
-
-		when(mockHttpResponse.getStatusCode()).thenReturn(200);
-		when(mockHttpResponse.getContent()).thenReturn("[\"https://host1.com/redir1\",\"https://host2.com/redir2\"]");
-		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
-
-		// trying to use a redirect uri that's not in the file
-		assertThrows(IllegalArgumentException.class, () -> {
-			// method under test
-			oauthClientManagerImpl.validateSectorIdentifierFile(SECTOR_IDENTIFIER_URI_JSON_FILE_URL, 
-					Collections.singletonList("https://SomeOtherHost/redir1"));
-		});
-	}
 
 	@Test
 	public void testCanCreate() {
@@ -1054,6 +1039,69 @@ public class OAuthClientManagerImplUnitTest {
 			Map.of("clientName", CLIENT_NAME)
 		);
 		
+	}
+	
+	@Test
+	public void testUpdateOpenIDConnectClientVerifiedStatusSectorIdentifierFileHasWrongURIs() throws Exception {
+		OAuthClient originalClient = newCreatedOAuthClient();
+		
+		String clientId = OAUTH_CLIENT_ID;
+		
+		Date originalModifiedOn = Date.from(Instant.now().minusSeconds(60));
+		String originalEtag = originalClient.getEtag();
+		boolean originalVerifiedStatus = false;
+		
+		originalClient.setModifiedOn(originalModifiedOn);
+		originalClient.setEtag(originalEtag);
+		originalClient.setVerified(originalVerifiedStatus);
+		
+		when(mockAuthManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockOauthClientDao.selectOAuthClientForUpdate(clientId)).thenReturn(originalClient);
+		
+		when(mockHttpResponse.getStatusCode()).thenReturn(200);
+		when(mockHttpResponse.getContent()).thenReturn("[\"https://wrong.uri.com\"]");
+		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
+		
+		// Method under test
+		assertThrows(IllegalArgumentException.class, () -> {
+			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, originalEtag, !originalVerifiedStatus);
+		});
+		
+		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
+		verify(mockOauthClientDao).selectOAuthClientForUpdate(clientId);
+		verify(mockOauthClientDao, never()).updateOAuthClient(oauthClientCaptor.capture());
+		verify(mockNotificationManager, never()).sendTemplatedNotification(eq(userInfo), anyString(),  anyString(), (Map<String,Object>)any());
+	}
+	
+	@Test
+	public void testUpdateOpenIDConnectClientVerifiedStatusMissingSectorIdentifierFile() throws Exception {
+		OAuthClient originalClient = newCreatedOAuthClient();
+		
+		String clientId = OAUTH_CLIENT_ID;
+		
+		Date originalModifiedOn = Date.from(Instant.now().minusSeconds(60));
+		String originalEtag = originalClient.getEtag();
+		boolean originalVerifiedStatus = false;
+		
+		originalClient.setModifiedOn(originalModifiedOn);
+		originalClient.setEtag(originalEtag);
+		originalClient.setVerified(originalVerifiedStatus);
+		
+		when(mockAuthManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockOauthClientDao.selectOAuthClientForUpdate(clientId)).thenReturn(originalClient);
+		
+		when(mockHttpResponse.getStatusCode()).thenReturn(404);
+		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
+		
+		// Method under test
+		assertThrows(IllegalArgumentException.class, () -> {
+			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, originalEtag, !originalVerifiedStatus);
+		});
+		
+		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
+		verify(mockOauthClientDao).selectOAuthClientForUpdate(clientId);
+		verify(mockOauthClientDao, never()).updateOAuthClient(oauthClientCaptor.capture());
+		verify(mockNotificationManager, never()).sendTemplatedNotification(eq(userInfo), anyString(),  anyString(), (Map<String,Object>)any());
 	}
 	
 	private static OAuthClient createOAuthClient(String userId) {

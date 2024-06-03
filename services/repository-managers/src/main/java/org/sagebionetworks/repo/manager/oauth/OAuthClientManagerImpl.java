@@ -147,21 +147,6 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		}
 	}
 	
-	// read the JSON file at the location given by sectorIdentifierUriString
-	// and make sure it contains all the values listed in redirectUris
-	public void validateSectorIdentifierFile(String sectorIdentifierUriString, List<String> redirectUris) {
-		ValidateArgument.requirement(StringUtils.isNotEmpty(sectorIdentifierUriString), "Sector Identifier URI expected");
-		ValidateArgument.requiredNotEmpty(redirectUris, "Redirect URIs expected");
-		URI uri=getUri(sectorIdentifierUriString);
-		ValidateArgument.requirement(uri.getScheme().equalsIgnoreCase("https"), 
-				sectorIdentifierUriString+" must use the https scheme.");
-		// read file, parse json, and make sure it contains all of redirectUris values
-		List<String> siList = readSectorIdentifierFile(uri);
-		ValidateArgument.requirement(siList.containsAll(redirectUris), 
-				"Not all of the submitted redirect URIs are found in the list hosted at "+uri);
-		
-	}
-
 	private void ensureSectorIdentifierExists(String sectorIdentiferHostName, Long createdBy) {
 		if (oauthClientDao.doesSectorIdentifierExistForURI(sectorIdentiferHostName)) {
 			return;
@@ -324,17 +309,24 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		}
 		
 		if (verifiedStatus != BooleanUtils.isTrue(client.getVerified())) {
+			if (verifiedStatus) {
+				String sectorIdentifierUriString = client.getSector_identifier_uri();
+				// if the client uses a sector identifier JSON file, then check its contents now
+				if (StringUtils.isNotEmpty(sectorIdentifierUriString)) {
+					URI uri=getUri(sectorIdentifierUriString);
+					// read the JSON file at the location given by sectorIdentifierUriString
+					// and make sure it contains all the values listed in redirectUris
+					List<String> siList = readSectorIdentifierFile(uri);
+					ValidateArgument.requirement(siList.containsAll(client.getRedirect_uris()), 
+							"Not all of the submitted redirect URIs are found in the list hosted at "+uri);
+				}
+			}
 			client.setVerified(verifiedStatus);
 			client.setModifiedOn(new Date());
 			client.setEtag(UUID.randomUUID().toString());
 			client = oauthClientDao.updateOAuthClient(client);
 			
 			if (client.getVerified()) {
-				// if the client uses a sector identifier JSON file, then check its contents now
-				if (StringUtils.isNotEmpty(client.getSector_identifier_uri())) {
-					validateSectorIdentifierFile(client.getSector_identifier_uri(), client.getRedirect_uris());
-				}
-				
 				Map<String, Object> notificationContext = new HashMap<>();
 				
 				notificationContext.put("clientName", client.getClient_name());
