@@ -308,10 +308,6 @@ public class OAuthClientManagerImplUnitTest {
 	@Test
 	public void testResolveSectorIdentifier_WithSIURI_HappyCase() throws Exception {
 		
-		when(mockHttpResponse.getStatusCode()).thenReturn(200);
-		when(mockHttpResponse.getContent()).thenReturn("[\"https://host1.com/redir1\",\"https://host2.com/redir2\"]");
-		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
-		
 		// method under test
 		String sectorIdentifier = oauthClientManagerImpl.resolveSectorIdentifier(
 				SECTOR_IDENTIFIER_URI_JSON_FILE_URL, REDIR_URI_LIST);
@@ -351,7 +347,7 @@ public class OAuthClientManagerImplUnitTest {
 		// trying to use a redirect uri that's not in the file
 		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
-			oauthClientManagerImpl.resolveSectorIdentifier(SECTOR_IDENTIFIER_URI_JSON_FILE_URL, 
+			oauthClientManagerImpl.validateSectorIdentifierFile(SECTOR_IDENTIFIER_URI_JSON_FILE_URL, 
 					Collections.singletonList("https://SomeOtherHost/redir1"));
 		});
 	}
@@ -425,11 +421,6 @@ public class OAuthClientManagerImplUnitTest {
 		oauthClient.setRedirect_uris(Collections.singletonList("https://host1.com/redir1"));
 		oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_JSON_FILE_URL);
 		
-
-		when(mockHttpResponse.getStatusCode()).thenReturn(200);
-		when(mockHttpResponse.getContent()).thenReturn("[\"https://host1.com/redir1\",\"https://host2.com/redir2\"]");
-		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
-
 		when(mockOauthClientDao.createOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
 		when(mockOauthClientDao.doesSectorIdentifierExistForURI(anyString())).thenReturn(false);
 		
@@ -706,9 +697,6 @@ public class OAuthClientManagerImplUnitTest {
 		toUpdate.setPolicy_uri("some new policy URI");
 		toUpdate.setTos_uri("some new TOS URI");
 				
-		when(mockHttpResponse.getStatusCode()).thenReturn(200);
-		when(mockHttpResponse.getContent()).thenReturn("[\"https://"+REDIRCT_URIS_HOST+"/redir\"]");
-		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
 		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClient_id())).thenReturn(created);
 		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());
 		
@@ -1027,7 +1015,7 @@ public class OAuthClientManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testUpdateOpenIDConnectClientVerifiedStatus() {
+	public void testUpdateOpenIDConnectClientVerifiedStatus() throws Exception {
 		OAuthClient originalClient = newCreatedOAuthClient();
 		
 		String clientId = OAUTH_CLIENT_ID;
@@ -1044,6 +1032,10 @@ public class OAuthClientManagerImplUnitTest {
 		when(mockOauthClientDao.selectOAuthClientForUpdate(clientId)).thenReturn(originalClient);
 		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		
+		when(mockHttpResponse.getStatusCode()).thenReturn(200);
+		when(mockHttpResponse.getContent()).thenReturn("[\""+REDIRCT_URIS.get(0)+"\"]");
+		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
 		
 		// Method under test
 		oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, originalEtag, !originalVerifiedStatus);
