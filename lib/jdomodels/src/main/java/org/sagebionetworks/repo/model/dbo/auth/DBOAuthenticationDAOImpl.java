@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.auth;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATED_ON_AUTHENTICATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATED_ON_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_PASS_HASH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_SECRET_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT;
@@ -76,7 +78,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	private static final String UPDATE_PASSWORD = 
 			"UPDATE "+TABLE_CREDENTIAL+
-			" SET "+COL_CREDENTIAL_PASS_HASH+"= ?"+
+			" SET "+COL_CREDENTIAL_PASS_HASH+"= ?, " + COL_CREDENTIAL_ETAG + " = UUID(), " + COL_CREDENTIAL_MODIFIED_ON +" = NOW()" +
 			" WHERE "+COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
 	
 	private static final String SELECT_SECRET_KEY = 
@@ -86,7 +88,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	private static final String UPDATE_SECRET_KEY = 
 			"UPDATE "+TABLE_CREDENTIAL+
-			" SET "+COL_CREDENTIAL_SECRET_KEY+"= ?"+
+			// Note that we do not update the "MODIFIED_ON" since that applies only to passwords and the secret_key is deprecated
+			" SET "+COL_CREDENTIAL_SECRET_KEY+"= ?, " + COL_CREDENTIAL_ETAG + " = UUID()" +
 			" WHERE "+COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
 	
 	private static final String SELECT_TOU_ACCEPTANCE = 
@@ -99,6 +102,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		DBOCredential cred = new DBOCredential();
 		cred.setPrincipalId(principalId);
 		cred.setSecretKey(HMACUtils.newHMACSHA1Key());
+		cred.setEtag(UUID.randomUUID().toString());
+		// Note that we do not set a modified_on date since that refers to the user password and we are just creating a secret_key (which is deprecated)
 		basicDAO.createNew(cred);
 	}
 	
@@ -147,7 +152,6 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	@WriteTransaction
 	public void changePassword(long principalId, String passHash) {
-		userGroupDAO.touch(principalId);
 		jdbcTemplate.update(UPDATE_PASSWORD, passHash, principalId);
 	}
 	
@@ -169,7 +173,6 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	@WriteTransaction
 	public void changeSecretKey(long principalId, String secretKey) {
-		userGroupDAO.touch(principalId);
 		jdbcTemplate.update(UPDATE_SECRET_KEY, secretKey, principalId);
 	}
 

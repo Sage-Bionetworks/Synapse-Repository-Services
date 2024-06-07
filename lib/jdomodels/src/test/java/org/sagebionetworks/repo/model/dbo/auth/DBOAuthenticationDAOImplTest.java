@@ -82,6 +82,8 @@ public class DBOAuthenticationDAOImplTest {
 		credential.setPrincipalId(userId);
 		credential.setPassHash("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");
 		credential.setSecretKey("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+		credential.setEtag(UUID.randomUUID().toString());
+		credential.setModifiedOn(new Date());
 		credential = basicDAO.createNew(credential);
 		
 		authOn = new DBOAuthenticatedOn();
@@ -150,10 +152,6 @@ public class DBOAuthenticationDAOImplTest {
 		// Setter should work
 		authDAO.changeSecretKey(userId);
 		assertFalse(credential.getSecretKey().equals(authDAO.getSecretKey(userId)));
-		
-		// Verify that the parent group's etag has changed
-		String changedEtag = userGroupDAO.getEtagForUpdate(userId.toString());
-		assertTrue(!userEtag.equals(changedEtag));
 	}
 	
 	@Test
