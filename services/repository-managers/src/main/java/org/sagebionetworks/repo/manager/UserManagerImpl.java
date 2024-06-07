@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import org.sagebionetworks.repo.manager.principal.NewUserUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -178,6 +179,9 @@ public class UserManagerImpl implements UserManager {
 			// Update the credentials
 			if (credential == null) {
 				credential = new DBOCredential();
+			}
+			if (credential.getEtag() == null) {
+				credential.setEtag(UUID.randomUUID().toString());
 			}
 			credential.setPrincipalId(principalId);
 			credential.setSecretKey(HMACUtils.newHMACSHA1Key());
