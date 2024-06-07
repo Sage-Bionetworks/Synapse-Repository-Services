@@ -15,6 +15,7 @@ import java.sql.Timestamp;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.junit.jupiter.api.AfterEach;
@@ -433,11 +434,13 @@ public class MigratableTableDAOImplAutowireTest {
 		DBOCredential one = new DBOCredential();
 		one.setPassHash("hash1");
 		one.setPrincipalId(111L);
+		one.setEtag(UUID.randomUUID().toString());
 		one.setSecretKey("secrete1");
 		
 		DBOCredential two = new DBOCredential();
 		two.setPassHash("hash2");
 		two.setPrincipalId(222L);
+		two.setEtag(UUID.randomUUID().toString());
 		two.setSecretKey("secrete2");
 		
 		List<DatabaseObject<?>> batch = Lists.newArrayList(two, one);
