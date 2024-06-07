@@ -17,6 +17,7 @@ import java.io.OutputStream;
 import java.io.StringWriter;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -120,11 +121,13 @@ public class BackupFileStreamImplTest {
 		maximumRowsPerFile = 1000;
 		
 		credentialOne = new DBOCredential();
+		credentialOne.setEtag(UUID.randomUUID().toString());
 		credentialOne.setPassHash("adminHash");
 		credentialOne.setSecretKey("adminKey");
 		credentialOne.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		credentialTwo = new DBOCredential();
+		credentialTwo.setEtag(UUID.randomUUID().toString());
 		credentialTwo.setPassHash("hashTwo");
 		credentialTwo.setSecretKey("keyTwo");
 		credentialTwo.setPrincipalId(456L);

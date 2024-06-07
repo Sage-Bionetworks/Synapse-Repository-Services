@@ -6,9 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -32,10 +30,8 @@ import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.UserGroupDoaObjectHelper;
@@ -57,7 +53,6 @@ import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.migration.TypeData;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -432,13 +427,9 @@ public class MigrationManagerImplAutowireTest {
 	public void testUserGroupRemoveSecondarySetup() throws Exception {
 		
 		UserGroup userGroup = userGroupHelper.create((c)->{});
+		
 		long principalId = Long.parseLong(userGroup.getId());
-		
-		DBOCredential cred = new DBOCredential();
-		cred.setPrincipalId(principalId);
-		cred.setSecretKey(HMACUtils.newHMACSHA1Key());
-		basicDao.createNew(cred);
-		
+				
 		DBOGroupMembers member = new DBOGroupMembers();
 		member.setGroupId(principalId);
 		member.setMemberId(principalId);
