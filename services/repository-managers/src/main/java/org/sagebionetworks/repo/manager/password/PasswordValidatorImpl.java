@@ -97,9 +97,6 @@ public class PasswordValidatorImpl implements PasswordValidator {
 							&& containsLetterAndDigitAndSpecial(password))
 					.map(String::toLowerCase)
 					.collect(Collectors.collectingAndThen(Collectors.toSet(), Collections::unmodifiableSet));
-			System.out.println(
-					"Number of common passwords that meet the minimum requirements: " + bannedPasswordSet.size());
-			System.out.println(bannedPasswordSet.toString());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
