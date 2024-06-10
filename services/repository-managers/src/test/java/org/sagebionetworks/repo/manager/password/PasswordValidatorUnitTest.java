@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -41,6 +43,12 @@ public class PasswordValidatorUnitTest {
 		// usually called by Spring after injecting dependencies. Since this is a unit
 		// test, call it manually.
 		passwordValidator.afterPropertiesSet();
+	}
+
+	@Test
+	public void testSetToString() {
+		Set<Character> set = new LinkedHashSet<>(Arrays.asList('b', 'c', 'e'));
+		assertEquals("bce", PasswordValidatorImpl.setToString(set));
 	}
 
 	@Test
@@ -80,7 +88,7 @@ public class PasswordValidatorUnitTest {
 		}).getMessage();
 		assertEquals("This password is known to be a commonly used password. Please choose another password!", message);
 	}
-	
+
 	@Test
 	public void testValidatePasswordWithSynapse() {
 		String invalidPassword = "contains-Synapse^123";

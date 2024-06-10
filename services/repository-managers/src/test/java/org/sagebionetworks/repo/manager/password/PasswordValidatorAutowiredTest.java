@@ -29,7 +29,7 @@ public class PasswordValidatorAutowiredTest {
 			passwordValidator.validatePassword("password");
 		}).getMessage();
 		assertEquals("A valid password must be at least 8 characters long and must include"
-				+ " letters, digits (0-9), and special characters !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~", message);
+				+ " letters, digits (0-9), and special characters ~!@#$%^&*_-+=`|\\(){}[]:;\"'<>,.?/", message);
 	}
 
 	@Test

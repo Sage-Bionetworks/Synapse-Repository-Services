@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -20,8 +21,8 @@ public class PasswordValidatorImpl implements PasswordValidator {
 
 	static final int PASSWORD_MIN_LENGTH = 8;
 
-	static final Set<Character> SPECIAL = Set.of('~', '!', '@', '#', '$', '%', '^', '&', '*', '_', '-', '+', '=', '`',
-			'|', '\\', '(', ')', '{', '}', '[', ']', ':', ';', '"', '\'', '<', '>', ',', '.', '?', '/');
+	static final Set<Character> SPECIAL = new LinkedHashSet<Character> (java.util.Arrays.asList('~', '!', '@', '#', '$', '%', '^', '&', '*', '_', '-', '+', '=', '`',
+			'|', '\\', '(', ')', '{', '}', '[', ']', ':', ';', '"', '\'', '<', '>', ',', '.', '?', '/'));
 
 	public static final String INVALID_PASSWORD_MESSAGE = String.format(
 			"A valid password must be at least %d characters long and must include letters, digits (0-9), and special characters %s",
@@ -29,7 +30,7 @@ public class PasswordValidatorImpl implements PasswordValidator {
 
 	static String setToString(Set<Character> set) {
 		StringBuilder builder = new StringBuilder();
-		set.stream().sorted().forEach(c->{
+		set.stream().forEach(c->{
 			builder.append(c);
 		});
 		return builder.toString();
@@ -50,7 +51,7 @@ public class PasswordValidatorImpl implements PasswordValidator {
 		}
 
 		String lowerPassword = password.toLowerCase();
-		if (bannedPasswordSet.contains(lowerPassword) | lowerPassword.contains("synapse")) {
+		if (bannedPasswordSet.contains(lowerPassword) || lowerPassword.contains("synapse")) {
 			throw new InvalidPasswordException(
 					"This password is known to be a commonly used password. Please choose another password!");
 		}
