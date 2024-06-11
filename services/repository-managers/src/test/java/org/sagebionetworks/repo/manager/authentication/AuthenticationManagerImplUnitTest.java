@@ -513,7 +513,7 @@ public class AuthenticationManagerImplUnitTest {
 			authManager.validateChangePassword(changePasswordWithCurrentPassword);
 		}).getMessage();
 			
-		assertEquals("Your password was changed in the past 24 hours, you may change your password via email reset.", result);
+		assertEquals("Your password was changed in the past 24 hours, you may request a password reset via email.", result);
 
 		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);

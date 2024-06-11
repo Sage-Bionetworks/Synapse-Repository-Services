@@ -127,7 +127,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		
 		authDAO.getModifiedOn(userId).ifPresent( modifiedOn -> {
 			if (ChronoUnit.HOURS.between(modifiedOn.toInstant(), Instant.now()) <= DBOCredential.MIN_PASSWORD_CHANGE_HOURS) {
-				throw new IllegalArgumentException("Your password was changed in the past 24 hours, you may change your password via email reset.");
+				throw new IllegalArgumentException("Your password was changed in the past 24 hours, you may request a password reset via email.");
 			}
 		});
 
