@@ -44,7 +44,7 @@ public class IT990AuthenticationController {
 	private static String email;
 	private static String emailAlias;
 	private static String username;
-	private static final String PASSWORD = "password"+UUID.randomUUID().toString();
+	private static String password = "password"+UUID.randomUUID().toString();
 	private static String receipt = null;
 	private static final String SYNAPSE_ENDPOINT = "https://www.synapse.org/";
 	private static String emailS3Key, emailAliasS3Key;
@@ -58,7 +58,7 @@ public class IT990AuthenticationController {
 		NewIntegrationTestUser nu = new NewIntegrationTestUser();
 		nu.setEmail(email);
 		nu.setUsername(username);
-		nu.setPassword(PASSWORD);
+		nu.setPassword(password);
 
 		LoginResponse loginResponse = adminSynapse.createIntegrationTestUser(nu);
 		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());
@@ -90,7 +90,7 @@ public class IT990AuthenticationController {
 	private static void performLogin() throws Exception {
 		LoginRequest request = new LoginRequest();
 		request.setUsername(username);
-		request.setPassword(PASSWORD);
+		request.setPassword(password);
 		request.setAuthenticationReceipt(receipt);
 		receipt = synapseClient.loginForAccessToken(request).getAuthenticationReceipt();
 		synapseClient.signTermsOfUse(synapseClient.getAccessToken());
@@ -123,7 +123,7 @@ public class IT990AuthenticationController {
 	public void testLoginForAccessToken() throws Exception {
 		LoginRequest request = new LoginRequest();
 		request.setUsername(username);
-		request.setPassword(PASSWORD);
+		request.setPassword(password);
 		LoginResponse response = synapseClient.loginForAccessToken(request);
 		assertNotNull(response);
 		assertNotNull(response.getAccessToken());
@@ -134,7 +134,7 @@ public class IT990AuthenticationController {
 	public void testLoginWithReceipt() throws Exception {
 		LoginRequest request = new LoginRequest();
 		request.setUsername(username);
-		request.setPassword(PASSWORD);
+		request.setPassword(password);
 		LoginResponse response = synapseClient.login(request);
 		assertNotNull(response);
 		assertNotNull(response.getAuthenticationReceipt());
@@ -149,21 +149,25 @@ public class IT990AuthenticationController {
 	@Test
 	public void testChangePasswordWithOldPassword() throws Exception {
 		String testNewPassword = "newPassword"+UUID.randomUUID();
-		synapseClient.changePassword(username, PASSWORD, testNewPassword, null);
+		synapseClient.changePassword(username, password, testNewPassword, null);
 		LoginRequest request = new LoginRequest();
 		request.setUsername(username);
 		request.setPassword(testNewPassword);
 		synapseClient.login(request);
 
-		//change password back
-		synapseClient.changePassword(username, testNewPassword, PASSWORD,null);
+		password = testNewPassword;
+		
+		// try to change password back, since we changed it recently this won't be allowed (See https://sagebionetworks.jira.com/browse/PLFM-8464)
+		assertThrows(SynapseBadRequestException.class, () -> {			
+			synapseClient.changePassword(username, testNewPassword, password,null);
+		});
 	}
 
 	@Test
 	public void testSignTermsViaSessionToken() throws Exception {
 		LoginRequest request = new LoginRequest();
 		request.setUsername(username);
-		request.setPassword(PASSWORD);
+		request.setPassword(password);
 		request.setAuthenticationReceipt(receipt);
 		synapseClient.login(request);
 		String sessionToken = synapseClient.getCurrentSessionToken();

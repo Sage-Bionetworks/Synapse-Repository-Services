@@ -279,19 +279,12 @@ public class ITTwoFactorAuthTest {
 		
 		assertEquals(TwoFactorState.ENABLED, status.getStatus());
 		
-		ChangePasswordWithCurrentPassword changePasswordRequest = new ChangePasswordWithCurrentPassword()
-			.setUsername(username)
-			.setCurrentPassword(password)
-			.setNewPassword(UUID.randomUUID().toString());
-		
-		// This should work initially without 2fa since the feature is still disabled
-		newSynapseClient.changePassword(changePasswordRequest);
-		
 		// Now enable the 2fa check
 		adminClient.setFeatureStatus(Feature.CHANGE_PASSWORD_2FA_CHECK_BYPASS, new FeatureStatus().setEnabled(false));
 		
-		changePasswordRequest
-			.setCurrentPassword(changePasswordRequest.getNewPassword())
+		ChangePasswordWithCurrentPassword changePasswordRequest = new ChangePasswordWithCurrentPassword()
+			.setUsername(username)
+			.setCurrentPassword(password)
 			.setNewPassword(UUID.randomUUID().toString());
 		
 		SynapseTwoFactorAuthRequiredException twoFaResponse = assertThrows(SynapseTwoFactorAuthRequiredException.class, () -> {
