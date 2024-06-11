@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -83,7 +85,6 @@ public class DBOAuthenticationDAOImplTest {
 		credential.setPassHash("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");
 		credential.setSecretKey("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 		credential.setEtag(UUID.randomUUID().toString());
-		credential.setModifiedOn(new Date());
 		credential = basicDAO.createNew(credential);
 		
 		authOn = new DBOAuthenticatedOn();
@@ -135,11 +136,18 @@ public class DBOAuthenticationDAOImplTest {
 		// The original credentials should authenticate correctly
 		assertTrue(authDAO.checkUserCredentials(userId, credential.getPassHash()));
 		
+		assertFalse(authDAO.getModifiedOn(userId).isPresent());
+		assertFalse(authDAO.getExpiresOn(userId).isPresent());
+		
 		// Change the password and try to authenticate again
 		authDAO.changePassword(credential.getPrincipalId(), "Bibbity Boppity BOO!");
 		
 		// This time it should fail
 		assertFalse(authDAO.checkUserCredentials(userId, credential.getPassHash()));
+		
+		assertTrue(authDAO.getModifiedOn(userId).isPresent());
+		assertTrue(ChronoUnit.DAYS.between(Instant.now(), authDAO.getExpiresOn(userId).get().toInstant()) >= DBOCredential.MAX_PASSWORD_VALIDITY_DAYS);
+
 	}
 	
 	@Test

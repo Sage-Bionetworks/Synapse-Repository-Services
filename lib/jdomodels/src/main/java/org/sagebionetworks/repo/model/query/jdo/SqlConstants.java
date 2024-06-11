@@ -803,6 +803,7 @@ public class SqlConstants {
 	public static final String COL_CREDENTIAL_SECRET_KEY    = "SECRET_KEY";
 	public static final String COL_CREDENTIAL_ETAG		    = "ETAG";
 	public static final String COL_CREDENTIAL_MODIFIED_ON   = "MODIFIED_ON";
+	public static final String COL_CREDENTIAL_EXPIRES_ON    = "EXPIRES_ON";
 	public static final String DDL_CREDENTIAL               = "schema/Credential-ddl.sql";
 	
 	// Session token

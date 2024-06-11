@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.auth;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -99,6 +100,18 @@ public interface AuthenticationDAO {
 	 * @return A map containing the two factor authentication state for each of the principal ids included in the set
 	 */
 	Map<Long, Boolean> getTwoFactorAuthStateMap(Set<Long> principalIds);
+	
+	/**
+	 * @param principalId
+	 * @return The last modification date of the user password, if any
+	 */
+	Optional<Date> getModifiedOn(long principalId);
+	
+	/**
+	 * @param principalId
+	 * @return The expiration date for the user password, if any
+	 */
+	Optional<Date> getExpiresOn(long principalId);
 	
 	/**
 	 * Ensure the bootstrap users have sufficient credentials to authenticate

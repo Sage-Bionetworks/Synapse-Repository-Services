@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.authentication;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 import org.sagebionetworks.repo.manager.AuthenticationManager;
@@ -27,6 +29,7 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -121,6 +124,12 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		final long userId = findUserIdForAuthentication(changePasswordWithCurrentPassword.getUsername());
 		//we can ignore the return value here because we are not generating a new authentication receipt on success
 		validateAuthReceiptAndCheckPassword(userId, changePasswordWithCurrentPassword.getCurrentPassword(), changePasswordWithCurrentPassword.getAuthenticationReceipt());
+		
+		authDAO.getModifiedOn(userId).ifPresent( modifiedOn -> {
+			if (ChronoUnit.HOURS.between(modifiedOn.toInstant(), Instant.now()) <= DBOCredential.MIN_PASSWORD_CHANGE_HOURS) {
+				throw new IllegalArgumentException("Your password was changed in the past 24 hours, you may change your password via email reset.");
+			}
+		});
 
 		// Since this is an unauthenticated request, we need to check for the second factor if 2fa is enabled.
 		validateTwoFactorRequirementForPasswordChange(userId);
@@ -205,10 +214,17 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
 
 		final long userId = findUserIdForAuthentication(request.getUsername());
+		
 		final String password = request.getPassword();
 		final String authenticationReceipt = request.getAuthenticationReceipt();
 
 		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
+		
+		authDAO.getExpiresOn(userId).ifPresent( expirationDate -> {
+			if (Instant.now().isBefore(expirationDate.toInstant())) {
+				throw new InvalidPasswordException("Your password has expired, please request a password reset for your account.");
+			}
+		});
 		
 		return loginWithNoPasswordCheck(userId, tokenIssuer);
 	}

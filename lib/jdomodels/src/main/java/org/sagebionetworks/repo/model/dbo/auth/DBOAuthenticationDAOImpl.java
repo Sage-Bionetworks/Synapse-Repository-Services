@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_PASS_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_EXPIRES_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_SECRET_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT;
@@ -22,6 +23,7 @@ import java.sql.ResultSet;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -78,7 +80,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	private static final String UPDATE_PASSWORD = 
 			"UPDATE "+TABLE_CREDENTIAL+
-			" SET "+COL_CREDENTIAL_PASS_HASH+"= ?, " + COL_CREDENTIAL_ETAG + " = UUID(), " + COL_CREDENTIAL_MODIFIED_ON +" = NOW()" +
+			" SET "+COL_CREDENTIAL_PASS_HASH+"= ?, " + COL_CREDENTIAL_ETAG + " = UUID(), " + COL_CREDENTIAL_MODIFIED_ON +" = NOW(), " + COL_CREDENTIAL_EXPIRES_ON + " = NOW() + INTERVAL ? DAY" +
 			" WHERE "+COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
 	
 	private static final String SELECT_SECRET_KEY = 
@@ -152,7 +154,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	@WriteTransaction
 	public void changePassword(long principalId, String passHash) {
-		jdbcTemplate.update(UPDATE_PASSWORD, passHash, principalId);
+		jdbcTemplate.update(UPDATE_PASSWORD, passHash, DBOCredential.MAX_PASSWORD_VALIDITY_DAYS, principalId);
 	}
 	
 	@Override
@@ -244,6 +246,24 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		);
 
 		return stateMap;
+	}
+	
+	@Override
+	public Optional<Date> getModifiedOn(long principalId) {
+		String sql = "SELECT " + COL_CREDENTIAL_MODIFIED_ON + " FROM " + TABLE_CREDENTIAL + " WHERE " + COL_CREDENTIAL_PRINCIPAL_ID + "=?";
+		
+		Date modifiedOn = jdbcTemplate.queryForObject(sql, Date.class, principalId);
+		
+		return Optional.ofNullable(modifiedOn);
+	}
+	
+	@Override
+	public Optional<Date> getExpiresOn(long principalId) {
+		String sql = "SELECT " + COL_CREDENTIAL_EXPIRES_ON + " FROM " + TABLE_CREDENTIAL + " WHERE " + COL_CREDENTIAL_PRINCIPAL_ID + "=?";
+		
+		Date expiresOn = jdbcTemplate.queryForObject(sql, Date.class, principalId);
+		
+		return Optional.ofNullable(expiresOn);
 	}
 	
 	@Override

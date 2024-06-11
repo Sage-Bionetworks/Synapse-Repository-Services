@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -17,9 +19,14 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DBOCredential> {
+	
+	public static final int MIN_PASSWORD_CHANGE_HOURS = 24;
+	public static final int MAX_PASSWORD_VALIDITY_DAYS = 120;
+	
 	private Long principalId;
 	private String etag;
 	private Date modifiedOn;
+	private Date expiresOn;
 	private String passHash;
 	private String secretKey;
 
@@ -27,6 +34,7 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 		new FieldColumn("principalId", SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID, true).withIsBackupId(true),
 		new FieldColumn("etag", SqlConstants.COL_CREDENTIAL_ETAG).withIsEtag(true),
 		new FieldColumn("modifiedOn", SqlConstants.COL_CREDENTIAL_MODIFIED_ON),
+		new FieldColumn("expiresOn", SqlConstants.COL_CREDENTIAL_EXPIRES_ON),
 		new FieldColumn("passHash", SqlConstants.COL_CREDENTIAL_PASS_HASH), 
 		new FieldColumn("secretKey", SqlConstants.COL_CREDENTIAL_SECRET_KEY)
 	};
@@ -37,6 +45,9 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 		public DBOCredential createDatabaseObjectFromBackup(DBOCredential backup) {
 			if (backup.getEtag() == null) {
 				backup.setEtag(UUID.randomUUID().toString());
+			}
+			if (backup.getExpiresOn() == null) {
+				backup.setExpiresOn(Date.from(Instant.now().plus(MAX_PASSWORD_VALIDITY_DAYS, ChronoUnit.DAYS)));
 			}
 			return backup;
 		}
@@ -53,9 +64,14 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 				cred.setPrincipalId(rs.getLong(SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID));
 				cred.setPassHash(rs.getString(SqlConstants.COL_CREDENTIAL_PASS_HASH));
 				cred.setSecretKey(rs.getString(SqlConstants.COL_CREDENTIAL_SECRET_KEY));
-				cred.setEtag(rs.getString(SqlConstants.COL_CREDENTIAL_ETAG));				
+				cred.setEtag(rs.getString(SqlConstants.COL_CREDENTIAL_ETAG));
+				
 				Timestamp modifiedOn = rs.getTimestamp(SqlConstants.COL_CREDENTIAL_MODIFIED_ON);				
-				cred.setModifiedOn(modifiedOn == null ? null : new Date(modifiedOn.getTime()));				
+				cred.setModifiedOn(modifiedOn == null ? null : new Date(modifiedOn.getTime()));
+				
+				Timestamp expiresOn = rs.getTimestamp(SqlConstants.COL_CREDENTIAL_EXPIRES_ON);
+				cred.setExpiresOn(expiresOn == null ? null : new Date(expiresOn.getTime()));
+				
 				return cred;
 			}
 
@@ -105,6 +121,14 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 		this.modifiedOn = modifiedOn;
 	}
 	
+	public Date getExpiresOn() {
+		return expiresOn;
+	}
+	
+	public void setExpiresOn(Date expiresOn) {
+		this.expiresOn = expiresOn;
+	}
+	
 	public void setPassHash(String passHash) {
 		this.passHash = passHash;
 	}
@@ -146,7 +170,7 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(etag, modifiedOn, passHash, principalId, secretKey);
+		return Objects.hash(etag, expiresOn, modifiedOn, passHash, principalId, secretKey);
 	}
 
 	@Override
@@ -158,7 +182,8 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 			return false;
 		}
 		DBOCredential other = (DBOCredential) obj;
-		return Objects.equals(etag, other.etag) && Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(passHash, other.passHash)
+		return Objects.equals(etag, other.etag) && Objects.equals(expiresOn, other.expiresOn)
+				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(passHash, other.passHash)
 				&& Objects.equals(principalId, other.principalId) && Objects.equals(secretKey, other.secretKey);
 	}
 
