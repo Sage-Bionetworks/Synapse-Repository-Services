@@ -66,7 +66,7 @@ public class PrincipalManagerImplAutowiredTest {
 	private UserInfo testUser;
 
 	private DBOCredential credential;
-	private final String password = "A User's Pa$$word";
+	private final String password = "A User's Pa$$word456";
 
 	private String fileHandleId;
 

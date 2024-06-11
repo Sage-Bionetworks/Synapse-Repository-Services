@@ -1272,6 +1272,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			columnModelManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING).setName("aString"))
 		);
 
+		asyncHelper.waitForTableOrViewToBeAvailable(tableId, MAX_WAIT_MS);
 		tableManager.tableUpdated(adminUserInfo, TableModelUtils.getIds(schema), tableId.toString(), false);
 		
 		List<Row> updatedRows = Arrays.asList(
