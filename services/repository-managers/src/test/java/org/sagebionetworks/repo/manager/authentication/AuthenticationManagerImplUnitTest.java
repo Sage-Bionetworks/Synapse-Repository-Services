@@ -60,7 +60,6 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -213,7 +212,7 @@ public class AuthenticationManagerImplUnitTest {
 	public void testLoginWithExpiredPassword() {
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
 		setupMockPrincipalAliasDAO();
-		when(mockAuthDAO.getExpiresOn(anyLong())).thenReturn(Optional.of(Date.from(Instant.now().plus(DBOCredential.MAX_PASSWORD_VALIDITY_DAYS + 1, ChronoUnit.DAYS))));
+		when(mockAuthDAO.getExpiresOn(anyLong())).thenReturn(Optional.of(Date.from(Instant.now().minus(1, ChronoUnit.DAYS))));
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
 
 		String result = assertThrows(InvalidPasswordException.class, () -> {			

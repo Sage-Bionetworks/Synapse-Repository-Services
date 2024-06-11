@@ -1,14 +1,14 @@
 package org.sagebionetworks.repo.manager.authentication;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
@@ -18,11 +18,13 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AuthenticationManagerImplAutowiredTest {
+	
 	@Autowired
 	AuthenticationManager authenticationManager;
 
@@ -32,7 +34,8 @@ public class AuthenticationManagerImplAutowiredTest {
 	Long createdUserId = null;
 
 	LoginRequest loginRequest;
-	@Before
+	
+	@BeforeEach
 	public void setup(){
 		if(createdUserId == null) {
 			NewUser newUser = new NewUser();
@@ -52,7 +55,7 @@ public class AuthenticationManagerImplAutowiredTest {
 		}
 	}
 
-	@After
+	@AfterEach
 	public void tearDown(){
 		if(createdUserId != null) {
 			userManager.deletePrincipal(new UserInfo(true, 42L), createdUserId);

@@ -221,7 +221,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
 		
 		authDAO.getExpiresOn(userId).ifPresent( expirationDate -> {
-			if (Instant.now().isBefore(expirationDate.toInstant())) {
+			if (Instant.now().isAfter(expirationDate.toInstant())) {
 				throw new InvalidPasswordException("Your password has expired, please request a password reset for your account.");
 			}
 		});
