@@ -249,7 +249,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
-	public Optional<Date> getModifiedOn(long principalId) {
+	public Optional<Date> getPasswordModifiedOn(long principalId) {
 		String sql = "SELECT " + COL_CREDENTIAL_MODIFIED_ON + " FROM " + TABLE_CREDENTIAL + " WHERE " + COL_CREDENTIAL_PRINCIPAL_ID + "=?";
 		
 		Date modifiedOn = jdbcTemplate.queryForObject(sql, Date.class, principalId);
@@ -258,7 +258,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
-	public Optional<Date> getExpiresOn(long principalId) {
+	public Optional<Date> getPasswordExpiresOn(long principalId) {
 		String sql = "SELECT " + COL_CREDENTIAL_EXPIRES_ON + " FROM " + TABLE_CREDENTIAL + " WHERE " + COL_CREDENTIAL_PRINCIPAL_ID + "=?";
 		
 		Date expiresOn = jdbcTemplate.queryForObject(sql, Date.class, principalId);

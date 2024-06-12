@@ -518,16 +518,6 @@ public class BackupFileStreamImplTest {
 		assertTrue(allResults.isEmpty());
 	}
 	
-	/*
-		when(mockTypeProvider.getObjectForType(MigrationType.ACL)).thenReturn(new DBOAccessControlList());
-		when(mockTypeProvider.getObjectForType(MigrationType.ACL_ACCESS)).thenReturn(new DBOResourceAccess());
-		when(mockTypeProvider.getObjectForType(MigrationType.ACL_ACCESS_TYPE)).thenReturn(new DBOResourceAccessType());
-		when(mockTypeProvider.getObjectForType(MigrationType.NODE)).thenReturn(new DBONode());
-		when(mockTypeProvider.getObjectForType(MigrationType.NODE_REVISION)).thenReturn(new DBORevision());
-		when(mockTypeProvider.getObjectForType(MigrationType.CREDENTIAL)).thenReturn(new DBOCredential());
-		when(mockTypeProvider.getXStream(BackupAliasType.TABLE_NAME)).thenReturn(tableNameXStream);
-		when(mockTypeProvider.getXStream(BackupAliasType.MIGRATION_TYPE_NAME)).thenReturn(migrationTypeXStream);
-	*/
 	@Test
 	public void testWriteBatchToStreamTableName() throws IOException {
 		when(mockTypeProvider.getObjectForType(MigrationType.CREDENTIAL)).thenReturn(new DBOCredential());

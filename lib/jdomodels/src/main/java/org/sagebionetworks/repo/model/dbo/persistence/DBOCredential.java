@@ -17,10 +17,11 @@ import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslat
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.util.TemporaryCode;
 
 public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DBOCredential> {
 	
-	public static final int MIN_PASSWORD_CHANGE_HOURS = 24;
+	public static final int MIN_PASSWORD_CHANGE_SECONDS = 24 * 60 * 60;
 	public static final int MAX_PASSWORD_VALIDITY_DAYS = 120;
 	
 	private Long principalId;
@@ -40,8 +41,9 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 	};
 
 	private static final MigratableTableTranslation<DBOCredential, DBOCredential> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>() {
-		
+
 		@Override
+		@TemporaryCode(author = "marco.marasca", comment = "Can be removed once in production")
 		public DBOCredential createDatabaseObjectFromBackup(DBOCredential backup) {
 			if (backup.getEtag() == null) {
 				backup.setEtag(UUID.randomUUID().toString());

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.authentication;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 import org.sagebionetworks.repo.manager.AuthenticationManager;
@@ -125,9 +124,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		//we can ignore the return value here because we are not generating a new authentication receipt on success
 		validateAuthReceiptAndCheckPassword(userId, changePasswordWithCurrentPassword.getCurrentPassword(), changePasswordWithCurrentPassword.getAuthenticationReceipt());
 		
-		authDAO.getModifiedOn(userId).ifPresent( modifiedOn -> {
-			if (ChronoUnit.HOURS.between(modifiedOn.toInstant(), Instant.now()) <= DBOCredential.MIN_PASSWORD_CHANGE_HOURS) {
-				throw new IllegalArgumentException("Your password was changed in the past 24 hours, you may request a password reset via email.");
+		authDAO.getPasswordModifiedOn(userId).ifPresent( modifiedOn -> {
+			long secondsSinceModifiedOn = Instant.now().getEpochSecond() - modifiedOn.toInstant().getEpochSecond();
+			
+			if (secondsSinceModifiedOn >= 0 && secondsSinceModifiedOn <= DBOCredential.MIN_PASSWORD_CHANGE_SECONDS) {
+				throw new IllegalArgumentException("Your password was changed in the past 24 hours, you may update your password via email reset.");
 			}
 		});
 
@@ -220,9 +221,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
 		
-		authDAO.getExpiresOn(userId).ifPresent( expirationDate -> {
+		authDAO.getPasswordExpiresOn(userId).ifPresent( expirationDate -> {
 			if (Instant.now().isAfter(expirationDate.toInstant())) {
-				throw new InvalidPasswordException("Your password has expired, please request a password reset for your account.");
+				throw new PasswordResetViaEmailRequiredException("Your password has expired, please update your password via email reset.");
 			}
 		});
 		
@@ -362,7 +363,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 	}
 
-	LoginResponse getLoginResponseAfterSuccessfulAuthentication(long principalId, String issuer) {		
+	LoginResponse getLoginResponseAfterSuccessfulAuthentication(long principalId, String issuer) {
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
 		String accessToken = oidcTokenHelper.createClientTotalAccessToken(principalId, issuer);
 		boolean acceptsTermsOfUse = authDAO.hasUserAcceptedToU(principalId);

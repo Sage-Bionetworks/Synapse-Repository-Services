@@ -136,8 +136,8 @@ public class DBOAuthenticationDAOImplTest {
 		// The original credentials should authenticate correctly
 		assertTrue(authDAO.checkUserCredentials(userId, credential.getPassHash()));
 		
-		assertFalse(authDAO.getModifiedOn(userId).isPresent());
-		assertFalse(authDAO.getExpiresOn(userId).isPresent());
+		assertFalse(authDAO.getPasswordModifiedOn(userId).isPresent());
+		assertFalse(authDAO.getPasswordExpiresOn(userId).isPresent());
 		
 		Instant now = Instant.now().minus(10, ChronoUnit.SECONDS);
 		
@@ -147,8 +147,8 @@ public class DBOAuthenticationDAOImplTest {
 		// This time it should fail
 		assertFalse(authDAO.checkUserCredentials(userId, credential.getPassHash()));
 		
-		assertTrue(authDAO.getModifiedOn(userId).get().toInstant().isAfter(now));
-		assertTrue(authDAO.getExpiresOn(userId).get().toInstant().isAfter(now.plus(DBOCredential.MAX_PASSWORD_VALIDITY_DAYS, ChronoUnit.DAYS)));
+		assertTrue(authDAO.getPasswordModifiedOn(userId).get().toInstant().isAfter(now));
+		assertTrue(authDAO.getPasswordExpiresOn(userId).get().toInstant().isAfter(now.plus(DBOCredential.MAX_PASSWORD_VALIDITY_DAYS, ChronoUnit.DAYS)));
 
 	}
 	

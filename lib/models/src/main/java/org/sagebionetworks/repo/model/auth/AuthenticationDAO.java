@@ -105,13 +105,13 @@ public interface AuthenticationDAO {
 	 * @param principalId
 	 * @return The last modification date of the user password, if any
 	 */
-	Optional<Date> getModifiedOn(long principalId);
+	Optional<Date> getPasswordModifiedOn(long principalId);
 	
 	/**
 	 * @param principalId
 	 * @return The expiration date for the user password, if any
 	 */
-	Optional<Date> getExpiresOn(long principalId);
+	Optional<Date> getPasswordExpiresOn(long principalId);
 	
 	/**
 	 * Ensure the bootstrap users have sufficient credentials to authenticate
