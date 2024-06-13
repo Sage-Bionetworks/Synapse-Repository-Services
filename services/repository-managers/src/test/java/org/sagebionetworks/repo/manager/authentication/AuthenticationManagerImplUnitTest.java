@@ -16,7 +16,10 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -57,6 +60,7 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -202,6 +206,49 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
+	}
+	
+	@Test
+	public void testLoginWithExpiredPassword() {
+		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
+		setupMockPrincipalAliasDAO();
+		when(mockAuthDAO.getPasswordExpiresOn(anyLong())).thenReturn(Optional.of(Date.from(Instant.now().minus(1, ChronoUnit.DAYS))));
+		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
+
+		String result = assertThrows(PasswordResetViaEmailRequiredException.class, () -> {			
+			// call under test
+			authManager.login(loginRequest, issuer);
+		}).getMessage();
+		
+		assertEquals("Your password has expired, please update your password via email reset.", result);
+		
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
+		verify(mockUserCredentialValidator).checkPassword(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockAuthDAO).getPasswordExpiresOn(userId);
+	}
+	
+	@Test
+	public void testLoginWithNotExpiredPassword() {
+		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
+		setupMockPrincipalAliasDAO();
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mockAuthDAO.getPasswordExpiresOn(anyLong())).thenReturn(Optional.of(Date.from(Instant.now().plus(1, ChronoUnit.DAYS))));
+		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
+		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer)).thenReturn(synapseAccessToken);
+		Date now = new Date(12345L);
+		when(mockClock.now()).thenReturn(now);
+		
+		// call under test
+		LoginResponse response = authManager.login(loginRequest, issuer);
+		
+		assertEquals(synapseAccessToken, response.getAccessToken());
+		
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
+		verify(mockUserCredentialValidator).checkPassword(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockAuthDAO).getPasswordExpiresOn(userId);
 		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
 	}
 	
@@ -476,6 +523,63 @@ public class AuthenticationManagerImplUnitTest {
 			//method under test
 			authManager.validateChangePassword(changePasswordWithCurrentPassword);
 		});
+	}
+	
+	@Test
+	public void testValidateChangePasswordWithCurrentPasswordAndRecentlyModified() {
+		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
+		setupMockPrincipalAliasDAO();
+		when(mockAuthDAO.getPasswordModifiedOn(anyLong())).thenReturn(Optional.of(Date.from(Instant.now().minus(DBOCredential.MIN_PASSWORD_CHANGE_SECONDS - 1, ChronoUnit.SECONDS))));
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			//method under test
+			authManager.validateChangePassword(changePasswordWithCurrentPassword);
+		}).getMessage();
+			
+		assertEquals("Your password was changed in the past 24 hours, you may update your password via email reset.", result);
+
+		verify(mockPassswordValidator).validatePassword(password);
+		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
+		verify(mockAuthDAO).getPasswordModifiedOn(userId);
+	}
+	
+	@Test
+	public void testValidateChangePasswordWithCurrentPasswordAndPreviouslyModified() {
+		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
+		setupMockPrincipalAliasDAO();
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mockAuthDAO.getPasswordModifiedOn(anyLong())).thenReturn(Optional.of(Date.from(Instant.now().minus(DBOCredential.MIN_PASSWORD_CHANGE_SECONDS + 1, ChronoUnit.SECONDS))));
+		
+		//method under test
+		Long validatedUserId = authManager.validateChangePassword(changePasswordWithCurrentPassword);
+
+		//method under test
+		assertEquals(userId, validatedUserId);
+				
+		verify(mockPassswordValidator).validatePassword(password);
+		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
+		verify(mockAuthDAO).getPasswordModifiedOn(userId);
+	}
+	
+	@Test
+	public void testValidateChangePasswordWithCurrentPasswordAndModifiedInTheFuture() {
+		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
+		setupMockPrincipalAliasDAO();
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mockAuthDAO.getPasswordModifiedOn(anyLong())).thenReturn(Optional.of(Date.from(Instant.now().plus(1, ChronoUnit.SECONDS))));
+		
+		//method under test
+		Long validatedUserId = authManager.validateChangePassword(changePasswordWithCurrentPassword);
+
+		//method under test
+		assertEquals(userId, validatedUserId);
+				
+		verify(mockPassswordValidator).validatePassword(password);
+		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
+		verify(mockAuthDAO).getPasswordModifiedOn(userId);
 	}
 
 	@Test

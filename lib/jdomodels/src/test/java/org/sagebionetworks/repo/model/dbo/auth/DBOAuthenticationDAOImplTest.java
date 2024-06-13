@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -82,6 +84,7 @@ public class DBOAuthenticationDAOImplTest {
 		credential.setPrincipalId(userId);
 		credential.setPassHash("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");
 		credential.setSecretKey("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+		credential.setEtag(UUID.randomUUID().toString());
 		credential = basicDAO.createNew(credential);
 		
 		authOn = new DBOAuthenticatedOn();
@@ -133,11 +136,20 @@ public class DBOAuthenticationDAOImplTest {
 		// The original credentials should authenticate correctly
 		assertTrue(authDAO.checkUserCredentials(userId, credential.getPassHash()));
 		
+		assertFalse(authDAO.getPasswordModifiedOn(userId).isPresent());
+		assertFalse(authDAO.getPasswordExpiresOn(userId).isPresent());
+		
+		Instant now = Instant.now().minus(10, ChronoUnit.SECONDS);
+		
 		// Change the password and try to authenticate again
 		authDAO.changePassword(credential.getPrincipalId(), "Bibbity Boppity BOO!");
 		
 		// This time it should fail
 		assertFalse(authDAO.checkUserCredentials(userId, credential.getPassHash()));
+		
+		assertTrue(authDAO.getPasswordModifiedOn(userId).get().toInstant().isAfter(now));
+		assertTrue(authDAO.getPasswordExpiresOn(userId).get().toInstant().isAfter(now.plus(DBOCredential.MAX_PASSWORD_VALIDITY_DAYS, ChronoUnit.DAYS)));
+
 	}
 	
 	@Test
@@ -150,10 +162,6 @@ public class DBOAuthenticationDAOImplTest {
 		// Setter should work
 		authDAO.changeSecretKey(userId);
 		assertFalse(credential.getSecretKey().equals(authDAO.getSecretKey(userId)));
-		
-		// Verify that the parent group's etag has changed
-		String changedEtag = userGroupDAO.getEtagForUpdate(userId.toString());
-		assertTrue(!userEtag.equals(changedEtag));
 	}
 	
 	@Test

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.authentication;
 
+import java.time.Instant;
 import java.util.Date;
 
 import org.sagebionetworks.repo.manager.AuthenticationManager;
@@ -27,6 +28,7 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -121,6 +123,14 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		final long userId = findUserIdForAuthentication(changePasswordWithCurrentPassword.getUsername());
 		//we can ignore the return value here because we are not generating a new authentication receipt on success
 		validateAuthReceiptAndCheckPassword(userId, changePasswordWithCurrentPassword.getCurrentPassword(), changePasswordWithCurrentPassword.getAuthenticationReceipt());
+		
+		authDAO.getPasswordModifiedOn(userId).ifPresent( modifiedOn -> {
+			long secondsSinceModifiedOn = Instant.now().getEpochSecond() - modifiedOn.toInstant().getEpochSecond();
+			
+			if (secondsSinceModifiedOn >= 0 && secondsSinceModifiedOn <= DBOCredential.MIN_PASSWORD_CHANGE_SECONDS) {
+				throw new IllegalArgumentException("Your password was changed in the past 24 hours, you may update your password via email reset.");
+			}
+		});
 
 		// Since this is an unauthenticated request, we need to check for the second factor if 2fa is enabled.
 		validateTwoFactorRequirementForPasswordChange(userId);
@@ -205,10 +215,17 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
 
 		final long userId = findUserIdForAuthentication(request.getUsername());
+		
 		final String password = request.getPassword();
 		final String authenticationReceipt = request.getAuthenticationReceipt();
 
 		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
+		
+		authDAO.getPasswordExpiresOn(userId).ifPresent( expirationDate -> {
+			if (Instant.now().isAfter(expirationDate.toInstant())) {
+				throw new PasswordResetViaEmailRequiredException("Your password has expired, please update your password via email reset.");
+			}
+		});
 		
 		return loginWithNoPasswordCheck(userId, tokenIssuer);
 	}
@@ -346,7 +363,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 	}
 
-	LoginResponse getLoginResponseAfterSuccessfulAuthentication(long principalId, String issuer) {		
+	LoginResponse getLoginResponseAfterSuccessfulAuthentication(long principalId, String issuer) {
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
 		String accessToken = oidcTokenHelper.createClientTotalAccessToken(principalId, issuer);
 		boolean acceptsTermsOfUse = authDAO.hasUserAcceptedToU(principalId);
