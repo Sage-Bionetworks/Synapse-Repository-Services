@@ -121,8 +121,12 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		ValidateArgument.required(changePasswordWithCurrentPassword.getCurrentPassword(), "changePasswordWithCurrentPassword.currentPassword");
 
 		final long userId = findUserIdForAuthentication(changePasswordWithCurrentPassword.getUsername());
-		//we can ignore the return value here because we are not generating a new authentication receipt on success
-		validateAuthReceiptAndCheckPassword(userId, changePasswordWithCurrentPassword.getCurrentPassword(), changePasswordWithCurrentPassword.getAuthenticationReceipt());
+		
+		// We do not need to check the password complexity of the current password (See https://sagebionetworks.jira.com/browse/PLFM-8475)
+		boolean checkPasswordComplexity = false;
+		
+		// we can ignore the return value here because we are not generating a new authentication receipt on success
+		validateAuthReceiptAndCheckPassword(userId, changePasswordWithCurrentPassword.getCurrentPassword(), changePasswordWithCurrentPassword.getAuthenticationReceipt(), checkPasswordComplexity);
 		
 		authDAO.getPasswordModifiedOn(userId).ifPresent( modifiedOn -> {
 			long secondsSinceModifiedOn = Instant.now().getEpochSecond() - modifiedOn.toInstant().getEpochSecond();
@@ -218,8 +222,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		
 		final String password = request.getPassword();
 		final String authenticationReceipt = request.getAuthenticationReceipt();
-
-		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
+		boolean checkPasswordComplexity = true;
+		
+		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt, checkPasswordComplexity);
 		
 		authDAO.getPasswordExpiresOn(userId).ifPresent( expirationDate -> {
 			if (Instant.now().isAfter(expirationDate.toInstant())) {
@@ -353,23 +358,29 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	 * @param userId id of the user
 	 * @param password password of the user
 	 * @param authenticationReceipt Can be null. When valid, does not throttle attempts on consecutive incorrect passwords.
+	 * @param validatePassword True if the password should be checked for complexity
 	 * @return authenticationReceipt if it is valid and password check passed. null, if the authenticationReceipt was invalid, but password check passed.
+	 * 
 	 * @throws UnauthenticatedException if password check failed
 	 */
-	void validateAuthReceiptAndCheckPassword(final long userId, final String password, final String authenticationReceipt) {
+	void validateAuthReceiptAndCheckPassword(final long userId, final String password, final String authenticationReceipt, boolean validatePassword) {
 		
 		boolean isAuthenticationReceiptValid = authenticationReceiptTokenGenerator.isReceiptValid(userId, authenticationReceipt);
 		//callers that have previously logged in successfully are able to bypass lockout caused by failed attempts
 		boolean correctCredentials = isAuthenticationReceiptValid ? userCredentialValidator.checkPassword(userId, password) : userCredentialValidator.checkPasswordWithThrottling(userId, password);
+		
 		if(!correctCredentials){
 			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT);
 		}
-		// Now that the password has been verified,
-		// ensure that if the current password is a weak password, only allow the user to reset via emailed token
-		try{
-			passwordValidator.validatePassword(password);
-		} catch (InvalidPasswordException e){
-			throw new PasswordResetViaEmailRequiredException("You must change your password via email reset.");
+		
+		if (validatePassword) {
+			// Now that the password has been verified,
+			// ensure that if the current password is a weak password, only allow the user to reset via emailed token
+			try{
+				passwordValidator.validatePassword(password);
+			} catch (InvalidPasswordException e){
+				throw new PasswordResetViaEmailRequiredException("You must change your password via email reset.");
+			}
 		}
 	}
 

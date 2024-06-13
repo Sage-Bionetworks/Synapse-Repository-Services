@@ -206,8 +206,31 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
 	}
+	
+	@Test
+	public void testLoginWithWeakPassword() {
+		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
+		setupMockPrincipalAliasDAO();
+		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
+		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(any());
+
+		String result = assertThrows(PasswordResetViaEmailRequiredException.class, () -> {			
+			// call under test
+			authManager.login(loginRequest, issuer);
+		}).getMessage();
+		
+		assertEquals("You must change your password via email reset.", result);
+
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
+		verify(mockUserCredentialValidator).checkPassword(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockPassswordValidator).validatePassword(password);
+		verifyNoMoreInteractions(mockAuthDAO, mockReceiptTokenGenerator);
+	}
+	
 	
 	@Test
 	public void testLoginWithExpiredPassword() {
@@ -226,6 +249,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockAuthDAO).getPasswordExpiresOn(userId);
 	}
 	
@@ -248,6 +272,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockAuthDAO).getPasswordExpiresOn(userId);
 		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
 	}
@@ -379,8 +404,11 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testValidateAuthReceiptAndCheckPasswordWithoutReceipt() {
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
+		
+		boolean checkPasswordComplexity = true;
+		
 		//method under test
-		authManager.validateAuthReceiptAndCheckPassword(userId, password, null);
+		authManager.validateAuthReceiptAndCheckPassword(userId, password, null, checkPasswordComplexity);
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
@@ -390,9 +418,11 @@ public class AuthenticationManagerImplUnitTest {
 	public void testValidateAuthReceiptAndCheckPasswordWithInvalidReceipt() {
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(false);
+		
+		boolean checkPasswordComplexity = true;
 
 		//method under test
-		authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
+		authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt, checkPasswordComplexity);
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
@@ -404,10 +434,11 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(false);
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(false);
 
+		boolean checkPasswordComplexity = true;
 
 		assertThrows(UnauthenticatedException.class, ()->{
 			//method under test
-			authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
+			authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt, checkPasswordComplexity);
 		});
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
@@ -420,7 +451,9 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
 
-		authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
+		boolean checkPasswordComplexity = true;
+		
+		authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt, checkPasswordComplexity);
 
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
@@ -432,9 +465,11 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(false);
 
+		boolean checkPasswordComplexity = true;
+		
 		assertThrows(UnauthenticatedException.class, ()->{
 			//method under test
-			authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
+			authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt, checkPasswordComplexity);
 		});
 
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
@@ -443,14 +478,16 @@ public class AuthenticationManagerImplUnitTest {
 	}
 
 	@Test
-	public void testValidateAuthReceiptAndCheckPasswordWithWeakPassword_NotUsersActualPassword(){
+	public void testValidateAuthReceiptAndCheckPasswordWithWeakPasswordAndNotUsersActualPassword(){
 		//case where someone tries to brute force a weak password such as "password123", but is not the user's actual password
 
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(false);
 
+		boolean checkPasswordComplexity = true;
+		
 		assertThrows(UnauthenticatedException.class, ()->{
 			//method under test
-			authManager.validateAuthReceiptAndCheckPassword(userId, password, null);
+			authManager.validateAuthReceiptAndCheckPassword(userId, password, null, checkPasswordComplexity);
 		});
 
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
@@ -458,23 +495,36 @@ public class AuthenticationManagerImplUnitTest {
 	}
 
 	@Test
-	public void testValidateAuthReceiptAndCheckPasswordWithWeakPassword_PassPasswordCheck(){
+	public void testValidateAuthReceiptAndCheckPasswordWithWeakPasswordAndPassPasswordCheck(){
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
 		//case where someone's actual password is a weak password such as "password123"
 
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(password);
 
+		boolean checkPasswordComplexity = true;
+		
 		String message = assertThrows(PasswordResetViaEmailRequiredException.class, ()->{
 			//method under test
-			authManager.validateAuthReceiptAndCheckPassword(userId, password, null);
+			authManager.validateAuthReceiptAndCheckPassword(userId, password, null, checkPasswordComplexity);
 		}).getMessage();
 		assertEquals("You must change your password via email reset.", message);
 
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockPassswordValidator).validatePassword(password);
 	}
+	
+	@Test
+	public void testValidateAuthReceiptAndCheckPasswordWithNoPasswordValidityCheck(){
+		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
 
+		boolean checkPasswordComplexity = false;
+		
+		//method under test
+		authManager.validateAuthReceiptAndCheckPassword(userId, password, null, checkPasswordComplexity);
 
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
+		verify(mockPassswordValidator, never()).validatePassword(any());
+	}
 
 	////////////////////////////////
 	// findUserIdForAuthentication()
@@ -538,7 +588,6 @@ public class AuthenticationManagerImplUnitTest {
 			
 		assertEquals("Your password was changed in the past 24 hours, you may update your password via email reset.", result);
 
-		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthDAO).getPasswordModifiedOn(userId);
@@ -556,8 +605,7 @@ public class AuthenticationManagerImplUnitTest {
 
 		//method under test
 		assertEquals(userId, validatedUserId);
-				
-		verify(mockPassswordValidator).validatePassword(password);
+		
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthDAO).getPasswordModifiedOn(userId);
@@ -575,8 +623,7 @@ public class AuthenticationManagerImplUnitTest {
 
 		//method under test
 		assertEquals(userId, validatedUserId);
-				
-		verify(mockPassswordValidator).validatePassword(password);
+		
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthDAO).getPasswordModifiedOn(userId);
@@ -594,7 +641,6 @@ public class AuthenticationManagerImplUnitTest {
 		//method under test
 		assertEquals(userId, validatedUserId);
 
-		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 	}
@@ -613,7 +659,6 @@ public class AuthenticationManagerImplUnitTest {
 		
 		assertEquals(userId, ex.getUserId());
 
-		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockUserManager).getUserInfo(userId);
@@ -775,7 +820,6 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
 
-		doNothing().when(mockPassswordValidator).validatePassword(password);
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(newChangedPassword);
 
 		assertThrows(InvalidPasswordException.class,()->{
@@ -783,6 +827,7 @@ public class AuthenticationManagerImplUnitTest {
 		});
 
 		verify(mockPassswordValidator).validatePassword(newChangedPassword);
+		verifyNoMoreInteractions(mockPassswordValidator);
 		verifyZeroInteractions(mockPasswordResetTokenGenerator);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
