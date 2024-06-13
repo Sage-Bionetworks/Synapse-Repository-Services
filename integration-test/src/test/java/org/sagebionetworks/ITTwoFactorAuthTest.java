@@ -311,7 +311,7 @@ public class ITTwoFactorAuthTest {
 	}
 	
 	@Test
-	public void testReset2FaWithToken(SynapseAdminClient adminClient) throws Exception {
+	public void testReset2FaWithTokenWithTwoFaToken(SynapseAdminClient adminClient) throws Exception {
 		// Creates a new user so that we retain user/password
 		SynapseClient newSynapseClient = new SynapseClientImpl();
 		
@@ -375,6 +375,71 @@ public class ITTwoFactorAuthTest {
 		
 		newSynapseClient.disable2FaWithToken(new TwoFactorAuthDisableRequest()
 			.setTwoFaToken(twoFaResponse.getTwoFaToken())
+			.setTwoFaResetToken(token)
+		);
+		
+		assertEquals(TwoFactorState.DISABLED, newSynapseClient.get2FaStatus().getStatus());
+		
+		try {
+			adminClient.deleteUser(userId);
+		} catch (SynapseException e) {
+			
+		}
+	}
+	
+	@Test
+	public void testReset2FaWithTokenWithPassword(SynapseAdminClient adminClient) throws Exception {
+		// Creates a new user so that we retain user/password
+		SynapseClient newSynapseClient = new SynapseClientImpl();
+		
+		String username = UUID.randomUUID().toString();
+		String password = UUID.randomUUID().toString();
+		String email = UUID.randomUUID().toString() + "@sagebase.org";
+		
+		Long userId = SynapseClientHelper.createUser(adminClient, newSynapseClient, username, password, email, true, false);
+		
+		// First enabled 2FA
+		
+		TotpSecret secret = newSynapseClient.init2Fa();
+		
+		TwoFactorAuthStatus status = newSynapseClient.enable2Fa(new TotpSecretActivationRequest()
+			.setSecretId(secret.getSecretId())
+			.setTotp(generateTotpCode(secret.getSecret()))
+		);
+		
+		assertEquals(TwoFactorState.ENABLED, status.getStatus());
+		
+		// Wait for the email notification for enabling two fa
+		String emailS3Key = EmailValidationUtil.getBucketKeyForEmail(email);
+		
+		assertTrue(EmailValidationUtil.doesFileExist(emailS3Key, 10_000L));
+		
+		// Now enable the 2fa check
+		adminClient.setFeatureStatus(Feature.CHANGE_PASSWORD_2FA_CHECK_BYPASS, new FeatureStatus().setEnabled(false));
+		
+		String endpoint = "https://www.synapse.org?";
+		
+		// Now ask to reset the 2fa with a signed token		
+		newSynapseClient.send2FaResetNotification(new TwoFactorAuthResetRequest()
+			.setUserId(userId)
+			.setPassword(password)
+			.setTwoFaResetEndpoint(endpoint)
+		);
+		
+		// Extracts the serialized token from the email, since various emails are sent to the user we wait until we get the email with the token
+		String encodedToken = TimeUtils.waitFor(10_000, 1000, () -> {
+			try {
+				return Pair.create(true, EmailValidationUtil.getTokenFromFile(emailS3Key, "href=\""+endpoint, "\">"));
+			} catch (AssertionError  e) {
+				return Pair.create(false, null);
+			}
+		});
+		
+		
+		TwoFactorAuthResetToken token = SerializationUtils.hexDecodeAndDeserialize(encodedToken, TwoFactorAuthResetToken.class);
+				
+		newSynapseClient.disable2FaWithToken(new TwoFactorAuthDisableRequest()
+			.setPassword(password)
 			.setTwoFaResetToken(token)
 		);
 		

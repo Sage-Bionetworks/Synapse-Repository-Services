@@ -12,6 +12,10 @@
 		"twoFaToken": {
 			"type": "string",
 			"description": "The token that was included in the error response when authenticating."
+		},
+		"password": {
+			"type": "string",
+			"description": "The current user password that can be used in place of the twoFaToken (e.g. when authenticating with user/password or during a change password workflow)."
 		}
 	}
 }

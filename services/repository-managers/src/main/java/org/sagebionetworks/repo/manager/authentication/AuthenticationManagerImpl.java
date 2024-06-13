@@ -257,14 +257,10 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		ValidateArgument.required(request, "The request");
 		ValidateArgument.required(request.getTwoFaResetEndpoint(), "The twoFaResetEndpoint");
 		ValidateArgument.required(request.getUserId(), "The userId");
-		ValidateArgument.required(request.getTwoFaToken(), "The twoFaToken");
 		
 		UserInfo user = userManager.getUserInfo(request.getUserId());
 		
-		// Can only be used while the user is authenticating
-		if (!twoFaManager.validate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, request.getTwoFaToken())) {
-			throw new UnauthenticatedException("The provided 2fa token is invalid.");
-		}
+		validateCredentialsFor2FaReset(user, request.getTwoFaToken(), request.getPassword());
 		
 		twoFaManager.send2FaResetNotification(user, request.getTwoFaResetEndpoint());
 	}
@@ -277,21 +273,35 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 		
 		ValidateArgument.required(request, "The request");
-		ValidateArgument.required(request.getTwoFaToken(), "The twoFaToken");
 		ValidateArgument.required(request.getTwoFaResetToken(), "The twoFaResetToken");
 		
 		UserInfo user = userManager.getUserInfo(request.getTwoFaResetToken().getUserId());
 		
-		// We first validate the first factor (authentication credentials)
-		if (!twoFaManager.validate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, request.getTwoFaToken())) {
-			throw new UnauthenticatedException("The provided 2fa token is invalid.");
-		}
+		validateCredentialsFor2FaReset(user, request.getTwoFaToken(), request.getPassword());
 		
 		if (!twoFaManager.validate2FaResetToken(user, request.getTwoFaResetToken())) {
 			throw new UnauthenticatedException("The provided 2fa reset token is invalid.");
 		}
 		
 		twoFaManager.disable2Fa(user);
+	}
+	
+	void validateCredentialsFor2FaReset(UserInfo user, String twoFaToken, String password) {
+		ValidateArgument.requirement(twoFaToken != null || password != null, "The twoFaToken or the password are required.");
+		
+		if (twoFaToken != null) {
+			// Can only be used while the user is authenticating
+			if (!twoFaManager.validate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, twoFaToken)) {
+				throw new UnauthenticatedException("The provided 2fa token is invalid.");
+			}
+		
+		} else {
+			// Use the user password to verify credentials without verifying the password complexity (See https://sagebionetworks.jira.com/browse/PLFM-8476)
+			if (!userCredentialValidator.checkPassword(user.getId(), password)) {
+				throw new UnauthenticatedException("The provided password is invalid.");
+			}
+		}
+		
 	}
 	
 	void validateTwoFactorAuthTokenRequest(HasTwoFactorAuthToken request, TwoFactorAuthTokenContext context) {

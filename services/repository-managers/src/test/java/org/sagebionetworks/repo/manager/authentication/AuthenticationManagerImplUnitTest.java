@@ -1030,7 +1030,7 @@ public class AuthenticationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testSend2FaResetNotification() {
+	public void testSend2FaResetNotificationWithTwoFaToken() {
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
 		when(mock2FaManager.validate2FaToken(any(), any(), any())).thenReturn(true);
 		
@@ -1070,6 +1070,46 @@ public class AuthenticationManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testSend2FaResetNotificationWithPassword() {
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mockUserCredentialValidator.checkPassword(anyLong(), any())).thenReturn(true);
+		
+		TwoFactorAuthResetRequest request = new TwoFactorAuthResetRequest()
+				.setUserId(userId)
+				.setPassword("password")
+				.setTwoFaResetEndpoint("http://synapse.org");
+		
+		// Call under test
+		authManager.send2FaResetNotification(request);
+		
+		verify(mockUserManager).getUserInfo(userId);
+		verify(mockUserCredentialValidator).checkPassword(userInfo.getId(), "password");
+		verify(mock2FaManager).send2FaResetNotification(userInfo, "http://synapse.org");
+	}
+	
+	@Test
+	public void testSend2FaResetNotificationWithInvalidPassword() {
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mockUserCredentialValidator.checkPassword(anyLong(), any())).thenReturn(false);
+		
+		TwoFactorAuthResetRequest request = new TwoFactorAuthResetRequest()
+				.setUserId(userId)
+				.setPassword("password")
+				.setTwoFaResetEndpoint("http://synapse.org");
+		
+		String result = assertThrows(UnauthenticatedException.class, () -> {			
+			// Call under test
+			authManager.send2FaResetNotification(request);
+		}).getMessage();
+		
+		assertEquals("The provided password is invalid.", result);
+		
+		verify(mockUserManager).getUserInfo(userId);
+		verify(mockUserCredentialValidator).checkPassword(userInfo.getId(), "password");
+		verifyZeroInteractions(mock2FaManager);
+	}
+	
+	@Test
 	public void testSend2FaResetNotificationWithNoRequest() {
 		TwoFactorAuthResetRequest request = null;
 		
@@ -1101,7 +1141,7 @@ public class AuthenticationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testSend2FaResetNotificationWithNoTwoFaToken() {
+	public void testSend2FaResetNotificationWithNoTwoFaTokenOrPassword() {
 		TwoFactorAuthResetRequest request = new TwoFactorAuthResetRequest()
 				.setTwoFaToken(null)
 				.setUserId(userId)
@@ -1112,9 +1152,9 @@ public class AuthenticationManagerImplUnitTest {
 			authManager.send2FaResetNotification(request);
 		}).getMessage();
 		
-		assertEquals("The twoFaToken is required.", result);
+		assertEquals("The twoFaToken or the password are required.", result);
 		
-		verifyZeroInteractions(mockUserManager, mock2FaManager);
+		verifyZeroInteractions(mock2FaManager);
 	}
 	
 	@Test
@@ -1135,7 +1175,7 @@ public class AuthenticationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testDisable2FaWithToken() {
+	public void testDisable2FaWithTokenWithTwoFaToken() {
 		
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
 		when(mock2FaManager.validate2FaToken(any(), any(), any())).thenReturn(true);
@@ -1156,7 +1196,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mock2FaManager).disable2Fa(userInfo);
 		
 	}
-	
+		
 	@Test
 	public void testDisable2FaWithTokenWithInvalidTwoFaToken() {
 				
@@ -1170,7 +1210,7 @@ public class AuthenticationManagerImplUnitTest {
 			.setTwoFaToken("twoFaToken")
 			.setTwoFaResetToken(resetToken);
 		
-		String result = assertThrows(UnauthenticatedException.class, () -> {			
+		String result = assertThrows(UnauthenticatedException.class, () -> {	
 			// Call under test
 			authManager.disable2FaWithToken(request);
 		}).getMessage();
@@ -1179,6 +1219,54 @@ public class AuthenticationManagerImplUnitTest {
 		
 		verify(mock2FaManager).validate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, "twoFaToken");
 		verifyNoMoreInteractions(mock2FaManager);
+		
+	}
+	
+	@Test
+	public void testDisable2FaWithTokenWithPassword() {
+		
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mockUserCredentialValidator.checkPassword(anyLong(), any())).thenReturn(true);
+		when(mock2FaManager.validate2FaResetToken(any(), any())).thenReturn(true);
+		
+		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
+				.setUserId(userInfo.getId());
+		
+		TwoFactorAuthDisableRequest request = new TwoFactorAuthDisableRequest()
+			.setPassword("password")
+			.setTwoFaResetToken(resetToken);
+		
+		// Call under test
+		authManager.disable2FaWithToken(request);
+		
+		verify(mockUserCredentialValidator).checkPassword(userInfo.getId(), "password");
+		verify(mock2FaManager).validate2FaResetToken(userInfo, resetToken);
+		verify(mock2FaManager).disable2Fa(userInfo);
+		
+	}
+	
+	@Test
+	public void testDisable2FaWithTokenWithInvalidPassword() {
+		
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mockUserCredentialValidator.checkPassword(anyLong(), any())).thenReturn(false);
+		
+		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
+				.setUserId(userInfo.getId());
+		
+		TwoFactorAuthDisableRequest request = new TwoFactorAuthDisableRequest()
+			.setPassword("password")
+			.setTwoFaResetToken(resetToken);
+		
+		String result = assertThrows(UnauthenticatedException.class, () -> {
+			// Call under test
+			authManager.disable2FaWithToken(request);
+		}).getMessage();
+		
+		assertEquals("The provided password is invalid.", result);
+		
+		verify(mockUserCredentialValidator).checkPassword(userInfo.getId(), "password");
+		verifyZeroInteractions(mock2FaManager);
 		
 	}
 	
@@ -1226,7 +1314,7 @@ public class AuthenticationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testDisable2FaWithTokenWithNoPassword() {
+	public void testDisable2FaWithTokenWithNoTwoFaTokenOrPassword() {
 		
 		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
 				.setUserId(userInfo.getId());
@@ -1240,7 +1328,7 @@ public class AuthenticationManagerImplUnitTest {
 			authManager.disable2FaWithToken(request);
 		}).getMessage();
 		
-		assertEquals("The twoFaToken is required.", result);
+		assertEquals("The twoFaToken or the password are required.", result);
 		
 		verifyNoMoreInteractions(mock2FaManager);
 		
