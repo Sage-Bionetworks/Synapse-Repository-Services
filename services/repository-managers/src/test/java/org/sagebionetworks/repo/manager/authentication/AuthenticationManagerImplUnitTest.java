@@ -206,8 +206,31 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
 	}
+	
+	@Test
+	public void testLoginWithWeakPassword() {
+		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
+		setupMockPrincipalAliasDAO();
+		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
+		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(any());
+
+		String result = assertThrows(PasswordResetViaEmailRequiredException.class, () -> {			
+			// call under test
+			authManager.login(loginRequest, issuer);
+		}).getMessage();
+		
+		assertEquals("You must change your password via email reset.", result);
+
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
+		verify(mockUserCredentialValidator).checkPassword(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockPassswordValidator).validatePassword(password);
+		verifyNoMoreInteractions(mockAuthDAO, mockReceiptTokenGenerator);
+	}
+	
 	
 	@Test
 	public void testLoginWithExpiredPassword() {
@@ -226,6 +249,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockAuthDAO).getPasswordExpiresOn(userId);
 	}
 	
@@ -248,6 +272,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockAuthDAO).getPasswordExpiresOn(userId);
 		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
 	}
@@ -379,8 +404,11 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testValidateAuthReceiptAndCheckPasswordWithoutReceipt() {
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
+		
+		boolean checkPasswordComplexity = true;
+		
 		//method under test
-		authManager.validateAuthReceiptAndCheckPassword(userId, password, null);
+		authManager.validateAuthReceiptAndCheckPassword(userId, password, null, checkPasswordComplexity);
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
@@ -390,9 +418,11 @@ public class AuthenticationManagerImplUnitTest {
 	public void testValidateAuthReceiptAndCheckPasswordWithInvalidReceipt() {
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(false);
+		
+		boolean checkPasswordComplexity = true;
 
 		//method under test
-		authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
+		authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt, checkPasswordComplexity);
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
@@ -404,10 +434,11 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(false);
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(false);
 
+		boolean checkPasswordComplexity = true;
 
 		assertThrows(UnauthenticatedException.class, ()->{
 			//method under test
-			authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
+			authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt, checkPasswordComplexity);
 		});
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
@@ -420,7 +451,9 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
 
-		authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
+		boolean checkPasswordComplexity = true;
+		
+		authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt, checkPasswordComplexity);
 
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
@@ -432,9 +465,11 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(false);
 
+		boolean checkPasswordComplexity = true;
+		
 		assertThrows(UnauthenticatedException.class, ()->{
 			//method under test
-			authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
+			authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt, checkPasswordComplexity);
 		});
 
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
@@ -443,14 +478,16 @@ public class AuthenticationManagerImplUnitTest {
 	}
 
 	@Test
-	public void testValidateAuthReceiptAndCheckPasswordWithWeakPassword_NotUsersActualPassword(){
+	public void testValidateAuthReceiptAndCheckPasswordWithWeakPasswordAndNotUsersActualPassword(){
 		//case where someone tries to brute force a weak password such as "password123", but is not the user's actual password
 
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(false);
 
+		boolean checkPasswordComplexity = true;
+		
 		assertThrows(UnauthenticatedException.class, ()->{
 			//method under test
-			authManager.validateAuthReceiptAndCheckPassword(userId, password, null);
+			authManager.validateAuthReceiptAndCheckPassword(userId, password, null, checkPasswordComplexity);
 		});
 
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
@@ -458,23 +495,36 @@ public class AuthenticationManagerImplUnitTest {
 	}
 
 	@Test
-	public void testValidateAuthReceiptAndCheckPasswordWithWeakPassword_PassPasswordCheck(){
+	public void testValidateAuthReceiptAndCheckPasswordWithWeakPasswordAndPassPasswordCheck(){
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
 		//case where someone's actual password is a weak password such as "password123"
 
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(password);
 
+		boolean checkPasswordComplexity = true;
+		
 		String message = assertThrows(PasswordResetViaEmailRequiredException.class, ()->{
 			//method under test
-			authManager.validateAuthReceiptAndCheckPassword(userId, password, null);
+			authManager.validateAuthReceiptAndCheckPassword(userId, password, null, checkPasswordComplexity);
 		}).getMessage();
 		assertEquals("You must change your password via email reset.", message);
 
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockPassswordValidator).validatePassword(password);
 	}
+	
+	@Test
+	public void testValidateAuthReceiptAndCheckPasswordWithNoPasswordValidityCheck(){
+		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
 
+		boolean checkPasswordComplexity = false;
+		
+		//method under test
+		authManager.validateAuthReceiptAndCheckPassword(userId, password, null, checkPasswordComplexity);
 
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
+		verify(mockPassswordValidator, never()).validatePassword(any());
+	}
 
 	////////////////////////////////
 	// findUserIdForAuthentication()
@@ -538,7 +588,6 @@ public class AuthenticationManagerImplUnitTest {
 			
 		assertEquals("Your password was changed in the past 24 hours, you may update your password via email reset.", result);
 
-		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthDAO).getPasswordModifiedOn(userId);
@@ -556,8 +605,7 @@ public class AuthenticationManagerImplUnitTest {
 
 		//method under test
 		assertEquals(userId, validatedUserId);
-				
-		verify(mockPassswordValidator).validatePassword(password);
+		
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthDAO).getPasswordModifiedOn(userId);
@@ -575,8 +623,7 @@ public class AuthenticationManagerImplUnitTest {
 
 		//method under test
 		assertEquals(userId, validatedUserId);
-				
-		verify(mockPassswordValidator).validatePassword(password);
+		
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthDAO).getPasswordModifiedOn(userId);
@@ -594,7 +641,6 @@ public class AuthenticationManagerImplUnitTest {
 		//method under test
 		assertEquals(userId, validatedUserId);
 
-		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 	}
@@ -613,7 +659,6 @@ public class AuthenticationManagerImplUnitTest {
 		
 		assertEquals(userId, ex.getUserId());
 
-		verify(mockPassswordValidator).validatePassword(password);
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(username, AliasType.USER_EMAIL, AliasType.USER_NAME);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockUserManager).getUserInfo(userId);
@@ -775,7 +820,6 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
 
-		doNothing().when(mockPassswordValidator).validatePassword(password);
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(newChangedPassword);
 
 		assertThrows(InvalidPasswordException.class,()->{
@@ -783,6 +827,7 @@ public class AuthenticationManagerImplUnitTest {
 		});
 
 		verify(mockPassswordValidator).validatePassword(newChangedPassword);
+		verifyNoMoreInteractions(mockPassswordValidator);
 		verifyZeroInteractions(mockPasswordResetTokenGenerator);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
@@ -1030,7 +1075,7 @@ public class AuthenticationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testSend2FaResetNotification() {
+	public void testSend2FaResetNotificationWithTwoFaToken() {
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
 		when(mock2FaManager.validate2FaToken(any(), any(), any())).thenReturn(true);
 		
@@ -1045,6 +1090,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mock2FaManager).validate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, "twoFaToken");
 		verify(mock2FaManager).send2FaResetNotification(userInfo, "http://synapse.org");
+		verifyNoMoreInteractions(mock2FaManager);
 	}
 	
 	@Test
@@ -1067,6 +1113,47 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mock2FaManager).validate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, "twoFaToken");
 		verifyNoMoreInteractions(mock2FaManager);
+	}
+	
+	@Test
+	public void testSend2FaResetNotificationWithPassword() {
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mockUserCredentialValidator.checkPassword(anyLong(), any())).thenReturn(true);
+		
+		TwoFactorAuthResetRequest request = new TwoFactorAuthResetRequest()
+				.setUserId(userId)
+				.setPassword("password")
+				.setTwoFaResetEndpoint("http://synapse.org");
+		
+		// Call under test
+		authManager.send2FaResetNotification(request);
+		
+		verify(mockUserManager).getUserInfo(userId);
+		verify(mockUserCredentialValidator).checkPassword(userInfo.getId(), "password");
+		verify(mock2FaManager).send2FaResetNotification(userInfo, "http://synapse.org");
+		verifyNoMoreInteractions(mock2FaManager);
+	}
+	
+	@Test
+	public void testSend2FaResetNotificationWithInvalidPassword() {
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mockUserCredentialValidator.checkPassword(anyLong(), any())).thenReturn(false);
+		
+		TwoFactorAuthResetRequest request = new TwoFactorAuthResetRequest()
+				.setUserId(userId)
+				.setPassword("password")
+				.setTwoFaResetEndpoint("http://synapse.org");
+		
+		String result = assertThrows(UnauthenticatedException.class, () -> {			
+			// Call under test
+			authManager.send2FaResetNotification(request);
+		}).getMessage();
+		
+		assertEquals("The provided password is invalid.", result);
+		
+		verify(mockUserManager).getUserInfo(userId);
+		verify(mockUserCredentialValidator).checkPassword(userInfo.getId(), "password");
+		verifyZeroInteractions(mock2FaManager);
 	}
 	
 	@Test
@@ -1101,7 +1188,7 @@ public class AuthenticationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testSend2FaResetNotificationWithNoTwoFaToken() {
+	public void testSend2FaResetNotificationWithNoTwoFaTokenOrPassword() {
 		TwoFactorAuthResetRequest request = new TwoFactorAuthResetRequest()
 				.setTwoFaToken(null)
 				.setUserId(userId)
@@ -1112,9 +1199,9 @@ public class AuthenticationManagerImplUnitTest {
 			authManager.send2FaResetNotification(request);
 		}).getMessage();
 		
-		assertEquals("The twoFaToken is required.", result);
+		assertEquals("The twoFaToken or the password are required.", result);
 		
-		verifyZeroInteractions(mockUserManager, mock2FaManager);
+		verifyZeroInteractions(mock2FaManager);
 	}
 	
 	@Test
@@ -1135,7 +1222,7 @@ public class AuthenticationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testDisable2FaWithToken() {
+	public void testDisable2FaWithTokenWithTwoFaToken() {
 		
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
 		when(mock2FaManager.validate2FaToken(any(), any(), any())).thenReturn(true);
@@ -1154,9 +1241,10 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mock2FaManager).validate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, "twoFaToken");
 		verify(mock2FaManager).validate2FaResetToken(userInfo, resetToken);
 		verify(mock2FaManager).disable2Fa(userInfo);
+		verifyNoMoreInteractions(mock2FaManager);
 		
 	}
-	
+		
 	@Test
 	public void testDisable2FaWithTokenWithInvalidTwoFaToken() {
 				
@@ -1170,7 +1258,7 @@ public class AuthenticationManagerImplUnitTest {
 			.setTwoFaToken("twoFaToken")
 			.setTwoFaResetToken(resetToken);
 		
-		String result = assertThrows(UnauthenticatedException.class, () -> {			
+		String result = assertThrows(UnauthenticatedException.class, () -> {	
 			// Call under test
 			authManager.disable2FaWithToken(request);
 		}).getMessage();
@@ -1179,6 +1267,55 @@ public class AuthenticationManagerImplUnitTest {
 		
 		verify(mock2FaManager).validate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, "twoFaToken");
 		verifyNoMoreInteractions(mock2FaManager);
+		
+	}
+	
+	@Test
+	public void testDisable2FaWithTokenWithPassword() {
+		
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mockUserCredentialValidator.checkPassword(anyLong(), any())).thenReturn(true);
+		when(mock2FaManager.validate2FaResetToken(any(), any())).thenReturn(true);
+		
+		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
+				.setUserId(userInfo.getId());
+		
+		TwoFactorAuthDisableRequest request = new TwoFactorAuthDisableRequest()
+			.setPassword("password")
+			.setTwoFaResetToken(resetToken);
+		
+		// Call under test
+		authManager.disable2FaWithToken(request);
+		
+		verify(mockUserCredentialValidator).checkPassword(userInfo.getId(), "password");
+		verify(mock2FaManager).validate2FaResetToken(userInfo, resetToken);
+		verify(mock2FaManager).disable2Fa(userInfo);
+		verifyNoMoreInteractions(mock2FaManager);
+		
+	}
+	
+	@Test
+	public void testDisable2FaWithTokenWithInvalidPassword() {
+		
+		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
+		when(mockUserCredentialValidator.checkPassword(anyLong(), any())).thenReturn(false);
+		
+		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
+				.setUserId(userInfo.getId());
+		
+		TwoFactorAuthDisableRequest request = new TwoFactorAuthDisableRequest()
+			.setPassword("password")
+			.setTwoFaResetToken(resetToken);
+		
+		String result = assertThrows(UnauthenticatedException.class, () -> {
+			// Call under test
+			authManager.disable2FaWithToken(request);
+		}).getMessage();
+		
+		assertEquals("The provided password is invalid.", result);
+		
+		verify(mockUserCredentialValidator).checkPassword(userInfo.getId(), "password");
+		verifyZeroInteractions(mock2FaManager);
 		
 	}
 	
@@ -1226,7 +1363,7 @@ public class AuthenticationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testDisable2FaWithTokenWithNoPassword() {
+	public void testDisable2FaWithTokenWithNoTwoFaTokenOrPassword() {
 		
 		TwoFactorAuthResetToken resetToken = new TwoFactorAuthResetToken()
 				.setUserId(userInfo.getId());
@@ -1240,7 +1377,7 @@ public class AuthenticationManagerImplUnitTest {
 			authManager.disable2FaWithToken(request);
 		}).getMessage();
 		
-		assertEquals("The twoFaToken is required.", result);
+		assertEquals("The twoFaToken or the password are required.", result);
 		
 		verifyNoMoreInteractions(mock2FaManager);
 		

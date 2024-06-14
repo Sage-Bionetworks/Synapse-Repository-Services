@@ -121,8 +121,12 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		ValidateArgument.required(changePasswordWithCurrentPassword.getCurrentPassword(), "changePasswordWithCurrentPassword.currentPassword");
 
 		final long userId = findUserIdForAuthentication(changePasswordWithCurrentPassword.getUsername());
-		//we can ignore the return value here because we are not generating a new authentication receipt on success
-		validateAuthReceiptAndCheckPassword(userId, changePasswordWithCurrentPassword.getCurrentPassword(), changePasswordWithCurrentPassword.getAuthenticationReceipt());
+		
+		// We do not need to check the password complexity of the current password (See https://sagebionetworks.jira.com/browse/PLFM-8475)
+		boolean checkPasswordComplexity = false;
+		
+		// we can ignore the return value here because we are not generating a new authentication receipt on success
+		validateAuthReceiptAndCheckPassword(userId, changePasswordWithCurrentPassword.getCurrentPassword(), changePasswordWithCurrentPassword.getAuthenticationReceipt(), checkPasswordComplexity);
 		
 		authDAO.getPasswordModifiedOn(userId).ifPresent( modifiedOn -> {
 			long secondsSinceModifiedOn = Instant.now().getEpochSecond() - modifiedOn.toInstant().getEpochSecond();
@@ -218,8 +222,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		
 		final String password = request.getPassword();
 		final String authenticationReceipt = request.getAuthenticationReceipt();
-
-		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
+		boolean checkPasswordComplexity = true;
+		
+		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt, checkPasswordComplexity);
 		
 		authDAO.getPasswordExpiresOn(userId).ifPresent( expirationDate -> {
 			if (Instant.now().isAfter(expirationDate.toInstant())) {
@@ -257,14 +262,10 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		ValidateArgument.required(request, "The request");
 		ValidateArgument.required(request.getTwoFaResetEndpoint(), "The twoFaResetEndpoint");
 		ValidateArgument.required(request.getUserId(), "The userId");
-		ValidateArgument.required(request.getTwoFaToken(), "The twoFaToken");
 		
 		UserInfo user = userManager.getUserInfo(request.getUserId());
 		
-		// Can only be used while the user is authenticating
-		if (!twoFaManager.validate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, request.getTwoFaToken())) {
-			throw new UnauthenticatedException("The provided 2fa token is invalid.");
-		}
+		validateCredentialsFor2FaReset(user, request.getTwoFaToken(), request.getPassword());
 		
 		twoFaManager.send2FaResetNotification(user, request.getTwoFaResetEndpoint());
 	}
@@ -277,21 +278,35 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 		
 		ValidateArgument.required(request, "The request");
-		ValidateArgument.required(request.getTwoFaToken(), "The twoFaToken");
 		ValidateArgument.required(request.getTwoFaResetToken(), "The twoFaResetToken");
 		
 		UserInfo user = userManager.getUserInfo(request.getTwoFaResetToken().getUserId());
 		
-		// We first validate the first factor (authentication credentials)
-		if (!twoFaManager.validate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, request.getTwoFaToken())) {
-			throw new UnauthenticatedException("The provided 2fa token is invalid.");
-		}
+		validateCredentialsFor2FaReset(user, request.getTwoFaToken(), request.getPassword());
 		
 		if (!twoFaManager.validate2FaResetToken(user, request.getTwoFaResetToken())) {
 			throw new UnauthenticatedException("The provided 2fa reset token is invalid.");
 		}
 		
 		twoFaManager.disable2Fa(user);
+	}
+	
+	void validateCredentialsFor2FaReset(UserInfo user, String twoFaToken, String password) {
+		ValidateArgument.requirement(twoFaToken != null || password != null, "The twoFaToken or the password are required.");
+		
+		if (twoFaToken != null) {
+			// Can only be used while the user is authenticating
+			if (!twoFaManager.validate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, twoFaToken)) {
+				throw new UnauthenticatedException("The provided 2fa token is invalid.");
+			}
+		
+		} else {
+			// Use the user password to verify credentials without verifying the password complexity (See https://sagebionetworks.jira.com/browse/PLFM-8476)
+			if (!userCredentialValidator.checkPassword(user.getId(), password)) {
+				throw new UnauthenticatedException("The provided password is invalid.");
+			}
+		}
+		
 	}
 	
 	void validateTwoFactorAuthTokenRequest(HasTwoFactorAuthToken request, TwoFactorAuthTokenContext context) {
@@ -343,23 +358,29 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	 * @param userId id of the user
 	 * @param password password of the user
 	 * @param authenticationReceipt Can be null. When valid, does not throttle attempts on consecutive incorrect passwords.
+	 * @param validatePassword True if the password should be checked for complexity
 	 * @return authenticationReceipt if it is valid and password check passed. null, if the authenticationReceipt was invalid, but password check passed.
+	 * 
 	 * @throws UnauthenticatedException if password check failed
 	 */
-	void validateAuthReceiptAndCheckPassword(final long userId, final String password, final String authenticationReceipt) {
+	void validateAuthReceiptAndCheckPassword(final long userId, final String password, final String authenticationReceipt, boolean validatePassword) {
 		
 		boolean isAuthenticationReceiptValid = authenticationReceiptTokenGenerator.isReceiptValid(userId, authenticationReceipt);
 		//callers that have previously logged in successfully are able to bypass lockout caused by failed attempts
 		boolean correctCredentials = isAuthenticationReceiptValid ? userCredentialValidator.checkPassword(userId, password) : userCredentialValidator.checkPasswordWithThrottling(userId, password);
+		
 		if(!correctCredentials){
 			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT);
 		}
-		// Now that the password has been verified,
-		// ensure that if the current password is a weak password, only allow the user to reset via emailed token
-		try{
-			passwordValidator.validatePassword(password);
-		} catch (InvalidPasswordException e){
-			throw new PasswordResetViaEmailRequiredException("You must change your password via email reset.");
+		
+		if (validatePassword) {
+			// Now that the password has been verified,
+			// ensure that if the current password is a weak password, only allow the user to reset via emailed token
+			try{
+				passwordValidator.validatePassword(password);
+			} catch (InvalidPasswordException e){
+				throw new PasswordResetViaEmailRequiredException("You must change your password via email reset.");
+			}
 		}
 	}
 
