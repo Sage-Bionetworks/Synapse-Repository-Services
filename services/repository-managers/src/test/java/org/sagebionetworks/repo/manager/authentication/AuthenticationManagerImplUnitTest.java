@@ -1090,6 +1090,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mock2FaManager).validate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, "twoFaToken");
 		verify(mock2FaManager).send2FaResetNotification(userInfo, "http://synapse.org");
+		verifyNoMoreInteractions(mock2FaManager);
 	}
 	
 	@Test
@@ -1130,6 +1131,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockUserCredentialValidator).checkPassword(userInfo.getId(), "password");
 		verify(mock2FaManager).send2FaResetNotification(userInfo, "http://synapse.org");
+		verifyNoMoreInteractions(mock2FaManager);
 	}
 	
 	@Test
@@ -1239,6 +1241,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mock2FaManager).validate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, "twoFaToken");
 		verify(mock2FaManager).validate2FaResetToken(userInfo, resetToken);
 		verify(mock2FaManager).disable2Fa(userInfo);
+		verifyNoMoreInteractions(mock2FaManager);
 		
 	}
 		
@@ -1287,6 +1290,7 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockUserCredentialValidator).checkPassword(userInfo.getId(), "password");
 		verify(mock2FaManager).validate2FaResetToken(userInfo, resetToken);
 		verify(mock2FaManager).disable2Fa(userInfo);
+		verifyNoMoreInteractions(mock2FaManager);
 		
 	}
 	
