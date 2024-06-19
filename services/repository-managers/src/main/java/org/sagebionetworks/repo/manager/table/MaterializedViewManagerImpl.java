@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.TableDependency;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.SqlContext;
@@ -72,15 +73,14 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	public void validateDefiningSql(String definingSql) {
 		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the materialized view");
 
-		List<IndexDescription> indexDescriptions = TableModelUtils.getSourceTableIds(definingSql)
-				.stream()
-				// getIndexDescription is validating each column we are trying to reference
-				.map(sourceTableId -> tableManagerSupport.getIndexDescription(sourceTableId))
+		List<TableDependency> dependencies = TableModelUtils.getSourceTableIdAndAlias(definingSql).stream()
+				.map((tia) -> new TableDependency().withTableAlias(tia.getAlias().orElse(null))
+						.withIndexDescription(tableManagerSupport.getIndexDescription(tia.getIdAndVersion())))
 				.collect(Collectors.toList());
 
 		// We do not know the id of the MV yet, so we use a temporary one just for validation
 		IndexDescription indexDescription = 
-				new MaterializedViewIndexDescription(IdAndVersion.parse("syn1"), indexDescriptions);
+				new MaterializedViewIndexDescription(IdAndVersion.parse("syn1"), dependencies);
 		
 		// Performs validation on the schema of the definingSql
 		QueryTranslator.builder()
@@ -259,9 +259,12 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 
 	void rebuildAvailableViewHoldingTemporaryExclusiveLock(ProgressCallback callback, LockContext parentContext, IdAndVersion idAndVersion, IdAndVersion temporaryId) throws Exception {
 		try {
-			IndexDescription currentIndex = tableManagerSupport.getIndexDescription(idAndVersion);
-			// Note: The dependencies must match the current index dependencies, if that was not true then the view would be rebuilt from scratch
-			IndexDescription temporaryIndex = new MaterializedViewIndexDescription(temporaryId, currentIndex.getDependencies());
+			MaterializedViewIndexDescription currentIndex = (MaterializedViewIndexDescription) tableManagerSupport
+					.getIndexDescription(idAndVersion);
+			// Note: The dependencies must match the current index dependencies, if that was
+			// not true then the view would be rebuilt from scratch
+			IndexDescription temporaryIndex = new MaterializedViewIndexDescription(temporaryId,
+					currentIndex.getFullDependencies());
 			
 			String definingSql = nodeDao.getDefiningSql(idAndVersion)
 				.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));

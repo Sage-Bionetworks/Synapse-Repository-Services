@@ -81,6 +81,7 @@ import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.TableDependency;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
@@ -2786,8 +2787,8 @@ public class TableIndexManagerImplTest {
 		long maxCurrentCompleteVersionOne = 10L;
 		long maxCurrentCompleteVersionTwo = 12L;
 		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
-				new TableIndexDescription(idOne),
-				new ViewIndexDescription(idTwo, TableType.entityview, -1L)
+				new TableDependency().withIndexDescription(new TableIndexDescription(idOne)),
+				new TableDependency().withIndexDescription(new ViewIndexDescription(idTwo, TableType.entityview, -1L))
 		));
 
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idOne)).thenReturn(maxCurrentCompleteVersionOne);
@@ -2811,8 +2812,8 @@ public class TableIndexManagerImplTest {
 		long maxCurrentCompleteVersionOne = 11L;
 		long maxCurrentCompleteVersionTwo = 13L;
 		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
-				new TableIndexDescription(idOne),
-				new ViewIndexDescription(idTwo, TableType.entityview, -1L)
+				new TableDependency().withIndexDescription(new TableIndexDescription(idOne)),
+				new TableDependency().withIndexDescription(new ViewIndexDescription(idTwo, TableType.entityview, -1L))
 		));
 
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idOne)).thenReturn(maxCurrentCompleteVersionOne);
@@ -2835,8 +2836,8 @@ public class TableIndexManagerImplTest {
 		long maxCurrentCompleteVersionOne = Long.MAX_VALUE;
 		long maxCurrentCompleteVersionTwo = 12L;
 		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
-				new TableIndexDescription(idOne),
-				new ViewIndexDescription(idTwo, TableType.entityview, -1L)
+				new TableDependency().withIndexDescription(new TableIndexDescription(idOne)),
+				new TableDependency().withIndexDescription(new ViewIndexDescription(idTwo, TableType.entityview, -1L))
 		));
 
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idOne)).thenReturn(maxCurrentCompleteVersionOne);
@@ -2875,8 +2876,8 @@ public class TableIndexManagerImplTest {
 		setupExecuteInWriteTransaction();
 		
 		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
-			new TableIndexDescription(idOne),
-			new ViewIndexDescription(idTwo, TableType.entityview, -1L)
+			new TableDependency().withIndexDescription(new TableIndexDescription(idOne)),
+			new TableDependency().withIndexDescription(new ViewIndexDescription(idTwo, TableType.entityview, -1L))
 		));
 		
 		when(mockManagerSupport.getTableSchema(any())).thenReturn(

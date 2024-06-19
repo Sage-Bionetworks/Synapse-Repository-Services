@@ -21,7 +21,8 @@ public class MaterializedViewIndexDescriptionTest {
 
 	@Test
 	public void testGetCreateOrUpdateIndexSqlWithSingleTable() {
-		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn999")));
+		List<TableDependency> dependencies = Arrays.asList(
+				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn999"))));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
@@ -36,8 +37,8 @@ public class MaterializedViewIndexDescriptionTest {
 
 	@Test
 	public void testGetCreateOrUpdateIndexSqlWithSingleView() {
-		List<IndexDescription> dependencies = Arrays
-				.asList(new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L));
+		List<TableDependency> dependencies = Arrays.asList(new TableDependency().withIndexDescription(
+				new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
@@ -54,9 +55,11 @@ public class MaterializedViewIndexDescriptionTest {
 
 	@Test
 	public void testGetCreateOrUpdateIndexSqlWithMultipleViews() {
-		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L),
-				new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L));
+		List<TableDependency> dependencies = Arrays.asList(
+				new TableDependency().withIndexDescription(
+						new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
+				new TableDependency().withIndexDescription(
+						new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L)));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
@@ -72,16 +75,62 @@ public class MaterializedViewIndexDescriptionTest {
 				+ "KEY (ROW_BENEFACTOR_T888), "
 				+ "KEY (ROW_BENEFACTOR_T999))", sql);
 	}
+	
+	@Test
+	public void testGetCreateOrUpdateIndexSqlWithMultipleOfSameView() {
+		List<TableDependency> dependencies = Arrays.asList(
+				new TableDependency().withIndexDescription(
+						new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)).withTableAlias("a"),
+				new TableDependency().withIndexDescription(
+						new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)).withTableAlias("b"));
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		// call under test
+		String sql = mid.getCreateOrUpdateIndexSql();
+		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
+				+ "ROW_ID BIGINT NOT NULL AUTO_INCREMENT, "
+				+ "ROW_VERSION BIGINT NOT NULL DEFAULT 0, "
+				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
+				+ "ROW_BENEFACTOR_A BIGINT NOT NULL, "
+				+ "ROW_BENEFACTOR_B BIGINT NOT NULL, "
+				+ "PRIMARY KEY (ROW_ID), "
+				+ "FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (ROW_SEARCH_CONTENT), "
+				+ "KEY (ROW_BENEFACTOR_A), "
+				+ "KEY (ROW_BENEFACTOR_B))", sql);
+	}
+	
+	@Test
+	public void testGetCreateOrUpdateIndexSqlWithMultipleOfSameViewMultipleVersions() {
+		List<TableDependency> dependencies = Arrays.asList(
+				new TableDependency().withIndexDescription(
+						new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
+				new TableDependency().withIndexDescription(
+						new ViewIndexDescription(IdAndVersion.parse("syn999.1"), TableType.entityview, -1L)));
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		// call under test
+		String sql = mid.getCreateOrUpdateIndexSql();
+		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
+				+ "ROW_ID BIGINT NOT NULL AUTO_INCREMENT, "
+				+ "ROW_VERSION BIGINT NOT NULL DEFAULT 0, "
+				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
+				+ "ROW_BENEFACTOR_T999 BIGINT NOT NULL, "
+				+ "ROW_BENEFACTOR_T999_1 BIGINT NOT NULL, "
+				+ "PRIMARY KEY (ROW_ID), "
+				+ "FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (ROW_SEARCH_CONTENT), "
+				+ "KEY (ROW_BENEFACTOR_T999), "
+				+ "KEY (ROW_BENEFACTOR_T999_1))", sql);
+	}
 
 	@Test
 	public void testGetCreateOrUpdateIndexSqlWithMaterializedViewDependency() {
-		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L),
-				new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L));
+		List<TableDependency> dependencies = Arrays.asList(
+				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
+				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L)));
 		MaterializedViewIndexDescription dependency = new MaterializedViewIndexDescription(IdAndVersion.parse("456"),
 				dependencies);
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(IdAndVersion.parse("syn123"),
-				Arrays.asList(dependency));
+				Arrays.asList(new TableDependency().withIndexDescription(dependency)));
 		// call under test
 		String sql = mid.getCreateOrUpdateIndexSql();
 		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
@@ -98,9 +147,11 @@ public class MaterializedViewIndexDescriptionTest {
 
 	@Test
 	public void testGetBenefactorColumnNames() {
-		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L),
-				new ViewIndexDescription(IdAndVersion.parse("syn888.2"), TableType.entityview, -1L));
+		List<TableDependency> dependencies = Arrays.asList(
+				new TableDependency().withIndexDescription(
+						new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
+				new TableDependency().withIndexDescription(
+						new ViewIndexDescription(IdAndVersion.parse("syn888.2"), TableType.entityview, -1L)));
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(IdAndVersion.parse("syn123"),
 				dependencies);
 		List<BenefactorDescription> expected = Arrays.asList(
@@ -112,9 +163,11 @@ public class MaterializedViewIndexDescriptionTest {
 
 	@Test
 	public void testGetColumnNamesToAddToSelectWithQueryAndNonaggregate() {
-		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L),
-				new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L));
+		List<TableDependency> dependencies = Arrays.asList(
+				new TableDependency().withIndexDescription(
+						new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
+				new TableDependency().withIndexDescription(
+						new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L)));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		boolean includeEtag = true;
@@ -126,9 +179,9 @@ public class MaterializedViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithQueryAndAggregate() {
-		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L),
-				new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L));
+		List<TableDependency> dependencies = Arrays.asList(
+				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
+				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L)));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		boolean includeEtag = true;
@@ -140,9 +193,9 @@ public class MaterializedViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithBuildAndNonAggregate() {
-		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L),
-				new ViewIndexDescription(IdAndVersion.parse("syn888.3"), TableType.entityview, -1L));
+		List<TableDependency> dependencies = Arrays.asList(
+				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
+				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888.3"), TableType.entityview, -1L)));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		boolean includeEtag = true;
@@ -157,9 +210,9 @@ public class MaterializedViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithBuildAndAggregateWithViewDependency() {
-		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L),
-				new ViewIndexDescription(IdAndVersion.parse("syn888.3"), TableType.entityview, -1L));
+		List<TableDependency> dependencies = Arrays.asList(
+				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
+				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888.3"), TableType.entityview, -1L)));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		boolean includeEtag = true;
@@ -173,8 +226,8 @@ public class MaterializedViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithBuildAndAggregateWithTableDependency() {
-		List<IndexDescription> dependencies = Arrays.asList(
-				new TableIndexDescription(IdAndVersion.parse("syn999")));
+		List<TableDependency> dependencies = Arrays.asList(
+				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn999"))));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		boolean includeEtag = true;
@@ -185,10 +238,34 @@ public class MaterializedViewIndexDescriptionTest {
 	}
 	
 	@Test
+	public void testGetColumnNamesToAddToSelectWithBuildAndDuplicateViewId() {
+		List<TableDependency> dependencies = Arrays.asList(
+				new TableDependency()
+						.withIndexDescription(
+								new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L))
+						.withTableAlias("foo"),
+				new TableDependency()
+						.withIndexDescription(
+								new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L))
+						.withTableAlias("bar"));
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		boolean includeEtag = true;
+		boolean isAggregate = false;
+		// call under test
+		List<ColumnToAdd> result = mid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
+		assertEquals(
+				Arrays.asList(
+						new ColumnToAdd(IdAndVersion.parse("syn999"), "IFNULL( foo.ROW_BENEFACTOR , -1)"),
+						new ColumnToAdd(IdAndVersion.parse("syn999"), "IFNULL( bar.ROW_BENEFACTOR , -1)")),
+				result);
+	}
+	
+	@Test
 	public void testGetColumnNamesToAddToSelectWithNull() {
-		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L),
-				new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L));
+		List<TableDependency> dependencies = Arrays.asList(
+				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
+				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L)));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		boolean includeEtag = true;
@@ -200,11 +277,11 @@ public class MaterializedViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetDependencies() {
-		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L),
-				new ViewIndexDescription(IdAndVersion.parse("syn888.2"), TableType.entityview, -1L),
-				new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L),
-				new ViewIndexDescription(IdAndVersion.parse("syn888.1"), TableType.entityview, -1L));
+		List<TableDependency> dependencies = Arrays.asList(
+				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
+				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888.2"), TableType.entityview, -1L)),
+				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L)),
+				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888.1"), TableType.entityview, -1L)));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// put in IdAndVersion order
@@ -214,6 +291,7 @@ public class MaterializedViewIndexDescriptionTest {
 				new ViewIndexDescription(IdAndVersion.parse("syn888.2"), TableType.entityview, -1L),
 				new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L));
 		assertEquals(expectedDependencies, mid.getDependencies());
+		assertEquals(dependencies, mid.getFullDependencies());
 	}
 	
 	@Test

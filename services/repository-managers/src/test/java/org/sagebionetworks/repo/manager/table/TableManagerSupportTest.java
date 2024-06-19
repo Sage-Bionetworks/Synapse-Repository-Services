@@ -96,6 +96,7 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.TableDependency;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -738,7 +739,8 @@ public class TableManagerSupportTest {
 		IndexDescription tableDescription = new TableIndexDescription(tableId);
 		IndexDescription viewDescription = new ViewIndexDescription(viewId, TableType.entityview, -1L);
 		IndexDescription materializedDescription = new MaterializedViewIndexDescription(materializedId,
-				Arrays.asList(tableDescription, viewDescription));		
+				Arrays.asList(new TableDependency().withIndexDescription(tableDescription),
+						new TableDependency().withIndexDescription(viewDescription)));		
 		
 		when(mockAuthorizationManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 
@@ -1107,7 +1109,10 @@ public class TableManagerSupportTest {
 		IndexDescription result = managerSpy.getIndexDescription(idAndVersion);
 		
 		IndexDescription expected = new MaterializedViewIndexDescription(idAndVersion,
-				Arrays.asList(tableIndexDescription, fileViewIndexDescription, submissionViewIndexDescription));
+				Arrays.asList(
+						new TableDependency().withIndexDescription(tableIndexDescription),
+						new TableDependency().withIndexDescription(fileViewIndexDescription),
+						new TableDependency().withIndexDescription(submissionViewIndexDescription)));
 		assertEquals(expected, result);
 		
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());

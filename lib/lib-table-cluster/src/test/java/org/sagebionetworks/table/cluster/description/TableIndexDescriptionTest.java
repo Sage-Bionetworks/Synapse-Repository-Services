@@ -127,8 +127,10 @@ public class TableIndexDescriptionTest {
 		TableIndexDescription one = new TableIndexDescription(IdAndVersion.parse("syn1.1"), 1L);
 		TableIndexDescription two = new TableIndexDescription(IdAndVersion.parse("syn1.2"), 2L);
 		TableIndexDescription three = new TableIndexDescription(IdAndVersion.parse("syn3"), 3L);
-		MaterializedViewIndexDescription mv1 = new MaterializedViewIndexDescription(IdAndVersion.parse("syn4"), List.of(one, two));
-		MaterializedViewIndexDescription mv2 = new MaterializedViewIndexDescription(IdAndVersion.parse("syn5"), List.of(mv1, three));
+		MaterializedViewIndexDescription mv1 = new MaterializedViewIndexDescription(IdAndVersion.parse("syn4"), List
+				.of(new TableDependency().withIndexDescription(one), new TableDependency().withIndexDescription(two)));
+		MaterializedViewIndexDescription mv2 = new MaterializedViewIndexDescription(IdAndVersion.parse("syn5"), List.of(
+				new TableDependency().withIndexDescription(mv1), new TableDependency().withIndexDescription(three)));
 		// call under test
 		String expectedHash = DigestUtils.md5Hex("+syn3-3+syn1.1-1+syn1.2-2");
 		assertEquals(expectedHash, mv2.getTableHash());

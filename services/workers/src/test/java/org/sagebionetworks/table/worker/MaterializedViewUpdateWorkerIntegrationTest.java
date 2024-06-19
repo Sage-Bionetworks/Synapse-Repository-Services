@@ -1410,6 +1410,49 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertEquals(expected, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 	}
+	
+	
+	
+	/**
+	 * This is a test to reproduce PLFM-8456.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testMaterializedViewUpdateWithDuplicateJoin() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		EntityView view = createEntityView(entites);
+
+		Project project = entites.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+		Long projectId = KeyFactory.stringToKey(project.getId());
+		// the user can only see files with the project as their benefactor.
+		List<String> fileIdsUserCanSee = entites.stream()
+				.filter((e) -> e instanceof FileEntity
+						&& projectId.equals(entityManager.getEntityHeader(adminUserInfo, e.getId()).getBenefactorId()))
+				.map(e -> e.getId()).collect(Collectors.toList());
+		assertEquals(3, fileIdsUserCanSee.size());
+		
+		// The join on type will add a copy of each row for each row, which will include rows the user cannot see.
+		String definingSql = String.format(
+				"select a.id as aid, a.benefactorId, b.id as bid from %s a left join %s b on (a.type = b.type)", view.getId(),
+				view.getId());
+
+		IdAndVersion mvId = createMaterializedView(view.getParentId(), definingSql);
+
+		String finalSql = String.format("select aid, bid from %s order by ROW_ID asc", mvId);
+
+		asyncHelper.assertQueryResult(userInfo, finalSql, (results) -> {
+			List<Row> rows = results.getQueryResult().getQueryResults().getRows();
+			assertEquals(9, rows.size());
+			rows.forEach(r->{
+				// both id columns must only include rowIds that the user can see
+				assertTrue(fileIdsUserCanSee.contains(r.getValues().get(0)));
+				assertTrue(fileIdsUserCanSee.contains(r.getValues().get(1)));
+			});
+		}, MAX_WAIT_MS);
+
+	}
 
 	/**
 	 * Create a snapshot of the passed table/view.

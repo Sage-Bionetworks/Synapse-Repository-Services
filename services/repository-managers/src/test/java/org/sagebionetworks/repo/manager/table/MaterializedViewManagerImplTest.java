@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.TableDependency;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -137,7 +138,7 @@ public class MaterializedViewManagerImplTest {
 	@Test
 	public void testValidateDefiningSql() {
 		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn123"))).thenReturn(new MaterializedViewIndexDescription(
-				IdAndVersion.parse("syn123"), Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
+				IdAndVersion.parse("syn123"), Arrays.asList(new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))))));
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(syn123Schema);	
 		setupGetColumns(syn123Schema);
 		
@@ -223,9 +224,9 @@ public class MaterializedViewManagerImplTest {
 				TableModelTestUtils.createColumn(222L, "def", ColumnType.STRING));
 		
 		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn123"))).thenReturn(new MaterializedViewIndexDescription(
-				IdAndVersion.parse("syn123"), Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
+				IdAndVersion.parse("syn123"), Arrays.asList(new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))))));
 		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn456"))).thenReturn(new MaterializedViewIndexDescription(
-				IdAndVersion.parse("syn456"), Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
+				IdAndVersion.parse("syn456"), Arrays.asList(new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))))));
 		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
 		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn456"))).thenReturn(syn456Schema);
 		setupGetColumns(syn123Schema);
@@ -245,7 +246,7 @@ public class MaterializedViewManagerImplTest {
 	@Test
 	public void testValidateDefiningSqlWithUnknownColumn() {
 		when(mockTableManagerSupport.getIndexDescription(IdAndVersion.parse("syn123"))).thenReturn(new MaterializedViewIndexDescription(
-				idAndVersion, Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
+				idAndVersion, Arrays.asList(new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))))));
 		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
 		
 		// Call under test
@@ -555,7 +556,7 @@ public class MaterializedViewManagerImplTest {
 		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
 		QueryExpression query = TableModelUtils.getQuerySpecification("SELECT * FROM syn123");
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new MaterializedViewIndexDescription(
-				idAndVersion, Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
+				idAndVersion, Arrays.asList(new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))))));
 		// call under test
 		manager.bindSchemaToView(idAndVersion, query);
 		verify(mockTableManagerSupport).getTableSchema(idAndVersion);

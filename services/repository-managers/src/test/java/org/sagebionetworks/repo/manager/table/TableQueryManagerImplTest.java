@@ -109,6 +109,7 @@ import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.TableDependency;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
@@ -2397,8 +2398,8 @@ public class TableQueryManagerImplTest {
 		IdAndVersion viewTwoId = IdAndVersion.parse("syn2");
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion,		
 				Arrays.asList(
-						new ViewIndexDescription(viewOneId, TableType.entityview, -1L),
-						new ViewIndexDescription(viewTwoId, TableType.entityview, -1L)));
+						new TableDependency().withIndexDescription(new ViewIndexDescription(viewOneId, TableType.entityview, -1L)),
+						new TableDependency().withIndexDescription(new ViewIndexDescription(viewTwoId, TableType.entityview, -1L))));
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 
 		QuerySpecification query = new TableQueryParser("select * from "+tableId).querySpecification();

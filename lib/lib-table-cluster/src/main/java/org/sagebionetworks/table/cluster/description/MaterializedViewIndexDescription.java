@@ -25,7 +25,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	private final IdAndVersion idAndVersion;
 	private final List<BenefactorDescription> benefactorDescriptions;
 	private final List<ColumnToAdd> buildColumnsToAddToSelect;
-	private final List<IndexDescription> orderedDependencies;
+	private final List<TableDependency> orderedDependencies;
 
 	/**
 	 * 
@@ -33,7 +33,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	 * @param dependencies Note: The order of this list should match the order of
 	 *                     dependencies in the from clause.
 	 */
-	public MaterializedViewIndexDescription(IdAndVersion idAndVersion, List<IndexDescription> dependencies) {
+	public MaterializedViewIndexDescription(IdAndVersion idAndVersion, List<TableDependency> dependencies) {
 		super();
 		this.idAndVersion = idAndVersion;
 		// The order of the provided dependencies is nondeterministic. By ordering the
@@ -48,18 +48,21 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	 * Initialize the benefactors for the select list and dependencies.
 	 */
 	void initializeBenefactors() {
-		for (IndexDescription dependency : this.orderedDependencies) {
-			for (BenefactorDescription desc : dependency.getBenefactors()) {
+		for (TableDependency dependency : this.orderedDependencies) {
+			for (BenefactorDescription desc : dependency.getIndexDescription().getBenefactors()) {
 				// The SQL translator will be able to translate from this table name to the
 				// appropriate table alias.
-				String dependencyTranslatedTableName = SQLUtils.getTableNameForId(dependency.getIdAndVersion(),
-						TableIndexType.INDEX);
+				String dependencyTranslatedTableName = dependency.getTableAlias().isPresent()
+						? dependency.getTableAlias().get()
+						: SQLUtils.getTableNameForId(dependency.getIndexDescription().getIdAndVersion(),
+								TableIndexType.INDEX);
+
 				String selectColumnReference = dependencyTranslatedTableName + "." + desc.getBenefactorColumnName();
 				String ifNullCheck = String.format("IFNULL( %s , -1)", selectColumnReference);
-				buildColumnsToAddToSelect.add(new ColumnToAdd(dependency.getIdAndVersion(), ifNullCheck));
+				buildColumnsToAddToSelect.add(new ColumnToAdd(dependency.getIndexDescription().getIdAndVersion(), ifNullCheck));
 				String newBenefactorColumnName = desc.getBenefactorColumnName() + "_" + dependencyTranslatedTableName;
 				benefactorDescriptions
-						.add(new BenefactorDescription(newBenefactorColumnName, desc.getBenefactorType()));
+						.add(new BenefactorDescription(newBenefactorColumnName.toUpperCase(), desc.getBenefactorType()));
 			}
 		}
 	}
@@ -121,6 +124,10 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 
 	@Override
 	public List<IndexDescription> getDependencies() {
+		return orderedDependencies.stream().map(d->d.getIndexDescription()).collect(Collectors.toList());
+	}
+	
+	public List<TableDependency> getFullDependencies() {
 		return orderedDependencies;
 	}
 

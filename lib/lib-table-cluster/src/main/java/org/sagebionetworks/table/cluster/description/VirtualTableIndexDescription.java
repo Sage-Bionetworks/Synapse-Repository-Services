@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.cluster.description;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
