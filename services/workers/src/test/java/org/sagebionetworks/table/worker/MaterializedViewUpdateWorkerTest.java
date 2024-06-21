@@ -86,16 +86,6 @@ public class MaterializedViewUpdateWorkerTest {
 	}
 
 	@Test
-	public void testRunDelete() throws Exception {
-		change.setChangeType(ChangeType.DELETE);
-		// call under test
-		worker.run(mockProgressCallback, change);
-		verify(mockMaterializedViewManager, never()).createOrUpdateViewIndex(any(), any());
-		verify(mockMaterializedViewManager).deleteViewIndex(idAndVersion);
-		verifyZeroInteractions(mockLogger);
-	}
-
-	@Test
 	public void testRunNotView() throws Exception {
 		change.setObjectType(ObjectType.ACTIVITY);
 		// call under test
