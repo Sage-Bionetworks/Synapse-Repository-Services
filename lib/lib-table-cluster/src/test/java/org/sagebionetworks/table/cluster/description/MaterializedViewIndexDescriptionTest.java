@@ -320,8 +320,9 @@ public class MaterializedViewIndexDescriptionTest {
 				"select * from syn999 a join syn888 b on (a.id=b.id)", mockLookup);
 		// put in IdAndVersion order
 		List<IndexDescription> expectedDependencies = Arrays.asList(
-				viewIndexDescription,
-				viewIndexDescription2);
+				viewIndexDescription2,
+				viewIndexDescription
+				);
 		assertEquals(expectedDependencies, mid.getDependencies());
 		
 		verifyLookup(tableIndexDescription, viewIndexDescription2);

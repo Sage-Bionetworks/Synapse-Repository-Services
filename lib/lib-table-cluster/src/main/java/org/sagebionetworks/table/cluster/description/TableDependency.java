@@ -3,7 +3,7 @@ package org.sagebionetworks.table.cluster.description;
 import java.util.Objects;
 import java.util.Optional;
 
-public class TableDependency implements Comparable<TableDependency> {
+public class TableDependency {
 
 	private IndexDescription indexDescription;
 	private String tableAlias;
@@ -58,12 +58,5 @@ public class TableDependency implements Comparable<TableDependency> {
 	public String toString() {
 		return "TableDependency [indexDescription=" + indexDescription + ", tableAlias=" + tableAlias + "]";
 	}
-
-	@Override
-	public int compareTo(TableDependency o) {
-		return this.indexDescription.compareTo(o.getIndexDescription());
-	}
-	
-	
 
 }
