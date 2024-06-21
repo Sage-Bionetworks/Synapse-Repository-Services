@@ -134,7 +134,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 
 	@Override
 	public List<IndexDescription> getDependencies() {
-		return orderedDependencies.stream().map(d->d.getIndexDescription()).sorted().collect(Collectors.toList());
+		return orderedDependencies.stream().map(d->d.getIndexDescription()).collect(Collectors.toList());
 	}
 	
 	public String getDefiningSql(){
