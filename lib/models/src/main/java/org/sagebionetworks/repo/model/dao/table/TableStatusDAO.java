@@ -154,5 +154,11 @@ public interface TableStatusDAO {
 	 * @return
 	 */
 	List<IdVersionTableType> getAllTablesAndViewsWithMissingStatus(long limit);
+
+	/**
+	 * Delete the table status for all the versions of a table.
+	 * @param idAndVersion
+	 */
+	void deleteTableStatusForAllVersions(IdAndVersion idAndVersion);
 	
 }

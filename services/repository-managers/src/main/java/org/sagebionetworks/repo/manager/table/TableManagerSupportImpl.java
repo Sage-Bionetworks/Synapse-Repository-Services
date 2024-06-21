@@ -756,4 +756,17 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return new ActionsRequiredDao(tableConnectionFactory.getConnection(idAndVersion).getConnection());
 	}
 
+	@Override
+	public void deleteTableStatus(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.required(idAndVersion.getId(), "idAndVersion.getId");
+
+		if (idAndVersion.getVersion().isEmpty() || idAndVersion.getVersion().get().equals(-1L)) {
+			tableStatusDAO.deleteTableStatusForAllVersions(idAndVersion);
+		} else {
+			tableStatusDAO.deleteTableStatus(idAndVersion);
+		}
+	}
+
+
 }

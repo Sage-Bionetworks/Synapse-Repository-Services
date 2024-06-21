@@ -1,6 +1,8 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,22 +17,32 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.manager.table.metadata.providers.DatasetCollectionMetadataIndexProvider;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
+import org.sagebionetworks.repo.manager.trash.TrashManager;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
@@ -40,8 +52,13 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.model.ChangeData;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.worker.TestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -71,6 +88,14 @@ public class DatasetCollectionIntegrationTest {
 	private FileHandleDao fileHandleDao;
 	@Autowired
 	private DatasetCollectionMetadataIndexProvider provider;
+	@Autowired
+	private TrashManager trashManager;
+	@Autowired
+	private TableStatusDAO tableStatusDAO;
+	@Autowired
+	private DBOChangeDAO changeDAO;
+	@Autowired
+	private RepositoryMessagePublisher repositoryMessagePublisher;
 	
 	private UserInfo userInfo;
 	private Project project;
@@ -143,6 +168,73 @@ public class DatasetCollectionIntegrationTest {
 			assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT);
 
+	}
+
+	@Test
+	public void testDeletesEntityAndMoveToTrashDeletesTableSatus() throws Exception {
+		Dataset datasetOne = createDatasetAndSnapshot();
+		Dataset datasetTwo = createDatasetAndSnapshot();
+		Long snapshotVersion = 1L;
+		IdAndVersion datasetOneSnapshotId = KeyFactory.idAndVersion(datasetOne.getId(), snapshotVersion);
+		IdAndVersion datasetTwoId = KeyFactory.idAndVersion(datasetTwo.getId(), -1L);
+		IdAndVersion datasetTwoSnapshotId = KeyFactory.idAndVersion(datasetTwo.getId(), snapshotVersion);
+
+
+		DatasetCollection collection = asyncHelper.createDatasetCollection(userInfo, new DatasetCollection()
+				.setParentId(project.getId())
+				.setName("Dataset Collection")
+				.setColumnIds(defaultColumnIdList)
+				.setItems(List.of(
+						new EntityRef().setEntityId(datasetOne.getId()).setVersionNumber(snapshotVersion),
+						new EntityRef().setEntityId(datasetTwo.getId()).setVersionNumber(snapshotVersion)
+				)));
+
+		// Wait for dataset collection view to be available.
+		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + collection.getId() + " ORDER BY ROW_VERSION ASC", (QueryResultBundle result) -> {
+			assertFalse(result.getQueryResult().getQueryResults().getRows().isEmpty());
+		}, MAX_WAIT);
+
+		// Delete entity and Move to trash sends a changeMessage of ObjectType.ENTITY and ChangeType.DELETE.
+		// So the TableStatusDeleteWorker can delete the table status
+		entityManager.deleteEntityVersion(userInfo, datasetOne.getId(), snapshotVersion);
+		trashManager.moveToTrash(userInfo, datasetTwo.getId(), false);
+
+		//call under test.
+		TimeUtils.waitFor(MAX_WAIT, 1000L, () -> {
+			try {
+				assertThrows(NotFoundException.class, () -> {
+					tableStatusDAO.getTableStatus(datasetOneSnapshotId);
+				});
+
+				assertThrows(NotFoundException.class, () -> {
+					tableStatusDAO.getTableStatus(datasetTwoId);
+				});
+
+				assertThrows(NotFoundException.class, () -> {
+					tableStatusDAO.getTableStatus(datasetTwoSnapshotId);
+				});
+				return new Pair<>(Boolean.TRUE, null);
+			} catch (Throwable e) {
+				System.out.println("Waiting for TableStatusDeleteWorker to delete the status of table" + e.getMessage());
+				return new Pair<>(Boolean.FALSE, null);
+			}
+		});
+
+		String errorMessageOne = assertThrows(AsynchJobFailedException.class, () -> {
+			asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + datasetOneSnapshotId, (QueryResultBundle result) -> {
+				assertFalse(result.getQueryResult().getQueryResults().getRows().isEmpty());
+			}, MAX_WAIT);
+		}).getMessage();
+
+		assertEquals("Entity " + datasetOneSnapshotId + " does not exist.", errorMessageOne);
+
+		String errorMessageTwo = assertThrows(EntityInTrashCanException.class, () -> {
+			asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + datasetTwoSnapshotId, (QueryResultBundle result) -> {
+				assertFalse(result.getQueryResult().getQueryResults().getRows().isEmpty());
+			}, MAX_WAIT);
+		}).getMessage();
+
+		assertEquals("Entity " + datasetTwo.getId() + " is in trash can.", errorMessageTwo);
 	}
 
 	@Test

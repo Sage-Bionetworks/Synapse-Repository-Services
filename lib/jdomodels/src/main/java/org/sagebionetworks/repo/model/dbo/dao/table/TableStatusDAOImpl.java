@@ -88,8 +88,11 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	private static final String SQL_DELETE_ALL_STATE = "DELETE FROM " + TABLE_STATUS + " WHERE " + COL_TABLE_STATUS_ID
 			+ " > -1";
 
-	private static final String SQL_DELETE_TABLE_STATUS = "DELETE FROM " + TABLE_STATUS + " WHERE "
+	private static final String SQL_DELETE_TABLE_STATUS_FOR_VERSION = "DELETE FROM " + TABLE_STATUS + " WHERE "
 			+ COL_TABLE_STATUS_ID + " = ? AND " + COL_TABLE_STATUS_VERSION + " = ?";
+
+	private static final String SQL_DELETE_TABLE_STATUS = "DELETE FROM " + TABLE_STATUS + " WHERE "
+			+ COL_TABLE_STATUS_ID + " = ?";
 
 	TableMapping<DBOTableStatus> tableMapping = new DBOTableStatus().getTableMapping();
 
@@ -172,7 +175,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	/**
 	 * Private method to attempt to set the end (or final) state on a table.
 	 * 
-	 * @param tableIdString
+	 * @param idAndVersion
 	 * @param resetToken
 	 * @param state
 	 * @param progressMessage
@@ -233,7 +236,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	/**
 	 * Select the current reset token FOR UPDATE
 	 * 
-	 * @param tableId
+	 * @param idAndVersion
 	 * @return
 	 * @throws NotFoundException
 	 */
@@ -272,7 +275,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	@Override
 	public void deleteTableStatus(IdAndVersion idAndVersion) {
 		long version = validateAndGetVersion(idAndVersion);
-		jdbcTemplate.update(SQL_DELETE_TABLE_STATUS, idAndVersion.getId(), version);
+		jdbcTemplate.update(SQL_DELETE_TABLE_STATUS_FOR_VERSION, idAndVersion.getId(), version);
 	}
 
 	/**
@@ -383,5 +386,10 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 			TableType type = TableType.valueOf(rs.getString("TYPE"));
 			return new IdVersionTableType(new IdAndVersionBuilder().setId(id).setVersion(version).build(), type);
 		});
+	}
+
+	@Override
+	public void deleteTableStatusForAllVersions(IdAndVersion idAndVersion) {
+		jdbcTemplate.update(SQL_DELETE_TABLE_STATUS, idAndVersion.getId());
 	}
 }

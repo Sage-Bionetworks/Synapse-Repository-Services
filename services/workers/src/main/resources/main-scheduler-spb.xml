@@ -96,6 +96,7 @@
 		<ref bean="doiWorkerTrigger"/>
 		<ref bean="storageReportWorkerTrigger"/>
 		<ref bean="addFilesToDownloadListTrigger"/>
+		<ref bean="tableStatusDeleteWorkerTrigger"/>
 		<!-- others -->
 		<ref bean="changeSentMessageSynchTrigger" />
 		<!-- workers publish messages too -->

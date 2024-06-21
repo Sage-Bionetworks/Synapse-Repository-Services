@@ -18,6 +18,7 @@ import org.sagebionetworks.search.workers.sqs.search.SearchQueueWorker;
 import org.sagebionetworks.snapshot.workers.ObjectSnapshotWorker;
 import org.sagebionetworks.snapshot.workers.writers.ObjectRecordWriter;
 import org.sagebionetworks.table.worker.MaterializedViewUpdateWorker;
+import org.sagebionetworks.table.worker.TableStatusDeleteWorker;
 import org.sagebionetworks.table.worker.TableIndexWorker;
 import org.sagebionetworks.table.worker.TableViewWorker;
 import org.sagebionetworks.worker.utils.StackStatusGate;
@@ -116,6 +117,29 @@ public class ChangeMessageWorkersConfig {
 			.withRepeatInterval(1797)
 			.withStartDelay(256)
 			.build();
+	}
+
+	@Bean
+	public SimpleTriggerFactoryBean tableStatusDeleteWorkerTrigger(TableStatusDeleteWorker tableStatusDeleteWorker) {
+
+		String queueName = stackConfig.getQueueName("TABLE_STATUS_DELETE");
+		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, tableStatusDeleteWorker);
+
+		return new WorkerTriggerBuilder()
+				.withStack(ConcurrentWorkerStack.builder()
+						.withSemaphoreLockKey("tableStatusDeleteWorker")
+						.withSemaphoreMaxLockCount(10)
+						.withSemaphoreLockAndMessageVisibilityTimeoutSec(1200)
+						.withMaxThreadsPerMachine(10)
+						.withSingleton(concurrentStackManager)
+						.withCanRunInReadOnly(true)
+						.withQueueName(queueName)
+						.withWorker(worker)
+						.build()
+				)
+				.withRepeatInterval(1797)
+				.withStartDelay(256)
+				.build();
 	}
 	
 	@Bean

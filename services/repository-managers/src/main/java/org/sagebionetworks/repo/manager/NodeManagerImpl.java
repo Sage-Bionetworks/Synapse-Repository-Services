@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
@@ -305,6 +306,13 @@ public class NodeManagerImpl implements NodeManager {
 		// Delete while holding the lock.
 		nodeDao.deleteVersion(id, versionNumber);
 		nodeDao.touch(userInfo.getId(), id);
+		transactionalMessenger.sendMessageAfterCommit(
+				new MessageToSend()
+						.withObjectId(id)
+						.withObjectVersion(versionNumber)
+						.withObjectType(ObjectType.ENTITY)
+						.withChangeType(ChangeType.DELETE)
+						.withUserId(userInfo.getId()));
 	}
 	
 	@Override

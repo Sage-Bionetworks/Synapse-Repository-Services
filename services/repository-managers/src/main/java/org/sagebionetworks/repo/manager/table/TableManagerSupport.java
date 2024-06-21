@@ -451,5 +451,10 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 	 * @return An {@link ActionsRequiredDao} instance for the table with the given id
 	 */
 	ActionsRequiredDao getActionsRequiredDao(IdAndVersion idAndVersion);
+	/**
+	 * Delete the table status of a table.
+	 * @param idAndVersion
+	 */
+	void deleteTableStatus(IdAndVersion idAndVersion);
 
 }

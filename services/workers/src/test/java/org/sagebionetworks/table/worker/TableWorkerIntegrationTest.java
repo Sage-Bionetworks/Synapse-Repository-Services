@@ -2,6 +2,7 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -41,6 +42,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
+import org.sagebionetworks.AsynchronousJobWorkerHelperImpl.AsyncJobResponse;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.CertifiedUserManager;
@@ -63,6 +65,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -113,6 +116,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
@@ -123,12 +127,14 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -811,6 +817,7 @@ public class TableWorkerIntegrationTest {
 		
 		// Move the table to the trash
 		this.trashManager.moveToTrash(adminUserInfo, tableId, false);
+		// move to trash does not change the status in TABLE_STATUS.
 		// change the query to avoid the cache.
 		query.setSql(sql+" limit 100");
 		assertThrows(EntityInTrashCanException.class, ()->{
@@ -837,6 +844,117 @@ public class TableWorkerIntegrationTest {
 		// should be able to call this multiple times.
 		tableEntityManager.deleteTableIfDoesNotExist(tableId);
 		tableEntityManager.deleteTableIfDoesNotExist(tableId);
+	}
+
+	@Test
+	public void testMoveToTrashTableDeletesAllVersionOfTableSatus() throws Exception {
+		createSchemaOneOfEachType();
+		createTableWithSchema();
+		RowSet rowSet = createRowSet(headers);
+		appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+
+		IdAndVersion defaultVersion = IdAndVersion.parse(tableId);
+		String sql = "select * from " + defaultVersion;
+		// Wait for the table to become available.
+		asyncHelper.assertQueryResult(adminUserInfo, sql, (results) -> {
+			assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+		}, MAX_WAIT_MS);
+
+		IdAndVersion oneVersion = createSnapshot(defaultVersion);
+
+		// Wait for the snapshot table to become available.
+		String snapshotSql = "select * from " + oneVersion;
+		asyncHelper.assertQueryResult(adminUserInfo, snapshotSql, (results) -> {
+			assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+		}, MAX_WAIT_MS);
+
+		// Move to trash sends a changeMessage of ObjectType.ENTITY and ChangeType.DELETE.
+		// So the TableStatusDeleteWorker can delete the table status and index table for the entity
+		this.trashManager.moveToTrash(adminUserInfo, tableId, false);
+
+		//Call under test
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+			try {
+				assertThrows(NotFoundException.class, () -> {
+					tableStatusDAO.getTableStatus(defaultVersion);
+				});
+				assertThrows(NotFoundException.class, () -> {
+					tableStatusDAO.getTableStatus(oneVersion);
+				});
+				return new Pair<>(Boolean.TRUE, null);
+			} catch (Throwable e) {
+				System.out.println("Waiting for TableStatusDeleteWorker to delete the status of table" + e.getMessage());
+				return new Pair<>(Boolean.FALSE, null);
+			}
+		});
+
+		assertThrows(NotFoundException.class, () -> {
+			asyncHelper.assertQueryResult(adminUserInfo, sql, (results) -> {
+				assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+			}, MAX_WAIT_MS);
+		});
+
+		assertThrows(NotFoundException.class, () -> {
+			asyncHelper.assertQueryResult(adminUserInfo, snapshotSql, (results) -> {
+				assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+			}, MAX_WAIT_MS);
+		});
+	}
+
+	@Test
+	public void testDeletesEntityWithVersionDeletesTableSatus() throws Exception {
+		createSchemaOneOfEachType();
+		createTableWithSchema();
+		RowSet rowSet = createRowSet(headers);
+		appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+
+		IdAndVersion defaultVersion = IdAndVersion.parse(tableId);
+		String sql = "select * from " + defaultVersion;
+
+		// Wait for the table to become available.
+		asyncHelper.assertQueryResult(adminUserInfo, sql, (results) -> {
+			assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+		}, MAX_WAIT_MS);
+
+		IdAndVersion oneVersion = createSnapshot(defaultVersion);
+
+		String snapshotSql = "select * from " + oneVersion;
+		asyncHelper.assertQueryResult(adminUserInfo, snapshotSql, (results) -> {
+			assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+		}, MAX_WAIT_MS);
+
+		// Delete entity sends a changeMessage of ObjectType.ENTITY and ChangeType.DELETE.
+		// So the TableStatusDeleteWorker can delete the table status and index table for the entity
+		entityManager.deleteEntityVersion(adminUserInfo, oneVersion.getId().toString(), oneVersion.getVersion().get());
+
+		//call under test
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+			try {
+				// only version of table in
+				assertThrows(NotFoundException.class, () -> {
+					tableStatusDAO.getTableStatus(oneVersion);
+				});
+				return new Pair<>(Boolean.TRUE, null);
+			} catch (Throwable e) {
+				System.out.println("Waiting for TableStatusDeleteWorker to delete the status of table" + e.getMessage());
+				return new Pair<>(Boolean.FALSE, null);
+			}
+		});
+
+		assertEquals(TableState.AVAILABLE, tableStatusDAO.getTableStatus(defaultVersion).getState());
+
+		asyncHelper.assertQueryResult(adminUserInfo, sql, (results) -> {
+			assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+		}, MAX_WAIT_MS);
+
+
+		String message = assertThrows(AsynchJobFailedException.class, () -> {
+			asyncHelper.assertQueryResult(adminUserInfo, snapshotSql, (results) -> {
+				assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+			}, MAX_WAIT_MS);
+		}).getMessage();
+
+		assertEquals("Entity " + oneVersion + " does not exist.", message);
 	}
 
 	/**
@@ -4007,4 +4125,18 @@ public class TableWorkerIntegrationTest {
 		}
 	}
 
+	private IdAndVersion createSnapshot(IdAndVersion id) throws AssertionError, AsynchJobFailedException {
+
+		TableUpdateTransactionRequest txRequest = new TableUpdateTransactionRequest().setEntityId(id.toString())
+				.setSnapshotOptions(
+						new SnapshotRequest().setSnapshotComment("snapshotting...").setSnapshotLabel("version two"))
+				.setCreateSnapshot(true);
+
+		AsyncJobResponse<TableUpdateTransactionResponse> wrapped = asyncHelper.assertJobResponse(adminUserInfo,
+				txRequest, (TableUpdateTransactionResponse response) -> {
+					assertNotNull(response.getSnapshotVersionNumber());
+				}, MAX_WAIT_MS);
+		return IdAndVersion.newBuilder().setId(id.getId()).setVersion(wrapped.getResponse().getSnapshotVersionNumber())
+				.build();
+	}
 }

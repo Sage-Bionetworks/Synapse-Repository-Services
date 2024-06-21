@@ -1791,5 +1791,40 @@ public class TableManagerSupportTest {
 		verify(mockTableStatusDAO).attemptToSetTableStatusToFailed(eq(idAndVersion), eq("translated"), stackCaptor.capture());
 		assertTrue(stackCaptor.getValue().startsWith("java.lang.IllegalArgumentException: translated"));
 	}
-	
+
+	@Test
+	public void testDeleteTableStatusWithNegativeVersion() {
+		IdAndVersion tableId = IdAndVersion.newBuilder().setId(123L).setVersion(-1L).build();
+		// call under test
+		manager.deleteTableStatus(tableId);
+
+		verify(mockTableStatusDAO).deleteTableStatusForAllVersions(tableId);
+	}
+
+	@Test
+	public void testDeleteTableStatusWithoutVersion() {
+		IdAndVersion tableId = IdAndVersion.newBuilder().setId(123L).build();
+		// call under test
+		manager.deleteTableStatus(tableId);
+
+		verify(mockTableStatusDAO).deleteTableStatusForAllVersions(tableId);
+	}
+
+	@Test
+	public void testDeleteTableStatusWithNullVersion() {
+		IdAndVersion tableId = IdAndVersion.newBuilder().setId(123L).setVersion(null).build();
+		// call under test
+		manager.deleteTableStatus(tableId);
+
+		verify(mockTableStatusDAO).deleteTableStatusForAllVersions(tableId);
+	}
+
+	@Test
+	public void testDeleteTableStatusWithVersion() {
+		IdAndVersion tableId = IdAndVersion.newBuilder().setId(123L).setVersion(1L).build();
+		// call under test
+		manager.deleteTableStatus(tableId);
+
+		verify(mockTableStatusDAO).deleteTableStatus(tableId);
+	}
 }

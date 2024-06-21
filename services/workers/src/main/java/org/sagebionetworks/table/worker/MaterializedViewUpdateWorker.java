@@ -41,11 +41,7 @@ public class MaterializedViewUpdateWorker implements ChangeMessageDrivenRunner {
 		if (ObjectType.MATERIALIZED_VIEW.equals(message.getObjectType())) { 
 			final IdAndVersion idAndVersion = KeyFactory.idAndVersion(message.getObjectId(), message.getObjectVersion());
 			try {
-				if (ChangeType.DELETE.equals(message.getChangeType())) {
-					materializedViewManager.deleteViewIndex(idAndVersion);
-				} else {
 					materializedViewManager.createOrUpdateViewIndex(progressCallback, idAndVersion);
-				}
 			} catch (RecoverableMessageException e) {
 				throw e;
 			} catch (TableIndexConnectionUnavailableException | LockUnavilableException | TableUnavailableException e) {

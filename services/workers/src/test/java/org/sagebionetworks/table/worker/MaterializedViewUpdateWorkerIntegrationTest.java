@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -84,6 +85,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
@@ -134,6 +136,9 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 
 	@Autowired
 	private DBOChangeDAO changeDAO;
+
+	@Autowired
+	TableStatusDAO tableStatusDAO;
 
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
@@ -341,6 +346,94 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 				return new Pair<>(Boolean.FALSE, null);
 			}
 		});
+	}
+
+	@Test
+	public void testDeletesEntityAndMoveToTrashDeletesTableSatus() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		String projectId = entites.get(0).getId();
+		EntityView ev = createEntityView(entites);
+		IdAndVersion viewId = IdAndVersion.parse(ev.getId());
+		// Wait for the view to be available first.
+		asyncHelper.waitForTableOrViewToBeAvailable(viewId, MAX_WAIT_MS);
+		IdAndVersion viewSnapshotId = createSnapshot(viewId);
+
+		String definingSql = "select * from " + viewSnapshotId;
+
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
+
+		String finalSql = "select * from " + materializedViewId;
+
+		// Wait for the mv to build.
+		asyncHelper.assertQueryResult(adminUserInfo, finalSql, (results) -> {
+			assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+		}, MAX_WAIT_MS);
+
+		// Delete entity sends a changeMessage of ObjectType.ENTITY and ChangeType.DELETE.
+		// So the TableStatusDeleteWorker can delete the table status.
+		entityManager.deleteEntityVersion(adminUserInfo, viewSnapshotId.getId().toString(), viewSnapshotId.getVersion().get());
+
+		//call under test
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+			try {
+				assertThrows(NotFoundException.class, () -> {
+					tableStatusDAO.getTableStatus(viewSnapshotId);
+				});
+				return new Pair<>(Boolean.TRUE, null);
+			} catch (Throwable e) {
+				System.out.println("Waiting for TableStatusDeleteWorker to delete the status of table" + e.getMessage());
+				return new Pair<>(Boolean.FALSE, null);
+			}
+		});
+
+		// Snapshot entity view is deleted so TABLE_STATUS is not available.
+		String errorMessage = assertThrows(AsynchJobFailedException.class, () -> {
+			asyncHelper.assertQueryResult(adminUserInfo, "select * from " + viewSnapshotId, (results) -> {
+				assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+			}, MAX_WAIT_MS);
+		}).getMessage();
+
+		assertEquals("Entity " + viewSnapshotId + " does not exist.", errorMessage);
+
+		// Entity default view is available as we deleted snapshot version only.
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + viewId, (results) -> {
+			assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+		}, MAX_WAIT_MS);
+
+		// As MV is already available So querying the view will show the results.
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + materializedViewId + " limit 10", (results) -> {
+			assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+		}, MAX_WAIT_MS);
+
+		// Sending a message to rebuild the view.
+		ChangeMessage changeMessage = new ChangeMessage();
+		changeMessage.setChangeType(ChangeType.UPDATE);
+		changeMessage.setObjectType(ObjectType.MATERIALIZED_VIEW);
+		changeMessage.setObjectId(materializedViewId.getId().toString());
+		changeMessage = changeDAO.replaceChange(changeMessage);
+		repositoryMessagePublisher.publishToTopic(changeMessage);
+
+		// Rebuilding the MV will fail as one of its dependency TABLE_STATUS is not available.
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+			try {
+				assertEquals(TableState.PROCESSING_FAILED, tableStatusDAO.getTableStatus(materializedViewId).getState());
+				return new Pair<>(Boolean.TRUE, null);
+			} catch (Throwable e) {
+				System.out.println("Waiting for failure of materialized view rebuild " + e.getMessage());
+				return new Pair<>(Boolean.FALSE, null);
+			}
+		});
+
+		// Querying the MV will fail as rebuilding failed and status of MV is PROCESSING_FAILED.
+		String message = assertThrows(AsynchJobFailedException.class, () -> {
+			asyncHelper.assertQueryResult(adminUserInfo, "select * from " + materializedViewId + " limit 100", (results) -> {
+				assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
+			}, MAX_WAIT_MS);
+		}).getMessage();
+
+		assertEquals("Cannot build materialized view syn-" + materializedViewId.getId().toString()
+				+ ", the dependent table " + viewSnapshotId + " failed to build", message);
 	}
 
 	@Test

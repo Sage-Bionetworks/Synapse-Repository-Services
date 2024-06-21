@@ -18,6 +18,7 @@ public class LockContext {
 
 	public enum ContextType {
 		TableUpdate("Applying an update to table: '%s' ..."),
+		TableStatusUpdate("Deleting status for table: '%s' ..."),
 		TableSnapshot("Creating a snapshot of table: '%s' ..."),
 		ViewSnapshot("Creating a snapshot of view: '%s' ..."),
 		BuildTableIndex("Rebuilding table index: '%s' ..."),
