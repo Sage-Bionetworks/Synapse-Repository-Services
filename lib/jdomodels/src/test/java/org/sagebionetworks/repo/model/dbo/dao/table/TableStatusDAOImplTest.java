@@ -212,6 +212,31 @@ public class TableStatusDAOImplTest {
 		}
 	}
 
+	@Test
+	public void testDeleteTableStatusForAllVersions() throws NotFoundException {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IdAndVersion tableIdVersion = IdAndVersion.parse("syn1.1");
+
+		// This should insert a row for this table.
+		tableStatusDAO.resetTableStatusToProcessing(tableId, isResetToken);
+		tableStatusDAO.resetTableStatusToProcessing(tableIdVersion, isResetToken);
+		TableStatus status = tableStatusDAO.getTableStatus(tableId);
+		assertNotNull(status);
+		status = tableStatusDAO.getTableStatus(tableIdVersion);
+		assertNotNull(status);
+
+		// call under test
+		tableStatusDAO.deleteTableStatusForAllVersions(tableId);
+
+		assertThrows(NotFoundException.class, () -> {
+			tableStatusDAO.getTableStatus(tableIdVersion);
+		});
+
+		assertThrows(NotFoundException.class, () -> {
+			tableStatusDAO.getTableStatus(tableId);
+		});
+	}
+
 	/**
 	 * This is a test for PLFM-2634 and PLFM-2636
 	 * 
