@@ -1556,16 +1556,5 @@ public class TableModelUtils {
 	public static List<IdAndVersion> getSourceTableIds(String definingSql) {
 		return getSourceTableIds(getQuerySpecification(definingSql));
 	}
-	
-	public static List<TableIdAndAlias> getSourceTableIdAndAlias(QueryExpression query) {
-		return query.stream(TableNameCorrelation.class)
-				.map((tnc) -> new TableIdAndAlias().withAlias(tnc.getTableAlias().orElse(null))
-						.withIdAndVersion(IdAndVersion.parse(tnc.getTableName().toSql())))
-				.collect(Collectors.toList());
-	}
-	
-	public static List<TableIdAndAlias> getSourceTableIdAndAlias(String definingSql) {
-		 return getSourceTableIdAndAlias(getQuerySpecification(definingSql));
-	}
 
 }

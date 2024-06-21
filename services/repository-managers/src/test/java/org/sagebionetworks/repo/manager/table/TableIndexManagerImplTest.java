@@ -81,7 +81,6 @@ import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
-import org.sagebionetworks.table.cluster.description.TableDependency;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
@@ -2538,7 +2537,8 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testBuildTableIndexIndicesWithMaterializedView() {
-		MaterializedViewIndexDescription index = new MaterializedViewIndexDescription(tableId, Collections.emptyList());
+//		MaterializedViewIndexDescription index = new MaterializedViewIndexDescription(tableId, Collections.emptyList());
+		MaterializedViewIndexDescription index = setupMaterializedView(tableId);
 		
 		doNothing().when(managerSpy).optimizeTableIndices(any());
 		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
@@ -2786,11 +2786,10 @@ public class TableIndexManagerImplTest {
 		IdAndVersion idTwo = IdAndVersion.newBuilder().setId(789L).build();
 		long maxCurrentCompleteVersionOne = 10L;
 		long maxCurrentCompleteVersionTwo = 12L;
-		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
-				new TableDependency().withIndexDescription(new TableIndexDescription(idOne)),
-				new TableDependency().withIndexDescription(new ViewIndexDescription(idTwo, TableType.entityview, -1L))
-		));
-
+		setupLookup(new TableIndexDescription(idOne), new ViewIndexDescription(idTwo, TableType.entityview, -1L));
+		IndexDescription index = new MaterializedViewIndexDescription(tableId,
+				"select * from syn456 a join syn789 b on(a.id=b.id)", mockManagerSupport);
+		
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idOne)).thenReturn(maxCurrentCompleteVersionOne);
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idTwo)).thenReturn(maxCurrentCompleteVersionTwo);
 
@@ -2811,10 +2810,9 @@ public class TableIndexManagerImplTest {
 		IdAndVersion idTwo = IdAndVersion.newBuilder().setId(789L).setVersion(12L).build();
 		long maxCurrentCompleteVersionOne = 11L;
 		long maxCurrentCompleteVersionTwo = 13L;
-		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
-				new TableDependency().withIndexDescription(new TableIndexDescription(idOne)),
-				new TableDependency().withIndexDescription(new ViewIndexDescription(idTwo, TableType.entityview, -1L))
-		));
+		setupLookup(new TableIndexDescription(idOne), new ViewIndexDescription(idTwo, TableType.entityview, -1L));
+		IndexDescription index = new MaterializedViewIndexDescription(tableId,
+				"select * from syn456.10 a join syn789.12 b on(a.id=b.id)", mockManagerSupport);
 
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idOne)).thenReturn(maxCurrentCompleteVersionOne);
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idTwo)).thenReturn(maxCurrentCompleteVersionTwo);
@@ -2835,10 +2833,9 @@ public class TableIndexManagerImplTest {
 		IdAndVersion idTwo = IdAndVersion.newBuilder().setId(789L).build();
 		long maxCurrentCompleteVersionOne = Long.MAX_VALUE;
 		long maxCurrentCompleteVersionTwo = 12L;
-		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
-				new TableDependency().withIndexDescription(new TableIndexDescription(idOne)),
-				new TableDependency().withIndexDescription(new ViewIndexDescription(idTwo, TableType.entityview, -1L))
-		));
+		setupLookup(new TableIndexDescription(idOne), new ViewIndexDescription(idTwo, TableType.entityview, -1L));
+		IndexDescription index = new MaterializedViewIndexDescription(tableId,
+				"select * from syn456 a join syn789 b on(a.id=b.id)", mockManagerSupport);
 
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idOne)).thenReturn(maxCurrentCompleteVersionOne);
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(idTwo)).thenReturn(maxCurrentCompleteVersionTwo);
@@ -2875,10 +2872,9 @@ public class TableIndexManagerImplTest {
 
 		setupExecuteInWriteTransaction();
 		
-		IndexDescription index = new MaterializedViewIndexDescription(tableId, List.of(
-			new TableDependency().withIndexDescription(new TableIndexDescription(idOne)),
-			new TableDependency().withIndexDescription(new ViewIndexDescription(idTwo, TableType.entityview, -1L))
-		));
+		setupLookup(new TableIndexDescription(idOne), new ViewIndexDescription(idTwo, TableType.entityview, -1L));
+		IndexDescription index = new MaterializedViewIndexDescription(tableId,
+				"select * from syn456 a join syn789 b on(a.id=b.id)", mockManagerSupport);
 		
 		when(mockManagerSupport.getTableSchema(any())).thenReturn(
 			List.of(TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING)), // 456 schema
@@ -2908,7 +2904,7 @@ public class TableIndexManagerImplTest {
 		
 		assertEquals(expected, result);
 
-		verify(mockIndexDao).update("INSERT INTO T123 (_C99_,_C101_,ROW_BENEFACTOR_T789) SELECT _A0._C99_, _A1._C101_, IFNULL(_A1.ROW_BENEFACTOR,-1) FROM T456 _A0 JOIN T789 _A1", Collections.emptyMap());
+		verify(mockIndexDao).update("INSERT INTO T123 (_C99_,_C101_,ROW_BENEFACTOR__A1) SELECT _A0._C99_, _A1._C101_, IFNULL(_A1.ROW_BENEFACTOR,-1) FROM T456 _A0 JOIN T789 _A1", Collections.emptyMap());
 		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(idOne);
 		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(idTwo);
 	}
@@ -3053,6 +3049,17 @@ public class TableIndexManagerImplTest {
 	public List<ColumnModel> createDefaultColumnsWithIds(ObjectField exclude) {
 		return createDefaultColumnsWithIds().stream().filter(model -> !model.getName().equals(exclude.name()))
 				.collect(Collectors.toList());
+	}
+	
+	public MaterializedViewIndexDescription setupMaterializedView(IdAndVersion mvId) {
+		setupLookup(new TableIndexDescription(IdAndVersion.parse("syn1")));
+		MaterializedViewIndexDescription mvd = new MaterializedViewIndexDescription(mvId, "select * from syn1",
+				mockManagerSupport);
+		return mvd;
+	}
+	
+	public void setupLookup(IndexDescription...all){
+		Arrays.stream(all).forEach(d->when(mockManagerSupport.getIndexDescription(d.getIdAndVersion())).thenReturn(d));
 	}
 
 }

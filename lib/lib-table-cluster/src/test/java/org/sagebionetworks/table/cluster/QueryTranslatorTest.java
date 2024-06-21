@@ -33,7 +33,6 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescriptionLookup;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
-import org.sagebionetworks.table.cluster.description.TableDependency;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
@@ -92,6 +91,10 @@ public class QueryTranslatorTest {
 		sql = "select * from syn123";
 		userId = 1l;
 		idAndVersion = IdAndVersion.parse("syn123");
+	}
+	
+	public void setupLookup(IndexDescription...all){
+		Arrays.stream(all).forEach(d->when(mockIndexDescriptionLookup.getIndexDescription(d.getIdAndVersion())).thenReturn(d));
 	}
 
 	@Test
@@ -199,11 +202,13 @@ public class QueryTranslatorTest {
 
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
 		setupGetColumns(columnNameToModelMap.get("foo"));
-
-		QueryTranslator translator = QueryTranslator.builder("select foo from syn123", mockSchemaProvider, userId)
-				.indexDescription(new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList()))
+		
+		setupLookup(new TableIndexDescription(IdAndVersion.parse("syn1")));
+		sql = "select foo from syn1";
+		QueryTranslator translator = QueryTranslator.builder(sql, mockSchemaProvider, userId)
+				.indexDescription(new MaterializedViewIndexDescription(idAndVersion, sql, mockIndexDescriptionLookup))
 				.sqlContext(SqlContext.build).build();
-		assertEquals("SELECT _C111_ FROM T123", translator.getOutputSQL());
+		assertEquals("SELECT _C111_ FROM T1", translator.getOutputSQL());
 		assertEquals(SqlContext.build, translator.getSqlContext());
 	}
 
@@ -1399,13 +1404,12 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn2")))
 				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has\"quote")));
 
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))),
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn2"))));
-		
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
+		setupLookup(new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new TableIndexDescription(IdAndVersion.parse("syn2")));
 
 		sql = "select * from syn1 join syn2 on (syn1.foo = syn2.foo) WHERE syn1.bar = 'some text' order by syn1.bar";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, sql, mockIndexDescriptionLookup);
+		
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C4242_ "
@@ -1421,13 +1425,12 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn2")))
 				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has\"quote")));
 
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))),
-				new TableDependency().withIndexDescription(
-						new ViewIndexDescription(IdAndVersion.parse("syn2"), TableType.entityview, -1L)));
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
+		setupLookup(new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new ViewIndexDescription(IdAndVersion.parse("syn2"), TableType.entityview, -1L));
 
 		sql = "select * from syn1 join syn2 on (syn1.foo = syn2.foo) WHERE syn1.bar = 'some text' order by syn1.bar";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, sql, mockIndexDescriptionLookup);
+
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C4242_, IFNULL(_A1.ROW_BENEFACTOR,-1) "
@@ -1443,11 +1446,9 @@ public class QueryTranslatorTest {
 				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 		setupGetColumns(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar"));
 
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))),
-				new TableDependency().withIndexDescription(
-						new ViewIndexDescription(IdAndVersion.parse("syn2"), TableType.entityview, -1L)));
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
+		setupLookup(new TableIndexDescription(IdAndVersion.parse("syn1")));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, "select * from syn1",
+				mockIndexDescriptionLookup);
 
 		sql = "select * from syn123 WHERE bar = 'some text'";
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
@@ -1464,12 +1465,12 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn2")))
 				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has\"quote")));
 
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))),
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn2"))));
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
+		setupLookup(new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new TableIndexDescription(IdAndVersion.parse("syn2")));
 
 		sql = "select * from syn1 a join syn2 b on (a.foo = b.foo) WHERE a.bar = 'some text' order by a.bar";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, sql,
+				mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.indexDescription(indexDescription).sqlContext(SqlContext.build).build();
 		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C4242_ "
@@ -1484,12 +1485,10 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn1")))
 				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))),
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))));
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
+		setupLookup(new TableIndexDescription(IdAndVersion.parse("syn1")));
 
 		sql = "select * from syn1 a join syn1 b on (a.foo = b.foo) WHERE a.bar = 'some text' order by b.bar";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, sql, mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C333_ "
@@ -1504,14 +1503,13 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn1")))
 				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 
-		List<TableDependency> dependencies = Arrays.asList(new TableDependency()
-				.withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn1"), TableType.entityview, -1L)));
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
+		setupLookup(new ViewIndexDescription(IdAndVersion.parse("syn1"), TableType.entityview, -1L));
 
 		sql = "select * from syn1 a join syn1 b on (a.foo = b.foo) WHERE a.bar = 'some text' order by b.bar";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, sql, mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
-		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C333_, IFNULL(_A0.ROW_BENEFACTOR,-1) "
+		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C333_, IFNULL(_A0.ROW_BENEFACTOR,-1), IFNULL(_A1.ROW_BENEFACTOR,-1) "
 				+ "FROM T1 _A0 JOIN T1 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A1._C333_",
 				query.getOutputSQL());
 		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
@@ -1524,13 +1522,12 @@ public class QueryTranslatorTest {
 				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn2")))
 				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has space")));
-
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))),
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn2"))));
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
+		setupLookup(new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new TableIndexDescription(IdAndVersion.parse("syn2")));
 
 		sql = "select b.`has space`, sum(a.foo) from syn1 a left join syn2 b on (a.foo = b.foo) group by b.`has space`";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, sql, mockIndexDescriptionLookup);
+
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
@@ -1546,12 +1543,11 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn2")))
 				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has space")));
 
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))),
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))));
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
-
+		setupLookup(new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new TableIndexDescription(IdAndVersion.parse("syn2")));
+		
 		sql = "select * from syn1 a left outer join syn2 b on (a.foo = b.foo)";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, sql, mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
@@ -1567,12 +1563,11 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn2")))
 				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has space")));
 
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))),
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn2"))));
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
+		setupLookup(new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new TableIndexDescription(IdAndVersion.parse("syn2")));
 
 		sql = "select * from syn1 a right join syn2 b on (a.foo = b.foo)";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, sql, mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
@@ -1588,12 +1583,11 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn2")))
 				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has space")));
 
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn1"))),
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn2"))));
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
+		setupLookup(new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new TableIndexDescription(IdAndVersion.parse("syn2")));
 
 		sql = "select * from syn1 a right outer join syn2 b on (a.foo = b.foo)";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, sql, mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.indexDescription(indexDescription).sqlContext(SqlContext.build).build();
 		assertEquals(
@@ -1643,12 +1637,11 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("doubletype")));
 		setupGetColumns(columnNameToModelMap.get("doubletype"));
 
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new ViewIndexDescription(viewId, TableType.dataset, -1L)));
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		setupLookup(new ViewIndexDescription(viewId, TableType.dataset, -1L));
 
 		// this query is used to build the materialized view.
 		sql = "select doubletype from syn1";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, sql, mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals("SELECT _C777_, IFNULL(ROW_BENEFACTOR,-1) FROM T1", query.getOutputSQL());
@@ -1663,9 +1656,8 @@ public class QueryTranslatorTest {
 				.thenReturn(List.of(columnNameToModelMap.get("doubletype")));
 		setupGetColumns(columnNameToModelMap.get("doubletype"));
 
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new ViewIndexDescription(viewId, TableType.dataset, -1L)));
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		setupLookup(new ViewIndexDescription(viewId, TableType.dataset, -1L));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, "select * from syn1", mockIndexDescriptionLookup);
 
 		// this is a query against a materialized view.
 		sql = "select * from syn123";
@@ -1741,14 +1733,12 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(two)).thenReturn(List.of(c, d));
 		setupGetColumns(c, d);
 
-		List<TableDependency> dependencies = List.of(
-				new TableDependency().withIndexDescription(new TableIndexDescription(one)),
-				new TableDependency().withIndexDescription(new TableIndexDescription(two)));
+		setupLookup(new TableIndexDescription(one), new TableIndexDescription(two));
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		sql = "select a, b from syn1 union select c, d from syn2";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, sql, mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.indexDescription(indexDescription).sqlContext(SqlContext.build).build();
 
@@ -1767,16 +1757,13 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 
-		// Note: The dependencies are in a different order.
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(tableId)), new TableDependency()
-						.withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)));
+		setupLookup(new TableIndexDescription(tableId), new ViewIndexDescription(viewId, TableType.entityview, -1L));
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		// this query is used to build the materialized view.
 		sql = "select * from syn1 a join syn2 b on a.inttype = b.inttype";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, sql, mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
@@ -1792,20 +1779,17 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 
-		// Note: The dependencies are in a different order.
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(tableId)), new TableDependency()
-						.withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)));
-
+		setupLookup(new TableIndexDescription(tableId), new ViewIndexDescription(viewId, TableType.entityview, -1L));		
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		// this query is used to build the materialized view.
 		sql = "select * from syn1 a join syn2 b on (a.inttype = b.inttype) join syn1 c on (b.inttype = c.inttype)";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, sql, mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
-				"SELECT _A0._C888_, _A1._C888_, _A2._C888_, IFNULL(_A0.ROW_BENEFACTOR,-1) FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C888_ = _A1._C888_ ) JOIN T1 _A2 ON ( _A1._C888_ = _A2._C888_ )",
+				"SELECT _A0._C888_, _A1._C888_, _A2._C888_, IFNULL(_A0.ROW_BENEFACTOR,-1), IFNULL(_A2.ROW_BENEFACTOR,-1)"
+				+ " FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C888_ = _A1._C888_ ) JOIN T1 _A2 ON ( _A1._C888_ = _A2._C888_ )",
 				query.getOutputSQL());
 	}
 
@@ -1816,14 +1800,12 @@ public class QueryTranslatorTest {
 				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 		setupGetColumns(columnNameToModelMap.get("foo"));
 
-		List<TableDependency> dependencies = Arrays.asList(new TableDependency()
-				.withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)));
+		setupLookup(new ViewIndexDescription(viewId, TableType.entityview, -1L));	
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
-
 		// this query is used to build the materialized view.
 		sql = "select foo, sum(bar) from syn1 group by foo";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, sql, mockIndexDescriptionLookup);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider).sqlContext(SqlContext.build)
@@ -1840,16 +1822,12 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 
-		// Note: The dependencies are in a different order.
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(tableId)), new TableDependency()
-						.withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)));
-
+		setupLookup(new TableIndexDescription(tableId), new ViewIndexDescription(viewId, TableType.entityview, -1L));		
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		// this query is used to build the materialized view.
 		sql = "select * from syn1 a join syn2 b on (a.inttype = b.inttype) where a.inttypeWrong = 123";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, sql, mockIndexDescriptionLookup);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider).sqlContext(SqlContext.build)
 					.indexDescription(indexDescription).build();
@@ -1865,16 +1843,13 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 
-		// Note: The dependencies are in a different order.
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(tableId)), new TableDependency()
-						.withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)));
-
+		setupLookup(new TableIndexDescription(tableId), new ViewIndexDescription(viewId, TableType.entityview, -1L));
+		
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		// this query is used to build the materialized view.
 		sql = "select * from syn1 a join syn2 b on (a.inttypeWrong = b.inttype)";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, sql, mockIndexDescriptionLookup);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider).sqlContext(SqlContext.build)
 					.indexDescription(indexDescription).build();
@@ -1890,16 +1865,13 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 
-		// Note: The dependencies are in a different order.
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(tableId)), new TableDependency()
-						.withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)));
+		setupLookup(new TableIndexDescription(tableId), new ViewIndexDescription(viewId, TableType.entityview, -1L));
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		// this query is used to build the materialized view.
 		sql = "select * from syn1 a join syn2 b on (a.inttype = b.inttype and a.inttype > 12)";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, sql, mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals("SELECT _A0._C888_, _A1._C888_, IFNULL(_A0.ROW_BENEFACTOR,-1) FROM T1 _A0 "
@@ -1917,16 +1889,12 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 
-		// Note: The dependencies are in a different order.
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(tableId)), new TableDependency()
-						.withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)));
-
+		setupLookup(new TableIndexDescription(tableId), new ViewIndexDescription(viewId, TableType.entityview, -1L));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		// this query is used to build the materialized view.
 		sql = "select * from syn1 where inttype > 1 union select * from syn2 where inttype < 12";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, sql, mockIndexDescriptionLookup);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider).sqlContext(SqlContext.query)
 					.indexDescription(indexDescription).build();
@@ -1943,16 +1911,12 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 		setupGetColumns(columnNameToModelMap.get("inttype"));
 
-		// Note: The dependencies are in a different order.
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(tableId)), new TableDependency()
-						.withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)));
-
+		setupLookup(new TableIndexDescription(tableId), new ViewIndexDescription(viewId, TableType.entityview, -1L));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		// this query is used to build the materialized view.
 		sql = "select * from syn1 where inttype > 1 union select * from syn2 where inttype < 12";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, sql, mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals("SELECT _C888_, IFNULL(ROW_BENEFACTOR,-1) FROM T1 WHERE _C888_ > :b0" + " UNION "
@@ -1972,18 +1936,13 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(view2Id)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 		setupGetColumns(columnNameToModelMap.get("inttype"));
 
-		// Note: The dependencies are in a different order.
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency()
-						.withIndexDescription(new ViewIndexDescription(view2Id, TableType.entityview, -1L)),
-				new TableDependency()
-						.withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)));
-
+		setupLookup(new ViewIndexDescription(view2Id, TableType.entityview, -1L),
+				new ViewIndexDescription(viewId, TableType.entityview, -1L));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		// this query is used to build the materialized view.
 		sql = "select * from syn1 where inttype > 1 union select * from syn2 where inttype < 12";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, sql, mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
@@ -2005,24 +1964,19 @@ public class QueryTranslatorTest {
 				.thenReturn(List.of(columnNameToModelMap.get("inttype"), columnNameToModelMap.get("foo")));
 		when(mockSchemaProvider.getTableSchema(view2Id)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L))
-						.withTableAlias("a"),
-				new TableDependency().withIndexDescription(new ViewIndexDescription(view2Id, TableType.entityview, -1L))
-						.withTableAlias("b"),
-				new TableDependency().withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L))
-						.withTableAlias("c"));
+		setupLookup(new ViewIndexDescription(viewId, TableType.entityview, -1L),
+				new ViewIndexDescription(view2Id, TableType.entityview, -1L));
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		// This is a case where there are multiple joins for the same view with different alias.
 		sql = "select * from syn1 a join syn2 b on(a.inttype = b.inttype) left join syn1 c on (a.foo = c.foo) where a.inttype > 1";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, sql, mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
 				"SELECT _A0._C888_, _A0._C111_, _A1._C888_, _A2._C888_, _A2._C111_,"
-				+ " IFNULL(_A0.ROW_BENEFACTOR,-1), IFNULL(_A2.ROW_BENEFACTOR,-1), IFNULL(_A1.ROW_BENEFACTOR,-1)"
+				+ " IFNULL(_A0.ROW_BENEFACTOR,-1), IFNULL(_A1.ROW_BENEFACTOR,-1), IFNULL(_A2.ROW_BENEFACTOR,-1)"
 				+ " FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C888_ = _A1._C888_ ) LEFT JOIN T1 _A2 ON ( _A0._C111_ = _A2._C111_ )"
 				+ " WHERE _A0._C888_ > :b0",
 				query.getOutputSQL());
@@ -2038,19 +1992,18 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(viewId)).thenReturn(List.of(columnNameToModelMap.get("inttype")));
 		setupGetColumns(columnNameToModelMap.get("inttype"));
 
-		// Note: The dependencies are in a different order.
-		List<TableDependency> dependencies = Arrays
-				.asList(new TableDependency().withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)));
-
+		setupLookup(new ViewIndexDescription(viewId, TableType.entityview, -1L));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		// this query is used to build the materialized view.
 		sql = "select * from syn1 where inttype > 1 union select * from syn1 where inttype < 12";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, sql,mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
-		assertEquals("SELECT _C888_, IFNULL(ROW_BENEFACTOR,-1) FROM T1 WHERE _C888_ > :b0" + " UNION "
-				+ "SELECT _C888_, IFNULL(ROW_BENEFACTOR,-1) FROM T1 WHERE _C888_ < :b1", query.getOutputSQL());
+		
+		assertEquals("SELECT _C888_, IFNULL(ROW_BENEFACTOR,-1), IFNULL(ROW_BENEFACTOR,-1) FROM T1 WHERE _C888_ > :b0"
+				+ " UNION "
+				+ "SELECT _C888_, IFNULL(ROW_BENEFACTOR,-1), IFNULL(ROW_BENEFACTOR,-1) FROM T1 WHERE _C888_ < :b1", query.getOutputSQL());
 		Map<String, Object> expectedParams = new HashMap<>(4);
 		expectedParams.put("b0", 1L);
 		expectedParams.put("b1", 12L);
@@ -2069,18 +2022,15 @@ public class QueryTranslatorTest {
 
 		setupGetColumns(columnNameToModelMap.get("bar"));
 
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)),
-				new TableDependency()
-						.withIndexDescription(new ViewIndexDescription(view2Id, TableType.entityview, -1L)),
-				new TableDependency()
-						.withIndexDescription(new ViewIndexDescription(view3Id, TableType.entityview, -1L)));
+		setupLookup(new ViewIndexDescription(viewId, TableType.entityview, -1L),
+				new ViewIndexDescription(view2Id, TableType.entityview, -1L),
+				new ViewIndexDescription(view3Id, TableType.entityview, -1L));
 
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn4");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 
 		// this query is used to build the materialized view.
 		sql = "select a.foo from syn1 a join syn2 b on (a.foo = b.`has space`) union select * from syn3 where bar is not null";
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, sql, mockIndexDescriptionLookup);
 		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
@@ -2088,35 +2038,6 @@ public class QueryTranslatorTest {
 						+ "FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C111_ = _A1._C222_ )" + " UNION "
 						+ "SELECT _C333_, -1, -1, IFNULL(ROW_BENEFACTOR,-1) FROM T3 WHERE _C333_ IS NOT NULL",
 				query.getOutputSQL());
-	}
-
-	@Test
-	public void testTranslateWithMaterializedViewNestedUnions() throws ParseException {
-		IdAndVersion viewId = IdAndVersion.parse("syn1");
-		IdAndVersion view2Id = IdAndVersion.parse("syn2");
-
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)),
-				new TableDependency()
-						.withIndexDescription(new ViewIndexDescription(view2Id, TableType.entityview, -1L)));
-
-		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
-
-		// this query is used to build the materialized view.
-		sql = "(select foo from syn1 union select `has space` from syn2) where foo > 12";
-
-		/*
-		 * Note: This query does not currently parse. However, if we do add support for
-		 * this type of query, then we need to ensure that the 'where foo > 12' is
-		 * properly translated.
-		 */
-		Throwable cause = assertThrows(IllegalArgumentException.class, () -> {
-			QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider).sqlContext(SqlContext.build)
-					.indexDescription(indexDescription).build();
-		}).getCause();
-		assertTrue(cause instanceof ParseException);
-
 	}
 
 	@Test

@@ -7,6 +7,7 @@ public class TableDependency implements Comparable<TableDependency> {
 
 	private IndexDescription indexDescription;
 	private String tableAlias;
+	private String indexAlias;
 
 	public IndexDescription getIndexDescription() {
 		return indexDescription;
@@ -26,9 +27,18 @@ public class TableDependency implements Comparable<TableDependency> {
 		return this;
 	}
 
+	public String getIndexAlias() {
+		return indexAlias;
+	}
+
+	public TableDependency withIndexAlias(String indexAlias) {
+		this.indexAlias = indexAlias;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(indexDescription, tableAlias);
+		return Objects.hash(indexAlias, indexDescription, tableAlias);
 	}
 
 	@Override
@@ -40,7 +50,8 @@ public class TableDependency implements Comparable<TableDependency> {
 		if (getClass() != obj.getClass())
 			return false;
 		TableDependency other = (TableDependency) obj;
-		return Objects.equals(indexDescription, other.indexDescription) && Objects.equals(tableAlias, other.tableAlias);
+		return Objects.equals(indexAlias, other.indexAlias) && Objects.equals(indexDescription, other.indexDescription)
+				&& Objects.equals(tableAlias, other.tableAlias);
 	}
 
 	@Override

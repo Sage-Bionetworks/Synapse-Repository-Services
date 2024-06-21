@@ -60,6 +60,7 @@ import org.sagebionetworks.table.cluster.columntranslation.RowMetadataColumnTran
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.description.ColumnToAdd;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.IndexDescriptionLookup;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableDependency;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
@@ -118,7 +119,8 @@ public class SQLTranslatorUtilsTest {
 	private ResultSet mockResultSet;
 	@Mock
 	private TableAndColumnMapper mapper;
-	
+	@Mock
+	private IndexDescriptionLookup mockIndexDescriptionLookup;
 	@Captor
 	private ArgumentCaptor<ColumnReference> columnRefCapture;
 	
@@ -4211,18 +4213,22 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
 	}
 
+	public void setupLookup(IndexDescription...all){
+		Arrays.stream(all).forEach(d->when(mockIndexDescriptionLookup.getIndexDescription(d.getIdAndVersion())).thenReturn(d));
+	}
+	
 	@Test
 	public void testCreateMaterializedViewInsertSqlWithDependentView() {
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		IdAndVersion viewId = IdAndVersion.parse("syn111");
 		List<ColumnModel> schemaOfSelect = Arrays.asList(columnFoo, columnBar);
 		String outputSQL = "select _C111_,_C333_, ROW_BENEFACTOR from T111"; 
-		List<TableDependency> dependencies = Arrays.asList(new TableDependency()
-				.withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)));
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		setupLookup(new ViewIndexDescription(viewId, TableType.entityview, -1L));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId,
+				"select * from syn111", mockIndexDescriptionLookup);
 		// call under test
 		String result = SQLTranslatorUtils.createMaterializedViewInsertSql(schemaOfSelect, outputSQL, indexDescription);
-		assertEquals("INSERT INTO T123 (_C111_,_C333_,ROW_BENEFACTOR_T111) select _C111_,_C333_, ROW_BENEFACTOR from T111", result);
+		assertEquals("INSERT INTO T123 (_C111_,_C333_,ROW_BENEFACTOR__A0) select _C111_,_C333_, ROW_BENEFACTOR from T111", result);
 	}
 	
 	@Test
@@ -4232,14 +4238,13 @@ public class SQLTranslatorUtilsTest {
 		List<ColumnModel> schemaOfSelect = Arrays.asList(columnFoo, columnBar);
 		String outputSQL = "select _AO._C111_,_A1._C333_, _A0.ROW_BENEFACTOR, _A1.ROW_BENEFACTOR"
 				+ " from T111 _AO JOIN T111 _A1 ON (_A0.ROW_ID = _A1.ROW_ID)"; 
-		List<TableDependency> dependencies = Arrays.asList(new TableDependency()
-				.withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)).withTableAlias("one"),
-				new TableDependency()
-				.withIndexDescription(new ViewIndexDescription(viewId, TableType.entityview, -1L)).withTableAlias("two"));
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		
+		setupLookup(new ViewIndexDescription(viewId, TableType.entityview, -1L));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId,
+				"select * from syn111 a join syn111 b on (a.id=b.id)", mockIndexDescriptionLookup);
 		// call under test
 		String result = SQLTranslatorUtils.createMaterializedViewInsertSql(schemaOfSelect, outputSQL, indexDescription);
-		assertEquals("INSERT INTO T123 (_C111_,_C333_,ROW_BENEFACTOR_ONE,ROW_BENEFACTOR_TWO)"
+		assertEquals("INSERT INTO T123 (_C111_,_C333_,ROW_BENEFACTOR__A0,ROW_BENEFACTOR__A1)"
 				+ " select _AO._C111_,_A1._C333_, _A0.ROW_BENEFACTOR, _A1.ROW_BENEFACTOR from"
 				+ " T111 _AO JOIN T111 _A1 ON (_A0.ROW_ID = _A1.ROW_ID)", result);
 	}
@@ -4250,9 +4255,9 @@ public class SQLTranslatorUtilsTest {
 		IdAndVersion tableId = IdAndVersion.parse("syn111");
 		List<ColumnModel> schemaOfSelect = Arrays.asList(columnFoo, columnBar);
 		String outputSQL = "select _c1_, _c2_ from T111"; 
-		List<TableDependency> dependencies = Arrays
-				.asList(new TableDependency().withIndexDescription(new TableIndexDescription(tableId)));
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		setupLookup(new TableIndexDescription(tableId));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId,
+				"select * from syn111", mockIndexDescriptionLookup);
 		// call under test
 		String result = SQLTranslatorUtils.createMaterializedViewInsertSql(schemaOfSelect, outputSQL, indexDescription);
 		assertEquals("INSERT INTO T123 (_C111_,_C333_) select _c1_, _c2_ from T111", result);

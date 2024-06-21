@@ -73,14 +73,9 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	public void validateDefiningSql(String definingSql) {
 		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the materialized view");
 
-		List<TableDependency> dependencies = TableModelUtils.getSourceTableIdAndAlias(definingSql).stream()
-				.map((tia) -> new TableDependency().withTableAlias(tia.getAlias().orElse(null))
-						.withIndexDescription(tableManagerSupport.getIndexDescription(tia.getIdAndVersion())))
-				.collect(Collectors.toList());
-
 		// We do not know the id of the MV yet, so we use a temporary one just for validation
 		IndexDescription indexDescription = 
-				new MaterializedViewIndexDescription(IdAndVersion.parse("syn1"), dependencies);
+				new MaterializedViewIndexDescription(IdAndVersion.parse("syn1"), definingSql, tableManagerSupport);
 		
 		// Performs validation on the schema of the definingSql
 		QueryTranslator.builder()
@@ -264,7 +259,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			// Note: The dependencies must match the current index dependencies, if that was
 			// not true then the view would be rebuilt from scratch
 			IndexDescription temporaryIndex = new MaterializedViewIndexDescription(temporaryId,
-					currentIndex.getFullDependencies());
+					currentIndex.getDefiningSql(), tableManagerSupport);
 			
 			String definingSql = nodeDao.getDefiningSql(idAndVersion)
 				.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));

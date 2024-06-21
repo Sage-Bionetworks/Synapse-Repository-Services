@@ -3,6 +3,9 @@ package org.sagebionetworks.table.cluster.description;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -10,21 +13,43 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.model.SqlContext;
 
+@ExtendWith(MockitoExtension.class)
 public class MaterializedViewIndexDescriptionTest {
+	
+	@Mock
+	private IndexDescriptionLookup mockLookup;
+	
+	private String definingSql;
+	private TableIndexDescription tableIndexDescription;
+	private ViewIndexDescription viewIndexDescription;
+	private ViewIndexDescription viewIndexDescription2;
+	private ViewIndexDescription viewIndexDescriptionV1;
+	
+	@BeforeEach
+	public void before(){
+		this.definingSql = "select * from syn999";
+		this.tableIndexDescription = new TableIndexDescription(IdAndVersion.parse("syn999"));
+		this.viewIndexDescription = new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L);
+		this.viewIndexDescription2 = new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L);
+		this.viewIndexDescriptionV1 = new ViewIndexDescription(IdAndVersion.parse("syn999.1"), TableType.entityview, -1L);
+	}
 
 	@Test
 	public void testGetCreateOrUpdateIndexSqlWithSingleTable() {
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn999"))));
+		setupLookup(tableIndexDescription);
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
-		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, definingSql, mockLookup);
 		// call under test
 		String sql = mid.getCreateOrUpdateIndexSql();
 		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
@@ -33,188 +58,200 @@ public class MaterializedViewIndexDescriptionTest {
 				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
 				+ "PRIMARY KEY (ROW_ID), "
 				+ "FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (ROW_SEARCH_CONTENT))", sql);
+
+		verifyLookup(tableIndexDescription);
 	}
 
 	@Test
 	public void testGetCreateOrUpdateIndexSqlWithSingleView() {
-		List<TableDependency> dependencies = Arrays.asList(new TableDependency().withIndexDescription(
-				new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)));
+		setupLookup(viewIndexDescription);
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
-		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, definingSql, mockLookup);
 		// call under test
 		String sql = mid.getCreateOrUpdateIndexSql();
 		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
 				+ "ROW_ID BIGINT NOT NULL AUTO_INCREMENT, "
 				+ "ROW_VERSION BIGINT NOT NULL DEFAULT 0, "
 				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
-				+ "ROW_BENEFACTOR_T999 BIGINT NOT NULL, "
+				+ "ROW_BENEFACTOR__A0 BIGINT NOT NULL, "
 				+ "PRIMARY KEY (ROW_ID), "
 				+ "FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (ROW_SEARCH_CONTENT), "
-				+ "KEY (ROW_BENEFACTOR_T999))", sql);
+				+ "KEY (ROW_BENEFACTOR__A0))", sql);
+
+		verifyLookup(viewIndexDescription);
 	}
 
 	@Test
 	public void testGetCreateOrUpdateIndexSqlWithMultipleViews() {
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(
-						new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
-				new TableDependency().withIndexDescription(
-						new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L)));
+		setupLookup(viewIndexDescription, viewIndexDescription2);
+		
+		definingSql = "select * from syn999 union select * from syn888";
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
-		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, definingSql, mockLookup);
 		// call under test
 		String sql = mid.getCreateOrUpdateIndexSql();
 		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
 				+ "ROW_ID BIGINT NOT NULL AUTO_INCREMENT, "
 				+ "ROW_VERSION BIGINT NOT NULL DEFAULT 0, "
 				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
-				+ "ROW_BENEFACTOR_T888 BIGINT NOT NULL, "
-				+ "ROW_BENEFACTOR_T999 BIGINT NOT NULL, "
+				+ "ROW_BENEFACTOR__A0 BIGINT NOT NULL, "
+				+ "ROW_BENEFACTOR__A1 BIGINT NOT NULL, "
 				+ "PRIMARY KEY (ROW_ID), "
 				+ "FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (ROW_SEARCH_CONTENT), "
-				+ "KEY (ROW_BENEFACTOR_T888), "
-				+ "KEY (ROW_BENEFACTOR_T999))", sql);
+				+ "KEY (ROW_BENEFACTOR__A0), "
+				+ "KEY (ROW_BENEFACTOR__A1))", sql);
+		
+		verifyLookup(viewIndexDescription, viewIndexDescription2);
 	}
 	
 	@Test
 	public void testGetCreateOrUpdateIndexSqlWithMultipleOfSameView() {
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(
-						new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)).withTableAlias("a"),
-				new TableDependency().withIndexDescription(
-						new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)).withTableAlias("b"));
+		setupLookup(viewIndexDescription);
+		
+		definingSql = "select * from syn999 a join syn999 b on (a.id=b.id)";
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
-		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, definingSql, mockLookup);
 		// call under test
 		String sql = mid.getCreateOrUpdateIndexSql();
 		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
 				+ "ROW_ID BIGINT NOT NULL AUTO_INCREMENT, "
 				+ "ROW_VERSION BIGINT NOT NULL DEFAULT 0, "
 				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
-				+ "ROW_BENEFACTOR_A BIGINT NOT NULL, "
-				+ "ROW_BENEFACTOR_B BIGINT NOT NULL, "
+				+ "ROW_BENEFACTOR__A0 BIGINT NOT NULL, "
+				+ "ROW_BENEFACTOR__A1 BIGINT NOT NULL, "
 				+ "PRIMARY KEY (ROW_ID), "
 				+ "FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (ROW_SEARCH_CONTENT), "
-				+ "KEY (ROW_BENEFACTOR_A), "
-				+ "KEY (ROW_BENEFACTOR_B))", sql);
+				+ "KEY (ROW_BENEFACTOR__A0), "
+				+ "KEY (ROW_BENEFACTOR__A1))", sql);
+		
+		verify(mockLookup, times(2)).getIndexDescription(viewIndexDescription.getIdAndVersion());
 	}
 	
 	@Test
 	public void testGetCreateOrUpdateIndexSqlWithMultipleOfSameViewMultipleVersions() {
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(
-						new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
-				new TableDependency().withIndexDescription(
-						new ViewIndexDescription(IdAndVersion.parse("syn999.1"), TableType.entityview, -1L)));
+		setupLookup(viewIndexDescription, viewIndexDescriptionV1);
+		
+		definingSql = "select * from syn999 union select * from syn999.1";
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
-		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, definingSql, mockLookup);
 		// call under test
 		String sql = mid.getCreateOrUpdateIndexSql();
 		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
 				+ "ROW_ID BIGINT NOT NULL AUTO_INCREMENT, "
 				+ "ROW_VERSION BIGINT NOT NULL DEFAULT 0, "
 				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
-				+ "ROW_BENEFACTOR_T999 BIGINT NOT NULL, "
-				+ "ROW_BENEFACTOR_T999_1 BIGINT NOT NULL, "
+				+ "ROW_BENEFACTOR__A0 BIGINT NOT NULL, "
+				+ "ROW_BENEFACTOR__A1 BIGINT NOT NULL, "
 				+ "PRIMARY KEY (ROW_ID), "
 				+ "FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (ROW_SEARCH_CONTENT), "
-				+ "KEY (ROW_BENEFACTOR_T999), "
-				+ "KEY (ROW_BENEFACTOR_T999_1))", sql);
+				+ "KEY (ROW_BENEFACTOR__A0), "
+				+ "KEY (ROW_BENEFACTOR__A1))", sql);
+		
+		verifyLookup(viewIndexDescription, viewIndexDescriptionV1);
 	}
 
 	@Test
 	public void testGetCreateOrUpdateIndexSqlWithMaterializedViewDependency() {
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
-				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L)));
+		setupLookup(viewIndexDescription, viewIndexDescription2);
+
 		MaterializedViewIndexDescription dependency = new MaterializedViewIndexDescription(IdAndVersion.parse("456"),
-				dependencies);
+				"select * from syn999 union select * from syn888", mockLookup);
+
+		setupLookup(dependency);
+		
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(IdAndVersion.parse("syn123"),
-				Arrays.asList(new TableDependency().withIndexDescription(dependency)));
+				"select * from syn456", mockLookup);
 		// call under test
 		String sql = mid.getCreateOrUpdateIndexSql();
 		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
 				+ "ROW_ID BIGINT NOT NULL AUTO_INCREMENT, "
 				+ "ROW_VERSION BIGINT NOT NULL DEFAULT 0, "
 				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
-				+ "ROW_BENEFACTOR_T888_T456 BIGINT NOT NULL, "
-				+ "ROW_BENEFACTOR_T999_T456 BIGINT NOT NULL, "
+				+ "ROW_BENEFACTOR__A0__A0 BIGINT NOT NULL, "
+				+ "ROW_BENEFACTOR__A1__A0 BIGINT NOT NULL, "
 				+ "PRIMARY KEY (ROW_ID), "
 				+ "FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (ROW_SEARCH_CONTENT), "
-				+ "KEY (ROW_BENEFACTOR_T888_T456), "
-				+ "KEY (ROW_BENEFACTOR_T999_T456))", sql);
+				+ "KEY (ROW_BENEFACTOR__A0__A0), "
+				+ "KEY (ROW_BENEFACTOR__A1__A0))", sql);
+		
+		verifyLookup(viewIndexDescription, viewIndexDescription2, dependency);
 	}
 
 	@Test
 	public void testGetBenefactorColumnNames() {
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(
-						new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
-				new TableDependency().withIndexDescription(
-						new ViewIndexDescription(IdAndVersion.parse("syn888.2"), TableType.entityview, -1L)));
+		setupLookup(viewIndexDescription, viewIndexDescriptionV1);
+		
+		
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(IdAndVersion.parse("syn123"),
-				dependencies);
+				"select * from syn999.1 a join syn999 b on (a.id=b.id)", mockLookup);
 		List<BenefactorDescription> expected = Arrays.asList(
-				new BenefactorDescription("ROW_BENEFACTOR_T888_2", ObjectType.ENTITY),
-				new BenefactorDescription("ROW_BENEFACTOR_T999", ObjectType.ENTITY));
+				new BenefactorDescription("ROW_BENEFACTOR__A0", ObjectType.ENTITY),
+				new BenefactorDescription("ROW_BENEFACTOR__A1", ObjectType.ENTITY));
 		// call under test
 		assertEquals(expected, mid.getBenefactors());
+		
+		verifyLookup(viewIndexDescription, viewIndexDescriptionV1);
 	}
 
 	@Test
 	public void testGetColumnNamesToAddToSelectWithQueryAndNonaggregate() {
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(
-						new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
-				new TableDependency().withIndexDescription(
-						new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L)));
+		
+		setupLookup(viewIndexDescription, viewIndexDescription2);
+		
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
-		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId,
+				"select * from syn999 a join syn888 b on (a.id=b.id)", mockLookup);
 		boolean includeEtag = true;
 		boolean isAggregate = false;
 		// call under test
 		List<ColumnToAdd> result = mid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
 		assertEquals(Arrays.asList(new ColumnToAdd(materializedViewId, ROW_ID), new ColumnToAdd(materializedViewId, ROW_VERSION)), result);
+		
+		verifyLookup(viewIndexDescription, viewIndexDescription2);
 	}
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithQueryAndAggregate() {
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
-				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L)));
+		setupLookup(viewIndexDescription, viewIndexDescription2);
+		
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
-		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId,
+				"select * from syn999 a join syn888 b on (a.id=b.id)", mockLookup);
 		boolean includeEtag = true;
 		boolean isAggregate = true;
 		// call under test
 		List<ColumnToAdd> result = mid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
 		assertEquals(Collections.emptyList(), result);
+		
+		verifyLookup(viewIndexDescription, viewIndexDescription2);
 	}
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithBuildAndNonAggregate() {
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
-				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888.3"), TableType.entityview, -1L)));
+		setupLookup(viewIndexDescription, viewIndexDescriptionV1);
+		
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
-		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId,
+				"select * from syn999 a join syn999.1 b on (a.id=b.id)", mockLookup);
 		boolean includeEtag = true;
 		boolean isAggregate = false;
 		// call under test
 		List<ColumnToAdd> result = mid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
 		assertEquals(
-				Arrays.asList(new ColumnToAdd(IdAndVersion.parse("syn888.3"), "IFNULL( T888_3.ROW_BENEFACTOR , -1)"),
-						new ColumnToAdd(IdAndVersion.parse("syn999"), "IFNULL( T999.ROW_BENEFACTOR , -1)")),
+				Arrays.asList(new ColumnToAdd(IdAndVersion.parse("syn999"), "IFNULL( a.ROW_BENEFACTOR , -1)"),
+						new ColumnToAdd(IdAndVersion.parse("syn999.1"), "IFNULL( b.ROW_BENEFACTOR , -1)")),
 				result);
+		
+		verifyLookup(viewIndexDescription, viewIndexDescriptionV1);
 	}
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithBuildAndAggregateWithViewDependency() {
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
-				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888.3"), TableType.entityview, -1L)));
+		setupLookup(viewIndexDescription, viewIndexDescriptionV1);
+		
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
-		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId,
+				"select * from syn999 a join syn999.1 b on (a.id=b.id)", mockLookup);
 		boolean includeEtag = true;
 		boolean isAggregate = true;
 		// call under test
@@ -222,83 +259,89 @@ public class MaterializedViewIndexDescriptionTest {
 			mid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
 		}).getMessage();
 		assertEquals(message, TableConstants.DEFINING_SQL_WITH_GROUP_BY_ERROR);
+		verifyLookup(viewIndexDescription, viewIndexDescriptionV1);
 	}
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithBuildAndAggregateWithTableDependency() {
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new TableIndexDescription(IdAndVersion.parse("syn999"))));
+		setupLookup(tableIndexDescription);
+		
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
-		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId,
+				"select * from syn999", mockLookup);
 		boolean includeEtag = true;
 		boolean isAggregate = true;
 		// call under test
 		List<ColumnToAdd> result = mid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
 		assertEquals(Collections.emptyList(), result);
+		verifyLookup(tableIndexDescription);
 	}
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithBuildAndDuplicateViewId() {
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency()
-						.withIndexDescription(
-								new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L))
-						.withTableAlias("foo"),
-				new TableDependency()
-						.withIndexDescription(
-								new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L))
-						.withTableAlias("bar"));
+		setupLookup(viewIndexDescription);
+		
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
-		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId,
+				"select * from syn999 a join syn999 b on (a.id=b.id)", mockLookup);
 		boolean includeEtag = true;
 		boolean isAggregate = false;
 		// call under test
 		List<ColumnToAdd> result = mid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
 		assertEquals(
 				Arrays.asList(
-						new ColumnToAdd(IdAndVersion.parse("syn999"), "IFNULL( foo.ROW_BENEFACTOR , -1)"),
-						new ColumnToAdd(IdAndVersion.parse("syn999"), "IFNULL( bar.ROW_BENEFACTOR , -1)")),
+						new ColumnToAdd(IdAndVersion.parse("syn999"), "IFNULL( a.ROW_BENEFACTOR , -1)"),
+						new ColumnToAdd(IdAndVersion.parse("syn999"), "IFNULL( b.ROW_BENEFACTOR , -1)")),
 				result);
+		
+		verify(mockLookup, times(2)).getIndexDescription(viewIndexDescription.getIdAndVersion());
 	}
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithNull() {
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
-				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L)));
+		setupLookup(viewIndexDescription, viewIndexDescription2);
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
-		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId,
+				"select * from syn999 a join syn888 b on (a.id=b.id)", mockLookup);
 		boolean includeEtag = true;
 		boolean isAggregate = false;
 		assertThrows(IllegalArgumentException.class, ()->{
 			mid.getColumnNamesToAddToSelect(null, includeEtag, isAggregate);
 		});
+		
+		verifyLookup(tableIndexDescription, viewIndexDescription2);
 	}
 	
 	@Test
 	public void testGetDependencies() {
-		List<TableDependency> dependencies = Arrays.asList(
-				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L)),
-				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888.2"), TableType.entityview, -1L)),
-				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L)),
-				new TableDependency().withIndexDescription(new ViewIndexDescription(IdAndVersion.parse("syn888.1"), TableType.entityview, -1L)));
+		setupLookup(viewIndexDescription, viewIndexDescription2);
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
-		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId,
+				"select * from syn999 a join syn888 b on (a.id=b.id)", mockLookup);
 		// put in IdAndVersion order
 		List<IndexDescription> expectedDependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn888"), TableType.entityview, -1L),
-				new ViewIndexDescription(IdAndVersion.parse("syn888.1"), TableType.entityview, -1L),
-				new ViewIndexDescription(IdAndVersion.parse("syn888.2"), TableType.entityview, -1L),
-				new ViewIndexDescription(IdAndVersion.parse("syn999"), TableType.entityview, -1L));
+				viewIndexDescription,
+				viewIndexDescription2);
 		assertEquals(expectedDependencies, mid.getDependencies());
-		assertEquals(dependencies, mid.getFullDependencies());
+		
+		verifyLookup(tableIndexDescription, viewIndexDescription2);
 	}
 	
 	@Test
 	public void testSupportQueryCache() {
-		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(IdAndVersion.parse("syn123"), Collections.emptyList());
-		
+		setupLookup(viewIndexDescription);
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(IdAndVersion.parse("syn123"),
+				definingSql, mockLookup);
+
 		// Call under test
 		assertFalse(mid.supportQueryCache());
+	}
+	
+	public void setupLookup(IndexDescription...all){
+		Arrays.stream(all).forEach(d->when(mockLookup.getIndexDescription(d.getIdAndVersion())).thenReturn(d));
+	}
+	
+	public void verifyLookup(IndexDescription...all){
+		Arrays.stream(all).forEach(d->verify(mockLookup).getIndexDescription(d.getIdAndVersion()));
 	}
 }

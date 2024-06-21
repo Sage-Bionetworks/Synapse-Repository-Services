@@ -659,14 +659,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		case submissionview:
 			return new ViewIndexDescription(idAndVersion, type, getTableVersion(type.getObjectType(), idAndVersion));
 		case materializedview:
-
-			List<TableDependency> dependencies = TableModelUtils
-					.getSourceTableIdAndAlias(nodeDao.getDefiningSql(idAndVersion).get()).stream()
-					.map((tia) -> new TableDependency().withTableAlias(tia.getAlias().orElse(null))
-							.withIndexDescription(this.getIndexDescription(tia.getIdAndVersion())))
-					.collect(Collectors.toList());
-			
-			return new MaterializedViewIndexDescription(idAndVersion, dependencies);
+			return new MaterializedViewIndexDescription(idAndVersion, nodeDao.getDefiningSql(idAndVersion).get(), this);
 		case virtualtable:
 			return new VirtualTableIndexDescription(idAndVersion, nodeDao.getDefiningSql(idAndVersion).get(), this);
 		default:
