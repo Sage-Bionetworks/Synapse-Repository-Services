@@ -318,7 +318,7 @@ public class MaterializedViewIndexDescriptionTest {
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId,
 				"select * from syn999 a join syn888 b on (a.id=b.id)", mockLookup);
-		assertEquals(List.of(viewIndexDescription, viewIndexDescription2), mid.getDependencies());
+		assertEquals(List.of(viewIndexDescription, viewIndexDescription2), mid.getDependencies(), "Test message");
 		
 		verifyLookup(tableIndexDescription, viewIndexDescription2);
 	}
