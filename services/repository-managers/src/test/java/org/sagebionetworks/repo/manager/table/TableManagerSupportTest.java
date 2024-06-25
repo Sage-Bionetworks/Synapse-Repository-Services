@@ -737,8 +737,10 @@ public class TableManagerSupportTest {
 		IdAndVersion materializedId = IdAndVersion.parse("syn3");
 		IndexDescription tableDescription = new TableIndexDescription(tableId);
 		IndexDescription viewDescription = new ViewIndexDescription(viewId, TableType.entityview, -1L);
+		
+		setupLookup(tableDescription, viewDescription);
 		IndexDescription materializedDescription = new MaterializedViewIndexDescription(materializedId,
-				Arrays.asList(tableDescription, viewDescription));		
+				"select * from syn1 union select * from syn2", managerSpy);
 		
 		when(mockAuthorizationManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 
@@ -1084,6 +1086,10 @@ public class TableManagerSupportTest {
 		verifyZeroInteractions(mockMaterializedViewDao);
 	}
 	
+	public void setupLookup(IndexDescription...all){
+		Arrays.stream(all).forEach(d-> doReturn(d).when(managerSpy).getIndexDescription(d.getIdAndVersion()));
+	}
+	
 	@Test
 	public void testGetIndexDescriptionWithMaterializedView() {
 		IdAndVersion tableId = IdAndVersion.parse("syn111");
@@ -1093,30 +1099,25 @@ public class TableManagerSupportTest {
 		IdAndVersion submissionViewId = IdAndVersion.parse("syn333");
 		IndexDescription submissionViewIndexDescription = new ViewIndexDescription(submissionViewId, TableType.submissionview, 11L);
 		
-		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(any())).thenReturn(10L, 11L);
-		
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.materializedview, EntityType.table,
 				EntityType.entityview, EntityType.submissionview);
 
 		String definingSql = "select * from  syn111 JOIN syn222 JOIN syn333";
 		when(mockNodeDao.getDefiningSql(any())).thenReturn(Optional.of(definingSql));
-		doReturn(Optional.of(11L)).when(managerSpy).getLastTableChangeNumber(any());
+		
+		setupLookup(tableIndexDescription, fileViewIndexDescription, submissionViewIndexDescription);
 		
 		// call under test
 		IndexDescription result = managerSpy.getIndexDescription(idAndVersion);
 		
-		IndexDescription expected = new MaterializedViewIndexDescription(idAndVersion,
-				Arrays.asList(tableIndexDescription, fileViewIndexDescription, submissionViewIndexDescription));
+		IndexDescription expected = new MaterializedViewIndexDescription(idAndVersion,definingSql, managerSpy);
 		assertEquals(expected, result);
 		
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
-		verify(mockNodeDao).getNodeTypeById(tableId.getId().toString());
-		verify(mockNodeDao).getNodeTypeById(fileViewId.getId().toString());
-		verify(mockNodeDao).getNodeTypeById(submissionViewId.getId().toString());
-		verify(mockNodeDao, times(4)).getNodeTypeById(any());
+		verify(managerSpy, times(2)).getIndexDescription(tableId);
+		verify(managerSpy, times(2)).getIndexDescription(fileViewId);
+		verify(managerSpy, times(2)).getIndexDescription(submissionViewId);
 		verify(mockNodeDao).getDefiningSql(idAndVersion);
-		verify(managerSpy).getLastTableChangeNumber(tableId);
 	}
 	
 	@Test

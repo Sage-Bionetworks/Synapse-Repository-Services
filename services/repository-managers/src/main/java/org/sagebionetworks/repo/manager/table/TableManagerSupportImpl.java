@@ -58,6 +58,7 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.TableDependency;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
@@ -658,13 +659,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		case submissionview:
 			return new ViewIndexDescription(idAndVersion, type, getTableVersion(type.getObjectType(), idAndVersion));
 		case materializedview:
-
-			List<IndexDescription> dependencies = TableModelUtils.getSourceTableIds(nodeDao.getDefiningSql(idAndVersion).get())
-					.stream()
-					.map(this::getIndexDescription)
-					.collect(Collectors.toList());
-			
-			return new MaterializedViewIndexDescription(idAndVersion, dependencies);
+			return new MaterializedViewIndexDescription(idAndVersion, nodeDao.getDefiningSql(idAndVersion).get(), this);
 		case virtualtable:
 			return new VirtualTableIndexDescription(idAndVersion, nodeDao.getDefiningSql(idAndVersion).get(), this);
 		default:

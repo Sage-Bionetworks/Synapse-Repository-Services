@@ -13,11 +13,12 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SQLUtils.TableIndexType;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.model.SqlContext;
+import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class MaterializedViewIndexDescription implements IndexDescription {
@@ -25,20 +26,29 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	private final IdAndVersion idAndVersion;
 	private final List<BenefactorDescription> benefactorDescriptions;
 	private final List<ColumnToAdd> buildColumnsToAddToSelect;
-	private final List<IndexDescription> orderedDependencies;
-
+	private final List<TableDependency> orderedDependencies;
+	private final String definingSql;
+	
 	/**
 	 * 
-	 * @param idAndVersion The IdAndVersion of this {@link MaterializedView}
-	 * @param dependencies Note: The order of this list should match the order of
-	 *                     dependencies in the from clause.
+	 * @param idAndVersion
+	 * @param definingSql
+	 * @param lookup
 	 */
-	public MaterializedViewIndexDescription(IdAndVersion idAndVersion, List<IndexDescription> dependencies) {
+	public MaterializedViewIndexDescription(IdAndVersion idAndVersion, String definingSql, IndexDescriptionLookup lookup) {
 		super();
+		this.definingSql = definingSql;
 		this.idAndVersion = idAndVersion;
-		// The order of the provided dependencies is nondeterministic. By ordering the
-		// generated DDL is stable.
-		this.orderedDependencies = dependencies.stream().sorted().collect(Collectors.toList());
+		int index = 0;
+		this.orderedDependencies = new ArrayList<>();
+		for (TableNameCorrelation table : TableModelUtils.getQuerySpecification(definingSql)
+				.createIterable(TableNameCorrelation.class)) {
+			orderedDependencies.add(new TableDependency()
+					.withIndexDescription(lookup.getIndexDescription(IdAndVersion.parse(table.getTableName().toSql())))
+					.withIndexAlias(SQLUtils.getTableAliasForIndex(index))
+					.withTableAlias(table.getTableAlias().orElse(null)));
+			index++;
+		}
 		this.buildColumnsToAddToSelect = new ArrayList<>();
 		this.benefactorDescriptions = new ArrayList<>();
 		initializeBenefactors();
@@ -48,18 +58,21 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	 * Initialize the benefactors for the select list and dependencies.
 	 */
 	void initializeBenefactors() {
-		for (IndexDescription dependency : this.orderedDependencies) {
-			for (BenefactorDescription desc : dependency.getBenefactors()) {
+		for (TableDependency dependency : this.orderedDependencies) {
+			for (BenefactorDescription desc : dependency.getIndexDescription().getBenefactors()) {
 				// The SQL translator will be able to translate from this table name to the
 				// appropriate table alias.
-				String dependencyTranslatedTableName = SQLUtils.getTableNameForId(dependency.getIdAndVersion(),
-						TableIndexType.INDEX);
+				String dependencyTranslatedTableName = dependency.getTableAlias().isPresent()
+						? dependency.getTableAlias().get()
+						: SQLUtils.getTableNameForId(dependency.getIndexDescription().getIdAndVersion(),
+								TableIndexType.INDEX);
+
 				String selectColumnReference = dependencyTranslatedTableName + "." + desc.getBenefactorColumnName();
 				String ifNullCheck = String.format("IFNULL( %s , -1)", selectColumnReference);
-				buildColumnsToAddToSelect.add(new ColumnToAdd(dependency.getIdAndVersion(), ifNullCheck));
-				String newBenefactorColumnName = desc.getBenefactorColumnName() + "_" + dependencyTranslatedTableName;
+				buildColumnsToAddToSelect.add(new ColumnToAdd(dependency.getIndexDescription().getIdAndVersion(), ifNullCheck));
+				String newBenefactorColumnName = desc.getBenefactorColumnName() + "_" + dependency.getIndexAlias();
 				benefactorDescriptions
-						.add(new BenefactorDescription(newBenefactorColumnName, desc.getBenefactorType()));
+						.add(new BenefactorDescription(newBenefactorColumnName.toUpperCase(), desc.getBenefactorType()));
 			}
 		}
 	}
@@ -121,7 +134,11 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 
 	@Override
 	public List<IndexDescription> getDependencies() {
-		return orderedDependencies;
+		return orderedDependencies.stream().map(d->d.getIndexDescription()).collect(Collectors.toList());
+	}
+	
+	public String getDefiningSql(){
+		return this.definingSql;
 	}
 
 	@Override

@@ -109,6 +109,7 @@ import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.TableDependency;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
@@ -2384,6 +2385,10 @@ public class TableQueryManagerImplTest {
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 	}
 	
+	public void setupLookup(IndexDescription...all){
+		Arrays.stream(all).forEach(d->when(mockTableManagerSupport.getIndexDescription(d.getIdAndVersion())).thenReturn(d));
+	}
+	
 	@Test
 	public void testAddRowLevelFilterWithMaterializedViewWithMultipleViews() throws Exception {
 		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
@@ -2395,19 +2400,49 @@ public class TableQueryManagerImplTest {
 				Sets.newHashSet(111L));
 		IdAndVersion viewOneId = IdAndVersion.parse("syn1");
 		IdAndVersion viewTwoId = IdAndVersion.parse("syn2");
-		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion,		
-				Arrays.asList(
-						new ViewIndexDescription(viewOneId, TableType.entityview, -1L),
-						new ViewIndexDescription(viewTwoId, TableType.entityview, -1L)));
+		setupLookup(new ViewIndexDescription(viewOneId, TableType.entityview, -1L),
+				new ViewIndexDescription(viewTwoId, TableType.entityview, -1L));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion,
+				"select * from syn1 a join syn2 on (a.id=b.id)", mockTableManagerSupport);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 
 		QuerySpecification query = new TableQueryParser("select * from "+tableId).querySpecification();
 		// call under test
 		manager.addRowLevelFilter(user, query);
 
-		assertEquals("SELECT * FROM syn123 WHERE ( ROW_BENEFACTOR_T1 IN ( -1, 444 ) ) AND ROW_BENEFACTOR_T2 IN ( -1, 111 )", query.toSql());
-		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR_T1");
-		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR_T2");
+		assertEquals("SELECT * FROM syn123 WHERE ( ROW_BENEFACTOR__A0 IN ( -1, 444 ) ) AND ROW_BENEFACTOR__A1 IN ( -1, 111 )", query.toSql());
+		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR__A0");
+		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR__A1");
+		verify(mockTableIndexDAO, times(2)).getDistinctLongValues(any(), any());
+		
+		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, oneBenefactors);
+		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, twoBenefactors);
+		verify(mockTableManagerSupport, times(2)).getAccessibleBenefactors(any(), any(), any());
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
+	}
+	
+	@Test
+	public void testAddRowLevelFilterWithMaterializedViewWithSameViewTwice() throws Exception {
+		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
+		Set<Long> oneBenefactors = Sets.newHashSet(333L, 444L);
+		Set<Long> twoBenefactors = Sets.newHashSet(111L, 222L);
+		when(mockTableIndexDAO.getDistinctLongValues(any(), any())).thenReturn(oneBenefactors, twoBenefactors);
+		when(mockTableManagerSupport.getAccessibleBenefactors(any(), any(), any())).thenReturn(
+				Sets.newHashSet(444L),
+				Sets.newHashSet(111L));
+		IdAndVersion viewOneId = IdAndVersion.parse("syn1");
+		setupLookup(new ViewIndexDescription(viewOneId, TableType.entityview, -1L));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion,
+				"select * from syn1 a join syn1 on (a.id=b.id)", mockTableManagerSupport);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+
+		QuerySpecification query = new TableQueryParser("select * from "+tableId).querySpecification();
+		// call under test
+		manager.addRowLevelFilter(user, query);
+
+		assertEquals("SELECT * FROM syn123 WHERE ( ROW_BENEFACTOR__A0 IN ( -1, 444 ) ) AND ROW_BENEFACTOR__A1 IN ( -1, 111 )", query.toSql());
+		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR__A0");
+		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR__A1");
 		verify(mockTableIndexDAO, times(2)).getDistinctLongValues(any(), any());
 		
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, oneBenefactors);

@@ -3,6 +3,8 @@ package org.sagebionetworks.table.cluster.description;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -13,12 +15,18 @@ import java.util.Optional;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.query.model.SqlContext;
 
-
+@ExtendWith(MockitoExtension.class)
 public class TableIndexDescriptionTest {
 
+	@Mock
+	private IndexDescriptionLookup mockLookup;
+	
 	@Test
 	public void testGetCreateOrUpdateIndexSql(){
 		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"));
@@ -127,11 +135,20 @@ public class TableIndexDescriptionTest {
 		TableIndexDescription one = new TableIndexDescription(IdAndVersion.parse("syn1.1"), 1L);
 		TableIndexDescription two = new TableIndexDescription(IdAndVersion.parse("syn1.2"), 2L);
 		TableIndexDescription three = new TableIndexDescription(IdAndVersion.parse("syn3"), 3L);
-		MaterializedViewIndexDescription mv1 = new MaterializedViewIndexDescription(IdAndVersion.parse("syn4"), List.of(one, two));
-		MaterializedViewIndexDescription mv2 = new MaterializedViewIndexDescription(IdAndVersion.parse("syn5"), List.of(mv1, three));
+		setupLookup(one,two,three);
+		MaterializedViewIndexDescription mv1 = new MaterializedViewIndexDescription(IdAndVersion.parse("syn4"),
+				"select * from syn1.1 a join syn1.2 on (a.id=b.id)", mockLookup);
+		setupLookup(mv1);
+		MaterializedViewIndexDescription mv2 = new MaterializedViewIndexDescription(IdAndVersion.parse("syn5"),
+				"select * from syn4 a join syn3 b on (a.id=b.id)",
+				mockLookup);
 		// call under test
-		String expectedHash = DigestUtils.md5Hex("+syn3-3+syn1.1-1+syn1.2-2");
+		String expectedHash = DigestUtils.md5Hex("+syn1.1-1+syn1.2-2+syn3-3");
 		assertEquals(expectedHash, mv2.getTableHash());
+	}
+	
+	public void setupLookup(IndexDescription...all){
+		Arrays.stream(all).forEach(d->when(mockLookup.getIndexDescription(d.getIdAndVersion())).thenReturn(d));
 	}
 	
 	@Test

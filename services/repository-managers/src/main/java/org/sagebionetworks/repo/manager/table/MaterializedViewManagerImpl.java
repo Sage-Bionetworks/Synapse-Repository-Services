@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -48,18 +47,16 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	final private TableManagerSupport tableManagerSupport;
 	final private TableIndexConnectionFactory connectionFactory;
 	final private MaterializedViewDao materializedViewDao;
-	final private NodeDAO nodeDao;
 
 	@Autowired
 	public MaterializedViewManagerImpl(ColumnModelManager columModelManager, 
 			TableManagerSupport tableManagerSupport, 
 			TableIndexConnectionFactory connectionFactory,
-			MaterializedViewDao materializedViewDa, NodeDAO nodeDAO) {
+			MaterializedViewDao materializedViewDa) {
 		this.columModelManager = columModelManager;
 		this.tableManagerSupport = tableManagerSupport;
 		this.connectionFactory = connectionFactory;
 		this.materializedViewDao = materializedViewDa;
-		this.nodeDao = nodeDAO;
 	}
 
 	@Override
@@ -72,15 +69,9 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	public void validateDefiningSql(String definingSql) {
 		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the materialized view");
 
-		List<IndexDescription> indexDescriptions = TableModelUtils.getSourceTableIds(definingSql)
-				.stream()
-				// getIndexDescription is validating each column we are trying to reference
-				.map(sourceTableId -> tableManagerSupport.getIndexDescription(sourceTableId))
-				.collect(Collectors.toList());
-
 		// We do not know the id of the MV yet, so we use a temporary one just for validation
 		IndexDescription indexDescription = 
-				new MaterializedViewIndexDescription(IdAndVersion.parse("syn1"), indexDescriptions);
+				new MaterializedViewIndexDescription(IdAndVersion.parse("syn1"), definingSql, tableManagerSupport);
 		
 		// Performs validation on the schema of the definingSql
 		QueryTranslator.builder()
@@ -218,13 +209,11 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			throws Exception {
 		try {
 			
-			IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
-	
-			String definingSql = nodeDao.getDefiningSql(idAndVersion)
-					.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));
-			
+			MaterializedViewIndexDescription indexDescription = (MaterializedViewIndexDescription) tableManagerSupport
+					.getIndexDescription(idAndVersion);
+				
 			QueryTranslator sqlQuery = QueryTranslator.builder()
-				.sql(definingSql)
+				.sql(indexDescription.getDefiningSql())
 				.schemaProvider(tableManagerSupport)
 				.sqlContext(SqlContext.build)
 				.indexDescription(indexDescription)
@@ -259,15 +248,15 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 
 	void rebuildAvailableViewHoldingTemporaryExclusiveLock(ProgressCallback callback, LockContext parentContext, IdAndVersion idAndVersion, IdAndVersion temporaryId) throws Exception {
 		try {
-			IndexDescription currentIndex = tableManagerSupport.getIndexDescription(idAndVersion);
-			// Note: The dependencies must match the current index dependencies, if that was not true then the view would be rebuilt from scratch
-			IndexDescription temporaryIndex = new MaterializedViewIndexDescription(temporaryId, currentIndex.getDependencies());
-			
-			String definingSql = nodeDao.getDefiningSql(idAndVersion)
-				.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));
-			
+			MaterializedViewIndexDescription currentIndex = (MaterializedViewIndexDescription) tableManagerSupport
+					.getIndexDescription(idAndVersion);
+			// Note: The dependencies must match the current index dependencies, if that was
+			// not true then the view would be rebuilt from scratch
+			IndexDescription temporaryIndex = new MaterializedViewIndexDescription(temporaryId,
+					currentIndex.getDefiningSql(), tableManagerSupport);
+						
 			QueryTranslator sqlQuery = QueryTranslator.builder()
-				.sql(definingSql)
+				.sql(currentIndex.getDefiningSql())
 				.schemaProvider(tableManagerSupport)
 				.sqlContext(SqlContext.build)
 				// Use the temporary index in the query so that it populates the correct index
