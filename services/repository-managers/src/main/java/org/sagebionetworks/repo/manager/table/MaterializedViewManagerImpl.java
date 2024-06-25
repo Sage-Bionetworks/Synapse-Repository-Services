@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -22,7 +21,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
-import org.sagebionetworks.table.cluster.description.TableDependency;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.SqlContext;
@@ -49,18 +47,16 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	final private TableManagerSupport tableManagerSupport;
 	final private TableIndexConnectionFactory connectionFactory;
 	final private MaterializedViewDao materializedViewDao;
-	final private NodeDAO nodeDao;
 
 	@Autowired
 	public MaterializedViewManagerImpl(ColumnModelManager columModelManager, 
 			TableManagerSupport tableManagerSupport, 
 			TableIndexConnectionFactory connectionFactory,
-			MaterializedViewDao materializedViewDa, NodeDAO nodeDAO) {
+			MaterializedViewDao materializedViewDa) {
 		this.columModelManager = columModelManager;
 		this.tableManagerSupport = tableManagerSupport;
 		this.connectionFactory = connectionFactory;
 		this.materializedViewDao = materializedViewDa;
-		this.nodeDao = nodeDAO;
 	}
 
 	@Override
@@ -213,13 +209,11 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			throws Exception {
 		try {
 			
-			IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
-	
-			String definingSql = nodeDao.getDefiningSql(idAndVersion)
-					.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));
-			
+			MaterializedViewIndexDescription indexDescription = (MaterializedViewIndexDescription) tableManagerSupport
+					.getIndexDescription(idAndVersion);
+				
 			QueryTranslator sqlQuery = QueryTranslator.builder()
-				.sql(definingSql)
+				.sql(indexDescription.getDefiningSql())
 				.schemaProvider(tableManagerSupport)
 				.sqlContext(SqlContext.build)
 				.indexDescription(indexDescription)
@@ -260,12 +254,9 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			// not true then the view would be rebuilt from scratch
 			IndexDescription temporaryIndex = new MaterializedViewIndexDescription(temporaryId,
 					currentIndex.getDefiningSql(), tableManagerSupport);
-			
-			String definingSql = nodeDao.getDefiningSql(idAndVersion)
-				.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));
-			
+						
 			QueryTranslator sqlQuery = QueryTranslator.builder()
-				.sql(definingSql)
+				.sql(currentIndex.getDefiningSql())
 				.schemaProvider(tableManagerSupport)
 				.sqlContext(SqlContext.build)
 				// Use the temporary index in the query so that it populates the correct index

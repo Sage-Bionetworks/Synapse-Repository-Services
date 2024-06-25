@@ -2537,7 +2537,6 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testBuildTableIndexIndicesWithMaterializedView() {
-//		MaterializedViewIndexDescription index = new MaterializedViewIndexDescription(tableId, Collections.emptyList());
 		MaterializedViewIndexDescription index = setupMaterializedView(tableId);
 		
 		doNothing().when(managerSpy).optimizeTableIndices(any());
@@ -2873,8 +2872,9 @@ public class TableIndexManagerImplTest {
 		setupExecuteInWriteTransaction();
 		
 		setupLookup(new TableIndexDescription(idOne), new ViewIndexDescription(idTwo, TableType.entityview, -1L));
+		String sql = "select * from syn456 a join syn789 b on (a.aString = b.anInteger)";
 		IndexDescription index = new MaterializedViewIndexDescription(tableId,
-				"select * from syn456 a join syn789 b on(a.id=b.id)", mockManagerSupport);
+				sql, mockManagerSupport);
 		
 		when(mockManagerSupport.getTableSchema(any())).thenReturn(
 			List.of(TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING)), // 456 schema
@@ -2890,7 +2890,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(any())).thenReturn(maxCurrentCompleteVersionOne, maxCurrentCompleteVersionTwo);
 		
 		QueryTranslator defininqSql = QueryTranslator.builder()
-				.sql("SELECT * from syn456 join syn789")
+				.sql(sql)
 				.schemaProvider(mockManagerSupport)
 				.sqlContext(SqlContext.build)
 				.indexDescription(index)
@@ -2904,7 +2904,9 @@ public class TableIndexManagerImplTest {
 		
 		assertEquals(expected, result);
 
-		verify(mockIndexDao).update("INSERT INTO T123 (_C99_,_C101_,ROW_BENEFACTOR__A1) SELECT _A0._C99_, _A1._C101_, IFNULL(_A1.ROW_BENEFACTOR,-1) FROM T456 _A0 JOIN T789 _A1", Collections.emptyMap());
+		verify(mockIndexDao).update("INSERT INTO T123 (_C99_,_C101_,ROW_BENEFACTOR__A1) "
+				+ "SELECT _A0._C99_, _A1._C101_, IFNULL(_A1.ROW_BENEFACTOR,-1) FROM T456 _A0 "
+				+ "JOIN T789 _A1 ON ( _A0._C99_ = _A1._C101_ )", Collections.emptyMap());
 		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(idOne);
 		verify(mockIndexDao).getMaxCurrentCompleteVersionForTable(idTwo);
 	}

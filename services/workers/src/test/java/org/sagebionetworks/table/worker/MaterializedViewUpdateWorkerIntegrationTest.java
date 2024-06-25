@@ -1435,7 +1435,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		
 		// The join on type will add a copy of each row for each row, which will include rows the user cannot see.
 		String definingSql = String.format(
-				"select a.id as aid, a.benefactorId, b.id as bid from %s a left join %s b on (a.type = b.type)", view.getId(),
+				"select a.id as aid, a.benefactorId, b.id as bid, a.type as type from %s a left join %s b on (a.type = b.type)", view.getId(),
 				view.getId());
 
 		IdAndVersion mvId = createMaterializedView(view.getParentId(), definingSql);
@@ -1452,6 +1452,22 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			});
 		}, MAX_WAIT_MS);
 
+
+		// create a MV of the original MV joined with itself.
+		IdAndVersion mvId2 = createMaterializedView(view.getParentId(),
+				String.format("select c.aid as c_aid, c.bid as c_bid, d.aid as d_aid, d.bid as d_bid from %s c left join %s d on (c.type = d.type)", mvId.toString(), mvId.toString()));
+
+		asyncHelper.assertQueryResult(userInfo, String.format("select c_aid, c_bid, d_aid, d_bid from %s order by ROW_ID asc", mvId2), (results) -> {
+			List<Row> rows = results.getQueryResult().getQueryResults().getRows();
+			assertEquals(9*9, rows.size());
+			rows.forEach(r->{
+				// both id columns must only include rowIds that the user can see
+				assertTrue(fileIdsUserCanSee.contains(r.getValues().get(0)));
+				assertTrue(fileIdsUserCanSee.contains(r.getValues().get(1)));
+				assertTrue(fileIdsUserCanSee.contains(r.getValues().get(2)));
+				assertTrue(fileIdsUserCanSee.contains(r.getValues().get(3)));
+			});
+		}, MAX_WAIT_MS);
 	}
 
 	/**

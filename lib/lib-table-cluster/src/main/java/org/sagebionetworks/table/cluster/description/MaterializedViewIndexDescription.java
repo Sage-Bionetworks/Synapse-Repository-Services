@@ -27,7 +27,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	private final List<BenefactorDescription> benefactorDescriptions;
 	private final List<ColumnToAdd> buildColumnsToAddToSelect;
 	private final List<TableDependency> orderedDependencies;
-	private final String dediningSql;
+	private final String definingSql;
 	
 	/**
 	 * 
@@ -37,7 +37,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	 */
 	public MaterializedViewIndexDescription(IdAndVersion idAndVersion, String definingSql, IndexDescriptionLookup lookup) {
 		super();
-		this.dediningSql = definingSql;
+		this.definingSql = definingSql;
 		this.idAndVersion = idAndVersion;
 		int index = 0;
 		this.orderedDependencies = new ArrayList<>();
@@ -138,7 +138,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	}
 	
 	public String getDefiningSql(){
-		return this.dediningSql;
+		return this.definingSql;
 	}
 
 	@Override
