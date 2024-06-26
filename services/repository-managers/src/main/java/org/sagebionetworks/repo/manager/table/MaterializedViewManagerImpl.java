@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -15,7 +16,6 @@ import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableState;
-import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.QueryTranslator;
@@ -224,14 +224,18 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 				bindSchemaToView(idAndVersion, sqlQuery);
 			}
 			
-			IdAndVersion[] dependentArray = getAvailableDependentIds(sqlQuery);
+			Optional<IdAndVersion[]> dependentArray = getAvailableDependentIds(sqlQuery.getTableIds());
+			if(dependentArray.isEmpty()){
+				LOG.info(String.format("Cannot update '%s' as one or more of its dependencies are unavailable. ",idAndVersion));
+				return;
+			}
 			
 			LOG.info("Rebuilding materialized view index " + idAndVersion);
 			// continue with a read lock on each dependent table.
 			tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, parentContext, (ProgressCallback innerCallback) -> {
 				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(sqlQuery, tableManagerSupport.getTableSchema(idAndVersion), tableManagerSupport.isTableSearchEnabled(idAndVersion));
 				return null;
-			}, dependentArray);
+			}, dependentArray.get());
 		} catch (RecoverableMessageException e) {
 			throw e;
 		} catch (InvalidStatusTokenException e) {
@@ -266,7 +270,11 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			// The schema of the dependent tables might have changes, so we do not bind it to the available version yet but we use it to build the temporary index
 			List<ColumnModel> schema = sqlQuery.getSchemaOfSelect().stream().map(c -> columModelManager.createColumnModel(c)).collect(Collectors.toList());
 			
-			IdAndVersion[] dependentArray = getAvailableDependentIds(sqlQuery);
+			Optional<IdAndVersion[]> dependentArray = getAvailableDependentIds(sqlQuery.getTableIds());
+			if(dependentArray.isEmpty()){
+				LOG.info(String.format("Cannot update '%s' as one or more of its dependencies are unavailable. ",idAndVersion));
+				return;
+			}
 			
 			LOG.info("Building temporary materialized view index " + temporaryId);
 			
@@ -286,7 +294,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(sqlQuery, schema, isSearchEnabled);
 
 				return false;
-			}, dependentArray);
+			}, dependentArray.get());
 			
 			if (isUpToDate) {
 				LOG.info("Will skip rebuilding AVAILABLE materialized view " + idAndVersion + ". The index is up to date.");
@@ -346,24 +354,24 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		LOG.info("Materialized view " + idAndVersion + " set to AVAILABLE");
 	}
 	
-	private IdAndVersion[] getAvailableDependentIds(QueryTranslator sqlQuery) {
+	/**
+	 * Converts the provided list to an array if each dependency's status is AVAILABLE.
+	 * 
+	 * @param dependentTables
+	 * @return {@link Optional#empty()} when one or more dependency status is not AVAILABLE.
+	 */
+	Optional<IdAndVersion[]> getAvailableDependentIds(List<IdAndVersion> dependentTables) {
 		// Check if each dependency is available. Note: Getting the status of a
 		// dependency can also trigger it to update.
-		List<IdAndVersion> dependentTables = sqlQuery.getTableIds();
 		for (IdAndVersion dependent : dependentTables) {
-			TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(dependent);
-			switch (status.getState()) {
-			case AVAILABLE:
-				break;
-			case PROCESSING:
-				throw new RecoverableMessageException();
-			case PROCESSING_FAILED:
-				throw new IllegalArgumentException("Cannot build materialized view " + sqlQuery.getIndexDescription().getIdAndVersion() + ", the dependent table " + dependent + " failed to build");
-			default:
-				throw new IllegalStateException("Cannot build materialized view " + sqlQuery.getIndexDescription().getIdAndVersion() + ", unsupported state for dependent table " + dependent + ": " + status.getState());
+			TableState state = tableManagerSupport.getTableStatusOrCreateIfNotExists(dependent).getState();
+			if (!TableState.AVAILABLE.equals(state)) {
+				LOG.info(String.format(
+						"Dependency: '%s' has a state of '%s' so it is unavailable to incorporate into a MaterializedView",
+						dependent, state));
+				return Optional.empty();
 			}
 		}
-		
-		return dependentTables.toArray(new IdAndVersion[dependentTables.size()]);
+		return Optional.of(dependentTables.toArray(new IdAndVersion[dependentTables.size()]));
 	}
 }

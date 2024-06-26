@@ -60,7 +60,6 @@ import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.util.progress.ProgressingCallable;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.google.common.collect.ImmutableSet;
@@ -831,11 +830,10 @@ public class MaterializedViewManagerImplTest {
 
 		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn456"),
 				IdAndVersion.parse("syn789") };
-
-		assertThrows(RecoverableMessageException.class, ()->{
-			// call under test
-			managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion);
-		});
+		
+		// call under test
+		managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion);
+		
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryTranslator.class));
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[0]);
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[1]);
@@ -849,20 +847,17 @@ public class MaterializedViewManagerImplTest {
 		
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(syn123Schema);
 		setupMaterializedView(idAndVersion, "select * from syn456 join syn789");
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE),
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(
+				new TableStatus().setState(TableState.AVAILABLE),
 				new TableStatus().setState(TableState.PROCESSING_FAILED));
 		
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryTranslator.class));
 		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn456"),
 				IdAndVersion.parse("syn789") };
 
-		String result = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion);
-		}).getMessage();
+		// call under test
+		managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion);
 		
-		assertEquals("Cannot build materialized view syn123, the dependent table syn789 failed to build", result);
-
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryTranslator.class));
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[0]);
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[1]);
@@ -1043,11 +1038,9 @@ public class MaterializedViewManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(syn456Schema);		
 		when(mockColumnModelManager.createColumnModel(any())).thenReturn(syn123Schema.get(0), syn123Schema.get(1), syn456Schema.get(0), syn456Schema.get(1));
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.PROCESSING));
-		
-		assertThrows(RecoverableMessageException.class, ()->{
-			// call under test
-			managerSpy.rebuildAvailableViewHoldingTemporaryExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion, temporaryId);
-		});
+				
+		// call under test
+		managerSpy.rebuildAvailableViewHoldingTemporaryExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion, temporaryId);
 
 		verify(mockTableManagerSupport, times(3)).getIndexDescription(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(IdAndVersion.parse("syn123"));
@@ -1145,6 +1138,36 @@ public class MaterializedViewManagerImplTest {
 		verify(mockTableIndexManager).buildTableIndexIndices(index, syn123Schema);
 		verify(mockTableIndexManager).setIndexVersion(idAndVersion, 123L);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, "token", "DEFAULT");
+	}
+
+	@Test
+	public void testGetAvailableDependentIdsTest() {
+		IdAndVersion one = IdAndVersion.parse("syn1");
+		IdAndVersion two = IdAndVersion.parse("syn2");
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any()))
+				.thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+
+		// call under test
+		Optional<IdAndVersion[]> results = manager.getAvailableDependentIds(List.of(one, two));
+		
+		assertTrue(Arrays.equals(new IdAndVersion[]{one, two}, results.get()));
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(one);
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(two);
+	}
+	
+	@Test
+	public void testGetAvailableDependentIdsTestWithNotAvailable() {
+		IdAndVersion one = IdAndVersion.parse("syn1");
+		IdAndVersion two = IdAndVersion.parse("syn2");
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any()))
+				.thenReturn(new TableStatus().setState(TableState.AVAILABLE), new TableStatus().setState(TableState.PROCESSING));
+
+		// call under test
+		Optional<IdAndVersion[]> results = manager.getAvailableDependentIds(List.of(one, two));
+		
+		assertEquals(Optional.empty(), results);
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(one);
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(two);
 	}
 	
 }
