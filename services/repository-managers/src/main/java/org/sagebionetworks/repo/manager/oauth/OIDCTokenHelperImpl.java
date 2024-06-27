@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.manager.oauth;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_ACCESS_TOKEN;
+
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.util.Arrays;
@@ -10,24 +14,28 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.TokenType;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthAccessToken;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
-import org.sagebionetworks.repo.web.OAuthErrorCode;
-import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.EnumKeyedJsonMapUtil;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
@@ -48,6 +56,15 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 
 	@Autowired
 	private Clock clock;
+	
+	@Autowired
+	private IdGenerator idGenerator;
+	
+	@Autowired
+	private DBOBasicDao basicDao;
+	
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 	
 	@Override
 	public void afterPropertiesSet() {
@@ -71,6 +88,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			setHeaderParam(JwsHeader.KEY_ID, oidcSignatureKeyId).
 			signWith(SignatureAlgorithm.RS256, oidcSignaturePrivateKey).compact();
 	}
+	
 	@Override
 	public String createOIDCIdToken(
 			String issuer,
@@ -104,8 +122,8 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 		return createSignedJWT(claims);
 	}
 	
-	@Override
-	public String createOIDCaccessToken(
+	String createOIDCaccessToken(
+			Long userId,
 			String issuer,
 			String subject, 
 			String oauthClientId,
@@ -115,7 +133,8 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			String refreshTokenId,
 			String accessTokenId,
 			List<OAuthScope> scopes,
-			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
+			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims,
+			boolean persistToken) {
 		
 		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
 		
@@ -132,8 +151,50 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 
 		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN);
 
-		if (refreshTokenId!=null) claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
+		if (refreshTokenId!=null) {
+			claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
+		}
+		
+		if (persistToken) {
+			DBOOAuthAccessToken token = new DBOOAuthAccessToken();
+			
+			token.setId(idGenerator.generateNewId(IdType.OAUTH_ACCESS_TOKEN_ID));
+			token.setTokenId(accessTokenId);
+			token.setPrincipalId(userId);
+			token.setClientId(Long.parseLong(oauthClientId));
+			token.setCreatedOn(claims.getIssuedAt());
+			token.setExpiresOn(claims.getExpiration());			
+			token.setSessionId(SessionIdThreadLocal.getThreadsSessionId().orElse(null));
+			
+			if (refreshTokenId != null) {
+				token.setRefreshTokenId(Long.valueOf(refreshTokenId));
+			}
+			
+			basicDao.createNew(token);
+			
+		}
+		
 		return createSignedJWT(claims);
+	}
+	
+	@Override
+	@WriteTransaction
+	public String createOIDCaccessToken(
+			Long userId,
+			String issuer,
+			String subject, 
+			String oauthClientId,
+			long now,
+			long expirationTimeSeconds,
+			Date authTime,
+			String refreshTokenId,
+			String accessTokenId,
+			List<OAuthScope> scopes,
+			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
+		
+		boolean persistToken = true;
+		
+		return createOIDCaccessToken(userId, issuer, subject, oauthClientId, now, expirationTimeSeconds, authTime, refreshTokenId, accessTokenId, scopes, oidcClaims, persistToken);
 	}
 
 	@Override
@@ -162,18 +223,21 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 		String tokenId = UUID.randomUUID().toString();
 		long expirationInSeconds = 60L; // it's for internal use only, just has to last the duration of the current request
 		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
-		return createOIDCaccessToken(issuer, subject, oauthClientId, clock.currentTimeMillis(), expirationInSeconds, null,
-				null, tokenId, allScopes, Collections.EMPTY_MAP);
+		// This is a token used internally created ad-hoc and not returned to the user
+		boolean persistToken = false;
+		return createOIDCaccessToken(principalId, issuer, subject, oauthClientId, clock.currentTimeMillis(), expirationInSeconds, null,
+				null, tokenId, allScopes, Collections.EMPTY_MAP, persistToken);
 	}
 
 	@Override
+	@WriteTransaction
 	public String createClientTotalAccessToken(final Long principalId, final String issuer) {
 		String subject = principalId.toString(); // we don't encrypt the subject
 		String oauthClientId = ""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID;
 		String tokenId = UUID.randomUUID().toString();
 		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
 		long expirationInSeconds = AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS;
-		return createOIDCaccessToken(issuer, subject, oauthClientId, clock.currentTimeMillis(), expirationInSeconds, null,
+		return createOIDCaccessToken(principalId, issuer, subject, oauthClientId, clock.currentTimeMillis(), expirationInSeconds, null,
 				null, tokenId, allScopes, Collections.EMPTY_MAP);
 	}
 	
@@ -185,5 +249,20 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	@Override
 	public void validateJWT(String token) {
 		JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
+	}
+	
+	@Override
+	public boolean isValidOIDCAccessToken(String tokenId) {
+		String sql = "SELECT COUNT(*) FROM " + TABLE_OAUTH_ACCESS_TOKEN + " WHERE " + COL_OAUTH_ACCESS_TOKEN_ID + "=?";
+		
+		return jdbcTemplate.queryForObject(sql, Long.class, tokenId) > 0;
+	}
+	
+	@Override
+	@WriteTransaction
+	public void invalidateOIDCAccessTokens(Long userId) {
+		String sql = "DELETE FROM " + TABLE_OAUTH_ACCESS_TOKEN + " WHERE " + COL_OAUTH_ACCESS_TOKEN_PRINCIPAL_ID + "=?";
+		
+		jdbcTemplate.update(sql);
 	}
 }

@@ -454,7 +454,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 
 		String accessTokenId = UUID.randomUUID().toString();
-		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
+		String accessToken = oidcTokenHelper.createOIDCaccessToken(Long.valueOf(authorizationRequest.getUserId()), oauthEndpoint, ppid,
 				oauthClientId, now, AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, authTime, refreshTokenId, accessTokenId, scopes,
 				EnumKeyedJsonMapUtil.convertKeysToEnums(normalizedClaims.getUserinfo(), OIDCClaimName.class));
 		result.setAccess_token(accessToken);
@@ -519,7 +519,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 
 		String accessTokenId = UUID.randomUUID().toString();
-		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
+		String accessToken = oidcTokenHelper.createOIDCaccessToken(Long.valueOf(refreshTokenMetadata.getPrincipalId()), oauthEndpoint, ppid,
 				oauthClientId, now, AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS,  authTime, refreshTokenMetadata.getTokenId(), accessTokenId, scopes, userInfoClaims);
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);

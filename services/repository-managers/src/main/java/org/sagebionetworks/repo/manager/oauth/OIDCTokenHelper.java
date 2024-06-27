@@ -35,6 +35,7 @@ public interface OIDCTokenHelper {
 	 * Create an OIDC access token which is used as an OAuth bearer token to authorize requests.  The
 	 * authority is specified by the 'scopes' and 'oidcClaims' param's.
 	 * 
+	 * @param userId The id of the synapse user
 	 * @param issuer the token issuer, Synapse
 	 * @param subject the subject of this token, the Synapse user
 	 * @param oauthClientId the ID of the registered OAuth cliewnt
@@ -47,7 +48,7 @@ public interface OIDCTokenHelper {
 	 * @param oidcClaims the fine-grained details about what user info can be accessed by this access token
 	 * @return a serialized JSON Web Token
 	 */
-	String createOIDCaccessToken(String issuer, String subject, String oauthClientId, long now, long expirationTimeSeconds, Date authTime,
+	String createOIDCaccessToken(Long userId, String issuer, String subject, String oauthClientId, long now, long expirationTimeSeconds, Date authTime,
 			String refreshTokenId, String accessTokenId, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims);
 
 	/**
@@ -102,5 +103,18 @@ public interface OIDCTokenHelper {
 	 * @return
 	 */
 	String createClientTotalAccessToken(final Long principalId, final String issuer);
+	
+	/**
+	 * @param tokenId
+	 * @return True if the token exists, false otherwise
+	 */
+	boolean isValidOIDCAccessToken(String tokenId);
+	
+	/**
+	 * Invalidates all the OIDC access tokens issued to the user
+	 * 
+	 * @param userId
+	 */
+	void invalidateOIDCAccessTokens(Long userId);
 
 }

@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_CLIENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_CONTEXT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_SESSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_EXPIRES_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_REFRESH_TOKEN_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_TOKEN_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_OAUTH_ACCESS_TOKEN;
@@ -13,7 +13,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -28,40 +28,43 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * Database object representing an OAuth 2.0 access token
  */
 public class DBOOAuthAccessToken implements MigratableDatabaseObject<DBOOAuthAccessToken, DBOOAuthAccessToken> {
-	
+
 	private Long id;
-	private String etag;
 	private String tokenId;
+	private Long refreshTokenId;
 	private Long principalId;
 	private Long clientId;
-	private Timestamp createdOn;
-	private Timestamp expiresOn;
-	private String context;
+	private Date createdOn;
+	private Date expiresOn;
+	private String sessionId;
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_OAUTH_ACCESS_TOKEN_ID, true).withIsBackupId(true),
-		new FieldColumn("etag", COL_OAUTH_ACCESS_TOKEN_ETAG).withIsEtag(true),
 		new FieldColumn("tokenId", COL_OAUTH_ACCESS_TOKEN_TOKEN_ID),
+		new FieldColumn("refreshTokenId", COL_OAUTH_ACCESS_TOKEN_REFRESH_TOKEN_ID),
 		new FieldColumn("principalId", COL_OAUTH_ACCESS_TOKEN_PRINCIPAL_ID),
 		new FieldColumn("clientId", COL_OAUTH_ACCESS_TOKEN_CLIENT_ID),
 		new FieldColumn("createdOn", COL_OAUTH_ACCESS_TOKEN_CREATED_ON),
 		new FieldColumn("expiresOn", COL_OAUTH_ACCESS_TOKEN_EXPIRES_ON),
-		new FieldColumn("context", COL_OAUTH_ACCESS_TOKEN_CONTEXT)
+		new FieldColumn("sessionId", COL_OAUTH_ACCESS_TOKEN_SESSION_ID) 
 	};
-	
+
 	private static final TableMapping<DBOOAuthAccessToken> TABLE_MAPPER = new TableMapping<DBOOAuthAccessToken>() {
-		
+
 		@Override
 		public DBOOAuthAccessToken mapRow(ResultSet rs, int rowNum) throws SQLException {
 			DBOOAuthAccessToken token = new DBOOAuthAccessToken();
 			token.setId(rs.getLong(COL_OAUTH_ACCESS_TOKEN_ID));
-			token.setEtag(rs.getString(COL_OAUTH_ACCESS_TOKEN_ETAG));
 			token.setTokenId(rs.getString(COL_OAUTH_ACCESS_TOKEN_TOKEN_ID));
+			token.setRefreshTokenId(rs.getLong(COL_OAUTH_ACCESS_TOKEN_REFRESH_TOKEN_ID));
+			if (rs.wasNull()) {
+				token.setRefreshTokenId(null);
+			}
 			token.setPrincipalId(rs.getLong(COL_OAUTH_ACCESS_TOKEN_PRINCIPAL_ID));
 			token.setClientId(rs.getLong(COL_OAUTH_ACCESS_TOKEN_CLIENT_ID));
 			token.setCreatedOn(rs.getTimestamp(COL_OAUTH_ACCESS_TOKEN_CREATED_ON));
 			token.setExpiresOn(rs.getTimestamp(COL_OAUTH_ACCESS_TOKEN_EXPIRES_ON));
-			token.setContext(rs.getString(COL_OAUTH_ACCESS_TOKEN_CONTEXT));
+			token.setSessionId(rs.getString(COL_OAUTH_ACCESS_TOKEN_SESSION_ID));
 			return token;
 		}
 
@@ -99,20 +102,20 @@ public class DBOOAuthAccessToken implements MigratableDatabaseObject<DBOOAuthAcc
 		this.id = id;
 	}
 
-	public String getEtag() {
-		return etag;
-	}
-	
-	public void setEtag(String eTag) {
-		this.etag = eTag;
-	}
-	
 	public String getTokenId() {
 		return tokenId;
 	}
 
 	public void setTokenId(String tokenId) {
 		this.tokenId = tokenId;
+	}
+	
+	public Long getRefreshTokenId() {
+		return refreshTokenId;
+	}
+	
+	public void setRefreshTokenId(Long refreshTokenId) {
+		this.refreshTokenId = refreshTokenId;
 	}
 
 	public Long getPrincipalId() {
@@ -131,61 +134,58 @@ public class DBOOAuthAccessToken implements MigratableDatabaseObject<DBOOAuthAcc
 		this.clientId = clientId;
 	}
 
-	public Timestamp getCreatedOn() {
+	public Date getCreatedOn() {
 		return createdOn;
 	}
 
-	public void setCreatedOn(Timestamp createdOn) {
+	public void setCreatedOn(Date createdOn) {
 		this.createdOn = createdOn;
 	}
-	
-	public Timestamp getExpiresOn() {
+
+	public Date getExpiresOn() {
 		return expiresOn;
 	}
-	
-	public void setExpiresOn(Timestamp expiresOn) {
+
+	public void setExpiresOn(Date expiresOn) {
 		this.expiresOn = expiresOn;
 	}
-	
-	public String getContext() {
-		return context;
+
+	public String getSessionId() {
+		return sessionId;
 	}
 	
-	public void setContext(String context) {
-		this.context = context;
+	public void setSessionId(String sessionId) {
+		this.sessionId = sessionId;
 	}
 
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.OAUTH_ACCESS_TOKEN;
 	}
-	
+
 	@Override
 	public MigratableTableTranslation<DBOOAuthAccessToken, DBOOAuthAccessToken> getTranslator() {
-			return new BasicMigratableTableTranslation<DBOOAuthAccessToken>();
+		return new BasicMigratableTableTranslation<DBOOAuthAccessToken>();
 	}
-
 
 	@Override
 	public Class<? extends DBOOAuthAccessToken> getBackupClass() {
 		return DBOOAuthAccessToken.class;
 	}
 
-
 	@Override
 	public Class<? extends DBOOAuthAccessToken> getDatabaseObjectClass() {
 		return DBOOAuthAccessToken.class;
 	}
 
-
 	@Override
-	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
 		return null;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(clientId, context, createdOn, etag, expiresOn, id, principalId, tokenId);
+		return Objects.hash(clientId, createdOn, expiresOn, id, principalId, refreshTokenId, sessionId, tokenId);
 	}
 
 	@Override
@@ -197,16 +197,17 @@ public class DBOOAuthAccessToken implements MigratableDatabaseObject<DBOOAuthAcc
 			return false;
 		}
 		DBOOAuthAccessToken other = (DBOOAuthAccessToken) obj;
-		return Objects.equals(clientId, other.clientId) && Objects.equals(context, other.context)
-				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(etag, other.etag)
+		return Objects.equals(clientId, other.clientId) && Objects.equals(createdOn, other.createdOn)
 				&& Objects.equals(expiresOn, other.expiresOn) && Objects.equals(id, other.id)
-				&& Objects.equals(principalId, other.principalId) && Objects.equals(tokenId, other.tokenId);
+				&& Objects.equals(principalId, other.principalId) && Objects.equals(refreshTokenId, other.refreshTokenId)
+				&& Objects.equals(sessionId, other.sessionId) && Objects.equals(tokenId, other.tokenId);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOOAuthAccessToken [id=" + id + ", etag=" + etag + ", tokenId=" + tokenId + ", principalId=" + principalId + ", clientId="
-				+ clientId + ", createdOn=" + createdOn + ", expiresOn=" + expiresOn + ", context=" + context + "]";
+		return "DBOOAuthAccessToken [id=" + id + ", tokenId=" + tokenId + ", refreshTokenId=" + refreshTokenId + ", principalId="
+				+ principalId + ", clientId=" + clientId + ", createdOn=" + createdOn + ", expiresOn=" + expiresOn + ", sessionId="
+				+ sessionId + "]";
 	}
 
 }
