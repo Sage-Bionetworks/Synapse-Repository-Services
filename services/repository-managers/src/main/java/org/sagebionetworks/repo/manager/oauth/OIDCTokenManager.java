@@ -121,9 +121,9 @@ public interface OIDCTokenManager {
 	void revokeOIDCAccessTokens(Long principalId);
 	
 	/**
-	 * Revokes the access token with the given id
+	 * Revokes an OIDC access token using the token itself if such a token is present
 	 * @param tokenId
 	 */
-	void revokeOIDCAccessToken(String tokenId);
+	void revokeOIDCAccessToken(String token);
 
 }

@@ -26,6 +26,7 @@ import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.EnumKeyedJsonMapUtil;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
@@ -34,7 +35,9 @@ import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
+@Service
 public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager {
+	
 	private static final String NONCE = "nonce";
 	// the time window during which the client will consider the returned claims to be valid
 	private static final long ID_TOKEN_EXPIRATION_TIME_SECONDS = 60L; // a minute
@@ -244,7 +247,8 @@ public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager 
 
 	@Override
 	@WriteTransaction
-	public void revokeOIDCAccessToken(String tokenId) {
+	public void revokeOIDCAccessToken(String token) {
+		String tokenId = parseJWT(token).getBody().getId();
 		accessTokenDao.deleteAccessTokenRecord(tokenId);
 	}
 	
