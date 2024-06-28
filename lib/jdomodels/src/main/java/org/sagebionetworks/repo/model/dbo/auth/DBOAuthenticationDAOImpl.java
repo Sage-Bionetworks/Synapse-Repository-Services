@@ -2,10 +2,10 @@ package org.sagebionetworks.repo.model.dbo.auth;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATED_ON_AUTHENTICATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATED_ON_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_PASS_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_EXPIRES_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_PASS_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_SECRET_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT;

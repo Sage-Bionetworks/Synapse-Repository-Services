@@ -25,7 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.audit.AccessRecorder;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -66,7 +66,7 @@ public class AccessInterceptorTest {
 	AccessInterceptor interceptor;
 
 	@Mock
-	OIDCTokenHelper mockOidcTokenHelper;
+	OIDCTokenManager mockOidcTokenHelper;
 
 	Long userId;
 

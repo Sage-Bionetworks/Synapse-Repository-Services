@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -30,14 +29,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.TokenType;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthAccessToken;
+import org.sagebionetworks.repo.model.dbo.auth.OIDCAccessTokenData;
+import org.sagebionetworks.repo.model.dbo.auth.OAuthAccessTokenDao;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -46,7 +43,6 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.util.Clock;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
@@ -54,7 +50,7 @@ import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 
 @ExtendWith(MockitoExtension.class)
-public class OIDCTokenHelperImplTest {
+public class OIDCTokenManagerImplTest {
 
 	private static final String ISSUER = "https://repo-prod.prod.sagebase.org/auth/v1";
 	private static final Long USER_ID = 101L;
@@ -95,16 +91,10 @@ public class OIDCTokenHelperImplTest {
 	private Clock mockClock;
 	
 	@Mock
-	private IdGenerator mockIdGenerator;
+	private OAuthAccessTokenDao mockAccessTokenDao;
 	
-	@Mock
-	private DBOBasicDao mockBasicDao;
-	
-	@Mock
-	private JdbcTemplate mockJdbcTemplate;
-
 	@InjectMocks
-	OIDCTokenHelperImpl oidcTokenHelper;
+	OIDCTokenManagerImpl oidcTokenManager;
 	
 	@BeforeEach
 	public void setUp() {
@@ -141,25 +131,25 @@ public class OIDCTokenHelperImplTest {
 		when(stackConfiguration.getOIDCSignatureRSAPrivateKeys()).thenReturn(Collections.singletonList(devPrivateKey));
 		
 		// takes the place of Spring set up
-		oidcTokenHelper.afterPropertiesSet();
+		oidcTokenManager.afterPropertiesSet();
 	}
 
 	@Test
 	public void testGetJSONWebKeySet() throws Exception {
 		// below we test that the keys can be used to verify a signature.  Here we just check that they were generated
-		JsonWebKeySet jwks = oidcTokenHelper.getJSONWebKeySet();
+		JsonWebKeySet jwks = oidcTokenManager.getJSONWebKeySet();
 		assertFalse(jwks.getKeys().isEmpty());
 	}
 	
 	// get the public side of the current signing key
 	private PublicKey getPublicSigningKey() {
-		JsonWebKey jwk = oidcTokenHelper.getJSONWebKeySet().getKeys().get(0);
+		JsonWebKey jwk = oidcTokenManager.getJSONWebKeySet().getKeys().get(0);
 		return JSONWebTokenHelper.getRSAPublicKeyForJsonWebKeyRSA((JsonWebKeyRSA)jwk);
 	}
 	
 	@Test
 	public void testGenerateOIDCIdentityToken() throws Exception {
-		String oidcToken = oidcTokenHelper.createOIDCIdToken(ISSUER, 
+		String oidcToken = oidcTokenManager.createOIDCIdToken(ISSUER, 
 				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
 		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(oidcToken);
 		Claims claims = jwt.getBody();
@@ -174,7 +164,7 @@ public class OIDCTokenHelperImplTest {
 		// This checks the other fields set in the method under test
 		jwtValidation(oidcToken, false, NONCE);
 		
-		verifyZeroInteractions(mockBasicDao);
+		verifyZeroInteractions(mockAccessTokenDao);
 	}
 
 	/**
@@ -192,7 +182,7 @@ public class OIDCTokenHelperImplTest {
 	    // the TLS server validation MAY be used to validate the issuer in place of checking the token signature. The Client MUST 
 	    // validate the signature of all other ID Tokens according to JWS using the algorithm specified in the JWT alg Header 
 	    // Parameter. The Client MUST use the keys provided by the Issuer.
-	    Jwt<JwsHeader,Claims> signedJWT = JSONWebTokenHelper.parseJWT(jwtString, oidcTokenHelper.getJSONWebKeySet());
+	    Jwt<JwsHeader,Claims> signedJWT = JSONWebTokenHelper.parseJWT(jwtString, oidcTokenManager.getJSONWebKeySet());
 		assertNotNull(signedJWT);
 	    
 	    
@@ -217,7 +207,7 @@ public class OIDCTokenHelperImplTest {
 	    assertNull(claimsSet.get("azp")); // i.e. verify no azp Claim
 
 	    // by the way, the key ID in the token header should match that in the JWK
-	    assertEquals(signedJWT.getHeader().getKeyId(), oidcTokenHelper.getJSONWebKeySet().getKeys().get(0).getKid());
+	    assertEquals(signedJWT.getHeader().getKeyId(), oidcTokenManager.getJSONWebKeySet().getKeys().get(0).getKid());
 
 		// The alg value SHOULD be the default of RS256 or the algorithm sent by the Client in the id_token_signed_response_alg parameter during Registration.
 	    assertEquals("RS256", signedJWT.getHeader().getAlgorithm());
@@ -264,7 +254,6 @@ public class OIDCTokenHelperImplTest {
 		
 	@Test
 	public void testGenerateOIDCAccessToken() throws Exception {
-		when(mockIdGenerator.generateNewId(any())).thenReturn(10L);
 		List<OAuthScope> grantedScopes = Collections.singletonList(OAuthScope.openid);
 		Map<OIDCClaimName,OIDCClaimsRequestDetails> expectedClaims = new HashMap<OIDCClaimName,OIDCClaimsRequestDetails>();
 		expectedClaims.put(OIDCClaimName.email, ESSENTIAL);
@@ -274,7 +263,7 @@ public class OIDCTokenHelperImplTest {
 		details.setValues(Collections.singletonList("101"));
 		expectedClaims.put(OIDCClaimName.team, details);
 
-		String accessToken = oidcTokenHelper.createOIDCaccessToken(
+		String accessToken = oidcTokenManager.createOIDCaccessToken(
 				USER_ID,
 				ISSUER,
 				SUBJECT_ID, 
@@ -298,19 +287,15 @@ public class OIDCTokenHelperImplTest {
 		// This checks the other fields set in the method under test
 		jwtValidation(accessToken, false, null/* no nonce */);
 		
-		verify(mockIdGenerator).generateNewId(IdType.OAUTH_ACCESS_TOKEN_ID);
+		OIDCAccessTokenData expectedRecord = new OIDCAccessTokenData()
+			.setTokenId(TOKEN_ID)
+			.setRefreshTokenId(Long.valueOf(REFRESH_TOKEN_ID))
+			.setPrincipalId(USER_ID)
+			.setClientId(Long.valueOf(CLIENT_ID))
+			.setCreatedOn(claims.getIssuedAt())
+			.setExpiresOn(claims.getExpiration());
 		
-		DBOOAuthAccessToken expectedToken = new DBOOAuthAccessToken();
-		
-		expectedToken.setId(10L);
-		expectedToken.setTokenId(claims.getId());
-		expectedToken.setRefreshTokenId(Long.valueOf(REFRESH_TOKEN_ID));
-		expectedToken.setPrincipalId(USER_ID);
-		expectedToken.setClientId(Long.valueOf(CLIENT_ID));
-		expectedToken.setCreatedOn(claims.getIssuedAt());
-		expectedToken.setExpiresOn(claims.getExpiration());
-
-		verify(mockBasicDao).createNew(expectedToken);
+		verify(mockAccessTokenDao).storeAccessTokenRecord(expectedRecord);
 	}
 	
 	@Test
@@ -326,7 +311,7 @@ public class OIDCTokenHelperImplTest {
 
 		boolean persistToken = false;
 		
-		String accessToken = oidcTokenHelper.createOIDCaccessToken(
+		String accessToken = oidcTokenManager.createOIDCaccessToken(
 				USER_ID,
 				ISSUER,
 				SUBJECT_ID, 
@@ -351,17 +336,16 @@ public class OIDCTokenHelperImplTest {
 		// This checks the other fields set in the method under test
 		jwtValidation(accessToken, false, null/* no nonce */);
 		
-		verifyZeroInteractions(mockIdGenerator);
-		verifyZeroInteractions(mockBasicDao);
+		verifyZeroInteractions(mockAccessTokenDao);
 
 	}
 
 	
 	@Test
 	public void testOIDCSignatureValidation() throws Exception {
-		String oidcToken = oidcTokenHelper.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
+		String oidcToken = oidcTokenManager.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
 				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
-		oidcTokenHelper.validateJWT(oidcToken);
+		oidcTokenManager.validateJWT(oidcToken);
 	}
 	
 	@Test
@@ -371,7 +355,7 @@ public class OIDCTokenHelperImplTest {
 		Long principalId = 101L;
 		
 		// method under test
-		String accessToken = oidcTokenHelper.createInternalTotalAccessToken(principalId);
+		String accessToken = oidcTokenManager.createInternalTotalAccessToken(principalId);
 		
 		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
 		Claims claims = jwt.getBody();
@@ -382,51 +366,48 @@ public class OIDCTokenHelperImplTest {
 		assertEquals(now/1000L+60, claims.getExpiration().getTime()/1000L);
 		assertEquals(Arrays.asList(OAuthScope.values()), ClaimsJsonUtil.getScopeFromClaims(claims));
 		
-		verifyZeroInteractions(mockBasicDao);
+		verifyZeroInteractions(mockAccessTokenDao);
 	}
 
 	@Test
 	public void testCreateClientTotalAccessToken() {
 		long now = System.currentTimeMillis();
 		when(mockClock.currentTimeMillis()).thenReturn(now);
-		when(mockIdGenerator.generateNewId(any())).thenReturn(10L);
 		
 		Long principalId = 101L;
 		
 		// method under test
-		String accessToken = oidcTokenHelper.createClientTotalAccessToken(principalId, ISSUER);
+		String accessToken = oidcTokenManager.createClientTotalAccessToken(principalId, ISSUER);
 		
 		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
 		
 		Claims claims = jwt.getBody();
+		
 		assertEquals(ISSUER, claims.getIssuer());
 		assertEquals(principalId.toString(), claims.getSubject());
 		assertEquals(""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID, claims.getAudience());
 		assertNotNull(claims.getId());
 		assertEquals(now/1000L+24*3600, claims.getExpiration().getTime()/1000L);
 		assertEquals(Arrays.asList(OAuthScope.values()), ClaimsJsonUtil.getScopeFromClaims(claims));
-		
-		verify(mockIdGenerator).generateNewId(IdType.OAUTH_ACCESS_TOKEN_ID);
-		
-		DBOOAuthAccessToken expectedToken = new DBOOAuthAccessToken();
-		
-		expectedToken.setId(10L);
-		expectedToken.setTokenId(claims.getId());
-		expectedToken.setPrincipalId(principalId);
-		expectedToken.setClientId(Long.valueOf(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID));
-		expectedToken.setCreatedOn(claims.getIssuedAt());
-		expectedToken.setExpiresOn(claims.getExpiration());
 
-		verify(mockBasicDao).createNew(expectedToken);
+		OIDCAccessTokenData expectedRecord = new OIDCAccessTokenData()
+			.setTokenId(claims.getId())
+			.setRefreshTokenId(null)
+			.setPrincipalId(principalId)
+			.setClientId(Long.valueOf(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID))
+			.setCreatedOn(claims.getIssuedAt())
+			.setExpiresOn(claims.getExpiration());
+		
+		verify(mockAccessTokenDao).storeAccessTokenRecord(expectedRecord);
 	}
 
 	@Test
 	public void testParseExpiredJWTException() {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis() - ONE_YEAR_MILLIS);
 		Long principalId = 101L;
-		String expiredAccessToken = oidcTokenHelper.createInternalTotalAccessToken(principalId);
+		String expiredAccessToken = oidcTokenManager.createInternalTotalAccessToken(principalId);
 		assertThrows(OAuthUnauthenticatedException.class, () ->
-				oidcTokenHelper.parseJWT(expiredAccessToken));
+				oidcTokenManager.parseJWT(expiredAccessToken));
 	}
 
 	@Test
@@ -447,7 +428,7 @@ public class OIDCTokenHelperImplTest {
 		personalAccessTokenRecord.setUserInfoClaims(expectedClaims);
 
 		// method under test
-		String accessToken = oidcTokenHelper.createPersonalAccessToken(
+		String accessToken = oidcTokenManager.createPersonalAccessToken(
 				ISSUER,
 				personalAccessTokenRecord);
 
@@ -462,7 +443,6 @@ public class OIDCTokenHelperImplTest {
 		// This checks the other fields set in the method under test
 		jwtValidation(accessToken, true, null/* no nonce */);
 		
-		verifyZeroInteractions(mockBasicDao);
+		verifyZeroInteractions(mockAccessTokenDao);
 	}
-
 }

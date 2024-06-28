@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.repo.manager.oauth.ClaimsJsonUtil;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +39,7 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 	private static final String ERROR_MESSAGE_PREFIX  = "Request lacks scope(s) required by this service: ";
 	
 	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 	
 	public static boolean hasUserIdParameterOrAccessTokenHeader(HandlerMethod handlerMethod) {
 		for (MethodParameter methodParameter : handlerMethod.getMethodParameters()) {
@@ -106,7 +106,7 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(synapseAuthorizationHeader);
 		if (accessToken!=null) {
 			try {
-				Jwt<JwsHeader, Claims> jwt = oidcTokenHelper.parseJWT(accessToken);
+				Jwt<JwsHeader, Claims> jwt = oidcTokenManager.parseJWT(accessToken);
 				requestScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getBody());
 			} catch (IllegalArgumentException e) {
 				HttpAuthUtil.rejectWithErrorResponse(response, e.getMessage(), HttpStatus.UNAUTHORIZED);

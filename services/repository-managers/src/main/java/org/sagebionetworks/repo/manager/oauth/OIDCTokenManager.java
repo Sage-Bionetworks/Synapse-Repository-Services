@@ -14,7 +14,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
 
-public interface OIDCTokenHelper {
+public interface OIDCTokenManager {
 
 	/**
 	 * Create an OIDC ID Token given the specified meta data and user claims
@@ -33,7 +33,8 @@ public interface OIDCTokenHelper {
 
 	/**
 	 * Create an OIDC access token which is used as an OAuth bearer token to authorize requests.  The
-	 * authority is specified by the 'scopes' and 'oidcClaims' param's.
+	 * authority is specified by the 'scopes' and 'oidcClaims' param's. A record for the access token is 
+	 * persisted and the access token can be revoked.
 	 * 
 	 * @param userId The id of the synapse user
 	 * @param issuer the token issuer, Synapse
@@ -88,7 +89,7 @@ public interface OIDCTokenHelper {
 	 * ID it creates a token having 'total access' to the user account,
 	 * duplicating the access provided by a Synapse session token.
 	 * 
-	 * This is for 'internal use only', not to return to the client.
+	 * This is for 'internal use only', not to return to the client. The data for the access token is not persisted and cannot be revoked
 	 * 
 	 * @param principalId
 	 * @return
@@ -96,7 +97,8 @@ public interface OIDCTokenHelper {
 	String createInternalTotalAccessToken(Long principalId);
 	
 	/**
-	 * Creates a total access token suitable for returning to the client
+	 * Creates a total access token suitable for returning to the client, a record for the access token is 
+	 * persisted and the access token can be revoked.
 	 * 
 	 * @param principalId
 	 * @param issuer
@@ -105,16 +107,23 @@ public interface OIDCTokenHelper {
 	String createClientTotalAccessToken(final Long principalId, final String issuer);
 	
 	/**
+	 * 
 	 * @param tokenId
-	 * @return True if the token exists, false otherwise
+	 * @return True if an access token with the given id exists
 	 */
-	boolean isValidOIDCAccessToken(String tokenId);
+	boolean isOIDCAccessTokenExists(String tokenId);
 	
 	/**
-	 * Invalidates all the OIDC access tokens issued to the user
+	 * Revokes all the access tokens issued for the given user
 	 * 
-	 * @param userId
+	 * @param principalId
 	 */
-	void invalidateOIDCAccessTokens(Long userId);
+	void revokeOIDCAccessTokens(Long principalId);
+	
+	/**
+	 * Revokes the access token with the given id
+	 * @param tokenId
+	 */
+	void revokeOIDCAccessToken(String tokenId);
 
 }

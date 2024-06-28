@@ -94,7 +94,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	
 	private OAuthDao oauthDao;
 
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 	
 	private NotificationManager notificationManager;
 
@@ -105,14 +105,14 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@Autowired
 	public OpenIDConnectManagerImpl(OAuthClientDao oauthClientDao, OAuthRefreshTokenManager oauthRefreshTokenManager,
 			PersonalAccessTokenManager personalAccessTokenManager, AuthenticationDAO authDao, OAuthDao oauthDao,
-			OIDCTokenHelper oidcTokenHelper, NotificationManager notificationManager, Clock clock,
+			OIDCTokenManager oidcTokenManager, NotificationManager notificationManager, Clock clock,
 			Map<OIDCClaimName, OIDCClaimProvider> claimProviders) {
 		this.oauthClientDao = oauthClientDao;
 		this.oauthRefreshTokenManager = oauthRefreshTokenManager;
 		this.personalAccessTokenManager = personalAccessTokenManager;
 		this.authDao = authDao;
 		this.oauthDao = oauthDao;
-		this.oidcTokenHelper = oidcTokenHelper;
+		this.oidcTokenManager = oidcTokenManager;
 		this.notificationManager = notificationManager;
 		this.clock = clock;
 		this.claimProviders = claimProviders;
@@ -315,7 +315,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@Override
 	public String validateAccessToken(String jwtToken) {
 		// Parsing the JWT handles tokens that have expired
-		Claims claims = oidcTokenHelper.parseJWT(jwtToken).getBody();
+		Claims claims = oidcTokenManager.parseJWT(jwtToken).getBody();
 
 		String userId = getUserIdFromPPID(claims.getSubject(), claims.getAudience());
 		TokenType tokenType = TokenType.valueOf(claims.get(OIDCClaimName.token_type.name(), String.class));
@@ -434,7 +434,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			String idTokenId = UUID.randomUUID().toString();
 			Map<OIDCClaimName,Object> userInfo = getUserInfo(authorizationRequest.getUserId(), 
 					scopes, EnumKeyedJsonMapUtil.convertKeysToEnums(normalizedClaims.getId_token(), OIDCClaimName.class));
-			String idToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
+			String idToken = oidcTokenManager.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
 					authorizationRequest.getNonce(), authTime, idTokenId, userInfo);
 			result.setId_token(idToken);
 		}
@@ -454,7 +454,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 
 		String accessTokenId = UUID.randomUUID().toString();
-		String accessToken = oidcTokenHelper.createOIDCaccessToken(Long.valueOf(authorizationRequest.getUserId()), oauthEndpoint, ppid,
+		String accessToken = oidcTokenManager.createOIDCaccessToken(Long.valueOf(authorizationRequest.getUserId()), oauthEndpoint, ppid,
 				oauthClientId, now, AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, authTime, refreshTokenId, accessTokenId, scopes,
 				EnumKeyedJsonMapUtil.convertKeysToEnums(normalizedClaims.getUserinfo(), OIDCClaimName.class));
 		result.setAccess_token(accessToken);
@@ -511,7 +511,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		if (scopes.contains(OAuthScope.openid)) {
 			String idTokenId = UUID.randomUUID().toString();
 			Map<OIDCClaimName,Object> userInfo = getUserInfo(refreshTokenMetadata.getPrincipalId(), scopes, idTokenClaims);
-			String idToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, null, authTime, idTokenId, userInfo);
+			String idToken = oidcTokenManager.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, null, authTime, idTokenId, userInfo);
 			result.setId_token(idToken);
 		} else {
 			idTokenClaims = Collections.emptyMap();
@@ -519,7 +519,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 
 		String accessTokenId = UUID.randomUUID().toString();
-		String accessToken = oidcTokenHelper.createOIDCaccessToken(Long.valueOf(refreshTokenMetadata.getPrincipalId()), oauthEndpoint, ppid,
+		String accessToken = oidcTokenManager.createOIDCaccessToken(Long.valueOf(refreshTokenMetadata.getPrincipalId()), oauthEndpoint, ppid,
 				oauthClientId, now, AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS,  authTime, refreshTokenMetadata.getTokenId(), accessTokenId, scopes, userInfoClaims);
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);
@@ -565,7 +565,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@Override
 	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
 		ValidateArgument.required(accessTokenParam, "Access token");
-		Jwt<JwsHeader,Claims> accessToken = oidcTokenHelper.parseJWT(accessTokenParam);
+		Jwt<JwsHeader,Claims> accessToken = oidcTokenManager.parseJWT(accessTokenParam);
 		Claims accessTokenClaims = accessToken.getBody();
 		String oauthClientId = accessTokenClaims.getAudience();
 
@@ -602,7 +602,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		} else {
 			Date authTime = authDao.getAuthenticatedOn(Long.parseLong(userId));
 
-			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, clock.currentTimeMillis(), null,
+			String jwtIdToken = oidcTokenManager.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, clock.currentTimeMillis(), null,
 					authTime, UUID.randomUUID().toString(), userInfo);
 
 			return new JWTWrapper(jwtIdToken);
@@ -621,7 +621,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			// Since the reserved Synapse Oauth Client is not present in the database, we simply return
 			return;
 		}
-		if (!oauthClientDao.isOauthClientVerified(clientId)) {			
+		if (!oauthClientDao.isOauthClientVerified(clientId)) {
 			throw new OAuthClientNotVerifiedException("The OAuth client (" + clientId + ") is not verified.");
 		}
 	}
@@ -658,7 +658,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	 * @return the refresh token ID, or null if this token was not issued with a refresh token.
 	 */
 	private String getRefreshTokenId(String accessToken) {
-		Claims claims = oidcTokenHelper.parseJWT(accessToken).getBody();
+		Claims claims = oidcTokenManager.parseJWT(accessToken).getBody();
 		return claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
 	}
 }

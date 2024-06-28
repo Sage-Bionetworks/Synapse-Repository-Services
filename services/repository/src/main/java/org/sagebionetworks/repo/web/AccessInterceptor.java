@@ -13,7 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.repo.manager.audit.AccessRecorder;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
@@ -50,7 +50,7 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 	StackConfiguration stackConfiguration;
 
 	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 
 	String getOAuthClientId(HttpServletRequest request) {
 		/*
@@ -60,7 +60,7 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		 */
 		String accessToken = HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(request);
 		if (accessToken != null) {
-			return oidcTokenHelper.parseJWT(accessToken).getBody().getAudience();
+			return oidcTokenManager.parseJWT(accessToken).getBody().getAudience();
 		} else {
 			return request.getHeader(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER);
 		}

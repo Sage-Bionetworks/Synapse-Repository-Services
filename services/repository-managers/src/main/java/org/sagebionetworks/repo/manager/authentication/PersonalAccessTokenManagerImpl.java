@@ -12,7 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.ClaimsJsonUtil;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -58,7 +58,7 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 
 	private PersonalAccessTokenDao personalAccessTokenDao;
 
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 	
 	private UserManager userManager;
 	
@@ -67,9 +67,9 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 	private Clock clock;
 	
 	@Autowired
-	public PersonalAccessTokenManagerImpl(PersonalAccessTokenDao personalAccessTokenDao, OIDCTokenHelper oidcTokenHelper, UserManager userManager, NotificationManager notificationManager, Clock clock) {
+	public PersonalAccessTokenManagerImpl(PersonalAccessTokenDao personalAccessTokenDao, OIDCTokenManager oidcTokenManager, UserManager userManager, NotificationManager notificationManager, Clock clock) {
 		this.personalAccessTokenDao = personalAccessTokenDao;
-		this.oidcTokenHelper = oidcTokenHelper;
+		this.oidcTokenManager = oidcTokenManager;
 		this.userManager = userManager;
 		this.notificationManager = notificationManager;
 		this.clock = clock;
@@ -98,7 +98,7 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 		// now get the scopes permitted in the Synapse access token
 		List<OAuthScope> oauthScopes = Collections.EMPTY_LIST;
 		if (accessToken!=null) {
-			Jwt<JwsHeader, Claims> jwt = oidcTokenHelper.parseJWT(accessToken);
+			Jwt<JwsHeader, Claims> jwt = oidcTokenManager.parseJWT(accessToken);
 			oauthScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getBody());
 		}
 		
@@ -153,7 +153,7 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 			}
 		}
 		AccessTokenGenerationResponse response = new AccessTokenGenerationResponse();
-		response.setToken(oidcTokenHelper.createPersonalAccessToken(oauthEndpoint, record));
+		response.setToken(oidcTokenManager.createPersonalAccessToken(oauthEndpoint, record));
 
 		// If the user has over 100 tokens, delete the least recently used to get under the limit.
 		personalAccessTokenDao.deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), MAX_NUMBER_OF_TOKENS_PER_USER);

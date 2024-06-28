@@ -30,7 +30,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.oauth.ClaimsJsonUtil;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
@@ -109,7 +109,7 @@ public class DockerManagerImplUnitTest {
 	private TransactionalMessenger transactionalMessenger;
 	
 	@Mock
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 	
 	@Mock
 	private Jwt<JwsHeader,Claims> mockJwt;
@@ -145,7 +145,7 @@ public class DockerManagerImplUnitTest {
 		ClaimsJsonUtil.addAccessClaims(ImmutableList.of(download,modify), Collections.EMPTY_MAP, claims);
 		when(mockJwt.getBody()).thenReturn(claims);
 		
-		when(oidcTokenHelper.parseJWT(OAUTH_ACCESS_TOKEN)).thenReturn(mockJwt);
+		when(oidcTokenManager.parseJWT(OAUTH_ACCESS_TOKEN)).thenReturn(mockJwt);
 		
 		List<String> scope = new ArrayList<String>();
 		scope.add(TYPE+":"+REPOSITORY_PATH+":"+ACCESS_TYPES_STRING);
@@ -164,7 +164,7 @@ public class DockerManagerImplUnitTest {
 		ClaimsJsonUtil.addAccessClaims(ImmutableList.of(download,modify), Collections.EMPTY_MAP, claims);
 		when(mockJwt.getBody()).thenReturn(claims);
 		
-		when(oidcTokenHelper.parseJWT(OAUTH_ACCESS_TOKEN)).thenReturn(mockJwt);
+		when(oidcTokenManager.parseJWT(OAUTH_ACCESS_TOKEN)).thenReturn(mockJwt);
 		
 		List<String> scope = new ArrayList<String>();
 		scope.add("registry:catalog:*");

@@ -10,7 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.cloudwatch.Consumer;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -56,7 +56,7 @@ public class DockerClientAuthFilterTest {
 	private PrincipalAlias mockPrincipalAlias;
 	
 	@Mock 
-	private OIDCTokenHelper mockOidcTokenHelper;
+	private OIDCTokenManager mockOidcTokenHelper;
 	
 	@Mock 
 	private OpenIDConnectManager mockOidcManager;

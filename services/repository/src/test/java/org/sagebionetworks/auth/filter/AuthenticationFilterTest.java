@@ -16,7 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -74,7 +74,7 @@ public class AuthenticationFilterTest {
 	private FilterChain mockFilterChain;
 	
 	@Mock
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 	
 	@Mock
 	private OpenIDConnectManager mockOidcManager;
@@ -202,7 +202,7 @@ public class AuthenticationFilterTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
 		
-		when(oidcTokenHelper.createInternalTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
+		when(oidcTokenManager.createInternalTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
 
 		// method under test
 		filter.doFilter(request, response, filterChain);

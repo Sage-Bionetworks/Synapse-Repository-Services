@@ -14,7 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityId;
@@ -58,7 +58,7 @@ public class DockerManagerImplAutowiredTest {
 	private DockerNodeDao dockerNodeDao;
 
 	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 	
 	private UserInfo adminUserInfo;
 	private String projectId;
@@ -83,7 +83,7 @@ public class DockerManagerImplAutowiredTest {
 		// test to see if we can push to the project.  Answer should be yes!
 		List<String> scope = new ArrayList<String>();
 		scope.add(TYPE+":"+repositoryPath+":push");
-		String accessToken = oidcTokenHelper.createInternalTotalAccessToken(adminUserInfo.getId());
+		String accessToken = oidcTokenManager.createInternalTotalAccessToken(adminUserInfo.getId());
 		
 		DockerAuthorizationToken token = dockerManager.authorizeDockerAccess(adminUserInfo, accessToken, SERVICE, scope);
 		assertNotNull(token.getToken());

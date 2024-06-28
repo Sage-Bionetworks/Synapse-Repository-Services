@@ -15,7 +15,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -61,7 +61,7 @@ public class EntityServletTestHelper {
 
 	private HttpServlet dispatcherServlet = null;
 	
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 	/**
 	 * Setup the servlet, default test user, and entity list for test cleanup.
 	 * 
@@ -70,13 +70,13 @@ public class EntityServletTestHelper {
 	 * 
 	 * @throws Exception
 	 */
-	public EntityServletTestHelper(HttpServlet dispatcherServlet, OIDCTokenHelper oidcTokenHelper) throws Exception {
+	public EntityServletTestHelper(HttpServlet dispatcherServlet, OIDCTokenManager oidcTokenManager) throws Exception {
 		this.dispatcherServlet = dispatcherServlet;
-		this.oidcTokenHelper = oidcTokenHelper;
+		this.oidcTokenManager = oidcTokenManager;
 	}
 
 	private String token(Long userId) {
-		return oidcTokenHelper.createInternalTotalAccessToken(userId);
+		return oidcTokenManager.createInternalTotalAccessToken(userId);
 	}
 	
 	/**

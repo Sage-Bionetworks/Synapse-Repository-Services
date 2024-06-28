@@ -12,7 +12,7 @@ import java.util.UUID;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.oauth.ClaimsJsonUtil;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
@@ -73,7 +73,7 @@ public class DockerManagerImpl implements DockerManager {
 	private StackConfiguration stackConfiguration;
 	
 	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 
 	/**
 	 * Answer Docker Registry authorization request.
@@ -104,7 +104,7 @@ public class DockerManagerImpl implements DockerManager {
 				// now get the scopes permitted in the Synapse access token
 				List<OAuthScope> oauthScopes = Collections.EMPTY_LIST;
 				if (accessToken!=null) {
-					Jwt<JwsHeader, Claims> jwt = oidcTokenHelper.parseJWT(accessToken);
+					Jwt<JwsHeader, Claims> jwt = oidcTokenManager.parseJWT(accessToken);
 					oauthScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getBody());
 				}
 				
