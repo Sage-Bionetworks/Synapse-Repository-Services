@@ -339,28 +339,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		
 		LOG.info("Materialized view " + idAndVersion + " set to AVAILABLE");
 	}
-	
-//	/**
-//	 * Converts the provided list to an array if each dependency's status is AVAILABLE.
-//	 * 
-//	 * @param dependentTables
-//	 * @return {@link Optional#empty()} when one or more dependency status is not AVAILABLE.
-//	 */
-//	Optional<IdAndVersion[]> getAvailableDependentIds(List<IdAndVersion> dependentTables) {
-//		// Check if each dependency is available. Note: Getting the status of a
-//		// dependency can also trigger it to update.
-//		for (IdAndVersion dependent : dependentTables) {
-//			TableState state = tableManagerSupport.getTableStatusOrCreateIfNotExists(dependent).getState();
-//			if (!TableState.AVAILABLE.equals(state)) {
-//				LOG.info(String.format(
-//						"Dependency: '%s' has a state of '%s' so it is unavailable to incorporate into a MaterializedView",
-//						dependent, state));
-//				return Optional.empty();
-//			}
-//		}
-//		return Optional.of(dependentTables.toArray(new IdAndVersion[dependentTables.size()]));
-//	}
-	
+		
 	/**
 	 * If any dependency has PROCESSING_FAILED will return PROCESSING_FAILED. If
 	 * none of the dependencies have PROCESSING_FAILED, and at least one has
