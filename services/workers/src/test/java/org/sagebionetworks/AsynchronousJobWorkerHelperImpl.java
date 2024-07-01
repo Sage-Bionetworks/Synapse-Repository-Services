@@ -693,6 +693,16 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 				.build();
 	}
 
+	/**
+	 * Helper to append rows to to a table.
+	 * @param user
+	 * @param tableId
+	 * @param delta
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
 	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta) throws DatastoreException, NotFoundException {
 		return transactionManager.executeInTransaction(user, tableId, txContext -> {
 			try {
@@ -703,6 +713,9 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		});
 	}
 
+	/**
+	 * Create the schema with on column of each type.
+	 */
 	public List<ColumnModel> createSchemaOneOfEachType(UserInfo userInfo) {
 		List<ColumnModel>schema = new LinkedList<ColumnModel>();
 		for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
@@ -712,6 +725,10 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		return schema;
 	}
 
+	/**
+	 * Create a table entity using the schema.
+	 *
+	 */
 	public String createTableWithSchema(UserInfo userInfo, String parentId, List<ColumnModel> schema) {
 		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.

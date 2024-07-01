@@ -262,33 +262,12 @@ public class TableWorkerIntegrationTest {
 			}
 		}
 	}
-	
-	/**
-	 * Create the schema with on column of each type.
-	 */
-	void createSchemaOneOfEachType() {
-		schema = new LinkedList<ColumnModel>();
-		for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
-			cm = columnManager.createColumnModel(adminUserInfo, cm);
-			schema.add(cm);
-		}
-	}
-	
-	/**
-	 * Create a table entity using the schema.
-	 * 
-	 */
-	void createTableWithSchema() {
-		headers = TableModelUtils.getIds(schema);
-		// Create the table.
-		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, false).getId();
-	}
 
 	@Test
 	public void testRoundTrip() throws Exception {
 		// Create one column of each type
-		createSchemaOneOfEachType();
-		createTableWithSchema();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		// Add null rows
@@ -300,8 +279,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		long start = System.currentTimeMillis();
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
@@ -330,16 +308,15 @@ public class TableWorkerIntegrationTest {
 	@Test
 	public void testPLFM_3674() throws Exception {
 		// Create one column of each type
-		createSchemaOneOfEachType();
-		createTableWithSchema();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// add a row
 		List<Row> rows = TableModelTestUtils.createRows(schema, 1);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		// Wait for the table to become available
 		String sql = "select row_id from " + tableId;
 		query.setSql(sql);
@@ -362,14 +339,13 @@ public class TableWorkerIntegrationTest {
 		ColumnModel cm = TableModelTestUtils.createColumn(null, "data.csv", ColumnType.STRING);
 		cm = columnManager.createColumnModel(adminUserInfo, cm);
 		schema.add(cm);
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 1));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		String sql = "select * from " + tableId;
 		query.setSql(sql);
 		query.setLimit(7L);
@@ -384,15 +360,15 @@ public class TableWorkerIntegrationTest {
 
 	@Test
 	public void testLimitOffset() throws Exception {
-		createSchemaOneOfEachType();
-		createTableWithSchema();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Now add some data
 		final RowSet addRowSet = new RowSet();
 		addRowSet.setRows(TableModelTestUtils.createRows(schema, 6));
 		addRowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		addRowSet.setTableId(tableId);
 		
-		referenceSet = appendRows(adminUserInfo, tableId, addRowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, addRowSet);
 		String sql = "select * from " + tableId;
 		query.setSql(sql);
 		query.setLimit(7L);
@@ -480,7 +456,7 @@ public class TableWorkerIntegrationTest {
 				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col1", ColumnType.INTEGER)),
 				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col2", ColumnType.INTEGER)),
 				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col3", ColumnType.INTEGER)));
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "a", "1", "10", "3"),
@@ -488,8 +464,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "c", "3", "11", "2")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		// Wait for the table to become available
 		String sql = "select name from " + tableId + " order by col1";
@@ -527,7 +502,7 @@ public class TableWorkerIntegrationTest {
 		// Create one column of each type
 		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
 				TableModelTestUtils.createColumn(null, "number", ColumnType.DOUBLE)));
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "1.5"), TableModelTestUtils.createRow(null, null, "2.0"),
@@ -535,8 +510,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "2.0")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		// Wait for the table to become available
 		String sql = "select avg(number) from " + tableId;
@@ -590,8 +564,8 @@ public class TableWorkerIntegrationTest {
 
 	@Test
 	public void testLimitWithCountQueries() throws Exception {
-		createSchemaOneOfEachType();
-		createTableWithSchema();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 10));
@@ -602,8 +576,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.getRows().get(4).getValues().set(0, rowSet.getRows().get(0).getValues().get(0));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " limit 5";
@@ -735,15 +708,14 @@ public class TableWorkerIntegrationTest {
 
 	@Test
 	public void testColumnOrderWithQueries() throws Exception {
-		createSchemaOneOfEachType();
-		createTableWithSchema();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 10));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId;
@@ -773,10 +745,10 @@ public class TableWorkerIntegrationTest {
 	 */
 	@Test
 	public void testRoundTripAfterMigrate() throws Exception {
-		createSchemaOneOfEachType();
-		createTableWithSchema();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		RowSet rowSet = createRowSet(headers);
-		appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
 		query.setSql(sql);
@@ -796,10 +768,10 @@ public class TableWorkerIntegrationTest {
 	
 	@Test
 	public void testDeleteTable() throws Exception {
-		createSchemaOneOfEachType();
-		createTableWithSchema();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		RowSet rowSet = createRowSet(headers);
-		appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		// Wait for the table to become available
 		String sql = "select * from " + tableId;
 		query.setSql(sql);
@@ -845,10 +817,10 @@ public class TableWorkerIntegrationTest {
 	 */
 	@Test
 	public void testAfterMigrate() throws Exception {
-		createSchemaOneOfEachType();
-		createTableWithSchema();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		RowSet rowSet = createRowSet(headers);
-		appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
 		query.setSql(sql);
@@ -885,8 +857,8 @@ public class TableWorkerIntegrationTest {
 	@Test
 	public void testPartialUpdateRoundTrip() throws Exception {
 		// Create one column of each type
-		createSchemaOneOfEachType();
-		createTableWithSchema();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 10);
 		// Add null rows
@@ -897,8 +869,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
@@ -942,15 +913,14 @@ public class TableWorkerIntegrationTest {
 		// Create one column
 		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
 				TableModelTestUtils.createColumn(null, "col1", ColumnType.STRING)));
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 
 		// add data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "a")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId;
@@ -1015,7 +985,7 @@ public class TableWorkerIntegrationTest {
 	public void testDates() throws Exception {
 		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
 				TableModelTestUtils.createColumn(0L, "coldate", ColumnType.DATE)));
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		DateFormat dateTimeInstance = new SimpleDateFormat("yyy-M-d h:mm");
 		dateTimeInstance.setTimeZone(TimeZone.getTimeZone("GMT"));
 		Date[] dates = new Date[] { dateTimeInstance.parse("2014-2-3 2:12"), dateTimeInstance.parse("2014-2-3 3:41"),
@@ -1030,8 +1000,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " where coldate between '2014-2-3 3:00' and '2016-1-1' order by coldate asc";
@@ -1063,7 +1032,7 @@ public class TableWorkerIntegrationTest {
 	public void testDoubles() throws Exception {
 		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
 				TableModelTestUtils.createColumn(0L, "coldouble", ColumnType.DOUBLE)));
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		Double[] doubles = { Double.NaN, Double.NEGATIVE_INFINITY, -Double.MAX_VALUE+1.0E307, -1.0, 0.0, 1.0, 3e42, Double.MAX_VALUE-1.0E307,
 				Double.POSITIVE_INFINITY };
 		String[] expected = { "NaN", "-Infinity", "-1.6976931348623157e308", "-1", "0", "1", "3e42", "1.6976931348623157e308",
@@ -1079,8 +1048,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by coldouble ASC";
@@ -1136,7 +1104,7 @@ public class TableWorkerIntegrationTest {
 	public void testBooleans() throws Exception {
 		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
 				TableModelTestUtils.createColumn(0L, "colbool", ColumnType.BOOLEAN)));
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 
 		String[] booleans = new String[] { null, "", "true", "false", "True", "False", "TRUE", "FALSE", Boolean.TRUE.toString(),
 				Boolean.FALSE.toString(), Boolean.FALSE.toString() };
@@ -1154,8 +1122,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		String[] failingBooleans = new String[] { "1", "0", "2", "falseish", "nottrue" };
 		for (String failingBoolean : failingBooleans) {
@@ -1167,7 +1134,7 @@ public class TableWorkerIntegrationTest {
 			failRowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 			failRowSet.setTableId(tableId);
 			assertThrows(IllegalArgumentException.class, ()->{
-				appendRows(adminUserInfo, tableId, failRowSet, mockProgressCallback);
+				asyncHelper.appendRows(adminUserInfo, tableId, failRowSet);
 			});
 		}
 
@@ -1245,15 +1212,14 @@ public class TableWorkerIntegrationTest {
 		cm = columnManager.createColumnModel(adminUserInfo, cm);
 		schema.add(cm);
 
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 4);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		assertEquals(4, referenceSet.getRows().size());
 
 		rowSet.setEtag(referenceSet.getEtag());
@@ -1269,7 +1235,7 @@ public class TableWorkerIntegrationTest {
 		TableModelTestUtils.updateRow(schema, updateRows.get(1), 444);
 		TableModelTestUtils.updateRow(schema, updateRows.get(2), 555);
 		rowSet.setRows(updateRows);
-		RowReferenceSet referenceSet2 = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		RowReferenceSet referenceSet2 = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		assertEquals(3, referenceSet2.getRows().size());
 
 		RowSelection rowsToDelete = new RowSelection();
@@ -1306,7 +1272,7 @@ public class TableWorkerIntegrationTest {
 		schema.add(columnManager.createColumnModel(adminUserInfo, cm));
 		cm.setName("col4");
 		schema.add(columnManager.createColumnModel(adminUserInfo, cm));
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 
 		// Now add some data
 		List<Row> rows = Lists.newArrayList();
@@ -1317,8 +1283,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
@@ -1417,7 +1382,7 @@ public class TableWorkerIntegrationTest {
 			cm.setName("col" + i);
 			schema.add(columnManager.createColumnModel(adminUserInfo, cm));
 		}
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 
 		// Now add a file handle
 		ExternalFileHandle fileHandle1 = new ExternalFileHandle();
@@ -1438,8 +1403,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
@@ -1512,7 +1476,8 @@ public class TableWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		createTableWithSchema();
+		headers = TableModelUtils.getIds(schema);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 10);
 		RowSet rowSet = new RowSet();
@@ -1533,10 +1498,10 @@ public class TableWorkerIntegrationTest {
 			assertEquals(tableId, queryResult.getQueryResults().getTableId());
 			assertNotNull(queryResult.getQueryResults().getHeaders());
 			assertEquals(4, queryResult.getQueryResults().getHeaders().size());
-			assertEquals(headers.get(0).toString(), queryResult.getQueryResults().getHeaders().get(2).getId());
-			assertEquals(headers.get(1).toString(), queryResult.getQueryResults().getHeaders().get(1).getId());
-			assertEquals(headers.get(2).toString(), queryResult.getQueryResults().getHeaders().get(0).getId());
-			assertEquals(headers.get(3).toString(), queryResult.getQueryResults().getHeaders().get(3).getId());
+			assertEquals(headers.get(0), queryResult.getQueryResults().getHeaders().get(2).getId());
+			assertEquals(headers.get(1), queryResult.getQueryResults().getHeaders().get(1).getId());
+			assertEquals(headers.get(2), queryResult.getQueryResults().getHeaders().get(0).getId());
+			assertEquals(headers.get(3), queryResult.getQueryResults().getHeaders().get(3).getId());
 			assertNotNull(queryResult.getQueryResults().getRows());
 			assertEquals(2, queryResult.getQueryResults().getRows().size());
 			assertNotNull(queryResult.getQueryResults().getEtag());
@@ -1621,8 +1586,8 @@ public class TableWorkerIntegrationTest {
 	@Test
 	public void testNoRows() throws Exception {
 		// Create one column of each type
-		createSchemaOneOfEachType();
-		createTableWithSchema();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// We should be able to query
 		String sql = "select * from " + tableId;
 		waitForConsistentQuery(adminUserInfo, sql, null, 1L, (queryResult) -> {	
@@ -1654,7 +1619,7 @@ public class TableWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Create some CSV data
 		List<String[]> input = new ArrayList<String[]>(3);
 		input.add(new String[] { "a", "b", "c" });
@@ -1750,7 +1715,7 @@ public class TableWorkerIntegrationTest {
 		schema = Lists.newArrayList(
 				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(0L, "a", ColumnType.STRING)),
 				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(0L, "b", ColumnType.INTEGER)));
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Create some CSV data
 		String[][] input = { { "a", "b" }, { "A", "1" }, { "A", "2" }, { "C", "4" } };
 		// This is the starting input stream
@@ -1873,11 +1838,10 @@ public class TableWorkerIntegrationTest {
 		// Create the table.
 		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, false).getId();
 		
-		appendRows(owner, tableId,
-				createRowSet(headers), mockProgressCallback);
+		asyncHelper.appendRows(owner, tableId,
+				createRowSet(headers));
 		assertThrows(UnauthorizedException.class, ()->{
-			appendRows(notOwner, tableId,
-					createRowSet(headers), mockProgressCallback);
+			asyncHelper.appendRows(notOwner, tableId, createRowSet(headers));
 		});
 
 		// Wait for the table to become available
@@ -1904,8 +1868,7 @@ public class TableWorkerIntegrationTest {
 		acl.getResourceAccess().add(ra);
 		acl = entityAclManager.updateACL(acl, adminUserInfo);
 
-		appendRows(notOwner, tableId,
-				createRowSet(headers), mockProgressCallback);
+		asyncHelper.appendRows(notOwner, tableId, createRowSet(headers));
 		
 		waitForConsistentQuery(notOwner, sql, null, 8L, (response) -> {
 			assertNotNull(response);
@@ -1936,8 +1899,7 @@ public class TableWorkerIntegrationTest {
 			assertNotNull(response);
 		});
 		
-		appendRows(notOwner, tableId,
-				createRowSet(headers), mockProgressCallback);
+		asyncHelper.appendRows(notOwner, tableId, createRowSet(headers));
 	}
 	
 	@Test
@@ -1945,7 +1907,7 @@ public class TableWorkerIntegrationTest {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setName("aString");
 		oldColumn.setColumnType(ColumnType.STRING);
-		oldColumn.setMaximumSize(50L);;
+		oldColumn.setMaximumSize(50L);
 		oldColumn = columnManager.createColumnModel(adminUserInfo, oldColumn);
 		
 		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
@@ -2008,7 +1970,7 @@ public class TableWorkerIntegrationTest {
 				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(0L, "aBoolean", ColumnType.BOOLEAN)),
 				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(0L, "anInteger", ColumnType.INTEGER)));
 		
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Apply a rowset with all columns
 		List<String> rowOneValues = Lists.newArrayList("true","123");
 		addRowToTable(schema, rowOneValues);
@@ -2165,12 +2127,11 @@ public class TableWorkerIntegrationTest {
 	public void testCachedFacetStats() throws Exception {
 		schema = columnManager.createColumnModels(adminUserInfo, List.of(new ColumnModel().setName("foo")
 				.setColumnType(ColumnType.INTEGER).setFacetType(FacetType.enumeration)));
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 
-		referenceSet = appendRows(adminUserInfo, tableId,
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId,
 				new RowSet().setRows(List.of(new Row().setValues(List.of("1"))))
-						.setHeaders(TableModelUtils.getSelectColumns(schema)).setTableId(tableId),
-				mockProgressCallback);
+						.setHeaders(TableModelUtils.getSelectColumns(schema)).setTableId(tableId));
 		simpleSql = "select * from " + tableId;
 
 		query.setSql(simpleSql);
@@ -2185,10 +2146,9 @@ public class TableWorkerIntegrationTest {
 		});
 
 		// change the facet results
-		referenceSet = appendRows(adminUserInfo, tableId,
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId,
 				new RowSet().setRows(List.of(new Row().setValues(List.of("2"))))
-						.setHeaders(TableModelUtils.getSelectColumns(schema)).setTableId(tableId),
-				mockProgressCallback);
+						.setHeaders(TableModelUtils.getSelectColumns(schema)).setTableId(tableId));
 
 		waitForConsistentQueryBundle(adminUserInfo, query, queryOptions, (queryResultBundle) -> {
 			List<FacetColumnResult> facets = queryResultBundle.getFacets();
@@ -2232,7 +2192,7 @@ public class TableWorkerIntegrationTest {
 		strListColumn = columnManager.createColumnModel(adminUserInfo, strListColumn);
 		schema = Lists.newArrayList(strListColumn);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		TableStatus status = waitForTableProcessing(tableId);
 		if(status.getErrorDetails() != null){
 			System.out.println(status.getErrorDetails());
@@ -2247,8 +2207,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, (String) null)));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		//query the column expecting the index table for it to be populated
 		waitForConsistentQuery(adminUserInfo, "select ROW_ID, UNNEST("+strListColumn.getName()+") from " + tableId, null, null, (QueryResult result) -> {
@@ -2348,7 +2307,7 @@ public class TableWorkerIntegrationTest {
 		defaultEmptyList = columnManager.createColumnModel(adminUserInfo, defaultEmptyList);
 
 		schema = Collections.singletonList(defaultEmptyList);
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 
 
 		RowSet rowSet = new RowSet();
@@ -2365,8 +2324,7 @@ public class TableWorkerIntegrationTest {
 
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		simpleSql = "select * from " + tableId;
 
 		query.setSql(simpleSql);
@@ -2416,7 +2374,7 @@ public class TableWorkerIntegrationTest {
 		startColumn = columnManager.createColumnModel(adminUserInfo, startColumn);
 		schema = Lists.newArrayList(startColumn);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		TableStatus status = waitForTableProcessing(tableId);
 		if(status.getErrorDetails() != null){
 			System.out.println(status.getErrorDetails());
@@ -2430,8 +2388,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "[\"3\",\"4\",\"5\"]")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		//query the column expecting the index table for it to be populated
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where startColumn has ('3')", null, null, (queryResult) -> {			
@@ -2478,7 +2435,7 @@ public class TableWorkerIntegrationTest {
 		startColumn = columnManager.createColumnModel(adminUserInfo, startColumn);
 		schema = Lists.newArrayList(startColumn);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		TableStatus status = waitForTableProcessing(tableId);
 		if(status.getErrorDetails() != null){
 			System.out.println(status.getErrorDetails());
@@ -2493,8 +2450,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "[\"aAAAAAAA\",\"yeeeeet\",\"ggggg\"]")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		//query the column expecting the index table for it to be populated
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where startColumn not has ('asdf') order by row_id", null, null, (queryResult) -> {
@@ -2523,7 +2479,7 @@ public class TableWorkerIntegrationTest {
 		userIDColumn = columnManager.createColumnModel(adminUserInfo, userIDColumn);
 		schema = Lists.newArrayList(userIDColumn);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		TableStatus status = waitForTableProcessing(tableId);
 		assertTrue(TableState.AVAILABLE.equals(status.getState()));
 
@@ -2534,8 +2490,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "3")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		//query the column and check if the results match the userId
 		waitForConsistentQuery(adminUserInfo, "select userIDcolumn from " + tableId + " where userIDcolumn = CURRENT_USER()", null, null, (queryResult) -> {
@@ -2559,7 +2514,7 @@ public class TableWorkerIntegrationTest {
 		startColumn = columnManager.createColumnModel(adminUserInfo, startColumn);
 		schema = Lists.newArrayList(startColumn);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		TableStatus status = waitForTableProcessing(tableId);
 		if(status.getErrorDetails() != null){
 			System.out.println(status.getErrorDetails());
@@ -2573,8 +2528,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "[\"3\",\"4\",\"5\"]")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		//query the column expecting the index table for it to be populated
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where startColumn has ('3')", null, null, (result) -> {
@@ -2623,7 +2577,7 @@ public class TableWorkerIntegrationTest {
 		userIdList = columnManager.createColumnModel(adminUserInfo, userIdList);
 		schema = Lists.newArrayList(entityIdList, userIdList);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		TableStatus status = waitForTableProcessing(tableId);
 		if(status.getErrorDetails() != null){
 			System.out.println(status.getErrorDetails());
@@ -2639,8 +2593,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "[\"6\",\"syn7\",\"8\"]", "[\"3\",\"2\",\"1\"]")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		//query the column expecting the index table for it to be populated
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where entityIdList has ('8', 'syn1')", null, null, (result) -> {			
@@ -2669,7 +2622,7 @@ public class TableWorkerIntegrationTest {
 		cm.setColumnType(ColumnType.INTEGER);
 		cm = columnManager.createColumnModel(adminUserInfo, cm);
 		schema = Lists.newArrayList(cm);
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Apply a rowset with all columns
 		List<String> rowOneValues = Lists.newArrayList("123");
 		addRowToTable(schema, rowOneValues);
@@ -2685,8 +2638,8 @@ public class TableWorkerIntegrationTest {
 	@Test
 	public void testPLFM_4186() throws Exception {
 		// Create one column of each type
-		createSchemaOneOfEachType();
-		createTableWithSchema();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		// Add null rows
@@ -2696,8 +2649,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		long start = System.currentTimeMillis();
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
 		
 		TableStatus status = waitForTableProcessing(tableId);
@@ -2729,7 +2681,7 @@ public class TableWorkerIntegrationTest {
 		entityIdColumn = columnManager.createColumnModel(adminUserInfo, entityIdColumn);
 		schema = Lists.newArrayList(entityIdColumn);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// add rows to the table.
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(
@@ -2739,8 +2691,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "syn123")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		
 		String sql = "select * from " + tableId;
 		
@@ -2792,7 +2743,7 @@ public class TableWorkerIntegrationTest {
 		startColumn = columnManager.createColumnModel(adminUserInfo, startColumn);
 		schema = Lists.newArrayList(startColumn);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		TableStatus status = waitForTableProcessing(tableId);
 		if(status.getErrorDetails() != null){
 			System.out.println(status.getErrorDetails());
@@ -2852,7 +2803,7 @@ public class TableWorkerIntegrationTest {
 		enumColumn = columnManager.createColumnModel(adminUserInfo, enumColumn);
 		schema = Lists.newArrayList(rangeColumn, enumColumn);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// add some rows
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(
@@ -2860,8 +2811,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "1990", "Tuesday")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		// query for results and include facets
 		FacetColumnRangeRequest range = new FacetColumnRangeRequest();
 		range.setColumnName(rangeColumn.getName());
@@ -2888,8 +2838,8 @@ public class TableWorkerIntegrationTest {
 	 */
 	@Test
 	public void testPLFM_5240Sensitive() throws Exception {
-		createSchemaOneOfEachType();
-		createTableWithSchema();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		grantReadToPublicOnTable();
 		
 		// Set the table to be sensitive
@@ -2914,8 +2864,8 @@ public class TableWorkerIntegrationTest {
 	 */
 	@Test
 	public void testPLFM_5240Open() throws Exception {
-		createSchemaOneOfEachType();
-		createTableWithSchema();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// make the table public read
 		grantReadToPublicOnTable();
 		
@@ -2945,7 +2895,7 @@ public class TableWorkerIntegrationTest {
 		year = columnManager.createColumnModel(adminUserInfo, year);
 		schema = Lists.newArrayList(year);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		TableStatus status = waitForTableProcessing(tableId);
 		assertTrue(TableState.AVAILABLE.equals(status.getState()));
 
@@ -2989,7 +2939,7 @@ public class TableWorkerIntegrationTest {
 		bar = columnManager.createColumnModel(adminUserInfo, bar);
 		schema = Lists.newArrayList(foo, bar);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// add some rows
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(
@@ -2999,7 +2949,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "b", "five")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		// Wait for the table to become available
 		String sql = "select foo, group_concat(distinct bar order by bar asc separator '#') from " + tableId
@@ -3025,7 +2975,7 @@ public class TableWorkerIntegrationTest {
 		foo = columnManager.createColumnModel(adminUserInfo, foo);
 		schema = Lists.newArrayList(foo);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// add some rows
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(
@@ -3033,7 +2983,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "two")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		// Wait for the table to become available
 		String sql = "select CRC32(foo) from " + tableId + " order by foo desc";
@@ -3065,7 +3015,7 @@ public class TableWorkerIntegrationTest {
 			schema.add(cm);
 		}
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Add one row with the max bytes
 		List<String> values = new LinkedList<>();
 		for(int i=0; i<ColumnConstants.MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE; i++) {
@@ -3081,7 +3031,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(Lists.newArrayList(row));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		
 		String sql = "select * from " + tableId;
 		query.setSql(sql);
@@ -3117,7 +3067,7 @@ public class TableWorkerIntegrationTest {
 		columnTwo = columnManager.createColumnModel(adminUserInfo, columnTwo);
 		schema = Lists.newArrayList(columnOne, columnTwo);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// add a row
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(
@@ -3125,7 +3075,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "2", "bar")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		/* Directly remove one of the columns from the table's bound columns
 		 * to simulate the bug state.
 		 */
@@ -3161,19 +3111,19 @@ public class TableWorkerIntegrationTest {
 		columnTwo = columnManager.createColumnModel(adminUserInfo, columnTwo);
 		schema = Lists.newArrayList(columnOne, columnTwo);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// add one row to the table as the first change.
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "1", "foo")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		// add a second row as the second change.
 		rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "2", "bar")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		// wait for both rows to appear in the index.
 		query.setSql("select * from " + tableId);
 		waitForConsistentQuery(adminUserInfo, query, queryOptions, (queryResult) -> {
@@ -3206,7 +3156,7 @@ public class TableWorkerIntegrationTest {
 		createdOn = columnManager.createColumnModel(adminUserInfo, createdOn);
 		schema = Lists.newArrayList(createdOn);
 		// build a table with this column.
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		TableStatus status = waitForTableProcessing(tableId);
 		assertTrue(TableState.AVAILABLE.equals(status.getState()));
 
@@ -3216,7 +3166,7 @@ public class TableWorkerIntegrationTest {
 				TableModelTestUtils.createRow(null, null, "" + System.currentTimeMillis() + 3L)));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		waitForConsistentQuery(adminUserInfo,
 				"select * from " + tableId + " where createdOn > UNIX_TIMESTAMP('2021-06-20 00:00:00')*1000", null,
@@ -3236,7 +3186,7 @@ public class TableWorkerIntegrationTest {
 	
 	@Test
 	public void testEnableSearchWithExistingData() throws Exception {
-		createSchemaOneOfEachType();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
 		headers = TableModelUtils.getIds(schema);
 		
 		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, false).getId();
@@ -3254,7 +3204,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		
-		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 		asyncHelper.updateTable(tableId, adminUserInfo, headers, true);
 		
@@ -3285,7 +3235,7 @@ public class TableWorkerIntegrationTest {
 	
 	@Test
 	public void testDisableSearch() throws Exception {
-		createSchemaOneOfEachType();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
 		headers = TableModelUtils.getIds(schema);
 		
 		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, true).getId();
@@ -3298,7 +3248,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		
-		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
 			assertEquals(2, queryResult.getQueryResults().getRows().size());
@@ -3337,7 +3287,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		
-		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		
 		// works on single value
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('singlevalue')", null, null, (queryResult) -> {
@@ -3407,7 +3357,7 @@ public class TableWorkerIntegrationTest {
 			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 			rowSet.setTableId(tableId);
 			
-			referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+			referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 			
 			// Now check for a non existing value
 			waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('singlevalueupdated')", null, null, (queryResult) -> {
@@ -3424,7 +3374,7 @@ public class TableWorkerIntegrationTest {
 			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 			rowSet.setTableId(tableId);
 			
-			referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+			referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 			
 			// Works with updated value
 			waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('singlevalueupdated')", null, null, (queryResult) -> {
@@ -3457,7 +3407,7 @@ public class TableWorkerIntegrationTest {
 			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 			rowSet.setTableId(tableId);
 			
-			referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+			referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 
 			// Wait for the table to be available to avoid a race condition when we update the table below (that might throw a temporary unavailable)
 			assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
@@ -3503,7 +3453,7 @@ public class TableWorkerIntegrationTest {
 			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 			rowSet.setTableId(tableId);
 			
-			referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+			referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 			
 			// Wait for the table to be available to avoid a race condition when we update the table below (that might throw a temporary unavailable)
 			assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
@@ -3574,7 +3524,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		
-		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		
 		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
 		
@@ -3618,7 +3568,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		
-		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		
 		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
 		
@@ -3659,7 +3609,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		
-		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		
 		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
 		
@@ -3704,7 +3654,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		
-		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		referenceSet =  asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		String sql = "select id,"
 				+ " sum(case type when 'one' then 1 else 0 end) as oneCount,"
 				+ " sum(case type when 'two' then 1 else 0 end) as twoCount"
@@ -3726,7 +3676,7 @@ public class TableWorkerIntegrationTest {
 		schema = columnManager.createColumnModels(adminUserInfo,
 				List.of(new ColumnModel().setName("foo").setColumnType(ColumnType.INTEGER),
 						new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER)));
-		createTableWithSchema();
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		String sql = String.format("SELECT foo, sum(bar) as b FROM %s GROUP BY foo HAVING b > 1000", tableId);
 		String message = assertThrows(IllegalArgumentException.class,()->{
 			waitForConsistentQuery(adminUserInfo, sql, null, null, (result) -> {
@@ -3791,15 +3741,14 @@ public class TableWorkerIntegrationTest {
 	 * Stolen from testLimitOffset()
 	 */
 	private void facetTestSetup() throws Exception{
-		createSchemaOneOfEachType();
-		createTableWithSchema();
+		schema = asyncHelper.createSchemaOneOfEachType(adminUserInfo);
+		tableId = asyncHelper.createTableWithSchema(adminUserInfo, projectId, schema);
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 6));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
-		referenceSet = appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
+		referenceSet = asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 		simpleSql = "select * from " + tableId;
 		
 		waitForConsistentQuery(adminUserInfo, simpleSql, null, 7L, (response) -> {
@@ -3827,29 +3776,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(Lists.newArrayList(row));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(columns));
 		rowSet.setTableId(tableId);
-		return appendRows(adminUserInfo, tableId,
-				rowSet, mockProgressCallback);
-	}
-	
-	/**
-	 * Helper to append rows to to a table.
-	 * @param user
-	 * @param tableId
-	 * @param delta
-	 * @param progressCallback
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 */
-	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback progressCallback) throws DatastoreException, NotFoundException, IOException {
-		return transactionManager.executeInTransaction(user, tableId, txContext -> {
-			try {
-				return tableEntityManager.appendRows(user, tableId, delta, txContext);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		});
+		return asyncHelper.appendRows(adminUserInfo, tableId, rowSet);
 	}
 	
 	/**
