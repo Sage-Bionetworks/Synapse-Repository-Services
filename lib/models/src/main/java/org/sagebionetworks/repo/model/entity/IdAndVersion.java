@@ -8,7 +8,7 @@ import java.util.Optional;
  * class. To parse an EntityId from a string use {@linkplain IdAndVersionParser}
  */
 public class IdAndVersion implements Comparable<IdAndVersion> {
-
+	private static final Long NEGATIVE_VERSION =-1L;
 	final Long id;
 	final Long version;
 
@@ -23,7 +23,7 @@ public class IdAndVersion implements Comparable<IdAndVersion> {
 			throw new IllegalArgumentException("ID cannot be null");
 		}
 		this.id = id;
-		this.version = version;
+		this.version = version != null && version == NEGATIVE_VERSION ? null : version;
 	}
 
 	/**

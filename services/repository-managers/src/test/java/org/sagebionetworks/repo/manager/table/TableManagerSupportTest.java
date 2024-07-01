@@ -1799,6 +1799,7 @@ public class TableManagerSupportTest {
 		manager.deleteTableStatus(tableId);
 
 		verify(mockTableStatusDAO).deleteTableStatusForAllVersions(tableId);
+		verify(mockTableStatusDAO, never()).deleteTableStatus(tableId);
 	}
 
 	@Test
@@ -1808,6 +1809,7 @@ public class TableManagerSupportTest {
 		manager.deleteTableStatus(tableId);
 
 		verify(mockTableStatusDAO).deleteTableStatusForAllVersions(tableId);
+		verify(mockTableStatusDAO, never()).deleteTableStatus(tableId);
 	}
 
 	@Test
@@ -1817,6 +1819,7 @@ public class TableManagerSupportTest {
 		manager.deleteTableStatus(tableId);
 
 		verify(mockTableStatusDAO).deleteTableStatusForAllVersions(tableId);
+		verify(mockTableStatusDAO, never()).deleteTableStatus(tableId);
 	}
 
 	@Test
@@ -1826,5 +1829,6 @@ public class TableManagerSupportTest {
 		manager.deleteTableStatus(tableId);
 
 		verify(mockTableStatusDAO).deleteTableStatus(tableId);
+		verify(mockTableStatusDAO, never()).deleteTableStatusForAllVersions(tableId);
 	}
 }

@@ -7,12 +7,15 @@ import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
+import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.MaterializedViewManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.manager.table.TableTransactionManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.VirtualTableManager;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileSummary;
@@ -23,6 +26,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -41,13 +45,19 @@ import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.model.table.VirtualTable;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -55,6 +65,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
@@ -62,6 +73,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -69,6 +81,7 @@ import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -260,6 +273,10 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	private NodeDAO nodeDAO;
 	@Autowired
 	private VirtualTableManager virtualTableManager;
+	@Autowired
+	TableTransactionManager transactionManager;
+	@Autowired
+	ColumnModelManager columnManager;
 	
 	@Override
 	public <R extends AsynchronousRequestBody, T extends AsynchronousResponseBody> AsyncJobResponse<T> assertJobResponse(
@@ -659,6 +676,46 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 			System.out.println(String.format("Waiting for '%s' to become available", id.toString()));
 			Thread.sleep(2000);
 		}
+	}
+
+	public IdAndVersion createSnapshot( UserInfo userInfo, IdAndVersion id, int maxWait) throws AssertionError, AsynchJobFailedException {
+
+		TableUpdateTransactionRequest txRequest = new TableUpdateTransactionRequest().setEntityId(id.toString())
+				.setSnapshotOptions(
+						new SnapshotRequest().setSnapshotComment("snapshotting...").setSnapshotLabel("version two"))
+				.setCreateSnapshot(true);
+
+		AsyncJobResponse<TableUpdateTransactionResponse> wrapped = assertJobResponse(userInfo,
+				txRequest, (TableUpdateTransactionResponse response) -> {
+					assertNotNull(response.getSnapshotVersionNumber());
+				}, maxWait);
+		return IdAndVersion.newBuilder().setId(id.getId()).setVersion(wrapped.getResponse().getSnapshotVersionNumber())
+				.build();
+	}
+
+	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta) throws DatastoreException, NotFoundException {
+		return transactionManager.executeInTransaction(user, tableId, txContext -> {
+			try {
+				return tableEntityManager.appendRows(user, tableId, delta, txContext);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+	}
+
+	public List<ColumnModel> createSchemaOneOfEachType(UserInfo userInfo) {
+		List<ColumnModel>schema = new LinkedList<ColumnModel>();
+		for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
+			cm = columnManager.createColumnModel(userInfo, cm);
+			schema.add(cm);
+		}
+		return schema;
+	}
+
+	public String createTableWithSchema(UserInfo userInfo, String parentId, List<ColumnModel> schema) {
+		List<String> headers = TableModelUtils.getIds(schema);
+		// Create the table.
+		return createTable(userInfo, UUID.randomUUID().toString(), parentId, headers, false).getId();
 	}
 
 }

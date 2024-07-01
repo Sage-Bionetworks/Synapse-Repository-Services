@@ -1,10 +1,8 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,7 +11,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.cloud.storage.Acl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,15 +20,9 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
-import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
-import org.sagebionetworks.repo.manager.trash.TrashManager;
-import org.sagebionetworks.repo.model.AsynchJobFailedException;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -41,7 +32,6 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
-import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -63,11 +53,8 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.worker.TestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -102,18 +89,8 @@ public class SubmissionViewIntegrationTest {
 	
 	@Autowired
 	private TableIndexConnectionFactory connectionFactory;
-
-	@Autowired
-	private EntityManager entityManager;
-	@Autowired
-	private TrashManager trashManager;
-	@Autowired
-	private TableStatusDAO tableStatusDAO;
-	@Autowired
-	private UserManager userManager;
 	
 	private UserInfo evaluationOwner;
-	private UserInfo adminUserInfo;
 
 	private UserInfo submitter1;
 	private UserInfo submitter2;
@@ -136,7 +113,6 @@ public class SubmissionViewIntegrationTest {
 		testHelper.before();
 		
 		evaluationOwner = testHelper.createUser();
-		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		submitter1 = testHelper.createUser();
 		submitter2 = testHelper.createUser();
@@ -514,42 +490,6 @@ public class SubmissionViewIntegrationTest {
 		// Verifies that the view will be synched with the new value
 		assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
 		
-	}
-
-	@Test
-	public void testMoveToTrashDeletesTableSatus() throws Exception {
-		Folder entity1 = testHelper.createFolder(submitter1, submitter1Project);
-		Folder entity2 = testHelper.createFolder(submitter2, submitter2Project);
-
-		SubmissionBundle submission1 = testHelper.createSubmission(submitter1, evaluation, entity1);
-		SubmissionBundle submission2 = testHelper.createSubmission(submitter2, evaluation, entity2);
-
-		view = createView(evaluationOwner, evaluationProject, evaluation);
-
-		List<SubmissionBundle> submissions = ImmutableList.of(submission1, submission2);
-
-		// Wait for the results
-		assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
-
-		trashManager.moveToTrash(adminUserInfo, view.getId(), false);
-
-		//call under test
-		TimeUtils.waitFor(MAX_WAIT, 1000L, () -> {
-			try {
-				assertThrows(NotFoundException.class, () -> {
-					tableStatusDAO.getTableStatus(IdAndVersion.parse(view.getId()));
-				});
-				return new Pair<>(Boolean.TRUE, null);
-			} catch (Throwable e) {
-				System.out.println("Waiting for TableStatusDeleteWorker to delete the status of table" + e.getMessage());
-				return new Pair<>(Boolean.FALSE, null);
-			}
-		});
-
-
-		assertThrows(EntityInTrashCanException.class, () -> {
-			assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
-		});
 	}
 	
 	private QueryResultBundle assertSubmissionQueryResults(UserInfo user, String query, List<SubmissionBundle> submissions) throws Exception {

@@ -349,7 +349,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testDeletesEntityAndMoveToTrashDeletesTableSatus() throws Exception {
+	public void testDeletesEntityDeletesTableSatus() throws Exception {
 		int numberOfFiles = 5;
 		List<Entity> entites = createProjectHierachy(numberOfFiles);
 		String projectId = entites.get(0).getId();
@@ -401,12 +401,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
 		}, MAX_WAIT_MS);
 
-		// As MV is already available So querying the view will show the results.
-		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + materializedViewId + " limit 10", (results) -> {
-			assertFalse(results.getQueryResult().getQueryResults().getRows().isEmpty());
-		}, MAX_WAIT_MS);
-
-		// Sending a message to rebuild the view.
+		// As MV is already available So querying the view will show the results so send a message to rebuild the view.
 		ChangeMessage changeMessage = new ChangeMessage();
 		changeMessage.setChangeType(ChangeType.UPDATE);
 		changeMessage.setObjectType(ObjectType.MATERIALIZED_VIEW);

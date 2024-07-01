@@ -761,7 +761,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		ValidateArgument.required(idAndVersion.getId(), "idAndVersion.getId");
 
-		if (idAndVersion.getVersion().isEmpty() || idAndVersion.getVersion().get().equals(-1L)) {
+		if (idAndVersion.getVersion().isEmpty()) {
 			tableStatusDAO.deleteTableStatusForAllVersions(idAndVersion);
 		} else {
 			tableStatusDAO.deleteTableStatus(idAndVersion);

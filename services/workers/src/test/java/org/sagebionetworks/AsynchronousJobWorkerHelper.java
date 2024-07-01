@@ -2,10 +2,12 @@ package org.sagebionetworks;
 
 import org.sagebionetworks.AsynchronousJobWorkerHelperImpl.AsyncJobResponse;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -15,9 +17,12 @@ import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.VirtualTable;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 import java.io.IOException;
 import java.util.List;
@@ -285,4 +290,11 @@ public interface AsynchronousJobWorkerHelper {
 	 */
 	void waitForTableOrViewToBeAvailable(IdAndVersion id, long maxWaitMs) throws InterruptedException;
 
+	IdAndVersion createSnapshot(UserInfo userInfo, IdAndVersion id, int maxWait) throws AssertionError, AsynchJobFailedException;
+
+	RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta) throws DatastoreException, NotFoundException;
+
+	List<ColumnModel> createSchemaOneOfEachType(UserInfo userInfo);
+
+	String createTableWithSchema(UserInfo userInfo, String parentId, List<ColumnModel> schema);
 }
