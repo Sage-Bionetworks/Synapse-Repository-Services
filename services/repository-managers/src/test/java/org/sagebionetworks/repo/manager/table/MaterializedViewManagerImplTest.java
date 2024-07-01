@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -9,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -33,6 +35,7 @@ import org.junit.jupiter.params.provider.EnumSource.Mode;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -60,7 +63,6 @@ import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.util.progress.ProgressingCallable;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.google.common.collect.ImmutableSet;
@@ -93,6 +95,9 @@ public class MaterializedViewManagerImplTest {
 
 	@Mock
 	private MaterializedView mockView;
+	
+	@Mock
+	private ProgressingCallable<Boolean> mockRunner;
 	
 	@Mock
 	private NodeDAO mockNodeDAO;
@@ -831,11 +836,10 @@ public class MaterializedViewManagerImplTest {
 
 		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn456"),
 				IdAndVersion.parse("syn789") };
-
-		assertThrows(RecoverableMessageException.class, ()->{
-			// call under test
-			managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion);
-		});
+		
+		// call under test
+		managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion);
+		
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryTranslator.class));
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[0]);
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[1]);
@@ -849,20 +853,22 @@ public class MaterializedViewManagerImplTest {
 		
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(syn123Schema);
 		setupMaterializedView(idAndVersion, "select * from syn456 join syn789");
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE),
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(
+				new TableStatus().setState(TableState.AVAILABLE),
 				new TableStatus().setState(TableState.PROCESSING_FAILED));
 		
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryTranslator.class));
 		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn456"),
 				IdAndVersion.parse("syn789") };
 
-		String result = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalStateException.class, ()->{
 			// call under test
 			managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion);
 		}).getMessage();
+		assertEquals(
+				"Cannot update 'LockContext [type=BuildMaterializedView, objectId=syn123]' as one or more of its dependencies are in the failed state.",
+				message);
 		
-		assertEquals("Cannot build materialized view syn123, the dependent table syn789 failed to build", result);
-
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryTranslator.class));
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[0]);
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[1]);
@@ -1043,11 +1049,9 @@ public class MaterializedViewManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(syn456Schema);		
 		when(mockColumnModelManager.createColumnModel(any())).thenReturn(syn123Schema.get(0), syn123Schema.get(1), syn456Schema.get(0), syn456Schema.get(1));
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.PROCESSING));
-		
-		assertThrows(RecoverableMessageException.class, ()->{
-			// call under test
-			managerSpy.rebuildAvailableViewHoldingTemporaryExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion, temporaryId);
-		});
+				
+		// call under test
+		managerSpy.rebuildAvailableViewHoldingTemporaryExclusiveLock(mockProgressCallback, expectedLockContext, idAndVersion, temporaryId);
 
 		verify(mockTableManagerSupport, times(3)).getIndexDescription(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(IdAndVersion.parse("syn123"));
@@ -1147,4 +1151,120 @@ public class MaterializedViewManagerImplTest {
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, "token", "DEFAULT");
 	}
 	
+	@Test
+	public void testGetDependencyStateSummary(){
+		IdAndVersion one = IdAndVersion.parse("syn1");
+		IdAndVersion two = IdAndVersion.parse("syn2");
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any()))
+				.thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		// call under test
+		assertEquals(TableState.AVAILABLE, manager.getDependencyStateSummary(List.of(one, two)));
+		
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(one);
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(two);
+	}
+	
+	@Test
+	public void testGetDependencyStateSummaryWithPorcessing(){
+		IdAndVersion one = IdAndVersion.parse("syn1");
+		IdAndVersion two = IdAndVersion.parse("syn2");
+		IdAndVersion three = IdAndVersion.parse("syn3");
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(
+				new TableStatus().setState(TableState.AVAILABLE), new TableStatus().setState(TableState.PROCESSING),
+				new TableStatus().setState(TableState.PROCESSING));
+		// call under test
+		assertEquals(TableState.PROCESSING, manager.getDependencyStateSummary(List.of(one, two, three)));
+		
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(one);
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(two);
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(three);
+	}
+	
+	@Test
+	public void testGetDependencyStateSummaryWithPorcessingAndFailed(){
+		IdAndVersion one = IdAndVersion.parse("syn1");
+		IdAndVersion two = IdAndVersion.parse("syn2");
+		IdAndVersion three = IdAndVersion.parse("syn3");
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(
+				new TableStatus().setState(TableState.AVAILABLE), new TableStatus().setState(TableState.PROCESSING),
+				new TableStatus().setState(TableState.PROCESSING_FAILED));
+		// call under test
+		assertEquals(TableState.PROCESSING_FAILED, manager.getDependencyStateSummary(List.of(one, two, three)));
+		
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(one);
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(two);
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(three);
+	}
+	
+	@Test
+	public void testTryRunWithNonExclusiveLockOnAvailableDependecies() throws Exception {
+		IdAndVersion one = IdAndVersion.parse("syn1");
+		IdAndVersion two = IdAndVersion.parse("syn2");
+		List<IdAndVersion> ids = List.of(one, two);
+		doReturn(TableState.AVAILABLE).when(managerSpy).getDependencyStateSummary(any());
+		doReturn(true).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(), any(), any(),
+				any(IdAndVersion.class));
+
+		/// call under test
+		boolean result = managerSpy.tryRunWithNonExclusiveLockOnAvailableDependecies(mockProgressCallback,
+				expectedLockContext, mockRunner, ids);
+		assertTrue(result);
+		verify(managerSpy).getDependencyStateSummary(ids);
+		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(mockProgressCallback, expectedLockContext,
+				mockRunner, one, two);
+	}
+	
+	@Test
+	public void testTryRunWithNonExclusiveLockOnAvailableDependeciesWithFalse() throws Exception {
+		IdAndVersion one = IdAndVersion.parse("syn1");
+		IdAndVersion two = IdAndVersion.parse("syn2");
+		List<IdAndVersion> ids = List.of(one, two);
+		doReturn(TableState.AVAILABLE).when(managerSpy).getDependencyStateSummary(any());
+		doReturn(false).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(), any(), any(),
+				any(IdAndVersion.class));
+
+		/// call under test
+		boolean result = managerSpy.tryRunWithNonExclusiveLockOnAvailableDependecies(mockProgressCallback,
+				expectedLockContext, mockRunner, ids);
+		assertFalse(result);
+		verify(managerSpy).getDependencyStateSummary(ids);
+		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(mockProgressCallback, expectedLockContext,
+				mockRunner, one, two);
+	}
+	
+	@Test
+	public void testTryRunWithNonExclusiveLockOnAvailableDependeciesWithProcessing() throws Exception {
+		IdAndVersion one = IdAndVersion.parse("syn1");
+		IdAndVersion two = IdAndVersion.parse("syn2");
+		List<IdAndVersion> ids = List.of(one, two);
+		doReturn(TableState.PROCESSING).when(managerSpy).getDependencyStateSummary(any());
+
+		/// call under test
+		boolean result = managerSpy.tryRunWithNonExclusiveLockOnAvailableDependecies(mockProgressCallback,
+				expectedLockContext, mockRunner, ids);
+		assertTrue(result);
+		verify(managerSpy).getDependencyStateSummary(ids);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+	}
+	
+	@Test
+	public void testTryRunWithNonExclusiveLockOnAvailableDependeciesWithProcessingFailed() throws Exception {
+		IdAndVersion one = IdAndVersion.parse("syn1");
+		IdAndVersion two = IdAndVersion.parse("syn2");
+		List<IdAndVersion> ids = List.of(one, two);
+		doReturn(TableState.PROCESSING_FAILED).when(managerSpy).getDependencyStateSummary(any());
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			/// call under test
+			managerSpy.tryRunWithNonExclusiveLockOnAvailableDependecies(mockProgressCallback, expectedLockContext,
+					mockRunner, ids);
+		}).getMessage();
+		assertEquals(
+				"Cannot update 'LockContext [type=BuildMaterializedView, objectId=syn123]' as one or more of its dependencies are in the failed state.",
+				message);
+
+		verify(managerSpy).getDependencyStateSummary(ids);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+	}
+		
 }
