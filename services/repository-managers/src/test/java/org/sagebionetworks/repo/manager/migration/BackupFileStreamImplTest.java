@@ -18,6 +18,7 @@ import java.io.StringWriter;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -543,10 +544,8 @@ public class BackupFileStreamImplTest {
 		int index = 0;
 		String fileName = BackupFileStreamImpl.createFileName(MigrationType.CREDENTIAL, index);
 		
-		assertThrows(EmptyFileException.class, () -> {
-			// Call under test
-			backupFileStream.readFileFromStream(input, backupAliasType, fileName);
-		});
+		// Call under test
+		assertEquals(Optional.empty(), backupFileStream.readFileFromStream(input, backupAliasType, fileName));
 	}
 	
 	@Test
@@ -554,10 +553,8 @@ public class BackupFileStreamImplTest {
 		StringInputStream input = new StringInputStream("");
 		String fileName = "RemovedType.4.xml";
 		
-		assertThrows(EmptyFileException.class, () -> {
-			// Call under test
-			backupFileStream.readFileFromStream(input, backupAliasType, fileName);
-		});
+		// Call under test
+		assertEquals(Optional.empty(), backupFileStream.readFileFromStream(input, backupAliasType, fileName));
 	}
 	
 	@Test
@@ -591,10 +588,10 @@ public class BackupFileStreamImplTest {
 		int index = 0;
 		String fileName = BackupFileStreamImpl.createFileName(MigrationType.CREDENTIAL, index);
 		// Call under test
-		List<MigratableDatabaseObject<?, ?>> results = backupFileStream.readFileFromStream(input, backupAliasType, fileName);
-		assertNotNull(results);
-		assertEquals(2, results.size());
-		assertEquals(credentialTwo, results.get(1));
+		Optional<List<MigratableDatabaseObject<?, ?>>> results = backupFileStream.readFileFromStream(input, backupAliasType, fileName);
+		assertNotNull(results.get());
+		assertEquals(2, results.get().size());
+		assertEquals(credentialTwo, results.get().get(1));
 	}
 	
 }

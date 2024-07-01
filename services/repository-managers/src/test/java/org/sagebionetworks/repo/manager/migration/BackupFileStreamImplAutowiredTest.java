@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.Base64;
 import java.util.Collections;
 
 import org.junit.jupiter.api.Test;
@@ -23,7 +22,7 @@ public class BackupFileStreamImplAutowiredTest {
 	BackupFileStreamImpl backupFileStream;
 
 	@Test
-	public void testAllXStreamAliases() throws IOException, EmptyFileException {
+	public void testAllXStreamAliases() throws IOException {
 		for (MigratableDatabaseObject dbo : backupFileStream.typeProvider.getDatabaseObjectRegister()){
 
 			StringWriter tableNameWriter = new StringWriter();
@@ -31,7 +30,7 @@ public class BackupFileStreamImplAutowiredTest {
 
 			backupFileStream.writeBatchToStream(Collections.singletonList(dbo), dbo.getMigratableTableType(), BackupAliasType.TABLE_NAME, tableNameWriter);
 			backupFileStream.writeBatchToStream(Collections.singletonList(dbo), dbo.getMigratableTableType(), BackupAliasType.MIGRATION_TYPE_NAME, migrationTypeNameWriter);
-//
+
 //			System.out.println("START============================================");
 //			System.out.println(tableNameWriter);
 //			System.out.println(dbo.getMigratableTableType().name() + "=============================================" + dbo.getTableMapping().getTableName());
@@ -48,10 +47,5 @@ public class BackupFileStreamImplAutowiredTest {
 //			assertEquals(Collections.singletonList(dbo), backupFileStream.readFileFromStream(IOUtils.toInputStream(migrationTypeNameWriter.toString(), "UTF-8"), BackupAliasType.MIGRATION_TYPE_NAME, testFilename));
 //			assertEquals(Collections.singletonList(dbo), backupFileStream.readFileFromStream(IOUtils.toInputStream(tableNameWriter.toString(), "UTF-8"), BackupAliasType.TABLE_NAME, testFilename));
 		}
-	}
-	
-	public static void main(String[] args) {
-		System.out.println(new String(Base64.getDecoder().decode("VGVhbSBDaGFsbGVuZ2UgU3VibWlzc2lvbg==")));
-	}
-	
+	}	
 }

@@ -12,6 +12,7 @@ import java.io.Writer;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -243,13 +244,14 @@ public class BackupFileStreamImpl implements BackupFileStream {
 		try {
 			// Keep reading files until new data is found.
 			ZipEntry entry;
-			while((entry = zipStream.getNextEntry()) != null) {
-				try {
-					// Read the zip entry.
-					return readFileFromStream(zipStream, backupAliasType, entry.getName());
-				} catch (EmptyFileException e) {
-					// This file is empty so move to the next file...
+			while ((entry = zipStream.getNextEntry()) != null) {
+				// Read the zip entry.
+				Optional<List<MigratableDatabaseObject<?, ?>>> result = readFileFromStream(zipStream, backupAliasType,
+						entry.getName());
+				if (result.isEmpty()) {
 					continue;
+				} else {
+					return result.get();
 				}
 			}
 			// No new data was found in the zip
@@ -267,15 +269,15 @@ public class BackupFileStreamImpl implements BackupFileStream {
 	 * @return
 	 * @throws EmptyFileException if the given file contains no data.
 	 */
-	<D extends DatabaseObject<D>, B> List<MigratableDatabaseObject<?, ?>> readFileFromStream(InputStream input,
-			BackupAliasType backupAliasType, String fileName) throws EmptyFileException {
+	<D extends DatabaseObject<D>, B> Optional<List<MigratableDatabaseObject<?, ?>>> readFileFromStream(InputStream input,
+			BackupAliasType backupAliasType, String fileName) {
 		MigrationType type;
 		try {
 			type = getTypeFromFileName(fileName);
 		} catch (NotFoundException e) {
 			// Migration types that have been removed should be ignored. (See PLFM-5682)
 			log.warn("Migration type cannot be found so it will be ignored: "+e.getMessage());
-			throw new EmptyFileException();
+			return Optional.empty();
 		}
 		// Lookup the object for the type.
 		MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(type);
@@ -289,7 +291,7 @@ public class BackupFileStreamImpl implements BackupFileStream {
 				throw new RuntimeException(e);
 			}
 			// This file is empty so move to the next file...
-			throw new EmptyFileException();
+			return Optional.empty();
 		}
 		// Translate the results
 		List<MigratableDatabaseObject<?, ?>> translated = new LinkedList<>();
@@ -297,7 +299,7 @@ public class BackupFileStreamImpl implements BackupFileStream {
 			D databaseObject = translator.createDatabaseObjectFromBackup(backupObject);
 			translated.add((MigratableDatabaseObject<?, ?>) databaseObject);
 		}
-		return translated;
+		return Optional.of(translated);
 	}
 
 }
