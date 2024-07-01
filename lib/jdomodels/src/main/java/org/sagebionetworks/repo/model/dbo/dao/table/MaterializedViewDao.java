@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;

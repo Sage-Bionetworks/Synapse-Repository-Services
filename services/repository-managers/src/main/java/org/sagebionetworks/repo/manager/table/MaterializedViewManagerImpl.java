@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableState;
-import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.QueryTranslator;
@@ -224,14 +223,12 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 				bindSchemaToView(idAndVersion, sqlQuery);
 			}
 			
-			IdAndVersion[] dependentArray = getAvailableDependentIds(sqlQuery);
-			
-			LOG.info("Rebuilding materialized view index " + idAndVersion);
 			// continue with a read lock on each dependent table.
-			tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, parentContext, (ProgressCallback innerCallback) -> {
+			tryRunWithNonExclusiveLockOnAvailableDependecies(callback, parentContext, (ProgressCallback innerCallback) -> {
+				LOG.info("Rebuilding materialized view index " + idAndVersion);
 				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(sqlQuery, tableManagerSupport.getTableSchema(idAndVersion), tableManagerSupport.isTableSearchEnabled(idAndVersion));
 				return null;
-			}, dependentArray);
+			}, sqlQuery.getTableIds());
 		} catch (RecoverableMessageException e) {
 			throw e;
 		} catch (InvalidStatusTokenException e) {
@@ -266,14 +263,11 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			// The schema of the dependent tables might have changes, so we do not bind it to the available version yet but we use it to build the temporary index
 			List<ColumnModel> schema = sqlQuery.getSchemaOfSelect().stream().map(c -> columModelManager.createColumnModel(c)).collect(Collectors.toList());
 			
-			IdAndVersion[] dependentArray = getAvailableDependentIds(sqlQuery);
-			
-			LOG.info("Building temporary materialized view index " + temporaryId);
-			
 			TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
 			
 			// continue with a read lock on each dependent table.
-			boolean isUpToDate = tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, parentContext, (ProgressCallback innerCallback) -> {
+			boolean isUpToDate = tryRunWithNonExclusiveLockOnAvailableDependecies(callback, parentContext, (ProgressCallback innerCallback) -> {
+				LOG.info("Building temporary materialized view index " + temporaryId);
 				List<String> schemaIds = schema.stream().map(ColumnModel::getId).collect(Collectors.toList());
 				long version = indexManager.getVersionFromIndexDependencies(currentIndex);
 				boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(idAndVersion);
@@ -286,7 +280,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(sqlQuery, schema, isSearchEnabled);
 
 				return false;
-			}, dependentArray);
+			}, sqlQuery.getTableIds());
 			
 			if (isUpToDate) {
 				LOG.info("Will skip rebuilding AVAILABLE materialized view " + idAndVersion + ". The index is up to date.");
@@ -345,25 +339,68 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		
 		LOG.info("Materialized view " + idAndVersion + " set to AVAILABLE");
 	}
-	
-	private IdAndVersion[] getAvailableDependentIds(QueryTranslator sqlQuery) {
-		// Check if each dependency is available. Note: Getting the status of a
-		// dependency can also trigger it to update.
-		List<IdAndVersion> dependentTables = sqlQuery.getTableIds();
-		for (IdAndVersion dependent : dependentTables) {
-			TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(dependent);
-			switch (status.getState()) {
-			case AVAILABLE:
-				break;
-			case PROCESSING:
-				throw new RecoverableMessageException();
+		
+	/**
+	 * If any dependency has PROCESSING_FAILED will return PROCESSING_FAILED. If
+	 * none of the dependencies have PROCESSING_FAILED, and at least one has
+	 * PROCESSING, the will return PROCESSING. If all dependencies are AVAILABLE
+	 * then will return AVAILABLE.
+	 * 
+	 * @param dependencies
+	 * @return
+	 */
+	TableState getDependencyStateSummary(List<IdAndVersion> dependencies){
+		boolean hasProcessing = false;
+		for (IdAndVersion dependent : dependencies) {
+			TableState state = tableManagerSupport.getTableStatusOrCreateIfNotExists(dependent).getState();
+			switch (state) {
 			case PROCESSING_FAILED:
-				throw new IllegalArgumentException("Cannot build materialized view " + sqlQuery.getIndexDescription().getIdAndVersion() + ", the dependent table " + dependent + " failed to build");
+				return TableState.PROCESSING_FAILED;
+			case PROCESSING:
+				hasProcessing = true;
+				break;
+			case AVAILABLE:
+				continue;
 			default:
-				throw new IllegalStateException("Cannot build materialized view " + sqlQuery.getIndexDescription().getIdAndVersion() + ", unsupported state for dependent table " + dependent + ": " + status.getState());
+				throw new IllegalStateException("Unknown state:" + state);
 			}
 		}
-		
-		return dependentTables.toArray(new IdAndVersion[dependentTables.size()]);
+		if(hasProcessing){
+			return TableState.PROCESSING;
+		}else{
+			return TableState.AVAILABLE;
+		}
 	}
+	
+	
+	/**
+	 * If all dependencies are available, a read lock will be acquire on each dependency.  The provided
+	 * runner will be called while the read locks are held.
+	 * 
+	 * @param callback
+	 * @param context
+	 * @param runner
+	 * @param dependencies
+	 * @return 
+	 * @throws Exception
+	 */
+	Boolean tryRunWithNonExclusiveLockOnAvailableDependecies(ProgressCallback callback, LockContext context,
+			ProgressingCallable<Boolean> runner, List<IdAndVersion> dependencies) throws Exception {
+		TableState state = getDependencyStateSummary(dependencies);
+		switch (state) {
+		case PROCESSING_FAILED:
+			throw new IllegalStateException(String
+					.format("Cannot update '%s' as one or more of its dependencies are in the failed state.", context));
+		case PROCESSING:
+			LOG.info(String.format("Cannot update '%s' as one or more of its dependencies are processing. ",context));
+			// returning true indicates there is no work to do at this time.
+			return true;
+		case AVAILABLE:
+			return tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, context, runner,
+					dependencies.toArray(new IdAndVersion[dependencies.size()]));
+		default:
+			throw new IllegalStateException("Unknown state:" + state);
+		}
+	}
+	
 }
