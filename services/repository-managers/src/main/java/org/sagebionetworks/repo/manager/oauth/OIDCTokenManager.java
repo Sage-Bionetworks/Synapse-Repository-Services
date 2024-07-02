@@ -125,5 +125,10 @@ public interface OIDCTokenManager {
 	 * @param tokenId
 	 */
 	void revokeOIDCAccessToken(String token);
+	
+	/**
+	 * Revokes a batch of expired OIDC access tokens
+	 */
+	int revokeExpiredOIDCAccessTokens();
 
 }

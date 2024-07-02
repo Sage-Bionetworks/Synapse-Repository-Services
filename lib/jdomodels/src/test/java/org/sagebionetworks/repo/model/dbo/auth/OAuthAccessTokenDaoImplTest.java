@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Date;
@@ -57,7 +59,7 @@ public class OAuthAccessTokenDaoImplTest {
 			.setPrincipalId(USER_ID)
 			.setClientId(Long.valueOf(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID))
 			.setCreatedOn(now)
-			.setExpiresOn(Date.from(now.toInstant().plus(1, ChronoUnit.HOURS)));			
+			.setExpiresOn(Date.from(now.toInstant().plus(1, ChronoUnit.HOURS)));
 		
 		dao.storeAccessTokenRecord(data);
 		dao.storeAccessTokenRecord(data.setTokenId(tokenTwoId));
@@ -149,6 +151,41 @@ public class OAuthAccessTokenDaoImplTest {
 		oauthClientDao.deleteOAuthClient(client.getClient_id());
 		oauthClientDao.deleteSectorIdentifer("https://foo.bar");
 		
+	}
+	
+	@Test
+	public void testDeleteExpiredTokens() {
+		
+		Instant now = Instant.now();
+		String tokenOne = UUID.randomUUID().toString();
+		String tokenTwo = UUID.randomUUID().toString();
+		
+		// A token expired more than a day ago
+		dao.storeAccessTokenRecord(new OIDCAccessTokenData()
+			.setTokenId(tokenOne)
+			.setPrincipalId(USER_ID)
+			.setClientId(Long.valueOf(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID))
+			.setCreatedOn(Date.from(now))
+			.setExpiresOn(Date.from(now.minus(2, ChronoUnit.DAYS)))
+		);
+		
+		// A token expired recently
+		dao.storeAccessTokenRecord(new OIDCAccessTokenData()
+			.setTokenId(tokenTwo)
+			.setPrincipalId(USER_ID)
+			.setClientId(Long.valueOf(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID))
+			.setCreatedOn(Date.from(now))
+			.setExpiresOn(Date.from(now.minus(2, ChronoUnit.HOURS)))
+		);
+		
+		int deletedCount = dao.deleteExpiredTokens();
+		
+		assertEquals(1, deletedCount);
+		
+		assertFalse(dao.isAccessTokenRecordExists(tokenOne));
+		assertTrue(dao.isAccessTokenRecordExists(tokenTwo));
+		
+		dao.deleteAccessTokenRecord(tokenTwo);
 	}
 	
 	

@@ -481,4 +481,17 @@ public class OIDCTokenManagerImplTest {
 		
 		verify(mockAccessTokenDao).deleteAccessTokenRecord(tokenId);
 	}
+	
+	@Test
+	public void testRevokeExpiredOIDCTokens() {
+		
+		when(oidcTokenManager.revokeExpiredOIDCAccessTokens()).thenReturn(10_000);
+		
+		// Call under test
+		int deletedCount = oidcTokenManager.revokeExpiredOIDCAccessTokens();
+		
+		assertEquals(10_000, deletedCount);
+		
+		verify(mockAccessTokenDao).deleteExpiredTokens();
+	}
 }

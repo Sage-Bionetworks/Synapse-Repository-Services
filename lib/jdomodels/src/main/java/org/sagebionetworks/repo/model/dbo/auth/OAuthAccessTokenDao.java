@@ -26,4 +26,9 @@ public interface OAuthAccessTokenDao {
 	 * @param tokenId
 	 */
 	void deleteAccessTokenRecord(String tokenId);
+	
+	/**
+	 * Deletes a batch of expired tokens
+	 */
+	int deleteExpiredTokens();
 }

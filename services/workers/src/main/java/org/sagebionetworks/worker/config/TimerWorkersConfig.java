@@ -1,5 +1,6 @@
 package org.sagebionetworks.worker.config;
 
+import org.sagebionetworks.auth.workers.ExpiredAccessTokenWorker;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.file.worker.FileHandleAssociationScanDispatcherWorker;
 import org.sagebionetworks.worker.utils.StackStatusGate;
@@ -43,6 +44,23 @@ public class TimerWorkersConfig {
 			// If we do not wait for this the scanner will scan a mostly empty database delaying the next scan for at least 5 days.
 			.withStartDelay(7200000)
 			.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean expiredAccessTokensWorkerTrigger(ExpiredAccessTokenWorker worker) {
+		SemaphoreGatedWorkerStackConfiguration config = new SemaphoreGatedWorkerStackConfiguration();
+		
+		config.setSemaphoreLockKey("expiredAccessTokensWorker");
+		config.setProgressingRunner(worker);
+		config.setSemaphoreMaxLockCount(1);
+		config.setSemaphoreLockTimeoutSec(60);
+		config.setGate(stackStatusGate);
+		
+		return new WorkerTriggerBuilder()
+				.withStack(new SemaphoreGatedWorkerStack(countingSemaphore, config))
+				.withRepeatInterval(10 * 60 * 1000)
+				.withStartDelay(10 * 60 * 1000)
+				.build();
 	}
 
 }

@@ -257,5 +257,9 @@ public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager 
 		accessTokenDao.deleteAccessTokenRecord(tokenId);
 	}
 	
+	@Override
+	public int revokeExpiredOIDCAccessTokens() {
+		return accessTokenDao.deleteExpiredTokens();
+	}
 	
 }
