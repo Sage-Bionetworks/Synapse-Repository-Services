@@ -30,11 +30,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.TokenType;
+import org.sagebionetworks.repo.model.dbo.auth.OAuthAccessTokenDaoImpl;
 import org.sagebionetworks.repo.model.dbo.auth.OIDCAccessTokenData;
-import org.sagebionetworks.repo.model.dbo.auth.OAuthAccessTokenDao;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -91,10 +92,10 @@ public class OIDCTokenManagerImplTest {
 	private Clock mockClock;
 	
 	@Mock
-	private OAuthAccessTokenDao mockAccessTokenDao;
+	private OAuthAccessTokenDaoImpl mockAccessTokenDao;
 	
 	@InjectMocks
-	OIDCTokenManagerImpl oidcTokenManager;
+	private OIDCTokenManagerImpl oidcTokenManager;
 	
 	@BeforeEach
 	public void setUp() {
@@ -262,6 +263,8 @@ public class OIDCTokenManagerImplTest {
 		OIDCClaimsRequestDetails details = new OIDCClaimsRequestDetails();
 		details.setValues(Collections.singletonList("101"));
 		expectedClaims.put(OIDCClaimName.team, details);
+		
+		String sessionId = SessionIdThreadLocal.createNewSessionIdForThread();
 
 		String accessToken = oidcTokenManager.createOIDCaccessToken(
 				USER_ID,
@@ -293,9 +296,12 @@ public class OIDCTokenManagerImplTest {
 			.setPrincipalId(USER_ID)
 			.setClientId(Long.valueOf(CLIENT_ID))
 			.setCreatedOn(claims.getIssuedAt())
-			.setExpiresOn(claims.getExpiration());
+			.setExpiresOn(claims.getExpiration())
+			.setSessionId(sessionId);
 		
 		verify(mockAccessTokenDao).storeAccessTokenRecord(expectedRecord);
+		
+		SessionIdThreadLocal.clearThreadsSessionId();
 	}
 	
 	@Test
@@ -444,5 +450,35 @@ public class OIDCTokenManagerImplTest {
 		jwtValidation(accessToken, true, null/* no nonce */);
 		
 		verifyZeroInteractions(mockAccessTokenDao);
+	}
+	
+	@Test
+	public void testIsOIDCAccessTokenExists() {
+		// Call under test
+		oidcTokenManager.isOIDCAccessTokenExists(TOKEN_ID);
+		
+		verify(mockAccessTokenDao).isAccessTokenRecordExists(TOKEN_ID);
+	}
+		
+	@Test
+	public void testRevokeOIDCAccessTokens() {
+		// Call under test
+		oidcTokenManager.revokeOIDCAccessTokens(USER_ID);
+		
+		verify(mockAccessTokenDao).deleteAccessTokenRecords(USER_ID);
+	}
+	
+	@Test
+	public void testRevokeOIDCAccessToken() {
+		
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		
+		String token = oidcTokenManager.createClientTotalAccessToken(USER_ID, ISSUER);
+		String tokenId = oidcTokenManager.parseJWT(token).getBody().getId();
+		
+		// Call under test
+		oidcTokenManager.revokeOIDCAccessToken(token);
+		
+		verify(mockAccessTokenDao).deleteAccessTokenRecord(tokenId);
 	}
 }

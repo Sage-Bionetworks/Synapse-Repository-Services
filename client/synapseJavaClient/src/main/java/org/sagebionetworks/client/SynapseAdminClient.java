@@ -300,5 +300,13 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	LoginResponse getUserAccessToken(Long targetUserId) throws SynapseException;
-
+	
+	/**
+	 * Invalidates all access tokens for the given user
+	 * 
+	 * @param targetUserId
+	 * @throws SynapseException
+	 */
+	void logoutAllForAccessToken(Long targetUserId) throws SynapseException;
+ 
 }

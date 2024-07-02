@@ -1,6 +1,9 @@
 package org.sagebionetworks;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
 import java.util.UUID;
@@ -12,11 +15,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
+import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 
 /*
@@ -34,6 +40,8 @@ public class ITAccessTokenTest {
 	
 	private SynapseAdminClient adminSynapse;
 	private SynapseClient synapse;
+	
+	private static Long newUserId;
 	
 	public ITAccessTokenTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
 		this.adminSynapse = adminSynapse;
@@ -69,6 +77,10 @@ public class ITAccessTokenTest {
 			}
 		} catch (SynapseException e) {
 			e.printStackTrace();
+		}
+		
+		if (newUserId != null) {
+			adminSynapse.deleteUser(newUserId);
 		}
 	}
 	
@@ -156,6 +168,61 @@ public class ITAccessTokenTest {
 			synapseClientLackingCredentials.setSessionToken(null);
 		}
 
+	}
+	
+	@Test
+	public void testRevokeAccessToken() throws Exception {
+		SynapseClient newSynapseClient = new SynapseClientImpl();
+		
+		String username = UUID.randomUUID().toString();
+		String password = UUID.randomUUID().toString();
+		String email = UUID.randomUUID().toString() + "@sagebase.org";
+		
+		newUserId = SynapseClientHelper.createUser(adminSynapse, newSynapseClient, username, password, email, true, false);
+		
+		String accessTokenOne = newSynapseClient.getAccessToken();
+		
+		String accessTokenTwo = newSynapseClient.loginForAccessToken(new LoginRequest().setUsername(username).setPassword(password)).getAccessToken();
+		
+		assertNotEquals(accessTokenOne, accessTokenTwo);
+		
+		// The user is able to logout
+		newSynapseClient.logoutForAccessToken();
+		
+		// Try to reuse the revoked access token
+		newSynapseClient.setBearerAuthorizationToken(accessTokenTwo);
+		
+		assertThrows(SynapseUnauthorizedException.class, () -> {
+			newSynapseClient.getAuthenticatedOn();
+		});
+		
+		// Now use the "old" access token
+		newSynapseClient.setBearerAuthorizationToken(accessTokenOne);
+		
+		newSynapseClient.getAuthenticatedOn();
+		
+		SynapseAdminClient otherUserClient = new SynapseAdminClientImpl();
+		
+		SynapseClientHelper.setEndpoints(otherUserClient);
+		
+		otherUserClient.setBearerAuthorizationToken(synapse.getAccessToken());
+				
+		// Another user cannot logout the user
+		String errorMessage = assertThrows(SynapseForbiddenException.class, () -> {
+			otherUserClient.logoutAllForAccessToken(newUserId);
+		}).getMessage();
+		
+		assertEquals("You are not authorized to perform this operation.", errorMessage);
+		
+		// The admin can logout any user
+		adminSynapse.logoutAllForAccessToken(newUserId);
+		
+		// Now the user does not have a valid token
+		errorMessage = assertThrows(SynapseUnauthorizedException.class, () -> {			
+			newSynapseClient.getAuthenticatedOn();
+		}).getMessage();
+		
+		assertEquals("invalid_token. The access token has been revoked.", errorMessage);
 	}
 	
 }

@@ -1165,6 +1165,8 @@ public class UrlHelpers {
 
 	public static final String AUTH_PERSONAL_ACCESS_TOKEN = "/personalAccessToken";
 	public static final String AUTH_PERSONAL_ACCESS_TOKEN_ID = AUTH_PERSONAL_ACCESS_TOKEN + ID;
+	
+	public static final String AUTH_SESSION_ACCESS_TOKEN = "/sessionAccessToken";
 
 	public static final String AUTH_OAUTH_2 = "/oauth2";
 	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";

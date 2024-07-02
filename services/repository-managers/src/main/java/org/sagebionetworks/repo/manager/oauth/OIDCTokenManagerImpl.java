@@ -12,11 +12,12 @@ import java.util.UUID;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.TokenType;
-import org.sagebionetworks.repo.model.dbo.auth.OIDCAccessTokenData;
 import org.sagebionetworks.repo.model.dbo.auth.OAuthAccessTokenDao;
+import org.sagebionetworks.repo.model.dbo.auth.OIDCAccessTokenData;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
@@ -154,6 +155,7 @@ public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager 
 				.setCreatedOn(claims.getIssuedAt())
 				.setExpiresOn(claims.getExpiration())
 				.setRefreshTokenId(refreshTokenId != null ? Long.valueOf(refreshTokenId) : null)
+				.setSessionId(SessionIdThreadLocal.getThreadsSessionId().orElse(null))
 			);
 		}
 		
@@ -248,7 +250,10 @@ public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager 
 	@Override
 	@WriteTransaction
 	public void revokeOIDCAccessToken(String token) {
-		String tokenId = parseJWT(token).getBody().getId();
+		Claims tokenClaims = parseJWT(token).getBody();
+		
+		String tokenId = tokenClaims.getId();
+		
 		accessTokenDao.deleteAccessTokenRecord(tokenId);
 	}
 	

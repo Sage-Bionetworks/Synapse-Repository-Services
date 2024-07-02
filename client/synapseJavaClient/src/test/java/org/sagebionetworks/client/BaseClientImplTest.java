@@ -179,6 +179,9 @@ public class BaseClientImplTest {
 
 	@Test
 	public void testLogoutForAccessToken() throws Exception {
+		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+		when(mockResponse.getStatusCode()).thenReturn(200);
+		
 		baseClient.logoutForAccessToken();
 
 		assertNull(baseClient.getAuthorizationHeader());
@@ -186,6 +189,9 @@ public class BaseClientImplTest {
 
 	@Test
 	public void testGetAccessTokenAfterLogout() throws Exception {
+		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+		when(mockResponse.getStatusCode()).thenReturn(200);
+		
 		baseClient.logoutForAccessToken();
 
 		assertThrows(IllegalStateException.class, () -> {

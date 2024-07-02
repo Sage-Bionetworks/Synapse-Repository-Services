@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.auth;
 import java.util.Date;
 import java.util.Objects;
 
+import com.amazonaws.services.glue.model.GetDataCatalogEncryptionSettingsRequest;
+
 public class OIDCAccessTokenData {
 
 	private String tokenId;
@@ -11,6 +13,7 @@ public class OIDCAccessTokenData {
 	private Long refreshTokenId;
 	private Date createdOn;
 	private Date expiresOn;
+	private String sessionId;
 	
 	public OIDCAccessTokenData() {
 	}
@@ -68,10 +71,19 @@ public class OIDCAccessTokenData {
 		this.expiresOn = expiresOn;
 		return this;
 	}
+	
+	public String getSessionId() {
+		return sessionId;
+	}
+		
+	public OIDCAccessTokenData setSessionId(String sessionId) {
+		this.sessionId = sessionId;
+		return this;
+	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(clientId, createdOn, expiresOn, principalId, refreshTokenId, tokenId);
+		return Objects.hash(clientId, createdOn, expiresOn, principalId, refreshTokenId, sessionId, tokenId);
 	}
 
 	@Override
@@ -85,13 +97,14 @@ public class OIDCAccessTokenData {
 		OIDCAccessTokenData other = (OIDCAccessTokenData) obj;
 		return Objects.equals(clientId, other.clientId) && Objects.equals(createdOn, other.createdOn)
 				&& Objects.equals(expiresOn, other.expiresOn) && Objects.equals(principalId, other.principalId)
-				&& Objects.equals(refreshTokenId, other.refreshTokenId) && Objects.equals(tokenId, other.tokenId);
+				&& Objects.equals(refreshTokenId, other.refreshTokenId) && Objects.equals(sessionId, other.sessionId)
+				&& Objects.equals(tokenId, other.tokenId);
 	}
 
 	@Override
 	public String toString() {
-		return "AccessTokenData [tokenId=" + tokenId + ", principalId=" + principalId + ", clientId=" + clientId + ", refreshTokenId="
-				+ refreshTokenId + ", createdOn=" + createdOn + ", expiresOn=" + expiresOn + "]";
+		return "OIDCAccessTokenData [tokenId=" + tokenId + ", principalId=" + principalId + ", clientId=" + clientId + ", refreshTokenId="
+				+ refreshTokenId + ", createdOn=" + createdOn + ", expiresOn=" + expiresOn + ", sessionId=" + sessionId + "]";
 	}
 	
 }

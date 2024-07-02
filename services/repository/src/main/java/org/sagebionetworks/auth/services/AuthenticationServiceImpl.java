@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManage
 import org.sagebionetworks.repo.manager.authentication.TwoFactorAuthManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -71,6 +72,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Autowired
 	private PersonalAccessTokenManager personalAccessTokenManager;
+	
+	@Autowired
+	private OIDCTokenManager oidcTokenManager;
 	
 	@Autowired
 	private TwoFactorAuthManager twoFaManager;
@@ -347,6 +351,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public void disable2FaWithToken(TwoFactorAuthDisableRequest request) {
 		authManager.disable2FaWithToken(request);
+	}
+	
+	@Override
+	public void revokeSessionAccessToken(String token) {
+		oidcTokenManager.revokeOIDCAccessToken(token);
+	}
+	
+	@Override
+	public void revokeAllSessionAccessTokens(Long userId, Long targetUserId) {
+		
+		if (!userId.equals(targetUserId) && !userManager.getUserInfo(userId).isAdmin()) {
+			throw new UnauthorizedException("You are not authorized to perform this operation.");
+		}
+				
+		oidcTokenManager.revokeOIDCAccessTokens(targetUserId);
 	}
 
 }

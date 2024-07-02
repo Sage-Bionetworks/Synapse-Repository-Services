@@ -1,13 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_ACCESS_TOKEN_TOKEN_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_ACCESS_TOKEN;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthAccessToken;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -41,7 +39,7 @@ public class OAuthAccessTokenDaoImpl implements OAuthAccessTokenDao {
 		token.setClientId(data.getClientId());
 		token.setCreatedOn(data.getCreatedOn());
 		token.setExpiresOn(data.getExpiresOn());			
-		token.setSessionId(SessionIdThreadLocal.getThreadsSessionId().orElse(null));
+		token.setSessionId(data.getSessionId());
 		token.setRefreshTokenId(data.getRefreshTokenId());
 		
 		basicDao.createNew(token);
@@ -49,7 +47,7 @@ public class OAuthAccessTokenDaoImpl implements OAuthAccessTokenDao {
 	
 	@Override
 	public boolean isAccessTokenRecordExists(String tokenId) {
-		String sql = "SELECT COUNT(*) FROM " + TABLE_OAUTH_ACCESS_TOKEN + " WHERE " + COL_OAUTH_ACCESS_TOKEN_ID + "=?";
+		String sql = "SELECT COUNT(*) FROM " + TABLE_OAUTH_ACCESS_TOKEN + " WHERE " + COL_OAUTH_ACCESS_TOKEN_TOKEN_ID + "=?";
 		
 		return jdbcTemplate.queryForObject(sql, Long.class, tokenId) > 0;
 	}

@@ -321,9 +321,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		TokenType tokenType = TokenType.valueOf(claims.get(OIDCClaimName.token_type.name(), String.class));
 		switch (tokenType) {
 			case OIDC_ACCESS_TOKEN:
+				String tokenId = claims.getId();
 				// If the access token has an associated refresh token, we check to see if the refresh token has been revoked.
 				String refreshTokenId = claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
-				if (refreshTokenId != null && !oauthRefreshTokenManager.isRefreshTokenActive(refreshTokenId)) {
+				if (refreshTokenId != null && !oauthRefreshTokenManager.isRefreshTokenActive(refreshTokenId) || !oidcTokenManager.isOIDCAccessTokenExists(tokenId)) {
 					throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The access token has been revoked.");
 				}
 				break;
@@ -630,15 +631,23 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@Override
 	public void revokeToken(String verifiedClientId, OAuthTokenRevocationRequest revocationRequest) {
 		switch (revocationRequest.getToken_type_hint()) {
-			case access_token: // retrieve the refresh token ID from the JWT
-				String refreshTokenId = this.getRefreshTokenId(revocationRequest.getToken());
-				if (refreshTokenId == null) {
-					// Access tokens that were not issued alongside refresh tokens cannot be revoked.
-					throw new IllegalArgumentException("The access token has no associated refresh token so it cannot be revoked.");
+			case access_token: 
+				// retrieve the refresh token ID from the JWT
+				Claims claims = oidcTokenManager.parseJWT(revocationRequest.getToken()).getBody();
+				
+				String refreshTokenId = claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
+				
+				if (refreshTokenId != null) {
+					// Revoking a refresh token also revokes the access tokens
+					oauthRefreshTokenManager.revokeRefreshToken(verifiedClientId, refreshTokenId);
+				} else {
+					// If the token was not issued with a refresh token we revoke the access token only
+					oidcTokenManager.revokeOIDCAccessToken(claims.getId());
 				}
-				oauthRefreshTokenManager.revokeRefreshToken(verifiedClientId, refreshTokenId);
+				
 				return;
-			case refresh_token: // retrieve the token ID using the token
+			case refresh_token: 
+				// retrieve the token ID using the token
 				OAuthRefreshTokenInformation metadata = oauthRefreshTokenManager.getRefreshTokenMetadataWithToken(verifiedClientId, revocationRequest.getToken());
 				oauthRefreshTokenManager.revokeRefreshToken(verifiedClientId, metadata.getTokenId());
 				return;
@@ -647,18 +656,4 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 	}
 
-
-	/**
-	 * Given an OAuth access token, return the associated refresh token ID.
-	 *
-	 * When an OAuth authorization request with the `{@link org.sagebionetworks.repo.model.oauth.OAuthScope#offline_access}`
-	 * scope is granted, an access token is issued alongside a refresh token that has a unique, persistent ID. This access token,
-	 * along with any future access tokens issued using that refresh token will contain that refresh token ID in the {@link org.sagebionetworks.repo.model.oauth.OIDCClaimName#refresh_token_id} scope
-	 * @param accessToken a JWT access token
-	 * @return the refresh token ID, or null if this token was not issued with a refresh token.
-	 */
-	private String getRefreshTokenId(String accessToken) {
-		Claims claims = oidcTokenManager.parseJWT(accessToken).getBody();
-		return claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
-	}
 }

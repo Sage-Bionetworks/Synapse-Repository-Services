@@ -448,5 +448,34 @@ public class AuthenticationController {
 		authenticationService.revokePersonalAccessToken(userId, id);
 
 	}
+	
+	/**
+	 * Revokes the access token used to perform the request. E.g Can be used to logout the current user.
+	 */
+	@RequiredScope({modify, authorize})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_SESSION_ACCESS_TOKEN, method = RequestMethod.DELETE)
+	public void revokeAccessToken(@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=false) String authorizationHeader) {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		
+		authenticationService.revokeSessionAccessToken(accessToken);
+	}
+	
+	/**
+	 * Revokes any access token issued for the given user. If the target user id does not match the user in the access token used to perform the request the operation
+	 * is limited to admin users. 
+	 * 
+	 * @param userId
+	 * @param targetUserId The user 
+	 */
+	@RequiredScope({modify, authorize})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_USER + "/{targetUserId}" + UrlHelpers.AUTH_SESSION_ACCESS_TOKEN + "/all", method = RequestMethod.DELETE)
+	public void revokeAllAccessTokens(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "targetUserId") Long targetUserId) {
+		
+		authenticationService.revokeAllSessionAccessTokens(userId, targetUserId);
+	}
 
 }
