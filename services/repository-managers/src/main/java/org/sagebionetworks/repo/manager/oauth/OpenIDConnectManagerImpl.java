@@ -324,7 +324,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 				String tokenId = claims.getId();
 				// If the access token has an associated refresh token, we check to see if the refresh token has been revoked.
 				String refreshTokenId = claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
-				if (refreshTokenId != null && !oauthRefreshTokenManager.isRefreshTokenActive(refreshTokenId) || !oidcTokenManager.isOIDCAccessTokenExists(tokenId)) {
+				if ((refreshTokenId != null && !oauthRefreshTokenManager.isRefreshTokenActive(refreshTokenId)) || !oidcTokenManager.doesOIDCAccessTokenExist(tokenId)) {
 					throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The access token has been revoked.");
 				}
 				break;
@@ -608,7 +608,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 			return new JWTWrapper(jwtIdToken);
 		}
-	}
+	}	
 	
 	/**
 	 * Validates that the verified flag is true for the client with the given id

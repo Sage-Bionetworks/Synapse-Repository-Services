@@ -1423,7 +1423,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
 		when(mockJWT.getBody()).thenReturn(claims);
 		when(oauthRefreshTokenManager.isRefreshTokenActive(refreshTokenId)).thenReturn(true);
-		when(oidcTokenManager.isOIDCAccessTokenExists("tokenId")).thenReturn(true);
+		when(oidcTokenManager.doesOIDCAccessTokenExist("tokenId")).thenReturn(true);
 		claims.setAudience(OAUTH_CLIENT_ID);
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
@@ -1449,7 +1449,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 		boolean accessTokenExists = true;
 		
-		when(oidcTokenManager.isOIDCAccessTokenExists("tokenId")).thenReturn(accessTokenExists);
+		when(oidcTokenManager.doesOIDCAccessTokenExist("tokenId")).thenReturn(accessTokenExists);
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		String ppid = openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID);
@@ -1474,7 +1474,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		boolean accessTokenExists = false;
 		
-		when(oidcTokenManager.isOIDCAccessTokenExists("tokenId")).thenReturn(accessTokenExists);
+		when(oidcTokenManager.doesOIDCAccessTokenExist("tokenId")).thenReturn(accessTokenExists);
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		String ppid = openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID);
@@ -1508,7 +1508,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertThrows(OAuthUnauthenticatedException.class, () -> openIDConnectManagerImpl.validateAccessToken(token));
 
 		verify(oidcTokenManager).parseJWT(token);
-		verify(oidcTokenManager, never()).isOIDCAccessTokenExists(any());
+		verify(oidcTokenManager, never()).doesOIDCAccessTokenExist(any());
 	}
 		
 	@Test

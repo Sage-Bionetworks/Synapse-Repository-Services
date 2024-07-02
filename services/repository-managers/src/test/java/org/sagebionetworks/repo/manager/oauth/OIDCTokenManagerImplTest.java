@@ -455,9 +455,9 @@ public class OIDCTokenManagerImplTest {
 	@Test
 	public void testIsOIDCAccessTokenExists() {
 		// Call under test
-		oidcTokenManager.isOIDCAccessTokenExists(TOKEN_ID);
+		oidcTokenManager.doesOIDCAccessTokenExist(TOKEN_ID);
 		
-		verify(mockAccessTokenDao).isAccessTokenRecordExists(TOKEN_ID);
+		verify(mockAccessTokenDao).doesAccessTokenRecordExist(TOKEN_ID);
 	}
 		
 	@Test

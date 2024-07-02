@@ -13,7 +13,7 @@ public interface OAuthAccessTokenDao {
 	 * @param tokenId The id of the access token
 	 * @return True if an access token record with the given token id exists, false otherwise
 	 */
-	boolean isAccessTokenRecordExists(String tokenId);
+	boolean doesAccessTokenRecordExist(String tokenId);
 
 	/**
 	 * Deletes all the data about every access token issued for the given user

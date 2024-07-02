@@ -2,6 +2,7 @@ package org.sagebionetworks.auth.workers;
 
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.Test;
@@ -30,12 +31,12 @@ public class ExpiredAccessTokenWorkerTest {
 
 	@Test
 	public void testRun() throws Exception {
-		doReturn(123).when(mockOidcTokenManager).revokeExpiredOIDCAccessTokens();
+		doReturn(1_000, 1_000, 0).when(mockOidcTokenManager).revokeExpiredOIDCAccessTokens();
 		
 		// Call under test
 		worker.run(mockCallback);
 		
-		verify(mockOidcTokenManager).revokeExpiredOIDCAccessTokens();
+		verify(mockOidcTokenManager, times(3)).revokeExpiredOIDCAccessTokens();
 	}
 	
 	@Test

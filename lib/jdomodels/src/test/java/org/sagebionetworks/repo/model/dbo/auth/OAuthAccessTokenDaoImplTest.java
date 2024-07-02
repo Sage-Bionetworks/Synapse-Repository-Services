@@ -48,9 +48,9 @@ public class OAuthAccessTokenDaoImplTest {
 		
 		Long otherUserId = 12345L;
 		
-		assertFalse(dao.isAccessTokenRecordExists(tokenOneId));
-		assertFalse(dao.isAccessTokenRecordExists(tokenTwoId));
-		assertFalse(dao.isAccessTokenRecordExists(tokenThreeId));
+		assertFalse(dao.doesAccessTokenRecordExist(tokenOneId));
+		assertFalse(dao.doesAccessTokenRecordExist(tokenTwoId));
+		assertFalse(dao.doesAccessTokenRecordExist(tokenThreeId));
 		
 		Date now = new Date();
 		
@@ -67,25 +67,25 @@ public class OAuthAccessTokenDaoImplTest {
 		// Another user token
 		dao.storeAccessTokenRecord(data.setPrincipalId(otherUserId).setTokenId(tokenThreeId).setSessionId(UUID.randomUUID().toString()));		
 		
-		assertTrue(dao.isAccessTokenRecordExists(tokenOneId));
-		assertTrue(dao.isAccessTokenRecordExists(tokenTwoId));
-		assertTrue(dao.isAccessTokenRecordExists(tokenThreeId));
+		assertTrue(dao.doesAccessTokenRecordExist(tokenOneId));
+		assertTrue(dao.doesAccessTokenRecordExist(tokenTwoId));
+		assertTrue(dao.doesAccessTokenRecordExist(tokenThreeId));
 		
 		dao.deleteAccessTokenRecord(tokenOneId);
 		
-		assertFalse(dao.isAccessTokenRecordExists(tokenOneId));
-		assertTrue(dao.isAccessTokenRecordExists(tokenTwoId));
-		assertTrue(dao.isAccessTokenRecordExists(tokenThreeId));
+		assertFalse(dao.doesAccessTokenRecordExist(tokenOneId));
+		assertTrue(dao.doesAccessTokenRecordExist(tokenTwoId));
+		assertTrue(dao.doesAccessTokenRecordExist(tokenThreeId));
 		
 		dao.deleteAccessTokenRecords(USER_ID);
 		
-		assertFalse(dao.isAccessTokenRecordExists(tokenOneId));
-		assertFalse(dao.isAccessTokenRecordExists(tokenTwoId));
-		assertTrue(dao.isAccessTokenRecordExists(tokenThreeId));
+		assertFalse(dao.doesAccessTokenRecordExist(tokenOneId));
+		assertFalse(dao.doesAccessTokenRecordExist(tokenTwoId));
+		assertTrue(dao.doesAccessTokenRecordExist(tokenThreeId));
 		
 		dao.deleteAccessTokenRecords(otherUserId);
 		
-		assertFalse(dao.isAccessTokenRecordExists(tokenThreeId));
+		assertFalse(dao.doesAccessTokenRecordExist(tokenThreeId));
 	}
 	
 	@Test
@@ -127,7 +127,7 @@ public class OAuthAccessTokenDaoImplTest {
 		
 		String tokenOneId = UUID.randomUUID().toString();
 		
-		assertFalse(dao.isAccessTokenRecordExists(tokenOneId));
+		assertFalse(dao.doesAccessTokenRecordExist(tokenOneId));
 		
 		Date now = new Date();
 		
@@ -141,12 +141,12 @@ public class OAuthAccessTokenDaoImplTest {
 		
 		dao.storeAccessTokenRecord(data);
 		
-		assertTrue(dao.isAccessTokenRecordExists(tokenOneId));
+		assertTrue(dao.doesAccessTokenRecordExist(tokenOneId));
 		
 		// Deleting the refresh token also deletes the access token
 		oauthRefreshTokenDao.deleteToken(refreshToken.getTokenId());
 		
-		assertFalse(dao.isAccessTokenRecordExists(tokenOneId));
+		assertFalse(dao.doesAccessTokenRecordExist(tokenOneId));
 		
 		oauthClientDao.deleteOAuthClient(client.getClient_id());
 		oauthClientDao.deleteSectorIdentifer("https://foo.bar");
@@ -182,8 +182,8 @@ public class OAuthAccessTokenDaoImplTest {
 		
 		assertEquals(1, deletedCount);
 		
-		assertFalse(dao.isAccessTokenRecordExists(tokenOne));
-		assertTrue(dao.isAccessTokenRecordExists(tokenTwo));
+		assertFalse(dao.doesAccessTokenRecordExist(tokenOne));
+		assertTrue(dao.doesAccessTokenRecordExist(tokenTwo));
 		
 		dao.deleteAccessTokenRecord(tokenTwo);
 	}

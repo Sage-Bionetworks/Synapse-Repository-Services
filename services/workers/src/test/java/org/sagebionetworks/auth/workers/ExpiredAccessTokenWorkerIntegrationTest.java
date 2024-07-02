@@ -52,12 +52,12 @@ public class ExpiredAccessTokenWorkerIntegrationTest {
 			.setExpiresOn(Date.from(Instant.now().minus(2, ChronoUnit.DAYS)))
 		);
 		
-		assertTrue(accessTokenDao.isAccessTokenRecordExists(tokenId));
+		assertTrue(accessTokenDao.doesAccessTokenRecordExist(tokenId));
 		
 		scheduler.triggerJob(trigger.getJobKey(), trigger.getJobDataMap());
 		
 		TimeUtils.waitFor(60 * 1000, 1000L, () -> {
-			return new Pair<Boolean, Void>(!accessTokenDao.isAccessTokenRecordExists(tokenId), null);
+			return new Pair<Boolean, Void>(!accessTokenDao.doesAccessTokenRecordExist(tokenId), null);
 		});
 	}
 

@@ -237,8 +237,8 @@ public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager 
 	}
 	
 	@Override
-	public boolean isOIDCAccessTokenExists(String tokenId) {
-		return accessTokenDao.isAccessTokenRecordExists(tokenId);
+	public boolean doesOIDCAccessTokenExist(String tokenId) {
+		return accessTokenDao.doesAccessTokenRecordExist(tokenId);
 	}
 	
 	@Override

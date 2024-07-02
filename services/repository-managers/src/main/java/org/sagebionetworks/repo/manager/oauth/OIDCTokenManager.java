@@ -111,7 +111,7 @@ public interface OIDCTokenManager {
 	 * @param tokenId
 	 * @return True if an access token with the given id exists
 	 */
-	boolean isOIDCAccessTokenExists(String tokenId);
+	boolean doesOIDCAccessTokenExist(String tokenId);
 	
 	/**
 	 * Revokes all the access tokens issued for the given user

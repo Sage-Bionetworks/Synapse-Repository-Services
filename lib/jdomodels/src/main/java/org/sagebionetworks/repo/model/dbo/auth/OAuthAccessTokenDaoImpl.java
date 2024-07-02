@@ -55,7 +55,7 @@ public class OAuthAccessTokenDaoImpl implements OAuthAccessTokenDao {
 	}
 	
 	@Override
-	public boolean isAccessTokenRecordExists(String tokenId) {
+	public boolean doesAccessTokenRecordExist(String tokenId) {
 		String sql = "SELECT COUNT(*) FROM " + TABLE_OAUTH_ACCESS_TOKEN + " WHERE " + COL_OAUTH_ACCESS_TOKEN_TOKEN_ID + "=?";
 		
 		return jdbcTemplate.queryForObject(sql, Long.class, tokenId) > 0;

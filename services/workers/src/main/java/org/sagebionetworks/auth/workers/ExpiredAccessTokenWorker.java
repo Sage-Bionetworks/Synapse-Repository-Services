@@ -25,7 +25,12 @@ public class ExpiredAccessTokenWorker implements ProgressingRunner {
 	public void run(ProgressCallback progressCallback) throws Exception {
 		try {
 			LOG.info("Revoking expired access tokens...");
-			int deletedCount = oidcTokenManager.revokeExpiredOIDCAccessTokens();
+			int deletedCount = 0;
+			int deletedBatchCount;
+			do {
+				deletedBatchCount = oidcTokenManager.revokeExpiredOIDCAccessTokens();
+				deletedCount += deletedBatchCount;
+			} while (deletedBatchCount > 0);
 			LOG.info("Revoking expired access tokens...DONE (Deleted Count: {})", deletedCount);
 		} catch (Throwable e) {
 			LOG.error(e.getMessage(), e);
