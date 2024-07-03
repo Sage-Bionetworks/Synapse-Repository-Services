@@ -65,7 +65,7 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 	OAuthClientManager oauthClientManager;
 	
 	@Autowired
-	OIDCTokenHelper tokenHelper;
+	OIDCTokenManager tokenHelper;
 
 	@Autowired
 	OAuthRefreshTokenManager refreshTokenManager;

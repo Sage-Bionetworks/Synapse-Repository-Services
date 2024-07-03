@@ -36,7 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserCredentialValidator;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -89,7 +89,7 @@ public class AuthenticationManagerImplUnitTest {
 	@Mock
 	private PasswordResetTokenGenerator mockPasswordResetTokenGenerator;
 	@Mock
-	private OIDCTokenHelper mockOIDCTokenHelper;
+	private OIDCTokenManager mockOIDCTokenHelper;
 	@Mock
 	private Clock mockClock;
 	@Mock

@@ -30,7 +30,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.ClaimsJsonUtil;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -61,7 +61,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	@Mock
 	private PersonalAccessTokenDao mockPersonalAccessTokenDao;
 	@Mock
-	private OIDCTokenHelper mockTokenHelper;
+	private OIDCTokenManager mockTokenHelper;
 	@Mock
 	private UserManager mockUserManager;
 	@Mock

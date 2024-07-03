@@ -14,7 +14,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
 
-public interface OIDCTokenHelper {
+public interface OIDCTokenManager {
 
 	/**
 	 * Create an OIDC ID Token given the specified meta data and user claims
@@ -33,8 +33,10 @@ public interface OIDCTokenHelper {
 
 	/**
 	 * Create an OIDC access token which is used as an OAuth bearer token to authorize requests.  The
-	 * authority is specified by the 'scopes' and 'oidcClaims' param's.
+	 * authority is specified by the 'scopes' and 'oidcClaims' param's. A record for the access token is 
+	 * persisted and the access token can be revoked.
 	 * 
+	 * @param userId The id of the synapse user
 	 * @param issuer the token issuer, Synapse
 	 * @param subject the subject of this token, the Synapse user
 	 * @param oauthClientId the ID of the registered OAuth cliewnt
@@ -47,7 +49,7 @@ public interface OIDCTokenHelper {
 	 * @param oidcClaims the fine-grained details about what user info can be accessed by this access token
 	 * @return a serialized JSON Web Token
 	 */
-	String createOIDCaccessToken(String issuer, String subject, String oauthClientId, long now, long expirationTimeSeconds, Date authTime,
+	String createOIDCaccessToken(Long userId, String issuer, String subject, String oauthClientId, long now, long expirationTimeSeconds, Date authTime,
 			String refreshTokenId, String accessTokenId, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims);
 
 	/**
@@ -87,7 +89,7 @@ public interface OIDCTokenHelper {
 	 * ID it creates a token having 'total access' to the user account,
 	 * duplicating the access provided by a Synapse session token.
 	 * 
-	 * This is for 'internal use only', not to return to the client.
+	 * This is for 'internal use only', not to return to the client. The data for the access token is not persisted and cannot be revoked
 	 * 
 	 * @param principalId
 	 * @return
@@ -95,12 +97,38 @@ public interface OIDCTokenHelper {
 	String createInternalTotalAccessToken(Long principalId);
 	
 	/**
-	 * Creates a total access token suitable for returning to the client
+	 * Creates a total access token suitable for returning to the client, a record for the access token is 
+	 * persisted and the access token can be revoked.
 	 * 
 	 * @param principalId
 	 * @param issuer
 	 * @return
 	 */
 	String createClientTotalAccessToken(final Long principalId, final String issuer);
+	
+	/**
+	 * 
+	 * @param tokenId
+	 * @return True if an access token with the given id exists
+	 */
+	boolean doesOIDCAccessTokenExist(String tokenId);
+	
+	/**
+	 * Revokes all the access tokens issued for the given user
+	 * 
+	 * @param principalId
+	 */
+	void revokeOIDCAccessTokens(Long principalId);
+	
+	/**
+	 * Revokes an OIDC access token using the token itself if such a token is present
+	 * @param tokenId
+	 */
+	void revokeOIDCAccessToken(String token);
+	
+	/**
+	 * Revokes a batch of expired OIDC access tokens
+	 */
+	int revokeExpiredOIDCAccessTokens();
 
 }

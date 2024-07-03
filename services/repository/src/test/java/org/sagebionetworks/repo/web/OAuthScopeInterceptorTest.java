@@ -11,7 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.oauth.ClaimsJsonUtil;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.springframework.core.MethodParameter;
@@ -45,7 +45,7 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.SYNAPSE_AUTH
 class OAuthScopeInterceptorTest {
 
 	@Mock
-	private OIDCTokenHelper mockOidcTokenHelper;
+	private OIDCTokenManager mockOidcTokenHelper;
 
 	@InjectMocks
 	private OAuthScopeInterceptor oauthScopeInterceptor;

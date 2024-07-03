@@ -402,4 +402,9 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		String uri = ADMIN + USER + "/" + targetUserId +"/token";
 		return getJSONEntity(getRepoEndpoint(), uri, LoginResponse.class);
 	}
+	
+	@Override
+	public void logoutAllForAccessToken(Long targetUserId) throws SynapseException {
+		deleteUri(getAuthEndpoint(), "/user/" + targetUserId + "/sessionAccessToken/all");
+	}
 }

@@ -162,6 +162,11 @@ public interface BaseClient {
 	public void deleteSessionTokenHeader() throws SynapseException;
 
 	public void logoutForAccessToken() throws SynapseException;
+	
+	/**
+	 * Invalidate all access tokens
+	 */
+	void logoutAllForAccessToken() throws SynapseException;
 
 	public void invalidateApiKey() throws SynapseException;
 

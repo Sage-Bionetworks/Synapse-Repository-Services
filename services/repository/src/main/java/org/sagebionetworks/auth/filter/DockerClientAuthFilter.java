@@ -16,7 +16,7 @@ import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.cloudwatch.Consumer;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -31,7 +31,7 @@ import org.springframework.stereotype.Component;
 public class DockerClientAuthFilter extends BasicAuthenticationFilter {	
 	private AuthenticationService authenticationService;
 	
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 
 	private OpenIDConnectManager oidcManager;
 	
@@ -40,11 +40,11 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 			StackConfiguration config, 
 			Consumer consumer, 
 			AuthenticationService authenticationService,
-			OIDCTokenHelper oidcTokenHelper,
+			OIDCTokenManager oidcTokenManager,
 			OpenIDConnectManager oidcManager) {
 		super(config, consumer);
 		this.authenticationService = authenticationService;
-		this.oidcTokenHelper=oidcTokenHelper;
+		this.oidcTokenManager=oidcTokenManager;
 		this.oidcManager=oidcManager;
 	}
 
@@ -104,7 +104,7 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 				return Optional.empty();
 			}
 			Long userId = alias.getPrincipalId();
-			String accessToken = oidcTokenHelper.createInternalTotalAccessToken(userId);
+			String accessToken = oidcTokenManager.createInternalTotalAccessToken(userId);
 			return Optional.of(new UserIdAndAccessToken(userId.toString(), accessToken));
 		}
 	}

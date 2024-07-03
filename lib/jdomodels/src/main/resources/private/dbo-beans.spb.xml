@@ -154,6 +154,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthAccessToken" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPersonalAccessToken" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthorizationConsent" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthorizationCode" />
@@ -295,6 +296,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthAccessToken" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPersonalAccessToken" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthorizationConsent" />
 				

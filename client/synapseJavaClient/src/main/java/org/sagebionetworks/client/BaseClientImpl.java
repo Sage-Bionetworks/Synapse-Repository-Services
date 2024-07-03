@@ -18,6 +18,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -199,6 +200,22 @@ public class BaseClientImpl implements BaseClient {
 	}
 
 	public void logoutForAccessToken() throws SynapseException {
+		deleteUri(getAuthEndpoint(), "/sessionAccessToken");
+		removeAuthorizationHeader();
+	}
+	
+	@Override
+	public void logoutAllForAccessToken() throws SynapseException {
+		String accessToken = getAccessToken();
+		
+		if (accessToken == null) {
+			throw new IllegalArgumentException("No accessToken is set for the client.");
+		}
+
+		String userId = JSONWebTokenHelper.getSubjectFromJWTAccessToken(accessToken);
+		
+		deleteUri(getAuthEndpoint(), "/user/" + userId + "/sessionAccessToken/all");
+		
 		removeAuthorizationHeader();
 	}
 

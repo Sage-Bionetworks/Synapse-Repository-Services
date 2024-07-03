@@ -22,7 +22,7 @@ import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -59,7 +59,7 @@ public class AuthenticationFilter implements Filter {
 	private UserManager userManager;
 
 	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 
 	@Autowired
 	private OpenIDConnectManager oidcManager;
@@ -98,7 +98,7 @@ public class AuthenticationFilter implements Filter {
 				log.warn(failureReason, e);
 				return;
 			}
-			accessToken=oidcTokenHelper.createInternalTotalAccessToken(userId);
+			accessToken=oidcTokenManager.createInternalTotalAccessToken(userId);
 			authenticationMethod = AuthenticationMethod.APIKEY;
 		} else {
 			if (!isTokenEmptyOrNull(accessToken)) {

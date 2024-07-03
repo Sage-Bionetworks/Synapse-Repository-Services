@@ -72,7 +72,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 	OpenIDConnectManager openIDConnectManager;
 
 	@Autowired
-	OIDCTokenHelper oidcTokenHelper;
+	OIDCTokenManager oidcTokenManager;
 
 	@Autowired
 	PersonalAccessTokenManager personalAccessTokenManager;
@@ -110,7 +110,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		oauthClient = oauthClientManager.createOpenIDConnectClient(userInfo, toCreate);
 		assertNotNull(oauthClient.getClient_id());
 	
-		fullAccessToken = oidcTokenHelper.createClientTotalAccessToken(userInfo.getId(), null);
+		fullAccessToken = oidcTokenManager.createClientTotalAccessToken(userInfo.getId(), null);
 	}
 
 	@AfterEach
@@ -176,12 +176,12 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		assertNotNull(tokenResponse.getRefresh_token());
 		assertNotNull(tokenResponse.getExpires_in());
 
-		oidcTokenHelper.validateJWT(tokenResponse.getId_token());
+		oidcTokenManager.validateJWT(tokenResponse.getId_token());
 
 		// method under test
 		JWTWrapper oidcUserInfo = (JWTWrapper) openIDConnectManager.getUserInfo(tokenResponse.getAccess_token(), OAUTH_ENDPOINT);
 
-		oidcTokenHelper.validateJWT(oidcUserInfo.getJwt());
+		oidcTokenManager.validateJWT(oidcUserInfo.getJwt());
 
 	}
 
@@ -213,19 +213,19 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		assertNotNull(newTokenResponse.getRefresh_token());
 		assertNotEquals(tokenResponse.getRefresh_token(), newTokenResponse.getRefresh_token());
 
-		oidcTokenHelper.validateJWT(newTokenResponse.getId_token());
+		oidcTokenManager.validateJWT(newTokenResponse.getId_token());
 
 		// method under test
 		JWTWrapper oidcUserInfo = (JWTWrapper) openIDConnectManager.getUserInfo(newTokenResponse.getAccess_token(), OAUTH_ENDPOINT);
 
-		oidcTokenHelper.validateJWT(oidcUserInfo.getJwt());
+		oidcTokenManager.validateJWT(oidcUserInfo.getJwt());
 
 		// Lastly, we requested the refresh_token_id claim, but we test that this claim doesn't not appear in the ID token or userinfo (because it doesn't make sense)
-		Claims idTokenClaims = oidcTokenHelper.parseJWT(tokenResponse.getId_token()).getBody();
+		Claims idTokenClaims = oidcTokenManager.parseJWT(tokenResponse.getId_token()).getBody();
 		assertFalse(idTokenClaims.containsKey(OIDCClaimName.refresh_token_id.name()));
 
 
-		Claims userInfoClaims = oidcTokenHelper.parseJWT(oidcUserInfo.getJwt()).getBody();
+		Claims userInfoClaims = oidcTokenManager.parseJWT(oidcUserInfo.getJwt()).getBody();
 		assertFalse(userInfoClaims.containsKey(OIDCClaimName.refresh_token_id.name()));
 
 	}
@@ -375,7 +375,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		assertEquals(userInfo.getId().toString(), openIDConnectManager.validateAccessToken(token));
 
 		// Revoke the token
-		Claims claims = oidcTokenHelper.parseJWT(token).getBody();
+		Claims claims = oidcTokenManager.parseJWT(token).getBody();
 		String tokenId = claims.getId();
 		personalAccessTokenManager.revokeToken(userInfo, tokenId);
 

@@ -7,7 +7,7 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserCredentialValidator;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -68,7 +68,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	private PasswordResetTokenGenerator passwordResetTokenGenerator;
 	
 	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 	
 	@Autowired
 	private Clock clock;
@@ -386,7 +386,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	LoginResponse getLoginResponseAfterSuccessfulAuthentication(long principalId, String issuer) {
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
-		String accessToken = oidcTokenHelper.createClientTotalAccessToken(principalId, issuer);
+		String accessToken = oidcTokenManager.createClientTotalAccessToken(principalId, issuer);
 		boolean acceptsTermsOfUse = authDAO.hasUserAcceptedToU(principalId);
 		authDAO.setAuthenticatedOn(principalId, clock.now());
 		return createLoginResponse(accessToken, acceptsTermsOfUse, newAuthenticationReceipt);

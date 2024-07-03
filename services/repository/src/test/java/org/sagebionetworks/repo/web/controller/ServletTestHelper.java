@@ -5,7 +5,7 @@ import org.json.JSONObject;
 import org.junit.Assert;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -148,7 +148,7 @@ public class ServletTestHelper {
 	private UserManager userManager;
 	
 	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 
 	private HttpServlet dispatchServlet = null;
 	private UserInfo testUser = null;
@@ -205,7 +205,7 @@ public class ServletTestHelper {
 	}
 
 	private String token(Long userId) {
-		return oidcTokenHelper.createInternalTotalAccessToken(userId);
+		return oidcTokenManager.createInternalTotalAccessToken(userId);
 	}
 	
 	public <T extends Entity> T createEntity(T entity,

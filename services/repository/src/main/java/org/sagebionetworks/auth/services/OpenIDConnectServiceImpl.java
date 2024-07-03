@@ -8,7 +8,7 @@ import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.manager.oauth.OAuthRefreshTokenManager;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -60,7 +60,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	private OpenIDConnectManager oidcManager;
 
 	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 
 	@Override
 	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException {
@@ -142,7 +142,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 
 	@Override
 	public JsonWebKeySet getOIDCJsonWebKeySet() {
-		return oidcTokenHelper.getJSONWebKeySet();
+		return oidcTokenManager.getJSONWebKeySet();
 	}
 
 	@Override

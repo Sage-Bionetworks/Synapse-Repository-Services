@@ -1150,6 +1150,17 @@ public class SqlConstants {
 	public static final String COL_PERSONAL_ACCESS_TOKEN_CLAIMS =						"CLAIMS";
 	public static final String COL_PERSONAL_ACCESS_TOKEN_CREATED_ON =					"CREATED_ON";
 	public static final String COL_PERSONAL_ACCESS_TOKEN_LAST_USED =					"LAST_USED";
+	
+	public static final String DDL_OAUTH_ACCESS_TOKEN = 								"schema/OAuthAccessToken-ddl.sql";
+	public static final String TABLE_OAUTH_ACCESS_TOKEN = 								"OAUTH_ACCESS_TOKEN";
+	public static final String COL_OAUTH_ACCESS_TOKEN_ID =								"ID";
+	public static final String COL_OAUTH_ACCESS_TOKEN_TOKEN_ID =						"TOKEN_ID";
+	public static final String COL_OAUTH_ACCESS_TOKEN_REFRESH_TOKEN_ID =				"REFRESH_TOKEN_ID";
+	public static final String COL_OAUTH_ACCESS_TOKEN_PRINCIPAL_ID =					"PRINCIPAL_ID";
+	public static final String COL_OAUTH_ACCESS_TOKEN_CLIENT_ID =						"CLIENT_ID";
+	public static final String COL_OAUTH_ACCESS_TOKEN_CREATED_ON =						"CREATED_ON";
+	public static final String COL_OAUTH_ACCESS_TOKEN_EXPIRES_ON =						"EXPIRES_ON";
+	public static final String COL_OAUTH_ACCESS_TOKEN_SESSION_ID =						"SESSION_ID";
 
 	// Status table for monthly statistics
 	public static final String TABLE_STATISTICS_MONTHLY_STATUS =						"STATISTICS_MONTHLY_STATUS";

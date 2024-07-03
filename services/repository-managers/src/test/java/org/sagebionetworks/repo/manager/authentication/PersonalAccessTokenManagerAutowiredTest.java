@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.platform.commons.util.StringUtils;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -47,7 +47,7 @@ public class PersonalAccessTokenManagerAutowiredTest {
 	private UserManager userManager;
 
 	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenManager oidcTokenManager;
 	
 	@Autowired
 	private MessageToUserObjectHelper messageHelper;
@@ -76,7 +76,7 @@ public class PersonalAccessTokenManagerAutowiredTest {
 
 		tokenIdsToDelete = new ArrayList<>();
 		
-		fullAccessToken = oidcTokenHelper.createClientTotalAccessToken(userInfo.getId(), null);
+		fullAccessToken = oidcTokenManager.createClientTotalAccessToken(userInfo.getId(), null);
 	}
 
 	@AfterEach
@@ -91,7 +91,7 @@ public class PersonalAccessTokenManagerAutowiredTest {
 	}
 
 	private String getTokenIdFromJwt(String jwt) {
-		Jwt<JwsHeader, Claims> parsed = oidcTokenHelper.parseJWT(jwt);
+		Jwt<JwsHeader, Claims> parsed = oidcTokenManager.parseJWT(jwt);
 		return parsed.getBody().getId();
 	}
 

@@ -40,6 +40,7 @@
     <context:component-scan base-package="org.sagebionetworks.ses.workers" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.snapshot.workers" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.search.workers" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.auth.workers" annotation-config="false"/>
 
 	<!-- Non worker triggers that come from the repo dependencies -->
 	<import resource="classpath:external-triggers-spb.xml" />
@@ -148,6 +149,7 @@
 		<!-- Data source pool monitor trigger -->
 		<ref bean="dataSourceMonitorTrigger"/>
 		<ref bean="diskMonitorTrigger"/>
+		<ref bean="expiredAccessTokensWorkerTrigger"/>
 		
 	</util:list>
 

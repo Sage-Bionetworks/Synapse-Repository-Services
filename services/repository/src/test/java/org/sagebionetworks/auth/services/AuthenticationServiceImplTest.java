@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -25,6 +26,7 @@ import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -61,6 +63,8 @@ public class AuthenticationServiceImplTest {
 	private OAuthManager mockOAuthManager;
 	@Mock
 	private OpenIDConnectManager mockOidcManager;
+	@Mock
+	private OIDCTokenManager mockOidcTokenManger;
 	@InjectMocks
 	private AuthenticationServiceImpl service;
 	
@@ -633,4 +637,45 @@ public class AuthenticationServiceImplTest {
 		
 	}
 	
+	@Test
+	public void testRevokeSessionAccessToken() {
+		service.revokeSessionAccessToken(ACCESS_TOKEN);
+		
+		verify(mockOidcTokenManger).revokeOIDCAccessToken(ACCESS_TOKEN);
+	}
+	
+	@Test
+	public void testRevokeAllSessionAccessTokensWithSameUser() {
+		
+		service.revokeAllSessionAccessTokens(userId, userId);
+		
+		verify(mockOidcTokenManger).revokeOIDCAccessTokens(userId);
+		verifyZeroInteractions(mockUserManager);
+	}
+	
+	@Test
+	public void testRevokeAllSessionAccessTokensWithDifferentUserAndAdmin() {
+		Long adminUserId = 1L;
+		
+		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(new UserInfo(true));
+		
+		service.revokeAllSessionAccessTokens(adminUserId, userId);
+		
+		verify(mockOidcTokenManger).revokeOIDCAccessTokens(userId);
+	}
+	
+	@Test
+	public void testRevokeAllSessionAccessTokensWithDifferentUserAndNotAnAdmin() {
+		Long otherUserId = 1L;
+		
+		when(mockUserManager.getUserInfo(otherUserId)).thenReturn(new UserInfo(false));
+		
+		String message = assertThrows(UnauthorizedException.class, () -> {			
+			service.revokeAllSessionAccessTokens(otherUserId, userId);
+		}).getMessage();
+		
+		assertEquals("You are not authorized to perform this operation.", message);
+		
+		verifyZeroInteractions(mockOidcTokenManger);
+	}
 }

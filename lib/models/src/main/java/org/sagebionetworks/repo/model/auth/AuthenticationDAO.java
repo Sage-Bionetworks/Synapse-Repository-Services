@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.auth;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -112,7 +111,7 @@ public interface AuthenticationDAO {
 	 * @return The expiration date for the user password, if any
 	 */
 	Optional<Date> getPasswordExpiresOn(long principalId);
-	
+		
 	/**
 	 * Ensure the bootstrap users have sufficient credentials to authenticate
 	 */

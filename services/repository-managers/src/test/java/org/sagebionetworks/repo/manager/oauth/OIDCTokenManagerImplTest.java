@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.security.PublicKey;
@@ -28,9 +30,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.TokenType;
+import org.sagebionetworks.repo.model.dbo.auth.OAuthAccessTokenDaoImpl;
+import org.sagebionetworks.repo.model.dbo.auth.OIDCAccessTokenData;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -46,11 +51,12 @@ import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 
 @ExtendWith(MockitoExtension.class)
-public class OIDCTokenHelperImplTest {
+public class OIDCTokenManagerImplTest {
 
 	private static final String ISSUER = "https://repo-prod.prod.sagebase.org/auth/v1";
+	private static final Long USER_ID = 101L;
 	private static final String SUBJECT_ID = "101";
-	private static final String CLIENT_ID = "client-01234";
+	private static final String CLIENT_ID = "1234";
 	private static final long NOW = System.currentTimeMillis();
 	private static final Date AUTH_TIME = new Date();
 	private static final long ONE_DAY_MILLIS = 1000L * 60 * 60 * 24;
@@ -84,9 +90,12 @@ public class OIDCTokenHelperImplTest {
 
 	@Mock
 	private Clock mockClock;
-
+	
+	@Mock
+	private OAuthAccessTokenDaoImpl mockAccessTokenDao;
+	
 	@InjectMocks
-	OIDCTokenHelperImpl oidcTokenHelper;
+	private OIDCTokenManagerImpl oidcTokenManager;
 	
 	@BeforeEach
 	public void setUp() {
@@ -123,25 +132,25 @@ public class OIDCTokenHelperImplTest {
 		when(stackConfiguration.getOIDCSignatureRSAPrivateKeys()).thenReturn(Collections.singletonList(devPrivateKey));
 		
 		// takes the place of Spring set up
-		oidcTokenHelper.afterPropertiesSet();
+		oidcTokenManager.afterPropertiesSet();
 	}
 
 	@Test
 	public void testGetJSONWebKeySet() throws Exception {
 		// below we test that the keys can be used to verify a signature.  Here we just check that they were generated
-		JsonWebKeySet jwks = oidcTokenHelper.getJSONWebKeySet();
+		JsonWebKeySet jwks = oidcTokenManager.getJSONWebKeySet();
 		assertFalse(jwks.getKeys().isEmpty());
 	}
 	
 	// get the public side of the current signing key
 	private PublicKey getPublicSigningKey() {
-		JsonWebKey jwk = oidcTokenHelper.getJSONWebKeySet().getKeys().get(0);
+		JsonWebKey jwk = oidcTokenManager.getJSONWebKeySet().getKeys().get(0);
 		return JSONWebTokenHelper.getRSAPublicKeyForJsonWebKeyRSA((JsonWebKeyRSA)jwk);
 	}
 	
 	@Test
 	public void testGenerateOIDCIdentityToken() throws Exception {
-		String oidcToken = oidcTokenHelper.createOIDCIdToken(ISSUER, 
+		String oidcToken = oidcTokenManager.createOIDCIdToken(ISSUER, 
 				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
 		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(oidcToken);
 		Claims claims = jwt.getBody();
@@ -155,6 +164,8 @@ public class OIDCTokenHelperImplTest {
 		
 		// This checks the other fields set in the method under test
 		jwtValidation(oidcToken, false, NONCE);
+		
+		verifyZeroInteractions(mockAccessTokenDao);
 	}
 
 	/**
@@ -172,7 +183,7 @@ public class OIDCTokenHelperImplTest {
 	    // the TLS server validation MAY be used to validate the issuer in place of checking the token signature. The Client MUST 
 	    // validate the signature of all other ID Tokens according to JWS using the algorithm specified in the JWT alg Header 
 	    // Parameter. The Client MUST use the keys provided by the Issuer.
-	    Jwt<JwsHeader,Claims> signedJWT = JSONWebTokenHelper.parseJWT(jwtString, oidcTokenHelper.getJSONWebKeySet());
+	    Jwt<JwsHeader,Claims> signedJWT = JSONWebTokenHelper.parseJWT(jwtString, oidcTokenManager.getJSONWebKeySet());
 		assertNotNull(signedJWT);
 	    
 	    
@@ -197,7 +208,7 @@ public class OIDCTokenHelperImplTest {
 	    assertNull(claimsSet.get("azp")); // i.e. verify no azp Claim
 
 	    // by the way, the key ID in the token header should match that in the JWK
-	    assertEquals(signedJWT.getHeader().getKeyId(), oidcTokenHelper.getJSONWebKeySet().getKeys().get(0).getKid());
+	    assertEquals(signedJWT.getHeader().getKeyId(), oidcTokenManager.getJSONWebKeySet().getKeys().get(0).getKid());
 
 		// The alg value SHOULD be the default of RS256 or the algorithm sent by the Client in the id_token_signed_response_alg parameter during Registration.
 	    assertEquals("RS256", signedJWT.getHeader().getAlgorithm());
@@ -252,8 +263,11 @@ public class OIDCTokenHelperImplTest {
 		OIDCClaimsRequestDetails details = new OIDCClaimsRequestDetails();
 		details.setValues(Collections.singletonList("101"));
 		expectedClaims.put(OIDCClaimName.team, details);
+		
+		String sessionId = SessionIdThreadLocal.createNewSessionIdForThread();
 
-		String accessToken = oidcTokenHelper.createOIDCaccessToken(
+		String accessToken = oidcTokenManager.createOIDCaccessToken(
+				USER_ID,
 				ISSUER,
 				SUBJECT_ID, 
 				CLIENT_ID,
@@ -275,14 +289,69 @@ public class OIDCTokenHelperImplTest {
 
 		// This checks the other fields set in the method under test
 		jwtValidation(accessToken, false, null/* no nonce */);
+		
+		OIDCAccessTokenData expectedRecord = new OIDCAccessTokenData()
+			.setTokenId(TOKEN_ID)
+			.setRefreshTokenId(Long.valueOf(REFRESH_TOKEN_ID))
+			.setPrincipalId(USER_ID)
+			.setClientId(Long.valueOf(CLIENT_ID))
+			.setCreatedOn(claims.getIssuedAt())
+			.setExpiresOn(claims.getExpiration())
+			.setSessionId(sessionId);
+		
+		verify(mockAccessTokenDao).storeAccessTokenRecord(expectedRecord);
+		
+		SessionIdThreadLocal.clearThreadsSessionId();
+	}
+	
+	@Test
+	public void testGenerateOIDCAccessTokenWithPersistFalse() throws Exception {
+		List<OAuthScope> grantedScopes = Collections.singletonList(OAuthScope.openid);
+		Map<OIDCClaimName,OIDCClaimsRequestDetails> expectedClaims = new HashMap<OIDCClaimName,OIDCClaimsRequestDetails>();
+		expectedClaims.put(OIDCClaimName.email, ESSENTIAL);
+		expectedClaims.put(OIDCClaimName.given_name, NON_ESSENTIAL);
+		expectedClaims.put(OIDCClaimName.family_name, null);
+		OIDCClaimsRequestDetails details = new OIDCClaimsRequestDetails();
+		details.setValues(Collections.singletonList("101"));
+		expectedClaims.put(OIDCClaimName.team, details);
+
+		boolean persistToken = false;
+		
+		String accessToken = oidcTokenManager.createOIDCaccessToken(
+				USER_ID,
+				ISSUER,
+				SUBJECT_ID, 
+				CLIENT_ID,
+				NOW, 
+				ONE_DAY_MILLIS,
+				AUTH_TIME,
+				REFRESH_TOKEN_ID,
+				TOKEN_ID,
+				grantedScopes,
+				expectedClaims,
+				persistToken);
+		
+		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
+		Claims claims = jwt.getBody();
+		// here we just check that the 'access' claim has been added
+		// in the test for ClaimsJsonUtil.addAccessClaims() we check 
+		// that the content is correct
+		assertNotNull(claims.get("access"));
+		assertEquals(TokenType.OIDC_ACCESS_TOKEN.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
+
+		// This checks the other fields set in the method under test
+		jwtValidation(accessToken, false, null/* no nonce */);
+		
+		verifyZeroInteractions(mockAccessTokenDao);
+
 	}
 
 	
 	@Test
 	public void testOIDCSignatureValidation() throws Exception {
-		String oidcToken = oidcTokenHelper.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
+		String oidcToken = oidcTokenManager.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
 				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
-		oidcTokenHelper.validateJWT(oidcToken);
+		oidcTokenManager.validateJWT(oidcToken);
 	}
 	
 	@Test
@@ -292,7 +361,7 @@ public class OIDCTokenHelperImplTest {
 		Long principalId = 101L;
 		
 		// method under test
-		String accessToken = oidcTokenHelper.createInternalTotalAccessToken(principalId);
+		String accessToken = oidcTokenManager.createInternalTotalAccessToken(principalId);
 		
 		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
 		Claims claims = jwt.getBody();
@@ -302,34 +371,49 @@ public class OIDCTokenHelperImplTest {
 		assertNotNull(claims.getId());
 		assertEquals(now/1000L+60, claims.getExpiration().getTime()/1000L);
 		assertEquals(Arrays.asList(OAuthScope.values()), ClaimsJsonUtil.getScopeFromClaims(claims));
+		
+		verifyZeroInteractions(mockAccessTokenDao);
 	}
 
 	@Test
 	public void testCreateClientTotalAccessToken() {
 		long now = System.currentTimeMillis();
 		when(mockClock.currentTimeMillis()).thenReturn(now);
+		
 		Long principalId = 101L;
 		
 		// method under test
-		String accessToken = oidcTokenHelper.createClientTotalAccessToken(principalId, ISSUER);
+		String accessToken = oidcTokenManager.createClientTotalAccessToken(principalId, ISSUER);
 		
 		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
+		
 		Claims claims = jwt.getBody();
+		
 		assertEquals(ISSUER, claims.getIssuer());
 		assertEquals(principalId.toString(), claims.getSubject());
 		assertEquals(""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID, claims.getAudience());
 		assertNotNull(claims.getId());
 		assertEquals(now/1000L+24*3600, claims.getExpiration().getTime()/1000L);
 		assertEquals(Arrays.asList(OAuthScope.values()), ClaimsJsonUtil.getScopeFromClaims(claims));
+
+		OIDCAccessTokenData expectedRecord = new OIDCAccessTokenData()
+			.setTokenId(claims.getId())
+			.setRefreshTokenId(null)
+			.setPrincipalId(principalId)
+			.setClientId(Long.valueOf(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID))
+			.setCreatedOn(claims.getIssuedAt())
+			.setExpiresOn(claims.getExpiration());
+		
+		verify(mockAccessTokenDao).storeAccessTokenRecord(expectedRecord);
 	}
 
 	@Test
 	public void testParseExpiredJWTException() {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis() - ONE_YEAR_MILLIS);
 		Long principalId = 101L;
-		String expiredAccessToken = oidcTokenHelper.createInternalTotalAccessToken(principalId);
+		String expiredAccessToken = oidcTokenManager.createInternalTotalAccessToken(principalId);
 		assertThrows(OAuthUnauthenticatedException.class, () ->
-				oidcTokenHelper.parseJWT(expiredAccessToken));
+				oidcTokenManager.parseJWT(expiredAccessToken));
 	}
 
 	@Test
@@ -350,7 +434,7 @@ public class OIDCTokenHelperImplTest {
 		personalAccessTokenRecord.setUserInfoClaims(expectedClaims);
 
 		// method under test
-		String accessToken = oidcTokenHelper.createPersonalAccessToken(
+		String accessToken = oidcTokenManager.createPersonalAccessToken(
 				ISSUER,
 				personalAccessTokenRecord);
 
@@ -364,6 +448,50 @@ public class OIDCTokenHelperImplTest {
 
 		// This checks the other fields set in the method under test
 		jwtValidation(accessToken, true, null/* no nonce */);
+		
+		verifyZeroInteractions(mockAccessTokenDao);
 	}
-
+	
+	@Test
+	public void testIsOIDCAccessTokenExists() {
+		// Call under test
+		oidcTokenManager.doesOIDCAccessTokenExist(TOKEN_ID);
+		
+		verify(mockAccessTokenDao).doesAccessTokenRecordExist(TOKEN_ID);
+	}
+		
+	@Test
+	public void testRevokeOIDCAccessTokens() {
+		// Call under test
+		oidcTokenManager.revokeOIDCAccessTokens(USER_ID);
+		
+		verify(mockAccessTokenDao).deleteAccessTokenRecords(USER_ID);
+	}
+	
+	@Test
+	public void testRevokeOIDCAccessToken() {
+		
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		
+		String token = oidcTokenManager.createClientTotalAccessToken(USER_ID, ISSUER);
+		String tokenId = oidcTokenManager.parseJWT(token).getBody().getId();
+		
+		// Call under test
+		oidcTokenManager.revokeOIDCAccessToken(token);
+		
+		verify(mockAccessTokenDao).deleteAccessTokenRecord(tokenId);
+	}
+	
+	@Test
+	public void testRevokeExpiredOIDCTokens() {
+		
+		when(oidcTokenManager.revokeExpiredOIDCAccessTokens()).thenReturn(10_000);
+		
+		// Call under test
+		int deletedCount = oidcTokenManager.revokeExpiredOIDCAccessTokens();
+		
+		assertEquals(10_000, deletedCount);
+		
+		verify(mockAccessTokenDao).deleteExpiredTokens();
+	}
 }
