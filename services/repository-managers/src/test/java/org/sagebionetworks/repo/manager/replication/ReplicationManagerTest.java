@@ -156,6 +156,23 @@ public class ReplicationManagerTest {
 	}
 
 	@Test
+	public void testDeleteWithVersionChangeMessageIsIgnored() {
+		ChangeMessage changeMessage = new ChangeMessage();
+		changeMessage.setChangeType(ChangeType.DELETE);
+		changeMessage.setObjectType(ObjectType.ENTITY);
+		changeMessage.setObjectVersion(1L);
+		changeMessage.setObjectId("111");
+
+		// Call under test
+		Map<ReplicationType, ReplicationDataGroup> result = manager.groupByObjectType(List.of(changeMessage));
+
+		assertEquals(1, result.size());
+		ReplicationDataGroup group = result.get(mainType);
+		assertNotNull(group);
+		assertTrue(group.getToDeleteIds().isEmpty());
+	}
+
+	@Test
 	public void testGroupByObjectTypeWithUnsupportedType() {
 
 		ChangeMessage message = new ChangeMessage();

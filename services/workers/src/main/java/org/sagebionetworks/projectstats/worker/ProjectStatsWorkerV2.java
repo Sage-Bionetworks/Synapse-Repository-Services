@@ -4,7 +4,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.repo.manager.ProjectStatsManager;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -40,6 +42,10 @@ public class ProjectStatsWorkerV2 implements ChangeMessageDrivenRunner {
 			if(log.isTraceEnabled()){
 				log.trace("Ignoring change message: "+message.getChangeNumber()+" since it is older than: "+MAX_MESSAGE_TIMEOUT_MS+" MS");
 			}
+			return;
+		}
+
+		if(ObjectType.ENTITY == message.getObjectType() && ChangeType.DELETE == message.getChangeType() && message.getObjectVersion() != null){
 			return;
 		}
 		

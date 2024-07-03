@@ -1,6 +1,7 @@
 package org.sagebionetworks.replication.workers;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -9,6 +10,7 @@ import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,8 +42,13 @@ public class ObjectReplicationWorker implements BatchChangeMessageDrivenRunner {
 	public void run(ProgressCallback progressCallback,
 			List<ChangeMessage> messages) throws RecoverableMessageException,
 			Exception {
+		List<ChangeMessage> objectToBeReplicated = messages.stream()
+				.filter(m -> ChangeType.CREATE.equals(m.getChangeType())
+						|| ChangeType.UPDATE.equals(m.getChangeType())
+						|| (ChangeType.DELETE.equals(m.getChangeType()) && m.getObjectVersion() == null))
+				.collect(Collectors.toList());
 		try {
-			replicationManager.replicate(messages);
+			replicationManager.replicate(objectToBeReplicated);
 		} catch (RecoverableMessageException
 				| LockReleaseFailedException
 				| CannotAcquireLockException

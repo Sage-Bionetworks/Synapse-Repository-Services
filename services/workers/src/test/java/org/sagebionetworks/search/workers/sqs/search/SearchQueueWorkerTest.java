@@ -21,6 +21,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.search.SearchManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -48,14 +49,51 @@ public class SearchQueueWorkerTest {
 		ReflectionTestUtils.setField(worker, "searchManager", mockSearchManager);
 		ReflectionTestUtils.setField(worker, "workerLogger", mockWorkerLogger);
 
-		messages = Collections.singletonList(new ChangeMessage());
+		messages = Collections.singletonList(new ChangeMessage().setChangeType(ChangeType.CREATE));
 	}
 
 	@Test
-	public void testNoFailure() throws IOException, RecoverableMessageException {
-		worker.run(mockCallback, messages);
-		verify(mockSearchManager, times(1)).documentChangeMessages(messages);
+	public void testCreateChangeMessage() throws IOException, RecoverableMessageException {
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.CREATE);
+
+		//call under test
+		worker.run(mockCallback, List.of(message));
+		verify(mockSearchManager, times(1)).documentChangeMessages(List.of(message));
 		verify(mockWorkerLogger, never()).logWorkerFailure(eq(SearchQueueWorker.class), any(ChangeMessage.class), any(Throwable.class), anyBoolean());
+	}
+
+	@Test
+	public void testUpdateChangeMessage() throws IOException, RecoverableMessageException {
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.UPDATE);
+
+		//call under test
+		worker.run(mockCallback, List.of(message));
+		verify(mockSearchManager, times(1)).documentChangeMessages(List.of(message));
+		verify(mockWorkerLogger, never()).logWorkerFailure(eq(SearchQueueWorker.class), any(ChangeMessage.class), any(Throwable.class), anyBoolean());
+	}
+
+	@Test
+	public void testDeleteWithoutVersionChangeMessage() throws IOException, RecoverableMessageException {
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.DELETE);
+
+		//call under test
+		worker.run(mockCallback, List.of(message));
+		verify(mockSearchManager, times(1)).documentChangeMessages(List.of(message));
+		verify(mockWorkerLogger, never()).logWorkerFailure(eq(SearchQueueWorker.class), any(ChangeMessage.class), any(Throwable.class), anyBoolean());
+	}
+
+	@Test
+	public void testDeleteWithVersionChangeMessage() throws IOException, RecoverableMessageException {
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.DELETE);
+		message.setObjectVersion(1L);
+
+		//call under test
+		worker.run(mockCallback, List.of(message));
+		verify(mockSearchManager, times(1)).documentChangeMessages(Collections.emptyList());
 	}
 
 	@Test

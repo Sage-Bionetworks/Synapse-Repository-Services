@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
@@ -75,5 +76,15 @@ public class ProjectStatsWorkerV2Test {
 		message.setUserId(null);
 		worker.run(mockProgressCallback, message);
 		verify(mockProjectStatsManager, never()).updateProjectStats(anyLong(), anyString(), any(ObjectType.class), any(Date.class));
+	}
+
+	@Test
+	public void testDeleteWithVersionChangeMessageIsIgnored() throws RecoverableMessageException, Exception{
+		message.setChangeType(ChangeType.DELETE);
+		message.setObjectType(ObjectType.ENTITY);
+		message.setObjectVersion(1L);
+		//call under test
+		worker.run(mockProgressCallback, message);
+		verifyZeroInteractions(mockProjectStatsManager);
 	}
 }

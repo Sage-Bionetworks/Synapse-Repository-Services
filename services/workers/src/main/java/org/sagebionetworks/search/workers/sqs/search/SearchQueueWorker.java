@@ -1,11 +1,13 @@
 package org.sagebionetworks.search.workers.sqs.search;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.search.SearchManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -32,8 +34,14 @@ public class SearchQueueWorker implements BatchChangeMessageDrivenRunner {
 	@Override
 	public void run(ProgressCallback progressCallback, List<ChangeMessage> changes)
 			throws RecoverableMessageException{
+		List<ChangeMessage> entitiesToBeSearched = changes.stream()
+				.filter(m -> ChangeType.CREATE.equals(m.getChangeType())
+						|| ChangeType.UPDATE.equals(m.getChangeType())
+						|| (ChangeType.DELETE.equals(m.getChangeType()) && m.getObjectVersion() == null))
+				.collect(Collectors.toList());
+
 		try {
-			searchManager.documentChangeMessages(changes);
+			searchManager.documentChangeMessages(entitiesToBeSearched);
 		} catch (IllegalStateException e){
 			// If the feature is disabled then we simply swallow all messages
 		} catch (TemporarilyUnavailableException | AmazonCloudSearchDomainException e) {

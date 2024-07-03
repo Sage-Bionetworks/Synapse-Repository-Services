@@ -62,9 +62,7 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 	 * set record's isPublic, isRestricted, and isControlled fields
 	 * 
 	 * @param record
-	 * @param userManager
-	 * @param accessRequirementManager
-	 * @param entityPermissionManager
+
 	 * @return a record that contains all data from the passed in record and
 	 * addition information about whether the node is public, restricted, and
 	 * controlled.
@@ -101,12 +99,8 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 			if (message.getObjectType() != ObjectType.ENTITY) {
 				throw new IllegalArgumentException();
 			}
-			if (message.getChangeType() == ChangeType.DELETE) {
-				NodeRecord record = new NodeRecord();
-				record.setId(message.getObjectId());
-				kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, record));
-				
-			} else {
+
+			if(ChangeType.CREATE == message.getChangeType() || ChangeType.UPDATE == message.getChangeType()) {
 				try {
 					Node node = nodeDAO.getNode(message.getObjectId());
 					
@@ -143,6 +137,11 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 				} catch (NotFoundException e) {
 					log.error("Cannot find node for a " + message.getChangeType() + " message: " + message.toString()) ;
 				}
+			}
+			else if (ChangeType.DELETE == message.getChangeType() && message.getObjectVersion() == null){
+				NodeRecord record = new NodeRecord();
+				record.setId(message.getObjectId());
+				kinesisRecords.add(KinesisObjectSnapshotRecord.map(message, record));
 			}
 		}
 		if (!kinesisRecords.isEmpty()) {

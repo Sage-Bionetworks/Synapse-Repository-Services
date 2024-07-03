@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.manager.schema.EntitySchemaValidator;
 import org.sagebionetworks.repo.manager.schema.ObjectSchemaValidator;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -35,7 +36,10 @@ public class SchemaValidationWorker implements BatchChangeMessageDrivenRunner {
 	public void run(ProgressCallback progressCallback, List<ChangeMessage> messages)
 			throws RecoverableMessageException, Exception {
 		ValidateArgument.required(messages, "messages");
-		messages.stream().filter(c -> validators.containsKey(c.getObjectType())).forEach(c -> {
+		messages.stream().filter(m -> ChangeType.CREATE.equals(m.getChangeType())
+				|| ChangeType.UPDATE.equals(m.getChangeType())
+				|| (ChangeType.DELETE.equals(m.getChangeType()) && m.getObjectVersion() == null))
+				.filter(c -> validators.containsKey(c.getObjectType())).forEach(c -> {
 			try {
 				validators.get(c.getObjectType()).validateObject(c.getObjectId());
 			} catch (Throwable e) {

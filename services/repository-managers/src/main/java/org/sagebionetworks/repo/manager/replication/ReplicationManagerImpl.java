@@ -141,10 +141,11 @@ public class ReplicationManagerImpl implements ReplicationManager {
 
 				Long id = KeyFactory.stringToKey(message.getObjectId());
 
-				if (ChangeType.DELETE.equals(message.getChangeType())) {
-					group.addForDelete(id);
-				} else {
+				if(ChangeType.CREATE.equals(message.getChangeType()) || ChangeType.UPDATE.equals(message.getChangeType())){
 					group.addForCreateOrUpdate(id);
+				}
+				else if (ChangeType.DELETE.equals(message.getChangeType()) && message.getObjectVersion() == null) {
+					group.addForDelete(id);
 				}
 			});
 		}

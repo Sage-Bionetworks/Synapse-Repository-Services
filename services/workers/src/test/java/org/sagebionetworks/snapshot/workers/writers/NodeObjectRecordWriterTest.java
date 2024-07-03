@@ -122,6 +122,19 @@ public class NodeObjectRecordWriterTest {
 	}
 
 	@Test
+	public void testDeleteWithVersionChangeMessageIsIgnored() throws IOException {
+		ChangeMessage changeMessage = new ChangeMessage();
+		changeMessage.setChangeType(ChangeType.DELETE);
+		changeMessage.setObjectType(ObjectType.ENTITY);
+		changeMessage.setObjectVersion(1L);
+
+		//call under test
+		writer.buildAndWriteRecords(mockCallback, List.of(changeMessage));
+
+		verifyZeroInteractions(mockKinesisLogger);
+	}
+
+	@Test
 	public void invalidObjectType() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.TABLE, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
