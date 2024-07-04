@@ -9,8 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.StringWriter;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,8 +24,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
-import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -129,126 +125,5 @@ public class MigratableTableDAOImplUnitTest {
 				primaryMapping.getTableName().toUpperCase());
 		Set<String> oneGroup = results.get(secondaryOneMapping.getTableName().toUpperCase());
 		assertEquals(expectedGroup, oneGroup);
-	}
-
-
-	/**
-	 * The only way to test that the initialize method worked is to actually use the XStream object since there is
-	 * currently no way to interrogate the XStream object about what aliases it currently uses
-	 */
-	@Test
-	public void testInitializeAliasTypeToXStreamMap(){
-		StubAutoIncrement stubAutoIncrement = new StubAutoIncrement();
-		MigratableTableDAOImpl.initializeAliasTypeToXStreamMap(Collections.singletonList(stubAutoIncrement));
-		UnmodifiableXStream tableNameXStream = dao.getXStream(BackupAliasType.TABLE_NAME);
-		UnmodifiableXStream migrationTypeNameXStream = dao.getXStream(BackupAliasType.MIGRATION_TYPE_NAME);
-
-		assertNotSame(tableNameXStream, migrationTypeNameXStream);
-
-		StringWriter tableNameXMLStringWriter = new StringWriter();
-		StringWriter migrationTypeXMLStringWriter = new StringWriter();
-
-		tableNameXStream.toXML(stubAutoIncrement, tableNameXMLStringWriter);
-		migrationTypeNameXStream.toXML(stubAutoIncrement, migrationTypeXMLStringWriter);
-
-		assertNotEquals(tableNameXMLStringWriter.toString(), migrationTypeNameXStream.toString());
-		assertTrue(tableNameXMLStringWriter.toString().contains("STUB"));
-		// gave stub fake migration type of VIEW_SCOPE to the stub class.
-		// double underscore is because of the way XSTREAM uses to escape underscores:
-		// http://x-stream.github.io/faq.html#XML_double_underscores
-		assertTrue(migrationTypeXMLStringWriter.toString().contains("VIEW__SCOPE"));
-	}
-	
-	@Test
-	public void testInitializeAliasTypeToXStreamMapWithSecondaryTypes(){
-		PrimaryClass primaryClass = new PrimaryClass();
-		MigratableTableDAOImpl.initializeAliasTypeToXStreamMap(Collections.singletonList(primaryClass));
-		
-		UnmodifiableXStream tableNameXStream = dao.getXStream(BackupAliasType.TABLE_NAME);
-		UnmodifiableXStream migrationTypeNameXStream = dao.getXStream(BackupAliasType.MIGRATION_TYPE_NAME);
-
-		assertNotSame(tableNameXStream, migrationTypeNameXStream);
-
-		StringWriter tableNameXMLStringWriter = new StringWriter();
-		StringWriter migrationTypeXMLStringWriter = new StringWriter();
-		
-		SecondaryClass secondaryClass = new SecondaryClass();
-
-		tableNameXStream.toXML(secondaryClass, tableNameXMLStringWriter);
-		migrationTypeNameXStream.toXML(secondaryClass, migrationTypeXMLStringWriter);
-		
-		String tableXML = tableNameXMLStringWriter.toString();
-		String typeXML = migrationTypeXMLStringWriter.toString();
-
-		assertEquals("<" +secondaryClass.getTableMapping().getTableName().replaceAll("_", "__")+ "/>", tableXML);
-		assertEquals("<" +secondaryClass.getMigratableTableType().name().replaceAll("_", "__")+ "/>", typeXML);
-
-	}
-	
-	public static class StubAutoIncrement implements MigratableDatabaseObject<StubAutoIncrement, StubAutoIncrement>, AutoIncrementDatabaseObject<StubAutoIncrement>{
-		
-		@Override
-		public TableMapping<StubAutoIncrement> getTableMapping() {
-			return new TableMapping<StubAutoIncrement>() {
-				@Override
-				public String getTableName() {
-					return STUB_TABLE_NAME;
-				}
-
-				@Override
-				public String getDDLFileName() {
-					return null;
-				}
-
-				@Override
-				public FieldColumn[] getFieldColumns() {
-					return new FieldColumn[0];
-				}
-
-				@Override
-				public Class<? extends StubAutoIncrement> getDBOClass() {
-					return null;
-				}
-
-				@Override
-				public StubAutoIncrement mapRow(ResultSet resultSet, int i) throws SQLException {
-					return null;
-				}
-			};
-		}
-
-		@Override
-		public Long getId() {
-			return null;
-		}
-
-		@Override
-		public void setId(Long id) { }
-
-		@Override
-		public MigrationType getMigratableTableType() {
-			return MigrationType.VIEW_SCOPE;
-		}
-
-		@Override
-		public MigratableTableTranslation<StubAutoIncrement, StubAutoIncrement> getTranslator() {
-			return null;
-		}
-
-		@Override
-		public Class<? extends StubAutoIncrement> getBackupClass() {
-			return StubAutoIncrement.class;
-		}
-
-		@Override
-		public Class<? extends StubAutoIncrement> getDatabaseObjectClass() {
-			return null;
-		}
-
-		@Override
-		public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
-			return null;
-		}
-		
 	}
 }

@@ -11,14 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.database.StreamingJdbcTemplate;
-import org.sagebionetworks.repo.model.UnmodifiableXStream;
-import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
@@ -67,10 +64,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private static final String SET_FOREIGN_KEY_CHECKS = "SET FOREIGN_KEY_CHECKS = ?";
 	private static final String SET_UNIQUE_KEY_CHECKS = "SET UNIQUE_CHECKS = ?";
 
-	private static UnmodifiableXStream TABLE_NAME_ALIAS_X_STREAM;
-	private static UnmodifiableXStream MIGRATION_TYPE_NAME_ALIAS_X_STREAM;
-
-
 	Logger log = LogManager.getLogger(MigratableTableDAOImpl.class);
 
 	private JdbcTemplate jdbcTemplate;
@@ -101,6 +94,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		this.databaseObjectRegister = databaseObjectRegister;
 	}
 
+	@Override
 	public List<MigratableDatabaseObject> getDatabaseObjectRegister() {
 		return Collections.unmodifiableList(this.databaseObjectRegister);
 	}
@@ -165,42 +159,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		if(!MigrationType.CHANGE.equals(MigrationType.values()[lastIndex])){
 			throw new IllegalArgumentException("The migration type: "+MigrationType.CHANGE+" must always be last since it migration triggers asynchronous message processing of the stack");
 		}
-
-		initializeAliasTypeToXStreamMap(databaseObjectRegister);
 	}
 
-	static void initializeAliasTypeToXStreamMap(List<MigratableDatabaseObject> databaseObjectRegister) {
-		//create maps for alias type to xstream
-		UnmodifiableXStream.Builder tableNameXStreamBuilder = UnmodifiableXStream.builder();
-		tableNameXStreamBuilder.allowTypeHierarchy(MigratableDatabaseObject.class);
-		UnmodifiableXStream.Builder migrationTypeNameXStreamBuilder = UnmodifiableXStream.builder();
-		migrationTypeNameXStreamBuilder.allowTypeHierarchy(MigratableDatabaseObject.class);
-		
-		Function<MigratableDatabaseObject<?, ?>, String> tableAliasProvider = (dbo) -> dbo.getTableMapping().getTableName();
-		Function<MigratableDatabaseObject<?, ?>, String> typeAliasProvider = (dbo) -> dbo.getMigratableTableType().name();
-
-		for(MigratableDatabaseObject<?, ?> dbo: databaseObjectRegister) {
-			// Add aliases to XStream for each alias type
-			//BackupAliasType.TABLE_NAME
-			addAlias(tableNameXStreamBuilder, dbo, tableAliasProvider);
-			//BackupAliasType.MIGRATION_TYPE_NAME
-			addAlias(migrationTypeNameXStreamBuilder, dbo, typeAliasProvider);
-		}
-		
-		//add map entries once the builders are done
-		TABLE_NAME_ALIAS_X_STREAM =  tableNameXStreamBuilder.build();
-		MIGRATION_TYPE_NAME_ALIAS_X_STREAM = migrationTypeNameXStreamBuilder.build();
-	}
-	
-	static void addAlias(UnmodifiableXStream.Builder streamBuilder, MigratableDatabaseObject<?, ?> dbo, Function<MigratableDatabaseObject<?, ?>, String> aliasProvider) {
-		streamBuilder.alias(aliasProvider.apply(dbo), dbo.getBackupClass());
-		// Also add the alias for the secondary objects
-		if (dbo.getSecondaryTypes() != null) {
-			dbo.getSecondaryTypes().forEach( secondaryType -> {				
-				addAlias(streamBuilder, secondaryType, aliasProvider);
-			});
-		}
-	}
 	
 	/*
 	 * (non-Javadoc)
@@ -699,18 +659,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			}
 		}, request.getBatchSize(), request.getSalt(), request.getSalt(), request.getMinimumId(),
 				request.getMaximumId());
-	}
-
-	@Override
-	public UnmodifiableXStream getXStream(BackupAliasType backupAliasType) {
-		switch (backupAliasType){
-			case TABLE_NAME:
-				return TABLE_NAME_ALIAS_X_STREAM;
-			case MIGRATION_TYPE_NAME:
-				return MIGRATION_TYPE_NAME_ALIAS_X_STREAM;
-			default:
-				throw new IllegalArgumentException("Unknown type: " + backupAliasType);
-		}
 	}
 
 	@Override

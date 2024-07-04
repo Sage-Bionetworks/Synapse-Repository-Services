@@ -23,7 +23,7 @@ public class BackupFileStreamImplAutowiredTest {
 
 	@Test
 	public void testAllXStreamAliases() throws IOException {
-		for (MigratableDatabaseObject dbo : backupFileStream.typeProvider.getDatabaseObjectRegister()){
+		for (MigratableDatabaseObject dbo : backupFileStream.getDatabaseObjectRegister()){
 
 			StringWriter tableNameWriter = new StringWriter();
 			StringWriter migrationTypeNameWriter = new StringWriter();
