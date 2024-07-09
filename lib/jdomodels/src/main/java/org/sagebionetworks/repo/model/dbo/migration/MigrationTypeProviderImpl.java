@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.migration;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Writer;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -18,6 +20,7 @@ import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.util.json.JavaJSONUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -52,37 +55,13 @@ public class MigrationTypeProviderImpl implements MigrationTypeProvider {
 
 	@Override
 	public void writeObjects(BackupAliasType backupAliasType, MigrationType type, List<?> backupObjects, Writer writer) {
-		String alias = BackupAliasType.MIGRATION_TYPE_NAME.equals(backupAliasType) ? type.name()
-				: objectMap.get(type).getTableMapping().getTableName();
-		JSONArray array = new JSONArray();
-		for(Object object: backupObjects){
-			array.put(writeToJson(alias, object));
-		}
-		try {
-			writer.append(array.toString((5)));
-		} catch (JSONException | IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	public static JSONObject writeToJson(String alias, Object object){
-		JSONObject json = new JSONObject();
-		json.put("_alias", alias);
-		Class clazz = object.getClass();
-		for(Field field: clazz.getDeclaredFields()){
-			if(!Modifier.isStatic(field.getModifiers()) && Modifier.isPrivate(field.getModifiers())){
-				try {
-					field.setAccessible(true);
-					Object value = field.get(object);
-					if(value != null){
-						json.put(field.getName(), value);
-					}
-				} catch (IllegalArgumentException | IllegalAccessException e) {
-					throw new RuntimeException(e);
-				}
+		JavaJSONUtil.writeToJSON(backupObjects).ifPresent(a->{
+			try {
+				writer.append(a.toString(5));
+			} catch (JSONException | IOException e) {
+				throw new RuntimeException(e);
 			}
-		};
-		return json;
+		});
 	}
 
 	@Override
@@ -99,8 +78,11 @@ public class MigrationTypeProviderImpl implements MigrationTypeProvider {
 	}
 
 	<B> Optional<List<B>> readJSON(Class<? extends B> clazz, BackupAliasType backupAliasType, InputStream input) {
-		// TODO Auto-generated method stub
-		return null;
+		try(InputStreamReader reader = new InputStreamReader(input)){
+			return Optional.of(JavaJSONUtil.readFromJSON(clazz, new JSONArray(IOUtils.toString(reader))));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	/**

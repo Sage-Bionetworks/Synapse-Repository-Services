@@ -38,26 +38,27 @@ public class JavaJSONUtil {
 	 * will be a single JSONObject within the resulting JSONArray.
 	 * 
 	 * @param objects
-	 * @return A new JSONArray that contains the data of the provide list of Java
-	 *         objects.
+	 * @return Returns {@link Optional#empty()} if no data was written, else a new
+	 *         JSONArray that contains the data of the provide list of Java objects.
 	 */
-	public static JSONArray writeToJSON(List<?> objects) {
+	public static Optional<JSONArray> writeToJSON(List<?> objects) {
 		ValidateArgument.required(objects, "objects");
-
 		JSONArray array = new JSONArray();
 		for (Object object : objects) {
-			array.put(writeToJSON(object));
+			writeToJSON(object).ifPresent(o -> array.put(o));
 		}
-		return array;
+		return array.length() > 0 ? Optional.of(array) : Optional.empty();
 	}
 
 	/**
 	 * Write a single simple Java object to a JSONObject.
 	 * 
 	 * @param object
-	 * @return A new JSONObject that contains the data of the provided Java object.
+	 * @return Returns {@link Optional#empty()} if no data was written, else a new
+	 *         JSONObject that contains the data of the provided Java object.
+	 * 
 	 */
-	public static JSONObject writeToJSON(Object object) {
+	public static Optional<JSONObject> writeToJSON(Object object) {
 		return writeToJSON(TRANSLATORS, object);
 	}
 
@@ -96,11 +97,12 @@ public class JavaJSONUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	static <F, J> JSONObject writeToJSON(List<Translator<?, ?>> translators, Object object) {
+	static <F, J> Optional<JSONObject> writeToJSON(List<Translator<?, ?>> translators, Object object) {
 		ValidateArgument.required(translators, "translators");
 		ValidateArgument.required(object, "object");
 
 		JSONObject json = new JSONObject();
+		boolean wasWritten = false;
 		Class<? extends Object> clazz = object.getClass();
 		for (Field field : clazz.getDeclaredFields()) {
 			if (!Modifier.isStatic(field.getModifiers())) {
@@ -110,13 +112,14 @@ public class JavaJSONUtil {
 					if (value != null) {
 						Translator<F, J> transaltor = findTranslator(translators, field.getType());
 						json.put(field.getName(), transaltor.translateFromJavaToJSON((F) value));
+						wasWritten = true;
 					}
 				} catch (IllegalArgumentException | IllegalAccessException e) {
 					throw new RuntimeException(e);
 				}
 			}
 		}
-		return json;
+		return wasWritten ? Optional.of(json) : Optional.empty();
 	}
 
 	/**

@@ -8,6 +8,7 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import org.json.JSONArray;
 import org.junit.jupiter.api.Test;
@@ -34,15 +35,28 @@ public class JavaJSONUtilTest {
 		List<AllValidFields> list = Arrays.asList(one, two, three, four);
 
 		// call under test
-		JSONArray array = JavaJSONUtil.writeToJSON(list);
+		JSONArray array = JavaJSONUtil.writeToJSON(list).get();
 		assertNotNull(array);
 		String json = array.toString(2);
 		System.out.println(json);
 		JSONArray clone = new JSONArray(json);
 		// call under test
 		List<AllValidFields> result = JavaJSONUtil.readFromJSON(AllValidFields.class, clone);
-		assertEquals(list, result);
+		// note the empty object (four) is not written
+		assertEquals(Arrays.asList(one, two, three), result);
 
+	}
+
+	@Test
+	public void testWriteToJSONWithNoDataArray() {
+		// call under test
+		assertEquals(Optional.empty(), JavaJSONUtil.writeToJSON(Arrays.asList(new AllValidFields())));
+	}
+
+	@Test
+	public void testWriteToJSONWithNoData() {
+		// call under test
+		assertEquals(Optional.empty(), JavaJSONUtil.writeToJSON(new AllValidFields()));
 	}
 
 	@Test
@@ -109,61 +123,64 @@ public class JavaJSONUtilTest {
 		}).getMessage();
 		assertEquals("Expected JSONObjects but found: java.lang.Boolean", message);
 	}
-	
+
 	@Test
 	public void testFindTranslator() {
-		List<Translator<?, ?>> translators = Arrays.asList(new IdentityTranslator<>(Double.class), new IdentityTranslator<>(Long.class));
+		List<Translator<?, ?>> translators = Arrays.asList(new IdentityTranslator<>(Double.class),
+				new IdentityTranslator<>(Long.class));
 		Class<?> type = Long.class;
 		// call under test
 		Translator translator = JavaJSONUtil.findTranslator(translators, type);
 		assertNotNull(translator);
 		assertEquals(Long.class, translator.getJSONClass());
 	}
-	
+
 	@Test
 	public void testFindTranslatorWithNotFound() {
-		List<Translator<?, ?>> translators = Arrays.asList(new IdentityTranslator<>(Double.class), new IdentityTranslator<>(Long.class));
+		List<Translator<?, ?>> translators = Arrays.asList(new IdentityTranslator<>(Double.class),
+				new IdentityTranslator<>(Long.class));
 		Class<?> type = Boolean.class;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			JavaJSONUtil.findTranslator(translators, type);
 		}).getMessage();
 		assertEquals("No translator found for: java.lang.Boolean", message);
 	}
-	
+
 	@Test
 	public void testFindTranslatorNullTranslators() {
 		List<Translator<?, ?>> translators = null;
 		Class<?> type = Boolean.class;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			JavaJSONUtil.findTranslator(translators, type);
 		}).getMessage();
 		assertEquals("translators is required.", message);
 	}
-	
+
 	@Test
 	public void testFindTranslatorWithNullType() {
-		List<Translator<?, ?>> translators = Arrays.asList(new IdentityTranslator<>(Double.class), new IdentityTranslator<>(Long.class));
+		List<Translator<?, ?>> translators = Arrays.asList(new IdentityTranslator<>(Double.class),
+				new IdentityTranslator<>(Long.class));
 		Class<?> type = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			JavaJSONUtil.findTranslator(translators, type);
 		}).getMessage();
 		assertEquals("type is required.", message);
 	}
-	
+
 	@Test
 	public void testCreateNewInstance() {
 		// call under test
 		AllValidFields result = (AllValidFields) JavaJSONUtil.createNewInstance(AllValidFields.class);
 		assertEquals(new AllValidFields(), result);
 	}
-	
+
 	@Test
 	public void testCreateNewInstanceWithNoConsructor() {
-		
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			JavaJSONUtil.createNewInstance(Double.class);
 		}).getMessage();
