@@ -78,8 +78,9 @@ public class MigrationTypeProviderImpl implements MigrationTypeProvider {
 	}
 
 	<B> Optional<List<B>> readJSON(Class<? extends B> clazz, BackupAliasType backupAliasType, InputStream input) {
-		try(InputStreamReader reader = new InputStreamReader(input)){
-			return Optional.of(JavaJSONUtil.readFromJSON(clazz, new JSONArray(IOUtils.toString(reader))));
+		try {
+			return Optional.of(
+					JavaJSONUtil.readFromJSON(clazz, new JSONArray(IOUtils.toString(new InputStreamReader(input)))));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
