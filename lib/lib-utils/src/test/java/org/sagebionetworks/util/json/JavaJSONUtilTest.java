@@ -2,6 +2,7 @@ package org.sagebionetworks.util.json;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -10,6 +11,8 @@ import java.util.List;
 
 import org.json.JSONArray;
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.util.json.translator.IdentityTranslator;
+import org.sagebionetworks.util.json.translator.Translator;
 
 public class JavaJSONUtilTest {
 
@@ -40,6 +43,131 @@ public class JavaJSONUtilTest {
 		List<AllValidFields> result = JavaJSONUtil.readFromJSON(AllValidFields.class, clone);
 		assertEquals(list, result);
 
+	}
+
+	@Test
+	public void testWriteToJSONWithNull() {
+		List<AllValidFields> list = null;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			JavaJSONUtil.writeToJSON(list);
+		}).getMessage();
+		assertEquals("objects is required.", message);
+	}
+
+	@Test
+	public void testWriteToJSONWithNullTranslators() {
+		List<Translator<?, ?>> translators = null;
+		AllValidFields toWrite = new AllValidFields();
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			JavaJSONUtil.writeToJSON(translators, toWrite);
+		}).getMessage();
+		assertEquals("translators is required.", message);
+	}
+
+	@Test
+	public void testWriteToJSONWithNullToWrite() {
+		List<Translator<?, ?>> translators = Arrays.asList(new IdentityTranslator<>(Double.class));
+		AllValidFields toWrite = null;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			JavaJSONUtil.writeToJSON(translators, toWrite);
+		}).getMessage();
+		assertEquals("object is required.", message);
+	}
+
+	@Test
+	public void testReadFromJSONWithNullType() {
+		Class<?> type = null;
+		JSONArray array = new JSONArray();
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			JavaJSONUtil.readFromJSON(type, array);
+		}).getMessage();
+		assertEquals("clazz is required.", message);
+	}
+
+	@Test
+	public void testReadFromJSONWithNullArray() {
+		Class<?> type = AllValidFields.class;
+		JSONArray array = null;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			JavaJSONUtil.readFromJSON(type, array);
+		}).getMessage();
+		assertEquals("array is required.", message);
+	}
+
+	@Test
+	public void testReadFromJSONArrayWithNonJSONObject() {
+		JSONArray array = new JSONArray();
+		array.put(false);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			JavaJSONUtil.readFromJSON(Boolean.class, array);
+		}).getMessage();
+		assertEquals("Expected JSONObjects but found: java.lang.Boolean", message);
+	}
+	
+	@Test
+	public void testFindTranslator() {
+		List<Translator<?, ?>> translators = Arrays.asList(new IdentityTranslator<>(Double.class), new IdentityTranslator<>(Long.class));
+		Class<?> type = Long.class;
+		// call under test
+		Translator translator = JavaJSONUtil.findTranslator(translators, type);
+		assertNotNull(translator);
+		assertEquals(Long.class, translator.getJSONClass());
+	}
+	
+	@Test
+	public void testFindTranslatorWithNotFound() {
+		List<Translator<?, ?>> translators = Arrays.asList(new IdentityTranslator<>(Double.class), new IdentityTranslator<>(Long.class));
+		Class<?> type = Boolean.class;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			JavaJSONUtil.findTranslator(translators, type);
+		}).getMessage();
+		assertEquals("No translator found for: java.lang.Boolean", message);
+	}
+	
+	@Test
+	public void testFindTranslatorNullTranslators() {
+		List<Translator<?, ?>> translators = null;
+		Class<?> type = Boolean.class;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			JavaJSONUtil.findTranslator(translators, type);
+		}).getMessage();
+		assertEquals("translators is required.", message);
+	}
+	
+	@Test
+	public void testFindTranslatorWithNullType() {
+		List<Translator<?, ?>> translators = Arrays.asList(new IdentityTranslator<>(Double.class), new IdentityTranslator<>(Long.class));
+		Class<?> type = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			JavaJSONUtil.findTranslator(translators, type);
+		}).getMessage();
+		assertEquals("type is required.", message);
+	}
+	
+	@Test
+	public void testCreateNewInstance() {
+		// call under test
+		AllValidFields result = (AllValidFields) JavaJSONUtil.createNewInstance(AllValidFields.class);
+		assertEquals(new AllValidFields(), result);
+	}
+	
+	@Test
+	public void testCreateNewInstanceWithNoConsructor() {
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			JavaJSONUtil.createNewInstance(Double.class);
+		}).getMessage();
+		assertEquals("A zero argument constructor could not be found for: java.lang.Double", message);
 	}
 
 }
