@@ -162,4 +162,6 @@ public interface MigratableTableDAO  {
 
 	List<MigratableDatabaseObject> getDatabaseObjectRegister();
 
+	List<MigratableDatabaseObject> getAllMigratableTypes();
+
 }

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -17,13 +18,16 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class BackupFileStreamImplAutowiredTest {
+	
+	@Autowired
+	private MigratableTableDAO migratableTableDao;
 
 	@Autowired
-	BackupFileStreamImpl backupFileStream;
+	private BackupFileStreamImpl backupFileStream;
 
 	@Test
 	public void testAllXStreamAliases() throws IOException {
-		for (MigratableDatabaseObject dbo : backupFileStream.getDatabaseObjectRegister()){
+		for (MigratableDatabaseObject dbo : migratableTableDao.getDatabaseObjectRegister()){
 
 			StringWriter tableNameWriter = new StringWriter();
 			StringWriter migrationTypeNameWriter = new StringWriter();

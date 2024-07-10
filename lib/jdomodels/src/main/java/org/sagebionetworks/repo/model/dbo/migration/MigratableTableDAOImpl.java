@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -665,6 +666,11 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public TypeData getTypeData(MigrationType type) {
 		return new TypeData().setMigrationType(type).setBackupIdColumnName(
 				DMLUtils.getBackupIdColumnName(getMigratableObject(type).getTableMapping()).getColumnName());
+	}
+
+	@Override
+	public List<MigratableDatabaseObject> getAllMigratableTypes() {
+		return this.typeTpObject.values().stream().collect(Collectors.toList());
 	}
 
 }

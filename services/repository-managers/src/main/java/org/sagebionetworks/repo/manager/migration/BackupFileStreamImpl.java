@@ -300,8 +300,5 @@ public class BackupFileStreamImpl implements BackupFileStream {
 		return Optional.of(translated);
 	}
 
-	public List<MigratableDatabaseObject> getDatabaseObjectRegister() {
-		return this.typeProvider.getDatabaseObjectRegister();
-	}
 
 }

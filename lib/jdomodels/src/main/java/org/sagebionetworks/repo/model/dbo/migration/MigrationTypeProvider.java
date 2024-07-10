@@ -23,8 +23,6 @@ public interface MigrationTypeProvider {
 	 */
 	MigratableDatabaseObject getObjectForType(MigrationType type);
 
-	List<MigratableDatabaseObject> getDatabaseObjectRegister();
-
 	void writeObjects(BackupAliasType backupAliasType, MigrationType currentType, List<?> backupObjects, Writer writer);
 
 	<B> Optional<List<B>> readObjects(Class<? extends B> clazz, BackupAliasType backupAliasType, InputStream input,

@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Writer;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,18 +13,14 @@ import java.util.Optional;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.util.json.JavaJSONUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import com.thoughtworks.xstream.io.StreamException;
 
-@Service
 public class MigrationTypeProviderImpl implements MigrationTypeProvider {
 
 	private static final String INPUT_CONTAINED_NO_DATA = "input contained no data";
@@ -35,7 +29,6 @@ public class MigrationTypeProviderImpl implements MigrationTypeProvider {
 	private final Map<BackupAliasType, UnmodifiableXStream> xStreamMap;
 	private final Map<MigrationType, MigratableDatabaseObject> objectMap;
 
-	@Autowired
 	public MigrationTypeProviderImpl(List<MigratableDatabaseObject> objects) {
 		this.objects = objects;
 		this.objectMap = new LinkedHashMap<>();
@@ -46,11 +39,6 @@ public class MigrationTypeProviderImpl implements MigrationTypeProvider {
 	@Override
 	public MigratableDatabaseObject getObjectForType(MigrationType type) {
 		return objectMap.get(type);
-	}
-
-	@Override
-	public List<MigratableDatabaseObject> getDatabaseObjectRegister() {
-		return this.objects;
 	}
 
 	@Override

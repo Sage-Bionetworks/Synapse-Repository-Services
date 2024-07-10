@@ -8,6 +8,9 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.database.semaphore.CountingSemaphoreImpl;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
+import org.sagebionetworks.repo.model.dbo.migration.MigrationTypeProvider;
+import org.sagebionetworks.repo.model.dbo.migration.MigrationTypeProviderImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -116,5 +119,10 @@ public class ModelConfig {
 	@Bean
 	public CountingSemaphore countingSemaphore(DataSource dataSourcePool) {
 		return new CountingSemaphoreImpl(dataSourcePool);
+	}
+	
+	@Bean
+	public MigrationTypeProvider createMigrationTypeProvider(MigratableTableDAO migratableTableDao) {
+		return new MigrationTypeProviderImpl(migratableTableDao.getAllMigratableTypes());
 	}
 }
