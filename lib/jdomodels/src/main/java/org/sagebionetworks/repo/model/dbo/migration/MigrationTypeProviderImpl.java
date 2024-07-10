@@ -45,7 +45,7 @@ public class MigrationTypeProviderImpl implements MigrationTypeProvider {
 	public void writeObjects(BackupAliasType backupAliasType, MigrationType type, List<?> backupObjects, Writer writer) {
 		JavaJSONUtil.writeToJSON(backupObjects).ifPresent(a->{
 			try {
-				writer.append(a.toString(5));
+				writer.append(a.toString(2));
 			} catch (JSONException | IOException e) {
 				throw new RuntimeException(e);
 			}

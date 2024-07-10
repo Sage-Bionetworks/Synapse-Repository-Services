@@ -38,7 +38,6 @@ public class JavaJSONUtilTest {
 		JSONArray array = JavaJSONUtil.writeToJSON(list).get();
 		assertNotNull(array);
 		String json = array.toString(2);
-		System.out.println(json);
 		JSONArray clone = new JSONArray(json);
 		// call under test
 		List<AllValidFields> result = JavaJSONUtil.readFromJSON(AllValidFields.class, clone);

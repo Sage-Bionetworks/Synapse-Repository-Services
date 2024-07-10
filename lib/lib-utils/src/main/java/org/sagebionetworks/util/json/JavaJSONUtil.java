@@ -176,16 +176,13 @@ public class JavaJSONUtil {
 	 * @return
 	 */
 	public static Object createNewInstance(Class<?> type) {
-		Optional<Constructor<?>> constructor = Arrays.stream(type.getDeclaredConstructors())
-				.filter(c -> c.getParameterCount() == 0).findFirst();
-		if (!constructor.isPresent()) {
-			throw new IllegalArgumentException("A zero argument constructor could not be found for: " + type.getName());
-		}
 		try {
-			return constructor.get().newInstance((Object[]) null);
+			return type.getConstructor((Class<?>[])null).newInstance((Object[]) null);
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
-				| InvocationTargetException e) {
+				| InvocationTargetException | SecurityException e) {
 			throw new RuntimeException(e);
+		} catch (NoSuchMethodException e) {
+			throw new IllegalArgumentException("A zero argument constructor could not be found for: " + type.getName());
 		}
 	}
 
