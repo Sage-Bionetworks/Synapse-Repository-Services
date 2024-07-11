@@ -14,10 +14,15 @@ public class AllValidFields {
 
 	private String aString;
 	private Long aLong;
+	private long primitiveLong;
+	private Integer anInteger;
+	private int primitiveInt;
 	private Date aDate;
 	private Timestamp aTimeStamp;
 	private Boolean aBoolean;
+	private boolean primitiveBoolean;
 	private Double aDouble;
+	private double primitiveDouble;
 	private byte[] aByteArray;
 	private SomeEnum someEnum;
 	private ExampleJSONEntity jsonEntity;
@@ -103,13 +108,58 @@ public class AllValidFields {
 		return this;
 	}
 
+	public long getPrimitiveLong() {
+		return primitiveLong;
+	}
+
+	public AllValidFields setPrimitiveLong(long primitiveLong) {
+		this.primitiveLong = primitiveLong;
+		return this;
+	}
+
+	public Integer getAnInteger() {
+		return anInteger;
+	}
+
+	public AllValidFields setAnInteger(Integer anInteger) {
+		this.anInteger = anInteger;
+		return this;
+	}
+
+	public int getPrimitiveInt() {
+		return primitiveInt;
+	}
+
+	public AllValidFields setPrimitiveInt(int primitiveInt) {
+		this.primitiveInt = primitiveInt;
+		return this;
+	}
+
+	public boolean isPrimitiveBoolean() {
+		return primitiveBoolean;
+	}
+
+	public AllValidFields setPrimitiveBoolean(boolean primitiveBoolean) {
+		this.primitiveBoolean = primitiveBoolean;
+		return this;
+	}
+
+	public double getPrimitiveDouble() {
+		return primitiveDouble;
+	}
+
+	public AllValidFields setPrimitiveDouble(double primitiveDouble) {
+		this.primitiveDouble = primitiveDouble;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + Arrays.hashCode(aByteArray);
-		result = prime * result
-				+ Objects.hash(aBoolean, aDate, aDouble, aLong, aString, aTimeStamp, jsonEntity, someEnum);
+		result = prime * result + Objects.hash(aBoolean, aDate, aDouble, aLong, aString, aTimeStamp, anInteger,
+				jsonEntity, primitiveBoolean, primitiveDouble, primitiveInt, primitiveLong, someEnum);
 		return result;
 	}
 
@@ -125,15 +175,20 @@ public class AllValidFields {
 		return Objects.equals(aBoolean, other.aBoolean) && Arrays.equals(aByteArray, other.aByteArray)
 				&& Objects.equals(aDate, other.aDate) && Objects.equals(aDouble, other.aDouble)
 				&& Objects.equals(aLong, other.aLong) && Objects.equals(aString, other.aString)
-				&& Objects.equals(aTimeStamp, other.aTimeStamp) && Objects.equals(jsonEntity, other.jsonEntity)
+				&& Objects.equals(aTimeStamp, other.aTimeStamp) && Objects.equals(anInteger, other.anInteger)
+				&& Objects.equals(jsonEntity, other.jsonEntity) && primitiveBoolean == other.primitiveBoolean
+				&& Double.doubleToLongBits(primitiveDouble) == Double.doubleToLongBits(other.primitiveDouble)
+				&& primitiveInt == other.primitiveInt && primitiveLong == other.primitiveLong
 				&& someEnum == other.someEnum;
 	}
 
 	@Override
 	public String toString() {
-		return "AllValidFields [aString=" + aString + ", aLong=" + aLong + ", aDate=" + aDate + ", aTimeStamp="
-				+ aTimeStamp + ", aBoolean=" + aBoolean + ", aDouble=" + aDouble + ", aByteArray="
-				+ Arrays.toString(aByteArray) + ", someEnum=" + someEnum + "]";
+		return "AllValidFields [aString=" + aString + ", aLong=" + aLong + ", primitiveLong=" + primitiveLong
+				+ ", anInteger=" + anInteger + ", primitiveInt=" + primitiveInt + ", aDate=" + aDate + ", aTimeStamp="
+				+ aTimeStamp + ", aBoolean=" + aBoolean + ", primitiveBoolean=" + primitiveBoolean + ", aDouble="
+				+ aDouble + ", primitiveDouble=" + primitiveDouble + ", aByteArray=" + Arrays.toString(aByteArray)
+				+ ", someEnum=" + someEnum + ", jsonEntity=" + jsonEntity + "]";
 	}
 
 }

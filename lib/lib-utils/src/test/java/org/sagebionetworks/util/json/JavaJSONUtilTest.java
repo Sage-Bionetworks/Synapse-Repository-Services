@@ -21,9 +21,11 @@ public class JavaJSONUtilTest {
 	public void testRoundTripWithAllFields() {
 
 		AllValidFields one = new AllValidFields().setaBoolean(true).setaByteArray(new byte[] { -1, -2, 3, 4 })
-				.setaDate(new Date(12345L)).setaDouble(1.234).setaLong(8888L).setaString("some value")
-				.setaTimeStamp(new Timestamp(9876)).setSomeEnum(SomeEnum.b).setJsonEntity(
-						new ExampleJSONEntity().setAge(55L).setName("Bob").setIntegerArray(new Integer[] { 4, 5, 6 }));
+				.setaDate(new Date(12345L)).setaDouble(1.234).setaLong(8888L).setAnInteger(111).setaString("some value")
+				.setaTimeStamp(new Timestamp(9876)).setSomeEnum(SomeEnum.b)
+				.setJsonEntity(
+						new ExampleJSONEntity().setAge(55L).setName("Bob").setIntegerArray(new Integer[] { 4, 5, 6 }))
+				.setPrimitiveBoolean(false).setPrimitiveDouble(9.9).setPrimitiveInt(888).setPrimitiveLong(333L);
 
 		AllValidFields two = new AllValidFields().setaBoolean(false).setaByteArray(new byte[] { 123, -123, 5, 6 })
 				.setaDate(new Date(4444L)).setaDouble(3.14).setaLong(123123123123L).setaString("again")
@@ -31,8 +33,7 @@ public class JavaJSONUtilTest {
 
 		AllValidFields three = new AllValidFields().setaString("all else is null");
 
-		AllValidFields four = new AllValidFields();
-		List<AllValidFields> list = Arrays.asList(one, two, three, four);
+		List<AllValidFields> list = Arrays.asList(one, two, three);
 
 		// call under test
 		JSONArray array = JavaJSONUtil.writeToJSON(list).get();
@@ -49,13 +50,13 @@ public class JavaJSONUtilTest {
 	@Test
 	public void testWriteToJSONWithNoDataArray() {
 		// call under test
-		assertEquals(Optional.empty(), JavaJSONUtil.writeToJSON(Arrays.asList(new AllValidFields())));
+		assertEquals(Optional.empty(), JavaJSONUtil.writeToJSON(Arrays.asList(new ExampleJSONEntity())));
 	}
 
 	@Test
 	public void testWriteToJSONWithNoData() {
 		// call under test
-		assertEquals(Optional.empty(), JavaJSONUtil.writeToJSON(new AllValidFields()));
+		assertEquals(Optional.empty(), JavaJSONUtil.writeToJSON(new ExampleJSONEntity()));
 	}
 
 	@Test

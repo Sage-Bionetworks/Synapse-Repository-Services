@@ -7,6 +7,7 @@ public enum JSONType implements ExtractFunction {
 
 	STRING(String.class, (k, o) -> o.getString(k)),
 	LONG(Long.class, (k, o) -> o.getLong(k)),
+	INTEGER(Integer.class, (k, o) -> o.getInt(k)),
 	DOUBLE(Double.class, (k, o) -> o.getDouble(k)),
 	BOOLEAN(Boolean.class, (k,o)-> o.getBoolean(k)),
 	JSON_OBJECT(JSONObject.class, (k, o) -> o.getJSONObject(k));

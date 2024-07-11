@@ -1,6 +1,5 @@
 package org.sagebionetworks.util.json;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
@@ -29,9 +28,10 @@ import org.sagebionetworks.util.json.translator.Translator;
 public class JavaJSONUtil {
 
 	public static final List<Translator<?, ?>> TRANSLATORS = Collections.unmodifiableList(Arrays.asList(
-			new IdentityTranslator<>(Long.class), new IdentityTranslator<>(String.class),
-			new IdentityTranslator<>(Boolean.class), new IdentityTranslator<>(Double.class), new ByteArrayTranslator(),
-			new DateTranslator(), new TimestampTranslator(), new JSONEntityTranslator(), new EnumTranslator()));
+			new IdentityTranslator<>(Long.class, long.class), new IdentityTranslator<>(Integer.class, int.class),
+			new IdentityTranslator<>(String.class), new IdentityTranslator<>(Boolean.class, boolean.class),
+			new IdentityTranslator<>(Double.class, double.class), new ByteArrayTranslator(), new DateTranslator(),
+			new TimestampTranslator(), new JSONEntityTranslator(), new EnumTranslator()));
 
 	/**
 	 * Write the provided list of simple Java objects to a JSONArray. Each object
@@ -177,9 +177,9 @@ public class JavaJSONUtil {
 	 */
 	public static Object createNewInstance(Class<?> type) {
 		try {
-			return type.getConstructor((Class<?>[])null).newInstance((Object[]) null);
-		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
-				| InvocationTargetException | SecurityException e) {
+			return type.getConstructor((Class<?>[]) null).newInstance((Object[]) null);
+		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+				| SecurityException e) {
 			throw new RuntimeException(e);
 		} catch (NoSuchMethodException e) {
 			throw new IllegalArgumentException("A zero argument constructor could not be found for: " + type.getName());
