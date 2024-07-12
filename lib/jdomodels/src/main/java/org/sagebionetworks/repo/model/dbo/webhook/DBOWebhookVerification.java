@@ -240,7 +240,7 @@ public class DBOWebhookVerification
 		return Objects.equals(attempts, other.attempts) && Objects.equals(createdBy, other.createdBy)
 				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(etag, other.etag)
 				&& Objects.equals(expiresOn, other.expiresOn) && Objects.equals(modifiedBy, other.modifiedBy)
-				&& Objects.equals(modifiedOn, other.modifiedOn) && state == other.state
+				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(state, other.state)
 				&& Objects.equals(verificationCode, other.verificationCode)
 				&& Objects.equals(verificationId, other.verificationId) && Objects.equals(webhookId, other.webhookId);
 	}

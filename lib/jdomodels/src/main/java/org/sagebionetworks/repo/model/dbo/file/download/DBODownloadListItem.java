@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLO
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -127,13 +128,7 @@ public class DBODownloadListItem implements MigratableDatabaseObject<DBODownload
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((associatedObjectId == null) ? 0 : associatedObjectId.hashCode());
-		result = prime * result + ((associatedObjectType == null) ? 0 : associatedObjectType.hashCode());
-		result = prime * result + ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
-		result = prime * result + ((principalId == null) ? 0 : principalId.hashCode());
-		return result;
+		return Objects.hash(associatedObjectId, associatedObjectType, fileHandleId, principalId);
 	}
 
 	@Override
@@ -145,24 +140,9 @@ public class DBODownloadListItem implements MigratableDatabaseObject<DBODownload
 		if (getClass() != obj.getClass())
 			return false;
 		DBODownloadListItem other = (DBODownloadListItem) obj;
-		if (associatedObjectId == null) {
-			if (other.associatedObjectId != null)
-				return false;
-		} else if (!associatedObjectId.equals(other.associatedObjectId))
-			return false;
-		if (associatedObjectType != other.associatedObjectType)
-			return false;
-		if (fileHandleId == null) {
-			if (other.fileHandleId != null)
-				return false;
-		} else if (!fileHandleId.equals(other.fileHandleId))
-			return false;
-		if (principalId == null) {
-			if (other.principalId != null)
-				return false;
-		} else if (!principalId.equals(other.principalId))
-			return false;
-		return true;
+		return Objects.equals(associatedObjectId, other.associatedObjectId)
+				&& Objects.equals(associatedObjectType, other.associatedObjectType)
+				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(principalId, other.principalId);
 	}
 
 	@Override

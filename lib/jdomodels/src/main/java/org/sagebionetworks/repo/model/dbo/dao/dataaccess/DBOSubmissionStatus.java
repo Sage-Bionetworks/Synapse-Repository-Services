@@ -13,7 +13,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_A
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -53,13 +55,8 @@ public class DBOSubmissionStatus implements MigratableDatabaseObject<DBOSubmissi
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
-		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
-		result = prime * result + ((reason == null) ? 0 : reason.hashCode());
-		result = prime * result + ((state == null) ? 0 : state.hashCode());
-		result = prime * result + ((submisionId == null) ? 0 : submisionId.hashCode());
+		result = prime * result + Arrays.hashCode(reason);
+		result = prime * result + Objects.hash(createdBy, createdOn, modifiedBy, modifiedOn, state, submisionId);
 		return result;
 	}
 
@@ -72,39 +69,10 @@ public class DBOSubmissionStatus implements MigratableDatabaseObject<DBOSubmissi
 		if (getClass() != obj.getClass())
 			return false;
 		DBOSubmissionStatus other = (DBOSubmissionStatus) obj;
-		if (createdBy == null) {
-			if (other.createdBy != null)
-				return false;
-		} else if (!createdBy.equals(other.createdBy))
-			return false;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (modifiedBy == null) {
-			if (other.modifiedBy != null)
-				return false;
-		} else if (!modifiedBy.equals(other.modifiedBy))
-			return false;
-		if (modifiedOn == null) {
-			if (other.modifiedOn != null)
-				return false;
-		} else if (!modifiedOn.equals(other.modifiedOn))
-			return false;
-		if (reason == null) {
-			if (other.reason != null)
-				return false;
-		} else if (!reason.equals(other.reason))
-			return false;
-		if (state != other.state)
-			return false;
-		if (submisionId == null) {
-			if (other.submisionId != null)
-				return false;
-		} else if (!submisionId.equals(other.submisionId))
-			return false;
-		return true;
+		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
+				&& Objects.equals(modifiedBy, other.modifiedBy) && Objects.equals(modifiedOn, other.modifiedOn)
+				&& Arrays.equals(reason, other.reason) && Objects.equals(state, other.state)
+				&& Objects.equals(submisionId, other.submisionId);
 	}
 
 	public Long getSubmisionId() {

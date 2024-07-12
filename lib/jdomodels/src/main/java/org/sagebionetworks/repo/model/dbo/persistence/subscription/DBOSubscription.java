@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBSCR
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -45,18 +46,7 @@ public class DBOSubscription implements MigratableDatabaseObject<DBOSubscription
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result
-				+ ((objectId == null) ? 0 : objectId.hashCode());
-		result = prime * result
-				+ ((objectType == null) ? 0 : objectType.hashCode());
-		result = prime * result
-				+ ((subscriberId == null) ? 0 : subscriberId.hashCode());
-		return result;
+		return Objects.hash(createdOn, id, objectId, objectType, subscriberId);
 	}
 
 	@Override
@@ -68,29 +58,9 @@ public class DBOSubscription implements MigratableDatabaseObject<DBOSubscription
 		if (getClass() != obj.getClass())
 			return false;
 		DBOSubscription other = (DBOSubscription) obj;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (objectId == null) {
-			if (other.objectId != null)
-				return false;
-		} else if (!objectId.equals(other.objectId))
-			return false;
-		if (objectType != other.objectType)
-			return false;
-		if (subscriberId == null) {
-			if (other.subscriberId != null)
-				return false;
-		} else if (!subscriberId.equals(other.subscriberId))
-			return false;
-		return true;
+		return Objects.equals(createdOn, other.createdOn) && Objects.equals(id, other.id)
+				&& Objects.equals(objectId, other.objectId) && Objects.equals(objectType, other.objectType)
+				&& Objects.equals(subscriberId, other.subscriberId);
 	}
 
 	public Long getId() {

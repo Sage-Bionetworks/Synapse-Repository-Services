@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_T
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -149,15 +150,7 @@ public class DBODataType implements MigratableDatabaseObject<DBODataType, DBODat
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((dataType == null) ? 0 : dataType.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((objectId == null) ? 0 : objectId.hashCode());
-		result = prime * result + ((objectType == null) ? 0 : objectType.hashCode());
-		result = prime * result + ((updatedBy == null) ? 0 : updatedBy.hashCode());
-		result = prime * result + ((updatedOn == null) ? 0 : updatedOn.hashCode());
-		return result;
+		return Objects.hash(dataType, id, objectId, objectType, updatedBy, updatedOn);
 	}
 
 	@Override
@@ -169,31 +162,9 @@ public class DBODataType implements MigratableDatabaseObject<DBODataType, DBODat
 		if (getClass() != obj.getClass())
 			return false;
 		DBODataType other = (DBODataType) obj;
-		if (dataType != other.dataType)
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (objectId == null) {
-			if (other.objectId != null)
-				return false;
-		} else if (!objectId.equals(other.objectId))
-			return false;
-		if (objectType != other.objectType)
-			return false;
-		if (updatedBy == null) {
-			if (other.updatedBy != null)
-				return false;
-		} else if (!updatedBy.equals(other.updatedBy))
-			return false;
-		if (updatedOn == null) {
-			if (other.updatedOn != null)
-				return false;
-		} else if (!updatedOn.equals(other.updatedOn))
-			return false;
-		return true;
+		return Objects.equals(dataType, other.dataType) && Objects.equals(id, other.id)
+				&& Objects.equals(objectId, other.objectId) && Objects.equals(objectType, other.objectType)
+				&& Objects.equals(updatedBy, other.updatedBy) && Objects.equals(updatedOn, other.updatedOn);
 	}
 
 	@Override

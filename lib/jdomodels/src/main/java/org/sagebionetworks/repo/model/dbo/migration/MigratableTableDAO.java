@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.migration.TypeData;
  * @author John
  *
  */
-public interface MigratableTableDAO extends MigrationTypeProvider {
+public interface MigratableTableDAO  {
 	
 	/**
 	 * The total number of rows in the table.
@@ -159,5 +159,9 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	 * @return
 	 */
 	public TypeData getTypeData(MigrationType type);
+
+	List<MigratableDatabaseObject> getDatabaseObjectRegister();
+
+	List<MigratableDatabaseObject> getAllMigratableTypes();
 
 }

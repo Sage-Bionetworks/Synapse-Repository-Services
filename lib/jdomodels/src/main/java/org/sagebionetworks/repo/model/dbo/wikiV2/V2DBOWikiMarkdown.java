@@ -13,7 +13,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_MARKDOWN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.Field;
@@ -149,15 +151,8 @@ public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMark
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
-		result = prime * result
-				+ ((markdownVersion == null) ? 0 : markdownVersion.hashCode());
-		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
-		result = prime * result + ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
-		result = prime * result + ((title == null) ? 0 : title.hashCode());
-		result = prime * result + ((attachmentIdList == null) ? 0 : attachmentIdList.hashCode());
-		result = prime * result + ((wikiId == null) ? 0 : wikiId.hashCode());
+		result = prime * result + Arrays.hashCode(attachmentIdList);
+		result = prime * result + Objects.hash(fileHandleId, markdownVersion, modifiedBy, modifiedOn, title, wikiId);
 		return result;
 	}
 
@@ -170,42 +165,11 @@ public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMark
 		if (getClass() != obj.getClass())
 			return false;
 		V2DBOWikiMarkdown other = (V2DBOWikiMarkdown) obj;
-		if (fileHandleId == null) {
-			if (other.fileHandleId != null)
-				return false;
-		} else if (!fileHandleId.equals(other.fileHandleId))
-			return false;
-		if (markdownVersion == null) {
-			if (other.markdownVersion != null)
-				return false;
-		} else if (!markdownVersion.equals(other.markdownVersion))
-			return false;
-		if (modifiedOn == null) {
-			if (other.modifiedOn != null)
-				return false;
-		} else if (!modifiedOn.equals(other.modifiedOn))
-			return false;
-		if (modifiedBy == null) {
-			if (other.modifiedBy != null)
-				return false;
-		} else if (!modifiedBy.equals(other.modifiedBy))
-			return false;
-		if (attachmentIdList == null) {
-			if (other.attachmentIdList != null)
-				return false;
-		} else if (!attachmentIdList.equals(other.attachmentIdList))
-			return false;
-		if (title == null) {
-			if (other.title != null)
-				return false;
-		} else if (!title.equals(other.title))
-			return false;
-		if (wikiId == null) {
-			if (other.wikiId != null)
-				return false;
-		} else if (!wikiId.equals(other.wikiId))
-			return false;
-		return true;
+		return Arrays.equals(attachmentIdList, other.attachmentIdList)
+				&& Objects.equals(fileHandleId, other.fileHandleId)
+				&& Objects.equals(markdownVersion, other.markdownVersion)
+				&& Objects.equals(modifiedBy, other.modifiedBy) && Objects.equals(modifiedOn, other.modifiedOn)
+				&& Objects.equals(title, other.title) && Objects.equals(wikiId, other.wikiId);
 	}
 	
 	@Override

@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.migration;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -12,6 +11,7 @@ import java.io.Writer;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -23,25 +23,30 @@ import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.migration.MigrationFileType;
 import org.sagebionetworks.repo.model.dbo.migration.MigrationTypeProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-import com.thoughtworks.xstream.io.StreamException;
-
+@Service
 public class BackupFileStreamImpl implements BackupFileStream {
 	
 	static private Log log = LogFactory.getLog(BackupFileStreamImpl.class);
 
 	private static final String UTF_8 = "UTF-8";
-	private static final String INPUT_CONTAINED_NO_DATA = "input contained no data";
-	private static final String DOT = ".";
-	private static final String FILE_NAME_TEMPLATE = "%1$s.%2$d.xml";
 
+	private static final String DOT = ".";
+	private static final String FILE_NAME_TEMPLATE = "%1$s.%2$d.json";
+
+	private final MigrationTypeProvider typeProvider;
+	
 	@Autowired
-	MigrationTypeProvider typeProvider;
+	public BackupFileStreamImpl(MigrationTypeProvider typeProvider) {
+		this.typeProvider = typeProvider;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -227,7 +232,7 @@ public class BackupFileStreamImpl implements BackupFileStream {
 			backupObjects.add(backupObject);
 		}
 
-		typeProvider.getXStream(backupAliasType).toXML(backupObjects, writer);
+		typeProvider.writeObjects(backupAliasType, currentType,  backupObjects, writer);
 		writer.flush();
 	}
 
@@ -243,13 +248,14 @@ public class BackupFileStreamImpl implements BackupFileStream {
 		try {
 			// Keep reading files until new data is found.
 			ZipEntry entry;
-			while((entry = zipStream.getNextEntry()) != null) {
-				try {
-					// Read the zip entry.
-					return readFileFromStream(zipStream, backupAliasType, entry.getName());
-				} catch (EmptyFileException e) {
-					// This file is empty so move to the next file...
+			while ((entry = zipStream.getNextEntry()) != null) {
+				// Read the zip entry.
+				Optional<List<MigratableDatabaseObject<?, ?>>> result = readFileFromStream(zipStream, backupAliasType,
+						entry.getName());
+				if (result.isEmpty()) {
 					continue;
+				} else {
+					return result.get();
 				}
 			}
 			// No new data was found in the zip
@@ -265,39 +271,34 @@ public class BackupFileStreamImpl implements BackupFileStream {
 	 * @param backupAliasType
 	 * @param fileName
 	 * @return
-	 * @throws EmptyFileException if the given file contains no data.
 	 */
-	<D extends DatabaseObject<D>, B> List<MigratableDatabaseObject<?, ?>> readFileFromStream(InputStream input,
-			BackupAliasType backupAliasType, String fileName) throws EmptyFileException {
+	<D extends DatabaseObject<D>, B> Optional<List<MigratableDatabaseObject<?, ?>>> readFileFromStream(InputStream input,
+			BackupAliasType backupAliasType, String fileName) {
 		MigrationType type;
 		try {
 			type = getTypeFromFileName(fileName);
 		} catch (NotFoundException e) {
 			// Migration types that have been removed should be ignored. (See PLFM-5682)
 			log.warn("Migration type cannot be found so it will be ignored: "+e.getMessage());
-			throw new EmptyFileException();
+			return Optional.empty();
 		}
 		// Lookup the object for the type.
 		MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(type);
 		MigratableTableTranslation<D, B> translator = mdo.getTranslator();
 
-		List<B> backupObjects;
-		try {
-			backupObjects = (List<B>) typeProvider.getXStream(backupAliasType).fromXML(input);
-		} catch (StreamException e) {
-			if (!(e.getCause() instanceof EOFException && e.getCause().getMessage().contains(INPUT_CONTAINED_NO_DATA))) {
-				throw new RuntimeException(e);
-			}
-			// This file is empty so move to the next file...
-			throw new EmptyFileException();
+		Optional<List<B>> backupObjects = typeProvider.readObjects(mdo.getBackupClass(), backupAliasType, input,
+				MigrationFileType.fromFileName(fileName));
+		if (backupObjects.isEmpty()) {
+			return Optional.empty();
 		}
 		// Translate the results
 		List<MigratableDatabaseObject<?, ?>> translated = new LinkedList<>();
-		for (B backupObject : backupObjects) {
+		for (B backupObject : backupObjects.get()) {
 			D databaseObject = translator.createDatabaseObjectFromBackup(backupObject);
 			translated.add((MigratableDatabaseObject<?, ?>) databaseObject);
 		}
-		return translated;
+		return Optional.of(translated);
 	}
+
 
 }
