@@ -48,11 +48,12 @@ public class AccessRequirementUtils {
 		dboRequirement.setConcreteType(dto.getConcreteType());
 		dboRequirement.setCurrentRevNumber(dto.getVersionNumber());
 		dboRequirement.setName(dto.getName());
-		if(dboRequirement.getName() == null) {
-			dboRequirement.setName(dto.getId().toString());
-		}
-		if(!StringUtils.isBlank(dto.getDescription())) {
-			dboRequirement.setName(dto.getDescription());
+		if(StringUtils.isBlank(dboRequirement.getName())) {
+			if (!StringUtils.isBlank(dto.getDescription())) {
+				dboRequirement.setName(dto.getDescription());
+			} else {
+				dboRequirement.setName(dto.getId().toString());
+			}
 		}
 		if (dto instanceof ManagedACTAccessRequirement) {
 			dboRequirement.setIsTwoFaRequired(((ManagedACTAccessRequirement) dto).getIsTwoFaRequired());

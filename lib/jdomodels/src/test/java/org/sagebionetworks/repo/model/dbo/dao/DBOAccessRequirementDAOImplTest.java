@@ -555,7 +555,7 @@ public class DBOAccessRequirementDAOImplTest {
 		ar.setName("some name");
 		// call under test
 		ar = accessRequirementDAO.create(ar);
-		assertEquals("some description", ar.getName());
+		assertEquals("some name", ar.getName());
 	}
 	
 	@Test
@@ -637,7 +637,7 @@ public class DBOAccessRequirementDAOImplTest {
 		ar.setVersionNumber(ar.getVersionNumber()+1);
 		// call under test
 		ar = accessRequirementDAO.update(ar);
-		assertEquals("some description", ar.getName());
+		assertEquals("some name", ar.getName());
 	}
 	
 	@Test
