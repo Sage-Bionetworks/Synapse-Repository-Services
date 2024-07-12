@@ -429,7 +429,7 @@ public class SqlConstants {
     public static final String COL_CHALLENGE_PROJECT_ID 			= "PROJECT_ID";
     public static final String COL_CHALLENGE_PARTICIPANT_TEAM_ID  	= "TEAM_ID";
 	public static final String COL_CHALLENGE_SERIALIZED_ENTITY		= "SERIALIZED_ENTITY";
-
+    public static final String DDL_CHALLENGE					    = "schema/Challenge-ddl.sql";
     // The CHALLENGE-TEAM table
     public static final String TABLE_CHALLENGE_TEAM        				= "CHALLENGE_TEAM";
     public static final String COL_CHALLENGE_TEAM_ID 					= "ID";
@@ -591,6 +591,7 @@ public class SqlConstants {
 	public static final String TABLE_BOUND_COLUMN_OWNER		= "BOUND_COLUMN_OWNER";
 	public static final String COL_BOUND_OWNER_OBJECT_ID	= "OBJECT_ID";
 	public static final String COL_BOUND_OWNER_ETAG			= "ETAG";
+	public static final String DDL_BOUND_COLUMN_OWNER		 = "schema/BoundColumnOwner-ddl.sql";
 	
 	// Tracks the file handles associated with each table.
 	public static final String TABLE_TABLE_FILE_ASSOCIATION 	= "TABLE_FILE_ASSOCIATION";
