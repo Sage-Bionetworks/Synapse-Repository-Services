@@ -1001,6 +1001,7 @@ public class SqlConstants {
 	public static final String TABLE_DOCKER_REPOSITORY_NAME = "DOCKER_REPOSITORY_NAME";
 	public static final String COL_DOCKER_REPOSITORY_OWNER_ID = "OWNER_ID";
 	public static final String COL_DOCKER_REPOSITORY_NAME = "REPOSITORY_NAME";
+	public static final String DDL_DOCKER_REPOSITORY_NAME = "schema/DockerRepositoryName-ddl.sql";
 	
 	// DockerCommit table
 	public static final String TABLE_DOCKER_COMMIT = "DOCKER_COMMIT";
