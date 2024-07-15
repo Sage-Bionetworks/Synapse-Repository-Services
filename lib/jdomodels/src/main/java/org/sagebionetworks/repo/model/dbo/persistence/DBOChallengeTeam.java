@@ -1,59 +1,76 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_CHALLENGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_TEAM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_CHALLENGE_TEAM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE_TEAM;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.ForeignKey;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
- * Mapping between groups and nodes.  Used to relate Teams to Challenges
+ * Mapping between groups and nodes. Used to relate Teams to Challenges
  */
-@Table(name = TABLE_CHALLENGE_TEAM, constraints = { 
-		"unique key UNIQUE_CT_CHALL_AND_TEAM ("+ COL_CHALLENGE_TEAM_TEAM_ID + "," + COL_CHALLENGE_TEAM_CHALLENGE_ID +")" })
 public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTeam, DBOChallengeTeam> {
-	@Field(name = COL_CHALLENGE_TEAM_ID, backupId = true, primary = true, nullable = false)
+
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("id", COL_CHALLENGE_TEAM_ID).withIsPrimaryKey(true).withIsBackupId(true),
+			new FieldColumn("etag", COL_CHALLENGE_TEAM_ETAG).withIsEtag(true),
+			new FieldColumn("teamId", COL_CHALLENGE_TEAM_TEAM_ID),
+			new FieldColumn("serializedEntity", COL_CHALLENGE_TEAM_SERIALIZED_ENTITY)};
+
 	private Long id;
-	
-	@Field(name = COL_CHALLENGE_TEAM_ETAG, backupId = false, primary = false, nullable = false, etag=true)
 	private String etag;
-	
-	// NOTE:  This is a FK to the TEAM table, not the USER_GROUP table, ensuring that the
-	// principal registered is a Team
-	@Field(name = COL_CHALLENGE_TEAM_TEAM_ID, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_TEAM, field = COL_TEAM_ID, cascadeDelete = true)
 	private Long teamId;
-	
-	@Field(name = COL_CHALLENGE_TEAM_CHALLENGE_ID, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_CHALLENGE, field = COL_CHALLENGE_ID, cascadeDelete = true)
 	private Long challengeId;
-	
-	@Field(name=COL_CHALLENGE_TEAM_SERIALIZED_ENTITY, blob = "mediumblob", backupId = false, primary = false, nullable = false)
 	private byte[] serializedEntity;
-	
-	private static TableMapping<DBOChallengeTeam> tableMapping = AutoTableMapping.create(DBOChallengeTeam.class);
 
 	@Override
 	public TableMapping<DBOChallengeTeam> getTableMapping() {
-		return tableMapping;
+		return new TableMapping<DBOChallengeTeam>() {
+			
+			@Override
+			public DBOChallengeTeam mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOChallengeTeam dbo = new DBOChallengeTeam();
+				dbo.setId(rs.getLong(COL_CHALLENGE_TEAM_ID));
+				dbo.setEtag(rs.getString(COL_CHALLENGE_TEAM_ETAG));
+				dbo.setTeamId(rs.getLong(COL_CHALLENGE_TEAM_TEAM_ID));
+				dbo.setSerializedEntity(rs.getBytes(COL_CHALLENGE_TEAM_SERIALIZED_ENTITY));
+				return dbo;
+			}
+			
+			@Override
+			public String getTableName() {
+				return TABLE_CHALLENGE_TEAM;
+			}
+			
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+			
+			@Override
+			public String getDDLFileName() {
+				return DDL_CHALLENGE_TEAM;
+			}
+			
+			@Override
+			public Class<? extends DBOChallengeTeam> getDBOClass() {
+				return DBOChallengeTeam.class;
+			}
+		};
 	}
 
 	@Override
@@ -61,28 +78,24 @@ public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTe
 		return MigrationType.CHALLENGE_TEAM;
 	}
 
-
 	@Override
 	public MigratableTableTranslation<DBOChallengeTeam, DBOChallengeTeam> getTranslator() {
 		// We do not currently have a backup for this object.
 		return new BasicMigratableTableTranslation<DBOChallengeTeam>();
 	}
 
-
 	@Override
 	public Class<? extends DBOChallengeTeam> getBackupClass() {
 		return DBOChallengeTeam.class;
 	}
-
 
 	@Override
 	public Class<? extends DBOChallengeTeam> getDatabaseObjectClass() {
 		return DBOChallengeTeam.class;
 	}
 
-
 	@Override
-	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
 		return null;
 	}
 
@@ -122,22 +135,16 @@ public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTe
 		return serializedEntity;
 	}
 
-
 	public void setSerializedEntity(byte[] serializedEntity) {
 		this.serializedEntity = serializedEntity;
 	}
-
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((challengeId == null) ? 0 : challengeId.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + Arrays.hashCode(serializedEntity);
-		result = prime * result + ((teamId == null) ? 0 : teamId.hashCode());
+		result = prime * result + Objects.hash(challengeId, etag, id, teamId);
 		return result;
 	}
 
@@ -150,30 +157,9 @@ public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTe
 		if (getClass() != obj.getClass())
 			return false;
 		DBOChallengeTeam other = (DBOChallengeTeam) obj;
-		if (challengeId == null) {
-			if (other.challengeId != null)
-				return false;
-		} else if (!challengeId.equals(other.challengeId))
-			return false;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (!Arrays.equals(serializedEntity, other.serializedEntity))
-			return false;
-		if (teamId == null) {
-			if (other.teamId != null)
-				return false;
-		} else if (!teamId.equals(other.teamId))
-			return false;
-		return true;
+		return Objects.equals(challengeId, other.challengeId) && Objects.equals(etag, other.etag)
+				&& Objects.equals(id, other.id) && Arrays.equals(serializedEntity, other.serializedEntity)
+				&& Objects.equals(teamId, other.teamId);
 	}
-
 
 }

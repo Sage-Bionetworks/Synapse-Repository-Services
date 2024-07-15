@@ -437,6 +437,7 @@ public class SqlConstants {
     public static final String COL_CHALLENGE_TEAM_TEAM_ID  				= "TEAM_ID";
     public static final String COL_CHALLENGE_TEAM_CHALLENGE_ID 			= "CHALLENGE_ID";
 	public static final String COL_CHALLENGE_TEAM_SERIALIZED_ENTITY		= "SERIALIZED_ENTITY";
+	public static final String DDL_CHALLENGE_TEAM						= "schema/ChallengeTeam-ddl.sql";
 
 	public static final String TABLE_ACCESS_CONTROL_LIST  = "ACL";
 	public static final String COL_ACL_ID          = "ID";

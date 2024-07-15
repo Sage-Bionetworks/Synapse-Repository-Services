@@ -48,7 +48,7 @@ public class SubmissionContributorDBO
 				dbo.setEtag(rs.getString(COL_SUBMISSION_CONTRIBUTOR_ETAG));
 				dbo.setSubmissionId(rs.getLong(COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID));
 				dbo.setPrincipalId(rs.getLong(COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID));
-				dbo.setCreatedOn(rs.getDate(COL_SUBMISSION_CONTRIBUTOR_CREATED_ON));
+				dbo.setCreatedOn(rs.getTimestamp(COL_SUBMISSION_CONTRIBUTOR_CREATED_ON));
 				return dbo;
 			}
 			
