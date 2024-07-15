@@ -1009,6 +1009,7 @@ public class SqlConstants {
 	public static final String COL_DOCKER_COMMIT_TAG = "TAG";
 	public static final String COL_DOCKER_COMMIT_DIGEST = "DIGEST";
 	public static final String COL_DOCKER_COMMIT_CREATED_ON = "CREATED_ON";
+	public static final String DDL_DOCKER_COMMIT			= "schema/DockerCommit-ddl.sql";
 	
 	//ThrottleRules table
 	public static final String TABLE_THROTTLE_RULES = "THROTTLE_RULES";

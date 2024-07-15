@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_CHALLENGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_SERIALIZED_ENTITY;
@@ -29,6 +30,7 @@ public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTe
 			new FieldColumn("id", COL_CHALLENGE_TEAM_ID).withIsPrimaryKey(true).withIsBackupId(true),
 			new FieldColumn("etag", COL_CHALLENGE_TEAM_ETAG).withIsEtag(true),
 			new FieldColumn("teamId", COL_CHALLENGE_TEAM_TEAM_ID),
+			new FieldColumn("challengeId", COL_CHALLENGE_TEAM_CHALLENGE_ID),
 			new FieldColumn("serializedEntity", COL_CHALLENGE_TEAM_SERIALIZED_ENTITY)};
 
 	private Long id;
@@ -47,6 +49,7 @@ public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTe
 				dbo.setId(rs.getLong(COL_CHALLENGE_TEAM_ID));
 				dbo.setEtag(rs.getString(COL_CHALLENGE_TEAM_ETAG));
 				dbo.setTeamId(rs.getLong(COL_CHALLENGE_TEAM_TEAM_ID));
+				dbo.setChallengeId(rs.getLong(COL_CHALLENGE_TEAM_CHALLENGE_ID));
 				dbo.setSerializedEntity(rs.getBytes(COL_CHALLENGE_TEAM_SERIALIZED_ENTITY));
 				return dbo;
 			}
