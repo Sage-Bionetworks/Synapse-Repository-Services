@@ -207,6 +207,7 @@ public class SqlConstants {
 	public static final String TABLE_PRINCIPAL_PREFIX 				= "PRINCIPAL_PREFIX";
 	public static final String COL_PRINCIPAL_PREFIX_TOKEN			= "TOKEN";
 	public static final String COL_PRINCIPAL_PREFIX_PRINCIPAL_ID 	= "PRINCIPAL_ID";
+	public static final String DDL_PRINCIPAL_PREFIX					= "schema/PrincipalPrefix-ddl.sql";
 
 	// The ACCESS_REQUIREMENT table
 	public static final String TABLE_ACCESS_REQUIREMENT							= "ACCESS_REQUIREMENT";
