@@ -70,7 +70,8 @@ public class SqlConstants {
 	public static final String COL_PROJECT_SETTING_PROJECT_ID	= "PROJECT_ID";
 	public static final String COL_PROJECT_SETTING_ETAG			= "ETAG";
 	public static final String COL_PROJECT_SETTING_TYPE			= "TYPE";
-	public static final String COL_PROJECT_SETTING_DATA			= "DATA";
+	public static final String COL_PROJECT_SETTING_JSON			= "JSON";
+	public static final String DDL_PROJECT_SETTING				= "schema/ProjectSettings-ddl.sql";
 
 	// The Upload Destination Location table
 	public static final String TABLE_STORAGE_LOCATION				= "STORAGE_LOCATION";
