@@ -45,6 +45,7 @@ public class DBODockerCommit implements MigratableDatabaseObject<DBODockerCommit
 				dbo.setMigrationId(rs.getLong(COL_DOCKER_COMMIT_ID));
 				dbo.setOwner(rs.getLong(COL_DOCKER_COMMIT_OWNER_ID));
 				dbo.setTag(rs.getString(COL_DOCKER_COMMIT_TAG));
+				dbo.setDigest(rs.getString(COL_DOCKER_COMMIT_DIGEST));
 				dbo.setCreatedOn(rs.getLong(COL_DOCKER_COMMIT_CREATED_ON));
 				return dbo;
 			}
