@@ -1,76 +1,102 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_PASSED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_PASSING_RECORD;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_QUIZ_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_REVOKED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_SCORE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_SERIALIZED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_QUIZ_RESPONSE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_QUIZ_RESPONSE;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.ForeignKey;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
-import org.sagebionetworks.util.TemporaryCode;
 
-@Table(name = SqlConstants.TABLE_QUIZ_RESPONSE)
 public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse, DBOQuizResponse> {
 	
-	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_ID, backupId = true, primary = true, nullable = false)
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("id", COL_QUIZ_RESPONSE_ID).withIsPrimaryKey(true).withIsBackupId(true),
+			new FieldColumn("etag", COL_QUIZ_RESPONSE_ETAG).withIsEtag(true),
+			new FieldColumn("createdBy", COL_QUIZ_RESPONSE_CREATED_BY),
+			new FieldColumn("createdOn", COL_QUIZ_RESPONSE_CREATED_ON),
+			new FieldColumn("revokedOn", COL_QUIZ_RESPONSE_REVOKED_ON),
+			new FieldColumn("quizId", COL_QUIZ_RESPONSE_QUIZ_ID),
+			new FieldColumn("score", COL_QUIZ_RESPONSE_SCORE),
+			new FieldColumn("passed", COL_QUIZ_RESPONSE_PASSED),
+			new FieldColumn("serialized", COL_QUIZ_RESPONSE_SERIALIZED),
+			new FieldColumn("passingRecord", COL_QUIZ_RESPONSE_PASSING_RECORD),
+	};
+	
 	private Long id;
-	
-	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_ETAG, etag = true, nullable = false)
 	private String etag;
-	
-	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_CREATED_BY, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long createdBy;
-	
-	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_CREATED_ON, backupId = false, primary = false, nullable = false)
 	private Long createdOn;
-	
-	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_REVOKED_ON, backupId = false, primary = false, nullable = true)
 	private Long revokedOn;
-
-	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_QUIZ_ID, backupId = false, primary = false, nullable = false)
 	private Long quizId;
-	
-	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_SCORE, backupId = false, primary = false, nullable = false)
 	private Long score;
-	
-	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_PASSED, backupId = false, primary = false, nullable = false)
 	private Boolean passed;
-	
-	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_SERIALIZED, backupId = false, primary = false, nullable = false, serialized="mediumblob")
 	private byte[] serialized;
-
-	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_PASSING_RECORD, backupId = false, primary = false, nullable = false, serialized="mediumblob")
 	private byte[] passingRecord;
 
-	private static final TableMapping<DBOQuizResponse> TABLE_MAPPING = AutoTableMapping.create(DBOQuizResponse.class);
-
-	private static final BasicMigratableTableTranslation<DBOQuizResponse> TABLE_MIGRATION = new BasicMigratableTableTranslation<DBOQuizResponse>() {
-		
-		@TemporaryCode(author = "marco", comment = "Remove after PLFM-8365 has be released to production")
-		public DBOQuizResponse createDatabaseObjectFromBackup(DBOQuizResponse backup) {
-			if (backup.getEtag() == null) {
-				backup.setEtag(UUID.randomUUID().toString());
-			}
-			return backup;
-		};
-		
-	};
+	private static final BasicMigratableTableTranslation<DBOQuizResponse> TABLE_MIGRATION = new BasicMigratableTableTranslation<DBOQuizResponse>();
 	
 	@Override
 	public TableMapping<DBOQuizResponse> getTableMapping() {
-		return TABLE_MAPPING;
+		return new TableMapping<DBOQuizResponse>() {
+			
+			@Override
+			public DBOQuizResponse mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOQuizResponse dbo = new DBOQuizResponse();
+				dbo.setId(rs.getLong(COL_QUIZ_RESPONSE_ID));
+				dbo.setEtag(rs.getString(COL_QUIZ_RESPONSE_ETAG));
+				dbo.setCreatedBy(rs.getLong(COL_QUIZ_RESPONSE_CREATED_BY));
+				dbo.setCreatedOn(rs.getLong(COL_QUIZ_RESPONSE_CREATED_ON));
+				dbo.setRevokedOn(rs.getLong(COL_QUIZ_RESPONSE_REVOKED_ON));
+				if(rs.wasNull()) {
+					dbo.setRevokedOn(null);
+				}
+				dbo.setQuizId(rs.getLong(COL_QUIZ_RESPONSE_QUIZ_ID));
+				dbo.setScore(rs.getLong(COL_QUIZ_RESPONSE_SCORE));
+				dbo.setPassed(rs.getBoolean(COL_QUIZ_RESPONSE_PASSED));
+				dbo.setSerialized(rs.getBytes(COL_QUIZ_RESPONSE_SERIALIZED));
+				dbo.setPassingRecord(rs.getBytes(COL_QUIZ_RESPONSE_PASSING_RECORD));
+				return dbo;
+			}
+			
+			@Override
+			public String getTableName() {
+				return TABLE_QUIZ_RESPONSE;
+			}
+			
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+			
+			@Override
+			public String getDDLFileName() {
+				return DDL_QUIZ_RESPONSE;
+			}
+			
+			@Override
+			public Class<? extends DBOQuizResponse> getDBOClass() {
+				return DBOQuizResponse.class;
+			}
+		};
 	}
 
 	@Override
@@ -209,6 +235,5 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 		return "DBOQuizResponse [id=" + id + ", etag=" + etag + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", revokedOn="
 				+ revokedOn + ", quizId=" + quizId + ", score=" + score + ", passed=" + passed + "]";
 	}
-	
 	
 }
