@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_JSON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_PROJECT_SETTING;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_SETTING;
@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
-import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.TemporaryCode;
@@ -140,7 +139,7 @@ public class DBOProjectSetting implements MigratableDatabaseObject<DBOProjectSet
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(data, etag, id, projectId, json, type);
+		return Objects.hash(data, etag, id, json, projectId, type);
 	}
 
 	@Override
@@ -153,14 +152,14 @@ public class DBOProjectSetting implements MigratableDatabaseObject<DBOProjectSet
 			return false;
 		DBOProjectSetting other = (DBOProjectSetting) obj;
 		return Objects.equals(data, other.data) && Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
-				&& Objects.equals(projectId, other.projectId) && Objects.equals(json, other.json)
-				&& type == other.type;
+				&& Objects.equals(json, other.json) && Objects.equals(projectId, other.projectId)
+				&& Objects.equals(type, other.type);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOProjectSettings [id=" + id + ", projectId=" + projectId + ", type=" + type + ", etag=" + etag
-				+ ", data=" + data + "]";
+		return "DBOProjectSetting [id=" + id + ", projectId=" + projectId + ", type=" + type + ", etag=" + etag
+				+ ", data=" + data + ", json=" + json + "]";
 	}
 
 	@Override

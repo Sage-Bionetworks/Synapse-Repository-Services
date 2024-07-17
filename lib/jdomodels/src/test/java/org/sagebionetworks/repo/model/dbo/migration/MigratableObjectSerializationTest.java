@@ -16,9 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.util.json.JavaJSONUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -100,9 +98,7 @@ public class MigratableObjectSerializationTest {
 				} else if (StorageLocationSetting.class.isAssignableFrom(fieldType)) {
 					value = new ExternalS3StorageLocationSetting().setStorageLocationId(RANDOM.nextLong())
 							.setBucket("abucket");
-				} else if (ProjectSetting.class.isAssignableFrom(fieldType)) {
-					value = new UploadDestinationListSetting().setId("anId");
-				} else {
+				}else {
 					throw new IllegalArgumentException("Unknown field type: " + fieldType.getName());
 				}
 				field.setAccessible(true);
